@@ -1,0 +1,13 @@
+--- util/crc32c.cc	2024-02-28 15:43:07.049675300 +0300
++++ util/crc32c_new.cc	2024-02-28 15:19:47.879137600 +0300
+@@ -56,6 +56,10 @@
+ bool pmull_runtime_flag = false;
+ #endif
+ 
++#if defined(WIN32) && !defined(_WIN64)
++#define _mm_crc32_u64 _mm_crc32_u32
++#endif
++
+ namespace ROCKSDB_NAMESPACE {
+ namespace crc32c {
+ 
