@@ -1,0 +1,1 @@
+pacman -S --noconfirm p7zip git perl python mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git make

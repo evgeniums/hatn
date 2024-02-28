@@ -1,8 +1,3 @@
-SET openssl_underscore_version=%OPENSSL_VERSION%
-SETLOCAL ENABLEDELAYEDEXPANSION
-SET openssl_underscore_version=%openssl_underscore_version:.=_%
-SETLOCAL DISABLEDELAYEDEXPANSION
-
 SET lib_name=openssl-%OPENSSL_VERSION%
 
 rem https://codeload.github.com/openssl/openssl/zip/refs/tags/openssl-3.2.1
