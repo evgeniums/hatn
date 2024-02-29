@@ -1,0 +1,6 @@
+[submodule "thirdparty/fmt"]
+	path = thirdparty/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "thirdparty/ios-cmake"]
+	path = thirdparty/ios-cmake
+	url = https://github.com/leetal/ios-cmake
