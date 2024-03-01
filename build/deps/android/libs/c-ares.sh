@@ -10,12 +10,6 @@ cd $lib_build_dir
 
 export CXXFLAGS=-fPIC
 
-toolchain_name=$toolchain-linux-android-clang$toolchain_version
-if [ "$toolchain" = "arm-linux-androideabi" ];
-then
-    toolchain_name=$toolchain-clang$toolchain_version
-fi
-
 echo "Android platform is $platform, toolchain $toolchain_name"
 
 cmake -G "Unix Makefiles" \

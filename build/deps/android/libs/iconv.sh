@@ -1,13 +1,9 @@
-#!/bin/bash
-
 # change version and download link to whatever you want
 version=$iconv_version
 download_link=https://ftp.gnu.org/pub/gnu/libiconv
 
 ICONV_SRC=$src_dir/libiconv-$version
 archive_name=libiconv-$version.tar.gz
-
-set -e
 
 unpack_archive()
 {

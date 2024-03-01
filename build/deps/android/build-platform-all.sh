@@ -96,10 +96,13 @@ build_arch()
     export toolchain_strip=$toolchain_bin_path/llvm-strip
     export toolchain_nm=$toolchain_bin_path/llvm-nm
 
+    export toolchain_name=$toolchain-linux-android-clang$toolchain_version
+
     if [ "$toolchain" = "arm-linux-androideabi" ];
     then
         export toolchain_clang=$toolchain_bin_path/armv7a-linux-androideabi$android_api_level-clang
         export toolchain_clangpp=$toolchain_bin_path/armv7a-linux-androideabi$android_api_level-clang++
+        export  toolchain_name=$toolchain-clang$toolchain_version
     fi
 
     export CC=$toolchain_clang
@@ -119,6 +122,7 @@ build_arch()
     fi
 
     echo Begin arch=$arch toolchain=$toolchain address_model=$address_model
+    echo "oolchain_name=$toolchain_name"
     echo "android_api_level=$android_api_level"
     echo "clang=$toolchain_clang"
     echo "clang++=$toolchain_clangpp"
@@ -163,7 +167,8 @@ build_all()
 
 build_all
 
-if [ -d "$build_root" ];
-    then
-        rm -rf $build_root
-fi
+# @todo Make it configurable
+# if [ -d "$build_root" ];
+#     then
+#         rm -rf $build_root
+# fi

@@ -1,5 +1,3 @@
-#!/bin/bash
-
 export build_dir=$toolchain_build_path
 export lib_name=openssl-$openssl_version
 
