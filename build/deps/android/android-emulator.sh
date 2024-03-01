@@ -11,7 +11,12 @@ esac
 export ANDROID_SDK_ROOT=$ANDROID_SDK
 export PATH=$ANDROID_SDK/emulator:$ANDROID_SDK/tools:$ANDROID_SDK/platform-tools:$PATH
 
-avd=`emulator -list-avds`
+avds=`emulator -list-avds`
 
-echo "Running emulator $avd on $unameOut"
-emulator \@$avd &
+IFS=$'\n' read -rd '' -a y <<<"$avds"
+last="${y[${#y[@]}-1]}"
+
+printf "List of avds:\n$avds\n"
+
+echo "Running emulator $last on $unameOut"
+emulator -avd $last &
