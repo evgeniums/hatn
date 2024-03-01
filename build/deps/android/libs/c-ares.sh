@@ -25,6 +25,9 @@ cmake -G "Unix Makefiles" \
 	    -DANDROID_PLATFORM=$platform \
 	    -DCMAKE_INSTALL_PREFIX=$toolchain_install_path \
 	    -DREGISTER_INSTALL_PREFIX=0 \
+	    -DCARES_STATIC=On \
+	    -DCARES_SHARED=Off \
+	    -DCARES_BUILD_TOOLS=Off \
 	    $folder
 
 make -j$build_workers install

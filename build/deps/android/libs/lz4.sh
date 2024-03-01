@@ -10,22 +10,25 @@ source $scripts_root/../desktop/scripts/clonegit.sh
 
 cd $folder
 
-keep_path=$PATH
-export PATH=$toolchain_path/bin:$PATH
-
-export CFLAGS=--sysroot=$toolchain_sysroot
-export CXXFLAGS="--sysroot=$toolchain_sysroot --std=libc++"
-export LDFLAGS=--sysroot=$toolchain_sysroot
-
 make clean
 make prefix=$toolchain_install_path uninstall
-make prefix=$toolchain_install_path install
 
 cd -
+cd $build_dir
+echo "Build dir=$build_dir"
 
-export PATH=$keep_path
-unset CFLAGS
-unset CXXFLAGS
-unset LDFLAGS
-unset ANDROID_HOST
-unset ANDROID_ARCH
+cmake -G "Unix Makefiles" \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+	    -DANDROID_TOOLCHAIN_NAME=$toolchain_name \
+	    -DANDROID_PLATFORM=$platform \
+	    -DCMAKE_INSTALL_PREFIX=$toolchain_install_path \
+	    -DLZ4_BUILD_CLI=Off \
+	    -DBUILD_SHARED_LIBS=Off \
+	    -DBUILD_STATIC_LIBS=On \
+	    -DLZ4_BUILD_CLI=Off \
+	    -DLZ4_BUILD_LEGACY_LZ4C=Off \
+	    $folder/build/cmake
+make install
+
+cd -
