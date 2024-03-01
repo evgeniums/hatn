@@ -2,7 +2,7 @@
 
 self=`basename $0`
 
-set -e
+set -eo pipefail
 
 if [ $# -eq 0 ];
     then
@@ -73,6 +73,7 @@ build_arch()
 
     export toolchain_build_path=$build_root/$toolchain
     export toolchain_install_path=$install_root/$toolchain
+    export build_dir=$toolchain_build_path
 
     export triple=arm-linux-androideabi
     if [ "$arch" = "x86" ];

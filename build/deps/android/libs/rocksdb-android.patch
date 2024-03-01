@@ -1,6 +1,7 @@
-diff -ruN rocksdb/CMakeLists.txt rocksdb/CMakeLists.txt
---- rocksdb/CMakeLists.txt	2024-03-01 19:07:02.000000000 +0300
-+++ rocksdb/CMakeLists.txt	2024-03-01 19:05:59.000000000 +0300
+Binary files rocksdb/.git/index and rocksdb.patched/.git/index differ
+diff -ruN rocksdb/CMakeLists.txt rocksdb.patched/CMakeLists.txt
+--- rocksdb/CMakeLists.txt	2024-03-01 22:46:33.000000000 +0300
++++ rocksdb.patched/CMakeLists.txt	2024-03-01 22:44:27.000000000 +0300
 @@ -33,7 +33,7 @@
  # 4. make -j
  
@@ -32,9 +33,21 @@ diff -ruN rocksdb/CMakeLists.txt rocksdb/CMakeLists.txt
    add_definitions(-DOS_MACOSX)
  elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
    add_definitions(-DOS_LINUX)
-diff -ruN rocksdb/util/crc32c.cc rocksdb/util/crc32c.cc
---- rocksdb/util/crc32c.cc	2024-03-01 19:07:02.000000000 +0300
-+++ rocksdb/util/crc32c.cc	2024-03-01 19:05:59.000000000 +0300
+diff -ruN rocksdb/env/io_posix.cc rocksdb.patched/env/io_posix.cc
+--- rocksdb/env/io_posix.cc	2024-03-01 22:46:33.000000000 +0300
++++ rocksdb.patched/env/io_posix.cc	2024-03-01 22:44:28.000000000 +0300
+@@ -28,7 +28,7 @@
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cstring>
+-#ifdef OS_LINUX
++#if defined(OS_LINUX) || defined(OS_ANDROID)
+ #include <sys/statfs.h>
+ #include <sys/sysmacros.h>
+ #endif
+diff -ruN rocksdb/util/crc32c.cc rocksdb.patched/util/crc32c.cc
+--- rocksdb/util/crc32c.cc	2024-03-01 22:46:33.000000000 +0300
++++ rocksdb.patched/util/crc32c.cc	2024-03-01 22:44:27.000000000 +0300
 @@ -56,6 +56,10 @@
  bool pmull_runtime_flag = false;
  #endif
@@ -46,9 +59,9 @@ diff -ruN rocksdb/util/crc32c.cc rocksdb/util/crc32c.cc
  namespace ROCKSDB_NAMESPACE {
  namespace crc32c {
  
-diff -ruN rocksdb/util/math.h rocksdb/util/math.h
---- rocksdb/util/math.h	2024-03-01 19:07:02.000000000 +0300
-+++ rocksdb/util/math.h	2024-03-01 19:05:59.000000000 +0300
+diff -ruN rocksdb/util/math.h rocksdb.patched/util/math.h
+--- rocksdb/util/math.h	2024-03-01 22:46:33.000000000 +0300
++++ rocksdb.patched/util/math.h	2024-03-01 22:44:27.000000000 +0300
 @@ -35,9 +35,11 @@
    if constexpr (sizeof(T) <= 4) {
      return static_cast<T>(_bzhi_u32(static_cast<uint32_t>(v), nbits));
@@ -64,9 +77,9 @@ diff -ruN rocksdb/util/math.h rocksdb/util/math.h
  #endif
    // Newer compilers compile this down to bzhi on x86, but some older
    // ones don't, thus the need for the intrinsic above.
-diff -ruN rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h
---- rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h	2024-03-01 19:07:02.000000000 +0300
-+++ rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h	2024-03-01 19:05:59.000000000 +0300
+diff -ruN rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h rocksdb.patched/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h
+--- rocksdb/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h	2024-03-01 22:46:33.000000000 +0300
++++ rocksdb.patched/utilities/transactions/lock/range/range_tree/lib/portability/toku_time.h	2024-03-01 22:44:28.000000000 +0300
 @@ -120,6 +120,12 @@
  
  #endif

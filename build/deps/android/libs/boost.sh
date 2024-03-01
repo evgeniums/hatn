@@ -4,10 +4,9 @@ export underscore_version=${underscore_version//./_}
 export lib_name=boost_$underscore_version
 
 export archive=$lib_name.7z
-export download_link=https://dl.bintray.com/boostorg/release/$boost_version/source/$archive
+export download_link=https://boostorg.jfrog.io/artifactory/main/release/$boost_version/source/$archive
 export folder=$src_dir/$lib_name
 
-export build_dir=$toolchain_build_path
 source $scripts_root/../desktop/scripts/downloadandunpack.sh
 
 toolset=clang

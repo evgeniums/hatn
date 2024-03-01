@@ -3,10 +3,9 @@ export lib_name=lz4
 export folder=$src_dir/$lib_name
 export repo_path=https://github.com/lz4//$lib_name
 
-export build_dir=$toolchain_build_path
 source $scripts_root/../desktop/scripts/clonegit.sh
 
-cd $build_dir
+cd $lib_build_dir
 echo "Build dir=$build_dir"
 
 cmake -G "Unix Makefiles" \

@@ -1,4 +1,3 @@
-export build_dir=$toolchain_build_path
 export lib_name=rocksdb
 
 export folder=$src_dir/$lib_name
