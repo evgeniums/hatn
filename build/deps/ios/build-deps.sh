@@ -16,8 +16,6 @@ source $scripts_root/paths.sh
 source $scripts_root/cfg.sh
 source $scripts_root/libs-cfg.sh
 
-export deps_root=$scripts_root/libs
-
 if [ ! -d $src_dir ];	
 then
 	mkdir -p $src_dir

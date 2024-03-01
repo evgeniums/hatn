@@ -132,7 +132,7 @@ build_arch()
     echo Building dependencies...
     for lib in $dep_libs; do
         echo Building $lib...
-        $libs_path/$lib.sh
+        $deps_root/$lib.sh
     done
 
     unset CC
@@ -163,7 +163,7 @@ build_all()
 
 build_all
 
-# if [ -d "$build_root" ];
-#     then
-#         rm -rf $build_root
-# fi
+if [ -d "$build_root" ];
+    then
+        rm -rf $build_root
+fi

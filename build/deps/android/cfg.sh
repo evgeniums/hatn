@@ -9,6 +9,6 @@ if [ -z "$build_workers" ]; then
 export build_workers=8
 fi
 
-if [ -z "$libs_path" ]; then
-export libs_path=$scripts_root/libs
+if [ -z "$deps_root" ]; then
+export deps_root=$scripts_root/libs
 fi

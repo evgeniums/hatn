@@ -27,7 +27,7 @@ check_for_program() {
 check_for_program "curl"
 check_for_program "7z"
 
-if [ -f "dracosha.src" ]; then
+if [ -f "hatn.src" ]; then
     echo "Do not run build scripts in source directory!"
     echo "Please, copy build scripts to some other working directory"
     exit 1
@@ -55,7 +55,7 @@ fi
 for lib in $dep_libs 
 do 
     echo "Building $lib ..."
-    source $scripts_root/libs/$lib.sh
+    source $deps_root/$lib.sh
     cd $working_dir
 done
 
