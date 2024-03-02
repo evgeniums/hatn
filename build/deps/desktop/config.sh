@@ -13,3 +13,7 @@ fi
 if [ -z "$build_workers" ]; then
 export build_workers=6
 fi
+
+if [ -z "$deps_root" ]; then
+export deps_root=$scripts_root/libs
+fi

@@ -55,7 +55,7 @@ fi
 for lib in $dep_libs 
 do 
     echo "Building $lib ..."
-    source $scripts_root/libs/$lib.sh
+    source $deps_root/$lib.sh
     cd $working_dir
 done
 

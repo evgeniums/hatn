@@ -1,0 +1,12 @@
+diff -ruN CMakeLists.txt CMakeLists.txt
+--- CMakeLists.txt	2022-06-02 19:02:45.000000000 +0300
++++ CMakeLists.txt	2022-06-02 19:03:21.000000000 +0300
+@@ -489,7 +489,7 @@
+ 
+ if(CMAKE_SYSTEM_NAME MATCHES "Cygwin")
+   add_definitions(-fno-builtin-memcmp -DCYGWIN)
+-elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
++elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin" OR CMAKE_SYSTEM_NAME MATCHES "iOS")
+   add_definitions(-DOS_MACOSX)
+ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+   add_definitions(-DOS_LINUX)
