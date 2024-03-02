@@ -1,0 +1,22 @@
+/*
+   Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    
+    
+  */
+
+/****************************************************************************/
+/*
+    
+*/
+/** @file common/environment.cpp
+ *
+ *  Multi thread environment with pools of categorized threads
+ *
+ */
+
+#include <hatn/common/multithreadenvironment.h>
+
+HATN_COMMON_NAMESPACE_BEGIN
+
+//---------------------------------------------------------------
+    HATN_COMMON_NAMESPACE_END

@@ -1,0 +1,238 @@
+# Russian translations for PACKAGE package.
+# Copyright (C) 2020 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-19 15:06+0300\n"
+"PO-Revision-Date: 2020-02-02 15:26+0300\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 2.2.4\n"
+
+#: C:\projects\dracosha\src\common\src\application.cpp:92
+msgid "Good bye"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:156
+msgid "Configuration:"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:195
+msgid "Failed to load options:"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:203
+msgid "Failed to setup application:"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:220
+msgid "Log options"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:222
+msgid "Log file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:223
+msgid "Fatal log file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:224
+msgid ""
+"Log configuration for certain modules. Format: module;verbosity;debug level;"
+"debug contexts separated by comma;debug tags separated by comma"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:225
+msgid "Verbosity level of log messages: debug|information|warning|error|fatal"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:226
+msgid "Debug level of debug messages"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:227
+msgid "Log in separate thread"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:228
+msgid "Trace fatal logs"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:229
+msgid "Append logs to log files after restart"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\application.cpp:230
+msgid "Also log to console stderr stream"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\appversion.cpp:69
+msgid "Release"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\appversion.cpp:70
+msgid "Software version"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\appversion.cpp:71
+msgid "Build version"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\appversion.cpp:73
+msgid "Windows platform"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\appversion.cpp:75
+msgid "Linux platform"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:72
+msgid "OK"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:75
+msgid "Invalid size"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:78
+msgid "Invalid argument"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:81
+msgid "Operation is not supported"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:84
+msgid "Invalide file name"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:87
+msgid "Failed to flush file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:90
+msgid "File is already open"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:93
+msgid "Failed to write file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:96
+msgid "File not open"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:99
+msgid "Operation timeout"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\error.cpp:103
+msgid "Unknown error"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\logger.cpp:477
+#: C:\projects\dracosha\src\common\test\testlogger.cpp:403
+#: C:\projects\dracosha\src\common\test\testlogger.cpp:411
+#: C:\projects\dracosha\src\common\test\testlogger.cpp:419
+msgid "No such log module defined:"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\logger.cpp:492
+msgid "Invalid verbosity for log module"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\logger.cpp:510
+msgid "Invalid debug level for log module"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\logger.cpp:564
+msgid "Configuration of logger module is mailformed: no module name is set!"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\logger.cpp:905
+msgid "Failed to open log file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:223
+msgid "Generic options"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:225
+msgid "Print this help message"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:226
+msgid "Show version"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:227
+msgid "Configuration file name"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:235
+#: C:\projects\dracosha\src\common\test\testtranslation.cpp:37
+msgid "help"
+msgstr "помощь"
+
+#: C:\projects\dracosha\src\common\src\options.cpp:245
+msgid "version"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:304
+msgid "Сonfiguration file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:304
+msgid "not found"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\options.cpp:314
+msgid "Failed to read configuration file"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\plugin.cpp:276
+msgid "Could not load plugin {}: file does not exists"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\plugin.cpp:345
+msgid "Invalid plugin loader in {}!"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\plugin.cpp:351
+msgid "Failed to find plugin signature in {}: {}!"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\plugin.cpp:357
+msgid "Failed to load dynamic library {}: {}!"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\src\plugin.cpp:361
+msgid "Could not load plugin"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\include\dracosha\common\plugin.h:189
+msgid "Could not cast plugin {0} to requested type!"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\test\testtranslation.cpp:41
+msgid "string1"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\test\testtranslation.cpp:43
+msgid "string2"
+msgstr ""
+
+#: C:\projects\dracosha\src\common\test\testtranslation.cpp:47
+msgid "something"
+msgstr ""

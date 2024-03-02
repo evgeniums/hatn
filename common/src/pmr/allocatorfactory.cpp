@@ -1,0 +1,72 @@
+/*
+   Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    
+    
+  */
+
+/****************************************************************************/
+/*
+    
+*/
+/** @file common/pmr/allocatorfactory.сpp
+  *
+  *      Factory of allocators for allocation of objects and data fields
+  *
+  */
+
+#include <hatn/common/pmr/allocatorfactory.h>
+
+HATN_COMMON_NAMESPACE_BEGIN
+    namespace pmr {
+
+
+std::shared_ptr<AllocatorFactory> DefaultFactory=std::make_shared<AllocatorFactory>();
+
+//---------------------------------------------------------------
+AllocatorFactory* AllocatorFactory::getDefault() noexcept
+{
+    return DefaultFactory.get();
+}
+
+//---------------------------------------------------------------
+void AllocatorFactory::setDefault(std::shared_ptr<AllocatorFactory> instance) noexcept
+{
+    DefaultFactory=std::move(instance);
+}
+
+//---------------------------------------------------------------
+void AllocatorFactory::resetDefault()
+{
+    DefaultFactory=std::make_shared<AllocatorFactory>();
+}
+
+//---------------------------------------------------------------
+AllocatorFactory::AllocatorFactory(
+    ) : AllocatorFactory(
+                common::pmr::get_default_resource(),
+                common::pmr::get_default_resource()
+            )
+{}
+
+//---------------------------------------------------------------
+AllocatorFactory::AllocatorFactory(
+        common::pmr::memory_resource *objectMemoryResource,
+        common::pmr::memory_resource *dataMemoryResource,
+        bool ownObjectResource,
+        bool ownDataResource
+    ) : m_objectResourceRef(objectMemoryResource),
+        m_dataResourceRef(dataMemoryResource)
+{
+    if (ownObjectResource)
+    {
+        m_objectResource.reset(objectMemoryResource);
+    }
+    if (ownDataResource)
+    {
+        m_objectResource.reset(dataMemoryResource);
+    }    
+}
+
+//---------------------------------------------------------------
+        } // namespace pmr
+    HATN_COMMON_NAMESPACE_END

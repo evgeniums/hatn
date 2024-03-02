@@ -1,0 +1,194 @@
+/*
+    Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    
+    
+*/
+
+/****************************************************************************/
+/*
+    
+*/
+/** @file common/locker.h
+ *
+ *     Locker classes.
+ *
+ */
+/****************************************************************************/
+
+#ifndef HATNLOCKER_H
+#define HATNLOCKER_H
+
+#include <atomic>
+#include <mutex>
+
+#include <hatn/common/common.h>
+#include <hatn/common/thread.h>
+
+HATN_COMMON_NAMESPACE_BEGIN
+
+/**
+ * Locker template class that can be either mutex or spinlock on atomic_flag
+ */
+template <bool Spinlock=true>
+class Locker
+{
+};
+
+//! Locker specialization with atomic spinlock
+template <>
+class Locker<true>
+{
+    public:
+
+        //! Ctor
+        Locker()
+#ifndef _MSC_VER
+            : flag(false)
+#endif
+        {
+#ifdef _MSC_VER
+			flag.clear();
+#endif
+		}
+
+        //! Lock
+        inline void lock() noexcept
+        {
+            while (flag.test_and_set(std::memory_order_acquire)){}
+        }
+
+        //! Unlock
+        inline void unlock() noexcept
+        {
+            flag.clear(std::memory_order_release);
+        }
+
+    private:
+
+        std::atomic_flag flag;
+};
+
+//! Locker specialization with mutex
+template <>
+class Locker<false>
+{
+    public:
+
+        //! Ctor
+        Locker():m_lockThread(this){}
+
+        //! Lock
+        inline void lock()
+        {
+            auto currentThread=Thread::currentThread();
+            Assert(m_lockThread!=currentThread,"Recursive mutex lock in Locker()");
+            mutex.lock();
+            m_lockThread=currentThread;
+        }
+
+        //! Unlock
+        inline void unlock()
+        {
+            // not nullptr because currentThread() can be null in case of mainThread not running
+            m_lockThread=this;
+            mutex.unlock();
+        }
+
+    private:
+
+        std::mutex mutex;
+        void* m_lockThread;
+};
+
+//! Helper class to lock within scope
+template <bool Spinlock=true> class ScopedLock final
+{
+    public:
+
+        //! Ctor
+        ScopedLock(
+                Locker<Spinlock>& locker
+            ) : m_locker(locker)
+        {
+            locker.lock();
+        }
+
+        //! Dtor
+        ~ScopedLock()
+        {
+            m_locker.unlock();
+        }
+
+        ScopedLock(const ScopedLock&)=delete;
+        ScopedLock(ScopedLock&&) =delete;
+        ScopedLock& operator=(const ScopedLock&)=delete;
+        ScopedLock& operator=(ScopedLock&&) =delete;
+
+    private:
+
+        Locker<Spinlock>& m_locker;
+};
+
+using SpinLock=Locker<true>;
+using MutexLock=Locker<false>;
+
+using SpinScopedLock=ScopedLock<true>;
+using MutexScopedLock=ScopedLock<false>;
+
+class LockerAnyMode final
+{
+    public:
+
+        //! Ctor
+        LockerAnyMode(bool spinned=false):m_spinned(spinned)
+        {}
+
+        //! Set mode
+        inline void setSpinnedMode(bool enable) noexcept
+        {
+            m_spinned=enable;
+        }
+
+        //! Get mode
+        inline bool isSpinnedMode() const noexcept
+        {
+            return m_spinned;
+        }
+
+        //! Lock
+        inline void lock()
+        {
+            if (m_spinned)
+            {
+                m_spin.lock();
+            }
+            else
+            {
+                m_mutex.lock();
+            }
+        }
+
+        //! Unlock
+        inline void unlock()
+        {
+            if (m_spinned)
+            {
+                m_spin.unlock();
+            }
+            else
+            {
+                m_mutex.unlock();
+            }
+        }
+
+    private:
+
+        SpinLock m_spin;
+        MutexLock m_mutex;
+
+        bool m_spinned;
+};
+
+HATN_COMMON_NAMESPACE_END
+
+#endif // HATNLOCKER_H

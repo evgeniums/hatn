@@ -1,0 +1,9 @@
+SET (SOURCES
+    ${SOURCES}
+    ${CMAKE_CURRENT_LIST_DIR}/sha1.cpp
+)
+
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_LIST_DIR}/sha1.h
+)

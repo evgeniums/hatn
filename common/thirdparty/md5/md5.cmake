@@ -1,0 +1,9 @@
+SET (SOURCES
+    ${SOURCES}
+    ${CMAKE_CURRENT_LIST_DIR}/md5.cpp
+)
+
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_LIST_DIR}/md5.h
+)

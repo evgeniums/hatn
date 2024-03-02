@@ -1,0 +1,3 @@
+SET(THIRDPARTY_ENABLE_FMT ON CACHE BOOL "Enable libfmt")
+MESSAGE (STATUS "Enable libfmt")
+
