@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 
-#define BOOST_TEST_MODULE DracoshaLibsTest
+#define BOOST_TEST_MODULE hatnLibsTest
 #define BOOST_TEST_ALTERNATIVE_INIT_API
 #include <boost/test/unit_test.hpp>
 

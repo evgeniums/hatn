@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -84,5 +84,10 @@
 
 #define HATN_COMMON_NAMESPACE hatn::common
 #define HATN_COMMON_USING using namespace hatn::common;
+
+#define HATN_USING using namespace hatn;
+
+#define HATN_TEST_NAMESPACE hatn::test
+#define HATN_TEST_USING using namespace hatn::test;
 
 #endif // HATNCOMMON_H

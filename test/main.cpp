@@ -1,7 +1,7 @@
 #include "hatn_test_config.h"
 #ifndef HATN_TEST_WRAP_C
 
-#define BOOST_TEST_MODULE DracoshaLibsTest
+#define BOOST_TEST_MODULE hatnLibsTest
 #include <boost/test/unit_test.hpp>
 
 #endif

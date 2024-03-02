@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +9,7 @@
 /****************************************************************************/
 /** @file common/threadwithqueue.h
   *
-  *     Dracosha thread with queue.
+  *     hatn thread with queue.
   *
   */
 
@@ -27,7 +27,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 template <typename TaskType> class ThreadWithQueue_p;
 
-//! Dracosha thread with queue tasks
+//! hatn thread with queue tasks
 /**
  * Note that queue will be processing in almost infinite loop, so that direct execAsync and execSync might be delayed or never invoked.
  * Still, you can use execAsync or execSync before populating the queue with post() or when the queue is empty.

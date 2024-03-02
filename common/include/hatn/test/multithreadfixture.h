@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -132,50 +132,50 @@ class MultiThreadFixture
 }
 }
 
-#define DCS_CHECK_TS(...) \
+#define HATN_CHECK_TS(...) \
     { hatn::common::MutexScopedLock l(hatn::test::MultiThreadFixture::mutex); \
     BOOST_CHECK(__VA_ARGS__); }
 
-#define DCS_REQUIRE_TS(...) \
+#define HATN_REQUIRE_TS(...) \
     { hatn::common::MutexScopedLock l(hatn::test::MultiThreadFixture::mutex); \
     BOOST_REQUIRE(__VA_ARGS__); }
 
-#define DCS_CHECK_EQUAL_TS(...) \
+#define HATN_CHECK_EQUAL_TS(...) \
     { hatn::common::MutexScopedLock l(hatn::test::MultiThreadFixture::mutex); \
     _DSC_EXPAND(BOOST_CHECK_EQUAL(__VA_ARGS__)); }
 
-#define DCS_TEST_MESSAGE_TS(...) \
+#define HATN_TEST_MESSAGE_TS(...) \
     { hatn::common::MutexScopedLock l(hatn::test::MultiThreadFixture::mutex); \
     BOOST_TEST_MESSAGE(__VA_ARGS__); }
 
-#define DCS_REQUIRE(Cond) \
+#define HATN_REQUIRE(Cond) \
     BOOST_CHECK(Cond); \
     if (!(Cond)) \
     {\
         return;\
     }
 
-#define DCS_CHECK_EXEC_SYNC(Expr) \
+#define HATN_CHECK_EXEC_SYNC(Expr) \
     if (Expr) \
     { \
         BOOST_FAIL("Timeout in Thread::execSync"); \
     }
 
-#define DCS_REQUIRE_EQUAL(Val1,Val2) \
+#define HATN_REQUIRE_EQUAL(Val1,Val2) \
     BOOST_CHECK_EQUAL(Val1,Val2); \
     if ((Val1)!=(Val2)) \
     {\
         return;\
     }\
 
-#define DCS_REQUIRE_GE(Val1,Val2) \
+#define HATN_REQUIRE_GE(Val1,Val2) \
     BOOST_CHECK_GE(Val1,Val2); \
     if ((Val1)<(Val2)) \
     {\
         return;\
     }\
 
-#define DCS_REQUIRE_GT(Val1,Val2) \
+#define HATN_REQUIRE_GT(Val1,Val2) \
     BOOST_CHECK_GE(Val1,Val2); \
     if ((Val1)<=(Val2)) \
     {\

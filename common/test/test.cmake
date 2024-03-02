@@ -1,30 +1,30 @@
 SET(HEADERS
-#    ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.h
+    ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.h
 )
 
 SET(SOURCES
-#    ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
+    ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
 
-    # ${COMMON_TEST_SRC}/testplugins.cpp
-    # ${COMMON_TEST_SRC}/testmemorylockeddata.cpp
-    # ${COMMON_TEST_SRC}/testmetautils.cpp
-    # ${COMMON_TEST_SRC}/testsmartpointers.cpp
-    # ${COMMON_TEST_SRC}/testthread.cpp
-    # ${COMMON_TEST_SRC}/testlogger.cpp
-    # ${COMMON_TEST_SRC}/testenvironment.cpp
-    # ${COMMON_TEST_SRC}/testbytearray.cpp
-    # ${COMMON_TEST_SRC}/testfixedbytearray.cpp
-    # ${COMMON_TEST_SRC}/testfactory.cpp
-    # ${COMMON_TEST_SRC}/testfile.cpp
-    # ${COMMON_TEST_SRC}/testmemorypool.cpp
-    # ${COMMON_TEST_SRC}/testpoolmemoryresource.cpp
-    # ${COMMON_TEST_SRC}/testflatmap.cpp
+    ${COMMON_TEST_SRC}/testplugins.cpp
+    ${COMMON_TEST_SRC}/testmemorylockeddata.cpp
+    ${COMMON_TEST_SRC}/testmetautils.cpp
+    ${COMMON_TEST_SRC}/testsmartpointers.cpp
+    ${COMMON_TEST_SRC}/testthread.cpp
+    ${COMMON_TEST_SRC}/testlogger.cpp
+    ${COMMON_TEST_SRC}/testenvironment.cpp
+    ${COMMON_TEST_SRC}/testbytearray.cpp
+    ${COMMON_TEST_SRC}/testfixedbytearray.cpp
+    ${COMMON_TEST_SRC}/testfactory.cpp
+    ${COMMON_TEST_SRC}/testfile.cpp
+    ${COMMON_TEST_SRC}/testmemorypool.cpp
+    ${COMMON_TEST_SRC}/testpoolmemoryresource.cpp
+    ${COMMON_TEST_SRC}/testflatmap.cpp
 )
 
 IF(ENABLE_TRANSLATIONS)
   SET(SOURCES
-      ${SOURCES}
- #     ${COMMON_TEST_SRC}/testtranslation.cpp
+     ${SOURCES}
+     ${COMMON_TEST_SRC}/testtranslation.cpp
   )
 ENDIF(ENABLE_TRANSLATIONS)
 

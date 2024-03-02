@@ -22,7 +22,7 @@
     DIRECTLY OR INDIRECTLY, INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA
     OR DATA BEING RENDERED INACCURATE.
 
-    2020 Edited by Evgeny Sidorov (dracosha.com) by adding HATN_COMMON_EXPORT
+    2020 Edited by Evgeny Sidorov (decfile.com) by adding HATN_COMMON_EXPORT
 
  *****************************************************************************
  *  

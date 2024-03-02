@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+   Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
 
 
   */

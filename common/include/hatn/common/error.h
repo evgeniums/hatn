@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2020 - current, Evgeny Sidorov (dracosha.com), All rights reserved.
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -328,7 +328,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         const boost::system::error_category* m_boostCat;
 };
 
-//! Dracosha error exception
+//! hatn error exception
 class HATN_COMMON_EXPORT ErrorException final : public std::runtime_error
 {
     public:
