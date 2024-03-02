@@ -85,5 +85,5 @@ class HATN_COMMON_EXPORT WithGuard
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNOBJECTGUARD_H

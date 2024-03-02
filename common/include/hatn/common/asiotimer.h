@@ -114,6 +114,6 @@ using AsioDeadlineTimer=AsioTimer<boost::asio::deadline_timer>;
 using AsioHighResolutionTimer=AsioTimer<boost::asio::high_resolution_timer>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNASIOTIMER_H

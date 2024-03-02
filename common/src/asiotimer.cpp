@@ -75,4 +75,4 @@ template class HATN_COMMON_EXPORT AsioTimerTraits<boost::asio::deadline_timer,As
 template class HATN_COMMON_EXPORT AsioTimerTraits<boost::asio::high_resolution_timer,AsioHighResolutionTimer>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

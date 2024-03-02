@@ -22,4 +22,4 @@ namespace pointers_std {
 
 //---------------------------------------------------------------
         } // namespace pointers_std
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

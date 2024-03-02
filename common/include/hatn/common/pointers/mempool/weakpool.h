@@ -115,5 +115,5 @@ inline void WeakCtrl::reset() noexcept
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDWEAKPOOL_MP_H

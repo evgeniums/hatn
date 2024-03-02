@@ -24,4 +24,4 @@ size_t MemBlockSize::DEFAULT_MAX_BLOCK_SIZE=64*1024;
 
 //---------------------------------------------------------------
         } // namespace memorypool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

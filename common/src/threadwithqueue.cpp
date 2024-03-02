@@ -36,4 +36,4 @@ template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadQueueInterface<Task
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadQueueInterface<TaskWithContext>>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

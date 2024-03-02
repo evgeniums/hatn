@@ -240,6 +240,6 @@ class WithIDThread : public WithID, public WithThread
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNOBJECTID_H

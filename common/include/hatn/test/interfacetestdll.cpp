@@ -50,4 +50,4 @@ Johny::Johny(
 #endif
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

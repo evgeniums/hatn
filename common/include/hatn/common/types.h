@@ -271,5 +271,5 @@ using DataBuf=DataBufWrapper<char*>;
 using ConstDataBuf=DataBufWrapper<const char*>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNTYPES_H

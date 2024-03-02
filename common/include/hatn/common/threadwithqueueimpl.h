@@ -275,5 +275,5 @@ template <typename TaskType> ThreadQueueInterface<TaskType>* ThreadWithQueue<Tas
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADWITHQUEUEIMPL_H

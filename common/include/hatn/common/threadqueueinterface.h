@@ -245,5 +245,5 @@ using TaskThreadCategoriesPool=ThreadCategoriesPool<TaskThreadInterface>;
 using TaskWithContextThreadCategoriesPool=ThreadCategoriesPool<TaskWithContextThreadInterface>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADQUEUEINTERFACE_H

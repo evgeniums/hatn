@@ -180,5 +180,5 @@ using NewDeletePoolResource=pmr::PoolMemoryResource<memorypool::NewDeletePool>;
 
 //---------------------------------------------------------------
         } // namespace memorypool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNNEWDELETEPOOL_H

@@ -163,5 +163,5 @@ class ManagedWrapper : public ManagedObject, public T
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDOBJECT_MP_H

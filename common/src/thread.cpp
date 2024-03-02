@@ -521,4 +521,4 @@ void Thread::uninstallTimerWait(uint32_t id)
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<Thread>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

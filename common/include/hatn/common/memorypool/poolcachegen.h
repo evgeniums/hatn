@@ -216,5 +216,5 @@ size_t PoolCacheGen<PoolT>::DEFAULT_BUCKET_USEFUL_SIZE=32*1024;
 
 //---------------------------------------------------------------
         } // namespace memorypool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNPOOLCACHEGEN_H

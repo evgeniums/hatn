@@ -172,4 +172,4 @@ size_t PlainFile::read(char *data, size_t maxSize)
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

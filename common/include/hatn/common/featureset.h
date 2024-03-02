@@ -91,5 +91,5 @@ struct FeatureSet
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNFEATURESET_H

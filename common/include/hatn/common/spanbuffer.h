@@ -404,5 +404,5 @@ struct SpanBufferTraits
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNSPANBUFFER_H

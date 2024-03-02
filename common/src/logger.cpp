@@ -939,4 +939,4 @@ FileLogHandler::~FileLogHandler()
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

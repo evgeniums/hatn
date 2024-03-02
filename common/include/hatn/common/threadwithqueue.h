@@ -133,5 +133,5 @@ using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADWITHQUEUE_H

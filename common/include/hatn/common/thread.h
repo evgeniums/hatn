@@ -236,6 +236,6 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTHREAD_H

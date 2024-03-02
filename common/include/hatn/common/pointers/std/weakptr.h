@@ -115,5 +115,5 @@ template <typename T> class WeakPtr final
 
 //---------------------------------------------------------------
         } // namespace pointers_std
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDWEAKPTR_STD_H

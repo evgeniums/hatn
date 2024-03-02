@@ -258,5 +258,5 @@ template <typename T> class EnableSharedFromThis<T,false> : public std::enable_s
 
 //---------------------------------------------------------------
         } // namespace pointers_std
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGESHAREDPTR_STD_H

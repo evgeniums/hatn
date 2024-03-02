@@ -113,5 +113,5 @@ struct FileUtils final
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNFILEUTILS_H

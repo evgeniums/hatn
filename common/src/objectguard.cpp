@@ -20,4 +20,4 @@ HATN_COMMON_NAMESPACE_BEGIN
 pmr::memory_resource* WithGuard::m_memoryResource=nullptr;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

@@ -57,5 +57,5 @@ HATN_COMMON_NAMESPACE_BEGIN
 #endif
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMAKESHARED_H

@@ -66,5 +66,5 @@ class Bucket : public WithTraits<BucketTraits>
 
 //---------------------------------------------------------------
         } // namespace memory
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMEMORYPOOLBUCKET_H

@@ -585,4 +585,4 @@ std::string PluginLoader::dynlibName(const std::string &libName)
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

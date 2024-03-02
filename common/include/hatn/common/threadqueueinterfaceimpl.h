@@ -47,6 +47,6 @@ ThreadQueueInterface<TaskType>* ThreadQueueInterface<TaskType>::currentThreadInt
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTHREADQUEUEINTERFACEIMPL_H

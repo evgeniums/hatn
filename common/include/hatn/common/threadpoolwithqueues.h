@@ -101,5 +101,5 @@ template <typename TaskType> class ThreadPoolWithQueues : public ThreadQueueInte
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADPOOLWITHQUEUES_H

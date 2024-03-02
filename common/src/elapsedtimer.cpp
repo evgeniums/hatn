@@ -31,4 +31,4 @@ std::string ElapsedTimer::toString(bool totalMilliseconds) const
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

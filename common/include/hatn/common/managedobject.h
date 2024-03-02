@@ -46,5 +46,5 @@ using ManagedObject=pointers_mempool::ManagedObject;
 #endif
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDOBJECT_H

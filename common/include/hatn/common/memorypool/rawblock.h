@@ -81,5 +81,5 @@ class RawBlock final
 
 //---------------------------------------------------------------
         } // namespace memory
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMEMORYPOOLMEMORYBLOCK_H

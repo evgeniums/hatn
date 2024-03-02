@@ -21,4 +21,4 @@ namespace memorypool {
 
 //---------------------------------------------------------------
         } // namespace memorypool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

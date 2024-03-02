@@ -353,5 +353,5 @@ class CacheLRU
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNCACHELRU_H

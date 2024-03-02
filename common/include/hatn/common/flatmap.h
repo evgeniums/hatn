@@ -495,5 +495,5 @@ using FlatSet=common::FlatSet<ValueT,CompareT,polymorphic_allocator<ValueT>>;
 } // namespace common
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNFLATMAP_H

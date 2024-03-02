@@ -234,5 +234,5 @@ class MutexQueue : public Queue<T>
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMUTEXQUEUE_H

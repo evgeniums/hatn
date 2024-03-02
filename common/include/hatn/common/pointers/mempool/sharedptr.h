@@ -659,5 +659,5 @@ template <typename T1> struct CheckSharedFromThis<T1,
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGESHAREDPTR_MP_H

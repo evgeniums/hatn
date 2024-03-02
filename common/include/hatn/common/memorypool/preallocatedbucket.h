@@ -125,5 +125,5 @@ class PreallocatedBucket : public Bucket<PoolT,PreallocatedBucketTraits<PoolT,Sy
 
 //---------------------------------------------------------------
         } // namespace memory
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNPREALLOCATEDBUCKET_H

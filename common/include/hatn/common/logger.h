@@ -379,7 +379,7 @@ class HATN_COMMON_EXPORT FileLogHandler
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #include <hatn/common/loggermodule.h>
 

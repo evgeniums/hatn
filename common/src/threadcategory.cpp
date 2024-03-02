@@ -20,4 +20,4 @@ HATN_COMMON_NAMESPACE_BEGIN
 ThreadCategory ThreadCategory::generic;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

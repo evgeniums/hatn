@@ -88,5 +88,5 @@ using ManagedObject=ManagedObject;
 
 //---------------------------------------------------------------
         } // namespace std
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDOBJECT_STD_H

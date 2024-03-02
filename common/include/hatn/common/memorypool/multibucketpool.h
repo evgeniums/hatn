@@ -212,5 +212,5 @@ using SynchronizedThreadPool=MultiBucketPool<SynchronizedThreadInvoker>;
 
 //---------------------------------------------------------------
         } // namespace memory
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMULTIBUCKETPOOL_H

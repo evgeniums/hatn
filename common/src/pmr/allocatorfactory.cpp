@@ -68,4 +68,4 @@ AllocatorFactory::AllocatorFactory(
 
 //---------------------------------------------------------------
         } // namespace pmr
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

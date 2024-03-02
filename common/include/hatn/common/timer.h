@@ -174,6 +174,6 @@ class Timer : public WithTraits<Traits>, public TimerTypes
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTIMER_H

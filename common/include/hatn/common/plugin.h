@@ -388,5 +388,5 @@ HATN_COMMON_NAMESPACE_BEGIN
     };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNPLUGIN_H

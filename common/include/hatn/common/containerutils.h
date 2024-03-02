@@ -135,5 +135,5 @@ template <typename T> struct IsContainer
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNCONTAINERUTILS_H

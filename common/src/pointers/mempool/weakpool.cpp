@@ -54,4 +54,4 @@ WeakPool::WeakPool(
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

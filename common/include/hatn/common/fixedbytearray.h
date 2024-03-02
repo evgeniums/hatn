@@ -791,5 +791,5 @@ namespace detail
 #define MakeFixedStringThrow(str) FixedByteArray<detail::FBASizeForString<CStrLength(str)>::value,true>(str)
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNFIXEDBYTEARRAY_H

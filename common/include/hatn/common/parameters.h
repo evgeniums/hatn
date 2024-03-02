@@ -154,5 +154,5 @@ class HATN_COMMON_EXPORT Parameters
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNPARAMETERS_H

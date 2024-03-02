@@ -255,5 +255,5 @@ class MPSCQueue : public Queue<T>
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMPSCQUEUE_H

@@ -99,5 +99,5 @@ class WeakCtrl final
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNMANAGEDWEAKCTRL_MP_H

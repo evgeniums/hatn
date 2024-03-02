@@ -136,5 +136,5 @@ constexpr UniquePtr<T> allocateUnique(pmr::polymorphic_allocator<T>& allocator,A
 
 //---------------------------------------------------------------
         } // namespace pointers_mempool
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNUNIQUEPTR_H

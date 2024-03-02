@@ -22,6 +22,7 @@
 #undef fmt
 #endif
 
+//! @todo Support standard formatter of c++20
 #include <fmt/format.h>
 
 #include <hatn/common/common.h>
@@ -40,6 +41,6 @@ HATN_COMMON_NAMESPACE_BEGIN
     }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNFORMAT_H

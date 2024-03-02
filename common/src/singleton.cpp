@@ -86,4 +86,4 @@ std::vector<Singleton*> SingletonRegistrar::singletons() const
 }
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

@@ -175,5 +175,5 @@ struct RunOnScopeExit final
 #define AssertThrowEx(condition,message,ex) if (!(condition)) {throw ex(message);}
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNUTILS_H

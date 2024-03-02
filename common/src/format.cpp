@@ -24,4 +24,4 @@ template class HATN_COMMON_EXPORT ThreadQueueInterface<TaskInlineContext<FmtAllo
 template class HATN_COMMON_EXPORT ThreadWithQueue<TaskInlineContext<FmtAllocatedBufferChar>>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END

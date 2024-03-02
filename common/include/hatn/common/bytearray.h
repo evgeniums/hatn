@@ -868,5 +868,5 @@ class HATN_COMMON_EXPORT ByteArrayManaged : public ManagedWrapper<ByteArray>,
 using ByteArrayShared=SharedPtr<ByteArrayManaged>;
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 #endif // HATNBYTEARRAY_H

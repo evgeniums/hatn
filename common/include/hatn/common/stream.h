@@ -860,6 +860,6 @@ class StreamBridge
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // HATNSTREAM_H

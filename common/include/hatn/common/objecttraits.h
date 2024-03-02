@@ -198,6 +198,6 @@ class WithImpl : public BaseT
 };
 
 //---------------------------------------------------------------
-    HATN_COMMON_NAMESPACE_END
+HATN_COMMON_NAMESPACE_END
 
 #endif // DRACOSHOBJECTTRAITS_H
