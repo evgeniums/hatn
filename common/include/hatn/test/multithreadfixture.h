@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file multithreadfixture.h
   *
   *     Base test fixture for multithreaded tests

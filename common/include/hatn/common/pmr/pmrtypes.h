@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/pmrtypes.h
   *
   *     Typedef for polymorphic allocator types

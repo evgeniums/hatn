@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/pool.h
   *
   *     Base class for memory pools

@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/newdeletepool.h
   *
   *     Simple memory pool using new and delete operators for each chunk

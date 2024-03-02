@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file interfacetestdll.сpp
   *
   *  Source to test interfaces use when crossing DLL packages.

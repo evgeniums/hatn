@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadpoolwithqueues.сpp
   *
   *     Dracosha pool of threads with queues.

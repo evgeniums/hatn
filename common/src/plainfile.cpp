@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/plainfile.cpp
  *
  *     Class for writing and reading plain files

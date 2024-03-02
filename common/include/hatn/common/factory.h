@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/factory.h
  *
  *     Factory is a collection of object builders.

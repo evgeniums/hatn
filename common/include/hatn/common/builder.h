@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/builder.h
  *
  *     Base template class for object builders

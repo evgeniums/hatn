@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/flatmap.h
   *
   *     Flat map based on vector for fast lookups

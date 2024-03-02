@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/pool.cpp
  *
  *     Base class for memory pools

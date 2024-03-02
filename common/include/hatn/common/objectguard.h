@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/objectguard.h
   *
   *     Guarded object that watches object existence

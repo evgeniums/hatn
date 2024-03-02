@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/asiotimer.сpp
   *
   *     Timer classes with asio backend

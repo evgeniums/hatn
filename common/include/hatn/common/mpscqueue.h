@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/mpscqueue.h
   *
   *     Multpile Producer Single Consumer Queue.

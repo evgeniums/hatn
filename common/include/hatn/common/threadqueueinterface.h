@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadqueueinterface.h
   *
   *     Interface of threads queue.

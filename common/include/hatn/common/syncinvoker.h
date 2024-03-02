@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/syncinvoker.h
   *
   *     helper classes for synchronized/unsynchronized invokation of handlers

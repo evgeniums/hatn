@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/sharedlocker.h
  *
  *     Shared locker which allows either multiple parallel shared accesses or only one exclusive access

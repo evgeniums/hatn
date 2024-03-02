@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/bytearray.h
   *
   *     Byte array that uses memory pool for data buffers.

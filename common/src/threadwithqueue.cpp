@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadwithqueue.сpp
   *
   *     Dracosha thread with queue

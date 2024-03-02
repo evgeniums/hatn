@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/withstaticallocator.h
   *
   *  Base class for objects that can keep static allocator for all objects of self type

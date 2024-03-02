@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file interfacetestdll.h
  *
  *     Header to test interfaces use when crossing DLL packages.

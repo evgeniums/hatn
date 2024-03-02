@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/multithreadenvironment.h
  *
  *     Environment with pools of categorized threads.

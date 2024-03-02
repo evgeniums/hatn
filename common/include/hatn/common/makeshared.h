@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
+
 /** @file common/makeshared.h
   *
   *     Helpers to wrap object in shared pointer

@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/makeshared.h
   *
   *     Helpers to wrap object in shared pointer

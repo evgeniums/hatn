@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/parameters.h
   *
   *     Container of generic parameters.

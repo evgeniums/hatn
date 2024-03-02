@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/allocatorfactory.h
   *
   *  Factory of allocators for allocation of objects and data fields

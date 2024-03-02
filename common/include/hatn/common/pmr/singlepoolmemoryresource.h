@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/singlepoolmemoryresource.h
   *
   *     Polymorphic memory resource using single memory pool

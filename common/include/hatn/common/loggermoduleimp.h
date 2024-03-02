@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/loggermoduleimp.h
   *
   *      Implementation of logger templates.

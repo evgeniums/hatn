@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/memblocksize.h
   *
   *     Generator of block sizes for memory used in pools and byte arrays

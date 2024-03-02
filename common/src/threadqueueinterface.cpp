@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadqueueinterface.cpp
  *
  *     Interface of threads queue.

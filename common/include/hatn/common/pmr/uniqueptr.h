@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/uniqueptr.h
   *
   *     Unique pointer with allocator

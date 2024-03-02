@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/timer.сpp
   *
   *     Factory is a collection of object builders

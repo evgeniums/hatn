@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/singleton.h
  *
  *     Singletons' registrar and base class for singletons.

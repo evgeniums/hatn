@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/environment.cpp
  *
  *     Base class for environment classes.

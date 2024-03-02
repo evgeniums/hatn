@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/makeshared.сpp
   *
   *     Pool of objects to use as controls in shared pointers

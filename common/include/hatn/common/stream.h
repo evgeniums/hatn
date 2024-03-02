@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/stream.h
   *
   *     Generic definitions for data streams.

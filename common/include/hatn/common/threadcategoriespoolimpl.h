@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadcategoriespool.h
  *
  *     Pool of threads mapped to categories.

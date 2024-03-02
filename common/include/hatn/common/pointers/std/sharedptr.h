@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/std/sharedptr.h
   *
   *     Shared pointer for managed object

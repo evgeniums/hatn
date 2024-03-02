@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/interface.h
  *
  *     Base class for container interfaces.

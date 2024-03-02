@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/poolmemoryresource.cpp
  *
  *     Polymorphic memory resource using memory pool

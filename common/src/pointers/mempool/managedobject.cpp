@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/managedobject.сpp
   *
   *     Base class for managed objects stored in memory pools

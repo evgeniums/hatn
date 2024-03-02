@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/elapsedtimer.h
   *
   *     Timer to measure elapsed time

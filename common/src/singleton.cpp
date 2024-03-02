@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/singleton.cpp
  *
  *     Base singleton class and registrar of singletons

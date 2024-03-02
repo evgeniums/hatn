@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/weakctrl.h
   *
   *     Control block of weak pointer for managed objects

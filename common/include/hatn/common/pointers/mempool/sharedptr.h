@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
 
-*/
 /** @file common/pointers/mempool/sharedptr.h
   *
   *     Shared pointer for managed object

@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/plainfile.h
   *
   *      Class for writing and reading plain files

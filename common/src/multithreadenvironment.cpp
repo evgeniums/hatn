@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/environment.cpp
  *
  *  Multi thread environment with pools of categorized threads

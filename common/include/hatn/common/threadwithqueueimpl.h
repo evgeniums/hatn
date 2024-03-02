@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/threadwithqueueimpl.h
   *
   *     Dracosha thread with queue

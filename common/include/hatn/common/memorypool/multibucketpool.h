@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/multibucketpool.h
   *
   *     Pool with list of buckets of allocated memory

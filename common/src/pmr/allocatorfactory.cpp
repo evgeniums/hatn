@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pmr/allocatorfactory.сpp
   *
   *      Factory of allocators for allocation of objects and data fields

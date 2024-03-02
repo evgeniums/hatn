@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/fixedbytearray.h
   *
   *     Byte array of fixed capacity.

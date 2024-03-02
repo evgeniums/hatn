@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/bytearay.cpp
   *
   *     Byte array that uses memory pool for data buffers.

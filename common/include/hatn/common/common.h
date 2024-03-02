@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/common.h
   *
   *  Export definitions of Common Library.

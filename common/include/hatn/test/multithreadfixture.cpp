@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file multithreadfixture.сpp
   *
   *     Base test fixture for multithreaded tests

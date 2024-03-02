@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/format.cpp
  *
  *     String formating wrappers to use with fmtlib

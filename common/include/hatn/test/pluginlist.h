@@ -6,9 +6,6 @@
       
 */
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/test/pluginlist.h
  *
  *     Get list of plugins for module

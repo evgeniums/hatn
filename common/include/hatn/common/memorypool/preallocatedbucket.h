@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/preallocatedbucket.h
   *
   *     Bucket with pre-allocated memory that can be reused for allocation/deallocation of data blocks

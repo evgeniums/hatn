@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/rawblock.h
   *
   *     Base class for memory blocks of memory pools

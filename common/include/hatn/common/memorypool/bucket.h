@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/bucket.h
   *
   *     Base class for chunk buckets of memory pools

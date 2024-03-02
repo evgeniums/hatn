@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/format.h
   *
   *     String formating wrappers to use with fmtlib

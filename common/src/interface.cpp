@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/interface.сpp
   *
   *      Base class for container interfaces.

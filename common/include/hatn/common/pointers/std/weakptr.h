@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/std/weakptr.h
   *
   *     Weak pointer for managed objects

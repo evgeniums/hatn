@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/elapsedtimer.cpp
   *
   *     Timer to measure elapsed time

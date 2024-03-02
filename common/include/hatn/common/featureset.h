@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/featureset.h
   *
   * Template to work with enum'ed feature sets

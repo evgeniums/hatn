@@ -1,7 +1,4 @@
 /****************************************************************************/
-/*
-    
-*/
 /** @file base64.h
  *     Encoding/decoding data into and from a base64-encoded format
  */

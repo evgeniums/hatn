@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/objecttraits.h
   *
   *     Base class template for class templates with traits

@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/memorypool/poolcachegen.cpp
  *
  *     Generator and storage cache of global memory pools

@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/objectguard.cpp
  *
  *     Guarded object that watches object existence

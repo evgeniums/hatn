@@ -7,9 +7,6 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
 /** @file common/pointers/mempool/managedobject.h
   *
   *     Base class for managed objects stored in memory pools
