@@ -1,0 +1,3 @@
+SET BUILDS_ROOT=%WORKING_DIR%
+SET SOURCES_ROOT=%~dp0\..\..\..\..
+

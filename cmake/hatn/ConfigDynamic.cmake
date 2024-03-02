@@ -1,0 +1,3 @@
+SET(NO_DYNAMIC_HATN_PLUGINS OFF CACHE BOOL "Do not use dymanic plugins")
+
+SET(LINK_TYPE SHARED)
