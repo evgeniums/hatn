@@ -16,7 +16,7 @@ IF "%BUILD_64%"=="1" (
 
 IF "%DEPS_ROOT%"=="" (
 	IF "%DEPS_UNIVERSAL_ROOT%"==""	(
-		SET DEPS_ROOT=%WORKING_DIR%\..\deps\root-mingw-%MINGW_ARCH%
+		SET DEPS_ROOT=%WORKING_DIR%\deps\root-mingw-%MINGW_ARCH%
 	) ELSE (
 		SET DEPS_ROOT=%DEPS_UNIVERSAL_ROOT%\root-mingw-%MINGW_ARCH%
 	)

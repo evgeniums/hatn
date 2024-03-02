@@ -13,7 +13,7 @@
  *
  */
 
-#ifdef _MSC_VER
+#ifdef WIN32
 #include <windows.h>
 #include <fileapi.h>
 #endif
