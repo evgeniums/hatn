@@ -4,6 +4,11 @@ SET DEP_LIBS=openssl boost c-ares lz4 gflags rapidjson rocksdb
 )
 ECHO "Building libraries: %DEP_LIBS%"
 
+IF NOT DEFINED DEPS_ROOT (
+SET DEPS_ROOT=%SCRIPTS_ROOT%/libs
+)
+ECHO "Using dependenacies root path %DEPS_ROOT%"
+
 IF NOT DEFINED OPENSSL_VERSION (
 SET OPENSSL_VERSION=3.2.1
 )

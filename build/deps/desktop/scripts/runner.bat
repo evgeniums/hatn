@@ -71,6 +71,6 @@ IF NOT EXIST %DEPS_PREFIX% (
 
 FOR %%f IN (%DEP_LIBS%) do (
     ECHO Building %%f ...
-    CALL %SCRIPTS_ROOT%\libs\%%f.bat        
+    CALL %DEPS_ROOT%\%%f.bat        
 )
     
