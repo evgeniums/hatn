@@ -12,9 +12,9 @@ HATN_TEST_USING
 
 BOOST_AUTO_TEST_SUITE(TestFile)
 
-static const ByteArray& sample() {static ByteArray b("Hello from Dracoha! Line 1\nHello from Dracoha! Line 2\nHello from Dracoha! Line 3"); return b;}
-static const ByteArray& sampleLine1() {static ByteArray b("Hello from Dracoha! Line 1\n"); return b;}
-static const ByteArray& sample2() { static ByteArray b("Hello from Dracoha! Line 2\nHello from Dracoha! Line 3"); return b;}
+static const ByteArray& sample() {static ByteArray b("Hello from hatn! Line 1\nHello from hatn! Line 2\nHello from hatn! Line 3\n"); return b;}
+static const ByteArray& sampleLine1() {static ByteArray b("Hello from hatn! Line 1\n"); return b;}
+static const ByteArray& sample2() { static ByteArray b("Hello from hatn! Line 2\nHello from hatn! Line 3\n"); return b;}
 
 static void testRead(const std::string& filename)
 {
