@@ -551,7 +551,7 @@ std::shared_ptr<Plugin> PluginLoader::loadPlugin(const std::string &type, const 
 //---------------------------------------------------------------
 std::string PluginLoader::dynlibName(const std::string &libName)
 {
-#ifdef HATN_DEBUG
+#ifdef HATN_BUILD_DEBUG
 
 #ifdef _WIN32
     #if defined(__GNUC__)

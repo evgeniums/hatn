@@ -824,7 +824,7 @@ BOOST_AUTO_TEST_CASE(ByteArrayHex)
 BOOST_AUTO_TEST_CASE(ByteArrayBase64)
 {
     std::string str="Hello from hatn!";
-    std::string b64Str="SGVsbG8gZnJvbSBEcmFjb3NoYSE=";
+    std::string b64Str="SGVsbG8gZnJvbSBoYXRuIQ==";
 
     ByteArray b1;
     ContainerUtils::rawToBase64(str,b1);
