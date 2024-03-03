@@ -1,6 +1,6 @@
-SET COMPILER=msvc
+IF "%COMPILER%"=="" SET COMPILER=msvc
+echo "COMPILER=%COMPILER%"
 SET TOOLCHAIN_LINE=-
-
 CALL %SCRIPTS_ROOT%\config.bat
 
 SET WORKING_DIR=%CD%
@@ -33,24 +33,7 @@ IF EXIST  ..\..\..\hatn.src (
     EXIT /b 1
 )
 
-IF "%COMPILER%"=="msvc" (
-    SETLOCAL ENABLEDELAYEDEXPANSION
-    IF %ADDRESS_MODEL%==64 (
-        SET MSVC_ARCH=x64
-        SET MSVC_BUILD_ARCH=x64
-        SET MSVC_FULL_ARCH=x86_64
-        SET MSVC_TOOLSET="%MSVC_COMPILER%,host=x64"
-        SET CMAKE_PLATFORM=x64
-    ) ELSE (
-        SET MSVC_ARCH=x86
-        SET MSVC_BUILD_ARCH=Win32
-        SET MSVC_FULL_ARCH=x86
-        SET MSVC_TOOLSET=%MSVC_COMPILER%
-        SET CMAKE_PLATFORM=
-    )     
-    CALL "%MSVC_ROOT%\VC\Auxiliary\Build\vcvarsall.bat" !MSVC_ARCH! -vcvars_ver=%COMPILER_VERSION%
-)
-
+CALL %SCRIPTS_ROOT%\scripts\prepare-%COMPILER%.bat
 CALL %SCRIPTS_ROOT%\paths.bat
 
 IF NOT EXIST %BUILD_FOLDER% (
