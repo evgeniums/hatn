@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -e
 
 export hatn_lib=$1
