@@ -35,10 +35,11 @@
 #else
 
 #include <memory_resource>
-#include <list>
-#include <map>
 
 #endif
+
+#include <list>
+#include <map>
 
 #include <hatn/common/common.h>
 #include <hatn/common/classuid.h>
