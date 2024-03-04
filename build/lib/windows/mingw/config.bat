@@ -1,6 +1,6 @@
 @ECHO OFF
 
-IF "%MSYS_ROOT%"=="" SET MSYS_ROOT=C:\Programs\msys64
+IF "%MSYS_ROOT%"=="" SET MSYS_ROOT=C:\msys64
 
 IF "%PYTHON_PATH%"=="" SET PYTHON_PATH=C:\Programs\Python
 IF "%CMAKE_PATH%"=="" SET CMAKE_PATH=C:\Program Files\CMake\bin
