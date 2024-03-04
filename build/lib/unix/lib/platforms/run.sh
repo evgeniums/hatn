@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -z "$system_boost" ];
 then
 export BOOST_ROOT=$boost_root

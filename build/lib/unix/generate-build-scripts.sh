@@ -54,6 +54,8 @@ add_toolchain()
 cat <<EOT > $build_script
 #!/bin/bash
 
+set -e
+
 # *** This file is auto generated, do not edit! ***
 
 export platform=$platform
@@ -110,6 +112,8 @@ EOT
 
 # create all.sh	
 echo "#!/bin/bash" > $targets/all.sh
+echo "" >> $targets/all.sh
+echo "set -e" >> $targets/all.sh
 echo "" >> $targets/all.sh
 echo "# *** This file is auto generated, do not edit! ***" >> $targets/all.sh
 chmod +x $targets/all.sh
