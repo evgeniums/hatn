@@ -12,4 +12,4 @@ SET HATN_LINK=%5
 SET HATN_PLUGINS=%6
 SET mypath=%~dp0
 
-call %mypath%\jenkins.bat
+call %mypath%\do-build.bat
