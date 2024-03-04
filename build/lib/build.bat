@@ -12,5 +12,6 @@ SET HATN_LINK=%5
 SET HATN_PLUGINS=%6
 SET mypath=%~dp0
 
-echo "Running build script %mypath%\do-build.bat"
-call %mypath%\do-build.bat
+echo "Running build script %mypath%do-build.bat"
+call %mypath%do-build.bat
+if %errorlevel% neq 0 exit /b %errorlevel%
