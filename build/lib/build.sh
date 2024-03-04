@@ -7,5 +7,8 @@ export hatn_build=$4
 export hatn_link=$5
 export hatn_plugins=$6
 
-my_path=${BASH_SOURCE[0]}
-source ${my_path}/do-build.sh
+cd "$(dirname "$0")"
+script_dir="$(pwd)"
+cd -
+
+source ${script_dir}/do-build.sh
