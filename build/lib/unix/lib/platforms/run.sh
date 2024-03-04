@@ -10,7 +10,7 @@ then
 export OPENSSL_ROOT_DIR=$openssl_root
 fi
 
-cmake -G "CodeBlocks - Unix Makefiles" \
+cmake -G "Unix Makefiles" \
 	-DCMAKE_BUILD_TYPE=$build_type \
 	-DCMAKE_INSTALL_PREFIX=$install_path \
 	-DINSTALL_DEV=$install_dev \
