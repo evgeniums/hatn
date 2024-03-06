@@ -18,6 +18,7 @@
 #ifndef HATNMEMORYPOOLMEMORYBLOCK_H
 #define HATNMEMORYPOOLMEMORYBLOCK_H
 
+#include <cstdint>
 #include <algorithm>
 #include <type_traits>
 #include <functional>
