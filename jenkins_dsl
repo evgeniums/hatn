@@ -30,13 +30,14 @@ job('hatn/hatn-desktop/hatn-desktop-single') {
         choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")      
       	booleanParam("cleanws", false, "Clean workspace before build")    
     }
-  	  
+
+  	logRotator(-1, 5)
+  
     wrappers {
       preBuildCleanup {
           deleteDirectories()
           cleanupParameter('cleanws')
       }
-      colorizeOutput()
       timestamps()      
     }
   
@@ -119,20 +120,18 @@ matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
         text('CMAKE_CXX_STANDARD', '17','14')      
     }
   
-	combinationFilter('((hatn_arch=="x86" && hatn_platform=="windows") || (hatn_arch=="x86_64")) &&'+ 
+	combinationFilter('((hatn_arch=="x86" && hatn_compiler=="msvc") || (hatn_arch=="x86_64")) &&'+ 
                       '((hatn_compiler=="msvc" && hatn_platform=="windows") || (hatn_compiler=="clang" && hatn_platform!="windows") || (hatn_compiler=="gcc" && hatn_platform!="macos")) && '+
                       '(CMAKE_CXX_STANDARD!="14" || (CMAKE_CXX_STANDARD=="14" && hatn_compiler!="msvc"))'
 	)
-//  	combinationFilter('((hatn_arch=="x86"&&hatn_platform=="windows")||(hatn_arch=="x86_64")) && ((hatn_compiler=="msvc"&&hatn_platform=="windows")||(hatn_compiler=="clang"&&hatn_platform!="windows")||(hatn_compiler=="gcc"&&hatn_platform!="macos")) && (CMAKE_CXX_STANDARD!="14"||(CMAKE_CXX_STANDARD=="14"&&hatn_compiler!="msvc"))'
-//                     )
 
+  	logRotator(-1, 5)
   
     wrappers {
       preBuildCleanup {
           deleteDirectories()
           cleanupParameter('cleanws')
       }
-      colorizeOutput()
       timestamps()      
     }
   
