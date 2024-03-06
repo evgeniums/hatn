@@ -1,0 +1,196 @@
+folder('hatn') {
+    description('Folder containing all jobs for hatn project')
+}
+folder('hatn/hatn-desktop') {
+    description('Folder containing all desktop jobs for hatn project')
+}
+folder('hatn/hatn-ios') {
+    description('Folder containing all iOS jobs for hatn project')
+}
+folder('hatn/hatn-android') {
+    description('Folder containing all iOS jobs for hatn project')
+}
+
+job('hatn/hatn-desktop/hatn-desktop-single') {
+    
+  parameters {      
+        choiceParam("hatn_lib", ["all","common"], "hatn library")
+    	labelParam('hatn_platform') {
+            defaultValue('windows')
+            description('Platform (operating system)')
+    	}
+    	stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')    	
+        choiceParam("hatn_compiler", ["msvc","clang","gcc"], "Compiler")
+        choiceParam("hatn_build", ["release","debug"], "Build type")
+        choiceParam("hatn_link", ["shared","static"], "Linking mode")
+        choiceParam("hatn_arch", ["x86_64","x86"], "Processor architecture")
+        choiceParam("CMAKE_CXX_STANDARD", ["17","14","20"], "C++ standard")
+        stringParam('HATN_TEST_NAME', '', 'Name of test to run')
+      	stringParam('hatn_branch', 'main', 'Name of git branch')                
+        choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")      
+      	booleanParam("cleanws", false, "Clean workspace before build")    
+    }
+  	  
+    wrappers {
+      preBuildCleanup {
+          deleteDirectories()
+          cleanupParameter('cleanws')
+      }
+      colorizeOutput()
+      timestamps()      
+    }
+  
+    scm {
+        git {
+            remote {
+                github('evgeniums/hatn')
+            }
+          	branch('$hatn_branch')
+            extensions {
+              submoduleOptions {
+                	relativeTargetDirectory('hatn')
+                	recursive(true)
+              }    
+            }          	
+        }
+    }
+  
+  	environmentVariables(PREPARE_TESTS: '1')
+  
+    steps {
+          conditionalSteps {
+            condition {
+              not {
+                stringsMatch('${hatn_platform}', 'windows', true)
+              }
+            }
+            steps {
+                shell('hatn/build/lib/build ${hatn_lib} ${hatn_compiler} ${hatn_arch} ${hatn_build} ${hatn_link} ${hatn_plugins}')
+              	shell('build/run-tests')
+            }
+          }
+          conditionalSteps {
+            condition {
+                stringsMatch('${hatn_platform}', 'windows', true)
+            }
+            steps {
+                batchFile('hatn/build/lib/build %hatn_lib% %hatn_compiler% %hatn_arch% %hatn_build% %hatn_link% %hatn_plugins%')
+              	batchFile('build/run-tests')
+            }
+          }
+    }
+  
+      publishers {
+        archiveXUnit {
+            boostTest {
+                pattern('build/test-out.xml')
+              	failIfNotNew()
+              	skipNoTestFiles(false)
+              	stopProcessingIfError()
+            }
+          thresholdMode(ThresholdMode.PERCENT)
+          skippedThresholds {
+              failure(100)
+              failureNew(100)
+              unstable(100)
+              unstableNew(100)
+			}          
+        }
+    }
+}
+
+matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
+    
+  parameters {      
+        choiceParam("hatn_lib", ["all","common"], "hatn library")
+    	stringParam('hatn_plugins', 'testplugin', 'List of plugins separated with semicolon (;)')    	    
+        stringParam('HATN_TEST_NAME', '', 'Name of test to run')
+      	stringParam('hatn_branch', 'main', 'Name of git branch')
+        choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")    
+      	booleanParam("cleanws", false, "Clean workspace before build")    
+    }
+
+    axes {
+      	label('hatn_platform','windows','linux','macos')
+      	text('hatn_compiler','msvc','clang','gcc')
+        text('hatn_build','release','debug')
+        text('hatn_link','shared','static')
+        text('hatn_arch','x86_64','x86')
+        text('CMAKE_CXX_STANDARD', '17','14')      
+    }
+  
+	combinationFilter('((hatn_arch=="x86" && hatn_platform=="windows") || (hatn_arch=="x86_64")) &&'+ 
+                      '((hatn_compiler=="msvc" && hatn_platform=="windows") || (hatn_compiler=="clang" && hatn_platform!="windows") || (hatn_compiler=="gcc" && hatn_platform!="macos")) && '+
+                      '(CMAKE_CXX_STANDARD!="14" || (CMAKE_CXX_STANDARD=="14" && hatn_compiler!="msvc"))'
+	)
+//  	combinationFilter('((hatn_arch=="x86"&&hatn_platform=="windows")||(hatn_arch=="x86_64")) && ((hatn_compiler=="msvc"&&hatn_platform=="windows")||(hatn_compiler=="clang"&&hatn_platform!="windows")||(hatn_compiler=="gcc"&&hatn_platform!="macos")) && (CMAKE_CXX_STANDARD!="14"||(CMAKE_CXX_STANDARD=="14"&&hatn_compiler!="msvc"))'
+//                     )
+
+  
+    wrappers {
+      preBuildCleanup {
+          deleteDirectories()
+          cleanupParameter('cleanws')
+      }
+      colorizeOutput()
+      timestamps()      
+    }
+  
+    scm {
+        git {
+            remote {
+                github('evgeniums/hatn')
+            }
+          	branch('$hatn_branch')
+            extensions {
+              submoduleOptions {
+                	relativeTargetDirectory('hatn')
+                	recursive(true)
+              }    
+            }          	
+        }
+    }
+    
+  	environmentVariables(PREPARE_TESTS: '1')
+  
+    steps {
+          conditionalSteps {
+            condition {
+              not {
+                stringsMatch('${hatn_platform}', 'windows', true)
+              }
+            }
+            steps {
+                shell('hatn/build/lib/build ${hatn_lib} ${hatn_compiler} ${hatn_arch} ${hatn_build} ${hatn_link} ${hatn_plugins}')
+              	shell('build/run-tests')
+            }
+          }
+          conditionalSteps {
+            condition {
+                stringsMatch('${hatn_platform}', 'windows', true)
+            }
+            steps {
+                batchFile('hatn/build/lib/build %hatn_lib% %hatn_compiler% %hatn_arch% %hatn_build% %hatn_link% %hatn_plugins%')
+                batchFile('build/run-tests')
+            }
+          }
+    }
+  
+      publishers {
+        archiveXUnit {
+            boostTest {
+                pattern('build/test-out.xml')
+              	failIfNotNew()
+              	skipNoTestFiles(false)
+              	stopProcessingIfError()
+            }
+          thresholdMode(ThresholdMode.PERCENT)
+          skippedThresholds {
+              failure(100)
+              failureNew(100)
+              unstable(100)
+              unstableNew(100)
+			}          
+        }
+    }  
+}
