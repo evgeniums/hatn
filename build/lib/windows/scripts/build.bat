@@ -69,7 +69,7 @@ IF "%PREPARE_TESTS%"=="1" (
         ECHO SET CURRENT_DIR=%%CD%%
         ECHO SET "PATH=%PATH%;!TEST_DIR!"
         ECHO cd !TEST_DIR!
-        ECHO hatnlibs-test.exe --logger=HRF,test_suite --logger=JUNIT,all,%WORKING_DIR%\test-out.xml --report_level=no --result_code=no !MEMORY_LEAKS! !RUN_TEST!
+        ECHO hatnlibs-test.exe --logger=HRF,test_suite --logger=XML,all,%WORKING_DIR%\test-out.xml --report_level=no --result_code=no !MEMORY_LEAKS! !RUN_TEST!
         ECHO cd %%CURRENT_DIR%%
     ) > run-tests.bat    
     

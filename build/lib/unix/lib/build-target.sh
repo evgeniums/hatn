@@ -73,7 +73,7 @@ current_dir=\$PWD
 test_dir=$build_path/test
 export PATH=$PATH:\$test_dir
 cd \$test_dir
-hatnlibs-test --logger=JUNIT,all,$working_dir/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests
+hatnlibs-test --logger=XML,all,$working_dir/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests
 cd \$current_dir
 
 EOT
