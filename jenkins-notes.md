@@ -10,7 +10,7 @@
 
 5. Install Job DSL plugin.
 
-6. Add new jenkins job to generate all hatn projects from Jenkins SDL description. Create New item, select Freestyle project, name it for example build-jenkins-jobs. On configuration page enable sorce manager from git: URL https:://github.com/evgeniums/hatn, branch main.  Then add Build step "Process Job DSL", check "Look on Filesystem" and type .jenkins-dsl in "DSL Script" field. Save configuration.
+6. Add new jenkins job to generate all hatn projects from Jenkins SDL description. Create New item, select Freestyle project, name it for example build-jenkins-jobs. On configuration page enable sorce manager from git: URL https:://github.com/evgeniums/hatn, branch main.  Then add Build step "Process Job DSL", check "Look on Filesystem" and type jenkins_dsl in "DSL Script" field. Save configuration.
 
 7. Run created job. Approve the script in Jenkins if requested. In case of fails due to some plugins missing install required plugins.
 
