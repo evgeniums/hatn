@@ -74,6 +74,9 @@ BOOST_AUTO_TEST_CASE(WindowsEncoding)
     doTest("1251");
 }
 
+
+#ifdef TEST_NON_UNICODE_WINDOWS
+//! @todo Some other system parameters need to be checked also for this test
 BOOST_AUTO_TEST_CASE(WindowsConsole)
 {
     if (GetOEMCP()==866)
@@ -104,6 +107,8 @@ BOOST_AUTO_TEST_CASE(WindowsConsole)
         BOOST_CHECK(true);
     }
 }
+
+#endif
 
 #endif // WIN32
 
