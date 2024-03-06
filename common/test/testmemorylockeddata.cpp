@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(StringConcat)
     BOOST_CHECK(!thrown);
 }
 
-// on Mac there might be big huge memory page
-#if !defined(__APPLE__)
+// macos and linux can provide huge memory pages
+#if !defined(__APPLE__) && !defined(__linux__)
 BOOST_AUTO_TEST_CASE(StringNotEnoughMemory)
 {    
     MemoryLockedDataString sds1 = "hello world";
