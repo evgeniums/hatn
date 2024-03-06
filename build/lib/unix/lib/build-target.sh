@@ -72,6 +72,7 @@ cat <<EOT > $working_dir/run-tests.sh
 current_dir=\$PWD
 test_dir=$build_path/test
 export PATH=$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$deps_root/lib
 cd \$test_dir
 hatnlibs-test --logger=XML,all,$working_dir/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests
 cd \$current_dir
@@ -85,7 +86,8 @@ cat <<EOT > $working_dir/run-tests-manual.sh
 
 current_dir=\$PWD
 test_dir=$build_path/test
-export PATH=$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
+export PATH=\$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$deps_root/lib
 cd \$test_dir
 hatnlibs-test --log_level=test_suite $run_tests
 cd \$current_dir
