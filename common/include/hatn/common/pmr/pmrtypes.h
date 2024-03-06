@@ -39,7 +39,9 @@
 #endif
 
 #include <list>
+#include <vector>
 #include <map>
+#include <string>
 
 #include <hatn/common/common.h>
 #include <hatn/common/classuid.h>
