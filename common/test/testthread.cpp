@@ -862,7 +862,10 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
 
     exec(5);
     worker1->stop();
+
+    BOOST_TEST_MESSAGE("Checking if worker is stopped");
     BOOST_TEST_REQUIRE(worker1->isStopped());
+    BOOST_TEST_MESSAGE("Worker is stopped");
 
     BOOST_TEST_MESSAGE(fmt::format("Counter1 {}",counter1));
     BOOST_TEST_MESSAGE(fmt::format("Counter2 {}",counter2));
