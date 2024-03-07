@@ -2,10 +2,12 @@
 
 set -e
 
-if [ -z "$api_level" ];
+if [ -z "$hatn_api_level" ];
 then
-export api_level=21
+export hatn_api_level=21
 fi
+
+export api_level=$hatn_api_level
 export android_platform=android-$api_level
 
 # list of supported archs and toolchains

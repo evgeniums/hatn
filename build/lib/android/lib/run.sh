@@ -41,13 +41,13 @@ cmake -G "Unix Makefiles" \
 			    -DBoost_USE_STATIC_LIBS=On \
 			    -DCMAKE_BUILD_TYPE=Release \
 			    -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
-            		    -DANDROID_TOOLCHAIN_NAME=$toolchain_name \
+            	-DANDROID_TOOLCHAIN_NAME=$toolchain_name \
 			    -DANDROID_PLATFORM=$android_platform \
 			    -DENABLE_TRANSLATIONS=$enable_translations \
 			    -DCMAKE_INSTALL_PREFIX=$install_path \
 			    -DINSTALL_DEV=1 \
 			    -DDEV_MODULE=$project \
-            		    -DBUILD_PLUGINS="$hatn_plugins" \
+            	 -DBUILD_PLUGINS="$hatn_plugins" \
 			    $project_src
 make -j$build_workers install
 cd -
