@@ -865,7 +865,9 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
 
     BOOST_TEST_MESSAGE("Checking if worker is stopped");
     BOOST_TEST_REQUIRE(worker1->isStopped());
-    BOOST_TEST_MESSAGE("Worker is stopped");
+    BOOST_TEST_MESSAGE("Worker is stopped, destroying worker...");
+    worker1.reset();
+    BOOST_TEST_MESSAGE("Worker destroyed");
 
     BOOST_TEST_MESSAGE(fmt::format("Counter1 {}",counter1));
     BOOST_TEST_MESSAGE(fmt::format("Counter2 {}",counter2));
