@@ -16,4 +16,5 @@
 
 8. After successfull run there must be a tree of hatn projects that can be run with desired parameters.
 
+9. There is a bug in DSL convertor for steps with timeouts (buildStepWithTimeout). WOrkaround is to enable steps timeouts manually with jenkins web UI.
 
