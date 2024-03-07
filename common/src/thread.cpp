@@ -103,8 +103,10 @@ struct Timer final
         {
             if (!handler() || runOnce)
             {
-                stopped.store(true,std::memory_order_relaxed);
-                uninstall();
+                if (uninstall)
+                {
+                    uninstall();
+                }
             }
             else
             {
@@ -169,12 +171,11 @@ class Thread_p
         std::shared_ptr<boost::asio::io_context> asioContext;
         bool newThread=false;
 
-        bool running=false;
-        bool stopped=false;
-        bool firstRun=true;
-        Thread* startThread=nullptr;
+        std::atomic<bool> running;
+        std::atomic<bool> stopped;
+        std::atomic<bool> firstRun;
 
-        std::condition_variable condition;
+        std::condition_variable startedCondition;
         std::mutex mutex;
         std::thread thread;
         std::unique_ptr<boost::asio::io_context::work> dummyWork;
@@ -188,14 +189,13 @@ class Thread_p
 
         void init(bool newT)
         {
-            stopped=false;
-            startThread=nullptr;
+            stopped.store(false);
             newThread=newT;
             asioContext=std::make_shared<boost::asio::io_context>(1);
             nativeID=std::this_thread::get_id();
             handlersPending.store(0,std::memory_order_release);
-            firstRun=true;
-            running=false;
+            firstRun.store(true);
+            running.store(false);
 
             // required for the io service to continue working for ever
             dummyWork=std::make_unique<boost::asio::io_context::work>(boost::asio::io_context::work(*asioContext));
@@ -237,15 +237,11 @@ boost::asio::io_context& Thread::asioContextRef() noexcept
 //---------------------------------------------------------------
 void Thread::start(bool waitForStarted)
 {
-    d->mutex.lock();
-    if (d->running)
+    if (d->running.load())
     {
-        d->mutex.unlock();
         return;
     }
-    d->startThread=Thread::currentThreadOrMain();
-    d->stopped=false;
-    d->mutex.unlock();
+    d->stopped.store(false);
 
     if (d->newThread)
     {
@@ -258,9 +254,9 @@ void Thread::start(bool waitForStarted)
         if (waitForStarted)
         {
             std::unique_lock<decltype(d->mutex)> l(d->mutex);
-            if (!d->running && !d->stopped)
+            if (!d->running.load() && !d->stopped.load())
             {
-                d->condition.wait(l);
+                d->startedCondition.wait(l);
             }
         }
     }
@@ -273,25 +269,17 @@ void Thread::start(bool waitForStarted)
 //---------------------------------------------------------------
 void Thread::stop()
 {
-    d->mutex.lock();
-    if (d->running)
-    {
-        d->mutex.unlock();
-
-        d->asioContext->post(
-            [this]()
-            {
-                d->asioContext->stop();
-            }
-        );
-        if (d->newThread && Thread::currentThreadOrMain()==d->startThread)
+    d->asioContext->post(
+        [this]()
         {
-            d->thread.join();
+            d->asioContext->stop();
         }
+    );
 
-        return;
+    if (d->thread.joinable())
+    {
+        d->thread.join();
     }
-    d->mutex.unlock();
 }
 
 //---------------------------------------------------------------
@@ -317,25 +305,22 @@ void Thread::run()
 
     try
     {
-        if (!d->firstRun)
+        if (!d->firstRun.load())
         {
             d->asioContext->restart();
         }
-        d->firstRun=false;
+        d->firstRun.store(false);
 
         d->mutex.lock();
-        d->running=true;
-        if (d->newThread)
-        {
-            d->condition.notify_one();
-        }
+        d->running.store(true);
+        d->startedCondition.notify_one();
         d->mutex.unlock();
 
         d->asioContext->run();
 
         d->mutex.lock();
-        d->running=false;
-        d->stopped=true;
+        d->running.store(false);
+        d->stopped.store(true);
         d->mutex.unlock();
     }
     catch(std::exception &e)
@@ -439,13 +424,13 @@ void Thread::releaseMainThread() noexcept
 //---------------------------------------------------------------
 bool Thread::isStopped() const noexcept
 {
-    return !d->running && !d->firstRun;
+    return !d->running.load() && !d->firstRun.load();
 }
 
 //---------------------------------------------------------------
 bool Thread::isStarted() const noexcept
 {
-    return d->running;
+    return d->running.load();
 }
 
 //---------------------------------------------------------------
