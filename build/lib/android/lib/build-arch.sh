@@ -16,7 +16,7 @@ source $scripts_root/paths.sh
 
 echo Begin toolchain $toolchain
 
-$PWD/run.sh
+$scripts_root/lib/run.sh
 
 if [[ "$PREPARE_TESTS" == "1" ]];
 then
