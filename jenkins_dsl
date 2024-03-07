@@ -25,7 +25,7 @@ job('hatn/hatn-desktop/hatn-desktop-single') {
         choiceParam("hatn_link", ["shared","static"], "Linking mode")
         choiceParam("hatn_arch", ["x86_64","x86"], "Processor architecture")
         choiceParam("CMAKE_CXX_STANDARD", ["17","14","20"], "C++ standard")
-        stringParam('HATN_TEST_NAME', '', 'Name of test to run')
+        stringParam('hatn_test_name', '', 'Name of test to run')
       	stringParam('hatn_branch', 'main', 'Name of git branch')                
         choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")      
       	booleanParam("cleanws", false, "Clean workspace before build")    
@@ -105,7 +105,7 @@ matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
   parameters {      
         choiceParam("hatn_lib", ["all","common"], "hatn library")
     	stringParam('hatn_plugins', 'testplugin', 'List of plugins separated with semicolon (;)')    	    
-        stringParam('HATN_TEST_NAME', '', 'Name of test to run')
+        stringParam('hatn_test_name', '', 'Name of test to run')
       	stringParam('hatn_branch', 'main', 'Name of git branch')
         choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")    
       	booleanParam("cleanws", false, "Clean workspace before build")    
@@ -192,4 +192,154 @@ matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
 			}          
         }
     }  
+}
+
+job('hatn/hatn-android/hatn-android-single') {
+    
+  label('android')
+  
+  parameters {      
+        choiceParam("hatn_lib", ["all","common"], "hatn library")
+        choiceParam("hatn_arch", ["x86_64","aarch64","arm-linux-androideabi","x86"], "Processor architecture")
+        choiceParam("hatn_api_level", ["21","34"], "Android API level")    
+    	stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')    
+        choiceParam("CMAKE_CXX_STANDARD", ["17","14","20"], "C++ standard")
+        stringParam('hatn_test_name', '', 'Name of test to run')
+      	stringParam('hatn_branch', 'main', 'Name of git branch')                
+        choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")      
+      	booleanParam("cleanws", false, "Clean workspace before build")    
+    }
+
+  	logRotator(-1, 5)
+  
+    wrappers {
+      preBuildCleanup {
+          deleteDirectories()
+          cleanupParameter('cleanws')
+      }
+      timestamps()      
+    }
+  
+    scm {
+        git {
+            remote {
+                github('evgeniums/hatn')
+            }
+          	branch('$hatn_branch')
+            extensions {
+              submoduleOptions {
+                	relativeTargetDirectory('hatn')
+                	recursive(true)
+              }    
+            }          	
+        }
+    }
+  
+  	environmentVariables(PREPARE_TESTS: '1')
+  
+    steps {
+      shell('hatn/build/lib/android-build.sh ${hatn_lib} ${hatn_arch} ${hatn_api_level} ${hatn_plugins}')
+      conditionalSteps {
+        condition {
+          stringsMatch('${hatn_arch}', 'x86_64', true)
+        }
+        steps {
+          shell('build/run-tests.sh')
+        }      
+      }      
+    }
+  
+  	publishers {
+      archiveXUnit {
+        boostTest {
+          pattern('build/test-out.xml')
+          failIfNotNew()
+          skipNoTestFiles(true)
+          stopProcessingIfError()
+        }
+        thresholdMode(ThresholdMode.PERCENT)
+        skippedThresholds {
+          failure(100)
+          failureNew(100)
+          unstable(100)
+          unstableNew(100)
+        }          
+      }
+    }
+}
+
+matrixJob('hatn/hatn-android/hatn-android-matrix') {
+
+  parameters {      
+        choiceParam("hatn_lib", ["all","common"], "hatn library")
+    	stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')    
+        stringParam('hatn_test_name', '', 'Name of test to run')
+      	stringParam('hatn_branch', 'main', 'Name of git branch')                
+        choiceParam("HATN_SMARTPOINTERS_STD", ["NO","YES"], "Use smart pointers from C++ standard library instead of hatn smart pointers")      
+      	booleanParam("cleanws", false, "Clean workspace before build")    
+    }
+
+    axes {
+      	text('hatn_arch',"x86_64","aarch64","arm-linux-androideabi","x86")
+        text('hatn_api_level',"21","34")
+        text('CMAKE_CXX_STANDARD', '17','14')
+        label('hatn_platform','android')
+    }
+  
+  	logRotator(-1, 5)
+  
+    wrappers {
+      preBuildCleanup {
+          deleteDirectories()
+          cleanupParameter('cleanws')
+      }
+      timestamps()      
+    }
+  
+    scm {
+        git {
+            remote {
+                github('evgeniums/hatn')
+            }
+          	branch('$hatn_branch')
+            extensions {
+              submoduleOptions {
+                	relativeTargetDirectory('hatn')
+                	recursive(true)
+              }    
+            }          	
+        }
+    }
+  
+  	environmentVariables(PREPARE_TESTS: '1')
+
+    steps {
+      shell('hatn/build/lib/android-build.sh ${hatn_lib} ${hatn_arch} ${hatn_api_level} ${hatn_plugins}')
+      conditionalSteps {
+        condition {
+          stringsMatch('${hatn_arch}', 'x86_64', true)
+        }
+        steps {
+          shell('build/run-tests.sh')
+        }      
+      }      
+    }
+    
+  	publishers {
+      archiveXUnit {
+        boostTest {
+          pattern('build/test-out.xml')
+          failIfNotNew()
+          skipNoTestFiles(true)
+          stopProcessingIfError()
+        }
+        thresholdMode(ThresholdMode.PERCENT)
+        skippedThresholds {
+          failure(100)
+          failureNew(100)
+          unstable(100)
+          unstableNew(100)
+        }          
+      }
+    }
 }

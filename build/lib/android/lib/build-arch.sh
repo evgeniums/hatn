@@ -14,6 +14,8 @@ export scripts_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 &&
 source $scripts_root/cfg.sh
 source $scripts_root/paths.sh
 
+echo "deps_root=$deps_root"
+
 echo Begin toolchain $toolchain
 
 $scripts_root/lib/run.sh

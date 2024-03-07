@@ -1,4 +1,4 @@
-#export deps_root=/home/osboxes/projects/hatn/deps/root-clang
+#export deps_root=~/projects/hatn/deps/root-clang
 #export gettext_path=/usr/local/opt/gettext/bin
 
 ## smarpointers mode
