@@ -216,6 +216,8 @@ Thread::Thread(
 //---------------------------------------------------------------
 Thread::~Thread()
 {
+    std::cerr << "Thread::~Thread() " << id().c_str() << std::endl;
+
     stop();
 }
 
@@ -269,6 +271,8 @@ void Thread::start(bool waitForStarted)
 //---------------------------------------------------------------
 void Thread::stop()
 {
+    std::cerr << "Thread::stop() " << id().c_str() << std::endl;
+
     d->asioContext->post(
         [this]()
         {
@@ -278,7 +282,11 @@ void Thread::stop()
 
     if (d->thread.joinable())
     {
+        std::cerr << "Waiting for thread join in thread " << id().c_str()<<"..." << std::endl;
         d->thread.join();
+        std::cerr << "Thread joined  in thread " << id().c_str() << std::endl;
+    } else {
+        std::cerr << "Thread join not needed in thread " << id().c_str() << std::endl;
     }
 }
 
@@ -318,10 +326,12 @@ void Thread::run()
 
         d->asioContext->run();
 
+        std::cerr<<"Locking mutex after run in thread " << id().c_str() <<"..." << std::endl;
         d->mutex.lock();
         d->running.store(false);
         d->stopped.store(true);
         d->mutex.unlock();
+        std::cerr<<"Unlocked mutex after run in thread " << id().c_str() << std::endl;
     }
     catch(std::exception &e)
     {
