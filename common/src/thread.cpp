@@ -85,6 +85,8 @@ struct Timer final
 
     std::atomic<bool> stopped;
 
+    std::shared_ptr<int> refCount;
+
     void stop()
     {
         if (highResTimer!=nullptr)
@@ -110,20 +112,22 @@ struct Timer final
             }
             else
             {
+                auto count=refCount;
                 if (highResTimer!=nullptr)
                 {
                     highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
-                    highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
+                    highResTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
                 }
                 else
                 {
                     normalTimer->expires_from_now(boost::posix_time::microseconds(periodUs));
-                    normalTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
+                    normalTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
                 }
             }
         }
         else
         {
+            std::cerr<<"Timer aborted, ref count="<<refCount.use_count()<<std::endl;
             stopped.store(true,std::memory_order_relaxed);
         }
     }
@@ -141,21 +145,36 @@ struct Timer final
         uninstall(uninstall),
         stopped(false)
     {
+        std::cerr<<"Timer created, ref count="<<refCount.use_count()<<std::endl;
+
+        refCount=std::make_shared<int>(0);
+        auto count=refCount;
         if (highResolution)
         {
             highResTimer=std::make_unique<boost::asio::high_resolution_timer>(asioContext);
             highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
-            highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
+            highResTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
         }
         else
         {
             normalTimer=std::make_unique<boost::asio::deadline_timer>(asioContext);
             normalTimer->expires_from_now(boost::posix_time::microseconds(periodUs));
-            normalTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
+            normalTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
         }
     }
 
-    ~Timer()=default;
+    ~Timer() {
+        refCount.reset();
+        std::cerr<<"Timer destroy begin, ref count="<<refCount.use_count()<<std::endl;
+        stop();
+        // if (normalTimer) {
+        //     normalTimer.reset();
+        // } else if (highResTimer) {
+        //     highResTimer.reset();
+        // }
+        std::cerr<<"Timer destroy end, ref count="<<refCount.use_count()<<std::endl;
+    }
+
     Timer(const Timer&)=delete;
     Timer(const Timer&&)=delete;
     Timer& operator=(const Timer&)=delete;
