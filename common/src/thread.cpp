@@ -181,8 +181,12 @@ class Thread_p
         std::atomic<bool> firstRun;
 
         std::condition_variable startedCondition;
-        std::mutex mutex;
-        std::thread thread;
+
+        std::mutex* mx;
+        std::thread* th;
+
+        std::mutex& mutex;
+        std::thread& thread;
 
         std::thread::id nativeID;
         boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
@@ -198,6 +202,10 @@ class Thread_p
             ) : id(std::move(id)),
                 newThread(newThread),
                 asioContext(std::make_shared<boost::asio::io_context>(1)),
+                mx(new std::mutex),
+                th(new std::thread),
+                mutex(*mx),
+                thread(*th),
                 nativeID(std::this_thread::get_id()),
                 workGuard(boost::asio::make_work_guard(*asioContext)),
                 timerIncId(0)
@@ -206,10 +214,6 @@ class Thread_p
             handlersPending.store(0);
             firstRun.store(true);
             running.store(false);
-        }
-
-        ~Thread_p() {
-
         }
 };
 
@@ -266,7 +270,7 @@ void Thread::start(bool waitForStarted)
         );
         if (waitForStarted)
         {
-            std::unique_lock<decltype(d->mutex)> l(d->mutex);
+            std::unique_lock<std::mutex> l(d->mutex);
             if (!d->running.load() && !d->stopped.load())
             {
                 d->startedCondition.wait(l);
@@ -318,7 +322,7 @@ void Thread::run()
         }
 
         {
-            std::unique_lock<decltype(d->mutex)> l(d->mutex);
+            std::unique_lock<std::mutex> l(d->mutex);
             d->firstRun.store(false,std::memory_order_release);
             d->running.store(true,std::memory_order_release);
             d->startedCondition.notify_one();
@@ -327,7 +331,7 @@ void Thread::run()
         d->asioContext->run();
 
         {
-            std::unique_lock<decltype(d->mutex)> l(d->mutex);
+            std::unique_lock<std::mutex> l(d->mutex);
             for (auto&& it : d->timers)
             {
                 it.second->stopped.store(true,std::memory_order_release);
@@ -476,7 +480,7 @@ uint32_t Thread::installTimer(
             bool highResolution
     )
 {
-    std::unique_lock<decltype(d->mutex)> lock(d->mutex);
+    std::unique_lock<std::mutex> lock(d->mutex);
     auto id=++d->timerIncId;
     auto timer=std::make_shared<Timer>(timeoutPeriodUs,std::move(handler),runOnce,highResolution,asioContextRef(),[id,this](){this->uninstallTimer(id);});
     d->timers[d->timerIncId]=timer;
@@ -488,7 +492,7 @@ void Thread::uninstallTimer(uint32_t id, bool wait)
 {
     std::shared_ptr<Timer> timer;
     {
-        std::unique_lock<decltype(d->mutex)> lock(d->mutex);
+        std::unique_lock<std::mutex> lock(d->mutex);
         auto it=d->timers.find(id);
         if (it!=d->timers.end())
         {
