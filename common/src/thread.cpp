@@ -259,13 +259,13 @@ Thread::Thread(
 Thread::~Thread()
 {
 
+    d->workGuard.reset();
+
     std::cerr << "Thread::~Thread() before stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
 
     stop();
 
     std::cerr << "Thread::~Thread() after stop, asio context use count="<<d->asioContext.use_count() << " stopped " << d->stopped.load() << id().c_str() << std::endl;
-
-    d->workGuard.reset();
 
     // d->timers.clear();
 
