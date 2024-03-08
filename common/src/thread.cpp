@@ -258,23 +258,23 @@ Thread::Thread(
 //---------------------------------------------------------------
 Thread::~Thread()
 {
-    d->workGuard.reset();
-
-    std::cerr << "Thread::~Thread() work guard reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
 
     std::cerr << "Thread::~Thread() before stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
 
     stop();
 
-    std::cerr << "Thread::~Thread() after stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+    std::cerr << "Thread::~Thread() after stop, asio context use count="<<d->asioContext.use_count() << " stopped " << d->stopped.load() << id().c_str() << std::endl;
 
-    d->timers.clear();
+    d->workGuard.reset();
 
-    std::cerr << "Thread::~Thread() after timers clear, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+    // d->timers.clear();
 
-    d->asioContext.reset();
+    std::cerr << "Thread::~Thread() after timers clear, asio context use count="<<d->asioContext.use_count() << " stopped " << d->asioContext->stopped() << " " << id().c_str() << std::endl;
 
-    std::cerr << "Thread::~Thread() after context reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+    // d->asioContext->stop();
+    // d->asioContext.reset();
+
+    // std::cerr << "Thread::~Thread() after context reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
 
     auto tname=id();
 
@@ -305,7 +305,11 @@ void Thread::start(bool waitForStarted)
     {
         return;
     }
-    d->stopped.store(false);
+    if (d->stopped.load())
+    {
+        d->asioContext->restart();
+        d->stopped.store(false);
+    }
 
     if (d->newThread)
     {
@@ -333,23 +337,21 @@ void Thread::start(bool waitForStarted)
 //---------------------------------------------------------------
 void Thread::stop()
 {
-    std::cerr << "Thread::stop() " << id().c_str() << std::endl;
-
-    d->asioContext->post(
-        [this]()
-        {
-            d->asioContext->stop();
-        }
-    );
-
+    std::cerr << "Thread::stop() "<< " stopped " << d->asioContext->stopped() << " " << id().c_str() << std::endl;
+    d->asioContext->stop();
     if (d->thread.joinable())
     {
+        // whait for stop
+        while (!d->stopped.load()) {}
+
         std::cerr << "Waiting for thread join in thread " << id().c_str()<<"..." << std::endl;
         d->thread.join();
         std::cerr << "Thread joined  in thread " << id().c_str() << std::endl;
     } else {
         std::cerr << "Thread join not needed in thread " << id().c_str() << std::endl;
     }
+
+    std::cerr << "Thread::stop() asio context use count="<<d->asioContext.use_count() << " stopped " << d->asioContext->stopped() << " "<< id().c_str() << std::endl;
 }
 
 //---------------------------------------------------------------
