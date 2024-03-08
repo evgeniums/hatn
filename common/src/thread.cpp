@@ -33,6 +33,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/high_resolution_timer.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -187,8 +188,10 @@ class Thread_p
 {
     public:
 
-        std::shared_ptr<boost::asio::io_context> asioContext;
+        FixedByteArrayThrow16 id;
         bool newThread=false;
+
+        std::shared_ptr<boost::asio::io_context> asioContext;
 
         std::atomic<bool> running;
         std::atomic<bool> stopped;
@@ -197,47 +200,87 @@ class Thread_p
         std::condition_variable startedCondition;
         std::mutex mutex;
         std::thread thread;
-        std::unique_ptr<boost::asio::io_context::work> dummyWork;
+
         std::thread::id nativeID;
-        FixedByteArrayThrow16 id;
+        boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
 
         std::atomic<int> handlersPending;
 
         std::map<uint32_t,std::shared_ptr<Timer>> timers;
-        uint32_t timerIncId=0;
+        uint32_t timerIncId;
 
-        void init(bool newT)
+        Thread_p(
+                FixedByteArrayThrow16 id,
+                bool newThread
+            ) : id(std::move(id)),
+                newThread(newThread),
+                asioContext(std::make_shared<boost::asio::io_context>(1)),
+                nativeID(std::this_thread::get_id()),
+                workGuard(boost::asio::make_work_guard(*asioContext)),
+                timerIncId(0)
         {
             stopped.store(false);
-            newThread=newT;
-            asioContext=std::make_shared<boost::asio::io_context>(1);
-            nativeID=std::this_thread::get_id();
-            handlersPending.store(0,std::memory_order_release);
+            handlersPending.store(0);
             firstRun.store(true);
             running.store(false);
-
-            // required for the io service to continue working for ever
-            dummyWork=std::make_unique<boost::asio::io_context::work>(boost::asio::io_context::work(*asioContext));
         }
+
+        ~Thread_p() {
+
+        }
+
+        // void init()
+        // {
+        //     stopped.store(false);
+        //     newThread=newT;
+        //     asioContext=std::make_shared<boost::asio::io_context>(1);
+        //     nativeID=std::this_thread::get_id();
+        //     handlersPending.store(0);
+        //     firstRun.store(true);
+        //     running.store(false);
+
+        //     // required for the io service to continue working for ever
+        //     dummyWork=std::make_unique<boost::asio::io_context::work>(boost::asio::io_context::work(*asioContext));
+        // }
 };
 
 //---------------------------------------------------------------
 Thread::Thread(
-        const FixedByteArrayThrow16& id,
+        FixedByteArrayThrow16 id,
         bool newThread
-    ) : d(std::make_unique<Thread_p>())
+    ) : d(std::make_unique<Thread_p>(std::move(id),newThread))
 {
-    d->init(newThread);
-    d->id=id;
-    d->timerIncId=0;
+    // d->init(newThread);
+    // d->id=id;
+    // d->timerIncId=0;
 }
 
 //---------------------------------------------------------------
 Thread::~Thread()
 {
-    std::cerr << "Thread::~Thread() " << id().c_str() << std::endl;
+    d->workGuard.reset();
+
+    std::cerr << "Thread::~Thread() work guard reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+
+    std::cerr << "Thread::~Thread() before stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
 
     stop();
+
+    std::cerr << "Thread::~Thread() after stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+
+    d->timers.clear();
+
+    std::cerr << "Thread::~Thread() after timers clear, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+
+    d->asioContext.reset();
+
+    std::cerr << "Thread::~Thread() after context reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
+
+    auto tname=id();
+
+    d.reset();
+
+    std::cerr << "Thread::~Thread() after d.reset() " << tname.c_str() << std::endl;
 }
 
 Thread::Thread(Thread&&) noexcept=default;
@@ -368,6 +411,8 @@ void Thread::run()
         throw;
     }
     ThisThread=nullptr;
+
+    std::cerr<<"Exiting thread run " << id().c_str() << std::endl;
 }
 
 //---------------------------------------------------------------
