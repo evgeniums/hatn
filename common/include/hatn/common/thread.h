@@ -167,13 +167,8 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
          * @brief Uninstall timer
          * @param id Timer ID
          */
-        void uninstallTimer(uint32_t id);
+        void uninstallTimer(uint32_t id, bool wait=true);
 
-        /**
-         * @brief Uninstall timer and wait for completion of uninstallation
-         * @param id Timer ID
-         */
-        void uninstallTimerWait(uint32_t id);
 
         //! Get native thread id
         Thread::NativeID nativeID() const noexcept;

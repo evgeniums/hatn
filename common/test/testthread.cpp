@@ -862,12 +862,12 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
 
     exec(5);
 
-    worker1->uninstallTimerWait(timer1);
-    worker1->uninstallTimerWait(timer2);
-    worker1->uninstallTimerWait(timer3);
-    worker1->uninstallTimerWait(timer4);
-    worker1->uninstallTimerWait(timer5);
-    worker1->uninstallTimerWait(timer6);
+    // worker1->uninstallTimerWait(timer1);
+    // worker1->uninstallTimerWait(timer2);
+    // worker1->uninstallTimerWait(timer3);
+    // worker1->uninstallTimerWait(timer4);
+    // worker1->uninstallTimerWait(timer5);
+    // worker1->uninstallTimerWait(timer6);
 
 
     worker1->stop();

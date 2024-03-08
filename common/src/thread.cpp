@@ -29,7 +29,6 @@
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #endif
 
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/high_resolution_timer.hpp>
@@ -44,10 +43,7 @@
 
 #include <hatn/common/types.h>
 #include <hatn/common/utils.h>
-#include <hatn/common/queue.h>
 #include <hatn/common/logger.h>
-#include <hatn/common/makeshared.h>
-
 #include <hatn/common/thread.h>
 
 #include <hatn/common/threadcategoriespoolimpl.h>
@@ -76,6 +72,7 @@ static MainThreadWrapper& MainThread()
 
 struct Timer final
 {
+    boost::asio::io_context& asioContext;
     uint64_t periodUs;
     std::function<bool()> handler;
     bool runOnce;
@@ -85,8 +82,6 @@ struct Timer final
     std::unique_ptr<boost::asio::high_resolution_timer> highResTimer;
 
     std::atomic<bool> stopped;
-
-    std::shared_ptr<int> refCount;
 
     void stop()
     {
@@ -106,30 +101,28 @@ struct Timer final
         {
             if (!handler() || runOnce)
             {
-                if (uninstall)
-                {
-                    uninstall();
+                stopped.store(true,std::memory_order_release);
+                if (uninstall) {
+                    asioContext.post(uninstall);
                 }
             }
             else
-            {
-                auto count=refCount;
+            {                
                 if (highResTimer!=nullptr)
                 {
                     highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
-                    highResTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
+                    highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
                 }
                 else
                 {
                     normalTimer->expires_from_now(boost::posix_time::microseconds(periodUs));
-                    normalTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
+                    normalTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
                 }
             }
         }
         else
         {
-            std::cerr<<"Timer aborted, ref count="<<refCount.use_count()<<std::endl;
-            stopped.store(true,std::memory_order_relaxed);
+            stopped.store(true,std::memory_order_release);
         }
     }
 
@@ -140,40 +133,30 @@ struct Timer final
             bool highResolution,
             boost::asio::io_context& asioContext,
             const std::function<void ()>& uninstall
-    ) : periodUs(timeoutPeriodUs),
-        handler(handler),
-        runOnce(runOnce),
-        uninstall(uninstall),
-        stopped(false)
+        ) : asioContext(asioContext),
+            periodUs(timeoutPeriodUs),
+            handler(handler),
+            runOnce(runOnce),
+            uninstall(uninstall),
+            stopped(false)
     {
-        std::cerr<<"Timer created, ref count="<<refCount.use_count()<<std::endl;
-
-        refCount=std::make_shared<int>(0);
-        auto count=refCount;
         if (highResolution)
         {
             highResTimer=std::make_unique<boost::asio::high_resolution_timer>(asioContext);
             highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
-            highResTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
+            highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
         }
         else
         {
             normalTimer=std::make_unique<boost::asio::deadline_timer>(asioContext);
             normalTimer->expires_from_now(boost::posix_time::microseconds(periodUs));
-            normalTimer->async_wait([this,count](const boost::system::error_code& ec){this->timeout(ec);});
+            normalTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
         }
     }
 
     ~Timer() {
-        refCount.reset();
-        std::cerr<<"Timer destroy begin, ref count="<<refCount.use_count()<<std::endl;
         stop();
-        // if (normalTimer) {
-        //     normalTimer.reset();
-        // } else if (highResTimer) {
-        //     highResTimer.reset();
-        // }
-        std::cerr<<"Timer destroy end, ref count="<<refCount.use_count()<<std::endl;
+        stopped.store(true,std::memory_order_release);
     }
 
     Timer(const Timer&)=delete;
@@ -228,20 +211,6 @@ class Thread_p
         ~Thread_p() {
 
         }
-
-        // void init()
-        // {
-        //     stopped.store(false);
-        //     newThread=newT;
-        //     asioContext=std::make_shared<boost::asio::io_context>(1);
-        //     nativeID=std::this_thread::get_id();
-        //     handlersPending.store(0);
-        //     firstRun.store(true);
-        //     running.store(false);
-
-        //     // required for the io service to continue working for ever
-        //     dummyWork=std::make_unique<boost::asio::io_context::work>(boost::asio::io_context::work(*asioContext));
-        // }
 };
 
 //---------------------------------------------------------------
@@ -250,37 +219,13 @@ Thread::Thread(
         bool newThread
     ) : d(std::make_unique<Thread_p>(std::move(id),newThread))
 {
-    // d->init(newThread);
-    // d->id=id;
-    // d->timerIncId=0;
 }
 
 //---------------------------------------------------------------
 Thread::~Thread()
 {
-
     d->workGuard.reset();
-
-    std::cerr << "Thread::~Thread() before stop, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
-
     stop();
-
-    std::cerr << "Thread::~Thread() after stop, asio context use count="<<d->asioContext.use_count() << " stopped " << d->stopped.load() << id().c_str() << std::endl;
-
-    // d->timers.clear();
-
-    std::cerr << "Thread::~Thread() after timers clear, asio context use count="<<d->asioContext.use_count() << " stopped " << d->asioContext->stopped() << " " << id().c_str() << std::endl;
-
-    // d->asioContext->stop();
-    // d->asioContext.reset();
-
-    // std::cerr << "Thread::~Thread() after context reset, asio context use count="<<d->asioContext.use_count() << " " << id().c_str() << std::endl;
-
-    auto tname=id();
-
-    d.reset();
-
-    std::cerr << "Thread::~Thread() after d.reset() " << tname.c_str() << std::endl;
 }
 
 Thread::Thread(Thread&&) noexcept=default;
@@ -337,21 +282,11 @@ void Thread::start(bool waitForStarted)
 //---------------------------------------------------------------
 void Thread::stop()
 {
-    std::cerr << "Thread::stop() "<< " stopped " << d->asioContext->stopped() << " " << id().c_str() << std::endl;
     d->asioContext->stop();
     if (d->thread.joinable())
     {
-        // whait for stop
-        while (!d->stopped.load()) {}
-
-        std::cerr << "Waiting for thread join in thread " << id().c_str()<<"..." << std::endl;
         d->thread.join();
-        std::cerr << "Thread joined  in thread " << id().c_str() << std::endl;
-    } else {
-        std::cerr << "Thread join not needed in thread " << id().c_str() << std::endl;
     }
-
-    std::cerr << "Thread::stop() asio context use count="<<d->asioContext.use_count() << " stopped " << d->asioContext->stopped() << " "<< id().c_str() << std::endl;
 }
 
 //---------------------------------------------------------------
@@ -381,21 +316,25 @@ void Thread::run()
         {
             d->asioContext->restart();
         }
-        d->firstRun.store(false);
 
-        d->mutex.lock();
-        d->running.store(true);
-        d->startedCondition.notify_one();
-        d->mutex.unlock();
+        {
+            std::unique_lock<decltype(d->mutex)> l(d->mutex);
+            d->firstRun.store(false,std::memory_order_release);
+            d->running.store(true,std::memory_order_release);
+            d->startedCondition.notify_one();
+        }
 
         d->asioContext->run();
 
-        std::cerr<<"Locking mutex after run in thread " << id().c_str() <<"..." << std::endl;
-        d->mutex.lock();
-        d->running.store(false);
-        d->stopped.store(true);
-        d->mutex.unlock();
-        std::cerr<<"Unlocked mutex after run in thread " << id().c_str() << std::endl;
+        {
+            std::unique_lock<decltype(d->mutex)> l(d->mutex);
+            for (auto&& it : d->timers)
+            {
+                it.second->stopped.store(true,std::memory_order_release);
+            }
+            d->running.store(false,std::memory_order_release);
+            d->stopped.store(true,std::memory_order_release);
+        }
     }
     catch(std::exception &e)
     {
@@ -413,8 +352,6 @@ void Thread::run()
         throw;
     }
     ThisThread=nullptr;
-
-    std::cerr<<"Exiting thread run " << id().c_str() << std::endl;
 }
 
 //---------------------------------------------------------------
@@ -468,7 +405,6 @@ Error Thread::execSync(
 //---------------------------------------------------------------
 Thread::NativeID Thread::nativeID() const noexcept
 {
-    std::unique_lock<std::mutex> lock(d->mutex);
     return d->nativeID;
 }
 
@@ -540,7 +476,7 @@ uint32_t Thread::installTimer(
             bool highResolution
     )
 {
-    std::unique_lock<std::mutex> lock(d->mutex);
+    std::unique_lock<decltype(d->mutex)> lock(d->mutex);
     auto id=++d->timerIncId;
     auto timer=std::make_shared<Timer>(timeoutPeriodUs,std::move(handler),runOnce,highResolution,asioContextRef(),[id,this](){this->uninstallTimer(id);});
     d->timers[d->timerIncId]=timer;
@@ -548,34 +484,25 @@ uint32_t Thread::installTimer(
 }
 
 //---------------------------------------------------------------
-void Thread::uninstallTimer(uint32_t id)
+void Thread::uninstallTimer(uint32_t id, bool wait)
 {
-    std::unique_lock<std::mutex> lock(d->mutex);
-    d->timers.erase(id);
-}
-
-//---------------------------------------------------------------
-void Thread::uninstallTimerWait(uint32_t id)
-{
-    d->mutex.lock();
-    auto it=d->timers.find(id);
-    if (it!=d->timers.end())
+    std::shared_ptr<Timer> timer;
     {
-        auto timer=it->second;
-        d->mutex.unlock();
-
-        if (!timer->stopped.load(std::memory_order_relaxed))
+        std::unique_lock<decltype(d->mutex)> lock(d->mutex);
+        auto it=d->timers.find(id);
+        if (it!=d->timers.end())
         {
-            timer->stop();
-            while (!timer->stopped.load(std::memory_order_relaxed))
+            timer=it->second;
+            d->timers.erase(id);
+        }
+    }
+
+    if (timer) {
+        timer->stop();
+        if (wait) {
+            while (!timer->stopped.load(std::memory_order_acquire))
             {}
         }
-
-        uninstallTimer(id);
-    }
-    else
-    {
-        d->mutex.unlock();
     }
 }
 
