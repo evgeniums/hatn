@@ -46,7 +46,7 @@ call %SCRIPTS_ROOT%%PLATFORM%\run.bat
 cd %WORKING_DIR%
 
 IF "%PREPARE_TESTS%"=="1" (
-    ECHO Preparing tests script %_COMPILER% %WORKING_DIR%\run-tests.bat ...
+    ECHO Preparing tests script %_COMPILER% %WORKING_DIR%\build\run-tests.bat ...
     SETLOCAL ENABLEDELAYEDEXPANSION
     IF "%_COMPILER%"=="msvc" (
         SET TEST_DIR=%BUILD_DIR%\test\%BUILD_TYPE%
@@ -69,9 +69,9 @@ IF "%PREPARE_TESTS%"=="1" (
         ECHO SET CURRENT_DIR=%%CD%%
         ECHO SET "PATH=%PATH%;!TEST_DIR!"
         ECHO cd !TEST_DIR!
-        ECHO hatnlibs-test.exe --logger=HRF,test_suite --logger=XML,all,%WORKING_DIR%\test-out.xml --report_level=no --result_code=no !MEMORY_LEAKS! !RUN_TEST!
+        ECHO hatnlibs-test.exe --logger=HRF,test_suite --logger=XML,all,%WORKING_DIR%\build\test-out.xml --report_level=no --result_code=no !MEMORY_LEAKS! !RUN_TEST!
         ECHO cd %%CURRENT_DIR%%
-    ) > run-tests.bat    
+    ) > build\run-tests.bat    
     
     (
         ECHO ECHO Running test script
@@ -80,7 +80,7 @@ IF "%PREPARE_TESTS%"=="1" (
         ECHO cd !TEST_DIR!
         ECHO hatnlibs-test.exe --log_level=test_suite !MEMORY_LEAKS! !RUN_TEST!
         ECHO cd %%CURRENT_DIR%%
-    ) > run-tests-manual.bat             
+    ) > build\run-tests-manual.bat
 )
 
 SET PATH=%KEEP_PATH%

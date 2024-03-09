@@ -29,11 +29,13 @@ IF "%PLATFORM%"=="mingw" SET ADDRESS_SPACE=x86_64
 SET TARGET_PATH=%TARGETS%\%PLATFORM%-%ADDRESS_SPACE%
 IF NOT EXIST %TARGET_PATH% mkdir %TARGET_PATH%
 
-IF NOT EXIST "%PLATFORM%-env.bat" copy "%SCRIPTS_ROOT%%PLATFORM%\env.bat" "%PLATFORM%-env.bat"
-IF NOT EXIST "%PLATFORM%-x86-env.bat" (
-    IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\x86-env.bat" "%PLATFORM%-x86-env.bat"
+IF NOT EXIST "%PLATFORM%-env.bat" (
+    IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\env.bat" "%WORKING_DIR%\%PLATFORM%-env.bat"
 )
-IF NOT EXIST "%PLATFORM%-x86_64-env.bat" copy "%SCRIPTS_ROOT%%PLATFORM%\x86_64-env.bat" "%PLATFORM%-x86_64-env.bat"
+IF NOT EXIST "%PLATFORM%-x86-env.bat" (
+    IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\x86-env.bat" "%WORKING_DIR%\%PLATFORM%-x86-env.bat"
+)
+IF NOT EXIST "%PLATFORM%-x86_64-env.bat" copy "%SCRIPTS_ROOT%%PLATFORM%\x86_64-env.bat" "%WORKING_DIR%\%PLATFORM%-x86_64-env.bat"
 IF NOT EXIST "clean.bat" copy "%SCRIPTS_ROOT%\clean.bat" "clean.bat"
  
 (
@@ -99,7 +101,7 @@ GOTO:EOF
    echo Adding configuration %TARGET_NAME%
   (     
     ECHO @ECHO OFF
-    ECHO SET WORKING_DIR=%%~dp0..\..\..
+    ECHO SET WORKING_DIR=%%~dp0..\..\..\..
     ECHO SET SCRIPTS_ROOT=%SCRIPTS_ROOT%
     ECHO SET BUILD_MODULE=%TARGET%
     ECHO SET ADDRESS_SPACE=%ADDRESS_SPACE%

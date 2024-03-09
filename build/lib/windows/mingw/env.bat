@@ -1,6 +1,6 @@
 @ECHO OFF
 
-rem SET MSYS_ROOT=C:\Programs\msys64
+rem SET MSYS_ROOT=C:\msys64
 
 rem SET PYTHON_PATH=C:\Programs\Python
 rem CMAKE_PATH=C:\Program Files\CMake\bin
