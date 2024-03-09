@@ -27,6 +27,7 @@
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+
 #endif
 
 #include <boost/thread/thread.hpp>
@@ -182,11 +183,8 @@ class Thread_p
 
         std::condition_variable startedCondition;
 
-        std::mutex* mx;
-        std::thread* th;
-
-        std::mutex& mutex;
-        std::thread& thread;
+        std::mutex mutex;
+        std::thread thread;
 
         std::thread::id nativeID;
         boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
@@ -202,10 +200,6 @@ class Thread_p
             ) : id(std::move(id)),
                 newThread(newThread),
                 asioContext(std::make_shared<boost::asio::io_context>(1)),
-                mx(new std::mutex),
-                th(new std::thread),
-                mutex(*mx),
-                thread(*th),
                 nativeID(std::this_thread::get_id()),
                 workGuard(boost::asio::make_work_guard(*asioContext)),
                 timerIncId(0)
@@ -231,23 +225,14 @@ Thread::~Thread()
     d->workGuard.reset();
     stop();
 
+#if 0
+
+    //! @bug Destruction of io_context sometimes blocks forever when built with MinGW static linking.
     std::cerr<<"Resetting asion context in thread " << id().c_str() << std::endl;
     d->asioContext.reset();
-
-    std::cerr<<"Deleting mutex in thread " << id().c_str() << std::endl;
-    delete d->mx;
-
-    std::cerr<<"Deleting thread in thread " << id().c_str() << std::endl;
-    delete d->th;
-
-    std::cerr<<"Clearing timers in thread " << id().c_str() << std::endl;
-    d->timers.clear();
-
-    std::cerr<<"Deleting d in thread " << id().c_str() << std::endl;
-    auto ii=id();
-    d.reset();
-
     std::cerr<<"End of thread destructor in thread " << ii.c_str() << std::endl;
+
+#endif
 }
 
 Thread::Thread(Thread&&) noexcept=default;
@@ -308,6 +293,8 @@ void Thread::stop()
     if (d->thread.joinable())
     {
         d->thread.join();
+        d->asioContext->restart();
+        d->asioContext->poll_one();
     }
 }
 
