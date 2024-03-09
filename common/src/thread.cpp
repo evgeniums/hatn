@@ -230,6 +230,24 @@ Thread::~Thread()
 {
     d->workGuard.reset();
     stop();
+
+    std::cerr<<"Resetting asion context in thread " << id().c_str() << std::endl;
+    d->asioContext.reset();
+
+    std::cerr<<"Deleting mutex in thread " << id().c_str() << std::endl;
+    delete d->mx;
+
+    std::cerr<<"Deleting thread in thread " << id().c_str() << std::endl;
+    delete d->th;
+
+    std::cerr<<"Clearing timers in thread " << id().c_str() << std::endl;
+    d->timers.clear();
+
+    std::cerr<<"Deleting d in thread " << id().c_str() << std::endl;
+    auto ii=id();
+    d.reset();
+
+    std::cerr<<"End of thread destructor in thread " << ii.c_str() << std::endl;
 }
 
 Thread::Thread(Thread&&) noexcept=default;
