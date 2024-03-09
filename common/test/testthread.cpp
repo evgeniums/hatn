@@ -809,7 +809,11 @@ BOOST_FIXTURE_TEST_CASE(ThreadPool,MultiThreadFixture)
     delete pool;
 }
 
+#ifndef HATN_THREAD_TIMER_TEST_DISABLE
 BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
+#else
+BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture, *boost::unit_test::disabled())
+#endif
 {
     int counter1=0;
     auto task1=[&counter1]()
@@ -851,12 +855,6 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
     createThreads(1);
 
     auto worker1=thread(0);
-    // auto timer1=worker1->installTimer(10,std::move(task1),false,true);
-    // auto timer2=worker1->installTimer(1000,std::move(task2),false,false);
-    // auto timer3=worker1->installTimer(10,std::move(task3),true,true);
-    // auto timer4=worker1->installTimer(1000,std::move(task4),true,false);
-    // auto timer5=worker1->installTimer(10,std::move(task5),false,true);
-    // auto timer6=worker1->installTimer(1000,std::move(task6),false,false);
 
     worker1->installTimer(10,std::move(task1),false,true);
     worker1->installTimer(1000,std::move(task2),false,false);
@@ -868,14 +866,6 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
     worker1->start();
 
     exec(5);
-
-    // worker1->uninstallTimerWait(timer1);
-    // worker1->uninstallTimerWait(timer2);
-    // worker1->uninstallTimerWait(timer3);
-    // worker1->uninstallTimerWait(timer4);
-    // worker1->uninstallTimerWait(timer5);
-    // worker1->uninstallTimerWait(timer6);
-
 
     worker1->stop();
 
@@ -910,7 +900,11 @@ BOOST_FIXTURE_TEST_CASE(ThreadTimers,MultiThreadFixture)
     BOOST_TEST_MESSAGE("End of test");
 }
 
+#ifndef HATN_THREAD_TIMER_TEST_DISABLE
 BOOST_FIXTURE_TEST_CASE(TestAsioTimer,MultiThreadFixture)
+#else
+BOOST_FIXTURE_TEST_CASE(TestAsioTimer,MultiThreadFixture, *boost::unit_test::disabled())
+#endif
 {
     int counter1=0;
     auto task1=[&counter1](TimerTypes::Status status)
