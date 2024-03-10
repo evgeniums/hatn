@@ -32,7 +32,7 @@ TARGET_SOURCES(${PROJECT_NAME} PRIVATE ${HEADERS} ${SOURCES})
 
 IF(MINGW)
     IF(BUILD_STATIC)
-        MESSAGE(STATUS "Disable timer thread test for MinGW static build due to unhandled bug")
+        MESSAGE(WARNING "Disable timer thread test for MinGW static build due to unhandled bug")
         ADD_COMPILE_DEFINITIONS(HATN_THREAD_TIMER_TEST_DISABLE=1)
     ENDIF(BUILD_STATIC)
 ENDIF(MINGW)
