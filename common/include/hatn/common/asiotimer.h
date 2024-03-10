@@ -56,9 +56,9 @@ class AsioTimerTraits : public WithGuard
         //! Stop timer
         inline void stop() noexcept
         {
-            if (m_running)
+            if (m_running.load())
             {
-                m_running=false;
+                m_running.store(false);
                 boost::system::error_code ec;
                 m_native.cancel(ec);
             }
@@ -79,7 +79,7 @@ class AsioTimerTraits : public WithGuard
         //! Check if the timer is running
         inline bool isRunning() const noexcept
         {
-            return m_running;
+            return m_running.load();
         }
 
     private:
@@ -87,7 +87,7 @@ class AsioTimerTraits : public WithGuard
         TimerT* m_timer;
         NativeT m_native;
         uint64_t m_periodUs;
-        bool m_running;
+        std::atomic<bool> m_running;
 };
 
 //! Timer class using boost asio timers
