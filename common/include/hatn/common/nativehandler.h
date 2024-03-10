@@ -20,6 +20,7 @@
 #define HATNNATIVEHANDLER_H
 
 #include <algorithm>
+#include <hatn/common/common.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 

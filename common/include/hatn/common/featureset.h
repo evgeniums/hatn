@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <initializer_list>
 
+#include <hatn/common/common.h>
+
 HATN_COMMON_NAMESPACE_BEGIN
 
 /**
