@@ -27,7 +27,7 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 /**
- * @brief Span view of a data buffer
+ * @brief Span view of a data buffer.
  */
 class SpanBuffer
 {

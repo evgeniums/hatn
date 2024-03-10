@@ -412,7 +412,9 @@ struct FlatMapCompareItem
 }
 
 //---------------------------------------------------------------
-
+/**
+ * Implementation of flat map container that keeps its elements and keys in one solid array.
+ */
 template <typename KeyT, typename ValueT,
           typename CompareKeyT=std::less<KeyT>,
           typename AllocT=std::allocator<std::pair<KeyT,ValueT>>

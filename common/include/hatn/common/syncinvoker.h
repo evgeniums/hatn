@@ -28,7 +28,7 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! Substitution of synchronization primitives for unsynchronized use
+//! Substitution of synchronization primitives for unsynchronized use.
 struct SyncNo
 {
     struct Lock
@@ -100,7 +100,7 @@ struct SyncNo
     }
 };
 
-//! Wrapper of synchronization primitives
+//! Wrapper of synchronization primitives.
 struct SyncYes
 {
     using SpinLock=common::SpinLock;

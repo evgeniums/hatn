@@ -30,7 +30,7 @@ using STR_ID_CONTENT=FixedByteArray16;
 /**
  * @brief The StringId class to be used for object identification.
  *
- * It can either contain the object's ID or point to ID contained by other (e.g. parent) object
+ * It can either contain the object's ID or point to ID contained by other (e.g. parent) object.
  */
 template <typename StrIdContent=STR_ID_CONTENT> class StringId
 {

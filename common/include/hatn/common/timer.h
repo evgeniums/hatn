@@ -39,7 +39,7 @@ struct TimerTypes
 };
 
 /**
- * @brief Base generic timer class
+ * @brief Base generic timer class.
  *
  * By default it is a single shot timer that runs once. Call setSingleShot(false) to make it run in repititive manner.
  */
