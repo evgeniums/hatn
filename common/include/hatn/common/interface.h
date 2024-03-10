@@ -22,8 +22,12 @@
 #include <hatn/common/classuid.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/locker.h>
+#include <hatn/common/flatmap.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
+
+template <typename KeyT, typename ValueT>
+using IntrafacesMapBackend = FlatMap<KeyT,ValueT>;
 
 //! Base class for interface classes
 template<typename T> using Interface=hatn::common::ClassUid<T>;
@@ -140,7 +144,7 @@ template <typename Tag,typename Class> struct InterfacesPack<Tag,Class>
     }
 
     //! Add interface to map
-    inline void addToMap(std::map<CUID_TYPE,uintptr_t>& m) const
+    inline void addToMap(IntrafacesMapBackend<CUID_TYPE,uintptr_t>& m) const
     {
         const auto classCuids=Class::cuids();
         for (auto&& it: classCuids)
@@ -226,7 +230,7 @@ template <typename Tag,typename Class,typename ...Classes> struct InterfacesPack
     }
 
     //! Add interface to map
-    inline void addToMap(std::map<CUID_TYPE,uintptr_t>& m) const
+    inline void addToMap(IntrafacesMapBackend<CUID_TYPE,uintptr_t>& m) const
     {
         auto classCuids=Class::cuids();
         for (auto&& it: classCuids)
@@ -262,7 +266,7 @@ template <typename T> class InterfacesMap
                 }
             }
             ready.store(true,std::memory_order_release);
-            l.unlock();            
+            l.unlock();
         }
 
         //! Get interface
@@ -284,11 +288,11 @@ template <typename T> class InterfacesMap
 
     private:
 
-        static std::map<CUID_TYPE,uintptr_t> m;
+        static IntrafacesMapBackend<CUID_TYPE,uintptr_t> m;
         static MutexLock l;
         static std::atomic<bool> ready;
 };
-template <typename T> std::map<CUID_TYPE,uintptr_t> InterfacesMap<T>::m;
+template <typename T> IntrafacesMapBackend<CUID_TYPE,uintptr_t> InterfacesMap<T>::m;
 template <typename T> MutexLock InterfacesMap<T>::l;
 template <typename T> std::atomic<bool> InterfacesMap<T>::ready(false);
 
@@ -337,7 +341,7 @@ template <typename T,typename ...InterfaceClasses> class Interfaces : public T
 
         //! Get interface by type using map of interfaces
         /**
-         *  Worst computational time depends on search efficiency of std::map.
+         *  Worst computational time depends on search efficiency of IntrafacesMapBackend.
          *  This method is efficient only when there are a lot of interfaces in the pack and not efficient for small numbers of interfaces
          *  because it involves some locking overhead.
          */
