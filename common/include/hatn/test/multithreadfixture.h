@@ -22,6 +22,7 @@
 
 #include <hatn/common/locker.h>
 #include <hatn/common/logger.h>
+#include <hatn/common/types.h>
 
 #include <hatn/common/memorypool/poolcachegen.h>
 #include <hatn/common/threadwithqueue.h>
@@ -98,10 +99,21 @@ class MultiThreadFixture
         template <typename ContainerT>
         static void randBuf(ContainerT& buf)
         {
-            srand(static_cast<unsigned int>(time(NULL)));
             for (size_t i=0;i<buf.size();i++)
             {
                 buf[i]=static_cast<char>(rand());
+            }
+        }
+
+        static void randSizeTVector(std::vector<size_t>& buf)
+        {
+            std::array<uint8_t,sizeof(size_t)> wordArr;
+            for (size_t i=0;i<buf.size();i++)
+            {
+                randBuf(wordArr);
+                size_t word;
+                memcpy(&word,wordArr.data(),sizeof(word));
+                buf[i]=word;
             }
         }
 

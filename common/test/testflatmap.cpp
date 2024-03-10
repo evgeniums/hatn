@@ -195,11 +195,11 @@ struct AvlItem : public boost::intrusive::avl_set_base_hook<>
     AvlItem(size_t key=0, size_t value=0):key(key),value(value)
     {}
 
-    friend bool operator< (const AvlItem &a, const AvlItem &b)
+    friend bool operator< (const AvlItem &a, const AvlItem &b) noexcept
          {  return a.key < b.key;  }
-      friend bool operator> (const AvlItem &a, const AvlItem &b)
+      friend bool operator> (const AvlItem &a, const AvlItem &b) noexcept
          {  return a.key > b.key;  }
-      friend bool operator== (const AvlItem &a, const AvlItem &b)
+      friend bool operator== (const AvlItem &a, const AvlItem &b) noexcept
          {  return a.key < b.key;  }
 };
 
@@ -209,6 +209,8 @@ using AvlMap=boost::intrusive::avl_set<AvlItem,boost::intrusive::compare<std::le
 
 BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::unit_test::disabled())
 {
+    srand(static_cast<unsigned int>(time(NULL)));
+
     ElapsedTimer elapsed;
     std::string elapsedStr;
     const size_t cycles=50000000;
@@ -219,8 +221,27 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
 
         std::vector<size_t> data(size);
         std::vector<size_t> keys(size);
-        randBuf(data);
-        randBuf(keys);
+        randSizeTVector(data);
+        randSizeTVector(keys);
+
+        std::vector<size_t> randSearchKeys(size);
+        for (size_t i=0;i<size;i++)
+        {
+            auto idx=std::rand() % size;
+            auto key=keys[idx];
+            if (size<=10)
+            {
+                for (size_t j=0;j<randSearchKeys.size();j++)
+                {
+                    if (key==randSearchKeys[j])
+                    {
+                        idx=std::rand() % size;
+                        key=keys[idx];
+                    }
+                }
+            }
+            randSearchKeys[i]=key;
+        }
 
         {
             std::map<size_t,size_t> m;
@@ -229,7 +250,8 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
             FlatMap<size_t,size_t> fm;
             AvlMap am;
 
-            BOOST_TEST_MESSAGE("Begin std::map random insert");
+            BOOST_TEST_MESSAGE("Random insert");
+
             elapsed.reset();
             for (size_t k=0;k<cycles;k++)
             {
@@ -237,9 +259,9 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 m[keys[idx]]=data[idx];
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed std::map random insert {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("std::map random insert {}",elapsedStr));
 
-            BOOST_TEST_MESSAGE("Begin std::unordered_map random insert");
+            // BOOST_TEST_MESSAGE("Begin std::unordered_map random insert");
             elapsed.reset();
             for (size_t k=0;k<cycles;k++)
             {
@@ -247,9 +269,9 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 um[keys[idx]]=data[idx];
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed std::unordered map random insert {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("std::unordered map random insert {}",elapsedStr));
 
-            BOOST_TEST_MESSAGE("Begin boost::flat_map random insert");
+            // BOOST_TEST_MESSAGE("Begin boost::flat_map random insert");
             elapsed.reset();
             bm.reserve(size);
             for (size_t k=0;k<cycles;k++)
@@ -258,9 +280,9 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 bm.insert_or_assign(keys[idx],data[idx]);
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed boost::flat_map random insert {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("boost::flat_map random insert {}",elapsedStr));
 
-            BOOST_TEST_MESSAGE("Begin boost::avl_set random insert");
+            // BOOST_TEST_MESSAGE("Begin boost::avl_set random insert");
             size_t sum=0;
             std::vector<AvlItem> avlItems(size);
             elapsed.reset();
@@ -278,10 +300,10 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 am.insert(avlItems[idx]);
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed boost::avl_set random insert {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("boost::avl_set random insert {}",elapsedStr));
             BOOST_CHECK(sum!=0);
 
-            BOOST_TEST_MESSAGE("Begin FlatMap random insert");
+            // BOOST_TEST_MESSAGE("Begin FlatMap random insert");
             elapsed.reset();
             fm.reserve(size);
             for (size_t k=0;k<cycles;k++)
@@ -290,7 +312,7 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 fm.insert_or_assign(std::make_pair(keys[idx],data[idx]));
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed FlatMap random insert {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("FlatMap random insert {}",elapsedStr));
 
             am.clear();
         }
@@ -303,15 +325,17 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
             AvlMap am;
             size_t sum=0;
 
-            BOOST_TEST_MESSAGE("Begin std::map search");
+            BOOST_TEST_MESSAGE("Begin search");
+
             for (size_t i=0;i<size;i++)
             {
                 m[keys[i]]=data[i];
             }
+
             elapsed.reset();
             for (size_t i=0;i<cycles;i++)
             {
-                auto idx=i%size;
+                auto idx=randSearchKeys[i%size];
                 auto it=m.find(idx);
                 if (it!=m.end())
                 {
@@ -319,17 +343,19 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 }
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed std::map search {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("std::map search {}",elapsedStr));
+            BOOST_CHECK_GT(sum,0);
 
-            BOOST_TEST_MESSAGE("Begin std::unordered_map search");
+            // BOOST_TEST_MESSAGE("Begin std::unordered_map search");
             for (size_t i=0;i<size;i++)
             {
                 um[keys[i]]=data[i];
             }
+            sum=0;
             elapsed.reset();
             for (size_t i=0;i<cycles;i++)
             {
-                auto idx=i%size;
+                auto idx=randSearchKeys[i%size];
                 auto it=um.find(idx);
                 if (it!=um.end())
                 {
@@ -337,18 +363,20 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 }
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed std::unordered_map search {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("std::unordered_map search {}",elapsedStr));
+            BOOST_CHECK_GT(sum,0);
 
-            BOOST_TEST_MESSAGE("Begin boost::flat_map search");
+            // BOOST_TEST_MESSAGE("Begin boost::flat_map search");
             elapsed.reset();
             for (size_t i=0;i<size;i++)
             {
                 bm.insert_or_assign(keys[i],data[i]);
             }
+            sum=0;
             elapsed.reset();
             for (size_t i=0;i<cycles;i++)
             {
-                auto idx=i%size;
+                auto idx=randSearchKeys[i%size];
                 auto it=bm.find(idx);
                 if (it!=bm.end())
                 {
@@ -356,19 +384,21 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 }
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed boost::flat_map search {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("boost::flat_map search {}",elapsedStr));
+            BOOST_CHECK_GT(sum,0);
 
-            BOOST_TEST_MESSAGE("Begin boost::avl_set search");
+            // BOOST_TEST_MESSAGE("Begin boost::avl_set search");
             std::vector<AvlItem> avlItems(size);
             for (size_t i=0;i<size;i++)
             {
                 avlItems[i]=AvlItem(keys[i],data[i]);
                 am.insert(avlItems[i]);
             }
+            sum=0;
             elapsed.reset();
             for (size_t i=0;i<cycles;i++)
             {
-                auto idx=i%size;
+                auto idx=randSearchKeys[i%size];
                 auto it=am.find(idx);
                 if (it!=am.end())
                 {
@@ -377,18 +407,19 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
             }
             elapsedStr=elapsed.toString();
             am.clear();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed boost::avl_set search {}",elapsedStr));
+            BOOST_TEST_MESSAGE(fmt::format("boost::avl_set search {}",elapsedStr));
+            BOOST_CHECK_GT(sum,0);
 
-            BOOST_TEST_MESSAGE("Begin FlatMap search");
-            elapsed.reset();
+            // BOOST_TEST_MESSAGE("Begin FlatMap search");
             for (size_t i=0;i<size;i++)
             {
                 fm.insert_or_assign(std::make_pair(keys[i],data[i]));
             }
+            sum=0;
             elapsed.reset();
             for (size_t i=0;i<cycles;i++)
             {
-                auto idx=i%size;
+                auto idx=randSearchKeys[i%size];
                 auto it=fm.find(idx);
                 if (it!=fm.end())
                 {
@@ -396,9 +427,8 @@ BOOST_FIXTURE_TEST_CASE(CheckFlatMapPerformance,MultiThreadFixture, * boost::uni
                 }
             }
             elapsedStr=elapsed.toString();
-            BOOST_TEST_MESSAGE(fmt::format("Elapsed FlatMap search {}",elapsedStr));
-
-            BOOST_CHECK((sum+1)!=0);
+            BOOST_TEST_MESSAGE(fmt::format("FlatMap search {}",elapsedStr));
+            BOOST_CHECK_GT(sum,0);
         }
     }
 
