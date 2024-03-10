@@ -232,7 +232,7 @@ template <typename T> class EnableSharedFromThis<T,true> : public ManagedObject,
          * @brief Make shared pointer from this object
          * @return Shared pointer
          *
-         * \note Can not be called from constructor
+         * @note Can not be called from constructor
          */
         inline SharedPtr<T> sharedFromThis() noexcept
         {
@@ -248,7 +248,7 @@ template <typename T> class EnableSharedFromThis<T,false> : public std::enable_s
          * @brief Make shared pointer from this object
          * @return Shared pointer
          *
-         * \note Can not be called from constructor
+         * @note Can not be called from constructor
          */
         inline SharedPtr<T> sharedFromThis() noexcept
         {

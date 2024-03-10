@@ -88,7 +88,7 @@ struct WithPrepareCloseFlags<Traits,
 /**
  * @brief Base class for object that can be prepared/opened and closed
  *
- * \note Closing Traits (Traits::close()) must not touch any resources of derived object.
+ * @note Closing Traits (Traits::close()) must not touch any resources of derived object.
  *
  */
 template <typename Traits>

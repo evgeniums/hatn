@@ -164,7 +164,7 @@ class ClassUid<T> : public HumanReadableType
  *
  *  The UID is generated as an address of static variable unique per class.
  *
- *  \note Using across dynamic libraries is not well supported.
+ *  @note Using across dynamic libraries is not well supported.
  *  A separate instance of static cuid() can be created for each library.
  *  To use with dynamic libs put HATN_CUID_DECLARE_MULTI() in class declaration and HATN_CUID_INIT_MULTI(ClassName) in source file (*.cpp)
  */
@@ -208,7 +208,7 @@ class ClassUid<T,T1> : public HumanReadableType
 /**
  *  @brief Same as ClassUid<T,T1> but can have multiple UIDs collected from parent classes.
  *
- * \note Using across dynamic libraries is not well supported.
+ * @note Using across dynamic libraries is not well supported.
  *  A separate instance of static cuid() can be created for each library.
  *  To use with dynamic libs put HATN_CUID_DECLARE_MULTI() in class declaration and HATN_CUID_INIT_MULTI(ClassName) in source file (*.cpp)
  */

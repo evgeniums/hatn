@@ -22,7 +22,6 @@
 #undef fmt
 #endif
 
-//! @todo Support standard formatter of c++20
 #include <fmt/format.h>
 
 #include <hatn/common/common.h>

@@ -30,7 +30,7 @@
 #include <hatn/common/mpscqueue.h>
 #include <hatn/common/mutexqueue.h>
 
-//! \note Do not move this include upper because boost asio must be included before stacktrace, otherwise WinSock.h defined error on Windows will arises
+//! @note Do not move this include upper because boost asio must be included before stacktrace, otherwise WinSock.h defined error on Windows will arises
 #include <boost/stacktrace.hpp>
 
 #ifdef _WIN32
