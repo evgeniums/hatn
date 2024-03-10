@@ -15,7 +15,6 @@
 
 #include <boost/thread/locks.hpp>
 
-#include <hatn/common/types.h>
 #include <hatn/common/parameters.h>
 
 #include <hatn/common/loggermoduleimp.h>

@@ -14,8 +14,6 @@
 
 #include <set>
 
-#include <hatn/common/types.h>
-
 #include <hatn/common/threadcategoriespoolimpl.h>
 #include <hatn/common/threadpoolwithqueues.h>
 

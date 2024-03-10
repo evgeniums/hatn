@@ -19,7 +19,7 @@
 #include <string.h>
 #include <cstring>
 
-#include <hatn/common/types.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/translate.h>
 #include <hatn/common/makeshared.h>

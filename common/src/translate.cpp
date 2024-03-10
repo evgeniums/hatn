@@ -32,7 +32,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <hatn/common/types.h>
 #include <hatn/common/format.h>
 #include <hatn/common/translate.h>
 

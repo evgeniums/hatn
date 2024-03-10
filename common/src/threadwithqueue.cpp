@@ -14,8 +14,6 @@
 
 #include <iostream>
 
-#include <hatn/common/types.h>
-
 #include <hatn/common/mutexqueue.h>
 #include <hatn/common/mpscqueue.h>
 

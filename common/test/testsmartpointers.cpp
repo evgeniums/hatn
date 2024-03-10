@@ -7,7 +7,6 @@
 
 #define HATN_TEST_SMART_POINTERS
 
-#include <hatn/common/types.h>
 #include <hatn/common/managedobject.h>
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/weakptr.h>

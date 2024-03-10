@@ -18,11 +18,9 @@
 #ifndef HATNSPANBUFFER_H
 #define HATNSPANBUFFER_H
 
-#include <hatn/common/types.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/memorylockeddata.h>
 #include <hatn/common/fixedbytearray.h>
-#include <hatn/common/types.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 

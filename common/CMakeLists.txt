@@ -39,7 +39,11 @@ SET (HEADERS
     include/hatn/common/loggermoduleimp.h
     include/hatn/common/options.h
     include/hatn/common/utils.h
-    include/hatn/common/types.h
+    include/hatn/common/keyrange.h
+    include/hatn/common/stdwrappers.h
+    include/hatn/common/valueordefault.h
+    include/hatn/common/pointerwithinit.h
+    include/hatn/common/databuf.h
     include/hatn/common/appversion.h
     include/hatn/common/application.h
     include/hatn/common/classuid.h
@@ -131,6 +135,7 @@ SET (HEADERS
     include/hatn/common/flatmap.h
 
     include/hatn/common/singleton.h
+    include/hatn/common/runonscopeexit.h
 
     include/hatn/common/experimental/stats/stats.h
 )

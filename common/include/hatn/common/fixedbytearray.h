@@ -22,9 +22,8 @@
 #include <array>
 #include <vector>
 
-#include <hatn/common/types.h>
-
 #include <hatn/common/common.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/metautils.h>
 #include <hatn/common/managedobject.h>
 #include <hatn/common/sharedptr.h>

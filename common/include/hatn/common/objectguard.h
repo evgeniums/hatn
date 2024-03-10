@@ -26,7 +26,6 @@
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/weakptr.h>
 #include <hatn/common/makeshared.h>
-#include <hatn/common/types.h>
 #include <hatn/common/pmr/pmrtypes.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

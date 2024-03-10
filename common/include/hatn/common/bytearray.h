@@ -24,10 +24,10 @@
 #include <string>
 #include <array>
 
-#include <hatn/common/types.h>
-
 #include <hatn/common/common.h>
 #include <hatn/common/error.h>
+#include <hatn/common/stdwrappers.h>
+#include <hatn/common/databuf.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 

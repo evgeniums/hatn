@@ -21,7 +21,6 @@
 #include <boost/algorithm/hex.hpp>
 
 #include <hatn/thirdparty/base64/base64.h>
-#include <hatn/common/types.h>
 #include <hatn/common/bytearray.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

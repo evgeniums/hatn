@@ -22,7 +22,6 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/objectid.h>
-#include <hatn/common/types.h>
 #include <hatn/common/utils.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

@@ -42,7 +42,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <hatn/common/types.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/thread.h>

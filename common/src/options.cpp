@@ -23,7 +23,6 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 
-#include <hatn/common/types.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/translate.h>
 #include <hatn/common/options.h>

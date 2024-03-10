@@ -18,7 +18,6 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 
-#include <hatn/common/types.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/options.h>
 #include <hatn/common/appversion.h>

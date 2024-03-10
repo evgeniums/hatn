@@ -22,7 +22,6 @@
 
 #include <hatn/common/locker.h>
 #include <hatn/common/logger.h>
-#include <hatn/common/types.h>
 
 #include <hatn/common/memorypool/poolcachegen.h>
 #include <hatn/common/threadwithqueue.h>

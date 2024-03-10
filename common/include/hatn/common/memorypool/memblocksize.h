@@ -27,7 +27,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/utils.h>
-#include <hatn/common/types.h>
+#include <hatn/common/keyrange.h>
 #include <hatn/common/classuid.h>
 #include <hatn/common/sharedlocker.h>
 

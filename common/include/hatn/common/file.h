@@ -31,7 +31,6 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/error.h>
-#include <hatn/common/types.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
