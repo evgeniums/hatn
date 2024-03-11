@@ -164,6 +164,12 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
 			STRING (TOLOWER ${SUITE_NAME} TARGET_EXE)
+						    
+			IF (${BUILD_TYPE} STREQUAL "DEBUG")
+				SET (MEMORY_LEAKS --detect_memory_leaks=0)
+			ENDIF()
+			
+			SET (TEST_ARGS --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS})
 
 			LIST (FIND TEST_SUITES ${SUITE_NAME} FOUND_IDX)
 			IF (${FOUND_IDX} EQUAL -1)
@@ -179,11 +185,11 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				
 				ADD_TEST(NAME ${SUITE_NAME}
 						 WORKING_DIRECTORY ${WORKING_DIR}
-						 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME}  --log_level=test_suite)
+						 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME} ${TEST_ARGS})
 				SET_TESTS_PROPERTIES(${SUITE_NAME} PROPERTIES LABELS SUITE)
 				ADD_TEST(NAME ${SUITE_NAME}-all
 						 WORKING_DIRECTORY ${WORKING_DIR}
-						 COMMAND ${TARGET_EXE} --log_level=test_suite)
+						 COMMAND ${TARGET_EXE} ${TEST_ARGS})
 				SET_TESTS_PROPERTIES(${SUITE_NAME}-all PROPERTIES LABELS ALL)
 			ELSE()	
 				MESSAGE(STATUS "Using existing test suite ${SUITE_NAME}")
@@ -212,7 +218,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 					
 					ADD_TEST(NAME ${SUITE_NAME}/${TEST_CASE}
 							 WORKING_DIRECTORY ${WORKING_DIR}
-							 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME}/${TEST_CASE} --log_level=test_suite)
+							 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME}/${TEST_CASE} ${TEST_ARGS})
 				ENDIF()				
 			ENDFOREACH()
 		ENDIF()
