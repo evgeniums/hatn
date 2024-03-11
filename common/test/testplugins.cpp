@@ -17,16 +17,16 @@ BOOST_AUTO_TEST_SUITE(PluginTest)
 BOOST_AUTO_TEST_CASE(Sha1)
 {
     std::string sha1;
-    SHA1::fileHash("testplugin.dat",sha1);
+    SHA1::fileHash("common/assets/testplugin.dat",sha1);
     BOOST_CHECK_EQUAL(sha1,std::string("e8293e8808e4eaf2114d7e8a79dd0088942bbc96"));
 }
 
 BOOST_AUTO_TEST_CASE(DynamicPlugin)
 {
     std::string error;
-    std::string pluginFolder="plugins/";
+    std::string pluginFolder="plugins/common/";
 
-    std::string filename=PluginLoader::dynlibName("hatn-testplugin");
+    std::string filename=PluginLoader::dynlibName("hatntestplugin");
     auto plugin=PluginLoader::instance().loadDynamicPlugin(pluginFolder+filename,error);
     BOOST_REQUIRE(plugin);
     BOOST_CHECK_EQUAL(plugin->info()->name,std::string("hatntestplugin"));

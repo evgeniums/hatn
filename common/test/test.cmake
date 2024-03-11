@@ -28,8 +28,6 @@ IF(ENABLE_TRANSLATIONS)
   )
 ENDIF(ENABLE_TRANSLATIONS)
 
-#TARGET_SOURCES(${PROJECT_NAME} PRIVATE ${HEADERS} ${SOURCES})
-
 IF(MINGW)
     IF(BUILD_STATIC)
         MESSAGE(WARNING "Disable timer thread test for MinGW static build due to unhandled bug")
@@ -42,32 +40,28 @@ ADD_HATN_CTESTS(common ${TEST_SOURCES})
 FUNCTION(TestCommon)
 
     COPY_LIBRARY_HERE(hatncommon${LIB_POSTFIX} ../common/)
+    COPY(${HATN_COMMON_SRC}/plugins/testplugin/testplugin.dat ${BINDIR}/common/assets/testplugin.dat)
 
-    # IF(NOT BUILD_STATIC)
-        # COPY_LIBRARY(hatn-testplugin${LIB_POSTFIX} ../testplugin plugins/)
-        # COPY_SOURCE_FILE(../testplugin/testplugin.dat testplugin.dat)
-    # ENDIF(NOT BUILD_STATIC)
+    IF(ENABLE_TRANSLATIONS)
 
-    # IF(ENABLE_TRANSLATIONS)
-
-        # INCLUDE(hatn/Translate)
+        INCLUDE(hatn/Translate)
 
         # Translation files
-        # ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD
-            # COMMAND
-                # ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo.py
-                # "${COMMON_TEST_SRC}/test-translations/test1.po"
-                # "${BINDIR}/translations/ru/LC_MESSAGES/test1.mo"
-                # "${MSGFMT_EXE}"
-            # COMMAND
-                # ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo.py
-                # "${COMMON_TEST_SRC}/test-translations/test2.po"
-                # "${BINDIR}/translations/ru/LC_MESSAGES/test2.mo"
-                # "${MSGFMT_EXE}"
-        # )
+        ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND
+                ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo.py
+                "${COMMON_TEST_SRC}/test-translations/test1.po"
+                "${BINDIR}/translations/ru/LC_MESSAGES/test1.mo"
+                "${MSGFMT_EXE}"
+            COMMAND
+                ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo.py
+                "${COMMON_TEST_SRC}/test-translations/test2.po"
+                "${BINDIR}/translations/ru/LC_MESSAGES/test2.mo"
+                "${MSGFMT_EXE}"
+        )
 
-        # COPY_FILE_BINDIR("ru/LC_MESSAGES/hatncommon.mo" "../common/translations" "translations")
+        COPY_FILE_BINDIR("ru/LC_MESSAGES/hatncommon.mo" "../common/translations" "translations")
 
-    # ENDIF(ENABLE_TRANSLATIONS)
+    ENDIF(ENABLE_TRANSLATIONS)
 
 ENDFUNCTION(TestCommon)
