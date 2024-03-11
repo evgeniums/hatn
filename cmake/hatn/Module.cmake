@@ -86,9 +86,9 @@ MACRO(HATN_MODULE name)
 
 ENDMACRO(HATN_MODULE)
 
-FUNCTION(LINK_MODULE)
-    TARGET_LINK_DIRECTORIES(${PROJECT_NAME} PUBLIC ${HATN_LINK_DIRECTORIES})
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
+FUNCTION(LINK_MODULE target)
+    TARGET_LINK_DIRECTORIES(${target} PUBLIC ${HATN_LINK_DIRECTORIES})
+    TARGET_LINK_LIBRARIES(${target} PUBLIC
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
         ${HATN_SYSTEM_LIBS}
@@ -120,7 +120,7 @@ FUNCTION(ADD_HATN_SUBDIRS)
     ENDIF()
 ENDFUNCTION(ADD_HATN_SUBDIRS)
 
-FUNCTION(ADD_HATN_MODULES module_name_)
+FUNCTION(ADD_HATN_MODULES target)
     SET(MODULE_DEPS "")
     SET(Args ${ARGN})
     LIST(LENGTH Args NumArgs)
@@ -130,12 +130,12 @@ FUNCTION(ADD_HATN_MODULES module_name_)
             STRING(SUBSTRING ${MODULE_NAME} 0 1 FIRST_LETTER)
             STRING(TOUPPER ${FIRST_LETTER} FIRST_LETTER)
             STRING(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" MODULE_NAME "${MODULE_NAME}")
-            TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatn${ARG})
-            MESSAGE(STATUS "TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatn${ARG})")
+            TARGET_LINK_LIBRARIES(${target} PUBLIC hatn${ARG})
+            MESSAGE(STATUS "TARGET_LINK_LIBRARIES(${target} PUBLIC hatn${ARG})")
             IF (
-                ("${HATN_${module_name_}_HEADER_ONLY}" STREQUAL "")
+                ("${HATN_${target}_HEADER_ONLY}" STREQUAL "")
                 OR
-                (NOT ${HATN_${module_name_}_HEADER_ONLY})
+                (NOT ${HATN_${target}_HEADER_ONLY})
                 )
                 LIST(APPEND MODULE_DEPS "hatn${ARG}")
             ELSE()
@@ -146,12 +146,12 @@ FUNCTION(ADD_HATN_MODULES module_name_)
     ENDIF()
     LIST(LENGTH MODULE_DEPS ModulesCount)
     IF (
-        ("${HATN_${module_name_}_HEADER_ONLY}" STREQUAL "")
+        ("${HATN_${target}_HEADER_ONLY}" STREQUAL "")
         OR
-        (NOT ${HATN_${module_name_}_HEADER_ONLY})
+        (NOT ${HATN_${target}_HEADER_ONLY})
         )
-        LINK_MODULE("${MODULE_DEPS}")
-    ENDIF()        
+        LINK_MODULE(${target} "${MODULE_DEPS}")
+    ENDIF()
 ENDFUNCTION(ADD_HATN_MODULES)
 
 FUNCTION (READ_HATN_MODULE_DEPS name)
