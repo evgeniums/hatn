@@ -56,11 +56,12 @@ then
 	fi
 
     if [ ! -z "$hatn_test_name" ];
-    then
-		echo "Will run test $hatn_test_name"
+    then		
 		if [[ $hatn_test_name == *"/"* ]]; then
+			echo "Will run test CASE $hatn_test_name"
 			ctest_args="-L CASE -R $hatn_test_name"
 		else
+			echo "Will run test SUITE $hatn_test_name"
 			ctest_args="-L SUITE -R $hatn_test_name"
 		fi
     else
