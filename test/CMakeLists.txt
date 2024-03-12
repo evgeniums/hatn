@@ -39,14 +39,20 @@ ENDIF()
 
 ADD_CUSTOM_TARGET(${PROJECT_NAME} ALL)
 
-SET(RESULT_XML_DIR ${BINDIR}/result-xml)
-IF (NOT "$ENV{working_dir}" STREQUAL "")
-	SET(RESULT_XML_DIR $ENV{working_dir}/result-xml)
+IF (BUILD_ANDROID)
+    SET(RESULT_XML_DIR /data/local/tmp/test/result-xml)
+    MESSAGE(STATUS "RESULT_XML_DIR on Android ${RESULT_XML_DIR}")
+ELSE()
+    SET(RESULT_XML_DIR ${BINDIR}/result-xml)
+    IF (NOT "$ENV{working_dir}" STREQUAL "")
+            SET(RESULT_XML_DIR $ENV{working_dir}/result-xml)
+    ENDIF()
+    ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${RESULT_XML_DIR}"
+            COMMENT "Result XML directory ${RESULT_XML_DIR}"
+    )
+    MESSAGE(STATUS "RESULT_XML_DIR ${RESULT_XML_DIR}")
 ENDIF()
-ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory "${RESULT_XML_DIR}"
-	COMMENT "Result XML directory ${RESULT_XML_DIR}"
-)
 
 TEST_HATN_MODULES(${HATN_MODULES})
 

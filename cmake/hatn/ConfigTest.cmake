@@ -142,6 +142,28 @@ ${TEST_CONFIG_H_TEXT}
 
 ENDFUNCTION(CREATE_TEST_CONFIG_FILE)
 
+MACRO(ADD_HATN_CTEST Name Label)
+
+    IF (BUILD_ANDROID)
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TARGET_EXE} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml"
+                     )
+
+    ELSE()
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND ${TARGET_EXE} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS}
+                    )
+
+    ENDIF()
+
+    SET_TESTS_PROPERTIES(${Name} PROPERTIES LABELS ${Label})
+
+ENDMACRO()
+
 FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
 	GET_PROPERTY(TEST_SUITES GLOBAL PROPERTY HATN_TEST_SUITES)
@@ -169,8 +191,6 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				SET (MEMORY_LEAKS --detect_memory_leaks=0)
 			ENDIF()
 			
-			SET (TEST_ARGS --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS})
-
 			LIST (FIND TEST_SUITES ${SUITE_NAME} FOUND_IDX)
 			IF (${FOUND_IDX} EQUAL -1)
 				
@@ -183,14 +203,9 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				
 				LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
 				
-				ADD_TEST(NAME ${SUITE_NAME}
-						 WORKING_DIRECTORY ${WORKING_DIR}
-						 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME} ${TEST_ARGS})
-				SET_TESTS_PROPERTIES(${SUITE_NAME} PROPERTIES LABELS SUITE)
-				ADD_TEST(NAME ${SUITE_NAME}-all
-						 WORKING_DIRECTORY ${WORKING_DIR}
-						 COMMAND ${TARGET_EXE} ${TEST_ARGS})
-				SET_TESTS_PROPERTIES(${SUITE_NAME}-all PROPERTIES LABELS ALL)
+                                ADD_HATN_CTEST(${SUITE_NAME}-all "ALL")
+                                ADD_HATN_CTEST(${SUITE_NAME} "SUITE")
+
 			ELSE()	
 				MESSAGE(STATUS "Using existing test suite ${SUITE_NAME}")
 				TARGET_SOURCES(${TARGET_EXE} PRIVATE ${SOURCE_FILE_NAME})
@@ -215,11 +230,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				IF (${FOUND_IDX} EQUAL -1)
 					MESSAGE(STATUS "Adding test ${SUITE_NAME}/${TEST_CASE}")
 					LIST (APPEND TEST_CASES ${TEST_CASE})
-					
-					ADD_TEST(NAME ${SUITE_NAME}/${TEST_CASE}
-							 WORKING_DIRECTORY ${WORKING_DIR}
-							 COMMAND ${TARGET_EXE} --run_test=${SUITE_NAME}/${TEST_CASE} ${TEST_ARGS})
-					SET_TESTS_PROPERTIES(${SUITE_NAME}/${TEST_CASE} PROPERTIES LABELS CASE)
+                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE")ß
 				ENDIF()				
 			ENDFOREACH()
 		ENDIF()

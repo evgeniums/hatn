@@ -18,7 +18,14 @@ echo "deps_root=$deps_root"
 
 echo Begin toolchain $toolchain
 
-$scripts_root/lib/run.sh
+if [ -z "$ANDROID_SDK_ROOT" ];
+then
+    export ANDROID_SDK_ROOT=~/Library/Android/sdk
+fi
+export ANDROID_PLATFORM_TOOLS=$ANDROID_SDK_ROOT/platform-tools
+echo "ANDROID_PLATFORM_TOOLS=$ANDROID_PLATFORM_TOOLS"
+
+source $scripts_root/lib/run.sh
 
 if [[ "$PREPARE_TESTS" == "1" ]];
 then
@@ -28,9 +35,9 @@ if [ -f "$working_dir/run-tests.sh" ]
 then
     rm $working_dir/run-tests.sh
 fi
-if [ -f "$working_dir/test-out.xml" ]
+if [ -d "$working_dir/result-xml" ]
 then
-    rm $working_dir/test-out.xml
+    rm -rf $working_dir/result-xml
 fi
 
 build_path=$build_root/api-$api_level/$project/$toolchain
@@ -57,48 +64,25 @@ echo "Auto testing in emulator for $toolchain platform"
 
 if [ -z "\$ANDROID_SDK_ROOT" ];
 then
-	export ANDROID_SDK_ROOT=~/Library/Android/sdk
+    export ANDROID_SDK_ROOT=~/Library/Android/sdk
 fi
 platform_tools=\$ANDROID_SDK_ROOT/platform-tools
+
+result_xml_dir="/data/local/tmp/test/result-xml"
 
 \$platform_tools/adb shell "su root chmod 777 /data/local/tmp"
 cd $build_path
 rm -rf test/CMakeFiles
+mkdir -p test/result-xml
+touch test/result-xml/keeper
 \$platform_tools/adb shell "rm -rf /data/local/tmp/test"
 \$platform_tools/adb push test /data/local/tmp/
 cd $working_dir
-\$platform_tools/adb shell "cd /data/local/tmp/test && ./hatnlibs-test --logger=XML,all,/data/local/tmp/test/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests"
-\$platform_tools/adb pull /data/local/tmp/test/test-out.xml
+ctest -L ALL --verbose --test-dir $build_path/test -C release
+\$platform_tools/adb pull /data/local/tmp/test/result-xml result-xml
 \$platform_tools/adb shell "rm -rf /data/local/tmp/test"
 
 EOT
-
-cat <<EOT > $working_dir/run-tests-manual.sh
-#!/bin/bash
-
-set -e
-
-# *** This file is auto generated, do not edit! ***
-
-echo "Auto testing in emulator for $toolchain platform"
-
-if [ -z "\$ANDROID_SDK_ROOT" ];
-then
-	export ANDROID_SDK_ROOT=~/Library/Android/sdk
-fi
-platform_tools=\$ANDROID_SDK_ROOT/platform-tools
-
-\$platform_tools/adb shell "su root chmod 777 /data/local/tmp"
-cd $build_path
-rm -rf test/CMakeFiles
-\$platform_tools/adb shell "rm -rf /data/local/tmp/test"
-\$platform_tools/adb push test /data/local/tmp/
-cd $working_dir
-\$platform_tools/adb shell "cd /data/local/tmp/test && ./hatnlibs-test --log_level=test_suite $run_tests"
-\$platform_tools/adb shell "rm -rf /data/local/tmp/test"
-
-EOT
-
 
 else
 
@@ -111,19 +95,9 @@ echo "Auto testing is disabled for $toolchain"
 
 EOT
 
-cat <<EOT > $working_dir/run-tests-manual.sh
-#!/bin/bash
-
-# *** This file is auto generated, do not edit! ***
-
-echo "Auto testing is disabled for $toolchain"
-
-EOT
-
 fi
 
 chmod +x $working_dir/run-tests.sh
-chmod +x $working_dir/run-tests-manual.sh
 
 fi
 
