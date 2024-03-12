@@ -56,31 +56,43 @@ IF "%PREPARE_TESTS%"=="1" (
     echo 
     IF "%HATN_TEST_NAME%"=="" (
         ECHO "Testing all"
+		SET CTEST_ARGS=-L ALL
     )  ELSE (
         ECHO "Testing %HATN_TEST_NAME% only"
-        SET RUN_TEST=--run_test=%HATN_TEST_NAME%
+		
+		SET TMP_NAME=%HATN_TEST_NAME%
+		echo.!TMP_NAME!|findstr /C:"/" >nul 2>&1
+		if not errorlevel 1 (
+		   SET CTEST_ARGS=-L CASE -R %HATN_TEST_NAME%
+		) else (
+		   SET CTEST_ARGS=-L SUITE -R %HATN_TEST_NAME%
+		)		
     )
     IF "%BUILD_TYPE%"=="debug" (
-        SET MEMORY_LEAKS=--detect_memory_leaks=0    
-    )                      
-    
+        SET MEMORY_LEAKS=--detect_memory_leaks=0
+		SET CTEST_CONFIGURATION=Debug
+    ) ELSE (
+		SET CTEST_CONFIGURATION=Release
+	)                          
+	
+	
     (
         ECHO ECHO Running test script
         ECHO SET CURRENT_DIR=%%CD%%
         ECHO SET "PATH=%PATH%;!TEST_DIR!"
         ECHO cd !TEST_DIR!
-        ECHO hatnlibs-test.exe --logger=HRF,test_suite --logger=XML,all,%WORKING_DIR%\build\test-out.xml --report_level=no --result_code=no !MEMORY_LEAKS! !RUN_TEST!
+        ECHO ctest -C !CTEST_CONFIGURATION! !CTEST_ARGS! --verbose --test-dir %BUILD_DIR%/test
         ECHO cd %%CURRENT_DIR%%
-    ) > build\run-tests.bat    
+    ) > build\run-tests.bat
     
-    (
-        ECHO ECHO Running test script
-        ECHO SET CURRENT_DIR=%%CD%%
-        ECHO SET "PATH=%PATH%;!TEST_DIR!"
-        ECHO cd !TEST_DIR!
-        ECHO hatnlibs-test.exe --log_level=test_suite !MEMORY_LEAKS! !RUN_TEST!
-        ECHO cd %%CURRENT_DIR%%
-    ) > build\run-tests-manual.bat
+    REM (
+        REM ECHO ECHO Running test script
+        REM ECHO SET CURRENT_DIR=%%CD%%
+        REM ECHO SET "PATH=%PATH%;!TEST_DIR!"
+        REM ECHO cd !TEST_DIR!
+        REM ECHO hatnlibs-test.exe --log_level=test_suite !MEMORY_LEAKS! !RUN_TEST!
+        REM ECHO cd %%CURRENT_DIR%%
+    REM ) > build\run-tests-manual.bat
 )
 
 SET PATH=%KEEP_PATH%

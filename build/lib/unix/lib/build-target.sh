@@ -43,7 +43,6 @@ fi
 source $scripts_root/lib/platforms/$platform/$toolchain-env.sh
 source $scripts_root/lib/platforms/$platform/$toolchain-cfg.sh
 
-
 if [[ "$PREPARE_TESTS" == "1" ]];
 then
     	echo "Preparing tests script $toolchain $working_dir/run-tests.sh ..."
@@ -58,10 +57,15 @@ then
 
     if [ ! -z "$hatn_test_name" ];
     then
-	echo "Will run test $hatn_test_name"
-        run_tests="--run_test=$hatn_test_name"
+		echo "Will run test $hatn_test_name"
+		if [[ $hatn_test_name == *"/"* ]]; then
+			ctest_args="-L CASE -R $hatn_test_name"
+		else
+			ctest_args="-L SUITE -R $hatn_test_name"
+		fi
     else
-	echo "Will run all tests"
+		echo "Will run all tests"
+		ctest_args="-L ALL"
     fi
 
 cat <<EOT > $working_dir/run-tests.sh
@@ -69,34 +73,14 @@ cat <<EOT > $working_dir/run-tests.sh
 
 # *** This file is auto generated, do not edit! ***
 
-current_dir=\$PWD
-test_dir=$build_path/test
 export PATH=$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$deps_root/lib
-cd \$test_dir
-hatnlibs-test --logger=XML,all,$working_dir/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests
-cd \$current_dir
-
-EOT
-
-cat <<EOT > $working_dir/run-tests-manual.sh
-#!/bin/bash
-
-# *** This file is auto generated, do not edit! ***
-
-current_dir=\$PWD
-test_dir=$build_path/test
-export PATH=\$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
-export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$deps_root/lib
-cd \$test_dir
-hatnlibs-test --log_level=test_suite $run_tests
-cd \$current_dir
+ctest -C $build_type $ctest_args --verbose --test-dir $build_path/test
 
 EOT
 
 	chmod +x $working_dir/run-tests.sh
 	ln -s $working_dir/run-tests.sh $working_dir/run-tests
-	chmod +x $working_dir/run-tests-manual.sh
 fi
 
 cat <<EOT > $working_dir/run-codechecker.sh
