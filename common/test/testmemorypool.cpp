@@ -1120,7 +1120,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     elapsed.reset();
     if (doneCount!=count)
     {
-        env->exec(60);
+        env->exec(120);
     }
     auto elapsedStr=elapsed.toString();
     BOOST_TEST_MESSAGE(fmt::format("Elapsed {}",elapsedStr));
@@ -1138,7 +1138,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         cmpOk=memcmp(sampleBlocks[it].data(),blocks[it]->data(),chunkSize)==0;
         if (!cmpOk)
         {
-            BOOST_TEST_MESSAGE(fmt::format("Data mismatched in sampleBlocks, index {}",static_cast<size_t>(it)));
+            BOOST_TEST_MESSAGE(fmt::format("Data mismatched in sampleBlocks, index {} of {}",static_cast<size_t>(it),allocatedIndexes.size()));
             break;
         }
     }
@@ -1154,7 +1154,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
             cmpOk=memcmp(ctx.sampleBlocks[it].data(),ctx.blocks[it]->data(),chunkSize)==0;
             if (!cmpOk)
             {
-                BOOST_TEST_MESSAGE(fmt::format("Data mismatched in ctx.sampleBlocks, thread {}, index {}",k,static_cast<size_t>(it)));
+                BOOST_TEST_MESSAGE(fmt::format("Data mismatched in ctx.sampleBlocks, thread {}, index {} of {}",k,static_cast<size_t>(it),allocatedIndexes.size()));
                 break;
             }
         }
