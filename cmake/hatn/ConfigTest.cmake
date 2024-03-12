@@ -4,9 +4,7 @@ FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
     SET (PLUGIN_SRC_DIR "${HATN_SOURCE_DIR}/${MODULE_NAME}/plugins/${PLUGIN_NAME}")
     SET (MODULE_DST_DIR "plugins/${MODULE_NAME}")
 
-    IF (BUILD_STATIC)
-        TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatn${PLUGIN_NAME})
-    ELSE(BUILD_STATIC)
+    IF (NOT BUILD_STATIC)
         ADD_CUSTOM_TARGET(plugin-${MODULE_NAME}-hatn${PLUGIN_NAME} ALL DEPENDS hatn${PLUGIN_NAME})
         CONSTRUCT_LIBNAMES("hatn${PLUGIN_NAME}${LIB_POSTFIX}" "${MODULE_NAME}/plugins/${PLUGIN_NAME}" ${MODULE_DST_DIR})
         ADD_CUSTOM_COMMAND(TARGET plugin-${MODULE_NAME}-hatn${PLUGIN_NAME} POST_BUILD
@@ -14,7 +12,7 @@ FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
                     ${SRC_LIB}
                     ${DST_LIB}
                   )
-    ENDIF(BUILD_STATIC)
+    ENDIF(NOT BUILD_STATIC)
 
     IF (EXISTS ${PLUGIN_SRC_DIR}/test/assets)
         COPY_PATH_BINDIR(${PLUGIN_SRC_DIR}/test/assets ${MODULE_DST_DIR}/hatn${PLUGIN_NAME}/assets)
@@ -53,6 +51,8 @@ FUNCTION (TEST_HATN_MODULE name)
 
         MESSAGE(STATUS "Adding test module ${name}")
 
+       TEST_HATN_MODULE_PLUGINS(${name})
+
         SET (MODULE_TEST_SRC ${${UPPER_MODULE_NAME}_TEST_SRC})
         INCLUDE(${MODULE_TEST_SRC}/test.cmake)
 
@@ -69,8 +69,6 @@ FUNCTION (TEST_HATN_MODULE name)
         ELSE()
             MESSAGE(STATUS "No need to copy assets for module ${name}")
         ENDIF()
-
-        TEST_HATN_MODULE_PLUGINS(${name})
 
     ENDIF ()
 
@@ -143,3 +141,113 @@ ${TEST_CONFIG_H_TEXT}
         )
 
 ENDFUNCTION(CREATE_TEST_CONFIG_FILE)
+
+MACRO(ADD_HATN_CTEST Name Label)
+
+    IF (BUILD_ANDROID)
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml"
+                     )
+
+    ELSEIF (BUILD_IOS)
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND xcrun simctl spawn ${HATN_TEST_IOS_DEVICE} ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml
+                     )
+
+    ELSE()
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS}
+                    )
+
+    ENDIF()
+
+    SET_TESTS_PROPERTIES(${Name} PROPERTIES LABELS ${Label})
+
+ENDMACRO()
+
+FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
+
+	GET_PROPERTY(TEST_SUITES GLOBAL PROPERTY HATN_TEST_SUITES)
+	SET(TEST_CASES "")
+	SET(WORKING_DIR ${BINDIR})
+	
+	FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
+
+		MESSAGE(STATUS "Reading test file ${SOURCE_FILE_NAME}")
+
+		FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
+
+                STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+
+		IF (FOUND_TEST_SUITE)
+
+			STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
+			
+			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
+			
+			STRING (TOLOWER ${SUITE_NAME} TARGET_EXE)
+                        IF (BUILD_IOS)
+                            SET (TEST_EXEC_CMD ${BINDIR}/${TARGET_EXE}.app/${TARGET_EXE})
+                        ELSE ()
+                            SET (TEST_EXEC_CMD ${TARGET_EXE})
+                        ENDIF()
+						    
+			IF (${BUILD_TYPE} STREQUAL "DEBUG")
+				SET (MEMORY_LEAKS --detect_memory_leaks=0)
+			ENDIF()
+			
+			LIST (FIND TEST_SUITES ${SUITE_NAME} FOUND_IDX)
+			IF (${FOUND_IDX} EQUAL -1)
+				
+				MESSAGE(STATUS "Adding new test suite ${SUITE_NAME}")
+			
+				LIST (APPEND TEST_SUITES ${SUITE_NAME})
+				ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES})
+				ADD_HATN_MODULES(${TARGET_EXE} ${HATN_MODULES})
+				ADD_DEPENDENCIES(${PROJECT_NAME} ${TARGET_EXE})
+				
+				LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
+				
+                                ADD_HATN_CTEST(${SUITE_NAME}-all "ALL")
+                                ADD_HATN_CTEST(${SUITE_NAME} "SUITE")
+
+			ELSE()	
+				MESSAGE(STATUS "Using existing test suite ${SUITE_NAME}")
+				TARGET_SOURCES(${TARGET_EXE} PRIVATE ${SOURCE_FILE_NAME})
+			ENDIF()
+
+			SET(FOUND_TESTS "")
+			STRING(REGEX MATCHALL "BOOST_FIXTURE_TEST_CASE\\( *([A-Za-z_0-9]+) *\\," FIXTURE_TESTS "${SOURCE_FILE_CONTENTS}")
+			FOREACH(HIT ${FIXTURE_TESTS})
+				STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\,.*" "\\1" TEST_CASE ${HIT})
+				LIST (APPEND FOUND_TESTS ${TEST_CASE})
+				# MESSAGE(STATUS "Found fixture test ${SUITE_NAME}/${TEST_CASE}")
+			ENDFOREACH()
+			STRING(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" AUTO_TESTS "${SOURCE_FILE_CONTENTS}")
+			FOREACH(HIT ${AUTO_TESTS})
+				STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_CASE ${HIT})
+				LIST (APPEND FOUND_TESTS ${TEST_CASE})
+				# MESSAGE(STATUS "Found auto test ${SUITE_NAME}/${TEST_CASE}")				
+			ENDFOREACH()
+						
+			FOREACH(TEST_CASE ${FOUND_TESTS})
+				LIST (FIND TEST_CASES ${TEST_CASE} FOUND_IDX)
+				IF (${FOUND_IDX} EQUAL -1)
+					MESSAGE(STATUS "Adding test ${SUITE_NAME}/${TEST_CASE}")
+					LIST (APPEND TEST_CASES ${TEST_CASE})
+                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE")
+				ENDIF()				
+			ENDFOREACH()
+		ENDIF()
+
+	ENDFOREACH()
+
+	SET_PROPERTY(GLOBAL PROPERTY HATN_TEST_SUITES "${TEST_SUITES}")
+
+ENDFUNCTION(ADD_HATN_CTESTS)

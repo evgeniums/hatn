@@ -42,7 +42,7 @@ void checkStrings(const FmtAllocatedBufferChar &s,int &count,int &index,std::map
     count++;
 }
 
-BOOST_AUTO_TEST_SUITE(LoggerTest)
+BOOST_AUTO_TEST_SUITE(TestLogger)
 
 BOOST_FIXTURE_TEST_CASE(Basic,MultiThreadFixture)
 {

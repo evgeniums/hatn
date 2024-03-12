@@ -17,7 +17,7 @@ class SetupMemoryLockedData
         }
 };
 
-BOOST_AUTO_TEST_SUITE(MemoryLockedDataContainers)
+BOOST_AUTO_TEST_SUITE(TestMemoryLockedDataContainers)
 
 BOOST_AUTO_TEST_CASE(StringCtr)
 {

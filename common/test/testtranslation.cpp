@@ -19,7 +19,7 @@ HATN_COMMON_USING
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(TranslatorTest)
+BOOST_AUTO_TEST_SUITE(TestTranslator)
 
 inline static std::string fromFile(const std::string &fname)
 {

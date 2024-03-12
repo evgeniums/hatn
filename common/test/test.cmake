@@ -2,7 +2,7 @@ SET(HEADERS
     ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.h
 )
 
-SET(SOURCES
+SET(TEST_SOURCES
     ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
 
     ${COMMON_TEST_SRC}/testplugins.cpp
@@ -22,13 +22,11 @@ SET(SOURCES
 )
 
 IF(ENABLE_TRANSLATIONS)
-  SET(SOURCES
-     ${SOURCES}
+  SET(TEST_SOURCES
+     ${TEST_SOURCES}
      ${COMMON_TEST_SRC}/testtranslation.cpp
   )
 ENDIF(ENABLE_TRANSLATIONS)
-
-TARGET_SOURCES(${PROJECT_NAME} PRIVATE ${HEADERS} ${SOURCES})
 
 IF(MINGW)
     IF(BUILD_STATIC)
@@ -37,14 +35,12 @@ IF(MINGW)
     ENDIF(BUILD_STATIC)
 ENDIF(MINGW)
 
+ADD_HATN_CTESTS(common ${TEST_SOURCES})
+
 FUNCTION(TestCommon)
 
     COPY_LIBRARY_HERE(hatncommon${LIB_POSTFIX} ../common/)
-
-    IF(NOT BUILD_STATIC)
-        COPY_LIBRARY(hatn-testplugin${LIB_POSTFIX} ../testplugin plugins/)
-        COPY_SOURCE_FILE(../testplugin/testplugin.dat testplugin.dat)
-    ENDIF(NOT BUILD_STATIC)
+    COPY(${HATN_COMMON_SRC}/plugins/testplugin/testplugin.dat ${BINDIR}/common/assets/testplugin.dat)
 
     IF(ENABLE_TRANSLATIONS)
 

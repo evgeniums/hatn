@@ -5,7 +5,7 @@
 HATN_USING
 HATN_COMMON_USING
 
-BOOST_AUTO_TEST_SUITE(MetaUtils)
+BOOST_AUTO_TEST_SUITE(TestMetaUtils)
 
 struct Interface1
 {

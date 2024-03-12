@@ -1,6 +1,7 @@
 @ECHO OFF
 
-SET WORKING_DIR=%CD%
+SET build_start_dir=%CD%
+SET WORKING_DIR=%CD%\build
 
 IF EXIST  hatn.src (
     ECHO Do not run build scripts in source directory!
@@ -32,4 +33,4 @@ SET SCRIPT_NAME=%HATN_BUILD%-%HATN_LINK%-dev-%HATN_ARCH%
 call scripts\%HATN_LIB%\%HATN_COMPILER%-%HATN_ARCH%\%SCRIPT_NAME%.bat
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-cd %WORKING_DIR%
+cd %build_start_dir%

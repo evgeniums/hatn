@@ -56,19 +56,28 @@ ADD_SUBDIRECTORY(thirdparty)
 # Build all requested modules
 ADD_HATN_SUBDIRS(${HATN_MODULES})
 
+IF (BUILD_PLUGINS)
+	# testplugin must be built either for all libs or for common
+	IF("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all" OR "${DEV_MODULE}" STREQUAL "common")
+		LIST (FIND BUILD_PLUGINS testplugin FOUND_IDX)
+		IF (${FOUND_IDX} EQUAL -1)
+			LIST (PREPEND BUILD_PLUGINS testplugin)
+		ENDIF()
+	ENDIF()
+    MESSAGE(STATUS "Try to build plugins with names: ${BUILD_PLUGINS}")
+ELSE()
+	# testplugin must be built either for all libs or for common
+	IF("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all" OR "${DEV_MODULE}" STREQUAL "common")
+		SET (BUILD_PLUGINS testplugin)
+		MESSAGE(STATUS "Try to build plugins with names: ${BUILD_PLUGINS}")		
+	ELSE()
+		MESSAGE(STATUS "Not building plugins")
+	ENDIF()
+ENDIF()
+
 # Build tests only if this is a first level project
-IF(HATN_MASTER_PROJECT)
+IF (HATN_MASTER_PROJECT)
     IF(BUILD_TESTS)
-      # testplugin will be built only for either all libs or for common
-      IF("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all" OR "${DEV_MODULE}" STREQUAL "common")
-          ADD_SUBDIRECTORY(testplugin)
-      ENDIF()
       ADD_SUBDIRECTORY(test)
     ENDIF(BUILD_TESTS)
 ENDIF(HATN_MASTER_PROJECT)
-
-IF (BUILD_PLUGINS)
-    MESSAGE(STATUS "Try to build plugins with names: ${BUILD_PLUGINS}")
-ELSE()
-    MESSAGE(STATUS "Not building plugins")
-ENDIF()

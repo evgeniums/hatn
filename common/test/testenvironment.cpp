@@ -7,7 +7,7 @@
 HATN_USING
 HATN_COMMON_USING
 
-BOOST_AUTO_TEST_SUITE(Environment)
+BOOST_AUTO_TEST_SUITE(TestEnvironment)
 
 struct OpInterface0 : public HATN_COMMON_NAMESPACE::Interface<OpInterface0>
 {
