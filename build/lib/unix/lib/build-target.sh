@@ -45,15 +45,15 @@ source $scripts_root/lib/platforms/$platform/$toolchain-cfg.sh
 
 if [[ "$PREPARE_TESTS" == "1" ]];
 then
-    	echo "Preparing tests script $toolchain $working_dir/run-tests.sh ..."
-	if [ -L $working_dir/run-tests ]
-	then
-		rm $working_dir/run-tests
-	fi
-	if [ -f $working_dir/run-tests.sh ]
-	then
-		rm $working_dir/run-tests.sh
-	fi
+    echo "Preparing tests script $toolchain $working_dir/run-tests.sh ..."
+    if [ -L $working_dir/run-tests ]
+    then
+            rm $working_dir/run-tests
+    fi
+    if [ -f $working_dir/run-tests.sh ]
+    then
+            rm $working_dir/run-tests.sh
+    fi
 
     if [ ! -z "$hatn_test_name" ];
     then		
@@ -74,14 +74,20 @@ cat <<EOT > $working_dir/run-tests.sh
 
 # *** This file is auto generated, do not edit! ***
 
+if [ -d "$working_dir/result-xml" ]
+then
+    rm -rf $working_dir/result-xml
+fi
+mkdir -p $working_dir/result-xml
+
 export PATH=$PATH:$deps_root/bin:$deps_root/lib:\$test_dir
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$deps_root/lib
 ctest -C $build_type $ctest_args --verbose --test-dir $build_path/test
 
 EOT
 
-	chmod +x $working_dir/run-tests.sh
-	ln -s $working_dir/run-tests.sh $working_dir/run-tests
+    chmod +x $working_dir/run-tests.sh
+    ln -s $working_dir/run-tests.sh $working_dir/run-tests
 fi
 
 cat <<EOT > $working_dir/run-codechecker.sh

@@ -63,28 +63,23 @@ if [ -f "$working_dir/run-tests.sh" ]
 then
     rm $working_dir/run-tests.sh
 fi
-if [ -f "$working_dir/test-out.xml" ]
-then
-    rm $working_dir/test-out.xml
-fi
+
 
 if [[ "$arch" == "x86_64" ]];
 then
 
 if [ ! -z "$hatn_test_name" ];
 then
-    echo "Enable only test $hatn_test_name"
-    run_tests="--run_test=$hatn_test_name"
+    if [[ $hatn_test_name == *"/"* ]]; then
+            echo "Will run test CASE $hatn_test_name"
+            ctest_args="-L CASE -R $hatn_test_name"
+    else
+            echo "Will run test SUITE $hatn_test_name"
+            ctest_args="-L SUITE -R $hatn_test_name"
+    fi
 else
-    echo "Enable all tests"
-fi
-
-if [ -z "$hatn_test_ios_device" ];
-then
-    echo "Run tests on booted device(s)"
-    export hatn_test_ios_device=booted
-else
-    echo "Run tests on device $hatn_test_ios_device"
+    echo "Will run all tests"
+    ctest_args="-L ALL"
 fi
 
 cat <<EOT > $working_dir/run-tests.sh
@@ -95,23 +90,16 @@ set -e
 # *** This file is auto generated, do not edit! ***
 
 echo "Auto testing in simulator for x86_64 platform"
-xcrun simctl spawn $hatn_test_ios_device $build_path/test/hatnlibs-test.app/hatnlibs-test --logger=XML,all,$working_dir/test-out.xml --logger=HRF,test_suite --report_level=no --result_code=no $run_tests
+
+if [ -d "$working_dir/result-xml" ]
+then
+    rm -rf $working_dir/result-xml
+fi
+mkdir -p $working_dir/result-xml
+
+ctest $ctest_args --verbose --test-dir $build_path/test -C release
 
 EOT
-
-cat <<EOT > $working_dir/run-tests-manual.sh
-#!/bin/bash
-
-set -e
-
-# *** This file is auto generated, do not edit! ***
-
-echo "Auto testing in simulator for x86_64 platform"
-xcrun simctl spawn $hatn_test_ios_device $build_path/test/hatnlibs-test.app/hatnlibs-test --log_level=test_suite
-
-EOT
-
-chmod +x $working_dir/run-tests-manual.sh
 
 else
 

@@ -35,10 +35,6 @@ if [ -f "$working_dir/run-tests.sh" ]
 then
     rm $working_dir/run-tests.sh
 fi
-if [ -d "$working_dir/result-xml" ]
-then
-    rm -rf $working_dir/result-xml
-fi
 
 build_path=$build_root/api-$api_level/$project/$toolchain
 
@@ -47,10 +43,16 @@ then
 
 if [ ! -z "$hatn_test_name" ];
 then
-    echo "Enable only test $hatn_test_name"
-    run_tests="--run_test=$hatn_test_name"
+    if [[ $hatn_test_name == *"/"* ]]; then
+            echo "Will run test CASE $hatn_test_name"
+            ctest_args="-L CASE -R $hatn_test_name"
+    else
+            echo "Will run test SUITE $hatn_test_name"
+            ctest_args="-L SUITE -R $hatn_test_name"
+    fi
 else
-    echo "Enable all tests for api-$api_level"
+    echo "Will run all tests"
+    ctest_args="-L ALL"
 fi
 
 cat <<EOT > $working_dir/run-tests.sh
@@ -62,13 +64,16 @@ set -e
 
 echo "Auto testing in emulator for $toolchain platform"
 
+if [ -d "$working_dir/result-xml" ]
+then
+    rm -rf $working_dir/result-xml
+fi
+
 if [ -z "\$ANDROID_SDK_ROOT" ];
 then
     export ANDROID_SDK_ROOT=~/Library/Android/sdk
 fi
 platform_tools=\$ANDROID_SDK_ROOT/platform-tools
-
-result_xml_dir="/data/local/tmp/test/result-xml"
 
 \$platform_tools/adb shell "su root chmod 777 /data/local/tmp"
 cd $build_path
@@ -78,8 +83,8 @@ touch test/result-xml/keeper
 \$platform_tools/adb shell "rm -rf /data/local/tmp/test"
 \$platform_tools/adb push test /data/local/tmp/
 cd $working_dir
-ctest -L ALL --verbose --test-dir $build_path/test -C release
-\$platform_tools/adb pull /data/local/tmp/test/result-xml result-xml
+ctest $ctest_args --verbose --test-dir $build_path/test -C release
+\$platform_tools/adb pull /data/local/tmp/test/result-xml
 \$platform_tools/adb shell "rm -rf /data/local/tmp/test"
 
 EOT

@@ -148,14 +148,21 @@ MACRO(ADD_HATN_CTEST Name Label)
 
         ADD_TEST(NAME ${Name}
                          WORKING_DIRECTORY ${WORKING_DIR}
-                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TARGET_EXE} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml"
+                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml"
+                     )
+
+    ELSEIF (BUILD_IOS)
+
+        ADD_TEST(NAME ${Name}
+                         WORKING_DIRECTORY ${WORKING_DIR}
+                         COMMAND xcrun simctl spawn ${HATN_TEST_IOS_DEVICE} ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml
                      )
 
     ELSE()
 
         ADD_TEST(NAME ${Name}
                          WORKING_DIRECTORY ${WORKING_DIR}
-                         COMMAND ${TARGET_EXE} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS}
+                         COMMAND ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS}
                     )
 
     ENDIF()
@@ -176,8 +183,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
 		FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
 
-		STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *\\)"
-			   FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+                STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
 
 		IF (FOUND_TEST_SUITE)
 
@@ -186,6 +192,11 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
 			STRING (TOLOWER ${SUITE_NAME} TARGET_EXE)
+                        IF (BUILD_IOS)
+                            SET (TEST_EXEC_CMD ${BINDIR}/${TARGET_EXE}.app/${TARGET_EXE})
+                        ELSE ()
+                            SET (TEST_EXEC_CMD ${TARGET_EXE})
+                        ENDIF()
 						    
 			IF (${BUILD_TYPE} STREQUAL "DEBUG")
 				SET (MEMORY_LEAKS --detect_memory_leaks=0)
