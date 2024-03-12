@@ -43,28 +43,25 @@ cd %BUILD_DIR%
 SET PATH=%BOOST_ROOT%\lib;%DEPS_ROOT%\bin;%PATH%
 call %SCRIPTS_ROOT%%PLATFORM%\run.bat
 
-cd %WORKING_DIR%
-
 IF "%PREPARE_TESTS%"=="1" (
-    ECHO Preparing tests script %_COMPILER% %WORKING_DIR%\build\run-tests.bat ...
+    ECHO "Preparing tests script %WORKING_DIR%\run-tests.bat"
     SETLOCAL ENABLEDELAYEDEXPANSION
     IF "%_COMPILER%"=="msvc" (
         SET TEST_DIR=%BUILD_DIR%\test\%BUILD_TYPE%
     ) ELSE (
         SET TEST_DIR=%BUILD_DIR%\test
     )
-    echo 
     IF "%HATN_TEST_NAME%"=="" (
-        ECHO "Testing all"
+        ECHO "Will run ALL tests"
 		SET CTEST_ARGS=-L ALL
-    )  ELSE (
-        ECHO "Testing %HATN_TEST_NAME% only"
-		
+    )  ELSE (		
 		SET TMP_NAME=%HATN_TEST_NAME%
 		echo.!TMP_NAME!|findstr /C:"/" >nul 2>&1
 		if not errorlevel 1 (
+		   ECHO "Will run test SUITE %HATN_TEST_NAME%"
 		   SET CTEST_ARGS=-L CASE -R %HATN_TEST_NAME%
 		) else (
+		   ECHO "Will run test CASSE %HATN_TEST_NAME%"
 		   SET CTEST_ARGS=-L SUITE -R %HATN_TEST_NAME%
 		)		
     )
@@ -73,8 +70,7 @@ IF "%PREPARE_TESTS%"=="1" (
 		SET CTEST_CONFIGURATION=Debug
     ) ELSE (
 		SET CTEST_CONFIGURATION=Release
-	)                          
-	
+	)                          	
 	
     (
         ECHO ECHO Running test script
@@ -83,16 +79,7 @@ IF "%PREPARE_TESTS%"=="1" (
         ECHO cd !TEST_DIR!
         ECHO ctest -C !CTEST_CONFIGURATION! !CTEST_ARGS! --verbose --test-dir %BUILD_DIR%/test
         ECHO cd %%CURRENT_DIR%%
-    ) > build\run-tests.bat
-    
-    REM (
-        REM ECHO ECHO Running test script
-        REM ECHO SET CURRENT_DIR=%%CD%%
-        REM ECHO SET "PATH=%PATH%;!TEST_DIR!"
-        REM ECHO cd !TEST_DIR!
-        REM ECHO hatnlibs-test.exe --log_level=test_suite !MEMORY_LEAKS! !RUN_TEST!
-        REM ECHO cd %%CURRENT_DIR%%
-    REM ) > build\run-tests-manual.bat
+    ) > %WORKING_DIR%\run-tests.bat 
 )
 
 SET PATH=%KEEP_PATH%

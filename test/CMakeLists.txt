@@ -40,8 +40,8 @@ ENDIF()
 ADD_CUSTOM_TARGET(${PROJECT_NAME} ALL)
 
 SET(RESULT_XML_DIR ${BINDIR}/result-xml)
-IF (NOT "$ENV{builds_root}" STREQUAL "")
-	SET(RESULT_XML_DIR $ENV{builds_root}/result-xml)
+IF (NOT "$ENV{working_dir}" STREQUAL "")
+	SET(RESULT_XML_DIR $ENV{working_dir}/result-xml)
 ENDIF()
 ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${RESULT_XML_DIR}"
