@@ -230,7 +230,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				IF (${FOUND_IDX} EQUAL -1)
 					MESSAGE(STATUS "Adding test ${SUITE_NAME}/${TEST_CASE}")
 					LIST (APPEND TEST_CASES ${TEST_CASE})
-                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE")ß
+                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE")
 				ENDIF()				
 			ENDFOREACH()
 		ENDIF()
