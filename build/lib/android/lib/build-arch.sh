@@ -64,6 +64,8 @@ set -e
 
 echo "Auto testing in emulator for $toolchain platform"
 
+export PATH=\$PATH:/usr/local/bin
+
 if [ -d "$working_dir/result-xml" ]
 then
     rm -rf $working_dir/result-xml
