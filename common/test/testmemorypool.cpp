@@ -999,7 +999,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
 
     // sample working handler that allocates/deallocates blocks in the pool copies data between blocks
 #ifdef _MSC_VER
-    auto handler=[&pool,&contexts,&doneCount,&quitTimer,count,chunkCount,threadCount](size_t idx)
+    auto handler=[&pool,&contexts,&doneCount,&quitTimer,count,chunkCount,threadCount](size_t threadIdx)
 #else
     auto handler=[&pool,&contexts,&doneCount,&quitTimer](size_t threadIdx)
 #endif
