@@ -867,7 +867,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     constexpr const size_t chunkCount=(count/chunkSize)/32;
 
     ElapsedTimer elapsed;
-    std::array<ThreadContext,threadCount> contexts;
+    std::array<ThreadContext,threadCount+1> contexts;
     env->createThreads(threadCount+1);
     env->thread(0)->start(false);
 
@@ -877,9 +877,10 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     pool.setGarbageCollectorEnabled(false);
     pool.setDropBucketDelay(2);
 
+    // fill sample blocks for thread contexts
     for (size_t i=0;i<count*2;i++)
     {
-        for (size_t j=0;j<threadCount;j++)
+        for (size_t j=1;j<threadCount+1;j++)
         {
             auto& ctx=contexts[j];
             auto& sampleBlock=ctx.sampleBlocks[i];
@@ -892,6 +893,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     std::vector<std::array<char,chunkSize>> sampleBlocks(count1);
     std::set<size_t> allocatedIndexes;
 
+    // fill sample raw blocks and copy them to test raw blocks
     for (size_t i=0;i<count1;i++)
     {
         auto block=pool.allocateRawBlock();
@@ -903,6 +905,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         std::copy(sampleBlock.begin(),sampleBlock.end(),data);
         allocatedIndexes.insert(i);
 
+        // deallocate some blocks, e.g. each (i-16) and (i-11) when i is divisible by 4
         if (i>16 && i%4==0)
         {
             pool.deallocateRawBlock(blocks[i-16]);
@@ -915,6 +918,8 @@ static void checkParallelAllocateDeallocateGb(Env* env)
             }
         }
     }
+
+    // deallocate blocks up to 4*chunkCount before threads running
     if (4*chunkCount<=count1)
     {
         for (size_t i=0;i<4*chunkCount;i++)
@@ -927,6 +932,8 @@ static void checkParallelAllocateDeallocateGb(Env* env)
             }
         }
     }
+
+    // deallocate blocks between 8*chunkCOunt and 256*chunkCount before threads running
     if (256*chunkCount<=count1)
     {
         for (size_t i=8*chunkCount;i<256*chunkCount;i++)
@@ -949,6 +956,9 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         }
     }
 
+    // add this point we have partially populated memory pool
+
+    // init handler for periodic invokations of garbage collector
     std::atomic<bool> stopGb(false);
     AsioHighResolutionTimer gbTimer(env->thread(0).get());
     gbTimer.setSingleShot(false);
@@ -971,6 +981,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         }
     );
 
+    // init test quick timer
     AsioDeadlineTimer quitTimer(env->thread(0).get(),
         [env](TimerTypes::Status status)
         {
@@ -982,27 +993,28 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         }
     );
     quitTimer.setSingleShot(true);
-    quitTimer.setPeriodUs(2000000);
+    quitTimer.setPeriodUs(5000000);
 
     std::atomic<size_t> doneCount(0);
 
+    // sample working handler that allocates/deallocates blocks in the pool copies data between blocks
 #ifdef _MSC_VER
     auto handler=[&pool,&contexts,&doneCount,&quitTimer,count,chunkCount,threadCount](size_t idx)
 #else
-    auto handler=[&pool,&contexts,&doneCount,&quitTimer](size_t idx)
+    auto handler=[&pool,&contexts,&doneCount,&quitTimer](size_t threadIdx)
 #endif
     {
-        auto& ctx=contexts[idx];
+        auto& ctx=contexts[threadIdx];
 
         for (size_t k=0;k<1;k++)
         {
             size_t startI=k*count;
-            if (idx%2==k)
+            if (threadIdx%2==k)
             {
                 for (size_t i=startI;i<startI+count;i++)
                 {
                     auto block=pool.allocateRawBlock();
-                    ctx.blocks[i]=block;
+                    ctx.blocks[i]=block;                    
 
                     auto& sampleBlock=ctx.sampleBlocks[i];
                     auto data=block->data();
@@ -1082,32 +1094,36 @@ static void checkParallelAllocateDeallocateGb(Env* env)
             }
         }
 
-        HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
-        if (++doneCount==threadCount)
+        HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",threadIdx));
+        if ((doneCount.fetch_add(1)+1)==threadCount)
         {
             quitTimer.start();
         }
     };
 
-    BOOST_TEST_MESSAGE(fmt::format("Executing for count {}",count));
-    for (int j=0;j<threadCount;j++)
+    // run handlers in threads
+    BOOST_TEST_MESSAGE(fmt::format("Executing for count {}",count));    
+    for (int j=1;j<threadCount+1;j++)
     {
-        env->thread(j+1)->execAsync(
+        env->thread(j)->execAsync(
                         [&handler,j]()
                         {
                             handler(j);
                         }
                     );
     }
-    for (int j=0;j<threadCount;j++)
+    for (int j=1;j<threadCount+1;j++)
     {
-        env->thread(j+1)->start(false);
+        env->thread(j)->start(false);
     }
+
+    SpinLock gbLock;
     env->thread(0)->execAsync(
-        [&pool,&stopGb]()
+        [&pool,&stopGb, &gbLock]()
         {
             for (size_t i=0;i<100;i++)
             {
+                SpinScopedLock l(gbLock);
                 if (stopGb.load(std::memory_order_acquire))
                 {
                     break;
@@ -1117,34 +1133,39 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         }
     );
 
+    // run main thread
     elapsed.reset();
     if (doneCount!=count)
     {
-        env->exec(120);
+        env->exec(60);
     }
     auto elapsedStr=elapsed.toString();
     BOOST_TEST_MESSAGE(fmt::format("Elapsed {}",elapsedStr));
 
-    stopGb.store(true,std::memory_order_release);
     gbTimer.cancel();
+    gbLock.lock();
+    stopGb.store(true,std::memory_order_release);
+    gbLock.unlock();
 
     BOOST_CHECK_EQUAL(doneCount.load(),threadCount);
     BOOST_CHECK(!pool.isEmpty());
     BOOST_CHECK_GT(pool.bucketsCount(),0u);
 
+    // check contents of ordinary blocks that were allocated/deallocated before thread running
     bool cmpOk=true;
     for (auto&& it:allocatedIndexes)
     {
         cmpOk=memcmp(sampleBlocks[it].data(),blocks[it]->data(),chunkSize)==0;
         if (!cmpOk)
         {
-            BOOST_TEST_MESSAGE(fmt::format("Data mismatched in sampleBlocks, index {} of {}",static_cast<size_t>(it),allocatedIndexes.size()));
+            BOOST_TEST_MESSAGE(fmt::format("Data mismatch in sampleBlocks, index {} of {}",static_cast<size_t>(it),allocatedIndexes.size()));
             break;
         }
     }
-    BOOST_CHECK(cmpOk);
+    BOOST_CHECK_MESSAGE(cmpOk,"Data mismatch in ordinary blocks");
 
-    for (size_t k=0;k<threadCount;k++)
+    // check contents of thread blocks
+    for (size_t k=1;k<threadCount+1;k++)
     {
         auto& ctx=contexts[k];
         BOOST_CHECK_GT(ctx.allocatedIndexes.size(),0u);
@@ -1158,19 +1179,10 @@ static void checkParallelAllocateDeallocateGb(Env* env)
                 break;
             }
         }
-        BOOST_CHECK(cmpOk);
+        BOOST_CHECK_MESSAGE(cmpOk, fmt::format("Data mismatch in blocks of thread {}",k));
     }
 
     Stats stats;
-#if 0
-    BOOST_TEST_CONTEXT("Pool after exec done")
-    {
-        Stats sampleStats;
-        sampleStats.clear();
-        pool.getStats(stats);
-        checkStats(sampleStats,stats);
-    }
-#endif
 
     BOOST_TEST_MESSAGE("Clear pool");
     elapsed.reset();
