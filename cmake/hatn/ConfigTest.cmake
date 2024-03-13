@@ -51,7 +51,7 @@ FUNCTION (TEST_HATN_MODULE name)
 
         MESSAGE(STATUS "Adding test module ${name}")
 
-       TEST_HATN_MODULE_PLUGINS(${name})
+        TEST_HATN_MODULE_PLUGINS(${name})
 
         SET (MODULE_TEST_SRC ${${UPPER_MODULE_NAME}_TEST_SRC})
         INCLUDE(${MODULE_TEST_SRC}/test.cmake)

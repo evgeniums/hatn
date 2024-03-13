@@ -4,3 +4,6 @@
 [submodule "thirdparty/ios-cmake"]
 	path = thirdparty/ios-cmake
 	url = https://github.com/leetal/ios-cmake
+[submodule "validator"]
+	path = validator
+	url = https://github.com/evgeniums/cpp-validator

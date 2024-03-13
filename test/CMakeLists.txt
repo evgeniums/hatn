@@ -15,8 +15,14 @@ SET(HEADERS
 SET(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/testwrapper.cpp
-    ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
 )
+
+IF (common IN_LIST HATN_MODULES)
+    SET(SOURCES
+        ${SOURCES}
+        ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
+    )
+ENDIF()
 
 IF (prograph IN_LIST HATN_MODULES)
     SET(SOURCES
