@@ -91,6 +91,8 @@ set -e
 
 echo "Auto testing in simulator for x86_64 platform"
 
+export PATH=\$PATH:/usr/local/bin
+
 if [ -d "$working_dir/result-xml" ]
 then
     rm -rf $working_dir/result-xml
