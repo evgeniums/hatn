@@ -86,9 +86,10 @@ MACRO(HATN_MODULE name)
 
 ENDMACRO(HATN_MODULE)
 
-FUNCTION(LINK_MODULE target)
-    TARGET_LINK_DIRECTORIES(${target} PUBLIC ${HATN_LINK_DIRECTORIES})
-    TARGET_LINK_LIBRARIES(${target} PUBLIC
+FUNCTION(LINK_MODULE target export_mode deps)
+    TARGET_LINK_DIRECTORIES(${target} ${export_mode} ${HATN_LINK_DIRECTORIES})
+    TARGET_LINK_LIBRARIES(${target} ${export_mode}
+        ${deps}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
         ${HATN_SYSTEM_LIBS}
@@ -120,7 +121,7 @@ FUNCTION(ADD_HATN_SUBDIRS)
     ENDIF()
 ENDFUNCTION(ADD_HATN_SUBDIRS)
 
-FUNCTION(ADD_HATN_MODULES target)
+FUNCTION(ADD_HATN_MODULES target export_mode)
     SET(MODULE_DEPS "")
     SET(Args ${ARGN})
     LIST(LENGTH Args NumArgs)
@@ -130,8 +131,8 @@ FUNCTION(ADD_HATN_MODULES target)
             STRING(SUBSTRING ${MODULE_NAME} 0 1 FIRST_LETTER)
             STRING(TOUPPER ${FIRST_LETTER} FIRST_LETTER)
             STRING(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" MODULE_NAME "${MODULE_NAME}")
-            TARGET_LINK_LIBRARIES(${target} PUBLIC hatn${ARG})
-            MESSAGE(STATUS "TARGET_LINK_LIBRARIES(${target} PUBLIC hatn${ARG})")
+            MESSAGE(STATUS "TARGET_LINK_LIBRARIES(${target} ${EXPORT_MODE} hatn${ARG})")
+            TARGET_LINK_LIBRARIES(${target} ${export_mode} hatn${ARG})
             IF (
                 ("${HATN_${target}_HEADER_ONLY}" STREQUAL "")
                 OR
@@ -150,7 +151,8 @@ FUNCTION(ADD_HATN_MODULES target)
         OR
         (NOT ${HATN_${target}_HEADER_ONLY})
         )
-        LINK_MODULE(${target} "${MODULE_DEPS}")
+        # LINK_MODULE(${target} "${MODULE_DEPS}")
+        LINK_MODULE(${target} ${export_mode} "${MODULE_DEPS}")
     ENDIF()
 ENDFUNCTION(ADD_HATN_MODULES)
 

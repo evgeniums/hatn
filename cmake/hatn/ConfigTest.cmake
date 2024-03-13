@@ -191,7 +191,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 			
 			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
-			STRING (TOLOWER ${SUITE_NAME} TARGET_EXE)
+                        STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
                         IF (BUILD_IOS)
                             SET (TEST_EXEC_CMD ${BINDIR}/${TARGET_EXE}.app/${TARGET_EXE})
                         ELSE ()
@@ -206,13 +206,13 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 			IF (${FOUND_IDX} EQUAL -1)
 				
 				MESSAGE(STATUS "Adding new test suite ${SUITE_NAME}")
-			
+
 				LIST (APPEND TEST_SUITES ${SUITE_NAME})
-				ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES})
-				ADD_HATN_MODULES(${TARGET_EXE} ${HATN_MODULES})
+                                ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES} ${HATN_TEST_THREAD_SOURCES})
+                                ADD_HATN_MODULES(${TARGET_EXE} PRIVATE ${HATN_MODULES})
 				ADD_DEPENDENCIES(${PROJECT_NAME} ${TARGET_EXE})
 				
-				LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
+                                LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
 				
                                 ADD_HATN_CTEST(${SUITE_NAME}-all "ALL")
                                 ADD_HATN_CTEST(${SUITE_NAME} "SUITE")

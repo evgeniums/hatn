@@ -18,15 +18,13 @@ SET(SOURCES
 )
 
 IF (common IN_LIST HATN_MODULES)
-    SET(SOURCES
-        ${SOURCES}
+    SET(HATN_TEST_THREAD_SOURCES
         ${HATN_COMMON_SRC}/include/hatn/test/multithreadfixture.cpp
     )
 ENDIF()
 
 IF (prograph IN_LIST HATN_MODULES)
-    SET(SOURCES
-        ${SOURCES}
+    SET(HATN_TEST_THREADQ_SOURCES
         ${HATN_PROGRAPH_SRC}/include/hatn/test/threadqfixture.cpp
     )
 ENDIF()
