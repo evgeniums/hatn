@@ -30,8 +30,22 @@ IF (prograph IN_LIST HATN_MODULES)
 ENDIF()
 
 IF (HATN_TEST_WRAP_C)
+
     MESSAGE(STATUS "Building c-wrapped test library")
+    MESSAGE(FATAL_ERROR "c-wrapped test library not supported currently")
+
+    SET(HEADERS
+        ${HEADERS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/testwrapper.h
+    )
+
+    SET(SOURCES
+        ${SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/testwrapper.cpp
+    )
+
     ADD_LIBRARY(${PROJECT_NAME} ${LINK_TYPE} ${SOURCES} ${HEADERS})
+
 ELSE(HATN_TEST_WRAP_C)
     MESSAGE(STATUS "Building executable test application")
 ENDIF(HATN_TEST_WRAP_C)
