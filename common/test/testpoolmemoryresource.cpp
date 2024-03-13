@@ -84,7 +84,7 @@ BOOST_FIXTURE_TEST_CASE(CheckPoolCacheGen,Env)
     auto poolThread=thread(0).get();
     size_t chunkSize=80;
     size_t chunkCount=100;
-    auto creator=[poolThread](const memorypool::PoolContext::Parameters& params)
+    auto creator=[poolThread](const memorypool::PoolConfig::Parameters& params)
     {
         return std::make_shared<UnsynchronizedPool>(poolThread,params);
     };
@@ -283,7 +283,7 @@ BOOST_FIXTURE_TEST_CASE(CheckMemoryResourceMt,Env)
     int threadCount=4;
 
     createThreads(threadCount);
-    auto creator=[](const memorypool::PoolContext::Parameters& params)
+    auto creator=[](const memorypool::PoolConfig::Parameters& params)
     {
         auto pool=new NewDeletePool(params);
         return std::shared_ptr<NewDeletePool>(pool);
@@ -298,7 +298,7 @@ BOOST_FIXTURE_TEST_CASE(CheckMemoryResourceMt,Env)
 
         if (i==0)
         {
-            auto pool=creator(memorypool::PoolContext::Parameters(sizeof(TestStruct1)));
+            auto pool=creator(memorypool::PoolConfig::Parameters(sizeof(TestStruct1)));
             resource=std::make_shared<PoolMemoryResource<NewDeletePool>>(std::move(pool));
             ctx="Preset embedded pool";
         }

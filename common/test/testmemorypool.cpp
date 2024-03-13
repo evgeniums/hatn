@@ -69,10 +69,10 @@ static void checkStats(const Stats& sample, const Stats& actual)
 
 BOOST_FIXTURE_TEST_CASE(CheckAllocateDeallocate,Env)
 {
-    PoolContext::Parameters params(2048);
+    PoolConfig::Parameters params(2048);
     UnsynchronizedPool pool(params);
 
-    size_t allocatedChunkSize=PoolWithContext::alignedChunkSize(params.chunkSize)+sizeof(void*);
+    size_t allocatedChunkSize=PoolWithConfig::alignedChunkSize(params.chunkSize)+sizeof(void*);
     BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),allocatedChunkSize);
 
     Stats stats;
@@ -128,7 +128,7 @@ BOOST_FIXTURE_TEST_CASE(CheckAllocateDeallocate,Env)
 BOOST_FIXTURE_TEST_CASE(CheckSequentialAllocateDeallocate,Env)
 {
     constexpr const size_t chunkSize=32;
-    PoolContext::Parameters params(chunkSize,16);
+    PoolConfig::Parameters params(chunkSize,16);
     UnsynchronizedPool pool(params);
     pool.setDynamicBucketSizeEnabled(false);
     UnsynchronizedPool poolReset(params);
@@ -171,7 +171,7 @@ BOOST_FIXTURE_TEST_CASE(CheckSequentialAllocateDeallocate,Env)
     BOOST_CHECK(!pool.isEmpty());
     auto bucketsCount=count/params.chunkCount+(((count%params.chunkCount)!=0)?1:0);
     BOOST_CHECK_EQUAL(pool.bucketsCount(),bucketsCount);
-    size_t allocatedChunkSize=PoolWithContext::alignedChunkSize(params.chunkSize)+sizeof(void*);
+    size_t allocatedChunkSize=PoolWithConfig::alignedChunkSize(params.chunkSize)+sizeof(void*);
     BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),allocatedChunkSize);
     statsSample.allocatedChunkCount=bucketsCount*params.chunkCount;
     statsSample.usedChunkCount=count;
@@ -269,7 +269,7 @@ BOOST_FIXTURE_TEST_CASE(CheckInterleavedAllocateDeallocate,Env)
     constexpr const size_t chunkSize=32;
     constexpr const size_t chunkCount=64;
 
-    PoolContext::Parameters params(chunkSize,chunkCount);
+    PoolConfig::Parameters params(chunkSize,chunkCount);
     UnsynchronizedPool pool(params);
     pool.setDynamicBucketSizeEnabled(false);
 
@@ -315,7 +315,7 @@ BOOST_FIXTURE_TEST_CASE(CheckInterleavedAllocateDeallocate,Env)
     BOOST_CHECK(!pool.isEmpty());
     auto bucketsCount=(count/params.chunkCount+(((count%params.chunkCount)!=0)?1:0))/2;
     BOOST_CHECK_EQUAL(pool.bucketsCount(),bucketsCount);
-    size_t allocatedChunkSize=PoolWithContext::alignedChunkSize(params.chunkSize)+sizeof(void*);
+    size_t allocatedChunkSize=PoolWithConfig::alignedChunkSize(params.chunkSize)+sizeof(void*);
     BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),allocatedChunkSize);
     statsSample.allocatedChunkCount=bucketsCount*chunkCount;
     statsSample.usedChunkCount=allocatedIndexes.size();
@@ -424,7 +424,7 @@ BOOST_FIXTURE_TEST_CASE(CheckGarbageCollector,Env)
     constexpr const size_t chunkSize=32;
     constexpr const size_t chunkCount=64;
 
-    PoolContext::Parameters params(chunkSize,chunkCount);
+    PoolConfig::Parameters params(chunkSize,chunkCount);
     UnsynchronizedPool pool(params);
     pool.setDynamicBucketSizeEnabled(false);
     pool.setDropBucketDelay(3);
@@ -459,7 +459,7 @@ BOOST_FIXTURE_TEST_CASE(CheckGarbageCollector,Env)
     BOOST_CHECK(!pool.isEmpty());
     auto bucketsCount=count/params.chunkCount+(((count%params.chunkCount)!=0)?1:0);
     BOOST_CHECK_EQUAL(pool.bucketsCount(),bucketsCount);
-    size_t allocatedChunkSize=PoolWithContext::alignedChunkSize(params.chunkSize)+sizeof(void*);
+    size_t allocatedChunkSize=PoolWithConfig::alignedChunkSize(params.chunkSize)+sizeof(void*);
     BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),allocatedChunkSize);
     statsSample.allocatedChunkCount=bucketsCount*chunkCount;
     statsSample.usedChunkCount=allocatedIndexes.size();
@@ -675,7 +675,7 @@ static void checkParallelAllocateDeallocate(Env* env)
     std::array<ThreadContext,threadCount> contexts;
     env->createThreads(threadCount+1);
 
-    PoolContext::Parameters params(chunkSize,chunkCount);
+    PoolConfig::Parameters params(chunkSize,chunkCount);
     PoolT pool(env->thread(0).get(),params);
     pool.setDynamicBucketSizeEnabled(true);
     pool.setGarbageCollectorPeriod(1000);
@@ -871,7 +871,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     env->createThreads(threadCount+1);
     env->thread(0)->start(false);
 
-    PoolContext::Parameters params(chunkSize,chunkCount);
+    PoolConfig::Parameters params(chunkSize,chunkCount);
     PoolT pool(env->thread(0).get(),params);
     pool.setDynamicBucketSizeEnabled(true);
     pool.setGarbageCollectorEnabled(false);
@@ -1251,7 +1251,7 @@ size_t TestStruct::idxCount=0;
 BOOST_FIXTURE_TEST_CASE(CheckObjectPool,Env)
 {
     createThreads(1);
-    PoolContext::Parameters params(sizeof(TestStruct),32);
+    PoolConfig::Parameters params(sizeof(TestStruct),32);
     ObjectPool<TestStruct,UnsynchronizedPool> pool(thread(0).get(),params);
 
     constexpr const size_t count=1000;
@@ -1269,7 +1269,7 @@ BOOST_FIXTURE_TEST_CASE(CheckObjectPool,Env)
     size_t sum=((1+count)*count)/2;
     BOOST_CHECK_EQUAL(TestStruct::idxCount,sum);
     BOOST_CHECK_EQUAL(pool.bucketsCount(),6);
-    BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),PoolWithContext::alignedChunkSize(sizeof(TestStruct))+sizeof(void*));
+    BOOST_CHECK_EQUAL(pool.allocatedChunkSize(),PoolWithConfig::alignedChunkSize(sizeof(TestStruct))+sizeof(void*));
 
     Stats stats;
     Stats statsSample;
@@ -1298,7 +1298,7 @@ static void performanceTest(Env* env)
     ElapsedTimer elapsed;
     env->createThreads(2);
 
-    PoolContext::Parameters params(chunkSize,chunkCount);
+    PoolConfig::Parameters params(chunkSize,chunkCount);
     UnsynchronizedPool pool(env->thread(0).get(),params);
     pool.setDynamicBucketSizeEnabled(true);
     pool.setGarbageCollectorEnabled(true);
@@ -1317,7 +1317,7 @@ static void performanceTest(Env* env)
     auto resource1=std::make_shared<PoolMemoryResource<PoolT>>(std::move(poolMem));
 
     auto cacheGen=std::make_shared<PoolCacheGen<PoolT>>(chunkCount*chunkSize);
-    auto creator=[env,cyclesCount](const memorypool::PoolContext::Parameters& params)
+    auto creator=[env,cyclesCount](const memorypool::PoolConfig::Parameters& params)
     {
         auto pool=std::make_shared<PoolT>(env->thread(0).get(),params);
         pool->setDynamicBucketSizeEnabled(true);

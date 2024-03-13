@@ -46,10 +46,10 @@ class PoolCacheGen
 {
     public:
 
-        using PoolCreatorFn=std::function<std::shared_ptr<PoolT> (const memorypool::PoolContext::Parameters&)>;
-        static std::shared_ptr<PoolT> defaultPoolCreator(const memorypool::PoolContext::Parameters& params)
+        using PoolCreatorFn=std::function<std::shared_ptr<PoolT> (const memorypool::PoolConfig::Parameters&)>;
+        static std::shared_ptr<PoolT> defaultPoolCreator(const memorypool::PoolConfig::Parameters& config)
         {
-            return std::make_shared<PoolT>(params);
+            return std::make_shared<PoolT>(config);
         }
 
         /**
@@ -109,14 +109,14 @@ class PoolCacheGen
         }
 
         //! Calculate pool parametes for object size
-        inline memorypool::PoolContext::Parameters poolParameters(size_t objectSize) const noexcept
+        inline memorypool::PoolConfig::Parameters poolParameters(size_t objectSize) const noexcept
         {
             auto chunkCount=m_bucketUsefulSize/objectSize;
             if (chunkCount==0)
             {
                 chunkCount=1;
             }
-            return memorypool::PoolContext::Parameters(objectSize,chunkCount);
+            return memorypool::PoolConfig::Parameters(objectSize,chunkCount);
         }
 
         const MemBlockSize& sizes() const

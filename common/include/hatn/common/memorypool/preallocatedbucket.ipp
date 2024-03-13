@@ -42,7 +42,7 @@ PreallocatedBucketTraits<PoolT,SyncT>::PreallocatedBucketTraits(
         m_writeCursor(0),
         m_readCursor(0),
         m_firstReadCursor(0),
-        m_alignedChunkSize(PoolWithContext::alignedChunkSize(chunkSize)),
+        m_alignedChunkSize(PoolWithConfig::alignedChunkSize(chunkSize)),
         m_data(new char[chunkCount*m_alignedChunkSize]),
         m_freeChunks(chunkCount)
 {

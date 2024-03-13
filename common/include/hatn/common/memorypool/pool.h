@@ -78,7 +78,8 @@ struct Stats
     }
 };
 
-class PoolContext
+//! Pool configuration.
+class PoolConfig
 {
     public:
 
@@ -91,7 +92,7 @@ class PoolContext
             size_t chunkCount;
         };
 
-        PoolContext(
+        PoolConfig(
                 const Parameters& params
             ) : m_chunkSize(params.chunkSize),
                 m_initialChunksPerBucket(params.chunkCount),
@@ -143,47 +144,47 @@ class PoolContext
         size_t m_maxBucketSize;
 };
 
-class PoolWithContext
+class PoolWithConfig
 {
     public:
 
-        PoolWithContext(PoolContext* ctx=nullptr):m_ctx(ctx)
+        PoolWithConfig(PoolConfig* cfg=nullptr):m_cfg(cfg)
         {}
 
         //! Enable/disable dynamic bucket size, defaule true
         inline void setDynamicBucketSizeEnabled(bool enable) noexcept
         {
-            m_ctx->setDynamicBucketSizeEnabled(enable);
+            m_cfg->setDynamicBucketSizeEnabled(enable);
         }
 
         //! Check if dynamic bucket size is enabled
         inline bool isDynamicBucketSizeEnabled() const noexcept
         {
-            return m_ctx->isDynamicBucketSizeEnabled();
+            return m_cfg->isDynamicBucketSizeEnabled();
         }
 
         //! Set max bucket size (in bytes) for dynamic bucket sizing, default 16MBytes
         inline void setMaxBucketSize(size_t size) noexcept
         {
-            m_ctx->setMaxBucketSize(size);
+            m_cfg->setMaxBucketSize(size);
         }
 
         //! Get max bucket size
         inline size_t maxBucketSize() const noexcept
         {
-            return m_ctx->maxBucketSize();
+            return m_cfg->maxBucketSize();
         }
 
         //! Get size of a chunk
         inline size_t chunkSize() const noexcept
         {
-            return m_ctx->chunkSize();
+            return m_cfg->chunkSize();
         }
 
         //! Get initial chunk count pet bucket
         inline size_t initialChunkCountPerBucket() const noexcept
         {
-            return m_ctx->initialChunkCountPerBucket();
+            return m_cfg->initialChunkCountPerBucket();
         }
 
         inline static size_t alignedChunkSize(size_t chunkSize) noexcept
@@ -200,14 +201,14 @@ class PoolWithContext
 
     protected:
 
-        void setContext(PoolContext* ctx)
+        void setConfig(PoolConfig* cfg)
         {
-            m_ctx=ctx;
+            m_cfg=cfg;
         }
 
     private:
 
-        PoolContext* m_ctx;
+        PoolConfig* m_cfg;
 };
 
 template <typename PoolT, typename BucketTraitsT>
@@ -216,7 +217,7 @@ class Bucket;
 //! Base memory pool class
 template <typename Traits>
 class Pool : public WithTraits<Traits>,
-             public PoolWithContext
+             public PoolWithConfig
 {
     public:
 
@@ -227,11 +228,11 @@ class Pool : public WithTraits<Traits>,
         //! Ctor
         template <typename ... Args>
         Pool(
-            const PoolContext::Parameters& params,
+            const PoolConfig::Parameters& params,
             Args&& ...traitsArgs
         ) noexcept : WithTraits<Traits>(std::forward<Args>(traitsArgs)...),
-                     PoolWithContext(&m_ctxImpl),
-                     m_ctxImpl(params)
+                     PoolWithConfig(&m_cfgImpl),
+                     m_cfgImpl(params)
         {}
 
         //! Allocate block of raw data
@@ -302,7 +303,7 @@ class Pool : public WithTraits<Traits>,
 
     private:
 
-        PoolContext m_ctxImpl;
+        PoolConfig m_cfgImpl;
 };
 
 template <typename ObjectT,typename PoolT>

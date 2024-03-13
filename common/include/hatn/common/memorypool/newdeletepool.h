@@ -110,7 +110,7 @@ class NewDeletePool : public Pool<NewDeletePoolTraits>
     public:
 
         NewDeletePool(
-            const PoolContext::Parameters& params
+            const PoolConfig::Parameters& params
         ) noexcept :
             Pool(params,this),
             m_bucket(&m_bucket,*this)

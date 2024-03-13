@@ -502,7 +502,7 @@ void MultiBucketPoolTraits<SyncInvoker>::getStats(Stats &stats) const noexcept
 template <typename SyncInvoker>
 size_t MultiBucketPoolTraits<SyncInvoker>::allocatedChunkSize() const noexcept
 {
-    return PoolWithContext::alignedChunkSize(m_pool->chunkSize())+
+    return PoolWithConfig::alignedChunkSize(m_pool->chunkSize())+
             sizeof(typename SyncInvoker::SyncT::template Atomic<void*>);
 }
 

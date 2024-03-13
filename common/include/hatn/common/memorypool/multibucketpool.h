@@ -145,7 +145,7 @@ class MultiBucketPool : public WithThread,
         //! Ctor
         MultiBucketPool(
             Thread* thread,
-            const PoolContext::Parameters& params
+            const PoolConfig::Parameters& params
         ) noexcept : WithThread(thread),
                      Pool<MultiBucketPoolTraits<SyncInvoker>>(params,thread,this,params.chunkCount),
                      m_dropBucketDelay(5)
@@ -154,7 +154,7 @@ class MultiBucketPool : public WithThread,
 
         //! Ctor
         MultiBucketPool(
-            const PoolContext::Parameters& params
+            const PoolConfig::Parameters& params
         ) noexcept : MultiBucketPool(Thread::currentThreadOrMain(),params)
         {
         }
