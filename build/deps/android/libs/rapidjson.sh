@@ -6,7 +6,7 @@ export repo_path=https://github.com/Tencent/$lib_name
 export build_dir=$toolchain_build_path
 source $scripts_root/../desktop/scripts/clonegit.sh
 
-cd $folder/..
+cd $folder
 patch_file=$scripts_root/libs/rapidjson.patch
 if ! patch -R -p0 -s -f --dry-run <$patch_file > /dev/null; then
   echo "rapidjson distro must be patched with $patch_file"
