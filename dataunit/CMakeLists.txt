@@ -1,5 +1,7 @@
 PROJECT(hatndataunit)
 
+FIND_PACKAGE(RapidJSON REQUIRED)
+
 SET (HEADERS
     include/hatn/dataunit/dataunit.h
     include/hatn/dataunit/syntax.h
@@ -57,5 +59,3 @@ SET (SOURCES
 )
 
 BUILD_HATN_MODULE()
-
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${DEPS_ROOT}/include)
