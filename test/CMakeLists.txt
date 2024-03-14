@@ -9,12 +9,10 @@ INCLUDE(hatn/ConfigTest)
 
 SET(HEADERS
     ${HATN_COMMON_SRC}/include/hatn/test/pluginlist.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/testwrapper.h
 )
 
 SET(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/testwrapper.cpp
 )
 
 IF (common IN_LIST HATN_MODULES)
@@ -55,7 +53,7 @@ IF (NOT MSVC)
     ADD_COMPILE_OPTIONS(-Wno-sign-compare)
 ENDIF()
 
-ADD_CUSTOM_TARGET(${PROJECT_NAME} ALL)
+ADD_CUSTOM_TARGET(${PROJECT_NAME} ALL ${HEADERS} ${SOURCES})
 
 IF (BUILD_ANDROID)
     SET(RESULT_XML_DIR /data/local/tmp/test/result-xml)

@@ -1,0 +1,1 @@
+SET(HATN_MODULE_DEPS common validator PARENT_SCOPE)

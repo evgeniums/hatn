@@ -1,0 +1,32 @@
+diff -ruN include/rapidjson/prettywriter.h include/rapidjson/prettywriter.h
+--- include/rapidjson/prettywriter.h	2024-02-28 21:01:52 +0000
++++ include/rapidjson/prettywriter.h	2024-03-14 11:39:32 +0000
+@@ -203,6 +203,12 @@
+         PrettyPrefix(type);
+         return Base::EndValue(Base::WriteRawValue(json, length));
+     }
++	
++    //! Go ahead to next token without actually writing the value to stream
++    bool RawInlineValue(Type type) {
++        PrettyPrefix(type);
++        return Base::EndValue(true);
++    }	
+ 
+ protected:
+     void PrettyPrefix(Type type) {
+diff -ruN include/rapidjson/writer.h include/rapidjson/writer.h
+--- include/rapidjson/writer.h	2024-02-28 21:01:52 +0000
++++ include/rapidjson/writer.h	2024-03-14 11:38:42 +0000
+@@ -276,6 +276,12 @@
+         return EndValue(WriteRawValue(json, length));
+     }
+ 
++    //! Go ahead to next token without actually writing the value to stream
++    bool RawInlineValue(Type type) {
++        Prefix(type);
++        return EndValue(true);
++    }
++
+     //! Flush the output stream.
+     /*!
+         Allows the user to flush the output stream immediately.

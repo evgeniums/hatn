@@ -5,6 +5,14 @@ export repo_path=https://github.com/Tencent/$lib_name
 
 source $scripts_root/../desktop/scripts/clonegit.sh
 
+cd $folder/..
+patch_file=$scripts_root/libs/rapidjson.patch
+if ! patch -R -p0 -s -f --dry-run <$patch_file > /dev/null; then
+  echo "rapidjson distro must be patched with $patch_file"
+  patch -p0 <$patch_file
+  echo "rapidjson patched"
+fi
+
 cd $lib_build_dir
 
 export CXXFLAGS=-fPIC

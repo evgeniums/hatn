@@ -3,7 +3,16 @@ SET lib_name=rapidjson
 SET folder=%SRC%\%lib_name%
 SET repo_path=https://github.com/Tencent/%lib_name%
 
-CALL %SCRIPTS_ROOT%/scripts/clonegit.bat
+CALL %SCRIPTS_ROOT%scripts/clonegit.bat
+
+cd %folder%
+SET patch_file=%SCRIPTS_ROOT%libs/rapidjson.patch
+patch -R -p0 -s -f --dry-run <%patch_file% > NUL
+if %errorlevel% neq 0 (
+  echo "rapidjson distro must be patched with %patch_file%"
+  patch -p0 <%patch_file%
+  echo "rapidjson patched"
+)
 
 cd %build_dir%
 
@@ -21,7 +30,5 @@ if %errorlevel% neq 0 exit %errorlevel%
 @ECHO OFF
 cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 if %errorlevel% neq 0 exit %errorlevel%
-rem cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
-rem if %errorlevel% neq 0 exit %errorlevel%
 
 cd %WORKING_DIR%

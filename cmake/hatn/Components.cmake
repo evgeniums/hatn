@@ -2,4 +2,5 @@
 SET (HATN_MODULES
         common
 	validator
+        dataunit
      )
