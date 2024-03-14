@@ -12,7 +12,7 @@
 */
 /** \file dataunit/syntax.сpp
   *
-  *      Dracosha DataUnit meta definitions.
+  *      Hatn DataUnit meta definitions.
   *
   */
 

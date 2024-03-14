@@ -12,7 +12,7 @@
 */
 /** \file dataunit/dataunit.h
   *
-  *  Dracosha DataUnit Library for units definition and serialization/deserialization
+  *  Hatn DataUnit Library for units definition and serialization/deserialization
   *
   */
 
@@ -44,12 +44,5 @@
 #define HATN_DATAUNIT_USING using namespace hatn::dataunit;
 
 #include <hatn/validator/validator.hpp>
-
-HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace vld=HATN_VALIDATOR_NAMESPACE;
-constexpr vld::_t _;
-
-HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNIT_H

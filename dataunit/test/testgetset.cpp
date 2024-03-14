@@ -17,7 +17,7 @@
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/withstaticallocator.ipp>
 #define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-// #define HATN_DATAUNIT_EXPORT
+#define HDU_DATAUNIT_EXPORT
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/syntax.ipp>
@@ -413,9 +413,9 @@ void checkByteField(ObjT* obj, bool shared)
     }
     BOOST_CHECK(!field->bufEmpty());
 
-    ByteArray sample1("hello world from Dracosha");
+    ByteArray sample1("hello world from Hatn");
     ByteArray sample2("another text");
-    ByteArray sample3("Hello world from Dracosha");
+    ByteArray sample3("Hello world from Hatn");
     ByteArray sample4("Zaza text");
 
     field->setValue(sample1);

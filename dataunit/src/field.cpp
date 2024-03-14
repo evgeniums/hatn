@@ -23,6 +23,15 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /********************** Field **************************/
 
 //---------------------------------------------------------------
+Field::Field(Unit* unit)
+    : m_set(false),
+    m_unit(unit)
+{}
+
+//---------------------------------------------------------------
+Field::~Field()=default;
+
+//---------------------------------------------------------------
 WireType Field::wireType() const noexcept
 {
     return wireTypeDef();

@@ -27,16 +27,15 @@
 #include <hatn/common/sharedptr.h>
 
 #include <hatn/validator/error.hpp>
-#include <hatn/validator/adapters/single_member_adapter.hpp>
 
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/updatenotifier.h>
 
+// namespace vld=HATN_VALIDATOR_NAMESPACE;
+
 HATN_NAMESPACE_BEGIN
 using HATN_COMMON_NS::_TR;
 namespace HATN_DATAUNIT_NS {
-
-namespace vld=HATN_VALIDATOR_NAMESPACE;
 
 /**
  * @brief Filter of unit updating operations that connects data unit with validator and notifier

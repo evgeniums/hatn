@@ -6,7 +6,7 @@
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/withstaticallocator.ipp>
 #define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-// #define HATN_DATAUNIT_EXPORT
+#define HDU_DATAUNIT_EXPORT
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/syntax.ipp>
@@ -19,8 +19,11 @@
 
 #include "testfieldpath.h"
 
+namespace vld=HATN_VALIDATOR_NAMESPACE;
+
 HATN_COMMON_USING
 HATN_DATAUNIT_USING
+
 namespace {
 
 HDU_DATAUNIT(scalar_types,
@@ -85,6 +88,8 @@ HDU_INSTANTIATE_DATAUNIT(subunit_arrays)
 
 }
 
+// constexpr const auto& _=vld::_;
+
 BOOST_AUTO_TEST_SUITE(TestDataUnitGetSet)
 
 BOOST_FIXTURE_TEST_CASE(TestReadScalarField,Env)
@@ -96,16 +101,16 @@ BOOST_FIXTURE_TEST_CASE(TestReadScalarField,Env)
 
     obj.field(fields.type_int8).set(100);
     BOOST_CHECK_EQUAL(int(obj[fields.type_int8]),100);
-    auto val=getUnitFieldAtPath(obj,_[fields.type_int8]);
+    auto val=getUnitFieldAtPath(obj,vld::_[fields.type_int8]);
     BOOST_CHECK_EQUAL(int(val),100);
 
     auto v1=vld::validator(
-                _[fields.type_int8](vld::eq,100)
+                vld::_[fields.type_int8](vld::eq,100)
            );
     BOOST_CHECK(v1.apply(obj));
 
     auto v2=vld::validator(
-                _[fields.type_int8](vld::eq,10)
+                vld::_[fields.type_int8](vld::eq,10)
            );
     BOOST_CHECK(!v2.apply(obj));
 }
@@ -122,18 +127,18 @@ BOOST_FIXTURE_TEST_CASE(TestReadStringField,Env)
     auto val1=obj[fields.type_string];
     BOOST_CHECK_EQUAL(std::string(val1.data(),val1.size()),std::string("Hello world"));
 
-    auto val2=getUnitFieldAtPath(obj,_[fields.type_string]);
+    auto val2=getUnitFieldAtPath(obj,vld::_[fields.type_string]);
     BOOST_CHECK_EQUAL(std::string(val2.data(),val2.size()),std::string("Hello world"));
 
-    BOOST_CHECK_EQUAL(getUnitFieldAtPath(obj,_[fields.type_string][1]),'e');
+    BOOST_CHECK_EQUAL(getUnitFieldAtPath(obj,vld::_[fields.type_string][1]),'e');
 
     auto v1=vld::validator(
-                _[fields.type_string](vld::lex_eq,"Hello world")
+                vld::_[fields.type_string](vld::lex_eq,"Hello world")
            );
     BOOST_CHECK(v1.apply(obj));
 
     auto v2=vld::validator(
-                _[fields.type_string](vld::lex_eq,"Other string")
+                vld::_[fields.type_string](vld::lex_eq,"Other string")
            );
     BOOST_CHECK(!v2.apply(obj));
 }
@@ -144,16 +149,16 @@ BOOST_FIXTURE_TEST_CASE(TestReadSubunitField,Env)
 
     obj.field(subunit_types::scalar).field(scalar_types::type_int8).set(100);
 
-    auto val=getUnitFieldAtPath(obj,_[subunit_types::scalar][scalar_types::type_int8]);
+    auto val=getUnitFieldAtPath(obj,vld::_[subunit_types::scalar][scalar_types::type_int8]);
     BOOST_CHECK_EQUAL(int(val),100);
 
     auto v1=vld::validator(
-                _[subunit_types::scalar][scalar_types::type_int8](vld::eq,100)
+                vld::_[subunit_types::scalar][scalar_types::type_int8](vld::eq,100)
            );
     BOOST_CHECK(v1.apply(obj));
 
     auto v2=vld::validator(
-                _[subunit_types::scalar][scalar_types::type_int8](vld::eq,10)
+                vld::_[subunit_types::scalar][scalar_types::type_int8](vld::eq,10)
            );
     BOOST_CHECK(!v2.apply(obj));
 }
@@ -170,17 +175,17 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedScalarField,Env)
 
     obj.field(fields.type_int8).setValue(0,50);
 
-    auto val=getUnitFieldAtPath(obj,_[fields.type_int8][1]);
+    auto val=getUnitFieldAtPath(obj,vld::_[fields.type_int8][1]);
     BOOST_CHECK_EQUAL(int(val),10);
 
     auto v1=vld::validator(
-                _[fields.type_int8][0](vld::eq,50),
-                _[fields.type_int8][1](vld::eq,10)
+                vld::_[fields.type_int8][0](vld::eq,50),
+                vld::_[fields.type_int8][1](vld::eq,10)
            );
     BOOST_CHECK(v1.apply(obj));
 
     auto v2=vld::validator(
-                _[fields.type_int8][1](vld::eq,100)
+                vld::_[fields.type_int8][1](vld::eq,100)
            );
     BOOST_CHECK(!v2.apply(obj));
 }
@@ -193,16 +198,16 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedSubunitField,Env)
     obj.field(subunit_arrays::scalar).addValue(scalar_types::type());
     obj.field(subunit_arrays::scalar).field(1).field(scalar_types::type_int8).set(100);
 
-    auto val=getUnitFieldAtPath(obj,_[subunit_arrays::scalar][1][scalar_types::type_int8]);
+    auto val=getUnitFieldAtPath(obj,vld::_[subunit_arrays::scalar][1][scalar_types::type_int8]);
     BOOST_CHECK_EQUAL(int(val),100);
 
     auto v1=vld::validator(
-                _[subunit_arrays::scalar][1][scalar_types::type_int8](vld::eq,100)
+                vld::_[subunit_arrays::scalar][1][scalar_types::type_int8](vld::eq,100)
            );
     BOOST_CHECK(v1.apply(obj));
 
     auto v2=vld::validator(
-                _[subunit_arrays::scalar][1][scalar_types::type_int8](vld::eq,10)
+                vld::_[subunit_arrays::scalar][1][scalar_types::type_int8](vld::eq,10)
            );
     BOOST_CHECK(!v2.apply(obj));
 }
@@ -215,11 +220,11 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateScalarField,Env)
     type obj;
     BOOST_CHECK(!obj.field(fields.type_int8).isSet());
 
-    obj.setAtPath(_[fields.type_int8],100);
+    obj.setAtPath(vld::_[fields.type_int8],100);
     BOOST_CHECK(obj.field(fields.type_int8).isSet());
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8]),100);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8]),100);
 
-    obj.unsetAtPath(_[fields.type_int8]);
+    obj.unsetAtPath(vld::_[fields.type_int8]);
     BOOST_CHECK(!obj.field(fields.type_int8).isSet());
 }
 
@@ -231,26 +236,26 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateStringField,Env)
     type obj;
     BOOST_CHECK(obj.field(fields.type_string).buf()->isEmpty());
 
-    obj.setAtPath(_[fields.type_string],"Hello world");
+    obj.setAtPath(vld::_[fields.type_string],"Hello world");
     BOOST_CHECK(!obj.field(fields.type_string).buf()->isEmpty());
-    auto val1=obj.getAtPath(_[fields.type_string]);
+    auto val1=obj.getAtPath(vld::_[fields.type_string]);
     BOOST_CHECK_EQUAL(std::string(val1.data(),val1.size()),std::string("Hello world"));
-    BOOST_CHECK_EQUAL(obj.sizeAtPath(_[fields.type_string]),std::string("Hello world").size());
+    BOOST_CHECK_EQUAL(obj.sizeAtPath(vld::_[fields.type_string]),std::string("Hello world").size());
 
-    obj.resizeAtPath(_[fields.type_string],5);
-    auto val2=obj.getAtPath(_[fields.type_string]);
+    obj.resizeAtPath(vld::_[fields.type_string],5);
+    auto val2=obj.getAtPath(vld::_[fields.type_string]);
     BOOST_CHECK_EQUAL(std::string(val2.data(),val2.size()),std::string("Hello"));
-    BOOST_CHECK_EQUAL(obj.sizeAtPath(_[fields.type_string]),std::string("Hello").size());
+    BOOST_CHECK_EQUAL(obj.sizeAtPath(vld::_[fields.type_string]),std::string("Hello").size());
 
-    obj.reserveAtPath(_[fields.type_string],500);
+    obj.reserveAtPath(vld::_[fields.type_string],500);
     BOOST_CHECK_GE(obj.field(fields.type_string).buf()->capacity(),static_cast<size_t>(500));
 
-    obj.appendAtPath(_[fields.type_string]," world");
-    auto val3=obj.getAtPath(_[fields.type_string]);
+    obj.appendAtPath(vld::_[fields.type_string]," world");
+    auto val3=obj.getAtPath(vld::_[fields.type_string]);
     BOOST_CHECK_EQUAL(std::string(val3.data(),val3.size()),std::string("Hello world"));
-    BOOST_CHECK_EQUAL(obj.sizeAtPath(_[fields.type_string]),std::string("Hello world").size());
+    BOOST_CHECK_EQUAL(obj.sizeAtPath(vld::_[fields.type_string]),std::string("Hello world").size());
 
-    obj.clearAtPath(_[fields.type_string]);
+    obj.clearAtPath(vld::_[fields.type_string]);
     BOOST_CHECK(obj.field(fields.type_string).buf()->isEmpty());
 }
 
@@ -262,41 +267,41 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateRepeatedScalarField,Env)
     type obj;
     BOOST_CHECK(!obj.field(fields.type_int8).isSet());
 
-    obj.appendAtPath(_[fields.type_int8],100);
+    obj.appendAtPath(vld::_[fields.type_int8],100);
     BOOST_CHECK(obj.field(fields.type_int8).isSet());
-    obj.appendAtPath(_[fields.type_int8],10);
+    obj.appendAtPath(vld::_[fields.type_int8],10);
 
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[fields.type_int8]),2);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][0]),100);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][1]),10);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[fields.type_int8]),2);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][0]),100);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][1]),10);
 
-    obj.setAtPath(_[fields.type_int8][1],50);
-    obj.setAtPath(_[fields.type_int8][0],30);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][0]),30);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][1]),50);
+    obj.setAtPath(vld::_[fields.type_int8][1],50);
+    obj.setAtPath(vld::_[fields.type_int8][0],30);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][0]),30);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][1]),50);
 
-    obj.appendAtPath(_[fields.type_int8],60,70,80);
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[fields.type_int8]),5);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][0]),30);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][1]),50);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][2]),60);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][3]),70);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][4]),80);
+    obj.appendAtPath(vld::_[fields.type_int8],60,70,80);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[fields.type_int8]),5);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][0]),30);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][1]),50);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][2]),60);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][3]),70);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][4]),80);
 
-    obj.resizeAtPath(_[fields.type_int8],3);
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[fields.type_int8]),3);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][0]),30);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][1]),50);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[fields.type_int8][2]),60);
+    obj.resizeAtPath(vld::_[fields.type_int8],3);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[fields.type_int8]),3);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][0]),30);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][1]),50);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[fields.type_int8][2]),60);
 
-    obj.reserveAtPath(_[fields.type_int8],500);
+    obj.reserveAtPath(vld::_[fields.type_int8],500);
     BOOST_CHECK_GE(obj.field(fields.type_int8).capacity(),static_cast<size_t>(500));
 
-    obj.autoAppendAtPath(_[fields.type_int8],7);
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[fields.type_int8]),10);
+    obj.autoAppendAtPath(vld::_[fields.type_int8],7);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[fields.type_int8]),10);
 
-    obj.clearAtPath(_[fields.type_int8]);
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[fields.type_int8]),0);
+    obj.clearAtPath(vld::_[fields.type_int8]);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[fields.type_int8]),0);
 }
 
 BOOST_FIXTURE_TEST_CASE(TestUpdateSubunitField,Env)
@@ -305,11 +310,11 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateSubunitField,Env)
 
     BOOST_CHECK(!obj.field(subunit_types::scalar).field(scalar_types::type_int8).isSet());
 
-    obj.setAtPath(_[subunit_types::scalar][scalar_types::type_int8],100);
+    obj.setAtPath(vld::_[subunit_types::scalar][scalar_types::type_int8],100);
     BOOST_CHECK(obj.field(subunit_types::scalar).field(scalar_types::type_int8).isSet());
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[subunit_types::scalar][scalar_types::type_int8]),100);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[subunit_types::scalar][scalar_types::type_int8]),100);
 
-    obj.unsetAtPath(_[subunit_types::scalar][scalar_types::type_int8]);
+    obj.unsetAtPath(vld::_[subunit_types::scalar][scalar_types::type_int8]);
     BOOST_CHECK(!obj.field(subunit_types::scalar).field(scalar_types::type_int8).isSet());
 }
 
@@ -318,13 +323,13 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateRepeatedSubunitField,Env)
     subunit_arrays::type obj;
 
     BOOST_CHECK(!obj.field(subunit_arrays::scalar).isSet());
-    BOOST_CHECK_EQUAL(obj.sizeAtPath(_[subunit_arrays::scalar]),0);
-    obj.autoAppendAtPath(_[subunit_arrays::scalar],2);
+    BOOST_CHECK_EQUAL(obj.sizeAtPath(vld::_[subunit_arrays::scalar]),0);
+    obj.autoAppendAtPath(vld::_[subunit_arrays::scalar],2);
     BOOST_CHECK(obj.field(subunit_arrays::scalar).isSet());
-    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(_[subunit_arrays::scalar]),2);
+    BOOST_REQUIRE_EQUAL(obj.sizeAtPath(vld::_[subunit_arrays::scalar]),2);
 
-    obj.setAtPath(_[subunit_arrays::scalar][1][scalar_types::type_int8],100);
-    BOOST_CHECK_EQUAL(obj.getAtPath(_[subunit_arrays::scalar][1][scalar_types::type_int8]),100);
+    obj.setAtPath(vld::_[subunit_arrays::scalar][1][scalar_types::type_int8],100);
+    BOOST_CHECK_EQUAL(obj.getAtPath(vld::_[subunit_arrays::scalar][1][scalar_types::type_int8]),100);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

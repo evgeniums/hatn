@@ -78,7 +78,7 @@ class HATN_DATAUNIT_EXPORT Unit
         //! Ctor
         Unit(AllocatorFactory* factory=AllocatorFactory::getDefault());
 
-        virtual ~Unit()=default;
+        virtual ~Unit();
         Unit(const Unit&)=default;
         Unit(Unit&&) =default;
         Unit& operator=(const Unit&)=default;

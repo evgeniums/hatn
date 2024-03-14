@@ -1,7 +1,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/hana.hpp>
 
-#define HATN_DATAUNIT_EXPORT
+#define HDU_DATAUNIT_EXPORT
 
 #include <hatn/common/elapsedtimer.h>
 

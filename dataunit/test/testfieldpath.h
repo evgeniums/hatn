@@ -6,7 +6,7 @@
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/withstaticallocator.ipp>
 #define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-#define HATN_DATAUNIT_EXPORT
+#define HDU_DATAUNIT_EXPORT
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/syntax.ipp>

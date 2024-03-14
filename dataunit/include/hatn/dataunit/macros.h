@@ -56,7 +56,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             using type=typename traits::type; \
             using shared_type=::hatn::common::SharedPtr<typename shared_traits::managed>; \
             using base_shared_type=typename shared_traits::type; \
-            using Dracosha=std::true_type; \
+            using Hatn=std::true_type; \
             constexpr static const bool isSizeIterateNeeded=true; \
             template <typename ...Args> static shared_type createManagedObject(::hatn::dataunit::AllocatorFactory* factory, ::hatn::dataunit::Unit* unitBase) \
             { \
@@ -130,7 +130,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     }; \
 
 #define _HDU_DATAUNIT_CREATE_TYPE_IMPL_(type,base) \
-    class HATN_DATAUNIT_EXPORT type : public base \
+    class HDU_DATAUNIT_EXPORT type : public base \
     { \
         public: \
             virtual const Field* fieldById(int id) const override; \
@@ -173,7 +173,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     using _shared_fields_type=ConcatShared<field,HATN_GET_COUNT(Fields)-1,DataUnit>::type; \
     _HDU_DATAUNIT_CREATE_TYPE_IMPL() \
     HATN_WITH_STATIC_ALLOCATOR_INLINE \
-    HATN_WITH_STATIC_ALLOCATOR_DECLARE(managed_impl,HATN_DATAUNIT_EXPORT) \
+    HATN_WITH_STATIC_ALLOCATOR_DECLARE(managed_impl,HDU_DATAUNIT_EXPORT) \
     class managed_impl : public ::hatn::dataunit::ManagedUnit<type_impl>, \
                          public WithStaticAllocator<managed_impl> \
     { \
@@ -183,7 +183,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     using type=type_impl;  \
     using fields=fields_impl;  \
     using managed=managed_impl;  \
-    HATN_WITH_STATIC_ALLOCATOR_DECLARE(shared_fields_managed_type,HATN_DATAUNIT_EXPORT) \
+    HATN_WITH_STATIC_ALLOCATOR_DECLARE(shared_fields_managed_type,HDU_DATAUNIT_EXPORT) \
     class shared_fields_managed_type : public ::hatn::dataunit::ManagedUnit<shared_fields_type>, \
                          public WithStaticAllocator<shared_fields_managed_type> \
     { \

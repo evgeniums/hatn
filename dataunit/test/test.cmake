@@ -1,6 +1,6 @@
 SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testsyntax.cpp
-    ${DATAUNIT_TEST_SRC}/testjson.cpp    
+    ${DATAUNIT_TEST_SRC}/testjson.cpp
     ${DATAUNIT_TEST_SRC}/testfields.cpp
     ${DATAUNIT_TEST_SRC}/testgetset.cpp
     ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
@@ -19,6 +19,7 @@ IF (MINGW)
 ENDIF (MINGW)
 
 SET (SOURCES
+    ${SOURCES}
     ${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp
 )
 

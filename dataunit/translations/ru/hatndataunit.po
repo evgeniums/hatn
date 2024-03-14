@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-19 15:06+0300\n"
+"POT-Creation-Date: 2024-03-14 15:36+0300\n"
 "PO-Revision-Date: 2021-02-19 15:06+0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -19,75 +19,75 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:49
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:53
 msgctxt "validator"
 msgid "OK"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:68
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:72
 msgctxt "validator"
 msgid "unconditional failure"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:87
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:91
 msgctxt "validator"
 msgid "must exist"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:106
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:110
 msgctxt "validator"
 msgid "must not exist"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:125
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:50
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:70
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:90
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:129
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:54
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:74
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:94
 msgctxt "validator"
 msgid "must be equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:145
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:149
 msgctxt "validator"
 msgid "must be not equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:165
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:169
 msgctxt "validator"
 msgid "must be less than {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:185
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:189
 msgctxt "validator"
 msgid "must be less than or equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:205
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:209
 msgctxt "validator"
 msgid "must be greater than {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\fieldvalidators.h:225
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\fieldvalidators.h:229
 msgctxt "validator"
 msgid "must be greater than or equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:110
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:114
 msgctxt "validator"
 msgid "must be case insensitively equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:130
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:134
 msgctxt "validator"
 msgid "must not be equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\stringvalidators.h:150
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\stringvalidators.h:154
 msgctxt "validator"
 msgid "must be case insensitively not equal to {}"
 msgstr ""
 
-#: C:\projects\dracosha\src\dataunit\include\dracosha\dataunit\updatefilter.h:298
+#: C:\projects\hatn\hatn\dataunit\include\hatn\dataunit\updatefilter.h:267
 msgctxt "dataunit"
 msgid "Field with ID={} is not present in object {}"
 msgstr ""

@@ -12,7 +12,7 @@
 */
 /** \file dataunit/syntax.h
   *
-  *      Dracosha DataUnit top level header to use in sources for DataUnit definitions
+  *      Hatn DataUnit top level header to use in sources for DataUnit definitions
   *
   */
 

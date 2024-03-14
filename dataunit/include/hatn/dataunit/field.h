@@ -54,12 +54,9 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         constexpr static const bool CanChainBlocks=false;
 
         //! Ctor
-        Field(Unit* unit) noexcept
-            : m_set(false),
-              m_unit(unit)
-        {}
+        Field(Unit* unit);
 
-        virtual ~Field()=default;
+        virtual ~Field();
         Field(const Field& other)=default;
         Field& operator=(const Field& other)=default;
         Field(Field&& other) =default;
