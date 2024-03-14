@@ -37,7 +37,7 @@ struct getUnitFieldAtPathT
     template <typename UnitT, typename PathT>
     auto operator () (const UnitT& unit, const PathT& path) const -> decltype(auto)
     {
-        return vld::get_member(unit,path.path());
+        return HATN_VALIDATOR_NAMESPACE::get_member(unit,path.path());
     }
 };
 /** Callable for getting value of dataunit's field at some path. **/

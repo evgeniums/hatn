@@ -41,7 +41,7 @@ struct UnitFieldUpdater
             std::forward<UnitT>(unit),
             [](auto&& parent, auto&& key) -> decltype(auto)
             {
-                return parent.field(vld::unwrap_object(std::forward<decltype(key)>(key)));
+                return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
             }
         );
     }
