@@ -1,7 +1,5 @@
 PROJECT(hatndataunit)
 
-FIND_PACKAGE(RapidJSON REQUIRED)
-
 SET (HEADERS
     include/hatn/dataunit/dataunit.h
     include/hatn/dataunit/syntax.h
