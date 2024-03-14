@@ -73,7 +73,7 @@ class HATN_DATAUNIT_EXPORT WireData
 
         virtual ~WireData()=default;
 #if __cplusplus < 201703L
-        // to use as return in create() methid
+        // to use as return in create() method
         WireData(const WireData&)=default;
 #else
         WireData(const WireData&)=delete;
