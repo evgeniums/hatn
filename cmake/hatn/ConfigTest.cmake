@@ -88,57 +88,62 @@ ENDFUNCTION (TEST_HATN_MODULES)
 
 FUNCTION(CREATE_TEST_CONFIG_FILE)
 
-    IF (HATN_TEST_WRAP_C)
-        SET(TEST_CONFIG_H_DEFS
-"${TEST_CONFIG_H_DEFS}
-#ifndef HATN_TEST_WRAP_C \n\
-    #define HATN_TEST_WRAP_C \n\
-#endif
-")
-        TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE -DHATN_TEST_WRAP_C)
-    ENDIF(HATN_TEST_WRAP_C)
+    IF (NOT EXISTS ${TEST_BINARY_DIR}/hatn_test_config.h)
 
-    IF ("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all")
-        SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_TEST_MODULE_ALL")
+        IF (HATN_TEST_WRAP_C)
+            SET(TEST_CONFIG_H_DEFS
+    "${TEST_CONFIG_H_DEFS}
+    #ifndef HATN_TEST_WRAP_C \n\
+        #define HATN_TEST_WRAP_C \n\
+    #endif
+    ")
+            TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE -DHATN_TEST_WRAP_C)
+        ENDIF(HATN_TEST_WRAP_C)
+
+        IF ("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all")
+            SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_TEST_MODULE_ALL")
+        ENDIF()
+        FOREACH(module ${HATN_MODULES})
+            STRING (TOUPPER ${module} UPPER_MODULE_NAME)
+            SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_TEST_MODULE_${UPPER_MODULE_NAME}")
+        ENDFOREACH()
+
+        FOREACH(plugin_name ${BUILD_PLUGINS})
+            SET(PLUGIN_LIST ${PLUGIN_LIST} \"${plugin_name}\")
+            STRING (TOUPPER ${plugin_name} UPPER_PLUGIN_NAME)
+            SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME}")
+        ENDFOREACH()
+        IF (PLUGIN_LIST)
+            LIST(REMOVE_DUPLICATES PLUGIN_LIST)
+            LIST(JOIN PLUGIN_LIST "," plugins)
+            SET(PLUGINS_LINE "static const std::set<std::string> HATN_TEST_PLUGINS={${plugins}};\n")
+        ELSE()
+            SET(PLUGINS_LINE "static const std::set<std::string> HATN_TEST_PLUGINS;\n")
+        ENDIF ()
+        SET(TEST_CONFIG_H_TEXT "${TEST_CONFIG_H_TEXT}\n${PLUGINS_LINE}")
+
+        FILE(WRITE ${TEST_BINARY_DIR}/hatn_test_config.h
+    "/***************************************************/\n\
+    /*****This file is auto-generated. Do not edit.*****/\n\
+    /***************************************************/\n\
+    \n\
+    #ifndef HATN_TEST_CONFIG_H \n\
+    #define HATN_TEST_CONFIG_H \n\
+    ${TEST_CONFIG_H_DEFS}
+    \n\
+    #include <string> \n\
+    #include <set> \n\
+    \n\
+    namespace hatn{\n\
+    namespace test{\n\
+    ${TEST_CONFIG_H_TEXT}
+    }}\n\
+    #endif
+    "
+            )
+
+
     ENDIF()
-    FOREACH(module ${HATN_MODULES})
-        STRING (TOUPPER ${module} UPPER_MODULE_NAME)
-        SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_TEST_MODULE_${UPPER_MODULE_NAME}")
-    ENDFOREACH()
-
-    FOREACH(plugin_name ${BUILD_PLUGINS})
-        SET(PLUGIN_LIST ${PLUGIN_LIST} \"${plugin_name}\")
-        STRING (TOUPPER ${plugin_name} UPPER_PLUGIN_NAME)
-        SET(TEST_CONFIG_H_DEFS "${TEST_CONFIG_H_DEFS}\n#define HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME}")
-    ENDFOREACH()
-    IF (PLUGIN_LIST)
-        LIST(REMOVE_DUPLICATES PLUGIN_LIST)
-        LIST(JOIN PLUGIN_LIST "," plugins)
-        SET(PLUGINS_LINE "static const std::set<std::string> HATN_TEST_PLUGINS={${plugins}};\n")
-    ELSE()
-        SET(PLUGINS_LINE "static const std::set<std::string> HATN_TEST_PLUGINS;\n")
-    ENDIF ()
-    SET(TEST_CONFIG_H_TEXT "${TEST_CONFIG_H_TEXT}\n${PLUGINS_LINE}")
-
-    FILE(WRITE ${TEST_BINARY_DIR}/hatn_test_config.h
-"/***************************************************/\n\
-/*****This file is auto-generated. Do not edit.*****/\n\
-/***************************************************/\n\
-\n\
-#ifndef HATN_TEST_CONFIG_H \n\
-#define HATN_TEST_CONFIG_H \n\
-${TEST_CONFIG_H_DEFS}
-\n\
-#include <string> \n\
-#include <set> \n\
-\n\
-namespace hatn{\n\
-namespace test{\n\
-${TEST_CONFIG_H_TEXT}
-}}\n\
-#endif
-"
-        )
 
 ENDFUNCTION(CREATE_TEST_CONFIG_FILE)
 
@@ -208,8 +213,21 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				MESSAGE(STATUS "Adding new test suite ${SUITE_NAME}")
 
 				LIST (APPEND TEST_SUITES ${SUITE_NAME})
+
                                 ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES} ${HATN_TEST_THREAD_SOURCES})
+                                TARGET_INCLUDE_DIRECTORIES(${TARGET_EXE} PRIVATE ${TEST_BINARY_DIR})
+                                IF (NOT MSVC)
+                                    TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wno-sign-compare)
+                                ENDIF()
+                                IF(NOT "${MODULE_TEST_LIB}" STREQUAL "")
+                                    TARGET_LINK_LIBRARIES(${TARGET_EXE} PRIVATE ${MODULE_TEST_LIB})
+                                ENDIF()
                                 TARGET_COMPILE_DEFINITIONS(${TARGET_EXE} PRIVATE -DHATN_MODULE=${MODULE_NAME})
+                                IF (BUILD_IOS)
+                                    TARGET_COMPILE_DEFINITIONS(${TARGET_EXE} PRIVATE -DTEST_ASSETS_PATH=\"${TEST_BINARY_DIR}\")
+                                    TARGET_COMPILE_DEFINITIONS(${TARGET_EXE} PRIVATE -DTEST_TMP_PATH=\"${TEST_BINARY_DIR}/tmp\")
+                                ENDIF()
+
                                 ADD_HATN_MODULES(${TARGET_EXE} PRIVATE ${HATN_MODULES})
 				ADD_DEPENDENCIES(${PROJECT_NAME} ${TARGET_EXE})
 				
