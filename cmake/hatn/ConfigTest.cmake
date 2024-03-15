@@ -133,11 +133,10 @@ ${TEST_CONFIG_H_DEFS}
 \n\
 #include <string> \n\
 #include <set> \n\
-#include <hatn/common/common.h> \n\
 \n\
-HATN_TEST_NAMESPACE_BEGIN\n\
+namespace hatn { namespace test {\n\
 ${TEST_CONFIG_H_TEXT}
-HATN_TEST_NAMESPACE_END\n\
+}}\n\
 #endif
 "
             )

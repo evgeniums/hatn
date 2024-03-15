@@ -15,7 +15,7 @@ IF(ENABLE_TRANSLATIONS)
 ENDIF(ENABLE_TRANSLATIONS)
 
 FUNCTION(INSTALL_TRANSLATIONS)
-    IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/translations)
+    IF (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/translations)
         INSTALL(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations/"
                 DESTINATION share/locale
                 OPTIONAL
@@ -25,21 +25,23 @@ ENDFUNCTION(INSTALL_TRANSLATIONS)
 
 FUNCTION(COMPILE_TRANSLATIONS)
 
-    MESSAGE(STATUS "Path to translation python scripts ${HATNCOMMON_PYTHON_SCRIPTS_DIR}")
-    SET (TRANSLATION_SCRIPTS "${HATNCOMMON_PYTHON_SCRIPTS_DIR}/translation" CACHE PATH "Path to translation python scripts")
+    IF (NOT "${HATNCOMMON_PYTHON_SCRIPTS_DIR}" STREQUAL "")
+        MESSAGE(STATUS "Path to translation python scripts ${HATNCOMMON_PYTHON_SCRIPTS_DIR}")
+        SET (TRANSLATION_SCRIPTS "${HATNCOMMON_PYTHON_SCRIPTS_DIR}/translation" CACHE PATH "Path to translation python scripts")
 
-    IF (NOT MSVC)
-        ADD_CUSTOM_TARGET(update-po
-            COMMAND ${CMAKE_COMMAND} -E env GETTEXT_PATH=${GETTEXT_PATH} ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/update-po-files.py --top_project_folder ${HATN_SOURCE_DIR} --project_folder ${CMAKE_CURRENT_SOURCE_DIR} --basename ${PROJECT_NAME} --pot_folder ${CMAKE_CURRENT_BINARY_DIR}
-            USES_TERMINAL
-        )
-    ENDIF()
+        IF (NOT MSVC)
+            ADD_CUSTOM_TARGET(update-po
+                COMMAND ${CMAKE_COMMAND} -E env GETTEXT_PATH=${GETTEXT_PATH} ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/update-po-files.py --top_project_folder ${HATN_SOURCE_DIR} --project_folder ${CMAKE_CURRENT_SOURCE_DIR} --basename ${PROJECT_NAME} --pot_folder ${CMAKE_CURRENT_BINARY_DIR}
+                USES_TERMINAL
+            )
+        ENDIF()
 
-    IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/translations)
-        ADD_CUSTOM_TARGET(generate-mo-${PROJECT_NAME} ALL
-            COMMAND ${CMAKE_COMMAND} -E env GETTEXT_PATH=${GETTEXT_PATH} ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo-files.py --top_project_folder ${HATN_SOURCE_DIR} --project_folder ${CMAKE_CURRENT_SOURCE_DIR} --basename ${PROJECT_NAME} --mo_folder "${CMAKE_CURRENT_BINARY_DIR}/translations/"
-        )
-        ADD_DEPENDENCIES(${PROJECT_NAME} generate-mo-${PROJECT_NAME})
+        IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/translations)
+            ADD_CUSTOM_TARGET(generate-mo-${PROJECT_NAME} ALL
+                COMMAND ${CMAKE_COMMAND} -E env GETTEXT_PATH=${GETTEXT_PATH} ${PYTHON_EXE} ${TRANSLATION_SCRIPTS}/compile-mo-files.py --top_project_folder ${HATN_SOURCE_DIR} --project_folder ${CMAKE_CURRENT_SOURCE_DIR} --basename ${PROJECT_NAME} --mo_folder "${CMAKE_CURRENT_BINARY_DIR}/translations/"
+            )
+            ADD_DEPENDENCIES(${PROJECT_NAME} generate-mo-${PROJECT_NAME})
+        ENDIF()
     ENDIF()
 
 ENDFUNCTION(COMPILE_TRANSLATIONS)
