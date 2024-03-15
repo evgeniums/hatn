@@ -227,7 +227,7 @@ ENDIF (NOT STATIC_BUILD)
 
 IF (NOT MSVC)
     # SET(HATN_CXX_FLAGS "${HATN_CXX_FLAGS} -Wextra -Wall -Wnon-virtual-dtor -fstack-protector-all")
-    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wextra -Wall -Wnon-virtual-dtor)
+    SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS} -Wextra -Wall -Wnon-virtual-dtor)
     IF (NOT MINGW)
         SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -fstack-protector-all)
     ENDIF()

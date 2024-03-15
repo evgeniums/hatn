@@ -216,9 +216,6 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
                                 ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES} ${HATN_TEST_THREAD_SOURCES})
                                 TARGET_INCLUDE_DIRECTORIES(${TARGET_EXE} PRIVATE ${TEST_BINARY_DIR})
-                                IF (NOT MSVC)
-                                    TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wno-sign-compare)
-                                ENDIF()
                                 IF(NOT "${MODULE_TEST_LIB}" STREQUAL "")
                                     TARGET_LINK_LIBRARIES(${TARGET_EXE} PRIVATE ${MODULE_TEST_LIB})
                                 ENDIF()
@@ -235,6 +232,11 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				
                                 ADD_HATN_CTEST(${SUITE_NAME}-all "ALL")
                                 ADD_HATN_CTEST(${SUITE_NAME} "SUITE")
+
+                                IF (NOT MSVC)
+                                    TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wall -Wno-sign-compare)
+                                    # TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE ${HATN_COMPILE_EXTRA_WARNINGS})
+                                ENDIF()
 
 			ELSE()	
 				MESSAGE(STATUS "Using existing test suite ${SUITE_NAME}")
