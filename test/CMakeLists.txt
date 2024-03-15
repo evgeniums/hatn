@@ -7,6 +7,8 @@ ENABLE_TESTING()
 INCLUDE(hatn/ConfigExe)
 INCLUDE(hatn/ConfigTest)
 
+ADD_COMPILE_OPTIONS(-Wno-sign-compare)
+
 SET(HEADERS
     ${HATN_COMMON_SRC}/include/hatn/test/pluginlist.h
 )
