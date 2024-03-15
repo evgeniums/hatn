@@ -224,4 +224,4 @@ size_t Base64::encode(const char *src, size_t len, char* out)
     return encodeReserverLen(len);
 }
 
-}}
+HATN_COMMON_NAMESPACE_END
