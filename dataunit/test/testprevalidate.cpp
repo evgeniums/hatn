@@ -87,7 +87,7 @@ HDU_INSTANTIATE_DATAUNIT(subunit_arrays)
 
 }
 
-BOOST_AUTO_TEST_SUITE(TestDataUnitPrevalidate)
+BOOST_AUTO_TEST_SUITE(TestPrevalidate)
 
 BOOST_FIXTURE_TEST_CASE(TestPrevalidatedUpdateScalarField,Env)
 {

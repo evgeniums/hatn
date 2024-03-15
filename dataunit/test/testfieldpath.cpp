@@ -90,7 +90,7 @@ HDU_INSTANTIATE_DATAUNIT(subunit_arrays)
 
 // constexpr const auto& _=vld::_;
 
-BOOST_AUTO_TEST_SUITE(TestDataUnitGetSet)
+BOOST_AUTO_TEST_SUITE(TestFieldPath)
 
 BOOST_FIXTURE_TEST_CASE(TestReadScalarField,Env)
 {

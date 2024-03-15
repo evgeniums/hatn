@@ -141,7 +141,7 @@ namespace {
     uint64_t uint64ValSamplePos=10000000000;
 }
 
-BOOST_AUTO_TEST_SUITE(TestDataUnitGetSet)
+BOOST_AUTO_TEST_SUITE(TestGetSet)
 
 template <typename T, typename FieldT, typename ObjT>
 void checkScalarField(ObjT* obj,

@@ -1,7 +1,11 @@
+#ifndef HDU_DATAUNIT_EXPORT
+
 #ifdef _WIN32
 #define HDU_DATAUNIT_EXPORT __declspec(dllexport)
 #else
 #define HDU_DATAUNIT_EXPORT
+#endif
+
 #endif
 
 #include <hatn/common/pmr/withstaticallocator.h>

@@ -16,6 +16,7 @@
 
 #include <hatn/test/multithreadfixture.h>
 
+#define HDU_DATAUNIT_EXPORT
 #include "testunitdeclarations.h"
 
 //#define HATN_TEST_LOG_CONSOLE
@@ -71,7 +72,7 @@ struct Env : public ::hatn::test::MultiThreadFixture
     Env& operator=(Env&&) =delete;
 };
 
-BOOST_AUTO_TEST_SUITE(TestDataUnit)
+BOOST_AUTO_TEST_SUITE(TestSyntax)
 
 namespace {
 

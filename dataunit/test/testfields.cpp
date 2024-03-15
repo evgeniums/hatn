@@ -18,8 +18,6 @@
 #include <hatn/dataunit/detail/syntax.ipp>
 #include <hatn/dataunit/unitstrings.h>
 
-//#include "testunitdeclarations.h"
-
 namespace {
 HDU_DATAUNIT(simple_int8,
   HDU_FIELD(field2,TYPE_INT8,2)
@@ -52,7 +50,7 @@ HDU_INSTANTIATE_DATAUNIT(simple_string)
 
 }
 
-BOOST_AUTO_TEST_SUITE(TestDataUnit)
+BOOST_AUTO_TEST_SUITE(TestFields)
 
 BOOST_AUTO_TEST_CASE(TestBasicField)
 {
