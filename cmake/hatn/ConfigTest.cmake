@@ -123,23 +123,23 @@ FUNCTION(CREATE_TEST_CONFIG_FILE)
         SET(TEST_CONFIG_H_TEXT "${TEST_CONFIG_H_TEXT}\n${PLUGINS_LINE}")
 
         FILE(WRITE ${TEST_BINARY_DIR}/hatn_test_config.h
-    "/***************************************************/\n\
-    /*****This file is auto-generated. Do not edit.*****/\n\
-    /***************************************************/\n\
-    \n\
-    #ifndef HATN_TEST_CONFIG_H \n\
-    #define HATN_TEST_CONFIG_H \n\
-    ${TEST_CONFIG_H_DEFS}
-    \n\
-    #include <string> \n\
-    #include <set> \n\
-    \n\
-    namespace hatn{\n\
-    namespace test{\n\
-    ${TEST_CONFIG_H_TEXT}
-    }}\n\
-    #endif
-    "
+"/***************************************************/\n\
+/*****This file is auto-generated. Do not edit.*****/\n\
+/***************************************************/\n\
+\n\
+#ifndef HATN_TEST_CONFIG_H \n\
+#define HATN_TEST_CONFIG_H \n\
+${TEST_CONFIG_H_DEFS}
+\n\
+#include <string> \n\
+#include <set> \n\
+#include <hatn/common/common.h> \n\
+\n\
+HATN_TEST_NAMESPACE_BEGIN\n\
+${TEST_CONFIG_H_TEXT}
+HATN_TEST_NAMESPACE_END\n\
+#endif
+"
             )
 
 

@@ -91,6 +91,9 @@
 #define HATN_USING using namespace hatn;
 
 #define HATN_TEST_NAMESPACE hatn::test
+#define HATN_TEST_NAMESPACE_BEGIN namespace hatn { namespace test {
+#define HATN_TEST_NAMESPACE_END }}
+
 #define HATN_TEST_USING using namespace hatn::test;
 
 #endif // HATNCOMMON_H
