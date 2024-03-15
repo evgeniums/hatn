@@ -228,7 +228,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
                                     TARGET_COMPILE_DEFINITIONS(${TARGET_EXE} PRIVATE -DTEST_TMP_PATH=\"${TEST_BINARY_DIR}/tmp\")
                                 ENDIF()
                                 IF (NOT MSVC)
-                                    TARGET_COMPILE_DEFINITIONS(${TARGET_EXE} PRIVATE -Wno-sign-compare)
+                                    TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wno-sign-compare)
                                 ENDIF()
 
                                 ADD_HATN_MODULES(${TARGET_EXE} PRIVATE ${HATN_MODULES})
