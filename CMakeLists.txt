@@ -19,7 +19,7 @@ INCLUDE(hatn/Config)
 INCLUDE(hatn/Module)
 INCLUDE(hatn/Build)
 
-INCLUDE(hatn/Components)
+INCLUDE(hatn/Libs)
 
 SETUP_HATN_VERSION()
 

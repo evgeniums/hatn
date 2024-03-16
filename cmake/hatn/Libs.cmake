@@ -1,6 +1,7 @@
-# List of all hatn modules
+# List of all hatn libs
 SET (HATN_MODULES
         common
-	validator
+		validator
         dataunit
+		base
      )

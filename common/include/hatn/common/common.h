@@ -86,7 +86,7 @@
 #define HATN_COMMON_USING using namespace hatn::common;
 #define HATN_COMMON_NS common
 
-#define HATN_NAMESPACE hatn;
+#define HATN_NAMESPACE hatn
 #define HATN_NAMESPACE_BEGIN namespace hatn {
 #define HATN_NAMESPACE_END }
 #define HATN_USING using namespace hatn;
