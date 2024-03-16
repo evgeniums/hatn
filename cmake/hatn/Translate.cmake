@@ -26,7 +26,7 @@ ENDFUNCTION(INSTALL_TRANSLATIONS)
 FUNCTION(COMPILE_TRANSLATIONS)
 
     IF (NOT "${HATNCOMMON_PYTHON_SCRIPTS_DIR}" STREQUAL "")
-        MESSAGE(STATUS "Path to translation python scripts ${HATNCOMMON_PYTHON_SCRIPTS_DIR}")
+        MESSAGE(STATUS "Using path for translation python scripts: ${HATNCOMMON_PYTHON_SCRIPTS_DIR}")
         SET (TRANSLATION_SCRIPTS "${HATNCOMMON_PYTHON_SCRIPTS_DIR}/translation" CACHE PATH "Path to translation python scripts")
 
         IF (NOT MSVC)

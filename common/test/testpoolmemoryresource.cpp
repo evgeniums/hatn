@@ -271,7 +271,7 @@ BOOST_FIXTURE_TEST_CASE(CheckMemoryResourceMt,Env)
     size_t runCount=30;
     size_t delayCount=100000;
 #else
-    #if defined (ANDROID) || defined (BUILD_DEBUG)
+    #if defined (BUILD_ANDROID) || defined (BUILD_DEBUG)
         size_t runCount=200;
         size_t delayCount=1000000;
     #else

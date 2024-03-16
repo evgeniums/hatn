@@ -30,7 +30,7 @@ ENDIF(ENABLE_TRANSLATIONS)
 
 IF(MINGW)
     IF(BUILD_STATIC)
-        MESSAGE(WARNING "Disable timer thread test for MinGW static build due to unhandled bug")
+        MESSAGE(WARNING "Disabling timer thread test for MinGW static build due to unhandled bug")
         ADD_COMPILE_DEFINITIONS(HATN_THREAD_TIMER_TEST_DISABLE=1)
     ENDIF(BUILD_STATIC)
 ENDIF(MINGW)

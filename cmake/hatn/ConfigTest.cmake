@@ -1,5 +1,5 @@
 FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
-    MESSAGE(STATUS "Adding test of plugin \"${PLUGIN_NAME}\" for module \"${MODULE_NAME}\"")
+    MESSAGE(STATUS "Adding tests for plugin \"${PLUGIN_NAME}\" for module \"${MODULE_NAME}\"")
     ADD_DEPENDENCIES(${PROJECT_NAME} hatn${PLUGIN_NAME})
     SET (PLUGIN_SRC_DIR "${HATN_SOURCE_DIR}/${MODULE_NAME}/plugins/${PLUGIN_NAME}")
     SET (MODULE_DST_DIR "plugins/${MODULE_NAME}")
@@ -49,7 +49,7 @@ FUNCTION (TEST_HATN_MODULE name)
     ENDIF()
     IF("${DEV_MODULE}" STREQUAL "" OR "${DEV_MODULE}" STREQUAL "all" OR "${UPPER_DEV_MODULE_NAME}" STREQUAL ${UPPER_MODULE_NAME})
 
-        MESSAGE(STATUS "Adding test module ${name}")
+        MESSAGE(STATUS "Adding tests for module ${name}")
 
         TEST_HATN_MODULE_PLUGINS(${name})
 
@@ -183,7 +183,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 	
 	FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
 
-		MESSAGE(STATUS "Reading test file ${SOURCE_FILE_NAME}")
+                MESSAGE(STATUS "Reading tests source file ${SOURCE_FILE_NAME}")
 
 		FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
 
@@ -234,7 +234,6 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
                                 IF (NOT MSVC)
                                     TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wall -Wno-sign-compare)
-                                    # TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE ${HATN_COMPILE_EXTRA_WARNINGS})
                                 ENDIF()
 
 			ELSE()	
@@ -247,13 +246,11 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 			FOREACH(HIT ${FIXTURE_TESTS})
 				STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\,.*" "\\1" TEST_CASE ${HIT})
 				LIST (APPEND FOUND_TESTS ${TEST_CASE})
-				# MESSAGE(STATUS "Found fixture test ${SUITE_NAME}/${TEST_CASE}")
 			ENDFOREACH()
 			STRING(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" AUTO_TESTS "${SOURCE_FILE_CONTENTS}")
 			FOREACH(HIT ${AUTO_TESTS})
 				STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_CASE ${HIT})
 				LIST (APPEND FOUND_TESTS ${TEST_CASE})
-				# MESSAGE(STATUS "Found auto test ${SUITE_NAME}/${TEST_CASE}")				
 			ENDFOREACH()
 						
 			FOREACH(TEST_CASE ${FOUND_TESTS})

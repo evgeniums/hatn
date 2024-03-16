@@ -29,7 +29,7 @@
 
 #include <hatn/common/common.h>
 
-#ifdef ANDROID
+#ifdef BUILD_ANDROID
 
 #include <sstream>
 

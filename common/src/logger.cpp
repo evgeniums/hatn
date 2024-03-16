@@ -42,7 +42,7 @@
 #endif
 
 
-#ifdef ANDROID
+#ifdef BUILD_ANDROID
 
 namespace std {
 

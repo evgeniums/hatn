@@ -514,7 +514,7 @@ BOOST_FIXTURE_TEST_CASE(MpscQueueLoad,MultiThreadFixture)
 #ifdef BUILD_VALGRIND
     int count=20;
 #else
-    #if defined (ANDROID)
+    #if defined (BUILD_ANDROID)
         int count=200000;
     #else
         #if defined(BUILD_DEBUG) || (defined(_WIN32) && !defined(_WIN64))

@@ -643,7 +643,7 @@ struct ThreadContext
 #ifdef BUILD_VALGRIND
     constexpr static const size_t count=50000;
 #else
-    #if defined (ANDROID) || defined(BUILD_DEBUG)
+    #if defined (BUILD_ANDROID) || defined(BUILD_DEBUG)
         constexpr static const size_t count=80000;
     #else
         constexpr static const size_t count=500000;
