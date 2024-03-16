@@ -23,7 +23,7 @@
 
 #include <hatn/dataunit/config.h>
 
-// define export symbols fo windows platform
+// define export symbols for windows platform
 #ifdef WIN32
 #    ifndef HATN_DATAUNIT_EXPORT
 #        ifdef BUILD_HATN_DATAUNIT
@@ -42,7 +42,5 @@
 #define HATN_DATAUNIT_NAMESPACE hatn::dataunit
 #define HATN_DATAUNIT_NS dataunit
 #define HATN_DATAUNIT_USING using namespace hatn::dataunit;
-
-#include <hatn/validator/validator.hpp>
 
 #endif // HATNDATAUNIT_H

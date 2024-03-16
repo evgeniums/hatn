@@ -217,7 +217,7 @@ HATN_COMMON_NAMESPACE_BEGIN
              * @brief Remove meta information about plugin and close plugin library if it is dynamic
              * @param info Plugin meta information
              *
-             * @note info will be invalidated after calling this function
+             * @note infor will be invalidated after calling this function
              *
              */
             void free(PluginInfo* info)
