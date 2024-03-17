@@ -60,6 +60,10 @@ template <typename T> string_view toStringView(const T& buf) noexcept
     {
         return boost::get<T>(var);
     }
+    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    {
+        return static_cast<std::size_t>(var.which());
+    }
     template <typename T> using optional=boost::optional<T>;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
@@ -70,6 +74,10 @@ template <typename T> string_view toStringView(const T& buf) noexcept
     template <typename T,typename ...Types> constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
         return std::get<T>(var);
+    }
+    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    {
+        return var.index();
     }
     template <typename T> using optional=std::optional<T>;
     #define HATN_VARIANT_CPP17
@@ -90,6 +98,12 @@ template <typename T> inline void destroyAt(T* obj) noexcept
 #define HATN_FALLTHROUGH [[fallthrough]];
 #else
 #define HATN_FALLTHROUGH
+#endif
+
+#if __cplusplus >= 201703L && !(defined (__GNUC__) && defined (_WIN32))
+#define HATN_NODISCARD [[nodiscard]]
+#else
+#define HATN_NODISCARD
 #endif
 
 //---------------------------------------------------------------

@@ -33,6 +33,8 @@ SET (HEADERS
 
     include/hatn/common/common.h
     include/hatn/common/error.h
+    include/hatn/common/nativeerror.h
+    include/hatn/common/errorcategory.h
 
     include/hatn/common/logger.h
     include/hatn/common/loggermodule.h

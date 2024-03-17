@@ -38,9 +38,10 @@ Error Error::serialize(ByteArray& buf) const {
     boost::endian::native_to_little_inplace(code);
     buf.resize(sizeof(code));
     memcpy(buf.data(),&code,sizeof(code));
-    if (m_native)
+    auto ntv=native();
+    if (ntv)
     {
-        HATN_CHECK_RETURN(m_native->serializeAppend(buf))
+        HATN_CHECK_RETURN(ntv->serializeAppend(buf))
     }
     return Error();
 }
@@ -99,26 +100,6 @@ std::string CommonErrorCategory::message(int code, const std::string& nativeMess
         }
     }
     return result;
-}
-
-/********************** BoostErrorCategory **************************/
-
-static BoostErrorCategory BoostErrorCategoryInstance;
-
-//---------------------------------------------------------------
-const BoostErrorCategory& BoostErrorCategory::getCategory() noexcept
-{
-    return BoostErrorCategoryInstance;
-}
-
-/********************** SystemErrorCategory **************************/
-
-static SystemErrorCategory SystemErrorCategoryInstance;
-
-//---------------------------------------------------------------
-const SystemErrorCategory& SystemErrorCategory::getCategory() noexcept
-{
-    return SystemErrorCategoryInstance;
 }
 
 //---------------------------------------------------------------

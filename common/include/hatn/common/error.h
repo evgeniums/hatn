@@ -9,7 +9,7 @@
 /****************************************************************************/
 /** @file common/error.h
   *
-  *     Base error classes.
+  *     Defines error class.
   *
   */
 
@@ -21,163 +21,19 @@
 #include <string>
 #include <memory>
 
+#include <fmt/format.h>
 #include <boost/system/error_code.hpp>
 
 #include <hatn/common/common.h>
+#include <hatn/common/stdwrappers.h>
+#include <hatn/common/errorcategory.h>
+#include <hatn/common/nativeerror.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 class ByteArray;
-class Error;
 
-//! Base class for error categories
-class HATN_COMMON_EXPORT ErrorCategory
-{
-    public:
-
-        //! Ctor
-        ErrorCategory()=default;
-
-        virtual ~ErrorCategory()=default;
-        ErrorCategory(const ErrorCategory&)=delete;
-        ErrorCategory(ErrorCategory&&) =delete;
-        ErrorCategory& operator=(const ErrorCategory&)=delete;
-        ErrorCategory& operator=(ErrorCategory&&) =delete;
-
-        //! Name of the category
-        virtual const char *name() const noexcept = 0;
-
-        //! Get description for the code
-        virtual std::string message(int code, const std::string& nativeMessage=std::string()) const = 0;
-
-        inline bool operator==(const ErrorCategory &rhs) const noexcept { return this == &rhs; }
-        inline bool operator!=(const ErrorCategory &rhs) const noexcept { return this != &rhs; }
-        inline bool operator<( const ErrorCategory &rhs ) const noexcept
-        {
-            return std::less<const ErrorCategory*>()( this, &rhs );
-        }
-};
-
-//! Common errors
-enum class CommonError : int
-{
-    UNKNOWN=-1,
-    OK=0,
-    INVALID_SIZE=1,
-    INVALID_ARGUMENT=2,
-    UNSUPPORTED=3,
-    INVALID_FILENAME=4,
-    FILE_FLUSH_FAILED=5,
-    FILE_ALREADY_OPEN=6,
-    FILE_WRITE_FAILED=7,
-    FILE_READ_FAILED=8,
-    FILE_NOT_OPEN=9,
-    TIMEOUT=10
-};
-
-//! Generic error category
-class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
-{
-    public:
-
-        //! Name of the category
-        virtual const char *name() const noexcept override
-        {
-            return "hatn.common";
-        }
-
-        //! Get description for the code
-        virtual std::string message(int code, const std::string& nativeMessage=std::string()) const override;
-
-        //! Get category
-        static const CommonErrorCategory& getCategory() noexcept;
-};
-
-//! Base class for native errors
-class HATN_COMMON_EXPORT NativeError
-{
-    public:
-
-        //! Ctor
-        NativeError()=default;
-
-        virtual ~NativeError()=default;
-        NativeError(const NativeError&)=default;
-        NativeError(NativeError&&) =default;
-        NativeError& operator=(const NativeError&)=default;
-        NativeError& operator=(NativeError&&) =default;
-
-        //! Message
-        virtual std::string message() const
-        {
-            return std::string();
-        }
-
-        //! Code
-        virtual int value() const noexcept
-        {
-            return 0;
-        }
-
-        //! Check if error is NULL
-        virtual bool isNull() const noexcept
-        {
-            return true;
-        }
-
-        //! Bool operator
-        inline operator bool() const noexcept
-        {
-            return !isNull();
-        }
-
-        //! Get category
-        virtual const ErrorCategory* getCategory() const noexcept
-        {
-            return &CommonErrorCategory::getCategory();
-        }
-
-        //! Compare with other error
-        inline bool isEqual(const NativeError& other) const noexcept
-        {
-            if (other.getCategory()!=this->getCategory()
-               ||
-                other.value()!=this->value()
-               )
-            {
-                return false;
-            }
-            return compareContent(other);
-        }
-
-        bool operator ==(const NativeError& other) const noexcept
-        {
-            return isEqual(other);
-        }
-        bool operator !=(const NativeError& other) const noexcept
-        {
-            return !isEqual(other);
-        }
-
-        virtual Error serializeAppend(ByteArray& buf) const;
-
-    protected:
-
-        //! Compare self content with content of other error
-        virtual bool compareContent(const NativeError& other) const noexcept
-        {
-            std::ignore=other;
-            return false;
-        }
-};
-
-#if __cplusplus >= 201703L && !(defined (__GNUC__) && defined (_WIN32))
-    #define HATN_NODISCARD [[nodiscard]]
-#else
-    #define HATN_NODISCARD
-#endif
-
-//! Base class for errors
+//! Error class.
 class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 {
     public:
@@ -189,20 +45,24 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
               const boost::system::error_category* boostCat=nullptr
             ) noexcept
             : m_code(code),
-              m_category(category),
-              m_systemCat(systemCat),
-              m_boostCat(boostCat)
-       {}
+              m_extended(category)
+       {
+           if (systemCat!=nullptr)
+           {
+               m_extended=systemCat;
+           }
+           else if (boostCat!=nullptr)
+           {
+               m_extended=boostCat;
+           }
+       }
 
         //! Constructor
         Error(
                 std::shared_ptr<NativeError> error
               ) noexcept
             : m_code(error->value()),
-              m_category(error->getCategory()),
-              m_native(std::move(error)),
-              m_systemCat(nullptr),
-              m_boostCat(nullptr)
+              m_extended(std::move(error))
         {}
 
         //! Ctor from code
@@ -212,19 +72,37 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         //! Get message
         std::string message() const
         {
-            if (m_systemCat!=nullptr)
+            switch (lib::variantIndex(m_extended))
             {
-                return m_systemCat->message(m_code);
+                case(0):
+                {
+                    auto category=lib::variantGet<const ErrorCategory*>(m_extended);
+                    return category->message(m_code);
+                }
+
+                case(1):
+                {
+                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
+                    return boostCat->message(m_code);
+                }
+
+                case(2):
+                {
+                    auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
+                    return systemCat->message(m_code);
+                }
+
+                case(3):
+                {
+                    auto nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    if (nativeError)
+                    {
+                        return nativeError->message();
+                    }
+                }
             }
-            else if (m_boostCat!=nullptr)
-            {
-                return m_boostCat->message(m_code);
-            }
-            else if (m_native)
-            {
-                return m_category->message(m_code,m_native->message());
-            }
-            return m_category->message(m_code);
+
+            return fmt::format("error code {}",m_code);
         }
 
         //! Get value
@@ -242,36 +120,38 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         //! Map to platform independent error code
         inline int errorCondition() const noexcept
         {
-            if (m_systemCat!=nullptr)
+            if (lib::variantIndex(m_extended)==1)
             {
-                return m_systemCat->default_error_condition(m_code).value();
+                auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
+                return boostCat->default_error_condition(m_code).value();
             }
-            if (m_boostCat!=nullptr)
-            {
-                return m_boostCat->default_error_condition(m_code).value();
-            }
-            return m_code;
-        }
 
-        //! Get category
-        inline const ErrorCategory* category() const noexcept
-        {
-            return m_category;
+            if (lib::variantIndex(m_extended)==2)
+            {
+                auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
+                return systemCat->default_error_condition(m_code).value();
+            }
+
+            return m_code;
         }
 
         //! Get native error
         inline std::shared_ptr<NativeError> native() const noexcept
         {
-            return m_native;
+            if (lib::variantIndex(m_extended)==3)
+            {
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+            }
+            return std::shared_ptr<NativeError>{};
         }
 
         //! Set native error
         inline void setNative(std::shared_ptr<NativeError> error) noexcept
         {
-            m_native=std::move(error);
+            m_extended=std::move(error);
             if (m_code==static_cast<int>(CommonError::OK))
             {
-                m_code=m_native->value();
+                m_code=error->value();
             }
         }
 
@@ -281,19 +161,28 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             return m_code!=static_cast<int>(CommonError::OK);
         }
 
+        //! Comparison operator
         inline bool operator ==(const Error& other) const noexcept
         {
-            if (other.category()!=this->category()
-               ||
+            if (
                 other.value()!=this->value()
+                    ||
+                lib::variantIndex(other.m_extended)!=lib::variantIndex(this->m_extended)
                )
             {
                 return false;
             }
+
+            if (lib::variantIndex(m_extended)!=3 && other.m_extended!=this->m_extended)
+            {
+                return false;
+            }
+
             if (other.native()&&this->native())
             {
                 return *other.native()==*this->native();
             }
+
             return true;
         }
 
@@ -309,10 +198,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 
         inline void reset() noexcept
         {
-            m_native.reset();
-            m_systemCat=nullptr;
-            m_boostCat=nullptr;
-            m_category=&CommonErrorCategory::getCategory();
+            m_extended=&CommonErrorCategory::getCategory();
             m_code=static_cast<int>(CommonError::OK);
         }
 
@@ -321,11 +207,12 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
     private:
 
         int32_t m_code;
-        const ErrorCategory* m_category;
-        std::shared_ptr<NativeError> m_native;
 
-        const std::error_category* m_systemCat;
-        const boost::system::error_category* m_boostCat;
+        lib::variant<const ErrorCategory*,
+                     const boost::system::error_category*,
+                     const std::error_category*,
+                     std::shared_ptr<NativeError>
+                     > m_extended;
 };
 
 //! hatn error exception
@@ -354,58 +241,28 @@ class HATN_COMMON_EXPORT ErrorException final : public std::runtime_error
         Error m_error;
 };
 
-//! System error category
-class HATN_COMMON_EXPORT SystemErrorCategory final : public CommonErrorCategory
-{
-    public:
-
-        //! Name of the category
-        virtual const char *name() const noexcept override
-        {
-            return "system";
-        }
-
-        //! Get category
-        static const SystemErrorCategory& getCategory() noexcept;
-};
-
-//! Boost error category
-class HATN_COMMON_EXPORT BoostErrorCategory final : public CommonErrorCategory
-{
-    public:
-
-        //! Name of the category
-        virtual const char *name() const noexcept override
-        {
-            return "boost";
-        }
-
-        //! Get category
-        static const BoostErrorCategory& getCategory() noexcept;
-};
-
 //! Create Error object from std system error
 inline common::Error makeSystemError(std::error_code ec) noexcept
 {
-    return common::Error(ec.value(),&SystemErrorCategory::getCategory(),&ec.category(),nullptr);
+    return common::Error(ec.value(),nullptr,&ec.category(),nullptr);
 }
 
 //! Create Error object from std system error code
 inline common::Error makeSystemError(std::errc ec) noexcept
 {
-    return common::Error(static_cast<int>(ec),&SystemErrorCategory::getCategory(),&std::generic_category(),nullptr);
+    return common::Error(static_cast<int>(ec),nullptr,&std::generic_category(),nullptr);
 }
 
 //! Create Error object from boost system error
 inline common::Error makeBoostError(boost::system::error_code ec) noexcept
 {
-    return common::Error(ec.value(),&BoostErrorCategory::getCategory(),nullptr,&ec.category());
+    return common::Error(ec.value(),nullptr,nullptr,&ec.category());
 }
 
 //! Create Error object from std system error code
 inline common::Error makeBoostError(boost::system::errc::errc_t ec)
 {
-    return common::Error(static_cast<int>(ec),&BoostErrorCategory::getCategory(),nullptr,&boost::system::generic_category());
+    return common::Error(static_cast<int>(ec),nullptr,nullptr,&boost::system::generic_category());
 }
 
 //---------------------------------------------------------------
