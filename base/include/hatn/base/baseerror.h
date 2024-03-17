@@ -46,7 +46,7 @@ public:
     static const BaseErrorCategory& getCategory() noexcept;
 };
 
-//! Make network error object from code
+//! Make error object from code.
 inline common::Error makeError(ErrorCode code) noexcept
 {
     return common::Error(static_cast<int>(code),&BaseErrorCategory::getCategory());

@@ -31,7 +31,9 @@ enum class ErrorCode : int
 {
     OK=static_cast<int>(common::CommonError::OK),
     INVALID_TYPE,
-    VALUE_NOT_SET
+    VALUE_NOT_SET,
+    RESULT_ERROR,
+    RESULT_NOT_ERROR,
 };
 
 HATN_BASE_NAMESPACE_END

@@ -52,6 +52,14 @@ std::string BaseErrorCategory::message(int code, const std::string& nativeMessag
             result=common::_TR("Invalid type","base");
             break;
 
+        case (static_cast<int>(ErrorCode::RESULT_ERROR)):
+            result=common::_TR("Cannot get value of error result","base");
+            break;
+
+        case (static_cast<int>(ErrorCode::RESULT_NOT_ERROR)):
+        result=common::_TR("Cannot move not error result","base");
+        break;
+
         default:
             result=common::_TR("Unknown error");
         }

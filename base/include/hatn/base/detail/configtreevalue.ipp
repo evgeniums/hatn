@@ -26,7 +26,6 @@
 #include <vector>
 #include <map>
 #include <type_traits>
-#include <boost/leaf.hpp>
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/error.h>
@@ -62,9 +61,9 @@ struct ValueExtractor
 //! Helpers for extracting concrete types from config tree value holder.
 template <typename T> struct valuesAs
 {
-    static boost::leaf::result<T> f(const config_tree::HolderT&) noexcept
+    static Result<T> f(const config_tree::HolderT&) noexcept
     {
-        return boost::leaf::new_error(makeError(ErrorCode::INVALID_TYPE));
+        return errorResult(ErrorCode::INVALID_TYPE);
     }
 };
 
@@ -170,9 +169,11 @@ template <> struct valuesAs<bool>
 template <> struct valuesAs<std::string>
 {
     using type=std::string;
-    static type f(const config_tree::HolderT& holder) noexcept
+    using storageType=typename Storage<Type::String>::type;
+
+    static const type& f(const config_tree::HolderT& holder) noexcept
     {
-        return ValueExtractor<type,Type::String>::f(holder);
+        return common::lib::variantGet<storageType>(holder.value());
     }
 };
 
@@ -222,7 +223,7 @@ template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructibl
 //---------------------------------------------------------------
 
 template <typename T>
-boost::leaf::result<T> ConfigTreeValue::as() const noexcept
+auto ConfigTreeValue::as() const noexcept -> decltype(auto)
 {
     if (static_cast<bool>(m_value))
     {
@@ -234,11 +235,11 @@ boost::leaf::result<T> ConfigTreeValue::as() const noexcept
         return config_tree_detail::valuesAs<T>::f(m_defaultValue);
     }
 
-    return boost::leaf::new_error(makeError(ErrorCode::VALUE_NOT_SET));
+    return decltype(config_tree_detail::valuesAs<T>::f(m_value))(errorResult(ErrorCode::VALUE_NOT_SET));
 }
 
 template <typename T>
-const T& ConfigTreeValue::as(common::Error& ec) const noexcept
+auto ConfigTreeValue::as(common::Error& ec) const noexcept -> decltype(auto)
 {
     auto r = as<T>();
     if (!r)
@@ -251,7 +252,7 @@ const T& ConfigTreeValue::as(common::Error& ec) const noexcept
 }
 
 template <typename T>
-const T& ConfigTreeValue::asThrows() const
+auto ConfigTreeValue::asThrows() const  -> decltype(auto)
 {
     auto r = as<T>();
     if (!r)
@@ -262,17 +263,17 @@ const T& ConfigTreeValue::asThrows() const
 }
 
 template <typename T>
-boost::leaf::result<T> ConfigTreeValue::getDefault() const noexcept
+auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
 {
     if (static_cast<bool>(m_defaultValue))
     {
         return config_tree_detail::valuesAs<T>::f(m_defaultValue);
     }
-    return boost::leaf::new_error(makeError(ErrorCode::VALUE_NOT_SET));
+    return decltype(config_tree_detail::valuesAs<T>::f(m_defaultValue))(errorResult(ErrorCode::VALUE_NOT_SET));
 }
 
 template <typename T>
-const T& ConfigTreeValue::getDefault(common::Error& ec) const noexcept
+auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(auto)
 {
     auto r = getDefault<T>();
     if (!r)
@@ -285,7 +286,7 @@ const T& ConfigTreeValue::getDefault(common::Error& ec) const noexcept
 }
 
 template <typename T>
-const T& ConfigTreeValue::getDefaultThrows() const
+auto ConfigTreeValue::getDefaultThrows() const -> decltype(auto)
 {
     auto r = getDefault<T>();
     if (!r)

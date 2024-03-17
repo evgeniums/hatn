@@ -32,9 +32,28 @@ HATN_TEST_USING
 
 BOOST_AUTO_TEST_SUITE(TestConfigTree)
 
-BOOST_AUTO_TEST_CASE(ValueSetGet)
+BOOST_AUTO_TEST_CASE(ScalarValue)
 {
     ConfigTreeValue t1;
+}
+
+BOOST_AUTO_TEST_CASE(MapValue)
+{
+    const ConfigTreeValue constV1;
+    auto constM1=constV1.asMap();
+    BOOST_CHECK(static_cast<bool>(constM1));
+    BOOST_CHECK(!constM1.isValid());
+
+    //--------------------
+    ConfigTreeValue t1;
+
+    auto m1=t1.asMap();
+    BOOST_CHECK(static_cast<bool>(m1));
+    BOOST_CHECK(!m1.isValid());
+    t1.toMap();
+    auto m2=t1.asMap();
+    BOOST_CHECK(!static_cast<bool>(m2));
+    BOOST_CHECK(m2.isValid());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

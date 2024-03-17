@@ -25,19 +25,21 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <boost/leaf.hpp>
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/error.h>
 
 #include <hatn/base/base.h>
 #include <hatn/base/baseerror.h>
+#include <hatn/base/result.h>
 
 HATN_BASE_NAMESPACE_BEGIN
 
 class ConfigTree;
 
 namespace config_tree {
+
+using MapT = std::map<std::string,std::shared_ptr<ConfigTree>>;
 
 enum class Type : int
 {
@@ -51,11 +53,7 @@ enum class Type : int
     ArrayBool,
     ArrayString,
     ArrayTree,
-    MapInt,
-    MapDouble,
-    MapBool,
-    MapString,
-    MapTree
+    Map
 };
 
 template <Type TypeId> struct Storage
@@ -88,20 +86,8 @@ template <> struct Storage<Type::ArrayString>
 template <> struct Storage<Type::ArrayTree>
 {using type=std::vector<std::shared_ptr<ConfigTree>>;};
 
-template <> struct Storage<Type::MapInt>
-{using type=std::map<std::string,int64_t>;};
-
-template <> struct Storage<Type::MapDouble>
-{using type=std::map<std::string,double>;};
-
-template <> struct Storage<Type::MapBool>
-{using type=std::map<std::string,bool>;};
-
-template <> struct Storage<Type::MapString>
-{using type=std::map<std::string,std::string>;};
-
-template <> struct Storage<Type::MapTree>
-{using type=std::map<std::string,std::shared_ptr<ConfigTree>>;};
+template <> struct Storage<Type::Map>
+{using type=MapT;};
 
 
 using ValueT = common::lib::variant<
@@ -114,11 +100,7 @@ using ValueT = common::lib::variant<
     Storage<Type::ArrayBool>::type,
     Storage<Type::ArrayString>::type,
     Storage<Type::ArrayTree>::type,
-    Storage<Type::MapInt>::type,
-    Storage<Type::MapDouble>::type,
-    Storage<Type::MapBool>::type,
-    Storage<Type::MapString>::type,
-    Storage<Type::MapTree>::type
+    Storage<Type::Map>::type
     >;
 
 using HolderT=common::lib::optional<config_tree::ValueT>;
@@ -131,6 +113,18 @@ class HATN_BASE_EXPORT ConfigTreeValue
     public:
 
         using Type=config_tree::Type;
+
+        ConfigTreeValue()
+            :m_type(Type::None),
+             m_defaultType(Type::None)
+        {}
+
+        ConfigTreeValue(ConfigTreeValue&&)=default;
+        ConfigTreeValue& operator =(ConfigTreeValue&&)=default;
+        ~ConfigTreeValue()=default;
+
+        ConfigTreeValue(const ConfigTreeValue&)=delete;
+        ConfigTreeValue& operator =(const ConfigTreeValue&)=delete;
 
         Type type() const noexcept
         {
@@ -172,13 +166,92 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> void set(T value);
         template <typename T> void setDefault(T value);
 
-        template <typename T> const T& asThrows() const;
-        template <typename T> const T& as(common::Error& ec) const noexcept;
-        template <typename T> boost::leaf::result<T> as() const noexcept;
+        template <typename T> auto asThrows() const -> decltype(auto);
+        template <typename T> auto as(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> auto as() const noexcept -> decltype(auto);
 
-        template <typename T> const T& getDefaultThrows() const;
-        template <typename T> const T& getDefault(common::Error& ec) const noexcept;
-        template <typename T> boost::leaf::result<T> getDefault() const noexcept;
+        template <typename T> auto getDefaultThrows() const -> decltype(auto);
+        template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> auto getDefault() const noexcept -> decltype(auto);
+
+        void toMap()
+        {
+            m_type=Type::Map;
+            m_value.reset();
+            m_value.emplace(config_tree::MapT{});
+        }
+
+        Result<const config_tree::MapT&> asMap() const noexcept
+        {
+            if (!static_cast<bool>(m_value))
+            {
+                return errorResult(ErrorCode::VALUE_NOT_SET);
+            }
+            if (m_type!=Type::Map)
+            {
+                return errorResult(ErrorCode::INVALID_TYPE);
+            }
+
+            return common::lib::variantGet<config_tree::MapT>(m_value.value());
+        }
+
+        Result<config_tree::MapT&> asMap() noexcept
+        {
+            if (!static_cast<bool>(m_value))
+            {
+                return errorResult(ErrorCode::VALUE_NOT_SET);
+            }
+            if (m_type!=Type::Map)
+            {
+                return errorResult(ErrorCode::INVALID_TYPE);
+            }
+
+            return common::lib::variantGet<config_tree::MapT>(m_value.value());
+        }
+
+        const config_tree::MapT& asMap(common::Error& ec) const noexcept
+        {
+            auto&& r = asMap();
+            if (!r)
+            {
+                static config_tree::MapT v;
+                ec=r.error();
+                return v;
+            }
+            return r.value();
+        }
+
+        config_tree::MapT& asMap(common::Error& ec) noexcept
+        {
+            auto&& r = asMap();
+            if (!r)
+            {
+                static config_tree::MapT v;
+                ec=r.error();
+                return v;
+            }
+            return r.value();
+        }
+
+        const config_tree::MapT& asMapThrows() const
+        {
+            auto&& r = asMap();
+            if (!r)
+            {
+                throw common::ErrorException{r.error()};
+            }
+            return r.value();
+        }
+
+        config_tree::MapT& asMapThrows()
+        {
+            auto&& r = asMap();
+            if (!r)
+            {
+                throw common::ErrorException{r.error()};
+            }
+            return r.value();
+        }
 
     private:
 
