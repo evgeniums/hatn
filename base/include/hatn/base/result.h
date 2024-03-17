@@ -113,7 +113,7 @@ class Result
 
         /**
          * @brief Constructor with error.
-         * @param value Result value to wrap.
+         * @param error Result error.
          */
         Result(
             common::Error error
@@ -234,6 +234,132 @@ class Result
         template <typename T1> friend class Result;
 };
 
+template <>
+class Result<common::Error>
+{
+public:
+
+    using hana_tag=ResultTag;
+    using type=common::Error;
+
+    /**
+     * @brief Constructor with error.
+     * @param error Result error.
+     */
+    Result(
+            common::Error error
+        ) : m_error(std::move(error))
+    {
+        if (m_error.isNull())
+        {
+            throw common::ErrorException{makeError(ErrorCode::RESULT_NOT_ERROR)};
+        }
+    }
+
+    /**
+     * @brief Move constructor from other error result.
+     * @param other Other result with error to move from.
+     */
+    template <typename T1>
+    Result(
+        Result<T1>&& other
+      ) : m_error(std::move(other.m_error))
+    {
+        if (m_error.isNull())
+        {
+            throw common::ErrorException{makeError(ErrorCode::RESULT_NOT_ERROR)};
+        }
+    }
+
+    /**
+     * @brief Move constructor.
+     * @param other Other result of the same type.
+     */
+    Result(
+        Result&& other
+        ) : m_error(std::move(other.m_error))
+    {}
+
+    /**
+     * @brief Move assignment operator.
+     * @param other Other result of the same type.
+     */
+    Result& operator =(Result&& other)
+    {
+        if (&other!=this)
+        {
+            m_error=std::move(other.m_error);
+        }
+        return *this;
+    }
+
+    ~Result()=default;
+
+    Result()=delete;
+    Result(const Result&)=delete;
+    Result& operator =(const Result&)=delete;
+
+    /**
+     * @brief Get const reference to value.
+     * @return Constant reference to wrapped value.
+    */
+    const common::Error& value() const
+    {
+        if (!isValid())
+        {
+            throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
+        }
+        return m_error;
+    }
+
+    /**
+     * @brief Get const reference to value without checking for error.
+     * @return Constant reference to wrapped value.
+    */
+    const common::Error& underlyingValue() const
+    {
+        return m_error;
+    }
+
+    /**
+     * @brief Get reference to value.
+     * @return Reference to wrapped value.
+    */
+    common::Error& value()
+    {
+        if (!isValid())
+        {
+            throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
+        }
+        return m_error;
+    }
+
+    //! Check if result is valid.
+    bool isValid() const noexcept
+    {
+        return false;
+    }
+
+    //! Get error.
+    const common::Error& error() const noexcept
+    {
+        return m_error;
+    }
+
+    //! Bool operator true if result holds error.
+    operator bool() const noexcept
+    {
+        return true;
+    }
+
+private:
+
+    common::Error m_error;
+
+    template <typename T1> friend class Result;
+};
+using ErrorResult=Result<common::Error>;
+
 /**
  * @brief Wrap a value into result.
  * @param v Value.
@@ -260,9 +386,9 @@ struct MakeResultImpl
 constexpr MakeResultImpl makeResult{};
 
 //! Make error result.
-auto errorResult(ErrorCode code) noexcept -> decltype(auto)
+ErrorResult errorResult(ErrorCode code) noexcept
 {
-    return Result<int>(makeError(code));
+    return ErrorResult{makeError(code)};
 }
 
 HATN_BASE_NAMESPACE_END
