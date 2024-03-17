@@ -224,6 +224,136 @@ BOOST_AUTO_TEST_CASE(DefaultValue)
     BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
 }
 
+BOOST_AUTO_TEST_CASE(BoolValue)
+{
+    ConfigTreeValue t1;
+    BOOST_CHECK(!t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::None),int(t1.type()));
+
+    // set true
+    bool val1=true;
+    t1.set(val1);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Bool),int(t1.type()));
+
+    // read bool
+    auto r1=t1.as<bool>();
+    BOOST_CHECK(!static_cast<bool>(r1));
+    BOOST_CHECK(r1.isValid());
+    BOOST_CHECK_EQUAL(val1,r1.value());
+
+    // set false
+    bool val2=false;
+    t1.set(val2);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Bool),int(t1.type()));
+
+    // read bool
+    auto r2=t1.as<bool>();
+    BOOST_CHECK(r2.isValid());
+    BOOST_CHECK_EQUAL(val2,r2.value());
+
+    // try to read int32_t
+    auto r3=t1.as<int32_t>();
+    BOOST_CHECK(!r3.isValid());
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+}
+
+BOOST_AUTO_TEST_CASE(FloatingValue, *boost::unit_test::tolerance(0.000001))
+{
+    ConfigTreeValue t1;
+    BOOST_CHECK(!t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::None),int(t1.type()));
+
+    // set float
+    float val1=0.107;
+    t1.set(val1);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Double),int(t1.type()));
+
+    // read float
+    auto r1=t1.as<float>();
+    BOOST_CHECK(!static_cast<bool>(r1));
+    BOOST_CHECK(r1.isValid());
+    BOOST_TEST(val1==r1.value());
+
+    // read double
+    auto r1_1=t1.as<double>();
+    BOOST_CHECK(!static_cast<bool>(r1));
+    BOOST_CHECK(r1.isValid());
+    BOOST_TEST(val1==r1_1.value());
+
+    // set double
+    double val2=0.12345;
+    t1.set(val2);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Double),int(t1.type()));
+
+    // read float
+    auto r2=t1.as<float>();
+    BOOST_CHECK(r2.isValid());
+    BOOST_TEST(val2==r2.value());
+
+    // read double
+    auto r2_1=t1.as<double>();
+    BOOST_CHECK(r2.isValid());
+    BOOST_TEST(val2==r2_1.value());
+
+    // try to read int32_t
+    auto r3=t1.as<int32_t>();
+    BOOST_CHECK(!r3.isValid());
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+}
+
+BOOST_AUTO_TEST_CASE(StringValue)
+{
+    ConfigTreeValue t1;
+    BOOST_CHECK(!t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::None),int(t1.type()));
+
+    // set string
+    std::string val1{"Hello world"};
+    t1.set(val1);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::String),int(t1.type()));
+
+    // read string
+    auto r1=t1.as<std::string>();
+    BOOST_CHECK(!static_cast<bool>(r1));
+    BOOST_CHECK(r1.isValid());
+    BOOST_CHECK_EQUAL(val1,r1.value());
+
+    // set const char*
+    const char* val2="How are you?";
+    t1.set(val2);
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::String),int(t1.type()));
+
+    // read string
+    auto r2=t1.as<std::string>();
+    BOOST_CHECK(r2.isValid());
+    BOOST_CHECK_EQUAL(std::string(val2),r2.value());
+
+    // set firect const char*
+    t1.set("Hi!");
+    BOOST_CHECK(t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::String),int(t1.type()));
+
+    // read string
+    auto r2_1=t1.as<std::string>();
+    BOOST_CHECK(r2_1.isValid());
+    BOOST_CHECK_EQUAL(std::string("Hi!"),r2_1.value());
+
+    // check if value is a const reference
+    BOOST_CHECK(std::is_reference<decltype(r2_1.value())>::value);
+    BOOST_CHECK(std::is_const<std::remove_reference_t<decltype(r2_1.value())>>::value);
+
+    // try to read int32_t
+    auto r3=t1.as<int32_t>();
+    BOOST_CHECK(!r3.isValid());
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+}
+
 BOOST_AUTO_TEST_CASE(MapValue)
 {
     const ConfigTreeValue constV1;

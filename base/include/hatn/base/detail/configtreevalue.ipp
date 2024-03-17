@@ -214,7 +214,16 @@ template <typename T, typename T1=void> struct ValueSetter
 template <> struct ValueSetter<bool> : public ValueSetterCast<Type::Bool>{};
 template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_integral<T>::value>> : public ValueSetterCast<Type::Int>{};
 template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_floating_point<T>::value>> : public ValueSetterCast<Type::Double>{};
-template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructible<std::string,T>::value>> : public ValueSetterMove<Type::String>{};
+
+template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructible<std::string,T>::value>> : public ValueSetterMove<Type::String>
+{
+    template <typename ValueT>
+    static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
+    {
+        holder.emplace(std::string{std::move(value)});
+        typeId=id;
+    }
+};
 
 //---------------------------------------------------------------
 
@@ -226,14 +235,23 @@ template <typename T>
 auto ConfigTreeValue::as() const noexcept -> decltype(auto)
 {
     using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_value));
+    auto expectedTypeId=config_tree_detail::ValueSetter<std::decay_t<T>>::id;
 
     if (static_cast<bool>(m_value))
     {
+        if (expectedTypeId!=m_type)
+        {
+            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+        }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_value));
     }
 
     if (static_cast<bool>(m_defaultValue))
     {
+        if (expectedTypeId!=m_defaultType)
+        {
+            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+        }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
 
@@ -267,8 +285,13 @@ template <typename T>
 auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
 {
     using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_defaultValue));
+    auto expectedTypeId=config_tree_detail::ValueSetter<std::decay_t<T>>::id;
     if (static_cast<bool>(m_defaultValue))
     {
+        if (expectedTypeId!=m_defaultType)
+        {
+            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+        }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
     return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
