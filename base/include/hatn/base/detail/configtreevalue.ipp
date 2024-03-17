@@ -258,10 +258,15 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
 }
 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4172 )
+#endif
+
 template <typename T>
 const T& ConfigTreeValue::as(common::Error& ec) const noexcept
 {
-    auto r = as<T>();
+    const auto r = as<T>();
     if (r)
     {
         ec=r.error();
@@ -273,13 +278,17 @@ const T& ConfigTreeValue::as(common::Error& ec) const noexcept
 template <typename T>
 auto ConfigTreeValue::asThrows() const  -> decltype(auto)
 {
-    auto r = as<T>();
+    const auto r = as<T>();
     if (r)
     {
         throw common::ErrorException{r.error()};
     }
     return r.value();
 }
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 
 template <typename T>
 auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
@@ -297,10 +306,15 @@ auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
     return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
 }
 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4172 )
+#endif
+
 template <typename T>
-const T& ConfigTreeValue::getDefault(common::Error& ec) const noexcept
+auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(auto)
 {
-    auto r = getDefault<T>();
+    const auto r = getDefault<T>();
     if (r)
     {
         ec=r.error();
@@ -312,13 +326,17 @@ const T& ConfigTreeValue::getDefault(common::Error& ec) const noexcept
 template <typename T>
 auto ConfigTreeValue::getDefaultThrows() const -> decltype(auto)
 {
-    auto r = getDefault<T>();
+    const auto r = getDefault<T>();
     if (r)
     {
         throw common::ErrorException{r.error()};
     }
     return r.value();
 }
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 
 //---------------------------------------------------------------
 

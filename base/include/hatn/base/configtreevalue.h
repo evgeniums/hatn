@@ -176,7 +176,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> auto as() const noexcept -> decltype(auto);
 
         template <typename T> auto getDefaultThrows() const -> decltype(auto);
-        template <typename T> const T& getDefault(common::Error& ec) const noexcept;
+        template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
         template <typename T> auto getDefault() const noexcept -> decltype(auto);
 
         void toMap()

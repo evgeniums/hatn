@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(FloatingValue, *boost::unit_test::tolerance(0.000001))
     BOOST_CHECK_EQUAL(int(config_tree::Type::None),int(t1.type()));
 
     // set float
-    float val1=0.107;
+    float val1=float(0.107);
     t1.set(val1);
     BOOST_CHECK(t1.isSet());
     BOOST_CHECK_EQUAL(int(config_tree::Type::Double),int(t1.type()));
