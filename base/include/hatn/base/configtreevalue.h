@@ -126,8 +126,13 @@ class HATN_BASE_EXPORT ConfigTreeValue
         ConfigTreeValue(const ConfigTreeValue&)=delete;
         ConfigTreeValue& operator =(const ConfigTreeValue&)=delete;
 
-        Type type() const noexcept
+        Type type(bool orDefault=false) const noexcept
         {
+            auto isSet=static_cast<bool>(m_value);
+            if (!isSet && orDefault)
+            {
+                return m_defaultType;
+            }
             return m_type;
         }
 
@@ -160,18 +165,18 @@ class HATN_BASE_EXPORT ConfigTreeValue
         void resetDefault() noexcept
         {
             m_defaultType=Type::None;
-            m_value.reset();
+            m_defaultValue.reset();
         }
 
         template <typename T> void set(T value);
         template <typename T> void setDefault(T value);
 
         template <typename T> auto asThrows() const -> decltype(auto);
-        template <typename T> auto as(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> const T& as(common::Error& ec) const noexcept;
         template <typename T> auto as() const noexcept -> decltype(auto);
 
         template <typename T> auto getDefaultThrows() const -> decltype(auto);
-        template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> const T& getDefault(common::Error& ec) const noexcept;
         template <typename T> auto getDefault() const noexcept -> decltype(auto);
 
         void toMap()

@@ -158,7 +158,7 @@ class Result
          */
         Result& operator =(Result&& other)
         {
-            if (other!=this)
+            if (&other!=this)
             {
                 m_value=std::move(other.m_value);
                 m_error=std::move(other.m_error);
@@ -182,6 +182,16 @@ class Result
             {
                 throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
             }
+            return m_value;
+        }
+
+        /**
+         * @brief Get const reference to value without checking for error.
+         * Use it with care.
+         * @return Constant reference to wrapped value.
+        */
+        const std::remove_reference_t<T>& underlyingValue() const
+        {
             return m_value;
         }
 

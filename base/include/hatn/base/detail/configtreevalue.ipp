@@ -179,14 +179,14 @@ template <> struct valuesAs<std::string>
 
 //---------------------------------------------------------------
 
-template <Type TypeId> struct ValueSetterForward
+template <Type TypeId> struct ValueSetterMove
 {
     constexpr static auto id=TypeId;
 
     template <typename ValueT>
     static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
     {
-        holder.emplace(std::forward(value));
+        holder.emplace(std::move(value));
         typeId=id;
     }
 };
@@ -198,8 +198,8 @@ template <Type TypeId> struct ValueSetterCast
     template <typename ValueT>
     static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
     {
-        auto val=static_cast<Storage<id>>(value);
-        ValueSetterForward<id>::set(holder,typeId,std::move(val));
+        auto val=static_cast<typename Storage<id>::type>(value);
+        ValueSetterMove<id>::set(holder,typeId,std::move(val));
     }
 };
 
@@ -214,7 +214,7 @@ template <typename T, typename T1=void> struct ValueSetter
 template <> struct ValueSetter<bool> : public ValueSetterCast<Type::Bool>{};
 template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_integral<T>::value>> : public ValueSetterCast<Type::Int>{};
 template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_floating_point<T>::value>> : public ValueSetterCast<Type::Double>{};
-template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructible<std::string,T>::value>> : public ValueSetterForward<Type::String>{};
+template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructible<std::string,T>::value>> : public ValueSetterMove<Type::String>{};
 
 //---------------------------------------------------------------
 
@@ -225,28 +225,29 @@ template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructibl
 template <typename T>
 auto ConfigTreeValue::as() const noexcept -> decltype(auto)
 {
+    using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_value));
+
     if (static_cast<bool>(m_value))
     {
-        return config_tree_detail::valuesAs<T>::f(m_value);
+        return makeResult(config_tree_detail::valuesAs<T>::f(m_value));
     }
 
     if (static_cast<bool>(m_defaultValue))
     {
-        return config_tree_detail::valuesAs<T>::f(m_defaultValue);
+        return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
 
-    return decltype(config_tree_detail::valuesAs<T>::f(m_value))(errorResult(ErrorCode::VALUE_NOT_SET));
+    return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
 }
 
 template <typename T>
-auto ConfigTreeValue::as(common::Error& ec) const noexcept -> decltype(auto)
+const T& ConfigTreeValue::as(common::Error& ec) const noexcept
 {
     auto r = as<T>();
-    if (!r)
+    if (r)
     {
-        static T v;
         ec=r.error();
-        return v;
+        return r.underlyingValue();
     }
     return r.value();
 }
@@ -255,7 +256,7 @@ template <typename T>
 auto ConfigTreeValue::asThrows() const  -> decltype(auto)
 {
     auto r = as<T>();
-    if (!r)
+    if (r)
     {
         throw common::ErrorException{r.error()};
     }
@@ -265,22 +266,22 @@ auto ConfigTreeValue::asThrows() const  -> decltype(auto)
 template <typename T>
 auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
 {
+    using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     if (static_cast<bool>(m_defaultValue))
     {
-        return config_tree_detail::valuesAs<T>::f(m_defaultValue);
+        return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
-    return decltype(config_tree_detail::valuesAs<T>::f(m_defaultValue))(errorResult(ErrorCode::VALUE_NOT_SET));
+    return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
 }
 
 template <typename T>
-auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(auto)
+const T& ConfigTreeValue::getDefault(common::Error& ec) const noexcept
 {
     auto r = getDefault<T>();
-    if (!r)
+    if (r)
     {
-        static T v;
         ec=r.error();
-        return v;
+        return r.underlyingValue();
     }
     return r.value();
 }
@@ -289,26 +290,25 @@ template <typename T>
 auto ConfigTreeValue::getDefaultThrows() const -> decltype(auto)
 {
     auto r = getDefault<T>();
-    if (!r)
+    if (r)
     {
         throw common::ErrorException{r.error()};
     }
     return r.value();
 }
 
-
 //---------------------------------------------------------------
 
 template <typename T>
 void ConfigTreeValue::set(T value)
 {
-    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_value,m_type,std::forward(value));
+    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_value,m_type,std::move(value));
 }
 
 template <typename T>
 void ConfigTreeValue::setDefault(T value)
 {
-    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_defaultValue,m_defaultType,std::forward(value));
+    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_defaultValue,m_defaultType,std::move(value));
 }
 
 //---------------------------------------------------------------
