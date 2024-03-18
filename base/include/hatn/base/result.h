@@ -82,7 +82,7 @@ struct DefaultResult<T,std::enable_if_t<std::is_reference<T>::value && !std::is_
     }
 };
 
-#ifdef __MINGW32__
+#if defined(__GNUC__) || defined(__clang__)
 
 #define HATN_MOVE_REFERENCE
 
