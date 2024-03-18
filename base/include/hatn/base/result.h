@@ -82,6 +82,10 @@ struct DefaultResult<T,std::enable_if_t<std::is_reference<T>::value && !std::is_
     }
 };
 
+#ifdef __MINGW32__
+
+#define HATN_MOVE_REFERENCE
+
 template <typename T, typename T1=void> struct MoveReference
 {
     template <typename T2>
@@ -99,6 +103,9 @@ template <typename T> struct MoveReference<T,std::enable_if_t<std::is_lvalue_ref
         return v;
     }
 };
+
+#endif
+
 
 template <typename T>
 class Result
@@ -154,7 +161,12 @@ class Result
          */
         Result(
             Result&& other
-            ) : m_value(MoveReference<decltype(m_value)>::f(std::move(other.m_value))),
+            ) :
+#ifdef HATN_MOVE_REFERENCE
+                m_value(MoveReference<decltype(m_value)>::f(std::move(other.m_value))),
+#else
+                m_value(std::move(other.m_value)),
+#endif
                 m_error(std::move(other.m_error))
         {}
 
@@ -166,7 +178,11 @@ class Result
         {
             if (&other!=this)
             {
+#ifdef HATN_MOVE_REFERENCE
                 m_value=MoveReference<decltype(m_value)>::f(std::move(other.m_value));
+#else
+                m_value=std::move(other.m_value);
+#endif
                 m_error=std::move(other.m_error);
             }
             return *this;
@@ -184,7 +200,11 @@ class Result
          */
         T takeWrappedValue()
         {
+#ifdef HATN_MOVE_REFERENCE
             return MoveReference<decltype(m_value)>::f(std::move(m_value));
+#else
+            return std::move(m_value);
+#endif
         }
 
         /**
