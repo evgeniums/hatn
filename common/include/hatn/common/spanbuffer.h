@@ -264,7 +264,7 @@ class SpanBuffer
             auto p=span(bufData(),bufSize(),m_spanOffset,m_spanSize);
             if (!p.first)
             {
-                throw ErrorException(Error(CommonError::INVALID_SIZE));
+                throw ErrorException(commonError(CommonError::INVALID_SIZE));
             }
             return p.second;
         }
@@ -313,7 +313,7 @@ struct SpanBufferTraits
         auto view=buffer.view();
         if (view.size()<prefixSize)
         {
-            throw ErrorException(Error(CommonError::INVALID_SIZE));
+            throw ErrorException(commonError(CommonError::INVALID_SIZE));
         }
         prefix.set(view.data(),prefixSize);
         return SpanBuffer(view,prefixSize);
@@ -324,7 +324,7 @@ struct SpanBufferTraits
         auto view=buffer.view();
         if (view.size()<leftSize)
         {
-            throw ErrorException(Error(CommonError::INVALID_SIZE));
+            throw ErrorException(commonError(CommonError::INVALID_SIZE));
         }
         if (view.size()==leftSize)
         {
@@ -337,13 +337,13 @@ struct SpanBufferTraits
     {
         if (buffers.empty())
         {
-            throw ErrorException(Error(CommonError::INVALID_SIZE));
+            throw ErrorException(commonError(CommonError::INVALID_SIZE));
         }
 
         auto view=buffers.front().view();
         if (view.size()<prefixSize)
         {
-            throw ErrorException(Error(CommonError::INVALID_SIZE));
+            throw ErrorException(commonError(CommonError::INVALID_SIZE));
         }
 
         prefix.set(view.data(),prefixSize);

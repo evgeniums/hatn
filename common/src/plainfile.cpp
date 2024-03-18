@@ -43,7 +43,7 @@ Error PlainFile::open(const char *filename, Mode mode)
 {
     if (m_file.is_open())
     {
-        return Error(CommonError::FILE_ALREADY_OPEN);
+        return commonError(CommonError::FILE_ALREADY_OPEN);
     }
     boost::system::error_code ec;
     m_file.open(filename,mode,ec);
@@ -69,7 +69,7 @@ Error PlainFile::flush() noexcept
         if (fflush(m_file.native_handle())!=0) // stdio flush
 #endif
         {
-            return Error(CommonError::FILE_FLUSH_FAILED);
+            return commonError(CommonError::FILE_FLUSH_FAILED);
         }
     }
     return Error();

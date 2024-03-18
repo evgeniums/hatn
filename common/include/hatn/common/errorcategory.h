@@ -7,9 +7,9 @@
 */
 
 /****************************************************************************/
-/** @file common/errorcategory.h
+/** @file common/commonerrorcategory.h
   *
-  *     Contains declarations of error categories.
+  *     Contains declarations of error category for hatncommon lib.
   *
   */
 
@@ -19,41 +19,14 @@
 #define HATNERRORCATEGORY_H
 
 #include <string>
+#include <system_error>
 
 #include <hatn/common/common.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! Base class for error categories
-class HATN_COMMON_EXPORT ErrorCategory
-{
-    public:
-
-        //! Ctor
-        ErrorCategory()=default;
-
-        virtual ~ErrorCategory()=default;
-        ErrorCategory(const ErrorCategory&)=delete;
-        ErrorCategory(ErrorCategory&&) =delete;
-        ErrorCategory& operator=(const ErrorCategory&)=delete;
-        ErrorCategory& operator=(ErrorCategory&&) =delete;
-
-        //! Name of the category
-        virtual const char *name() const noexcept = 0;
-
-        //! Get description for the code
-        virtual std::string message(int code, const std::string& nativeMessage=std::string()) const = 0;
-
-        inline bool operator==(const ErrorCategory &rhs) const noexcept { return this == &rhs; }
-        inline bool operator!=(const ErrorCategory &rhs) const noexcept { return this != &rhs; }
-        inline bool operator<( const ErrorCategory &rhs ) const noexcept
-        {
-            return std::less<const ErrorCategory*>()( this, &rhs );
-        }
-};
-
 //! Common errors
-enum class CommonError : int
+enum class ErrorCodes : int
 {
     UNKNOWN=-1,
     OK=0,
@@ -69,8 +42,10 @@ enum class CommonError : int
     TIMEOUT=10
 };
 
-//! Generic error category
-class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
+using CommonError=ErrorCodes;
+
+//! Error category for hatncommonlib.
+class HATN_COMMON_EXPORT CommonErrorCategory : public std::error_category
 {
     public:
 
@@ -81,7 +56,7 @@ class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
         }
 
         //! Get description for the code
-        virtual std::string message(int code, const std::string& nativeMessage=std::string()) const override;
+        virtual std::string message(int code) const override;
 
         //! Get category
         static const CommonErrorCategory& getCategory() noexcept;

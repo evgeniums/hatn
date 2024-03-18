@@ -121,15 +121,15 @@ class WithPrepareClose : public WithTraits<Traits>,
          * @param callback Status of stream preparation
          */
         inline void prepare(
-            std::function<void (const common::Error &)> callback
+            std::function<void (const Error &)> callback
         )
         {
             this->traits().prepare(std::move(callback));
         }
 
         //! Close stream
-        inline void close(const std::function<void (const common::Error &)>& callback=
-                                std::function<void (const common::Error &)>())
+        inline void close(const std::function<void (const Error &)>& callback=
+                                std::function<void (const Error &)>())
         {
             if (this->m_closed)
             {
@@ -171,7 +171,7 @@ class Stream : public WithPrepareClose<Traits>
         inline void write(
             const char* data,
             std::size_t size,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             this->traits().write(data,size,std::move(callback));
@@ -185,7 +185,7 @@ class Stream : public WithPrepareClose<Traits>
         template <typename ContainerT>
         inline void write(
             const ContainerT& container,
-            std::function<void (const common::Error&,size_t)> callback,
+            std::function<void (const Error&,size_t)> callback,
             size_t offset=0,
             size_t size=0
         )
@@ -197,23 +197,23 @@ class Stream : public WithPrepareClose<Traits>
             }
             else
             {
-                callback(common::Error(CommonError::INVALID_SIZE),0);
+                callback(commonError(CommonError::INVALID_SIZE),0);
             }
         }
 
         //! Write managed buffer to stream
         inline void write(
             SpanBuffer buffer,
-            std::function<void (const common::Error&,size_t,SpanBuffer)> callback
+            std::function<void (const Error&,size_t,SpanBuffer)> callback
         )
         {
             auto span=buffer.span();
             if (!span.first)
             {
-                callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffer));
+                callback(commonError(CommonError::INVALID_SIZE),0,std::move(buffer));
                 return;
             }
-            auto&& cb=[buffer{std::move(buffer)},callback{std::move(callback)}](const common::Error& ec,size_t size) mutable
+            auto&& cb=[buffer{std::move(buffer)},callback{std::move(callback)}](const Error& ec,size_t size) mutable
             {
                 callback(ec,size,std::move(buffer));
             };
@@ -223,7 +223,7 @@ class Stream : public WithPrepareClose<Traits>
         //! Write scattered buffers to stream
         inline void write(
             SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,SpanBuffers)> callback
+            std::function<void (const Error&,size_t,SpanBuffers)> callback
         )
         {
             this->traits().write(std::move(buffers),std::move(callback));
@@ -233,7 +233,7 @@ class Stream : public WithPrepareClose<Traits>
         inline void read(
             char* data,
             std::size_t maxSize,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             this->traits().read(data,maxSize,std::move(callback));
@@ -261,8 +261,8 @@ class StreamGatherTraits : public Traits
 
         //! Write scattered buffers to stream
         inline void write(
-            common::SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,common::SpanBuffers)> callback
+            SpanBuffers buffers,
+            std::function<void (const Error&,size_t,SpanBuffers)> callback
         )
         {
             writeNext(0,std::move(buffers),std::move(callback),0,0);
@@ -273,15 +273,15 @@ class StreamGatherTraits : public Traits
         //! Write next buffer to stream or continue writing current buffer from offset
         void writeNext(
             size_t index,
-            common::SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,common::SpanBuffers)> callback,
+            SpanBuffers buffers,
+            std::function<void (const Error&,size_t,SpanBuffers)> callback,
             size_t currentOffset,
             size_t sentSize
         )
         {
             if (index==buffers.size())
             {
-                callback(common::Error(),sentSize,std::move(buffers));
+                callback(Error(),sentSize,std::move(buffers));
                 return;
             }
 
@@ -289,14 +289,14 @@ class StreamGatherTraits : public Traits
             auto span=current.span();
             if (!span.first)
             {
-                callback(common::Error(common::CommonError::INVALID_SIZE),sentSize,std::move(buffers));
+                callback(commonError(CommonError::INVALID_SIZE),sentSize,std::move(buffers));
                 return;
             }
 
             this->write(span.second.data()+currentOffset,span.second.size()-currentOffset,
                 [this,index,currentOffset,sentSize,
                 buffers{std::move(buffers)}, callback{std::move(callback)}]
-                (const common::Error& ec,size_t transferred) mutable
+                (const Error& ec,size_t transferred) mutable
                 {
                     if (ec)
                     {
@@ -352,8 +352,8 @@ class StreamChain
 {
     public:
 
-        using ResultCb=std::function<void (const common::Error&,size_t)>;
-        using OpCb=std::function<void (const common::Error&)>;
+        using ResultCb=std::function<void (const Error&,size_t)>;
+        using OpCb=std::function<void (const Error&)>;
 
         using WriteFn=std::function<
                             void (
@@ -455,42 +455,42 @@ class StreamV
         virtual void write(
             const char* data,
             std::size_t size,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             std::ignore=data;
             std::ignore=size;
-            callback(Error(CommonError::UNSUPPORTED),0);
+            callback(commonError(CommonError::UNSUPPORTED),0);
         }
 
         //! Write scattered buffers to stream
         virtual void write(
             SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,SpanBuffers)> callback
+            std::function<void (const Error&,size_t,SpanBuffers)> callback
         )
         {
-            callback(Error(CommonError::UNSUPPORTED),0,std::move(buffers));
+            callback(commonError(CommonError::UNSUPPORTED),0,std::move(buffers));
         }
 
         //! Write buffer to stream
         virtual void write(
             SpanBuffer buffer,
-            std::function<void (const common::Error&,size_t,SpanBuffer)> callback
+            std::function<void (const Error&,size_t,SpanBuffer)> callback
         )
         {
-            callback(Error(CommonError::UNSUPPORTED),0,std::move(buffer));
+            callback(commonError(CommonError::UNSUPPORTED),0,std::move(buffer));
         }
 
         //! Read from stream
         virtual void read(
             char* data,
             std::size_t maxSize,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             std::ignore=data;
             std::ignore=maxSize;
-            callback(Error(CommonError::UNSUPPORTED),0);
+            callback(commonError(CommonError::UNSUPPORTED),0);
         }
 
         /**
@@ -498,15 +498,15 @@ class StreamV
          * @param callback Status of stream preparation
          */
         virtual void prepare(
-            std::function<void (const common::Error &)> callback
+            std::function<void (const Error &)> callback
         )
         {
             callback(Error());
         }
 
         //! Close stream
-        virtual void close(const std::function<void (const common::Error &)>& callback=
-                                std::function<void (const common::Error &)>())
+        virtual void close(const std::function<void (const Error &)>& callback=
+                                std::function<void (const Error &)>())
         {
             if (callback)
             {
@@ -604,7 +604,7 @@ class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
         virtual void write(
             const char* data,
             std::size_t size,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         ) override
         {
             this->impl().write(data,size,std::move(callback));
@@ -613,7 +613,7 @@ class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
         //! Write scattered buffers to stream
         virtual void write(
             SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,SpanBuffers)> callback
+            std::function<void (const Error&,size_t,SpanBuffers)> callback
         ) override
         {
             this->impl().write(std::move(buffers),std::move(callback));
@@ -622,7 +622,7 @@ class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
         //! Write buffer to stream
         virtual void write(
             SpanBuffer buffer,
-            std::function<void (const common::Error&,size_t,SpanBuffer)> callback
+            std::function<void (const Error&,size_t,SpanBuffer)> callback
         ) override
         {
             this->impl().write(std::move(buffer),std::move(callback));
@@ -632,7 +632,7 @@ class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
         virtual void read(
             char* data,
             std::size_t maxSize,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         ) override
         {
             this->impl().read(data,maxSize,std::move(callback));
@@ -643,15 +643,15 @@ class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
          * @param callback Status of stream preparation
          */
         virtual void prepare(
-            std::function<void (const common::Error &)> callback
+            std::function<void (const Error &)> callback
         ) override
         {
             this->impl().prepare(std::move(callback));
         }
 
         //! Close stream
-        virtual void close(const std::function<void (const common::Error &)>& callback=
-                                std::function<void (const common::Error &)>()) override
+        virtual void close(const std::function<void (const Error &)>& callback=
+                                std::function<void (const Error &)>()) override
         {
             this->impl().close(callback);
         }

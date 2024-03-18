@@ -327,7 +327,7 @@ class File
                 auto readSize=read(container.data(),static_cast<size_t>(fileSize));
                 if (readSize!=static_cast<size_t>(fileSize))
                 {
-                    throw ErrorException(Error(CommonError::FILE_READ_FAILED));
+                    throw ErrorException(commonError(CommonError::FILE_READ_FAILED));
                 }
                 Error ec;
                 close(ec);

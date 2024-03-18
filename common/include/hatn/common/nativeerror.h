@@ -36,7 +36,7 @@ class HATN_COMMON_EXPORT NativeError
         //! Ctor
         NativeError(
                 int value,
-                const ErrorCategory* category=&CommonErrorCategory::getCategory(),
+                const std::error_category* category=&CommonErrorCategory::getCategory(),
                 bool notNull=true
             ) : m_value(value),
                 m_category(category),
@@ -58,11 +58,12 @@ class HATN_COMMON_EXPORT NativeError
         //! Message
         std::string message() const
         {
-            if (m_category!=nullptr)
+            auto msg=nativeMessage();
+            if (msg.empty() && m_category!=nullptr)
             {
-                return m_category->message(m_value,nativeMessage());
+                msg=m_category->message(m_value);
             }
-            return nativeMessage();
+            return msg;
         }
 
         //! Code
@@ -84,7 +85,7 @@ class HATN_COMMON_EXPORT NativeError
         }
 
         //! Get category
-        const ErrorCategory* getCategory() const noexcept
+        const std::error_category* category() const noexcept
         {
             return m_category;
         }
@@ -92,7 +93,7 @@ class HATN_COMMON_EXPORT NativeError
         //! Compare with other error
         inline bool isEqual(const NativeError& other) const noexcept
         {
-            if (other.getCategory()!=this->getCategory()
+            if (other.category()!=this->category()
                ||
                 other.value()!=this->value()
                )
@@ -135,7 +136,7 @@ class HATN_COMMON_EXPORT NativeError
     private:
 
         int m_value;
-        const ErrorCategory* m_category;
+        const std::error_category* m_category;
         bool m_notNull;
 };
 

@@ -126,7 +126,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
             }
             else if (future.wait_for(std::chrono::milliseconds(timeoutMs))==std::future_status::timeout)
             {
-                throw ErrorException(Error(CommonError::TIMEOUT));
+                throw ErrorException(commonError(CommonError::TIMEOUT));
             }
             return future.get();
         }

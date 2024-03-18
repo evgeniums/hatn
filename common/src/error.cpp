@@ -57,47 +57,44 @@ const CommonErrorCategory& CommonErrorCategory::getCategory() noexcept
 }
 
 //---------------------------------------------------------------
-std::string CommonErrorCategory::message(int code, const std::string& nativeMessage) const
+std::string CommonErrorCategory::message(int code) const
 {
-    std::string result=nativeMessage;
-    if (result.empty())
+    std::string result;
+    switch (code)
     {
-        switch (code)
-        {
-            case (static_cast<int>(CommonError::OK)):
-                result=_TR("OK");
-            break;
-            case (static_cast<int>(CommonError::INVALID_SIZE)):
-                result=_TR("Invalid size");
-            break;
-            case (static_cast<int>(CommonError::INVALID_ARGUMENT)):
-                result=_TR("Invalid argument");
-            break;
-            case (static_cast<int>(CommonError::UNSUPPORTED)):
-                result=_TR("Operation is not supported");
-            break;
-            case (static_cast<int>(CommonError::INVALID_FILENAME)):
-                result=_TR("Invalide file name");
-            break;
-            case (static_cast<int>(CommonError::FILE_FLUSH_FAILED)):
-                result=_TR("Failed to flush file");
-            break;
-            case (static_cast<int>(CommonError::FILE_ALREADY_OPEN)):
-                result=_TR("File is already open");
-            break;
-            case (static_cast<int>(CommonError::FILE_WRITE_FAILED)):
-                result=_TR("Failed to write file");
-            break;
-            case (static_cast<int>(CommonError::FILE_NOT_OPEN)):
-                result=_TR("File not open");
-            break;
-            case (static_cast<int>(CommonError::TIMEOUT)):
-                result=_TR("Operation timeout");
-            break;
+        case (static_cast<int>(CommonError::OK)):
+            result=_TR("OK");
+        break;
+        case (static_cast<int>(CommonError::INVALID_SIZE)):
+            result=_TR("Invalid size");
+        break;
+        case (static_cast<int>(CommonError::INVALID_ARGUMENT)):
+            result=_TR("Invalid argument");
+        break;
+        case (static_cast<int>(CommonError::UNSUPPORTED)):
+            result=_TR("Operation is not supported");
+        break;
+        case (static_cast<int>(CommonError::INVALID_FILENAME)):
+            result=_TR("Invalide file name");
+        break;
+        case (static_cast<int>(CommonError::FILE_FLUSH_FAILED)):
+            result=_TR("Failed to flush file");
+        break;
+        case (static_cast<int>(CommonError::FILE_ALREADY_OPEN)):
+            result=_TR("File is already open");
+        break;
+        case (static_cast<int>(CommonError::FILE_WRITE_FAILED)):
+            result=_TR("Failed to write file");
+        break;
+        case (static_cast<int>(CommonError::FILE_NOT_OPEN)):
+            result=_TR("File not open");
+        break;
+        case (static_cast<int>(CommonError::TIMEOUT)):
+            result=_TR("Operation timeout");
+        break;
 
-            default:
-                result=_TR("Unknown error");
-        }
+        default:
+            result=_TR("Unknown error");
     }
     return result;
 }

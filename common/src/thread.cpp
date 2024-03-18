@@ -405,9 +405,9 @@ Error Thread::execSync(
     else if (future.wait_for(std::chrono::milliseconds(timeoutMs))==std::future_status::timeout)
     {
         HATN_DEBUG(thread,"Timeout in execSync()");
-        return Error(CommonError::TIMEOUT);
+        return commonError(CommonError::TIMEOUT);
     }
-    return Error(CommonError::OK);
+    return Error();
 }
 
 //---------------------------------------------------------------
