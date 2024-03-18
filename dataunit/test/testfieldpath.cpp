@@ -1,5 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
+#include <hatn/validator/validator.hpp>
+
 #include <hatn/common/logger.h>
 #include <hatn/test/multithreadfixture.h>
 
