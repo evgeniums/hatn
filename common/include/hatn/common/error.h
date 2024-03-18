@@ -278,9 +278,10 @@ HATN_COMMON_NAMESPACE_END
 HATN_NAMESPACE_BEGIN
 
 using Error=common::Error;
+using CommonError=common::CommonError;
 
 //! Create Error object from common error code.
-inline common::Error commonError(ErrorCodes code) noexcept
+inline common::Error commonError(CommonError code) noexcept
 {
     return common::Error(static_cast<int>(code));
 }
