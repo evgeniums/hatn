@@ -63,7 +63,7 @@ template <typename T> struct valuesAs
 {
     static Result<T> f(const config_tree::HolderT&) noexcept
     {
-        return errorResult(ErrorCode::INVALID_TYPE);
+        return baseErrorResult(BaseError::INVALID_TYPE);
     }
 };
 
@@ -241,7 +241,7 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_type)
         {
-            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_value));
     }
@@ -250,12 +250,12 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_defaultType)
         {
-            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
 
-    return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
+    return Result<valueT>{baseErrorResult(BaseError::VALUE_NOT_SET)};
 }
 
 template <typename T>
@@ -290,11 +290,11 @@ auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_defaultType)
         {
-            return Result<valueT>{errorResult(ErrorCode::INVALID_TYPE)};
+            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
-    return Result<valueT>{errorResult(ErrorCode::VALUE_NOT_SET)};
+    return Result<valueT>{baseErrorResult(BaseError::VALUE_NOT_SET)};
 }
 
 template <typename T>

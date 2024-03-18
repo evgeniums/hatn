@@ -39,7 +39,9 @@ enum class ErrorCodes : int
     FILE_WRITE_FAILED=7,
     FILE_READ_FAILED=8,
     FILE_NOT_OPEN=9,
-    TIMEOUT=10
+    TIMEOUT=10,
+    RESULT_ERROR=11,
+    RESULT_NOT_ERROR=12
 };
 
 using CommonError=ErrorCodes;

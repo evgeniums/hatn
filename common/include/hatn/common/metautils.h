@@ -375,6 +375,25 @@ HATN_COMMON_NAMESPACE_BEGIN
         using type=const typename std::pointer_traits<T>::element_type*;
     };
 }
+
+    //! Helper for moving references.
+    template <typename T, typename T1=void> struct MoveReference
+    {
+        template <typename T2>
+        constexpr static auto f(T2&& v) -> decltype(auto)
+        {
+            return static_cast<T2&&>(v);
+        }
+    };
+
+    template <typename T> struct MoveReference<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
+    {
+        template <typename T2>
+        constexpr static T f(T2&& v)
+        {
+            return v;
+        }
+    };
 }
 
 #endif // HATNMETAUTILS_H

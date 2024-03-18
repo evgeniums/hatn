@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(IntValue)
     auto intR1=t1.as<int64_t>();
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
-    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
 
     // set int64
     int64_t int64_1{0x1122334455667788};
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(IntValue)
     auto val=t1.as<int64_t>(ec);
     std::ignore=val;
     BOOST_CHECK(static_cast<bool>(ec));
-    BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
 
     BOOST_CHECK_THROW(t1.asThrows<int64_t>(),common::ErrorException);
 }
@@ -307,11 +307,11 @@ BOOST_AUTO_TEST_CASE(DefaultValue)
     auto intR1=t1.as<int64_t>();
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
-    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
     intR1=t1.getDefault<int64_t>();
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
-    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
 
     // set default
     t1.setDefault(123);
@@ -338,17 +338,17 @@ BOOST_AUTO_TEST_CASE(DefaultValue)
     intR1=t1.as<int64_t>();
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
-    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
     intR1=t1.getDefault<int64_t>();
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
-    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
     BOOST_CHECK_THROW(t1.getDefaultThrows<int64_t>(),common::ErrorException);
     common::Error ec;
     auto val=t1.getDefault<int64_t>(ec);
     std::ignore=val;
     BOOST_CHECK(static_cast<bool>(ec));
-    BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::ErrorCode::VALUE_NOT_SET));
+    BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
 }
 
 BOOST_AUTO_TEST_CASE(BoolValue)
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(BoolValue)
     // try to read int32_t
     auto r3=t1.as<int32_t>();
     BOOST_CHECK(!r3.isValid());
-    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::BaseError::INVALID_TYPE));
 }
 
 BOOST_AUTO_TEST_CASE(FloatingValue, *boost::unit_test::tolerance(0.000001))
@@ -429,7 +429,7 @@ BOOST_AUTO_TEST_CASE(FloatingValue, *boost::unit_test::tolerance(0.000001))
     // try to read int32_t
     auto r3=t1.as<int32_t>();
     BOOST_CHECK(!r3.isValid());
-    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::BaseError::INVALID_TYPE));
 }
 
 BOOST_AUTO_TEST_CASE(StringValue)
@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(StringValue)
     // try to read int32_t
     auto r3=t1.as<int32_t>();
     BOOST_CHECK(!r3.isValid());
-    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::ErrorCode::INVALID_TYPE));
+    BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::BaseError::INVALID_TYPE));
 }
 #if 1
 BOOST_AUTO_TEST_CASE(MapValue)

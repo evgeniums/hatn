@@ -22,6 +22,7 @@
 #define HATNBASEERROR_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/result.h>
 
 #include <hatn/base/base.h>
 #include <hatn/base/baseerrorcodes.h>
@@ -46,10 +47,24 @@ public:
     static const BaseErrorCategory& getCategory() noexcept;
 };
 
-//! Make error object from code.
-inline common::Error baseError(BaseError code) noexcept
+/**
+ * @brief Make error object from code..
+ * @param code BaseError code.
+ * @return Error object.
+ */
+inline Error baseError(BaseError code) noexcept
 {
-    return common::Error(static_cast<int>(code),&BaseErrorCategory::getCategory());
+    return Error(static_cast<int>(code),&BaseErrorCategory::getCategory());
+}
+
+/**
+ * @brief Make ErrorResult from baseError
+ * @param code BaseError code
+ * @return ErrorResult
+ */
+inline ErrorResult baseErrorResult(BaseError code) noexcept
+{
+    return ErrorResult{baseError(code)};
 }
 
 HATN_BASE_NAMESPACE_END

@@ -31,7 +31,6 @@
 
 #include <hatn/base/base.h>
 #include <hatn/base/baseerror.h>
-#include <hatn/base/result.h>
 
 HATN_BASE_NAMESPACE_BEGIN
 
@@ -178,7 +177,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> auto getDefaultThrows() const -> decltype(auto);
         template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
         template <typename T> auto getDefault() const noexcept -> decltype(auto);
-#if 1
+
         void toMap()
         {
             m_type=Type::Map;
@@ -190,11 +189,11 @@ class HATN_BASE_EXPORT ConfigTreeValue
         {
             if (!static_cast<bool>(m_value))
             {
-                return errorResult(ErrorCode::VALUE_NOT_SET);
+                return baseErrorResult(BaseError::VALUE_NOT_SET);
             }
             if (m_type!=Type::Map)
             {
-                return errorResult(ErrorCode::INVALID_TYPE);
+                return baseErrorResult(BaseError::INVALID_TYPE);
             }
 
             return common::lib::variantGet<config_tree::MapT>(m_value.value());
@@ -204,11 +203,11 @@ class HATN_BASE_EXPORT ConfigTreeValue
         {
             if (!static_cast<bool>(m_value))
             {
-                return errorResult(ErrorCode::VALUE_NOT_SET);
+                return baseErrorResult(BaseError::VALUE_NOT_SET);
             }
             if (m_type!=Type::Map)
             {
-                return errorResult(ErrorCode::INVALID_TYPE);
+                return baseErrorResult(BaseError::INVALID_TYPE);
             }
 
             return common::lib::variantGet<config_tree::MapT>(m_value.value());
@@ -257,7 +256,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
             return r.takeValue();
         }
-#endif
+
     private:
 
         Type m_type;
