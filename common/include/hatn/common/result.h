@@ -104,6 +104,14 @@ class Result
         using type=T;
 
         /**
+         * @brief Constructor with value emplacement.
+         * @param args Arguments to value constructor.
+         */
+        template <typename ...Args>
+        Result(Args&& ...args) : m_value(std::forward<Args>(args)...)
+        {}
+
+        /**
          * @brief Constructor with value.
          * @param value Result value to wrap.
          */
@@ -676,6 +684,7 @@ struct MakeResultImpl
             );
     }
 };
+
 }
 
 HATN_COMMON_NAMESPACE_END
@@ -686,6 +695,12 @@ template <typename T1, typename T2=void>
 using Result=common::Result<T1,T2>;
 using ErrorResult=common::Result<Error>;
 constexpr common::result_detail::MakeResultImpl makeResult{};
+
+template <typename T, typename ...Args>
+auto emplaceResult(Args&& ...args) -> decltype(auto)
+{
+    return Result<T>(std::forward<Args>(args)...);
+}
 
 HATN_NAMESPACE_END
 

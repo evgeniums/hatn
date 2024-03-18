@@ -19,6 +19,7 @@ SET(TEST_SOURCES
     ${COMMON_TEST_SRC}/testmemorypool.cpp
     ${COMMON_TEST_SRC}/testpoolmemoryresource.cpp
     ${COMMON_TEST_SRC}/testflatmap.cpp
+    ${COMMON_TEST_SRC}/testresult.cpp
 )
 
 IF(ENABLE_TRANSLATIONS)
