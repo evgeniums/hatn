@@ -172,13 +172,13 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> void setDefault(T value);
 
         template <typename T> auto asThrows() const -> decltype(auto);
-        template <typename T> const T& as(common::Error& ec) const noexcept;
+        template <typename T> auto as(common::Error& ec) const noexcept -> decltype(auto);
         template <typename T> auto as() const noexcept -> decltype(auto);
 
         template <typename T> auto getDefaultThrows() const -> decltype(auto);
         template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
         template <typename T> auto getDefault() const noexcept -> decltype(auto);
-
+#if 1
         void toMap()
         {
             m_type=Type::Map;
@@ -223,7 +223,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
                 ec=r.error();
                 return v;
             }
-            return r.value();
+            return r.takeValue();
         }
 
         config_tree::MapT& asMap(common::Error& ec) noexcept
@@ -235,7 +235,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
                 ec=r.error();
                 return v;
             }
-            return r.value();
+            return r.takeValue();
         }
 
         const config_tree::MapT& asMapThrows() const
@@ -245,7 +245,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             {
                 throw common::ErrorException{r.error()};
             }
-            return r.value();
+            return r.takeValue();
         }
 
         config_tree::MapT& asMapThrows()
@@ -255,9 +255,9 @@ class HATN_BASE_EXPORT ConfigTreeValue
             {
                 throw common::ErrorException{r.error()};
             }
-            return r.value();
+            return r.takeValue();
         }
-
+#endif
     private:
 
         Type m_type;

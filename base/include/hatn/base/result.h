@@ -26,7 +26,6 @@
 #include <boost/hana.hpp>
 
 #include <hatn/common/error.h>
-#include <hatn/validator/utils/object_wrapper.hpp>
 
 #include <hatn/base/base.h>
 #include <hatn/base/baseerror.h>
@@ -63,34 +62,41 @@ struct ResultTag
     }
 };
 
-
 template <typename T, typename T1=void>
 struct DefaultResult
 {
-    constexpr static const auto storage=std::decay_t<T>{};
-    constexpr static const std::decay_t<T>* value()
+    static const std::decay_t<T>* value()
     {
+        static auto storage=std::decay_t<T>{};
         return &storage;
-    }
-};
-
-template <typename T>
-struct DefaultResult<T,std::enable_if_t<std::is_reference<T>::value && std::is_const<std::remove_reference_t<T>>::value>>
-{
-    constexpr static const char storage[sizeof(T)]={0};
-    constexpr static const std::decay_t<T>* value()
-    {
-        return reinterpret_cast<const std::decay_t<T>*>(storage);
     }
 };
 
 template <typename T>
 struct DefaultResult<T,std::enable_if_t<std::is_reference<T>::value && !std::is_const<std::remove_reference_t<T>>::value>>
 {
-    constexpr static const char storage[sizeof(T)]={0};
-    constexpr static std::decay_t<T>* value()
+    static std::decay_t<T>* value()
     {
-        return reinterpret_cast<std::decay_t<T>*>(const_cast<char*>(storage));
+        static auto storage=std::decay_t<T>{};
+        return &storage;
+    }
+};
+
+template <typename T, typename T1=void> struct MoveReference
+{
+    template <typename T2>
+    constexpr static auto f(T2&& v) -> decltype(auto)
+    {
+        return static_cast<T2&&>(v);
+    }
+};
+
+template <typename T> struct MoveReference<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
+{
+    template <typename T2>
+    constexpr static T f(T2&& v)
+    {
+        return v;
     }
 };
 
@@ -148,7 +154,7 @@ class Result
          */
         Result(
             Result&& other
-            ) : m_value(std::move(other.m_value)),
+            ) : m_value(MoveReference<decltype(m_value)>::f(std::move(other.m_value))),
                 m_error(std::move(other.m_error))
         {}
 
@@ -160,7 +166,7 @@ class Result
         {
             if (&other!=this)
             {
-                m_value=std::move(other.m_value);
+                m_value=MoveReference<decltype(m_value)>::f(std::move(other.m_value));
                 m_error=std::move(other.m_error);
             }
             return *this;
@@ -173,39 +179,25 @@ class Result
         Result& operator =(const Result&)=delete;
 
         /**
-         * @brief Get const reference to value.
-         * @return Constant reference to wrapped value.
-        */
-        const std::remove_reference_t<T>& value() const
-        {
-            if (!isValid())
-            {
-                throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
-            }
-            return m_value;
-        }
-
-        /**
-         * @brief Get const reference to value without checking for error.
-         * Use it with care.
-         * @return Constant reference to wrapped value.
-        */
-        const std::remove_reference_t<T>& underlyingValue() const
-        {
-            return m_value;
-        }
-
-        /**
-         * @brief Get reference to value.
-         * @return Reference to wrapped value.
+         * @brief Take wrapped value.
+         * @return Moves wrapped value to caller.
          */
-        std::remove_reference_t<T>& value()
+        T takeWrappedValue()
+        {
+            return MoveReference<decltype(m_value)>::f(std::move(m_value));
+        }
+
+        /**
+         * @brief Take wrapped value.
+         * @return Wrapped value if result is not error, throws otherwise.
+         */
+        T takeValue()
         {
             if (!isValid())
             {
                 throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
             }
-            return m_value;
+            return takeWrappedValue();
         }
 
         //! Check if result is valid.
@@ -300,38 +292,25 @@ public:
     Result& operator =(const Result&)=delete;
 
     /**
-     * @brief Get const reference to value.
-     * @return Constant reference to wrapped value.
-    */
-    const common::Error& value() const
-    {
-        if (!isValid())
-        {
-            throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
-        }
-        return m_error;
-    }
-
-    /**
-     * @brief Get const reference to value without checking for error.
-     * @return Constant reference to wrapped value.
-    */
-    const common::Error& underlyingValue() const
+     * @brief Take wrapped value.
+     * @return Moves wrapped value to caller.
+     */
+    common::Error& takeWrappedValue()
     {
         return m_error;
     }
 
     /**
-     * @brief Get reference to value.
-     * @return Reference to wrapped value.
-    */
-    common::Error& value()
+     * @brief Take wrapped value.
+     * @return Wrapped value if result is not error, throws otherwise.
+     */
+    common::Error& takeValue()
     {
         if (!isValid())
         {
             throw common::ErrorException{makeError(ErrorCode::RESULT_ERROR)};
         }
-        return m_error;
+        return takeWrappedValue();
     }
 
     //! Check if result is valid.
