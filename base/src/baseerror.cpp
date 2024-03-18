@@ -33,37 +33,35 @@ const BaseErrorCategory& BaseErrorCategory::getCategory() noexcept
 }
 
 //---------------------------------------------------------------
-std::string BaseErrorCategory::message(int code, const std::string& nativeMessage) const
+std::string BaseErrorCategory::message(int code) const
 {
-    std::string result=nativeMessage;
-    if (result.empty())
+    std::string result;
+    switch (code)
     {
-        switch (code)
-        {
-        case (static_cast<int>(ErrorCode::OK)):
+        case (static_cast<int>(BaseError::OK)):
             result=common::CommonErrorCategory::getCategory().message(code);
             break;
 
-        case (static_cast<int>(ErrorCode::VALUE_NOT_SET)):
+        case (static_cast<int>(BaseError::VALUE_NOT_SET)):
             result=common::_TR("Value not set","base");
             break;
 
-        case (static_cast<int>(ErrorCode::INVALID_TYPE)):
+        case (static_cast<int>(BaseError::INVALID_TYPE)):
             result=common::_TR("Invalid type","base");
             break;
 
-        case (static_cast<int>(ErrorCode::RESULT_ERROR)):
+        case (static_cast<int>(BaseError::RESULT_ERROR)):
             result=common::_TR("Cannot get value of error result","base");
             break;
 
-        case (static_cast<int>(ErrorCode::RESULT_NOT_ERROR)):
+        case (static_cast<int>(BaseError::RESULT_NOT_ERROR)):
         result=common::_TR("Cannot move not error result","base");
         break;
 
         default:
             result=common::_TR("Unknown error");
-        }
     }
+
     return result;
 }
 

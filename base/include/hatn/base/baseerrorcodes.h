@@ -27,7 +27,7 @@
 HATN_BASE_NAMESPACE_BEGIN
 
 //! Error codes of hatnbase lib.
-enum class ErrorCode : int
+enum class BaseError : int
 {
     OK=static_cast<int>(common::CommonError::OK),
     INVALID_TYPE,

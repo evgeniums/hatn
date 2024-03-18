@@ -29,7 +29,7 @@
 HATN_BASE_NAMESPACE_BEGIN
 
 //! Error category for hatnbase.
-class HATN_BASE_EXPORT BaseErrorCategory : public common::ErrorCategory
+class HATN_BASE_EXPORT BaseErrorCategory : public std::error_category
 {
 public:
 
@@ -40,14 +40,14 @@ public:
     }
 
     //! Get description for the code
-    virtual std::string message(int code, const std::string& nativeMessage=std::string()) const;
+    virtual std::string message(int code) const override;
 
     //! Get category
     static const BaseErrorCategory& getCategory() noexcept;
 };
 
 //! Make error object from code.
-inline common::Error makeError(ErrorCode code) noexcept
+inline common::Error baseError(BaseError code) noexcept
 {
     return common::Error(static_cast<int>(code),&BaseErrorCategory::getCategory());
 }
