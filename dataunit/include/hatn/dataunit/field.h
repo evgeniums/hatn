@@ -160,9 +160,11 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
     protected:
 
         //! Load field from wire
+        //! @todo Use Error with NativeError.
         virtual bool doLoad(WireData&,AllocatorFactory*)=0;
 
         //! Store field to wire
+        //! @todo Use Error with NativeError.
         virtual bool doStore(WireData&) const = 0;
 
         bool m_set=false;

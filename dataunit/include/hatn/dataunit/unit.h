@@ -111,6 +111,7 @@ class HATN_DATAUNIT_EXPORT Unit
         void fillFieldNamesTable(common::pmr::map<FieldNamesKey,Field*>& table);
 
         //! Parse DataUnit from plain data buffer
+        //! @todo Use Error with NativeError.
         bool parse(
             const char* data,
             size_t size,
@@ -118,6 +119,7 @@ class HATN_DATAUNIT_EXPORT Unit
         );
 
         //! Parse DataUnit from container
+        //! @todo Use Error with NativeError.
         bool parse(
                 const common::ByteArray& container,
                 bool inlineBuffer=true
@@ -132,6 +134,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param topLevel Is this top level unit
          * @return Parsing status
          *
+         * @todo Use Error with NativeError.
          * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "parse"
          *
          */
@@ -146,6 +149,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param topLevel This DataUnit is either top level (true) or embedded DataUnit (false)
          * @return Size of serialized data or -1 if failed
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          */
         int serialize(
@@ -160,6 +164,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param checkSize Check if bufSize is enough to store serialized data
          * @return Size of serialized data or -1 if failed
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          */
         int serialize(
@@ -173,6 +178,8 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param container Target container
          * @param offsetOut Offest in target container
          * @return Operation status
+         *
+         * @todo Use Error with NativeError.
          */
         template <typename ContainerT>
         bool serialize(ContainerT& container,
@@ -277,6 +284,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param errorMessage Error message if JSON parsing failed
          * @return True on success
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          *
          */
@@ -292,6 +300,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          *
          */
@@ -307,6 +316,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          *
          */
@@ -322,6 +332,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          */
         bool toJSON(std::vector<char>& buf,bool prettyFormat=false, int maxDecimalPlaces=0) const;
@@ -334,6 +345,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return JSON string
          *
+         * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          */
         std::string toString(bool prettyFormat=false,int maxDecimalPlaces=0) const;
@@ -349,6 +361,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param str JSON formatted string
          * @return Status of parsing
          *
+         * @todo Use Error with NativeError.
          * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "json-parse"
          */
         bool loadFromJSON(const common::lib::string_view& str);
