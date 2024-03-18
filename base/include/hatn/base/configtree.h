@@ -29,9 +29,11 @@
 
 HATN_BASE_NAMESPACE_BEGIN
 
-class HATN_BASE_EXPORT ConfigTree
+class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 {
     public:
+
+        using ConfigTreeValue::ConfigTreeValue;
 };
 
 

@@ -480,7 +480,7 @@ BOOST_AUTO_TEST_CASE(StringValue)
     BOOST_CHECK(!r3.isValid());
     BOOST_CHECK_EQUAL(r3.error().value(),static_cast<int>(base::BaseError::INVALID_TYPE));
 }
-#if 1
+
 BOOST_AUTO_TEST_CASE(MapValue)
 {
     const ConfigTreeValue constV1;
@@ -498,6 +498,18 @@ BOOST_AUTO_TEST_CASE(MapValue)
     auto m2=t1.asMap();
     BOOST_CHECK(!static_cast<bool>(m2));
     BOOST_CHECK(m2.isValid());
+
+    auto& mm2=m2.takeValue();
+    mm2["one"]=std::make_shared<ConfigTree>();
+    mm2["one"]->set("Hello world!");
+
+    const auto& t2=t1;
+    auto m3=t2.asMap();
+    BOOST_CHECK(!static_cast<bool>(m3));
+    BOOST_CHECK(m3.isValid());
+    const auto& mm3=m3.takeValue();
+    BOOST_CHECK_EQUAL(std::string("Hello world!"),mm3.at("one")->as<std::string>().takeValue());
+    BOOST_CHECK_EQUAL(std::string("Hello world!"),t2.asMap().takeValue().at("one")->as<std::string>().takeValue());
 }
-#endif
+
 BOOST_AUTO_TEST_SUITE_END()
