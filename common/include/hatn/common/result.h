@@ -200,6 +200,90 @@ class Result
             return takeWrappedValue();
         }
 
+        /**
+         * @brief Dereference operator ->.
+         * @return Poniter to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator->() const -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return &m_value;
+        }
+
+        /**
+         * @brief Dereference operator *.
+         * @return Wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        const T& operator*() const
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Dereference operator ->.
+         * @return Poniter to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator->() -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return &m_value;
+        }
+
+        /**
+         * @brief Dereference operator *.
+         * @return Wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        T& operator*()
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Get const reference to value.
+         * @return Const reference to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        const T& value() const
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Get reference to value.
+         * @return Reference to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        T& value()
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
         //! Check if result is valid.
         bool isValid() const noexcept
         {
@@ -334,6 +418,90 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
                 throw ErrorException{commonError(CommonError::RESULT_ERROR)};
             }
             return takeWrappedValue();
+        }
+
+        /**
+         * @brief Dereference operator ->.
+         * @return Poniter to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator->() const -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return &m_value;
+        }
+
+        /**
+         * @brief Dereference operator *.
+         * @return Wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator*() const -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Dereference operator ->.
+         * @return Poniter to wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator->() -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return &m_value;
+        }
+
+        /**
+         * @brief Dereference operator *.
+         * @return Wrapped value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto operator*() -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Get value.
+         * @return Wrapped reference value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto value() const -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
+        }
+
+        /**
+         * @brief Get value.
+         * @return Wrapped reference value if result is not error, throws otherwise.
+         * @throws ErrorException if result is not valid.
+         */
+        auto value() -> decltype(auto)
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+            return m_value;
         }
 
         //! Check if result is valid.

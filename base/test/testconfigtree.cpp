@@ -157,6 +157,39 @@ BOOST_AUTO_TEST_CASE(ResultMoveConstructor)
         auto r2=std::move(r1);
         BOOST_CHECK_EQUAL(r2.takeValue().value,1);
     }
+
+    BOOST_TEST_MESSAGE("Hold value use value()");
+    {
+        auto r1=makeResult(TestStruct{1});
+        auto& val=r1.value();
+        BOOST_CHECK_EQUAL(val.value,1);
+        BOOST_CHECK_EQUAL(r1->value,1);
+        BOOST_CHECK_EQUAL((*r1).value,1);
+    }
+
+    BOOST_TEST_MESSAGE("Hold const reference use value()");
+    {
+        TestStruct st{1};
+
+        const auto& stref=st;
+        auto r1=makeResult(stref);
+        auto&& val=r1.value();
+        BOOST_CHECK_EQUAL(val.value,1);
+        BOOST_CHECK_EQUAL(r1->value,1);
+        BOOST_CHECK_EQUAL((*r1).value,1);
+    }
+
+    BOOST_TEST_MESSAGE("Hold reference use value()");
+    {
+        TestStruct st{1};
+
+        auto& stref=st;
+        auto r1=makeResult(stref);
+        auto&& val=r1.value();
+        BOOST_CHECK_EQUAL(val.value,1);
+        BOOST_CHECK_EQUAL(r1->value,1);
+        BOOST_CHECK_EQUAL((*r1).value,1);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(IntValue)
@@ -187,7 +220,8 @@ BOOST_AUTO_TEST_CASE(IntValue)
     t1.set(int64_2);
     intR3=t1.as<int64_t>();
     BOOST_CHECK(intR2.isValid());
-    BOOST_CHECK_EQUAL(int64_2,intR3.takeValue());
+    BOOST_CHECK_EQUAL(int64_2,*intR3);
+    BOOST_CHECK_EQUAL(int64_2,intR3.value());
 
     // read uint64_t from int64_t
     auto uint64_1=t1.asThrows<uint64_t>();
@@ -469,7 +503,7 @@ BOOST_AUTO_TEST_CASE(StringValue)
     // read string
     auto r2_1=t1.as<std::string>();
     BOOST_CHECK(r2_1.isValid());
-    BOOST_CHECK_EQUAL(std::string("Hi!"),r2_1.takeValue());
+    BOOST_CHECK_EQUAL(std::string("Hi!"),*r2_1);
 
     // check if value is a const reference
     BOOST_CHECK(std::is_reference<decltype(r2_1.takeValue())>::value);
@@ -510,6 +544,11 @@ BOOST_AUTO_TEST_CASE(MapValue)
     const auto& mm3=m3.takeValue();
     BOOST_CHECK_EQUAL(std::string("Hello world!"),mm3.at("one")->as<std::string>().takeValue());
     BOOST_CHECK_EQUAL(std::string("Hello world!"),t2.asMap().takeValue().at("one")->as<std::string>().takeValue());
+    BOOST_CHECK_EQUAL(std::string("Hello world!"),t2.asMap()->at("one")->as<std::string>().takeValue());
+    auto rr=t2.asMap()->at("one")->as<std::string>();
+    auto cc=*rr;
+    BOOST_CHECK_EQUAL(std::string("Hello world!"),cc);
+    BOOST_CHECK_EQUAL(std::string("Hello world!"),*t2.asMap()->at("one")->as<std::string>());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
