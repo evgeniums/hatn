@@ -242,13 +242,13 @@ class ArrayViewT
         template<typename T1>
         void insert(size_t index, const T1& value)
         {
-            m_arrayRef.insert(index,static_cast<elementType>(value));
+            m_arrayRef.insert(m_arrayRef.begin()+index,static_cast<elementType>(value));
         }
 
         template<typename T1>
         void insert(size_t index, T1&& value)
         {
-            m_arrayRef.insert(index,std::forward<T1>(value));
+            m_arrayRef.insert(m_arrayRef.begin()+index,std::forward<T1>(value));
         }
 
         template<typename T1>
@@ -266,7 +266,7 @@ class ArrayViewT
         template <typename... Args>
         auto emplace(size_t index, Args&&... args) -> decltype(auto)
         {
-            m_arrayRef.emplace(index,std::forward<Args>(args)...);
+            m_arrayRef.emplace(m_arrayRef.begin()+index,std::forward<Args>(args)...);
             return at(index);
         }
 
