@@ -64,22 +64,72 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        Result<ConfigTree&> set(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept;
+        Result<ConfigTree&> set(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
+        {
+            auto r=get(std::move(path),autoCreatePath);
+            HATN_CHECK_RESULT(r)
+            r->set(std::forward<T>(value));
+            return r;
+        }
 
         template <typename T>
-        ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
+        ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
+        {
+            auto&& r=get(std::move(path),autoCreatePath);
+            if (r)
+            {
+                ec=r.error();
+                return r.takeWrappedValue();
+            }
+            r->set(std::forward<T>(value));
+            return r.takeValue();
+        }
 
         template <typename T>
-        ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true);
+        ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
+        {
+            auto&& r = get(std::move(path),autoCreatePath);
+            if (r)
+            {
+                throw common::ErrorException{r.error()};
+            }
+            r->set(std::forward<T>(value));
+            return r.takeValue();
+        }
 
         template <typename T>
-        Result<ConfigTree&> setDefault(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept;
+        Result<ConfigTree&> setDefault(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
+        {
+            auto r=get(std::move(path),autoCreatePath);
+            HATN_CHECK_RESULT(r)
+            r->setDefault(std::forward<T>(value));
+            return r;
+        }
 
         template <typename T>
-        ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
+        ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
+        {
+            auto&& r=get(std::move(path),autoCreatePath);
+            if (r)
+            {
+                ec=r.error();
+                return r.takeWrappedValue();
+            }
+            r->setDefault(std::forward<T>(value));
+            return r.takeValue();
+        }
 
         template <typename T>
-        ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true);
+        ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
+        {
+            auto&& r = get(std::move(path),autoCreatePath);
+            if (r)
+            {
+                throw common::ErrorException{r.error()};
+            }
+            r->setDefault(std::forward<T>(value));
+            return r.takeValue();
+        }
 
         Result<const ConfigTree&> get(common::lib::string_view path) const noexcept;
         const ConfigTree& get(common::lib::string_view path, Error &ec) const noexcept;
@@ -92,7 +142,11 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         bool isSet(common::lib::string_view path) const noexcept;
 
         template <typename T>
-        auto toArray(common::lib::string_view path) -> decltype(auto);
+        auto toArray(common::lib::string_view path) -> decltype(auto)
+        {
+            auto r=get(std::move(path),true);
+            return r->toArray<T>();
+        }
 
         config_tree::MapT& toMap(common::lib::string_view path);
 
@@ -102,7 +156,6 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 
         std::string m_pathSeparator;
 };
-
 
 HATN_BASE_NAMESPACE_END
 

@@ -53,7 +53,7 @@ Result<T> doGet(common::lib::string_view path, T1* configTreePtr) noexcept
 //---------------------------------------------------------------
 
 template <typename T>
-Result<ConfigTree&> createPath(common::lib::string_view path, T* configTreePtr, bool forceMismatchedSections) noexcept
+Result<ConfigTree&> buildPath(common::lib::string_view path, T* configTreePtr, bool forceMismatchedSections) noexcept
 {
     auto current=configTreePtr;
     if (path.length()!=0)
@@ -98,7 +98,32 @@ Result<ConfigTree&> createPath(common::lib::string_view path, T* configTreePtr, 
 
 Result<const ConfigTree&> ConfigTree::get(common::lib::string_view path) const noexcept
 {
-    return doGet<const ConfigTree&>(path,this);
+    return doGet<const ConfigTree&>(std::move(path),this);
+}
+
+//---------------------------------------------------------------
+
+const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) const noexcept
+{
+    auto&& r = get(std::move(path));
+    if (r)
+    {
+        ec=r.error();
+        return r.takeWrappedValue();
+    }
+    return r.takeValue();
+}
+
+//---------------------------------------------------------------
+
+const ConfigTree& ConfigTree::getEx(common::lib::string_view path) const
+{
+    auto&& r = get(std::move(path));
+    if (r)
+    {
+        throw common::ErrorException{r.error()};
+    }
+    return r.takeValue();
 }
 
 //---------------------------------------------------------------
@@ -108,21 +133,65 @@ Result<ConfigTree&> ConfigTree::get(common::lib::string_view path, bool autoCrea
     auto result=doGet<ConfigTree&>(path,this);
     if (!result.isValid()&&autoCreatePath)
     {
-        return createPath(path,this,true);
+        return buildPath(path,this,true);
     }
     return result;
 }
 
 //---------------------------------------------------------------
 
+ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoCreatePath) noexcept
+{
+    auto&& r = get(std::move(path),autoCreatePath);
+    if (r)
+    {
+        ec=r.error();
+        return r.takeWrappedValue();
+    }
+    return r.takeValue();
+}
+
+//---------------------------------------------------------------
+
+ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath)
+{
+    auto&& r = get(std::move(path),autoCreatePath);
+    if (r)
+    {
+        throw common::ErrorException{r.error()};
+    }
+    return r.takeValue();
+}
+
+//---------------------------------------------------------------
+
 bool ConfigTree::isSet(common::lib::string_view path) const noexcept
 {
-    auto result=doGet<const ConfigTree&>(path,this);
-    if (!result.isValid())
+    auto r=doGet<const ConfigTree&>(std::move(path),this);
+    if (!r.isValid())
     {
         return false;
     }
-    return result->isSet();
+    return r->isSet();
+}
+
+//---------------------------------------------------------------
+
+void ConfigTree::reset(common::lib::string_view path) noexcept
+{
+    auto r=doGet<ConfigTree&>(std::move(path),this);
+    if (r.isValid())
+    {
+        r->reset();
+    }
+}
+
+//---------------------------------------------------------------
+
+config_tree::MapT& ConfigTree::toMap(common::lib::string_view path)
+{
+    auto r=get(std::move(path),true);
+    return r->toMap();
 }
 
 //---------------------------------------------------------------
