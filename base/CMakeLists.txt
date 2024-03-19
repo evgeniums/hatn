@@ -7,6 +7,7 @@ SET (HEADERS
     include/hatn/base/configtreevalue.h
     include/hatn/base/detail/configtreevalue.ipp
     include/hatn/base/configtree.h
+    include/hatn/base/detail/configtree.ipp
 )
 
 SET (SOURCES

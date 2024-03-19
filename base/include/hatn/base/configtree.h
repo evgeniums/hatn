@@ -58,40 +58,45 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         using ConfigTreeValue::reset;
         using ConfigTreeValue::isSet;
 
-        template <typename T>
-        Result<ConfigTree&> set(const common::lib::string_view& path, T&& value, bool autoCreatePath=true) noexcept;
+        common::lib::string_view pathSeparator() const
+        {
+            return m_pathSeparator;
+        }
 
         template <typename T>
-        ConfigTree& set(const common::lib::string_view& path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
+        Result<ConfigTree&> set(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept;
 
         template <typename T>
-        ConfigTree& setEx(const common::lib::string_view& path, T&& value, bool autoCreatePath=true);
+        ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
 
         template <typename T>
-        Result<ConfigTree&> setDefault(const common::lib::string_view& path, T&& value, bool autoCreatePath=true) noexcept;
+        ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true);
 
         template <typename T>
-        ConfigTree& setDefault(const common::lib::string_view& path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
+        Result<ConfigTree&> setDefault(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept;
 
         template <typename T>
-        ConfigTree& setDefaultEx(const common::lib::string_view& path, T&& value, bool autoCreatePath=true);
-
-        Result<const ConfigTree&> get(const common::lib::string_view& path) const noexcept;
-        const ConfigTree& get(const common::lib::string_view& path, Error &ec) const noexcept;
-        const ConfigTree& getEx(const common::lib::string_view& path) const;
-
-        Result<ConfigTree&> get(const common::lib::string_view& path, bool autoCreatePath=false) noexcept;
-        ConfigTree& get(const common::lib::string_view& path, Error &ec, bool autoCreatePath=false) noexcept;
-        ConfigTree& getEx(const common::lib::string_view& path, bool autoCreatePath=false);
-
-        bool isSet(const common::lib::string_view& path) const noexcept;
+        ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
 
         template <typename T>
-        auto toArray(const common::lib::string_view& path) -> decltype(auto);
+        ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true);
 
-        config_tree::MapT& toMap(const common::lib::string_view& path);
+        Result<const ConfigTree&> get(common::lib::string_view path) const noexcept;
+        const ConfigTree& get(common::lib::string_view path, Error &ec) const noexcept;
+        const ConfigTree& getEx(common::lib::string_view path) const;
 
-        void reset(const common::lib::string_view& path) noexcept;
+        Result<ConfigTree&> get(common::lib::string_view path, bool autoCreatePath=false) noexcept;
+        ConfigTree& get(common::lib::string_view path, Error &ec, bool autoCreatePath=false) noexcept;
+        ConfigTree& getEx(common::lib::string_view path, bool autoCreatePath=false);
+
+        bool isSet(common::lib::string_view path) const noexcept;
+
+        template <typename T>
+        auto toArray(common::lib::string_view path) -> decltype(auto);
+
+        config_tree::MapT& toMap(common::lib::string_view path);
+
+        void reset(common::lib::string_view path) noexcept;
 
     private:
 

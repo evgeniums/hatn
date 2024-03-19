@@ -702,6 +702,8 @@ auto emplaceResult(Args&& ...args) -> decltype(auto)
     return Result<T>(std::forward<Args>(args)...);
 }
 
+#define HATN_CHECK_RESULT(result) HATN_CHECK_EC(result)
+
 HATN_NAMESPACE_END
 
 #endif // HATNRESULT_H

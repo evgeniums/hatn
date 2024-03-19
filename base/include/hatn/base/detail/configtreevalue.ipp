@@ -10,16 +10,16 @@
 /*
     
 */
-/** @file base/configtree.h
+/** @file base/detail/configtreevalue.ipp
   *
-  * Contains declarations of configuration tree types and functions.
+  * Contains definitions of configuration tree value types and functions.
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNCONFIGTREE_IPP
-#define HATNCONFIGTREE_IPP
+#ifndef HATNCONFIGTREEVALUE_IPP
+#define HATNCONFIGTREEVALUE_IPP
 
 #include <memory>
 #include <string>
@@ -416,4 +416,4 @@ Result<ArrayView<T>> ConfigTreeValue::asArray() noexcept
 
 HATN_BASE_NAMESPACE_END
 
-#endif // HATNCONFIGTREE_IPP
+#endif // HATNCONFIGTREEVALUE_IPP

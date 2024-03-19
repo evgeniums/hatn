@@ -362,6 +362,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @return Status of parsing
          *
          * @todo Use Error with NativeError.
+         * @todo Use string_view without reference.
          * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "json-parse"
          */
         bool loadFromJSON(const common::lib::string_view& str);
