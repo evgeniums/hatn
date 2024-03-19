@@ -307,7 +307,7 @@ auto ConfigTreeValue::as(common::Error& ec) const noexcept -> decltype(auto)
 }
 
 template <typename T>
-auto ConfigTreeValue::asThrows() const  -> decltype(auto)
+auto ConfigTreeValue::asEx() const  -> decltype(auto)
 {
     auto&& r = as<T>();
     if (r)
@@ -346,7 +346,7 @@ auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(a
 }
 
 template <typename T>
-auto ConfigTreeValue::getDefaultThrows() const -> decltype(auto)
+auto ConfigTreeValue::getDefaultEx() const -> decltype(auto)
 {
     auto&& r = getDefault<T>();
     if (r)

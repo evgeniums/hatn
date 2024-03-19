@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(IntValue)
     BOOST_CHECK_EQUAL(int64_2,intR3.value());
 
     // read uint64_t from int64_t
-    auto uint64_1=t1.asThrows<uint64_t>();
+    auto uint64_1=t1.asEx<uint64_t>();
     BOOST_CHECK_EQUAL(0x0177665544332211,uint64_1);
 
     // set uint64_t
@@ -70,22 +70,22 @@ BOOST_AUTO_TEST_CASE(IntValue)
     t1.set(0xCC77665544332211);
     BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(t1.type()));
     // read uint64_t
-    uint64_1=t1.asThrows<uint64_t>();
+    uint64_1=t1.asEx<uint64_t>();
     BOOST_CHECK_EQUAL(uint64_2,uint64_1);
     // read uint32_t
-    auto uint32_1=t1.asThrows<uint32_t>();
+    auto uint32_1=t1.asEx<uint32_t>();
     BOOST_CHECK_EQUAL(0x44332211,uint32_1);
     // read uint16_t
-    auto uint16_1=t1.asThrows<uint16_t>();
+    auto uint16_1=t1.asEx<uint16_t>();
     BOOST_CHECK_EQUAL(0x2211,uint16_1);
     // read uint8_t
-    auto uint8_1=t1.asThrows<uint8_t>();
+    auto uint8_1=t1.asEx<uint8_t>();
     BOOST_CHECK_EQUAL(0x11,uint8_1);
     // read int64_t
-    auto int64_3=t1.asThrows<int64_t>();
+    auto int64_3=t1.asEx<int64_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int64 from big uint64 {}",int64_3));
     // read int8_t
-    auto int8_1=t1.asThrows<int8_t>();
+    auto int8_1=t1.asEx<int8_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int8 from big uint64 {}",int8_1));
 
     // set negative int8_t
@@ -93,19 +93,19 @@ BOOST_AUTO_TEST_CASE(IntValue)
     t1.set(int8_2);
     BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(t1.type()));
     // read int8_t
-    int8_1=t1.asThrows<int8_t>();
+    int8_1=t1.asEx<int8_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int8 from int8 {}",int8_1));
     BOOST_CHECK_EQUAL(int8_2,int8_1);
     // read int16_t
-    auto int16_1=t1.asThrows<int16_t>();
+    auto int16_1=t1.asEx<int16_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int16 from int8 {}",int16_1));
     BOOST_CHECK_EQUAL(int8_2,int16_1);
     // read int32_t
-    auto int32_1=t1.asThrows<int32_t>();
+    auto int32_1=t1.asEx<int32_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int32 from int8 {}",int32_1));
     BOOST_CHECK_EQUAL(int8_2,int32_1);
     // read int64_t
-    int64_1=t1.asThrows<int64_t>();
+    int64_1=t1.asEx<int64_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int64 from int8 {}",int64_1));
     BOOST_CHECK_EQUAL(int8_2,int64_1);
 
@@ -114,19 +114,19 @@ BOOST_AUTO_TEST_CASE(IntValue)
     t1.set(int32_2);
     BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(t1.type()));
     // read int8_t
-    int8_1=t1.asThrows<int8_t>();
+    int8_1=t1.asEx<int8_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int8 from int32 {}",int8_1));
     BOOST_CHECK_EQUAL(int32_2,int8_1);
     // read int16_t
-    int16_1=t1.asThrows<int16_t>();
+    int16_1=t1.asEx<int16_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int16 from int32 {}",int16_1));
     BOOST_CHECK_EQUAL(int32_2,int16_1);
     // read int32_t
-    int32_1=t1.asThrows<int32_t>();
+    int32_1=t1.asEx<int32_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int32 from int32 {}",int32_1));
     BOOST_CHECK_EQUAL(int32_2,int32_1);
     // read int64_t
-    int64_1=t1.asThrows<int64_t>();
+    int64_1=t1.asEx<int64_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int64 from int32 {}",int64_1));
     BOOST_CHECK_EQUAL(int32_2,int64_1);
 
@@ -135,19 +135,19 @@ BOOST_AUTO_TEST_CASE(IntValue)
     t1.set(int16_2);
     BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(t1.type()));
     // read int8_t
-    int8_1=t1.asThrows<int8_t>();
+    int8_1=t1.asEx<int8_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int8 from int32 {}",int8_1));
     BOOST_CHECK_EQUAL(127,int8_1);
     // read int16_t
-    int16_1=t1.asThrows<int16_t>();
+    int16_1=t1.asEx<int16_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int16 from int32 {}",int16_1));
     BOOST_CHECK_EQUAL(int16_2,int16_1);
     // read int32_t
-    int32_1=t1.asThrows<int32_t>();
+    int32_1=t1.asEx<int32_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int32 from int32 {}",int32_1));
     BOOST_CHECK_EQUAL(int16_2,int32_1);
     // read int64_t
-    int64_1=t1.asThrows<int64_t>();
+    int64_1=t1.asEx<int64_t>();
     BOOST_TEST_MESSAGE(fmt::format("Read int64 from int32 {}",int64_1));
     BOOST_CHECK_EQUAL(int16_2,int64_1);
 
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(IntValue)
     BOOST_CHECK(static_cast<bool>(ec));
     BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
 
-    BOOST_CHECK_THROW(t1.asThrows<int64_t>(),common::ErrorException);
+    BOOST_CHECK_THROW(t1.asEx<int64_t>(),common::ErrorException);
 }
 
 BOOST_AUTO_TEST_CASE(DefaultValue)
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(DefaultValue)
     BOOST_CHECK(static_cast<bool>(intR1));
     BOOST_CHECK(!intR1.isValid());
     BOOST_CHECK_EQUAL(intR1.error().value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
-    BOOST_CHECK_THROW(t1.getDefaultThrows<int64_t>(),common::ErrorException);
+    BOOST_CHECK_THROW(t1.getDefaultEx<int64_t>(),common::ErrorException);
     common::Error ec;
     auto val=t1.getDefault<int64_t>(ec);
     std::ignore=val;
@@ -501,13 +501,13 @@ BOOST_AUTO_TEST_CASE(ArrayValue)
     std::ignore=val;
     BOOST_CHECK(static_cast<bool>(ec));
     BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
-    BOOST_CHECK_THROW(t1.asArrayThrows<int64_t>(),common::ErrorException);
+    BOOST_CHECK_THROW(t1.asArrayEx<int64_t>(),common::ErrorException);
     common::Error ec1;
     auto val1=t3.asArray<int32_t>(ec1);
     std::ignore=val1;
     BOOST_CHECK(static_cast<bool>(ec1));
     BOOST_CHECK_EQUAL(ec1.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
-    BOOST_CHECK_THROW(t3.asArrayThrows<int64_t>(),common::ErrorException);
+    BOOST_CHECK_THROW(t3.asArrayEx<int64_t>(),common::ErrorException);
 }
 
 BOOST_AUTO_TEST_CASE(ArrayInt)

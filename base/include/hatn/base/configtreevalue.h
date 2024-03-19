@@ -367,18 +367,20 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
         template <typename T> auto as() const noexcept -> decltype(auto);
         template <typename T> auto as(common::Error& ec) const noexcept -> decltype(auto);
-        template <typename T> auto asThrows() const -> decltype(auto);
+        template <typename T> auto asEx() const -> decltype(auto);
 
         template <typename T> auto getDefault() const noexcept -> decltype(auto);
         template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
-        template <typename T> auto getDefaultThrows() const -> decltype(auto);
+        template <typename T> auto getDefaultEx() const -> decltype(auto);
 
         template <typename T>
-        void toArray()
+        auto toArray() -> decltype(auto)
         {
+            using valueType=typename config_tree::ValueType<T>::arrayType;
             m_type=config_tree::ValueType<T>::arrayId;
             m_value.reset();
-            m_value.emplace(typename config_tree::ValueType<T>::arrayType{});
+            m_value.emplace(valueType{});
+            return common::lib::variantGet<valueType>(m_value.value());
         }
 
         template <typename T> Result<ConstArrayView<T>> asArray() const noexcept;
@@ -392,7 +394,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
             return r.takeValue();
         }
-        template <typename T> ConstArrayView<T> asArrayThrows() const
+        template <typename T> ConstArrayView<T> asArrayEx() const
         {
             auto r=asArray<T>();
             if (!r.isValid())
@@ -413,7 +415,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
             return r.takeValue();
         }
-        template <typename T> ArrayView<T> asArrayThrows()
+        template <typename T> ArrayView<T> asArrayEx()
         {
             auto r=asArray<T>();
             if (!r.isValid())
@@ -423,11 +425,12 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return r.takeValue();
         }
 
-        void toMap()
+        config_tree::MapT& toMap()
         {
             m_type=Type::Map;
             m_value.reset();
             m_value.emplace(config_tree::MapT{});
+            return common::lib::variantGet<config_tree::MapT>(m_value.value());
         }
 
         Result<const config_tree::MapT&> asMap() const noexcept
@@ -482,7 +485,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return r.takeValue();
         }
 
-        const config_tree::MapT& asMapThrows() const
+        const config_tree::MapT& asMapEx() const
         {
             auto&& r = asMap();
             if (!r)
@@ -492,7 +495,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return r.takeValue();
         }
 
-        config_tree::MapT& asMapThrows()
+        config_tree::MapT& asMapEx()
         {
             auto&& r = asMap();
             if (!r)
