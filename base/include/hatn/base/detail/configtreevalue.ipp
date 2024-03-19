@@ -182,6 +182,7 @@ template <> struct valuesAs<std::string>
 template <Type TypeId> struct ValueSetterMove
 {
     constexpr static auto id=TypeId;
+    using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
     static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
@@ -194,11 +195,12 @@ template <Type TypeId> struct ValueSetterMove
 template <Type TypeId> struct ValueSetterCast
 {
     constexpr static auto id=TypeId;
+    using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
     static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
     {
-        auto val=static_cast<typename Storage<id>::type>(value);
+        auto val=static_cast<storageType>(value);
         ValueSetterMove<id>::set(holder,typeId,std::move(val));
     }
 };
@@ -206,6 +208,7 @@ template <Type TypeId> struct ValueSetterCast
 template <typename T, typename T1=void> struct ValueSetter
 {
     constexpr static auto id=Type::None;
+    using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
     static void set(HolderT&, Type&, ValueT) noexcept {}
@@ -226,8 +229,41 @@ template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructibl
 };
 
 //---------------------------------------------------------------
+template <typename T, typename StorageT, typename =void> struct ArrayAt
+{
+    template <typename ArrayT>
+    constexpr static auto f(ArrayT&& array, size_t index) -> decltype(auto)
+    {
+        return array.at(index);
+    }
+};
+
+template <typename T, typename StorageT> struct ArrayAt<T,StorageT, std::enable_if_t<!std::is_same<T,StorageT>::value>>
+{
+    template <typename ArrayT>
+    constexpr static auto f(ArrayT&& array, size_t index) -> decltype(auto)
+    {
+        auto val=static_cast<T>(array.at(index));
+        return val;
+    }
+};
+
+//---------------------------------------------------------------
 
 } // namespace config_tree_detail
+
+//---------------------------------------------------------------
+template <typename T, bool Constant>
+auto ArrayViewT<T,Constant>::at(size_t index) const -> decltype(auto)
+{
+    return config_tree_detail::ArrayAt<T,elementType>::f(m_arrayRef,index);
+}
+
+template <typename T, bool Constant>
+auto ArrayViewT<T,Constant>::at(size_t index) -> decltype(auto)
+{
+    return config_tree_detail::ArrayAt<T,elementType>::f(m_arrayRef,index);
+}
 
 //---------------------------------------------------------------
 
@@ -332,6 +368,48 @@ template <typename T>
 void ConfigTreeValue::setDefault(T value)
 {
     config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_defaultValue,m_defaultType,std::move(value));
+}
+
+//---------------------------------------------------------------
+
+template <typename T>
+Result<ConstArrayView<T>> ConfigTreeValue::asArray() const noexcept
+{
+    using valueType=typename config_tree::ValueType<T>::arrayType;
+    auto expectedTypeId=config_tree::ValueType<T>::arrayId;
+
+    if (static_cast<bool>(m_value))
+    {
+        if (expectedTypeId!=m_type)
+        {
+            return baseErrorResult(BaseError::INVALID_TYPE);
+        }
+
+        const auto& arrayRef=common::lib::variantGet<valueType>(m_value.value());
+        return emplaceResult<ConstArrayView<T>>(arrayRef);
+    }
+
+    return baseErrorResult(BaseError::VALUE_NOT_SET);
+}
+
+template <typename T>
+Result<ArrayView<T>> ConfigTreeValue::asArray() noexcept
+{
+    using valueType=typename config_tree::ValueType<T>::arrayType;
+    auto expectedTypeId=config_tree::ValueType<T>::arrayId;
+
+    if (static_cast<bool>(m_value))
+    {
+        if (expectedTypeId!=m_type)
+        {
+            return baseErrorResult(BaseError::INVALID_TYPE);
+        }
+
+        auto& arrayRef=common::lib::variantGet<valueType>(m_value.value());
+        return emplaceResult<ArrayView<T>>(arrayRef);
+    }
+
+    return baseErrorResult(BaseError::VALUE_NOT_SET);
 }
 
 //---------------------------------------------------------------

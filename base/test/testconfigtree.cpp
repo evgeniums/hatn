@@ -391,4 +391,125 @@ BOOST_AUTO_TEST_CASE(MapValue)
     BOOST_CHECK_EQUAL(std::string("Hello world!"),*t2.asMap()->at("one")->as<std::string>());
 }
 
+BOOST_AUTO_TEST_CASE(ValueTypes)
+{
+    auto boolT=config_tree::ValueType<bool>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Bool),int(boolT));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayBool),int(config_tree::ValueType<bool>::arrayId));
+
+    auto int8T=config_tree::ValueType<int8_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(int8T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<int8_t>::arrayId));
+
+    auto int16T=config_tree::ValueType<int16_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(int16T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<int16_t>::arrayId));
+
+    auto int32T=config_tree::ValueType<int32_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(int32T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<int32_t>::arrayId));
+
+    auto int64T=config_tree::ValueType<int64_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(int64T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<int64_t>::arrayId));
+
+    auto uint8T=config_tree::ValueType<uint8_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(uint8T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<uint16_t>::arrayId));
+
+    auto uint16T=config_tree::ValueType<uint16_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(uint16T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<uint16_t>::arrayId));
+
+    auto uint32T=config_tree::ValueType<uint32_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(uint32T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<uint32_t>::arrayId));
+
+    auto uint64T=config_tree::ValueType<uint64_t>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(uint64T));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayInt),int(config_tree::ValueType<uint16_t>::arrayId));
+
+    auto floatT=config_tree::ValueType<float>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Double),int(floatT));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayDouble),int(config_tree::ValueType<float>::arrayId));
+
+    auto doubleT=config_tree::ValueType<double>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::Double),int(doubleT));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayDouble),int(config_tree::ValueType<double>::arrayId));
+
+    auto stringT=config_tree::ValueType<std::string>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::String),int(stringT));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayString),int(config_tree::ValueType<std::string>::arrayId));
+
+    auto constCharT=config_tree::ValueType<const char*>::id;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::String),int(constCharT));
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayString),int(config_tree::ValueType<const char*>::arrayId));
+
+    auto configTreeArrayT=config_tree::ValueType<ConfigTree>::arrayId;
+    BOOST_CHECK_EQUAL(int(config_tree::Type::ArrayTree),int(configTreeArrayT));
+}
+
+BOOST_AUTO_TEST_CASE(ArrayValue)
+{
+    const ConfigTreeValue constV1;
+    const auto& constA1=constV1.asArray<int32_t>();
+    BOOST_CHECK(static_cast<bool>(constA1));
+    BOOST_CHECK(!constA1.isValid());
+
+    //--------------------
+    ConfigTreeValue t1;
+
+    auto a1=t1.asArray<int32_t>();
+    BOOST_CHECK(static_cast<bool>(a1));
+    BOOST_CHECK(!a1.isValid());
+    t1.toArray<int32_t>();
+    auto a2=t1.asArray<int32_t>();
+    BOOST_CHECK(!static_cast<bool>(a2));
+    BOOST_CHECK(a2.isValid());
+    a2->reserve(100);
+
+    const auto& t3=t1;
+    auto a3=t3.asArray<int32_t>();
+    BOOST_CHECK(!static_cast<bool>(a3));
+    BOOST_CHECK(a3.isValid());
+    BOOST_CHECK_EQUAL(100,a3->capacity());
+
+    auto a4=t3.asArray<uint64_t>();
+    BOOST_CHECK(!static_cast<bool>(a4));
+    BOOST_CHECK(a4.isValid());
+    BOOST_CHECK_EQUAL(100,a4->capacity());
+
+    auto a5=t1.asArray<float>();
+    BOOST_CHECK(static_cast<bool>(a5));
+    BOOST_CHECK(!a5.isValid());
+
+    auto a6=t1.asArray<bool>();
+    BOOST_CHECK(static_cast<bool>(a6));
+    BOOST_CHECK(!a6.isValid());
+
+    auto a7=t1.asArray<std::string>();
+    BOOST_CHECK(static_cast<bool>(a7));
+    BOOST_CHECK(!a7.isValid());
+
+    // check ec and exception
+    t1.reset();
+    BOOST_CHECK(!t1.isSet());
+    BOOST_CHECK_EQUAL(int(config_tree::Type::None),int(t1.type()));
+    auto intR1=t1.asArray<int32_t>();
+    BOOST_CHECK(static_cast<bool>(intR1));
+    BOOST_CHECK(!intR1.isValid());
+    common::Error ec;
+    auto val=t1.asArray<int32_t>(ec);
+    std::ignore=val;
+    BOOST_CHECK(static_cast<bool>(ec));
+    BOOST_CHECK_EQUAL(ec.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
+    BOOST_CHECK_THROW(t1.asArrayThrows<int64_t>(),common::ErrorException);
+    common::Error ec1;
+    auto val1=t3.asArray<int32_t>(ec1);
+    std::ignore=val1;
+    BOOST_CHECK(static_cast<bool>(ec1));
+    BOOST_CHECK_EQUAL(ec1.value(),static_cast<int>(base::BaseError::VALUE_NOT_SET));
+    BOOST_CHECK_THROW(t3.asArrayThrows<int64_t>(),common::ErrorException);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
