@@ -52,9 +52,11 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& operator =(const ConfigTree&)=delete;
 
         using ConfigTreeValue::set;
+        using ConfigTreeValue::setDefault;
         using ConfigTreeValue::toArray;
         using ConfigTreeValue::toMap;
         using ConfigTreeValue::reset;
+        using ConfigTreeValue::isSet;
 
         template <typename T>
         Result<ConfigTree&> set(const common::lib::string_view& path, T&& value, bool autoCreatePath=true) noexcept;
@@ -65,13 +67,24 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         ConfigTree& setEx(const common::lib::string_view& path, T&& value, bool autoCreatePath=true);
 
+        template <typename T>
+        Result<ConfigTree&> setDefault(const common::lib::string_view& path, T&& value, bool autoCreatePath=true) noexcept;
+
+        template <typename T>
+        ConfigTree& setDefault(const common::lib::string_view& path, T&& value, Error &ec, bool autoCreatePath=true) noexcept;
+
+        template <typename T>
+        ConfigTree& setDefaultEx(const common::lib::string_view& path, T&& value, bool autoCreatePath=true);
+
         Result<const ConfigTree&> get(const common::lib::string_view& path) const noexcept;
         const ConfigTree& get(const common::lib::string_view& path, Error &ec) const noexcept;
         const ConfigTree& getEx(const common::lib::string_view& path) const;
 
-        Result<ConfigTree&> get(const common::lib::string_view& path, bool autoCreatePath=true) noexcept;
-        ConfigTree& get(const common::lib::string_view& path, Error &ec, bool autoCreatePath=true) noexcept;
-        ConfigTree& getEx(const common::lib::string_view& path, bool autoCreatePath=true);
+        Result<ConfigTree&> get(const common::lib::string_view& path, bool autoCreatePath=false) noexcept;
+        ConfigTree& get(const common::lib::string_view& path, Error &ec, bool autoCreatePath=false) noexcept;
+        ConfigTree& getEx(const common::lib::string_view& path, bool autoCreatePath=false);
+
+        bool isSet(const common::lib::string_view& path) const noexcept;
 
         template <typename T>
         auto toArray(const common::lib::string_view& path) -> decltype(auto);
