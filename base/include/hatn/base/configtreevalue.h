@@ -387,20 +387,13 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> ConstArrayView<T> asArray(common::Error& ec) const noexcept
         {
             auto r=asArray<T>();
-            if (!r.isValid())
-            {
-                ec=r.error();
-                return r.takeWrappedValue();
-            }
+            HATN_RESULT_EC(r,ec)
             return r.takeValue();
         }
         template <typename T> ConstArrayView<T> asArrayEx() const
         {
             auto r=asArray<T>();
-            if (!r.isValid())
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             return r.takeValue();
         }
 
@@ -408,20 +401,13 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> ArrayView<T> asArray(common::Error& ec) noexcept
         {
             auto r=asArray<T>();
-            if (!r.isValid())
-            {
-                ec=r.error();
-                return r.takeWrappedValue();
-            }
+            HATN_RESULT_EC(r,ec)
             return r.takeValue();
         }
         template <typename T> ArrayView<T> asArrayEx()
         {
             auto r=asArray<T>();
-            if (!r.isValid())
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             return r.takeValue();
         }
 
@@ -464,44 +450,28 @@ class HATN_BASE_EXPORT ConfigTreeValue
         const config_tree::MapT& asMap(common::Error& ec) const noexcept
         {
             auto&& r = asMap();
-            if (!r)
-            {
-                static config_tree::MapT v;
-                ec=r.error();
-                return v;
-            }
+            HATN_RESULT_EC(r,ec)
             return r.takeValue();
         }
 
         config_tree::MapT& asMap(common::Error& ec) noexcept
         {
             auto&& r = asMap();
-            if (!r)
-            {
-                static config_tree::MapT v;
-                ec=r.error();
-                return v;
-            }
+            HATN_RESULT_EC(r,ec)
             return r.takeValue();
         }
 
         const config_tree::MapT& asMapEx() const
         {
             auto&& r = asMap();
-            if (!r)
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             return r.takeValue();
         }
 
         config_tree::MapT& asMapEx()
         {
             auto&& r = asMap();
-            if (!r)
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             return r.takeValue();
         }
 

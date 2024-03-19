@@ -76,11 +76,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
             auto&& r=get(std::move(path),autoCreatePath);
-            if (r)
-            {
-                ec=r.error();
-                return r.takeWrappedValue();
-            }
+            HATN_RESULT_EC(r,ec)
             r->set(std::forward<T>(value));
             return r.takeValue();
         }
@@ -89,10 +85,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
         {
             auto&& r = get(std::move(path),autoCreatePath);
-            if (r)
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             r->set(std::forward<T>(value));
             return r.takeValue();
         }
@@ -110,11 +103,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
             auto&& r=get(std::move(path),autoCreatePath);
-            if (r)
-            {
-                ec=r.error();
-                return r.takeWrappedValue();
-            }
+            HATN_RESULT_EC(r,ec)
             r->setDefault(std::forward<T>(value));
             return r.takeValue();
         }
@@ -123,10 +112,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
         {
             auto&& r = get(std::move(path),autoCreatePath);
-            if (r)
-            {
-                throw common::ErrorException{r.error()};
-            }
+            HATN_RESULT_THROW(r)
             r->setDefault(std::forward<T>(value));
             return r.takeValue();
         }

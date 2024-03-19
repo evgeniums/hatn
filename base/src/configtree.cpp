@@ -106,11 +106,7 @@ Result<const ConfigTree&> ConfigTree::get(common::lib::string_view path) const n
 const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) const noexcept
 {
     auto&& r = get(std::move(path));
-    if (r)
-    {
-        ec=r.error();
-        return r.takeWrappedValue();
-    }
+    HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
 
@@ -119,10 +115,7 @@ const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) cons
 const ConfigTree& ConfigTree::getEx(common::lib::string_view path) const
 {
     auto&& r = get(std::move(path));
-    if (r)
-    {
-        throw common::ErrorException{r.error()};
-    }
+    HATN_RESULT_THROW(r)
     return r.takeValue();
 }
 
@@ -143,11 +136,7 @@ Result<ConfigTree&> ConfigTree::get(common::lib::string_view path, bool autoCrea
 ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoCreatePath) noexcept
 {
     auto&& r = get(std::move(path),autoCreatePath);
-    if (r)
-    {
-        ec=r.error();
-        return r.takeWrappedValue();
-    }
+    HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
 
@@ -156,10 +145,7 @@ ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoC
 ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath)
 {
     auto&& r = get(std::move(path),autoCreatePath);
-    if (r)
-    {
-        throw common::ErrorException{r.error()};
-    }
+    HATN_RESULT_THROW(r)
     return r.takeValue();
 }
 

@@ -702,7 +702,20 @@ auto emplaceResult(Args&& ...args) -> decltype(auto)
     return Result<T>(std::forward<Args>(args)...);
 }
 
-#define HATN_CHECK_RESULT(result) HATN_CHECK_EC(result)
+#define HATN_CHECK_RESULT(r) HATN_CHECK_EC(r)
+
+#define HATN_RESULT_EC(r,ec) \
+if (r) \
+{\
+    ec=r.error();\
+    return r.takeWrappedValue();\
+}
+
+#define HATN_RESULT_THROW(r) \
+if (r) \
+{\
+    throw common::ErrorException{r.error()};\
+}
 
 HATN_NAMESPACE_END
 

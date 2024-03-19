@@ -298,11 +298,7 @@ template <typename T>
 auto ConfigTreeValue::as(common::Error& ec) const noexcept -> decltype(auto)
 {
     auto&& r = as<T>();
-    if (r)
-    {
-        ec=r.error();
-        return r.takeWrappedValue();
-    }
+    HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
 
@@ -310,10 +306,7 @@ template <typename T>
 auto ConfigTreeValue::asEx() const  -> decltype(auto)
 {
     auto&& r = as<T>();
-    if (r)
-    {
-        throw common::ErrorException{r.error()};
-    }
+    HATN_RESULT_THROW(r)
     return r.takeValue();
 }
 
@@ -337,11 +330,7 @@ template <typename T>
 auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(auto)
 {
     auto&& r = getDefault<T>();
-    if (r)
-    {
-        ec=r.error();
-        return r.takeWrappedValue();
-    }
+    HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
 
@@ -349,10 +338,7 @@ template <typename T>
 auto ConfigTreeValue::getDefaultEx() const -> decltype(auto)
 {
     auto&& r = getDefault<T>();
-    if (r)
-    {
-        throw common::ErrorException{r.error()};
-    }
+    HATN_RESULT_THROW(r)
     return r.takeValue();
 }
 
