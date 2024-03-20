@@ -33,9 +33,27 @@ BOOST_AUTO_TEST_CASE(ConfigTreePath)
     ConfigTree t1;
     const auto& t2=t1;
 
-    std::string path1("one.two.three");
-    std::string path2("one.two");
-    std::string path3("one");
+    base::ConfigTreePath path3("one");
+    auto path2=path3.copyAppend("two");
+    auto path1=path2.copyAppend("three");
+    auto path0=path1.copyPrepend("zero");
+    auto path4=path0.copyDropFront(2);
+    auto path5=path0.copyDropBack(3);
+    auto path6=path0.copyDropBack(10);
+    auto path7=path0.copyDropFront(10);
+    auto path8=path0;
+    path8.reset();
+    BOOST_CHECK_EQUAL(std::string("zero.one.two.three"),std::string(path0));
+    BOOST_CHECK_EQUAL(std::string("one.two.three"),std::string(path1));
+    BOOST_CHECK_EQUAL(std::string("one.two"),std::string(path2));
+    BOOST_CHECK_EQUAL(std::string("one"),std::string(path3));
+    BOOST_CHECK_EQUAL(std::string("two.three"),std::string(path4));
+    BOOST_CHECK_EQUAL(std::string("zero"),std::string(path5));
+    BOOST_CHECK(path6.isRoot());
+    BOOST_CHECK(path7.isRoot());
+    BOOST_CHECK(path8.isRoot());
+    path5.setPath("five.six.seven");
+    BOOST_CHECK_EQUAL(std::string("five.six.seven"),path5.path());
 
     // path not set yet
     BOOST_CHECK(!t1.isSet(path1));
@@ -69,6 +87,42 @@ BOOST_AUTO_TEST_CASE(ConfigTreePath)
     BOOST_CHECK(constSubChild3->isSet());
     BOOST_CHECK(t2.isSet(path1));
     BOOST_CHECK_EQUAL(12345,constSubChild3->as<int32_t>().value());
+}
+
+BOOST_AUTO_TEST_CASE(ConfigTreeArray)
+{
+    ConfigTree t1;
+    const auto& t2=t1;
+
+    base::ConfigTreePath path1("one.two.three");
+    base::ConfigTreePath path2("one.two.three.1.four.five");
+
+    // path not set yet
+    BOOST_CHECK(!t1.isSet(path1));
+
+    // const path not valid
+    BOOST_CHECK(!t2.isSet(path1));
+
+    // make array
+    auto arr1=t1.toArray<ConfigTree>(path1);
+    BOOST_CHECK(t1.isSet("one.two.three"));
+    BOOST_CHECK(t2.isSet(common::lib::string_view("one.two.three")));
+    const auto& arr2=t2.get(path1)->asArray<ConfigTree>();
+
+    // fill array
+    arr1->append(std::make_shared<ConfigTree>());
+    arr1->append(std::make_shared<ConfigTree>());
+    arr1->append(std::make_shared<ConfigTree>());
+    BOOST_CHECK_EQUAL(3,arr2->size());
+
+    // set value with array element in path
+    t1.set(path2,112233);
+
+    // check added value
+    auto subArr1=t2.get(path2);
+    BOOST_CHECK(subArr1.isValid());
+    BOOST_CHECK(subArr1->isSet());
+    BOOST_CHECK_EQUAL(112233,subArr1->as<int32_t>().value());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -50,6 +50,18 @@ class HATN_BASE_EXPORT ConfigTreePath
             std::string pathSeparator=DefaultSeparator
         );
 
+        ConfigTreePath(
+                const char* path,
+                std::string pathSeparator=DefaultSeparator
+            ) : ConfigTreePath(std::string(path),std::move(pathSeparator))
+        {}
+
+        ConfigTreePath(
+                common::lib::string_view path,
+                std::string pathSeparator=DefaultSeparator
+            ) : ConfigTreePath(std::string(path),std::move(pathSeparator))
+        {}
+
         ConfigTreePath()=default;
         ~ConfigTreePath()=default;
         ConfigTreePath(const ConfigTreePath&)=default;
@@ -65,6 +77,13 @@ class HATN_BASE_EXPORT ConfigTreePath
         std::string separator() const
         {
             return m_separator;
+        }
+
+        void setPath(std::string path)
+        {
+            m_parts.clear();
+            m_path=std::move(path);
+            updateState();
         }
 
         const std::string& path() const noexcept
@@ -84,7 +103,21 @@ class HATN_BASE_EXPORT ConfigTreePath
 
         void append(common::lib::string_view path);
 
+        ConfigTreePath copyAppend(common::lib::string_view path) const
+        {
+            auto n=*this;
+            n.append(path);
+            return n;
+        }
+
         void prepend(common::lib::string_view path);
+
+        ConfigTreePath copyPrepend(common::lib::string_view path) const
+        {
+            auto n=*this;
+            n.prepend(path);
+            return n;
+        }
 
         size_t count() const noexcept
         {
@@ -103,7 +136,21 @@ class HATN_BASE_EXPORT ConfigTreePath
 
         void dropBack(size_t count=1);
 
+        ConfigTreePath copyDropBack(size_t count=1) const
+        {
+            auto n=*this;
+            n.dropBack(count);
+            return n;
+        }
+
         void dropFront(size_t count=1);
+
+        ConfigTreePath copyDropFront(size_t count=1) const
+        {
+            auto n=*this;
+            n.dropFront(count);
+            return n;
+        }
 
         const std::string& at(size_t index) const
         {
@@ -115,6 +162,12 @@ class HATN_BASE_EXPORT ConfigTreePath
         bool isRoot() const noexcept
         {
             return m_path.empty() || m_path==m_separator;
+        }
+
+        void reset()
+        {
+            m_parts.clear();
+            m_path.clear();
         }
 
     private:

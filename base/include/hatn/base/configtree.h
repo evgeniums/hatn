@@ -124,14 +124,19 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         bool isSet(const ConfigTreePath& path) const noexcept;
 
         template <typename T>
-        auto toArray(const ConfigTreePath& path) -> decltype(auto)
+        Result<ArrayView<T>> toArray(const ConfigTreePath& path)
         {
             auto r=get(path,true);
             HATN_CHECK_RESULT(r)
             return r->toArray<T>();
         }
 
-        config_tree::MapT& toMap(const ConfigTreePath& path);
+        Result<config_tree::MapT&> toMap(const ConfigTreePath& path)
+        {
+            auto r=get(path,true);
+            HATN_CHECK_RESULT(r)
+            return r->toMap();
+        }
 
         void reset(const ConfigTreePath& path) noexcept;
 

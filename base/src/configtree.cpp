@@ -247,12 +247,4 @@ void ConfigTree::reset(const ConfigTreePath& path) noexcept
 
 //---------------------------------------------------------------
 
-config_tree::MapT& ConfigTree::toMap(const ConfigTreePath& path)
-{
-    auto r=getImpl(path,true);
-    return r->toMap();
-}
-
-//---------------------------------------------------------------
-
 HATN_BASE_NAMESPACE_END

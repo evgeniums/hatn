@@ -68,17 +68,18 @@ void ConfigTreePath::prepend(common::lib::string_view path)
 
 void ConfigTreePath::dropBack(size_t count)
 {
-    auto num=count;
-    if (num>m_parts.size())
-    {
-        num=m_parts.size();
-    }
-    if (num==0)
+    if (count<=0)
     {
         return;
     }
 
-    m_parts.erase(std::end(m_parts)-num,std::end(m_parts));
+    if (count>=m_parts.size())
+    {
+        reset();
+        return;
+    }
+
+    m_parts.erase(std::end(m_parts)-count,std::end(m_parts));
     updateState();
 }
 
@@ -86,17 +87,18 @@ void ConfigTreePath::dropBack(size_t count)
 
 void ConfigTreePath::dropFront(size_t count)
 {
-    auto num=count;
-    if (num>m_parts.size())
-    {
-        num=m_parts.size();
-    }
-    if (num==0)
+    if (count<=0)
     {
         return;
     }
 
-    m_parts.erase(std::begin(m_parts),std::begin(m_parts)+num);
+    if (count>=m_parts.size())
+    {
+        reset();
+        return;
+    }
+
+    m_parts.erase(std::begin(m_parts),std::begin(m_parts)+count);
     updateState();
 }
 

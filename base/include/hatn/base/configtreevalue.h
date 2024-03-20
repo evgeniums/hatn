@@ -401,7 +401,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             m_type=config_tree::ValueType<T>::arrayId;
             m_value.reset();
             m_value.emplace(valueType{});
-            return common::lib::variantGet<valueType>(m_value.value());
+            return asArray<T>();
         }
 
         template <typename T> Result<ConstArrayView<T>> asArray() const noexcept;
@@ -432,12 +432,12 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return r.takeValue();
         }
 
-        config_tree::MapT& toMap()
+        Result<config_tree::MapT&> toMap()
         {
             m_type=Type::Map;
             m_value.reset();
             m_value.emplace(config_tree::MapT{});
-            return common::lib::variantGet<config_tree::MapT>(m_value.value());
+            return asMap();
         }
 
         Result<const config_tree::MapT&> asMap() const noexcept
