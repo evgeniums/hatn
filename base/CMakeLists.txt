@@ -7,13 +7,13 @@ SET (HEADERS
     include/hatn/base/configtreevalue.h
     include/hatn/base/detail/configtreevalue.ipp
     include/hatn/base/configtree.h
-    include/hatn/base/detail/configtree.ipp
     include/hatn/base/configtreepath.h
 )
 
 SET (SOURCES
     src/baseerror.cpp
     src/configtree.cpp
+    src/configtreepath.cpp
 )
 
 BUILD_HATN_MODULE()

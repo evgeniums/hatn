@@ -12,8 +12,7 @@
 */
 /** @file base/configtree.сpp
   *
-  *      Hatn DataUnit meta definitions.
-  *
+  *      Defines ConfigTree class.
   */
 
 #include <hatn/base/configtree.h>
@@ -31,7 +30,6 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
     auto current=configTreePtr;
     if (!path.isRoot())
     {
-        path.prepare();
         for (;i<path.count();i++)
         {
             const auto& section=path.at(i);

@@ -21,16 +21,13 @@
 #ifndef HATNCONFIGTREEPATH_H
 #define HATNCONFIGTREEPATH_H
 
+#include <string>
 #include <vector>
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/join.hpp>
-
-#include <hatn/common/error.h>
+#include <hatn/common/stdwrappers.h>
+#include <hatn/common/result.h>
 
 #include <hatn/base/base.h>
-#include <hatn/base/baseerror.h>
 
 HATN_BASE_NAMESPACE_BEGIN
 
@@ -41,94 +38,53 @@ class HATN_BASE_EXPORT ConfigTreePath
 {
     public:
 
+        static std::string DefaultSeparator; // "."
+
         /**
          * @brief Constructor from string path.
          * @param path Path string.
          * @param pathSeparator Separator between sections of nested path. Default is ".".
          */
         ConfigTreePath(
-                const std::string& path,
-                std::string pathSeparator="."
-            ):ConfigTreePath(common::lib::string_view(path),std::move(pathSeparator))
-        {}
+            std::string path,
+            std::string pathSeparator=DefaultSeparator
+        );
 
-        /**
-         * @brief Constructor from const char* path.
-         * @param path Path string.
-         * @param pathSeparator Separator between sections of nested path. Default is ".".
-         */
-        ConfigTreePath(
-                const char* path,
-                std::string pathSeparator="."
-            ):ConfigTreePath(common::lib::string_view(path),std::move(pathSeparator))
-        {}
+        ConfigTreePath()=default;
+        ~ConfigTreePath()=default;
+        ConfigTreePath(const ConfigTreePath&)=default;
+        ConfigTreePath(ConfigTreePath&&)=default;
+        ConfigTreePath& operator= (const ConfigTreePath&)=default;
+        ConfigTreePath& operator= (ConfigTreePath&&)=default;
 
-        /**
-         * @brief Constructor from string view.
-         * @param path Path string.
-         * @param pathSeparator Separator between sections of nested path. Default is ".".
-         */
-        ConfigTreePath(
-                const common::lib::string_view& path,
-                std::string pathSeparator="."
-            ) : m_path(path),
-                m_pathSeparator(std::move(pathSeparator)),
-                m_prepared(false)
-        {}
+        void setSeparator(std::string sep)
+        {
+            m_separator=std::move(sep);
+        }
 
-        /**
-         * @brief Constructor from string view.
-         * @param pathSeparator Separator between sections of nested path. Default is ".".
-         */
-        ConfigTreePath(
-                common::lib::string_view&& path,
-                std::string pathSeparator="."
-            ) : m_path(std::move(path)),
-                m_pathSeparator(std::move(pathSeparator)),
-                m_prepared(false)
-        {}
+        std::string separator() const
+        {
+            return m_separator;
+        }
 
-        common::lib::string_view pathView() const noexcept
+        const std::string& path() const noexcept
         {
             return m_path;
         }
 
         operator common::lib::string_view() const noexcept
         {
-            return pathView();
+            return m_path;
         }
 
-        void prepare() const
+        operator std::string() const
         {
-            if (!m_prepared)
-            {
-                auto self=const_cast<ConfigTreePath*>(this);
-                self->updateState();
-                self->m_prepared=true;
-            }
+            return m_path;
         }
 
-        void append(common::lib::string_view path)
-        {
-            if (!path.empty())
-            {
-                std::vector<std::string> parts;
-                boost::algorithm::split(parts, path, boost::algorithm::is_any_of(m_pathSeparator));
-                m_parts.insert(std::end(m_parts),std::begin(parts),std::end(parts));
-                updateState();
-            }
-        }
+        void append(common::lib::string_view path);
 
-        void prepend(common::lib::string_view path)
-        {
-            if (!path.empty())
-            {
-                std::vector<std::string> parts;
-                boost::algorithm::split(parts, path, boost::algorithm::is_any_of(m_pathSeparator));
-                m_parts.insert(std::begin(m_parts),std::begin(parts),std::end(parts));
-                updateState();
-            }
-        }
+        void prepend(common::lib::string_view path);
 
         size_t count() const noexcept
         {
@@ -145,84 +101,30 @@ class HATN_BASE_EXPORT ConfigTreePath
             return m_parts.front();
         }
 
-        void dropBack(size_t count=1)
-        {
-            auto num=count;
-            if (num>m_parts.size())
-            {
-                num=m_parts.size();
-            }
-            if (num==0)
-            {
-                return;
-            }
+        void dropBack(size_t count=1);
 
-            m_parts.erase(std::end(m_parts)-num,std::end(m_parts));
-            updateState();
-        }
-
-        void dropFront(size_t count=1)
-        {
-            auto num=count;
-            if (num>m_parts.size())
-            {
-                num=m_parts.size();
-            }
-            if (num==0)
-            {
-                return;
-            }
-
-            m_parts.erase(std::begin(m_parts),std::begin(m_parts)+num);
-            updateState();
-        }
+        void dropFront(size_t count=1);
 
         const std::string& at(size_t index) const
         {
             return m_parts.at(index);
         }
 
-        Result<size_t> numberAt(size_t index) const
-        {
-            const std::string& key=m_parts.at(index);
-            try
-            {
-                return static_cast<size_t>(std::stoi(key));
-            }
-            catch (...)
-            {
-            }
-            return baseErrorResult(BaseError::STRING_NOT_NUMBER);
-        }
+        Result<size_t> numberAt(size_t index) const;
 
         bool isRoot() const noexcept
         {
-            return m_path.empty() || m_path==m_pathSeparator;
+            return m_path.empty() || m_path==m_separator;
         }
 
     private:
 
-        void updateState()
-        {
-            if (m_parts.empty())
-            {
-                m_storagePath=m_path;
-                boost::algorithm::split(m_parts, m_path, boost::algorithm::is_any_of(m_pathSeparator));
-            }
-            else
-            {
-                m_storagePath=boost::algorithm::join(m_parts, m_pathSeparator);
-            }
-            m_path=m_storagePath;
-        }
+        void updateState();
 
-        common::lib::string_view m_path;
-        std::string m_pathSeparator;
+        std::string m_path;
+        std::string m_separator;
 
         std::vector<std::string> m_parts;
-        std::string m_storagePath;
-
-        bool m_prepared;
 };
 
 HATN_BASE_NAMESPACE_END
