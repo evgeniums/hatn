@@ -68,7 +68,7 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
                 auto view=current->template asArray<ConfigTree>();
                 HATN_CHECK_RESULT(view)
 
-                if (pos<0 || pos>=view->size())
+                if (pos.value()<0 || pos.value()>=view->size())
                 {
                     return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
                 }
