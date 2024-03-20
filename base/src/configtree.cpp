@@ -25,16 +25,16 @@ HATN_BASE_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 
 template <typename T, typename T1>
-Result<T> doGet(ConfigTreePath& key, T1* configTreePtr, size_t* depth=nullptr, T1** lastCurrent=nullptr) noexcept
+Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nullptr, T1** lastCurrent=nullptr) noexcept
 {
     size_t i=0;
     auto current=configTreePtr;
-    if (!key.isRoot())
+    if (!path.isRoot())
     {
-        key.prepare();
-        for (;i<key.count();i++)
+        path.prepare();
+        for (;i<path.count();i++)
         {
-            const auto& section=key.at(i);
+            const auto& section=path.at(i);
             if (section.empty())
             {
                 continue;
@@ -64,7 +64,7 @@ Result<T> doGet(ConfigTreePath& key, T1* configTreePtr, size_t* depth=nullptr, T
 
             if (current->type()==config_tree::Type::ArrayTree)
             {
-                auto pos=key.numberAt(i);
+                auto pos=path.numberAt(i);
                 HATN_CHECK_RESULT(pos)
 
                 auto view=current->template asArray<ConfigTree>();
@@ -98,15 +98,15 @@ Result<T> doGet(ConfigTreePath& key, T1* configTreePtr, size_t* depth=nullptr, T
 //---------------------------------------------------------------
 
 template <typename T>
-Result<ConfigTree&> buildPath(ConfigTreePath& key, T* configTreePtr, bool forceMismatchedSections) noexcept
+Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool forceMismatchedSections) noexcept
 {
     size_t depth=0;
     auto current=configTreePtr;
-    doGet<ConfigTree&>(key,configTreePtr,&depth,&current);
+    doGet<ConfigTree&>(path,configTreePtr,&depth,&current);
 
-    for (auto i=depth;i<key.count();i++)
+    for (auto i=depth;i<path.count();i++)
     {
-        const auto& section=key.at(i);
+        const auto& section=path.at(i);
         if (section.empty())
         {
             continue;
@@ -120,7 +120,7 @@ Result<ConfigTree&> buildPath(ConfigTreePath& key, T* configTreePtr, bool forceM
         size_t pos=-1;
         if (current->type()==config_tree::Type::ArrayTree)
         {
-            auto tryPos=key.numberAt(i);
+            auto tryPos=path.numberAt(i);
             if (!tryPos.isValid())
             {
                 if (forceMismatchedSections)
@@ -171,15 +171,14 @@ Result<ConfigTree&> buildPath(ConfigTreePath& key, T* configTreePtr, bool forceM
 
 //---------------------------------------------------------------
 
-Result<const ConfigTree&> ConfigTree::getImpl(const common::lib::string_view& path) const noexcept
+Result<const ConfigTree&> ConfigTree::getImpl(const ConfigTreePath& path) const noexcept
 {
-    ConfigTreePath key(path,pathSeparator());
-    return doGet<const ConfigTree&>(key,this);
+    return doGet<const ConfigTree&>(path,this);
 }
 
 //---------------------------------------------------------------
 
-const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) const noexcept
+const ConfigTree& ConfigTree::get(const ConfigTreePath& path, Error &ec) const noexcept
 {
     auto&& r = getImpl(path);
     HATN_RESULT_EC(r,ec)
@@ -188,7 +187,7 @@ const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) cons
 
 //---------------------------------------------------------------
 
-const ConfigTree& ConfigTree::getEx(common::lib::string_view path) const
+const ConfigTree& ConfigTree::getEx(const ConfigTreePath& path) const
 {
     auto&& r = getImpl(path);
     HATN_RESULT_THROW(r)
@@ -197,20 +196,19 @@ const ConfigTree& ConfigTree::getEx(common::lib::string_view path) const
 
 //---------------------------------------------------------------
 
-Result<ConfigTree&> ConfigTree::getImpl(const common::lib::string_view& path, bool autoCreatePath) noexcept
+Result<ConfigTree&> ConfigTree::getImpl(const ConfigTreePath& path, bool autoCreatePath) noexcept
 {
-    ConfigTreePath key(path,pathSeparator());
-    auto result=doGet<ConfigTree&>(key,this);
+    auto result=doGet<ConfigTree&>(path,this);
     if (!result.isValid()&&autoCreatePath)
     {
-        return buildPath(key,this,true);
+        return buildPath(path,this,true);
     }
     return result;
 }
 
 //---------------------------------------------------------------
 
-ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoCreatePath) noexcept
+ConfigTree& ConfigTree::get(const ConfigTreePath& path, Error &ec, bool autoCreatePath) noexcept
 {
     auto&& r = getImpl(path,autoCreatePath);
     HATN_RESULT_EC(r,ec)
@@ -219,7 +217,7 @@ ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoC
 
 //---------------------------------------------------------------
 
-ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath)
+ConfigTree& ConfigTree::getEx(const ConfigTreePath& path, bool autoCreatePath)
 {
     auto&& r = getImpl(path,autoCreatePath);
     HATN_RESULT_THROW(r)
@@ -228,10 +226,9 @@ ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath
 
 //---------------------------------------------------------------
 
-bool ConfigTree::isSet(common::lib::string_view path) const noexcept
+bool ConfigTree::isSet(const ConfigTreePath& path) const noexcept
 {
-    ConfigTreePath key(path,pathSeparator());
-    auto r=doGet<const ConfigTree&>(key,this);
+    auto r=doGet<const ConfigTree&>(path,this);
     if (!r.isValid())
     {
         return false;
@@ -241,10 +238,9 @@ bool ConfigTree::isSet(common::lib::string_view path) const noexcept
 
 //---------------------------------------------------------------
 
-void ConfigTree::reset(common::lib::string_view path) noexcept
+void ConfigTree::reset(const ConfigTreePath& path) noexcept
 {
-    ConfigTreePath key(path,pathSeparator());
-    auto r=doGet<ConfigTree&>(key,this);
+    auto r=doGet<ConfigTree&>(path,this);
     if (r.isValid())
     {
         r->reset();
@@ -253,7 +249,7 @@ void ConfigTree::reset(common::lib::string_view path) noexcept
 
 //---------------------------------------------------------------
 
-config_tree::MapT& ConfigTree::toMap(common::lib::string_view path)
+config_tree::MapT& ConfigTree::toMap(const ConfigTreePath& path)
 {
     auto r=getImpl(path,true);
     return r->toMap();

@@ -42,21 +42,38 @@ class HATN_BASE_EXPORT ConfigTreePath
     public:
 
         /**
-         * @brief Default constructor.
+         * @brief Constructor from string path.
+         * @param path Path string.
          * @param pathSeparator Separator between sections of nested path. Default is ".".
          */
-        ConfigTreePath(const std::string& pathSeparator="."):m_pathSeparator(pathSeparator)
+        ConfigTreePath(
+                const std::string& path,
+                std::string pathSeparator="."
+            ):ConfigTreePath(common::lib::string_view(path),std::move(pathSeparator))
+        {}
+
+        /**
+         * @brief Constructor from const char* path.
+         * @param path Path string.
+         * @param pathSeparator Separator between sections of nested path. Default is ".".
+         */
+        ConfigTreePath(
+                const char* path,
+                std::string pathSeparator="."
+            ):ConfigTreePath(common::lib::string_view(path),std::move(pathSeparator))
         {}
 
         /**
          * @brief Constructor from string view.
+         * @param path Path string.
          * @param pathSeparator Separator between sections of nested path. Default is ".".
          */
         ConfigTreePath(
-            const common::lib::string_view& path,
-            const std::string& pathSeparator="."
+                const common::lib::string_view& path,
+                std::string pathSeparator="."
             ) : m_path(path),
-                m_pathSeparator(pathSeparator)
+                m_pathSeparator(std::move(pathSeparator)),
+                m_prepared(false)
         {}
 
         /**
@@ -64,10 +81,11 @@ class HATN_BASE_EXPORT ConfigTreePath
          * @param pathSeparator Separator between sections of nested path. Default is ".".
          */
         ConfigTreePath(
-            common::lib::string_view&& path,
-            const std::string& pathSeparator="."
+                common::lib::string_view&& path,
+                std::string pathSeparator="."
             ) : m_path(std::move(path)),
-                m_pathSeparator(pathSeparator)
+                m_pathSeparator(std::move(pathSeparator)),
+                m_prepared(false)
         {}
 
         common::lib::string_view pathView() const noexcept
@@ -75,23 +93,19 @@ class HATN_BASE_EXPORT ConfigTreePath
             return m_path;
         }
 
-        common::lib::string_view operator()() const noexcept
+        operator common::lib::string_view() const noexcept
         {
             return pathView();
         }
 
-        void prepare()
+        void prepare() const
         {
-            if (m_parts.empty())
+            if (!m_prepared)
             {
-                m_storagePath=m_path;
-                boost::algorithm::split(m_parts, m_path, boost::algorithm::is_any_of(m_pathSeparator));
+                auto self=const_cast<ConfigTreePath*>(this);
+                self->updateState();
+                self->m_prepared=true;
             }
-            else
-            {
-                m_storagePath=boost::algorithm::join(m_parts, m_pathSeparator);
-            }
-            m_path=m_storagePath;
         }
 
         void append(common::lib::string_view path)
@@ -101,7 +115,7 @@ class HATN_BASE_EXPORT ConfigTreePath
                 std::vector<std::string> parts;
                 boost::algorithm::split(parts, path, boost::algorithm::is_any_of(m_pathSeparator));
                 m_parts.insert(std::end(m_parts),std::begin(parts),std::end(parts));
-                prepare();
+                updateState();
             }
         }
 
@@ -112,7 +126,7 @@ class HATN_BASE_EXPORT ConfigTreePath
                 std::vector<std::string> parts;
                 boost::algorithm::split(parts, path, boost::algorithm::is_any_of(m_pathSeparator));
                 m_parts.insert(std::begin(m_parts),std::begin(parts),std::end(parts));
-                prepare();
+                updateState();
             }
         }
 
@@ -144,7 +158,7 @@ class HATN_BASE_EXPORT ConfigTreePath
             }
 
             m_parts.erase(std::end(m_parts)-num,std::end(m_parts));
-            prepare();
+            updateState();
         }
 
         void dropFront(size_t count=1)
@@ -160,7 +174,7 @@ class HATN_BASE_EXPORT ConfigTreePath
             }
 
             m_parts.erase(std::begin(m_parts),std::begin(m_parts)+num);
-            prepare();
+            updateState();
         }
 
         const std::string& at(size_t index) const
@@ -188,11 +202,27 @@ class HATN_BASE_EXPORT ConfigTreePath
 
     private:
 
+        void updateState()
+        {
+            if (m_parts.empty())
+            {
+                m_storagePath=m_path;
+                boost::algorithm::split(m_parts, m_path, boost::algorithm::is_any_of(m_pathSeparator));
+            }
+            else
+            {
+                m_storagePath=boost::algorithm::join(m_parts, m_pathSeparator);
+            }
+            m_path=m_storagePath;
+        }
+
         common::lib::string_view m_path;
         std::string m_pathSeparator;
 
         std::vector<std::string> m_parts;
         std::string m_storagePath;
+
+        bool m_prepared;
 };
 
 HATN_BASE_NAMESPACE_END

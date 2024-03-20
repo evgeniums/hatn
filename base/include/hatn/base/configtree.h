@@ -26,6 +26,7 @@
 #include <hatn/base/base.h>
 #include <hatn/base/baseerror.h>
 #include <hatn/base/configtreevalue.h>
+#include <hatn/base/configtreepath.h>
 #include <hatn/base/detail/configtreevalue.ipp>
 
 HATN_BASE_NAMESPACE_BEGIN
@@ -37,13 +38,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 {
     public:
 
-        /**
-         * @brief Constructor.
-         * @param pathSeparator Separator between sections of nested path. Default is ".".
-         */
-        ConfigTree(const std::string& pathSeparator="."):m_pathSeparator(pathSeparator)
-        {}
-
+        ConfigTree()=default;
         ConfigTree(ConfigTree&&)=default;
         ConfigTree& operator =(ConfigTree&&)=default;
         ~ConfigTree()=default;
@@ -58,13 +53,8 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         using ConfigTreeValue::reset;
         using ConfigTreeValue::isSet;
 
-        std::string pathSeparator() const
-        {
-            return m_pathSeparator;
-        }
-
         template <typename T>
-        Result<ConfigTree&> set(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
+        Result<ConfigTree&> set(const ConfigTreePath& path, T&& value, bool autoCreatePath=true) noexcept
         {
             auto r=getImpl(path,autoCreatePath);
             HATN_CHECK_RESULT(r)
@@ -73,7 +63,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
+        ConfigTree& set(const ConfigTreePath& path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
             auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_EC(r,ec)
@@ -82,7 +72,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
+        ConfigTree& setEx(const ConfigTreePath& path, T&& value, bool autoCreatePath=true)
         {
             auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_THROW(r)
@@ -91,7 +81,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        Result<ConfigTree&> setDefault(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
+        Result<ConfigTree&> setDefault(const ConfigTreePath& path, T&& value, bool autoCreatePath=true) noexcept
         {
             auto r=getImpl(path,autoCreatePath);
             HATN_CHECK_RESULT(r)
@@ -100,7 +90,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
+        ConfigTree& setDefault(const ConfigTreePath& path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
             auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_EC(r,ec)
@@ -109,7 +99,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         template <typename T>
-        ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
+        ConfigTree& setDefaultEx(const ConfigTreePath& path, T&& value, bool autoCreatePath=true)
         {
             auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_THROW(r)
@@ -117,39 +107,38 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
             return r.takeValue();
         }
 
-        Result<const ConfigTree&> get(common::lib::string_view path) const noexcept
+        Result<const ConfigTree&> get(const ConfigTreePath& path) const noexcept
         {
             return getImpl(path);
         }
-        const ConfigTree& get(common::lib::string_view path, Error &ec) const noexcept;
-        const ConfigTree& getEx(common::lib::string_view path) const;
+        const ConfigTree& get(const ConfigTreePath& path, Error &ec) const noexcept;
+        const ConfigTree& getEx(const ConfigTreePath& path) const;
 
-        Result<ConfigTree&> get(common::lib::string_view path, bool autoCreatePath=false) noexcept
+        Result<ConfigTree&> get(const ConfigTreePath& path, bool autoCreatePath=false) noexcept
         {
             return getImpl(path,autoCreatePath);
         }
-        ConfigTree& get(common::lib::string_view path, Error &ec, bool autoCreatePath=false) noexcept;
-        ConfigTree& getEx(common::lib::string_view path, bool autoCreatePath=false);
+        ConfigTree& get(const ConfigTreePath& path, Error &ec, bool autoCreatePath=false) noexcept;
+        ConfigTree& getEx(const ConfigTreePath& path, bool autoCreatePath=false);
 
-        bool isSet(common::lib::string_view path) const noexcept;
+        bool isSet(const ConfigTreePath& path) const noexcept;
 
         template <typename T>
-        auto toArray(common::lib::string_view path) -> decltype(auto)
+        auto toArray(const ConfigTreePath& path) -> decltype(auto)
         {
             auto r=get(path,true);
+            HATN_CHECK_RESULT(r)
             return r->toArray<T>();
         }
 
-        config_tree::MapT& toMap(common::lib::string_view path);
+        config_tree::MapT& toMap(const ConfigTreePath& path);
 
-        void reset(common::lib::string_view path) noexcept;
+        void reset(const ConfigTreePath& path) noexcept;
 
     private:
 
-        Result<const ConfigTree&> getImpl(const common::lib::string_view& path) const noexcept;
-        Result<ConfigTree&> getImpl(const common::lib::string_view& path, bool autoCreatePath=false) noexcept;
-
-        std::string m_pathSeparator;
+        Result<const ConfigTree&> getImpl(const ConfigTreePath& path) const noexcept;
+        Result<ConfigTree&> getImpl(const ConfigTreePath& path, bool autoCreatePath=false) noexcept;
 };
 
 HATN_BASE_NAMESPACE_END
