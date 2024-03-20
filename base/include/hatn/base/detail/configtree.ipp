@@ -21,9 +21,6 @@
 #ifndef HATNCONFIGTREE_IPP
 #define HATNCONFIGTREE_IPP
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
-
 #include <hatn/base/configtree.h>
 
 HATN_BASE_NAMESPACE_BEGIN

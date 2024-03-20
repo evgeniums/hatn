@@ -256,13 +256,13 @@ template <typename T, typename StorageT> struct ArrayAt<T,StorageT, std::enable_
 template <typename T, bool Constant>
 auto ArrayViewT<T,Constant>::at(size_t index) const -> decltype(auto)
 {
-    return config_tree_detail::ArrayAt<T,elementType>::f(m_arrayRef,index);
+    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayRef,index);
 }
 
 template <typename T, bool Constant>
 auto ArrayViewT<T,Constant>::at(size_t index) -> decltype(auto)
 {
-    return config_tree_detail::ArrayAt<T,elementType>::f(m_arrayRef,index);
+    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayRef,index);
 }
 
 //---------------------------------------------------------------

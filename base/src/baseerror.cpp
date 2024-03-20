@@ -58,6 +58,10 @@ std::string BaseErrorCategory::message(int code) const
         result=common::_TR("Cannot move not error result","base");
         break;
 
+        case (static_cast<int>(BaseError::STRING_NOT_NUMBER)):
+            result=common::_TR("Cannot convert string to number","base");
+            break;
+
         default:
             result=common::_TR("Unknown error");
     }

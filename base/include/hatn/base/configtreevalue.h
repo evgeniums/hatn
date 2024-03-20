@@ -55,41 +55,50 @@ enum class Type : int
     Map
 };
 
+using SubtreeT=std::shared_ptr<ConfigTree>;
+
 template <Type TypeId> struct Storage
-{using type=int64_t;};
+{using type=int64_t;constexpr static bool isArray=false;};
 
 template <> struct Storage<Type::Int>
-{using type=int64_t;};
+{using type=int64_t;constexpr static bool isArray=false;};
 
 template <> struct Storage<Type::Double>
-{using type=double;};
+{using type=double;constexpr static bool isArray=false;};
 
 template <> struct Storage<Type::Bool>
-{using type=bool;};
+{using type=bool;constexpr static bool isArray=false;};
 
 template <> struct Storage<Type::String>
-{using type=std::string;};
+{using type=std::string;constexpr static bool isArray=false;};
 
 template <> struct Storage<Type::ArrayInt>
-{using type=std::vector<int64_t>;};
+{using type=std::vector<int64_t>;constexpr static bool isArray=true;};
 
 template <> struct Storage<Type::ArrayDouble>
-{using type=std::vector<double>;};
+{using type=std::vector<double>;constexpr static bool isArray=true;};
 
 template <> struct Storage<Type::ArrayBool>
-{using type=std::vector<bool>;};
+{using type=std::vector<bool>;constexpr static bool isArray=true;};
 
 template <> struct Storage<Type::ArrayString>
-{using type=std::vector<std::string>;};
+{using type=std::vector<std::string>;constexpr static bool isArray=true;};
 
 template <> struct Storage<Type::ArrayTree>
-{using type=std::vector<std::shared_ptr<ConfigTree>>;};
+{using type=std::vector<SubtreeT>;constexpr static bool isArray=true;};
 
 template <> struct Storage<Type::Map>
-{using type=MapT;};
+{using type=MapT;constexpr static bool isArray=false;};
+
+inline constexpr bool isArray(Type typ) noexcept
+{
+    return typ==Type::ArrayTree || typ==Type::ArrayString || typ==Type::ArrayInt || typ==Type::ArrayDouble || typ==Type::ArrayBool;
+}
 
 template <typename T, typename T1=void> struct ValueType
 {
+    using origin=T;
+
     constexpr static auto id=Type::None;
     using type=typename Storage<id>::type;
 
@@ -99,6 +108,8 @@ template <typename T, typename T1=void> struct ValueType
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<bool,T>::value>>
 {
+    using origin=T;
+
     constexpr static auto id=Type::Bool;
     using type=typename Storage<id>::type;
 
@@ -108,6 +119,8 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<bool,T>::
 
 template <typename T> struct ValueType<T,std::enable_if_t<!std::is_same<bool,T>::value && std::is_integral<T>::value>>
 {
+    using origin=T;
+
     constexpr static auto id=Type::Int;
     using type=typename Storage<id>::type;
 
@@ -117,6 +130,8 @@ template <typename T> struct ValueType<T,std::enable_if_t<!std::is_same<bool,T>:
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_floating_point<T>::value>>
 {
+    using origin=T;
+
     constexpr static auto id=Type::Double;
     using type=typename Storage<id>::type;
 
@@ -126,6 +141,8 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_floating_point
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_constructible<std::string,T>::value>>
 {
+    using origin=T;
+
     constexpr static auto id=Type::String;
     using type=typename Storage<id>::type;
 
@@ -135,8 +152,10 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_constructible<
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<ConfigTree,T>::value>>
 {
+    using origin=SubtreeT;
+
     constexpr static auto id=Type::None;
-    using type=std::shared_ptr<ConfigTree>;
+    using type=SubtreeT;
 
     constexpr static auto arrayId=Type::ArrayTree;
     using arrayType=typename Storage<arrayId>::type;
@@ -157,6 +176,7 @@ using ValueT = common::lib::variant<
 
 using HolderT=common::lib::optional<config_tree::ValueT>;
 
+
 } // namespace config_tree
 
 /**
@@ -168,6 +188,7 @@ class ArrayViewT
     public:
 
         using elementType=typename config_tree::ValueType<T>::type;
+        using elementReturnType=typename config_tree::ValueType<T>::origin;
 
         using arrayT=typename config_tree::ValueType<T>::arrayType;
         constexpr static auto arrayTypeC=hana::if_(hana::bool_c<Constant>,hana::type_c<const arrayT&>,hana::type_c<arrayT&>);

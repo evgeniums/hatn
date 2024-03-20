@@ -34,6 +34,7 @@ enum class BaseError : int
     VALUE_NOT_SET,
     RESULT_ERROR,
     RESULT_NOT_ERROR,
+    STRING_NOT_NUMBER,
 };
 
 HATN_BASE_NAMESPACE_END

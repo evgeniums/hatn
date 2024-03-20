@@ -18,77 +18,152 @@
 
 #include <hatn/base/configtree.h>
 #include <hatn/base/detail/configtree.ipp>
+#include <hatn/base/configtreepath.h>
 
 HATN_BASE_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
 template <typename T, typename T1>
-Result<T> doGet(common::lib::string_view path, T1* configTreePtr) noexcept
+Result<T> doGet(ConfigTreePath& key, T1* configTreePtr, size_t* depth=nullptr, T1** lastCurrent=nullptr) noexcept
 {
+    size_t i=0;
     auto current=configTreePtr;
-    if (path.length()!=0)
+    if (!key.isRoot())
     {
-        std::vector<std::string> sections;
-        boost::algorithm::split(sections, path, boost::algorithm::is_any_of(configTreePtr->pathSeparator()));
-
-        for (auto&& it: sections)
+        key.prepare();
+        for (;i<key.count();i++)
         {
-            auto child=current->asMap();
-            HATN_CHECK_RESULT(child)
-
-            auto it1=child->find(it);
-            if (it1==child->end())
+            const auto& section=key.at(i);
+            if (section.empty())
             {
-                return baseErrorResult(BaseError::VALUE_NOT_SET);
+                continue;
             }
 
-            current=it1->second.get();
+            if (depth!=nullptr)
+            {
+                *depth=i;
+            }
+            if (lastCurrent!=nullptr)
+            {
+                *lastCurrent=current;
+            }
+
+            auto map=current->asMap();
+            if (map.isValid())
+            {
+                auto it1=map->find(section);
+                if (it1==map->end())
+                {
+                    return baseErrorResult(BaseError::VALUE_NOT_SET);
+                }
+
+                current=it1->second.get();
+                continue;
+            }
+
+            if (current->type()==config_tree::Type::ArrayTree)
+            {
+                auto pos=key.numberAt(i);
+                HATN_CHECK_RESULT(pos)
+
+                auto view=current->template asArray<ConfigTree>();
+                HATN_CHECK_RESULT(view)
+
+                if (pos<0 || pos>=view->size())
+                {
+                    return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
+                }
+
+                current=view->at(pos.value()).get();
+                continue;
+            }
+
+            // return invalid result
+            return map;
         }
     }
 
+    if (depth!=nullptr)
+    {
+        *depth=i;
+    }
+    if (lastCurrent!=nullptr)
+    {
+        *lastCurrent=current;
+    }
     return *current;
 }
 
 //---------------------------------------------------------------
 
 template <typename T>
-Result<ConfigTree&> buildPath(common::lib::string_view path, T* configTreePtr, bool forceMismatchedSections) noexcept
+Result<ConfigTree&> buildPath(ConfigTreePath& key, T* configTreePtr, bool forceMismatchedSections) noexcept
 {
+    size_t depth=0;
     auto current=configTreePtr;
-    if (path.length()!=0)
-    {
-        std::vector<std::string> sections;
-        boost::algorithm::split(sections, path, boost::algorithm::is_any_of(configTreePtr->pathSeparator()));
+    doGet<ConfigTree&>(key,configTreePtr,&depth,&current);
 
-        for (auto&& it: sections)
+    for (auto i=depth;i<key.count();i++)
+    {
+        const auto& section=key.at(i);
+        if (section.empty())
         {
-            if (!current->isSet())
-            {
-                current->toMap();
-            }
-            else if (current->type()!=config_tree::Type::Map)
+            continue;
+        }
+
+        if (!current->isSet() || (current->type()!=config_tree::Type::Map && current->type()!=config_tree::Type::ArrayTree && forceMismatchedSections))
+        {
+            current->toMap();
+        }
+
+        size_t pos=-1;
+        if (current->type()==config_tree::Type::ArrayTree)
+        {
+            auto tryPos=key.numberAt(i);
+            if (!tryPos.isValid())
             {
                 if (forceMismatchedSections)
                 {
                     current->toMap();
                 }
-            }
-
-            auto child=current->asMap();
-            HATN_CHECK_RESULT(child)
-
-            auto it1=child->find(it);
-            if (it1!=child->end())
-            {
-                current=it1->second.get();
+                else
+                {
+                    return tryPos;
+                }
             }
             else
             {
-                auto inserted=child->emplace(it, std::make_shared<ConfigTree>());
-                current=inserted.first->second.get();
+                pos=tryPos.value();
             }
         }
+
+        auto map=current->asMap();
+        if (map.isValid())
+        {
+            auto inserted=map->emplace(section, std::make_shared<ConfigTree>());
+            current=inserted.first->second.get();
+            continue;
+        }
+
+        if (current->type()==config_tree::Type::ArrayTree)
+        {
+            auto view=current->template asArray<ConfigTree>();
+            HATN_CHECK_RESULT(view)
+
+            if (pos<0 || pos>=view->size())
+            {
+                return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
+            }
+
+            auto subtree=std::make_shared<ConfigTree>();
+            current=subtree.get();
+            view->set(pos,std::move(subtree));
+            continue;
+        }
+
+        // return invalid result
+        return map;
     }
 
     return *current;
@@ -96,16 +171,17 @@ Result<ConfigTree&> buildPath(common::lib::string_view path, T* configTreePtr, b
 
 //---------------------------------------------------------------
 
-Result<const ConfigTree&> ConfigTree::get(common::lib::string_view path) const noexcept
+Result<const ConfigTree&> ConfigTree::getImpl(const common::lib::string_view& path) const noexcept
 {
-    return doGet<const ConfigTree&>(std::move(path),this);
+    ConfigTreePath key(path,pathSeparator());
+    return doGet<const ConfigTree&>(key,this);
 }
 
 //---------------------------------------------------------------
 
 const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) const noexcept
 {
-    auto&& r = get(std::move(path));
+    auto&& r = getImpl(path);
     HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
@@ -114,19 +190,20 @@ const ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec) cons
 
 const ConfigTree& ConfigTree::getEx(common::lib::string_view path) const
 {
-    auto&& r = get(std::move(path));
+    auto&& r = getImpl(path);
     HATN_RESULT_THROW(r)
     return r.takeValue();
 }
 
 //---------------------------------------------------------------
 
-Result<ConfigTree&> ConfigTree::get(common::lib::string_view path, bool autoCreatePath) noexcept
+Result<ConfigTree&> ConfigTree::getImpl(const common::lib::string_view& path, bool autoCreatePath) noexcept
 {
-    auto result=doGet<ConfigTree&>(path,this);
+    ConfigTreePath key(path,pathSeparator());
+    auto result=doGet<ConfigTree&>(key,this);
     if (!result.isValid()&&autoCreatePath)
     {
-        return buildPath(path,this,true);
+        return buildPath(key,this,true);
     }
     return result;
 }
@@ -135,7 +212,7 @@ Result<ConfigTree&> ConfigTree::get(common::lib::string_view path, bool autoCrea
 
 ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoCreatePath) noexcept
 {
-    auto&& r = get(std::move(path),autoCreatePath);
+    auto&& r = getImpl(path,autoCreatePath);
     HATN_RESULT_EC(r,ec)
     return r.takeValue();
 }
@@ -144,7 +221,7 @@ ConfigTree& ConfigTree::get(common::lib::string_view path, Error &ec, bool autoC
 
 ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath)
 {
-    auto&& r = get(std::move(path),autoCreatePath);
+    auto&& r = getImpl(path,autoCreatePath);
     HATN_RESULT_THROW(r)
     return r.takeValue();
 }
@@ -153,7 +230,8 @@ ConfigTree& ConfigTree::getEx(common::lib::string_view path, bool autoCreatePath
 
 bool ConfigTree::isSet(common::lib::string_view path) const noexcept
 {
-    auto r=doGet<const ConfigTree&>(std::move(path),this);
+    ConfigTreePath key(path,pathSeparator());
+    auto r=doGet<const ConfigTree&>(key,this);
     if (!r.isValid())
     {
         return false;
@@ -165,7 +243,8 @@ bool ConfigTree::isSet(common::lib::string_view path) const noexcept
 
 void ConfigTree::reset(common::lib::string_view path) noexcept
 {
-    auto r=doGet<ConfigTree&>(std::move(path),this);
+    ConfigTreePath key(path,pathSeparator());
+    auto r=doGet<ConfigTree&>(key,this);
     if (r.isValid())
     {
         r->reset();
@@ -176,7 +255,7 @@ void ConfigTree::reset(common::lib::string_view path) noexcept
 
 config_tree::MapT& ConfigTree::toMap(common::lib::string_view path)
 {
-    auto r=get(std::move(path),true);
+    auto r=getImpl(path,true);
     return r->toMap();
 }
 

@@ -31,7 +31,7 @@
 HATN_BASE_NAMESPACE_BEGIN
 
  /**
- * @brief The ConfigTree class represents a tre of values that can be accessed with literal nested path.
+ * @brief The ConfigTree class represents a tree of values that can be accessed with literal nested path.
  */
 class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 {
@@ -58,7 +58,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         using ConfigTreeValue::reset;
         using ConfigTreeValue::isSet;
 
-        common::lib::string_view pathSeparator() const
+        std::string pathSeparator() const
         {
             return m_pathSeparator;
         }
@@ -66,7 +66,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         Result<ConfigTree&> set(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
         {
-            auto r=get(std::move(path),autoCreatePath);
+            auto r=getImpl(path,autoCreatePath);
             HATN_CHECK_RESULT(r)
             r->set(std::forward<T>(value));
             return r;
@@ -75,7 +75,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         ConfigTree& set(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
-            auto&& r=get(std::move(path),autoCreatePath);
+            auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_EC(r,ec)
             r->set(std::forward<T>(value));
             return r.takeValue();
@@ -84,7 +84,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         ConfigTree& setEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
         {
-            auto&& r = get(std::move(path),autoCreatePath);
+            auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_THROW(r)
             r->set(std::forward<T>(value));
             return r.takeValue();
@@ -93,7 +93,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         Result<ConfigTree&> setDefault(common::lib::string_view path, T&& value, bool autoCreatePath=true) noexcept
         {
-            auto r=get(std::move(path),autoCreatePath);
+            auto r=getImpl(path,autoCreatePath);
             HATN_CHECK_RESULT(r)
             r->setDefault(std::forward<T>(value));
             return r;
@@ -102,7 +102,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         ConfigTree& setDefault(common::lib::string_view path, T&& value, Error &ec, bool autoCreatePath=true) noexcept
         {
-            auto&& r=get(std::move(path),autoCreatePath);
+            auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_EC(r,ec)
             r->setDefault(std::forward<T>(value));
             return r.takeValue();
@@ -111,17 +111,23 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         ConfigTree& setDefaultEx(common::lib::string_view path, T&& value, bool autoCreatePath=true)
         {
-            auto&& r = get(std::move(path),autoCreatePath);
+            auto&& r=getImpl(path,autoCreatePath);
             HATN_RESULT_THROW(r)
             r->setDefault(std::forward<T>(value));
             return r.takeValue();
         }
 
-        Result<const ConfigTree&> get(common::lib::string_view path) const noexcept;
+        Result<const ConfigTree&> get(common::lib::string_view path) const noexcept
+        {
+            return getImpl(path);
+        }
         const ConfigTree& get(common::lib::string_view path, Error &ec) const noexcept;
         const ConfigTree& getEx(common::lib::string_view path) const;
 
-        Result<ConfigTree&> get(common::lib::string_view path, bool autoCreatePath=false) noexcept;
+        Result<ConfigTree&> get(common::lib::string_view path, bool autoCreatePath=false) noexcept
+        {
+            return getImpl(path,autoCreatePath);
+        }
         ConfigTree& get(common::lib::string_view path, Error &ec, bool autoCreatePath=false) noexcept;
         ConfigTree& getEx(common::lib::string_view path, bool autoCreatePath=false);
 
@@ -130,7 +136,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         template <typename T>
         auto toArray(common::lib::string_view path) -> decltype(auto)
         {
-            auto r=get(std::move(path),true);
+            auto r=get(path,true);
             return r->toArray<T>();
         }
 
@@ -139,6 +145,9 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         void reset(common::lib::string_view path) noexcept;
 
     private:
+
+        Result<const ConfigTree&> getImpl(const common::lib::string_view& path) const noexcept;
+        Result<ConfigTree&> getImpl(const common::lib::string_view& path, bool autoCreatePath=false) noexcept;
 
         std::string m_pathSeparator;
 };

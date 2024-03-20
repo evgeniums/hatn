@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(ConfigTreePath)
     auto subChild2=t1.get(path1,true);
     BOOST_CHECK(subChild2.isValid());
 
-    // intermediate paths mus be set now but target path is not yet
+    // intermediate paths must be already set but target path is not yet
     BOOST_CHECK(!t2.isSet(path1));
     BOOST_CHECK(t2.isSet(path2));
     BOOST_CHECK(t2.isSet(path3));
