@@ -21,6 +21,7 @@
 #include <string>
 
 #include <hatn/common/common.h>
+#include <hatn/common/format.h>
 #include <hatn/common/errorcategory.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
@@ -28,19 +29,34 @@ HATN_COMMON_NAMESPACE_BEGIN
 class Error;
 class ByteArray;
 
-//! Base class for native errors
+//! Base class for native errors.
 class HATN_COMMON_EXPORT NativeError
 {
     public:
 
         //! Ctor
         NativeError(
-                int value,
-                const std::error_category* category=&CommonErrorCategory::getCategory(),
-                bool notNull=true
-            ) : m_value(value),
-                m_category(category),
-                m_notNull(notNull)
+                std::string nativeMessage,
+                int nativeCode=-1,
+                const std::error_category* category=nullptr
+            ) : m_nativeMessage(std::move(nativeMessage)),
+                m_nativeCode(nativeCode),
+                m_category(category)
+        {}
+
+        //! Ctor
+        NativeError(
+                int nativeCode,
+                const std::error_category* category=nullptr
+            ) : m_nativeCode(nativeCode),
+                m_category(category)
+        {}
+
+        //! Ctor
+        NativeError(
+                const std::error_category* category
+            ) : m_nativeCode(-1),
+                m_category(category)
         {}
 
         virtual ~NativeError()=default;
@@ -49,53 +65,32 @@ class HATN_COMMON_EXPORT NativeError
         NativeError& operator=(const NativeError&)=default;
         NativeError& operator=(NativeError&&) =default;
 
-        //! Native message
-        virtual std::string nativeMessage() const
+        //! Get native error message.
+        std::string nativeMessage() const
         {
-            return std::string();
+            return m_nativeMessage;
         }
 
-        //! Message
-        std::string message() const
+        //! Get native error code.
+        int nativeCode() const noexcept
         {
-            auto msg=nativeMessage();
-            if (msg.empty() && m_category!=nullptr)
-            {
-                msg=m_category->message(m_value);
-            }
-            return msg;
+            return m_nativeCode;
         }
 
-        //! Code
-        int value() const noexcept
-        {
-            return m_value;
-        }
-
-        //! Check if error is NULL
-        bool isNull() const noexcept
-        {
-            return !m_notNull;
-        }
-
-        //! Bool operator
-        inline operator bool() const noexcept
-        {
-            return !isNull();
-        }
-
-        //! Get category
+        //! Get category.
         const std::error_category* category() const noexcept
         {
             return m_category;
         }
 
-        //! Compare with other error
+        //! Compare with other error.
         inline bool isEqual(const NativeError& other) const noexcept
         {
             if (other.category()!=this->category()
                ||
-                other.value()!=this->value()
+                other.nativeCode()!=this->nativeCode()
+               ||
+                other.nativeMessage()!=this->nativeMessage()
                )
             {
                 return false;
@@ -114,19 +109,9 @@ class HATN_COMMON_EXPORT NativeError
 
         virtual Error serializeAppend(ByteArray& buf) const;
 
-        void setNotNull(bool val) noexcept
-        {
-            m_notNull=val;
-        }
-
-        void setValue(int val) noexcept
-        {
-            m_value=val;
-        }
-
     protected:
 
-        //! Compare self content with content of other error
+        //! Compare self content with content of other error.
         virtual bool compareContent(const NativeError& other) const noexcept
         {
             std::ignore=other;
@@ -135,9 +120,9 @@ class HATN_COMMON_EXPORT NativeError
 
     private:
 
-        int m_value;
+        std::string m_nativeMessage;
+        int m_nativeCode;
         const std::error_category* m_category;
-        bool m_notNull;
 };
 
 //---------------------------------------------------------------

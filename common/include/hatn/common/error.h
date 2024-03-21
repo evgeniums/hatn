@@ -40,29 +40,36 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
     public:
 
         //! Default constructor for std error category.
+        template <typename T>
         Error(
-                int code=static_cast<int>(CommonError::OK),
+                T code,
                 const std::error_category* category=&CommonErrorCategory::getCategory()
             ) noexcept
-            : m_code(code),
+            : m_code(static_cast<int>(code)),
               m_extended(category)
        {}
 
         //! Constructor for boost error category.
+        template <typename T>
         Error(
-                int code,
+                T code,
                 const boost::system::error_category* category
               ) noexcept
-            : m_code(code),
+            : m_code(static_cast<int>(code)),
               m_extended(category)
         {}
 
         //! Constructor from native error.
+        template <typename T>
         Error(
-                std::shared_ptr<NativeError> error
+                T code,
+                std::shared_ptr<NativeError>&& error
               ) noexcept
-            : m_code(error->value()),
+            : m_code(static_cast<int>(code)),
               m_extended(std::move(error))
+        {}
+
+        Error(CommonError code=CommonError::OK) : Error(static_cast<int>(code))
         {}
 
         ~Error()=default;
@@ -90,10 +97,19 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 
                 case(2):
                 {
-                    auto nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
                     if (nativeError)
                     {
-                        return nativeError->message();
+                        auto msg=nativeError->nativeMessage();
+                        if (nativeError->category()!=nullptr)
+                        {
+                            if (!msg.empty())
+                            {
+                                return fmt::format("{}: {}", nativeError->category()->message(m_code), msg);
+                            }
+                            return nativeError->category()->message(m_code);
+                        }
+                        return msg;
                     }
                 }
             }
@@ -132,22 +148,19 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         }
 
         //! Get native error
-        inline std::shared_ptr<NativeError> native() const noexcept
+        inline const NativeError* native() const noexcept
         {
             if (lib::variantIndex(m_extended)==2)
             {
-                return lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_extended).get();
             }
-            return std::shared_ptr<NativeError>{};
+            return nullptr;
         }
 
         //! Set native error
-        inline void setNative(std::shared_ptr<NativeError> error) noexcept
+        inline void setNative(int code, std::shared_ptr<NativeError>&& error) noexcept
         {
-            if (m_code==static_cast<int>(CommonError::OK))
-            {
-                m_code=error->value();
-            }
+            m_code=code;
             m_extended=std::move(error);
         }
 
@@ -164,7 +177,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 
                 case(2):
                 {
-                    auto nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
                     if (nativeError)
                     {
                         return nativeError->category();
@@ -254,7 +267,7 @@ class HATN_COMMON_EXPORT ErrorException final : public std::runtime_error
         //! Ctor
         explicit ErrorException(
                 Error error,
-                std::string message=std::string()
+                const std::string& message=std::string()
             ) noexcept :
                 std::runtime_error(message.empty()?error.message():message),
                 m_error(std::move(error))
@@ -262,7 +275,7 @@ class HATN_COMMON_EXPORT ErrorException final : public std::runtime_error
         }
 
         //! Get error
-        inline Error error() const noexcept
+        inline const Error& error() const noexcept
         {
             return m_error;
         }
@@ -279,6 +292,7 @@ HATN_NAMESPACE_BEGIN
 
 using Error=common::Error;
 using CommonError=common::CommonError;
+constexpr const CommonError OK{CommonError::OK};
 
 //! Create Error object from common error code.
 inline common::Error commonError(CommonError code) noexcept
@@ -326,6 +340,23 @@ HATN_NAMESPACE_END
     if (ec)\
     {\
         return ec;\
+    }\
+}
+
+#define HATN_BOOL_EC(ec) \
+{\
+    if (ec)\
+    {\
+        return !ec;\
+    }\
+}
+
+#define HATN_BOOL_EC_MSG(ec,msg) \
+{\
+    if (ec)\
+    {\
+        msg=ec.message();\
+        return !ec;\
     }\
 }
 

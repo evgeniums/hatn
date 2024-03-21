@@ -41,7 +41,8 @@ enum class ErrorCodes : int
     FILE_NOT_OPEN=9,
     TIMEOUT=10,
     RESULT_ERROR=11,
-    RESULT_NOT_ERROR=12
+    RESULT_NOT_ERROR=12,
+    NOT_IMPLEMENTED=13
 };
 
 using CommonError=ErrorCodes;

@@ -92,6 +92,9 @@ std::string CommonErrorCategory::message(int code) const
         case (static_cast<int>(CommonError::TIMEOUT)):
             result=_TR("Operation timeout");
         break;
+        case (static_cast<int>(CommonError::NOT_IMPLEMENTED)):
+            result=_TR("Requested operation with procided arguments not implemented yet");
+            break;
 
         default:
             result=_TR("Unknown error");

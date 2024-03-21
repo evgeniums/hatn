@@ -703,6 +703,16 @@ auto emplaceResult(Args&& ...args) -> decltype(auto)
 }
 
 #define HATN_CHECK_RESULT(r) HATN_CHECK_EC(r)
+#define HATN_BOOL_RESULT(r) HATN_BOOL_EC(r)
+
+#define HATN_BOOL_RESULT_MSG(r,msg) \
+{\
+    if (r)\
+    {\
+        msg=r.error().message();\
+        return !r;\
+    }\
+}
 
 #define HATN_RESULT_EC(r,ec) \
 if (r) \
