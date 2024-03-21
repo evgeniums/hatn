@@ -47,7 +47,7 @@ class HATN_BASE_EXPORT ConfigTreeParseError : public common::NativeError
         ConfigTreeParseError(
                 std::string message,
                 size_t offset=0,
-                size_t nativeCode=-1
+                int nativeCode=-1
             ) : NativeError(std::move(message),nativeCode,&BaseErrorCategory::getCategory()),
                 m_offset(offset)
         {}
