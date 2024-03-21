@@ -347,13 +347,17 @@ auto ConfigTreeValue::getDefaultEx() const -> decltype(auto)
 template <typename T>
 void ConfigTreeValue::set(T value)
 {
-    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_value,m_type,std::move(value));
+    using type=std::decay_t<T>;
+    config_tree_detail::ValueSetter<type>::set(m_value,m_type,std::move(value));
+    m_numericType=config_tree::ValueType<type>::numericId();
 }
 
 template <typename T>
 void ConfigTreeValue::setDefault(T value)
 {
-    config_tree_detail::ValueSetter<std::decay_t<T>>::set(m_defaultValue,m_defaultType,std::move(value));
+    using type=std::decay_t<T>;
+    config_tree_detail::ValueSetter<type>::set(m_defaultValue,m_defaultType,std::move(value));
+    m_defaultNumericType=config_tree::ValueType<type>::numericId();
 }
 
 //---------------------------------------------------------------

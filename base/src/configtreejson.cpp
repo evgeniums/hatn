@@ -24,10 +24,12 @@ namespace rapidjson { using SizeType=size_t; }
 
 #include <stack>
 #include <memory>
-#include <iostream>
+#include <string>
 
 #include <rapidjson/reader.h>
 #include "rapidjson/error/en.h"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
 
 #include <hatn/common/error.h>
 #include <hatn/common/utils.h>
@@ -342,6 +344,218 @@ Error ConfigTreeJson::doParse(
 
 /****************************Serializer**************************************/
 
+namespace {
+
+void writeTree(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer, const ConfigTree* current)
+{
+    if (!current->isSet(true))
+    {
+        writer.Null();
+        return;
+    }
+
+    switch (current->type(true))
+    {
+        case(config_tree::Type::Int):
+        {
+            switch (current->numericType(true))
+            {
+                case(config_tree::NumericType::Int8):
+                    writer.Int(current->as<int8_t>().value());break;
+                case(config_tree::NumericType::Int16):
+                    writer.Int(current->as<int16_t>().value());break;
+                case(config_tree::NumericType::Int32):
+                    writer.Int(current->as<int32_t>().value());break;
+                case(config_tree::NumericType::Int64):
+                    writer.Int64(current->as<int64_t>().value());break;
+                case(config_tree::NumericType::UInt8):
+                    writer.Uint(current->as<uint8_t>().value());break;
+                case(config_tree::NumericType::UInt16):
+                    writer.Uint(current->as<uint16_t>().value());break;
+                case(config_tree::NumericType::UInt32):
+                    writer.Uint(current->as<uint32_t>().value());break;
+                case(config_tree::NumericType::UInt64):
+                    writer.Uint64(current->as<uint64_t>().value());break;
+                case(config_tree::NumericType::None):break;
+            }
+            break;
+        }
+
+        case(config_tree::Type::String):
+        {
+            writer.String(current->as<std::string>()->c_str());
+            break;
+        }
+
+        case(config_tree::Type::Bool):
+        {
+            writer.Bool(current->as<bool>().value());
+            break;
+        }
+
+        case(config_tree::Type::Double):
+        {
+            writer.Double(current->as<double>().value());
+            break;
+        }
+
+        case(config_tree::Type::Map):
+        {
+            writer.StartObject();
+            auto m=current->asMap();
+            for (auto&& it: m.value())
+            {
+                writer.Key(it.first.c_str());
+                writeTree(writer,it.second.get());
+            }
+            writer.EndObject();
+            break;
+        }
+
+        case(config_tree::Type::ArrayInt):
+        {
+            writer.StartArray();
+
+            switch (current->numericType(true))
+            {
+                case(config_tree::NumericType::Int8):
+                {
+                    auto arr=current->asArray<int8_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Int(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::Int16):
+                {
+                    auto arr=current->asArray<int16_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Int(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::Int32):
+                {
+                    auto arr=current->asArray<int32_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Int(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::Int64):
+                {
+                    auto arr=current->asArray<int64_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Int64(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::UInt8):
+                {
+                    auto arr=current->asArray<uint8_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Uint(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::UInt16):
+                {
+                    auto arr=current->asArray<uint16_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Uint(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::UInt32):
+                {
+                    auto arr=current->asArray<uint32_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Uint(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::UInt64):
+                {
+                    auto arr=current->asArray<uint64_t>();
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        writer.Uint64(arr->at(i));
+                    }
+                    break;
+                }
+                case(config_tree::NumericType::None):break;
+            }
+
+            writer.EndArray();
+            break;
+        }
+
+        case(config_tree::Type::ArrayString):
+        {
+            writer.StartArray();
+            auto arr=current->asArray<std::string>();
+            for (size_t i=0;i<arr->size();i++)
+            {
+                writer.String(arr->at(i).c_str());
+            }
+            writer.EndArray();
+            break;
+        }
+
+        case(config_tree::Type::ArrayBool):
+        {
+            writer.StartArray();
+            auto arr=current->asArray<bool>();
+            for (size_t i=0;i<arr->size();i++)
+            {
+                writer.Bool(arr->at(i));
+            }
+            writer.EndArray();
+            break;
+        }
+
+        case(config_tree::Type::ArrayDouble):
+        {
+            writer.StartArray();
+            auto arr=current->asArray<double>();
+            for (size_t i=0;i<arr->size();i++)
+            {
+                writer.Double(arr->at(i));
+            }
+            writer.EndArray();
+            break;
+        }
+
+        case(config_tree::Type::ArrayTree):
+        {
+            writer.StartArray();
+            auto arr=current->asArray<ConfigTree>();
+            for (size_t i=0;i<arr->size();i++)
+            {
+                const auto& element=arr->at(i);
+                writeTree(writer,element.get());
+            }
+            writer.EndArray();
+            break;
+        }
+
+        case(config_tree::Type::None):
+        {
+            writer.Null();
+            break;
+        }
+    }
+}
+
+}
+
 //---------------------------------------------------------------
 
 Result<std::string> ConfigTreeJson::doSerialize(
@@ -350,7 +564,29 @@ Result<std::string> ConfigTreeJson::doSerialize(
         const std::string&
     ) const noexcept
 {
-    return commonError(CommonError::NOT_IMPLEMENTED);
+    rapidjson::StringBuffer s;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer{s};
+
+    const auto* configTree=&source;
+    if (!root.isRoot())
+    {
+        if (!configTree->isSet(root))
+        {
+            ConfigTree emptyTree;
+            writeTree(writer,&emptyTree);
+            return s.GetString();
+        }
+        else
+        {
+            auto r=configTree->get(root);
+            HATN_CHECK_RESULT(r)
+            configTree=&r.value();
+        }
+    }
+
+    writeTree(writer,configTree);
+
+    return s.GetString();
 }
 
 //---------------------------------------------------------------

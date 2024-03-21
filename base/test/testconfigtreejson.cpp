@@ -33,25 +33,32 @@ BOOST_AUTO_TEST_CASE(ConfigTreeLoadJson)
 {
     ConfigTree t1;
 
-    ConfigTreeJson jsonLoader;
+    ConfigTreeJson jsonIo;
 
     auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
-    auto ec=jsonLoader.loadFile(t1,filename1);
+    auto ec=jsonIo.loadFile(t1,filename1);
     if (!ec.isNull())
     {
         BOOST_FAIL(ec.message());
     }
     BOOST_CHECK(!ec);
 
+    auto jsonR1=jsonIo.serialize(t1);
+    BOOST_CHECK(!jsonR1);
+    std::cout<<"Parsed and serialized back object 1"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR1.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+
     auto filename2=MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc");
-    ec=jsonLoader.loadFile(t1,filename2);
+    ec=jsonIo.loadFile(t1,filename2);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
     BOOST_CHECK(ec);
 
     auto filename3=MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc");
-    ec=jsonLoader.loadFile(t1,filename3);
+    ec=jsonIo.loadFile(t1,filename3);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
-    BOOST_CHECK(ec);
+    BOOST_CHECK(ec);    
 }
 
 BOOST_AUTO_TEST_SUITE_END()

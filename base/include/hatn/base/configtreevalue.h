@@ -26,6 +26,9 @@
 #include <vector>
 #include <map>
 
+#include <boost/hana/map.hpp>
+#include <boost/hana/fwd/at_key.hpp>
+
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/error.h>
 
@@ -54,6 +57,30 @@ enum class Type : int
     ArrayTree,
     Map
 };
+
+enum class NumericType : int
+{
+    None,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64
+};
+
+constexpr inline auto NumericTypes = hana::make_map(
+    hana::make_pair(hana::type<int8_t>{}, NumericType::Int8),
+    hana::make_pair(hana::type<int16_t>{}, NumericType::Int16),
+    hana::make_pair(hana::type<int32_t>{}, NumericType::Int32),
+    hana::make_pair(hana::type<int64_t>{}, NumericType::Int64),
+    hana::make_pair(hana::type<uint8_t>{}, NumericType::UInt8),
+    hana::make_pair(hana::type<uint16_t>{}, NumericType::UInt16),
+    hana::make_pair(hana::type<uint32_t>{}, NumericType::UInt32),
+    hana::make_pair(hana::type<uint64_t>{}, NumericType::UInt64)
+);
 
 using SubtreeT=std::shared_ptr<ConfigTree>;
 
@@ -104,6 +131,11 @@ template <typename T, typename T1=void> struct ValueType
 
     constexpr static auto arrayId=Type::None;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return NumericType::None;
+    }
 };
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<bool,T>::value>>
@@ -115,6 +147,11 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<bool,T>::
 
     constexpr static auto arrayId=Type::ArrayBool;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return NumericType::None;
+    }
 };
 
 template <typename T> struct ValueType<T,std::enable_if_t<!std::is_same<bool,T>::value && std::is_integral<T>::value>>
@@ -126,6 +163,11 @@ template <typename T> struct ValueType<T,std::enable_if_t<!std::is_same<bool,T>:
 
     constexpr static auto arrayId=Type::ArrayInt;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return hana::at_key(NumericTypes, hana::type<T>{});
+    }
 };
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_floating_point<T>::value>>
@@ -137,6 +179,11 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_floating_point
 
     constexpr static auto arrayId=Type::ArrayDouble;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return NumericType::None;
+    }
 };
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_constructible<std::string,T>::value>>
@@ -148,6 +195,11 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_constructible<
 
     constexpr static auto arrayId=Type::ArrayString;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return NumericType::None;
+    }
 };
 
 template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<ConfigTree,T>::value>>
@@ -159,6 +211,11 @@ template <typename T> struct ValueType<T,std::enable_if_t<std::is_same<ConfigTre
 
     constexpr static auto arrayId=Type::ArrayTree;
     using arrayType=typename Storage<arrayId>::type;
+
+    constexpr static auto numericId() noexcept
+    {
+        return NumericType::None;
+    }
 };
 
 using ValueT = common::lib::variant<
@@ -328,6 +385,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
     public:
 
         using Type=config_tree::Type;
+        using NumericType=config_tree::NumericType;
 
         ConfigTreeValue()
             :m_type(Type::None),
@@ -379,6 +437,21 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return m_defaultType;
         }
 
+        NumericType numericType(bool orDefault=false) const noexcept
+        {
+            auto isSet=static_cast<bool>(m_value);
+            if (!isSet && orDefault)
+            {
+                return m_defaultNumericType;
+            }
+            return m_numericType;
+        }
+
+        NumericType defaultNumericType() const noexcept
+        {
+            return m_defaultNumericType;
+        }
+
         bool isSet(bool orDefault=false) const noexcept
         {
             auto ok=static_cast<bool>(m_value);
@@ -397,12 +470,14 @@ class HATN_BASE_EXPORT ConfigTreeValue
         void reset() noexcept
         {
             m_type=Type::None;
+            m_numericType=NumericType::None;
             m_value.reset();
         }
 
         void resetDefault() noexcept
         {
             m_defaultType=Type::None;
+            m_defaultNumericType=NumericType::None;
             m_defaultValue.reset();
         }
 
@@ -429,6 +504,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
 
             m_type=typeId;
+            m_numericType=config_tree::ValueType<T>::numericId();
             m_value.reset();
             m_value.emplace(valueType{});
             return asArray<T>();
@@ -469,6 +545,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
                 return asMap();
             }
             m_type=Type::Map;
+            m_numericType=NumericType::None;
             m_value.reset();
             m_value.emplace(config_tree::MapT{});
             return asMap();
@@ -536,6 +613,9 @@ class HATN_BASE_EXPORT ConfigTreeValue
         Type m_defaultType;
         config_tree::HolderT m_value;
         config_tree::HolderT m_defaultValue;
+
+        NumericType m_numericType;
+        NumericType m_defaultNumericType;
 };
 
 HATN_BASE_NAMESPACE_END
