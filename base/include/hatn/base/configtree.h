@@ -140,6 +140,8 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 
         void reset(const ConfigTreePath& path) noexcept;
 
+        // Error merge(const ConfigTree& other, const ConfigTreePath& root=ConfigTreePath());
+
     private:
 
         Result<const ConfigTree&> getImpl(const ConfigTreePath& path) const noexcept;

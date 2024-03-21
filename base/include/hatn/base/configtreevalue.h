@@ -334,8 +334,31 @@ class HATN_BASE_EXPORT ConfigTreeValue
              m_defaultType(Type::None)
         {}
 
-        ConfigTreeValue(ConfigTreeValue&&)=default;
-        ConfigTreeValue& operator =(ConfigTreeValue&&)=default;
+        ConfigTreeValue(
+                ConfigTreeValue&& other
+            ) : m_type(other.m_type),
+                m_defaultType(other.m_defaultType),
+                m_value(std::move(other.m_value)),
+                m_defaultValue(std::move(other.m_defaultValue))
+        {
+            other.reset();
+            other.resetDefault();
+        }
+
+        ConfigTreeValue& operator =(ConfigTreeValue&& other)
+        {
+            if (&other!=this)
+            {
+                m_type=other.m_type;
+                m_defaultType=other.m_defaultType;
+                m_value=std::move(other.m_value);
+                m_defaultValue=std::move(other.m_defaultValue);
+                other.reset();
+                other.resetDefault();
+            }
+            return *this;
+        }
+
         ~ConfigTreeValue()=default;
 
         ConfigTreeValue(const ConfigTreeValue&)=delete;
@@ -396,9 +419,16 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
         template <typename T>
         auto toArray() -> decltype(auto)
-        {
+        {            
             using valueType=typename config_tree::ValueType<T>::arrayType;
-            m_type=config_tree::ValueType<T>::arrayId;
+            constexpr static auto typeId=config_tree::ValueType<T>::arrayId;
+
+            if (m_type==typeId)
+            {
+                return asArray<T>();
+            }
+
+            m_type=typeId;
             m_value.reset();
             m_value.emplace(valueType{});
             return asArray<T>();
@@ -434,6 +464,10 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
         Result<config_tree::MapT&> toMap()
         {
+            if (m_type==Type::Map)
+            {
+                return asMap();
+            }
             m_type=Type::Map;
             m_value.reset();
             m_value.emplace(config_tree::MapT{});

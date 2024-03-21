@@ -62,6 +62,14 @@ std::string BaseErrorCategory::message(int code) const
             result=common::_TR("Cannot convert string to number","base");
             break;
 
+        case (static_cast<int>(BaseError::UNSUPPORTED_CONFIG_FORMAT)):
+            result=common::_TR("Configuration format not supported","base");
+            break;
+
+        case (static_cast<int>(BaseError::CONFIG_PARSE_ERROR)):
+            result=common::_TR("Failed to parse configuration file","base");
+            break;
+
         default:
             result=common::_TR("Unknown error");
     }

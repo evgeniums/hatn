@@ -8,12 +8,17 @@ SET (HEADERS
     include/hatn/base/detail/configtreevalue.ipp
     include/hatn/base/configtree.h
     include/hatn/base/configtreepath.h
+    include/hatn/base/configtreeio.h
+    include/hatn/base/configtreejson.h
 )
 
 SET (SOURCES
     src/baseerror.cpp
     src/configtree.cpp
     src/configtreepath.cpp
+    src/configtreeio.cpp
+    src/configtreeloader.cpp
+    src/configtreejson.cpp
 )
 
 BUILD_HATN_MODULE()

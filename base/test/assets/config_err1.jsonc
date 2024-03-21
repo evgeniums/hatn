@@ -1,0 +1,247 @@
+{
+    // plain fields
+    "int8":  -127,
+    "int16": -32767,
+    "int32": -2147483647,
+    "int64": -9223372036854775807,
+    "uint8":  127,
+    "uint16": 32767,
+    "uint32": 2147483647,
+    "uint64": 9223372036854775807,
+    "bool-true": true,
+    "bool-false": false,
+    "double-pos": 9.101,
+    "double-neg": -9.101,
+    "string": "Hello world!",
+    /*
+        compound fields
+    */
+    "array-int": [
+        -127,
+        -32767,
+        -2147483647,
+        -9223372036854775807,
+        127,
+        32767,
+        2147483647,
+        9223372036854775807        
+    ],
+    "array-bool": [
+        true,
+        false,
+        false,
+        true
+    ],
+    "array-double": [
+        123.567,
+        100, // expected error of mismatched type because period (.) missing
+        100.102,
+        -15.0,
+        -109.21
+    ],
+    "array-string": [
+        "one",
+        "two",
+        "three",
+        "four"
+    ],
+    "array-tree": [
+        {
+            "1int8":  -127,
+            "1int16": -32767,
+            "1int32": -2147483647,
+            "1int64": -9223372036854775807,
+            "1uint8":  127,
+            "1uint16": 32767,
+            "1uint32": 2147483647,
+            "1uint64": 9223372036854775807,
+            "1bool-true": true,
+            "1bool-false": false,
+            "1double-pos": 9.101,
+            "1double-neg": -9.101,
+            "1string": "Hello world!",
+            "1array-int": [
+                -127,
+                -32767,
+                -2147483647,
+                -9223372036854775807,
+                127,
+                32767,
+                2147483647,
+                9223372036854775807        
+            ],
+            "1array-bool": [
+                true,
+                false,
+                false,
+                true
+            ],
+            "1array-double": [
+                123.567,
+                89.0,
+                100.102,
+                -15.0,
+                -109.21
+            ],
+            "1array-string": [
+                "1one",
+                "1two",
+                "1three",
+                "1four"
+            ]
+        },
+        {
+          "2int8":  -125,
+          "2int16": -32765,
+          "2int32": -2147483645,
+          "2int64": -9223372036854775805,
+          "2uint8":  125,
+          "2uint16": 32765,
+          "2uint32": 2147483645,
+          "2uint64": 9223372036854775805,
+          "2bool-true": true,
+          "2bool-false": false,
+          "2double-pos": 9.501,
+          "2double-neg": -9.501,
+          "2string": "Hi!",
+          "2array-int": [
+              -126,
+              -32766,
+              -2147483646,
+              -9223372036854775806,
+              126,
+              32766,
+              2147483646,
+              9223372036854775806        
+          ],
+          "2array-bool": [
+              true,
+              false,
+              false,
+              true
+          ],
+          "2array-double": [
+              5123.567,
+              589.0,
+              5100.102,
+              -515.0,
+              -5109.21
+          ],
+          "2array-string": [
+              "2one",
+              "2two",
+              "2three",
+              "2four"
+          ]
+        }
+    ],
+    "subtree": {
+          "4int8":  -124,
+          "4int16": -32764,
+          "4int32": -2147483644,
+          "4int64": -9223372036854775804,
+          "4uint8":  124,
+          "4uint16": 32764,
+          "4uint32": 2147483644,
+          "4uint64": 9223372036854775804,
+          "4bool-true": true,
+          "4bool-false": false,
+          "4double-pos": 9.504,
+          "4double-neg": -9.504,
+          "4string": "Hi!",
+          "4array-int": [
+              -124,
+              -32764,
+              -2147483644,
+              -9223372036854775804,
+              124,
+              32764,
+              2147483644,
+              9223372036854775804        
+          ],
+          "4array-bool": [
+              true,
+              false,
+              false,
+              true
+          ],
+          "4array-double": [
+              5123.564,
+              589.4,
+              5100.104,
+              -515.4,
+              -5109.24
+          ],
+          "4array-string": [
+              "4one",
+              "4two",
+              "4three",
+              "4four"
+          ],
+          "subtree-subtree": {
+                  "3int8":  -123,
+                  "3int16": -32763,
+                  "3int32": -2147483643,
+                  "3int64": -9223372036854775803,
+                  "3uint8":  123,
+                  "3uint16": 32763,
+                  "3uint32": 2147483643,
+                  "3uint64": 9223372036854775803,
+                  "3bool-true": true,
+                  "3bool-false": false,
+                  "3double-pos": 9.503,
+                  "3double-neg": -9.503,
+                  "3string": "How are you?",
+                  "3array-int": [
+                      -123,
+                      -32763,
+                      -2147483643,
+                      -9223372036854775803,
+                      123,
+                      32763,
+                      2147483643,
+                      9223372036854775803        
+                  ],
+                  "3array-bool": [
+                      true,
+                      false,
+                      false,
+                      true
+                  ],
+                  "3array-double": [
+                      3123.564,
+                      389.4,
+                      3100.104,
+                      -315.4,
+                      -3109.24
+                  ],
+                  "3array-string": [
+                      "3one",
+                      "3two",
+                      "3three",
+                      "3four"
+                  ]    
+            }    
+              
+    },
+    "array-array": [
+        [
+            1,
+            2
+        ],
+        [
+            "a",
+            "b"
+        ],
+        [
+            {
+                "aa":1,
+                "ab":2
+            },
+            {
+                "ba":true,
+                "bb":"Hello world!"         
+            }
+        ]
+    ]    
+}
