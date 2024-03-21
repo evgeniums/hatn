@@ -310,18 +310,17 @@ class File
         }
 
         /**
-         * @brief Read whole file to container
-         * @param container
-         * @return Operation status
+         * @brief Read whole file to container.
+         * @param container.
+         * @return Operation status.
          *
-         * Can read only not opened file
+         * Can read only open file.
          */
-        template <typename FilenameT, typename ContainerT>
-        Error readAll(const FilenameT& filename,ContainerT& container)
+        template <typename ContainerT>
+        Error readAll(ContainerT& container)
         {
             try
             {
-                HATN_CHECK_RETURN(open(filename,Mode::scan))
                 auto fileSize=size();
                 container.resize(static_cast<size_t>(fileSize));
                 auto readSize=read(container.data(),static_cast<size_t>(fileSize));
@@ -329,17 +328,30 @@ class File
                 {
                     throw ErrorException(commonError(CommonError::FILE_READ_FAILED));
                 }
-                Error ec;
-                close(ec);
             }
             catch (const ErrorException& e)
             {
                 container.clear();
-                Error ec;
-                close(ec);
                 return e.error();
             }
-            return Error();
+            return OK;
+        }
+
+        /**
+         * @brief Read whole file to container.
+         * @param container.
+         * @return Operation status.
+         *
+         * Can read only not open file.
+         */
+        template <typename FilenameT, typename ContainerT>
+        Error readAll(const FilenameT& filename, ContainerT& container)
+        {
+            HATN_CHECK_RETURN(open(filename,Mode::scan))
+            auto ec=readAll(container);
+            Error ec1;
+            close(ec1);
+            return ec;
         }
 
     private:

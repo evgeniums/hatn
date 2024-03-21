@@ -44,6 +44,7 @@ SET (HEADERS
     include/hatn/common/utils.h
     include/hatn/common/keyrange.h
     include/hatn/common/stdwrappers.h
+    include/hatn/common/filesystem.h
     include/hatn/common/valueordefault.h
     include/hatn/common/pointerwithinit.h
     include/hatn/common/databuf.h

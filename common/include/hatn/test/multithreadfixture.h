@@ -119,18 +119,27 @@ class MultiThreadFixture
         static hatn::common::MutexLock mutex;
 
         static std::string tmpPath();
+
         static std::string assetsPath() noexcept
         {
             return ASSETS_PATH;
         }
+        static std::string assetsFilePath(const std::string& relPath) noexcept
+        {
+            return fmt::format("{}/{}",ASSETS_PATH,relPath);
+        }
+
         static void setTmpPath(std::string path)
         {
             TMP_PATH=std::move(path);
         }
+
         static void setAssetsPath(std::string path)
         {
             ASSETS_PATH=std::move(path);
         }
+
+
 
     private:
 

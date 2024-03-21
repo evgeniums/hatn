@@ -108,4 +108,10 @@ template <typename T> inline void destroyAt(T* obj) noexcept
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
+
+HATN_NAMESPACE_BEGIN
+
+namespace lib=common::lib;
+
+HATN_NAMESPACE_END
 #endif // HATNSTDWRAPPERS_H
