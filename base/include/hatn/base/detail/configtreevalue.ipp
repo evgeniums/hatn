@@ -316,8 +316,14 @@ Error ArrayViewT<T,Constant>::merge(ArrayViewT<T,Constant>&& other, config_tree:
 
             break;
         }
+        case(config_tree::ArrayMerge::Override):
+        {
+            *m_arrayPtr=std::move(*(other.m_arrayPtr));
+            break;
+        }
+        case(config_tree::ArrayMerge::Preserve):
+            break;
 
-        default:break;
     }
 
     return OK;
