@@ -47,7 +47,7 @@ namespace {
 
 struct Context
 {
-    std::shared_ptr<ConfigTree> tree;
+    ConfigTree* tree=nullptr;
     config_tree::MapT* map=nullptr;
 
     bool inArray=false;
@@ -101,8 +101,9 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         HATN_BOOL_RESULT_MSG(arr,parser.error)
 
         auto next=std::make_shared<Context>();
-        next->tree=std::make_shared<ConfigTree>();
-        arr->append(next->tree);
+        auto nextTree=std::make_shared<ConfigTree>();
+        next->tree=nextTree.get();
+        arr->append(std::move(nextTree));
 
         auto r1=next->tree->toMap();
         HATN_BOOL_RESULT_MSG(r1,parser.error)
@@ -136,8 +137,9 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             return false;
         }
         auto next=std::make_shared<Context>();
-        next->tree=std::make_shared<ConfigTree>();
-        current->map->emplace(std::string(static_cast<const char*>(str),length),next->tree);
+        auto nextTree=std::make_shared<ConfigTree>();
+        next->tree=nextTree.get();
+        current->map->emplace(std::string(static_cast<const char*>(str),length),std::move(nextTree));
         parser.stack.push(std::move(next));
 
         return true;
@@ -259,8 +261,9 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         HATN_BOOL_RESULT_MSG(arr,parser.error)
         auto next=std::make_shared<Context>();
         next->inArray=true;
-        next->tree=std::make_shared<ConfigTree>();
-        arr->append(next->tree);
+        auto nextTree=std::make_shared<ConfigTree>();
+        next->tree=nextTree.get();
+        arr->append(std::move(nextTree));
         parser.stack.push(std::move(next));
 
         return true;
@@ -294,11 +297,10 @@ Error ConfigTreeJson::doParse(
         const std::string&
     ) const noexcept
 {
-    //! @todo check format
-
     Parser parser;
     auto rootCtx=std::make_shared<Context>();
-    rootCtx->tree=std::make_shared<ConfigTree>();
+    auto rootTree=std::make_shared<ConfigTree>();
+    rootCtx->tree=rootTree.get();
     parser.stack.push(rootCtx);
 
     ReaderHandler handler{parser};
@@ -313,7 +315,7 @@ Error ConfigTreeJson::doParse(
     {
         if (root.isRoot() && !target.isSet())
         {
-            target=std::move(*rootCtx->tree);
+            target=std::move(*rootTree);
         }
         else
         {
@@ -321,7 +323,7 @@ Error ConfigTreeJson::doParse(
         }
         // else
         // {
-        //     return target.merge(*rootCtx->tree,root);
+        //     return target.merge(*rootTree,root);
         // }
     }
     else {

@@ -41,7 +41,8 @@ class ConfigTree;
 
 namespace config_tree {
 
-using MapT = std::map<std::string,std::shared_ptr<ConfigTree>>;
+using SubtreeT=std::shared_ptr<ConfigTree>;
+using MapT = std::map<std::string,SubtreeT>;
 
 enum class Type : int
 {
@@ -81,8 +82,6 @@ constexpr auto NumericTypes = hana::make_map(
     hana::make_pair(hana::type<uint32_t>{}, NumericType::UInt32),
     hana::make_pair(hana::type<uint64_t>{}, NumericType::UInt64)
 );
-
-using SubtreeT=std::shared_ptr<ConfigTree>;
 
 template <Type TypeId> struct Storage
 {using type=int64_t;constexpr static bool isArray=false;};
