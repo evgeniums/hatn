@@ -247,4 +247,109 @@ void ConfigTree::reset(const ConfigTreePath& path) noexcept
 
 //---------------------------------------------------------------
 
+template <typename T>
+Error mergeArrays(ConfigTree* current, ConfigTree &&other, config_tree::ArrayMerge arrayMergeMode)
+{
+    auto otherArr=other.asArray<T>();
+    HATN_CHECK_RESULT(otherArr)
+    auto currentArr=current->asArray<T>();
+    HATN_CHECK_RESULT(currentArr)
+    return currentArr->merge(std::move(otherArr.value()),arrayMergeMode);
+}
+
+Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_tree::ArrayMerge arrayMergeMode)
+{
+    // figure out where to merge to
+    auto current=this;
+    if (!root.isRoot())
+    {
+        auto subtree=get(root,true);
+        HATN_CHECK_RESULT(subtree)
+        current=&subtree.value();
+    }
+
+    // maybe single replace is enough
+    if (!current->isSet(true))
+    {
+        *current=std::move(other);
+        return OK;
+    }
+
+    // merge default value
+    if (other.isDefaultSet())
+    {
+        current->setDefaultValue(std::move(other.defaultValue()));
+    }
+
+    // merge value
+    if (other.isSet())
+    {
+        if (!current->isSet(true) || config_tree::isScalar(other.type()) || other.type()!=current->type())
+        {
+            // override value if it is not set or is of mismatched type
+            current->setValue(std::move(other.value()));
+        }
+        else if (config_tree::isMap(other.type()))
+        {
+            // merge maps
+            auto otherM=other.asMap();
+            HATN_CHECK_RESULT(otherM)
+            auto currentM=current->asMap();
+            HATN_CHECK_RESULT(currentM)
+            for (auto&& otherIt: otherM.value())
+            {
+                auto currentIt=currentM->find(otherIt.first);
+                if (currentIt==currentM->end() || !currentIt->second->isSet(true) || config_tree::isScalar(otherIt.second->type()) || otherIt.second->type()!=currentIt->second->type())
+                {
+                    // insert or override element in current map
+                    (*currentM)[otherIt.first]=std::move(otherIt.second);
+                }
+                else if (config_tree::isMap(otherIt.second->type()) || config_tree::isArray(otherIt.second->type()))
+                {
+                    // merge subtree
+                    currentIt->second->merge(std::move(*(otherIt.second)),ConfigTreePath(),arrayMergeMode);
+                }
+            }
+        }
+        else if (config_tree::isArray(other.type()))
+        {
+            // merge arrays
+            switch (other.type())
+            {
+                case(Type::ArrayInt):
+                {
+                    HATN_CHECK_RETURN(mergeArrays<int64_t>(current,std::move(other),arrayMergeMode))
+                    break;
+                }
+                case(Type::ArrayString):
+                {
+                    HATN_CHECK_RETURN(mergeArrays<std::string>(current,std::move(other),arrayMergeMode))
+                    break;
+                }
+                case(Type::ArrayDouble):
+                {
+                    HATN_CHECK_RETURN(mergeArrays<double>(current,std::move(other),arrayMergeMode))
+                    break;
+                }
+                case(Type::ArrayBool):
+                {
+                    HATN_CHECK_RETURN(mergeArrays<bool>(current,std::move(other),arrayMergeMode))
+                    break;
+                }
+                case(Type::ArrayTree):
+                {
+                    HATN_CHECK_RETURN(mergeArrays<ConfigTree>(current,std::move(other),arrayMergeMode))
+                    break;
+                }
+                default:break;
+            }
+        }
+    }
+
+    // done
+    return CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
 HATN_BASE_NAMESPACE_END

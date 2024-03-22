@@ -313,18 +313,7 @@ Error ConfigTreeJson::doParse(
             (ss, handler)
        )
     {
-        if (root.isRoot() && !target.isSet())
-        {
-            target=std::move(*rootTree);
-        }
-        else
-        {
-            return CommonError::NOT_IMPLEMENTED;
-        }
-        // else
-        // {
-        //     return target.merge(*rootTree,root);
-        // }
+        return target.merge(std::move(*rootTree),root);
     }
     else {
         auto e = reader.GetParseErrorCode();

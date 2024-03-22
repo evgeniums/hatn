@@ -652,6 +652,12 @@ class Result<Error>
             return true;
         }
 
+        //! Convert to error.
+        operator Error() const noexcept
+        {
+            return m_error;
+        }
+
     private:
 
         Error m_error;

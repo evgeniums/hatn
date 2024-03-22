@@ -140,7 +140,13 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 
         void reset(const ConfigTreePath& path) noexcept;
 
-        // Error merge(const ConfigTree& other, const ConfigTreePath& root=ConfigTreePath());
+        /**
+         * @brief Merge other tree moving its content to this tree if applicable.
+         * @param other Other tree to move into this.
+         * @param root Root path to attach the other tree to.
+         * @return Operation status.
+         */
+        Error merge(ConfigTree&& other, const ConfigTreePath& root=ConfigTreePath(), config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge);
 
     private:
 

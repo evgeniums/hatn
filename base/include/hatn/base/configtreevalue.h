@@ -38,6 +38,7 @@
 HATN_BASE_NAMESPACE_BEGIN
 
 class ConfigTree;
+class ConfigTreePath;
 
 namespace config_tree {
 
@@ -124,6 +125,16 @@ template <> struct Storage<Type::Map>
 inline constexpr bool isArray(Type typ) noexcept
 {
     return typ==Type::ArrayTree || typ==Type::ArrayString || typ==Type::ArrayInt || typ==Type::ArrayDouble || typ==Type::ArrayBool;
+}
+
+inline constexpr bool isScalar(Type typ) noexcept
+{
+    return typ==Type::Int || typ==Type::String || typ==Type::Double || typ==Type::Bool;
+}
+
+inline constexpr bool isMap(Type typ) noexcept
+{
+    return typ==Type::Map;
 }
 
 template <typename T, typename T1=void> struct ValueType
@@ -237,6 +248,13 @@ using ValueT = common::lib::variant<
 
 using HolderT=common::lib::optional<config_tree::ValueT>;
 
+enum class ArrayMerge: int
+{
+    Preserve,
+    Merge,
+    Append,
+    Prepend
+};
 
 } // namespace config_tree
 
@@ -372,6 +390,8 @@ class ArrayViewT
         {
             return at(index);
         }
+
+        Error merge(ArrayViewT&& other, config_tree::ArrayMerge mode);
 
     private:
 
@@ -610,6 +630,38 @@ class HATN_BASE_EXPORT ConfigTreeValue
             auto&& r = asMap();
             HATN_RESULT_THROW(r)
             return r.takeValue();
+        }
+
+    protected:
+
+        const config_tree::HolderT& value() const
+        {
+            return m_value;
+        }
+
+        config_tree::HolderT& value()
+        {
+            return m_value;
+        }
+
+        const config_tree::HolderT& defaultValue() const
+        {
+            return m_defaultValue;
+        }
+
+        config_tree::HolderT& defaultValue()
+        {
+            return m_defaultValue;
+        }
+
+        void setValue(config_tree::HolderT&& value)
+        {
+            m_value=std::move(value);
+        }
+
+        void setDefaultValue(config_tree::HolderT&& value)
+        {
+            m_defaultValue=std::move(value);
         }
 
     private:

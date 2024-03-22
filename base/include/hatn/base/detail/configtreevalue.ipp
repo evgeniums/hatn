@@ -265,6 +265,64 @@ auto ArrayViewT<T,Constant>::at(size_t index) -> decltype(auto)
     return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayPtr,index);
 }
 
+template <typename T, bool Constant>
+Error ArrayViewT<T,Constant>::merge(ArrayViewT<T,Constant>&& other, config_tree::ArrayMerge mode)
+{
+    switch (mode)
+    {
+        case(config_tree::ArrayMerge::Merge):
+        {
+            for (size_t i=0;i<size();i++)
+            {
+                if (i==other.size())
+                {
+                    break;
+                }
+
+                auto self=this;
+                return hana::eval_if(
+                    hana::equal(hana::type_c<T>,hana::type_c<ConfigTree>),
+                    [&](auto _)
+                    {
+                        return _(self)->m_arrayPtr->at(_(i))->merge(std::move(*(_(other).at(_(i)))),ConfigTreePath(),_(mode));
+                    },
+                    [&](auto _)
+                    {
+                        (*(_(self)->m_arrayPtr))[_(i)]=std::move(_(other).at(_(i)));
+                        return Error();
+                    }
+                );
+            }
+
+            if (other.size()>size())
+            {
+                size_t offset=other.size()-size();
+                m_arrayPtr->insert(m_arrayPtr->end(), std::make_move_iterator(other.m_arrayPtr->begin()+offset),
+                                   std::make_move_iterator(other.m_arrayPtr->end()));
+            }
+            break;
+        }
+        case(config_tree::ArrayMerge::Append):
+        {
+            m_arrayPtr->insert(m_arrayPtr->end(), std::make_move_iterator(other.m_arrayPtr->begin()),
+                               std::make_move_iterator(other.m_arrayPtr->end()));
+
+            break;
+        }
+        case(config_tree::ArrayMerge::Prepend):
+        {
+            m_arrayPtr->insert(m_arrayPtr->begin(), std::make_move_iterator(other.m_arrayPtr->begin()),
+                               std::make_move_iterator(other.m_arrayPtr->end()));
+
+            break;
+        }
+
+        default:break;
+    }
+
+    return OK;
+}
+
 //---------------------------------------------------------------
 
 template <typename T>
