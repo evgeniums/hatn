@@ -284,7 +284,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
     // merge value
     if (other.isSet())
     {
-        if (!current->isSet(true) || config_tree::isScalar(other.type()) || other.type()!=current->type())
+        if (!current->isSet() || config_tree::isScalar(other.type()) || other.type()!=current->type())
         {
             // override value if it is not set or is of mismatched type
             current->setValue(std::move(other.value()));
