@@ -110,9 +110,9 @@ BOOST_AUTO_TEST_CASE(ConfigTreeArray)
     const auto& arr2=t2.get(path1)->asArray<ConfigTree>();
 
     // fill array
-    arr1->append(std::make_shared<ConfigTree>());
-    arr1->append(std::make_shared<ConfigTree>());
-    arr1->append(std::make_shared<ConfigTree>());
+    arr1->append(config_tree::makeTree());
+    arr1->append(config_tree::makeTree());
+    arr1->append(config_tree::makeTree());
     BOOST_CHECK_EQUAL(3,arr2->size());
 
     // set value with array element in path

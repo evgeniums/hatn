@@ -41,8 +41,13 @@ class ConfigTree;
 
 namespace config_tree {
 
-using SubtreeT=std::shared_ptr<ConfigTree>;
+using SubtreeT=std::unique_ptr<ConfigTree>;
 using MapT = std::map<std::string,SubtreeT>;
+
+inline SubtreeT makeTree()
+{
+    return std::make_unique<ConfigTree>();
+}
 
 enum class Type : int
 {

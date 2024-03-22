@@ -139,7 +139,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
         auto map=current->asMap();
         if (map.isValid())
         {
-            auto inserted=map->emplace(section, std::make_shared<ConfigTree>());
+            auto inserted=map->emplace(section, config_tree::makeTree());
             current=inserted.first->second.get();
             continue;
         }
@@ -154,7 +154,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
                 return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
             }
 
-            auto subtree=std::make_shared<ConfigTree>();
+            auto subtree=config_tree::makeTree();
             current=subtree.get();
             view->set(pos,std::move(subtree));
             continue;

@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(MapValue)
     BOOST_CHECK(m2.isValid());
 
     auto& mm2=m2.takeValue();
-    mm2["one"]=std::make_shared<ConfigTree>();
+    mm2["one"]=config_tree::makeTree();
     mm2["one"]->set("Hello world!");
 
     const auto& t2=t1;

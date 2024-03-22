@@ -101,7 +101,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         HATN_BOOL_RESULT_MSG(arr,parser.error)
 
         auto next=std::make_shared<Context>();
-        auto nextTree=std::make_shared<ConfigTree>();
+        auto nextTree=config_tree::makeTree();
         next->tree=nextTree.get();
         arr->append(std::move(nextTree));
 
@@ -137,7 +137,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             return false;
         }
         auto next=std::make_shared<Context>();
-        auto nextTree=std::make_shared<ConfigTree>();
+        auto nextTree=config_tree::makeTree();
         next->tree=nextTree.get();
         current->map->emplace(std::string(static_cast<const char*>(str),length),std::move(nextTree));
         parser.stack.push(std::move(next));
@@ -261,7 +261,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         HATN_BOOL_RESULT_MSG(arr,parser.error)
         auto next=std::make_shared<Context>();
         next->inArray=true;
-        auto nextTree=std::make_shared<ConfigTree>();
+        auto nextTree=config_tree::makeTree();
         next->tree=nextTree.get();
         arr->append(std::move(nextTree));
         parser.stack.push(std::move(next));
@@ -299,7 +299,7 @@ Error ConfigTreeJson::doParse(
 {
     Parser parser;
     auto rootCtx=std::make_shared<Context>();
-    auto rootTree=std::make_shared<ConfigTree>();
+    auto rootTree=config_tree::makeTree();
     rootCtx->tree=rootTree.get();
     parser.stack.push(rootCtx);
 
