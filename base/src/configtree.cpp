@@ -304,7 +304,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
                     // insert or override element in current map
                     (*currentM)[otherIt.first]=std::move(otherIt.second);
                 }
-                else if (config_tree::isMap(otherIt.second->type()) || config_tree::isArray(otherIt.second->type()))
+                else
                 {
                     // merge subtree
                     currentIt->second->merge(std::move(*(otherIt.second)),ConfigTreePath(),arrayMergeMode);
@@ -347,7 +347,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
     }
 
     // done
-    return CommonError::NOT_IMPLEMENTED;
+    return OK;
 }
 
 //---------------------------------------------------------------
