@@ -16,6 +16,8 @@
   *
   */
 
+#include <vector>
+
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -75,10 +77,10 @@ Error ConfigTreeIo::loadFile(
         closeOnExit.setEnable(true);
     }
 
-    std::string source;
+    std::vector<char> source;
     HATN_CHECK_RETURN(file.readAll(source))
     auto parseFormat=format.empty()?fileFormat(file.filename()):format;
-    return parse(target,source,root,parseFormat);
+    return parse(target,lib::toStringView(source),root,parseFormat);
 }
 
 //---------------------------------------------------------------

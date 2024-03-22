@@ -71,7 +71,7 @@ enum class NumericType : int
     UInt64
 };
 
-constexpr inline auto NumericTypes = hana::make_map(
+constexpr auto NumericTypes = hana::make_map(
     hana::make_pair(hana::type<int8_t>{}, NumericType::Int8),
     hana::make_pair(hana::type<int16_t>{}, NumericType::Int16),
     hana::make_pair(hana::type<int32_t>{}, NumericType::Int32),
