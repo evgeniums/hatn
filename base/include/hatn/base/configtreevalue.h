@@ -248,8 +248,9 @@ class ArrayViewT
         using elementReturnType=typename config_tree::ValueType<T>::origin;
 
         using arrayT=typename config_tree::ValueType<T>::arrayType;
-        constexpr static auto arrayTypeC=hana::if_(hana::bool_c<Constant>,hana::type_c<const arrayT&>,hana::type_c<arrayT&>);
-        using arrayType=typename decltype(arrayTypeC)::type;
+        constexpr static auto arrayTypeC=hana::if_(hana::bool_c<Constant>,hana::type_c<const arrayT>,hana::type_c<arrayT>);
+        using arrayType=typename decltype(arrayTypeC)::type*;
+        using arrayTypeRef=typename decltype(arrayTypeC)::type&;
 
         static arrayT* defaultArray()
         {
@@ -257,101 +258,101 @@ class ArrayViewT
             return &arr;
         }
 
-        ArrayViewT():m_arrayRef(*defaultArray())
+        ArrayViewT():m_arrayPtr(defaultArray())
         {}
 
-        ArrayViewT(arrayType array):m_arrayRef(array)
+        ArrayViewT(arrayTypeRef array):m_arrayPtr(&array)
         {}
 
         size_t size() const noexcept
         {
-            return m_arrayRef.size();
+            return m_arrayPtr->size();
         }
 
         bool empty() const noexcept
         {
-            return m_arrayRef.empty();
+            return m_arrayPtr->empty();
         }
 
         size_t capacity() const noexcept
         {
-            return m_arrayRef.capacity();
+            return m_arrayPtr->capacity();
         }
 
         void reserve(size_t count)
         {
-            m_arrayRef.reserve(count);
+            m_arrayPtr->reserve(count);
         }
 
         void resize(size_t count)
         {
-            m_arrayRef.resize(count);
+            m_arrayPtr->resize(count);
         }
 
         template<typename T1>
         void resize(size_t count, const T1& value)
         {
-            m_arrayRef.resize(count, static_cast<elementType>(value));
+            m_arrayPtr->resize(count, static_cast<elementType>(value));
         }
 
         void clear()
         {
-            m_arrayRef.clear();
+            m_arrayPtr->clear();
         }
 
         void erase(size_t index)
         {
-            auto it=m_arrayRef.begin()+index;
-            m_arrayRef.erase(it);
+            auto it=m_arrayPtr->begin()+index;
+            m_arrayPtr->erase(it);
         }
 
         template<typename T1>
         void set(size_t index, const T1& value)
         {
-            m_arrayRef[index]=static_cast<elementType>(value);
+            (*m_arrayPtr)[index]=static_cast<elementType>(value);
         }
 
         template<typename T1>
         void set(size_t index, T1&& value)
         {
-            m_arrayRef[index]=std::forward<T1>(value);
+            (*m_arrayPtr)[index]=std::forward<T1>(value);
         }
 
         template<typename T1>
         void insert(size_t index, const T1& value)
         {
-            m_arrayRef.insert(m_arrayRef.begin()+index,static_cast<elementType>(value));
+            m_arrayPtr->insert(m_arrayPtr->begin()+index,static_cast<elementType>(value));
         }
 
         template<typename T1>
         void insert(size_t index, T1&& value)
         {
-            m_arrayRef.insert(m_arrayRef.begin()+index,std::forward<T1>(value));
+            m_arrayPtr->insert(m_arrayPtr->begin()+index,std::forward<T1>(value));
         }
 
         template<typename T1>
         void append(const T1& value)
         {
-            m_arrayRef.push_back(static_cast<elementType>(value));
+            m_arrayPtr->push_back(static_cast<elementType>(value));
         }
 
         template<typename T1>
         void append(T1&& value)
         {
-            m_arrayRef.push_back(std::forward<T1>(value));
+            m_arrayPtr->push_back(std::forward<T1>(value));
         }
 
         template <typename... Args>
         auto emplace(size_t index, Args&&... args) -> decltype(auto)
         {
-            m_arrayRef.emplace(m_arrayRef.begin()+index,std::forward<Args>(args)...);
+            m_arrayPtr->emplace(m_arrayPtr->begin()+index,std::forward<Args>(args)...);
             return at(index);
         }
 
         template <typename... Args>
         auto emplaceBack(Args&&... args) -> decltype(auto)
         {
-            m_arrayRef.emplace_back(std::forward<Args>(args)...);
+            m_arrayPtr->emplace_back(std::forward<Args>(args)...);
             return at(size()-1);
         }
 
@@ -370,7 +371,7 @@ class ArrayViewT
 
     private:
 
-        arrayType m_arrayRef;
+        arrayType m_arrayPtr;
 };
 
 template <typename T>
@@ -504,7 +505,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
 
             m_type=typeId;
-            m_numericType=config_tree::ValueType<T>::numericId();
+            m_numericType=config_tree::NumericType::Int64;
             m_value.reset();
             m_value.emplace(valueType{});
             return asArray<T>();

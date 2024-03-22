@@ -234,7 +234,7 @@ template <typename T, typename StorageT, typename =void> struct ArrayAt
     template <typename ArrayT>
     constexpr static auto f(ArrayT&& array, size_t index) -> decltype(auto)
     {
-        return array.at(index);
+        return array->at(index);
     }
 };
 
@@ -243,7 +243,7 @@ template <typename T, typename StorageT> struct ArrayAt<T,StorageT, std::enable_
     template <typename ArrayT>
     constexpr static auto f(ArrayT&& array, size_t index) -> decltype(auto)
     {
-        auto val=static_cast<T>(array.at(index));
+        auto val=static_cast<T>(array->at(index));
         return val;
     }
 };
@@ -256,13 +256,13 @@ template <typename T, typename StorageT> struct ArrayAt<T,StorageT, std::enable_
 template <typename T, bool Constant>
 auto ArrayViewT<T,Constant>::at(size_t index) const -> decltype(auto)
 {
-    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayRef,index);
+    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayPtr,index);
 }
 
 template <typename T, bool Constant>
 auto ArrayViewT<T,Constant>::at(size_t index) -> decltype(auto)
 {
-    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayRef,index);
+    return config_tree_detail::ArrayAt<elementReturnType,elementType>::f(m_arrayPtr,index);
 }
 
 //---------------------------------------------------------------
