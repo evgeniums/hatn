@@ -46,24 +46,24 @@ std::string ConfigTreeIo::fileFormat(lib::string_view filename)
 
 //---------------------------------------------------------------
 
-Error ConfigTreeIo::loadFile(
+Error ConfigTreeIo::loadFromFile(
         ConfigTree &target,
         lib::string_view filename,
         const ConfigTreePath &root,
         const std::string& format
-    )
+    ) const
 {
     common::PlainFile file;
     file.setFilename(filename);
-    return loadFile(target,file,root,format);
+    return loadFromFile(target,file,root,format);
 }
 
-Error ConfigTreeIo::loadFile(
+Error ConfigTreeIo::loadFromFile(
         ConfigTree &target,
         common::File& file,
         const ConfigTreePath &root,
         const std::string& format
-    )
+    ) const
 {
     common::RunOnScopeExit closeOnExit{
         [&file](){
@@ -86,11 +86,11 @@ Error ConfigTreeIo::loadFile(
 //---------------------------------------------------------------
 
 Error ConfigTreeIo::saveToFile(
-    const ConfigTree &source,
-    lib::string_view filename,
-    const ConfigTreePath &root,
-    const std::string& format
-    )
+        const ConfigTree &source,
+        lib::string_view filename,
+        const ConfigTreePath &root,
+        const std::string& format
+    ) const
 {
     common::PlainFile file;
     file.setFilename(filename);
@@ -102,7 +102,7 @@ Error ConfigTreeIo::saveToFile(
     common::File& file,
     const ConfigTreePath &root,
     const std::string& format
-    )
+    ) const
 {
     common::RunOnScopeExit closeOnExit{
         [&file](){

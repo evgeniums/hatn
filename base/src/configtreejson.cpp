@@ -295,7 +295,7 @@ Error ConfigTreeJson::doParse(
         const common::lib::string_view& source,
         const ConfigTreePath& root,
         const std::string&
-    ) const noexcept
+    ) const
 {
     Parser parser;
     auto rootCtx=std::make_shared<Context>();
@@ -553,7 +553,7 @@ Result<std::string> ConfigTreeJson::doSerialize(
         const ConfigTree& source,
         const ConfigTreePath& root,
         const std::string&
-    ) const noexcept
+    ) const
 {
     rapidjson::StringBuffer s;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer{s};

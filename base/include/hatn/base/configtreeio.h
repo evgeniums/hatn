@@ -12,14 +12,14 @@
 */
 /** @file base/configtreeio.h
   *
-  * Contains declaration of base class configuration tree IO classes.
+  * Contains declaration of base class of configuration tree IO operations.
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNCONFIGTREELOADER_H
-#define HATNCONFIGTREELOADER_H
+#ifndef HATNCONFIGTREEIO_H
+#define HATNCONFIGTREEIO_H
 
 #include <set>
 
@@ -82,7 +82,7 @@ class HATN_BASE_EXPORT ConfigTreeIo
             common::lib::string_view source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        ) const noexcept
+        ) const
         {
             if (!format.empty() && !supportsFormat(format))
             {
@@ -101,7 +101,7 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const ConfigTree& source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        ) const noexcept
+        ) const
         {
             if (!format.empty() && !supportsFormat(format))
             {
@@ -130,33 +130,33 @@ class HATN_BASE_EXPORT ConfigTreeIo
 
         static std::string fileFormat(lib::string_view filename);
 
-        Error loadFile(
+        Error loadFromFile(
             ConfigTree& target,
             common::File& file,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        );
+        ) const;
 
-        Error loadFile(
+        Error loadFromFile(
             ConfigTree& target,
             lib::string_view filename,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        );
+        ) const;
 
         Error saveToFile(
             const ConfigTree& source,
             common::File& file,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-            );
+        ) const;
 
         Error saveToFile(
             const ConfigTree& source,
             lib::string_view filename,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-            );
+        ) const;
 
     protected:
 
@@ -180,7 +180,7 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const common::lib::string_view& source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-            ) const noexcept =0;
+            ) const =0;
 
         /**
          * @brief Serialize config tree to text.
@@ -193,7 +193,7 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const ConfigTree& source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-            ) const noexcept =0;
+            ) const =0;
 
     private:
 
@@ -202,4 +202,4 @@ class HATN_BASE_EXPORT ConfigTreeIo
 
 HATN_BASE_NAMESPACE_END
 
-#endif // HATNCONFIGTREELOADER_H
+#endif // HATNCONFIGTREEIO_H

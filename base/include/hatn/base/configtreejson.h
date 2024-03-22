@@ -54,7 +54,7 @@ class HATN_BASE_EXPORT ConfigTreeJson : public ConfigTreeIo
             const common::lib::string_view& source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        ) const noexcept override;
+        ) const override;
 
         /**
          * @brief Serialize config tree to text.
@@ -67,7 +67,7 @@ class HATN_BASE_EXPORT ConfigTreeJson : public ConfigTreeIo
             const ConfigTree& source,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
-        ) const noexcept override;
+        ) const override;
 };
 
 HATN_BASE_NAMESPACE_END

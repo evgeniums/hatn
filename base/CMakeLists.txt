@@ -10,6 +10,7 @@ SET (HEADERS
     include/hatn/base/configtreepath.h
     include/hatn/base/configtreeio.h
     include/hatn/base/configtreejson.h
+    include/hatn/base/configtreeloader.h
 )
 
 SET (SOURCES

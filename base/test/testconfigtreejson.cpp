@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
     ConfigTreeJson jsonIo;
 
     auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
-    auto ec=jsonIo.loadFile(t1,filename1);
+    auto ec=jsonIo.loadFromFile(t1,filename1);
     HATN_TEST_EC(ec);
     checkConfigTree(t1);
 
@@ -321,18 +321,18 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
     ec=jsonIo.saveToFile(t1,tmpFile);
     HATN_TEST_EC(ec);
     ConfigTree t3;
-    ec=jsonIo.loadFile(t3,tmpFile);
+    ec=jsonIo.loadFromFile(t3,tmpFile);
     HATN_TEST_EC(ec);
     checkConfigTree(t3);
 
     // test errors
     auto filename2=MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc");
-    ec=jsonIo.loadFile(t1,filename2);
+    ec=jsonIo.loadFromFile(t1,filename2);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
     BOOST_CHECK(ec);
 
     auto filename3=MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc");
-    ec=jsonIo.loadFile(t1,filename3);
+    ec=jsonIo.loadFromFile(t1,filename3);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
     BOOST_CHECK(ec);
 }
@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_CHECK_EQUAL(t1.get("subtree.4string")->as<std::string>().value(),"Default override");
 
     auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
-    ec=jsonIo.loadFile(t1,filename1);
+    ec=jsonIo.loadFromFile(t1,filename1);
     HATN_TEST_EC(ec);
     checkConfigTree(t1);
     BOOST_REQUIRE(t1.isSet("default.one.two",true));
