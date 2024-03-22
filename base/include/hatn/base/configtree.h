@@ -51,7 +51,9 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         using ConfigTreeValue::toArray;
         using ConfigTreeValue::toMap;
         using ConfigTreeValue::reset;
+        using ConfigTreeValue::resetDefault;
         using ConfigTreeValue::isSet;
+        using ConfigTreeValue::isDefaultSet;
 
         template <typename T>
         Result<ConfigTree&> set(const ConfigTreePath& path, T&& value, bool autoCreatePath=true) noexcept
@@ -121,7 +123,17 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         ConfigTree& get(const ConfigTreePath& path, Error &ec, bool autoCreatePath=false) noexcept;
         ConfigTree& getEx(const ConfigTreePath& path, bool autoCreatePath=false);
 
-        bool isSet(const ConfigTreePath& path) const noexcept;
+        bool isSet(const ConfigTreePath& path, bool orDefault=false) const noexcept;
+        bool isSet(const char* path, bool orDefault=false) const noexcept
+        {
+            return isSet(ConfigTreePath(path),orDefault);
+        }
+
+        bool isDefaultSet(const ConfigTreePath& path) const noexcept;
+        bool isDefaultSet(const char* path) const noexcept
+        {
+            return isDefaultSet(ConfigTreePath(path));
+        }
 
         template <typename T>
         Result<ArrayView<T>> toArray(const ConfigTreePath& path)
@@ -139,6 +151,7 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         }
 
         void reset(const ConfigTreePath& path) noexcept;
+        void resetDefault(const ConfigTreePath& path) noexcept;
 
         /**
          * @brief Merge other tree moving its content to this tree if applicable.

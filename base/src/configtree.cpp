@@ -224,14 +224,26 @@ ConfigTree& ConfigTree::getEx(const ConfigTreePath& path, bool autoCreatePath)
 
 //---------------------------------------------------------------
 
-bool ConfigTree::isSet(const ConfigTreePath& path) const noexcept
+bool ConfigTree::isSet(const ConfigTreePath& path, bool orDefault) const noexcept
 {
     auto r=doGet<const ConfigTree&>(path,this);
     if (!r.isValid())
     {
         return false;
     }
-    return r->isSet();
+    return r->isSet(orDefault);
+}
+
+//---------------------------------------------------------------
+
+bool ConfigTree::isDefaultSet(const ConfigTreePath& path) const noexcept
+{
+    auto r=doGet<const ConfigTree&>(path,this);
+    if (!r.isValid())
+    {
+        return false;
+    }
+    return r->isDefaultSet();
 }
 
 //---------------------------------------------------------------
@@ -242,6 +254,17 @@ void ConfigTree::reset(const ConfigTreePath& path) noexcept
     if (r.isValid())
     {
         r->reset();
+    }
+}
+
+//---------------------------------------------------------------
+
+void ConfigTree::resetDefault(const ConfigTreePath& path) noexcept
+{
+    auto r=doGet<ConfigTree&>(path,this);
+    if (r.isValid())
+    {
+        r->resetDefault();
     }
 }
 
@@ -278,7 +301,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
     // merge default value
     if (other.isDefaultSet())
     {
-        current->setDefaultValue(std::move(other.defaultValue()));
+        current->setDefaultValue(std::move(other.defaultValue()),other.defaultType(),other.defaultNumericType());
     }
 
     // merge value
@@ -287,7 +310,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
         if (!current->isSet() || config_tree::isScalar(other.type()) || other.type()!=current->type())
         {
             // override value if it is not set or is of mismatched type
-            current->setValue(std::move(other.value()));
+            current->setValue(std::move(other.value()),other.type(),other.numericType());
         }
         else if (config_tree::isMap(other.type()))
         {
@@ -299,9 +322,9 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
             for (auto&& otherIt: otherM.value())
             {
                 auto currentIt=currentM->find(otherIt.first);
-                if (currentIt==currentM->end() || !currentIt->second->isSet(true) || config_tree::isScalar(otherIt.second->type()) || otherIt.second->type()!=currentIt->second->type())
+                if (currentIt==currentM->end())
                 {
-                    // insert or override element in current map
+                    // insert or new element to current map
                     (*currentM)[otherIt.first]=std::move(otherIt.second);
                 }
                 else

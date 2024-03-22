@@ -339,19 +339,83 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
 
 BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.000001))
 {
-    // // test parsing with default values
-    // ConfigTree t3;
-    // t3.setDefault("default.one.two",100);
-    // ec=jsonIo.parse(t3,jsonR1.value());
-    // if (!ec.isNull())
-    // {
-    //     BOOST_FAIL(ec.message());
-    // }
-    // BOOST_CHECK(!ec);
-    // checkConfigTree(t3);
-    // BOOST_CHECK_EQUAL(t3.get("default.one.two")->as<uint32_t>().value(),100);
+    // test merge with overriding default values
+    ConfigTree tm1;
+    tm1.setDefault("one.two.default",100);
+    BOOST_REQUIRE(tm1.isSet("one.two.default",true));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default")->as<uint32_t>().value(),100);
+    BOOST_REQUIRE(tm1.isDefaultSet("one.two.default"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default")->getDefault<uint32_t>().value(),100);
+    tm1.setDefault("one.two.default2",1000);
+    BOOST_REQUIRE(tm1.isSet("one.two.default2",true));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->as<uint32_t>().value(),1000);
+    BOOST_REQUIRE(tm1.isDefaultSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->getDefault<uint32_t>().value(),1000);
+    tm1.set("one.two.default2",5000);
+    BOOST_REQUIRE(tm1.isSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->as<uint32_t>().value(),5000);
 
+    ConfigTree tm2;
+    tm2.set("one.two.default",200);
+    BOOST_REQUIRE(tm2.isSet("one.two.default"));
+    BOOST_CHECK_EQUAL(tm2.get("one.two.default")->as<uint32_t>().value(),200);
+    BOOST_CHECK(!tm2.isDefaultSet("one.two.default"));
+    tm2.setDefault("one.two.default2",7000);
+    BOOST_REQUIRE(!tm2.isSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm2.get("one.two.default2")->as<uint32_t>().value(),7000);
+    BOOST_CHECK(tm2.isDefaultSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm2.get("one.two.default2")->getDefault<uint32_t>().value(),7000);
+    auto ec=tm1.merge(std::move(tm2));
+    HATN_TEST_EC(ec);
+    BOOST_REQUIRE(tm1.isSet("one.two.default"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default")->as<uint32_t>().value(),200);
+    BOOST_REQUIRE(tm1.isDefaultSet("one.two.default"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default")->getDefault<uint32_t>().value(),100);
+    BOOST_REQUIRE(tm1.isSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->as<uint32_t>().value(),5000);
+    BOOST_REQUIRE(tm1.isDefaultSet("one.two.default2"));
+    BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->getDefault<uint32_t>().value(),7000);
 
+#if 1
+    // test parsing with default and preset values
+
+    ConfigTree t1;
+    t1.setDefault("default.one.two",100);
+    t1.setDefault("subtree.subtree-subtree.default-string","Default value");
+    t1.setDefault("subtree.4string","Default override");
+    t1.set("subtree.subtree-subtree.preset-string","Preset value");
+    t1.set("subtree.subtree-subtree.3string","Preset override");
+    BOOST_REQUIRE(t1.isSet("default.one.two",true));
+    BOOST_CHECK_EQUAL(t1.get("default.one.two")->as<uint32_t>().value(),100);
+    BOOST_CHECK(!t1.isSet(std::string("subtree.subtree-subtree.default-string")));
+    BOOST_CHECK(!t1.isSet("subtree.subtree-subtree.default-string"));
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.default-string",true));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.default-string")->as<std::string>().value(),"Default value");
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.preset-string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.preset-string")->as<std::string>().value(),"Preset value");
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.3string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.3string")->as<std::string>().value(),"Preset override");
+    BOOST_REQUIRE(t1.isSet("subtree.4string",true));
+    BOOST_CHECK_EQUAL(t1.get("subtree.4string")->as<std::string>().value(),"Default override");
+
+    ConfigTreeJson jsonIo;
+    auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
+    ec=jsonIo.loadFile(t1,filename1);
+    HATN_TEST_EC(ec);
+    checkConfigTree(t1);
+    BOOST_REQUIRE(t1.isSet("default.one.two",true));
+    BOOST_CHECK_EQUAL(t1.get("default.one.two")->as<uint32_t>().value(),100);
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.default-string",true));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.default-string")->as<std::string>().value(),"Default value");
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.preset-string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.preset-string")->as<std::string>().value(),"Preset value");
+    BOOST_REQUIRE(t1.isSet("subtree.subtree-subtree.3string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.subtree-subtree.3string")->as<std::string>().value(),"How are you?");
+    BOOST_REQUIRE(t1.isSet("subtree.4string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.4string")->as<std::string>().value(),"Hi!");
+    BOOST_REQUIRE(t1.isDefaultSet("subtree.4string"));
+    BOOST_CHECK_EQUAL(t1.get("subtree.4string")->getDefault<std::string>().value(),"Default override");
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

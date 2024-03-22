@@ -253,7 +253,8 @@ enum class ArrayMerge: int
     Preserve,
     Merge,
     Append,
-    Prepend
+    Prepend,
+    Override
 };
 
 } // namespace config_tree
@@ -654,14 +655,18 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return m_defaultValue;
         }
 
-        void setValue(config_tree::HolderT&& value)
+        void setValue(config_tree::HolderT&& value, Type type, NumericType numericType)
         {
             m_value=std::move(value);
+            m_type=type;
+            m_numericType=numericType;
         }
 
-        void setDefaultValue(config_tree::HolderT&& value)
+        void setDefaultValue(config_tree::HolderT&& value, Type type, NumericType numericType)
         {
             m_defaultValue=std::move(value);
+            m_defaultType=type;
+            m_defaultNumericType=numericType;
         }
 
     private:
