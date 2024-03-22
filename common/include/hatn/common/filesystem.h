@@ -18,7 +18,7 @@
 #ifndef HATNFILESYSTEM_H
 #define HATNFILESYSTEM_H
 
-#if __cplusplus < 201703L
+#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
     #include <boost/filesystem.hpp>
 #else
     #include <filesystem>
@@ -30,7 +30,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 namespace lib
 {
 
-#if __cplusplus < 201703L
+#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
 namespace filesystem=boost::filesystem;
 #else
 namespace filesystem=std::filesystem;
