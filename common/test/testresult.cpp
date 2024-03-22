@@ -69,6 +69,7 @@ struct TestStruct
         value=other.value;
         other.value=0;
         BOOST_TEST_MESSAGE(fmt::format("TestStruct move assignment operator {}",value));
+        return *this;
     }
 
     ~TestStruct()
