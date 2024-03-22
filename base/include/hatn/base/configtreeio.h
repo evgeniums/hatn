@@ -144,6 +144,20 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const std::string& format=std::string()
         );
 
+        Error saveToFile(
+            const ConfigTree& source,
+            common::File& file,
+            const ConfigTreePath& root=ConfigTreePath(),
+            const std::string& format=std::string()
+            );
+
+        Error saveToFile(
+            const ConfigTree& source,
+            lib::string_view filename,
+            const ConfigTreePath& root=ConfigTreePath(),
+            const std::string& format=std::string()
+            );
+
     protected:
 
         /**

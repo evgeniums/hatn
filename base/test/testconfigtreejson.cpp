@@ -19,6 +19,7 @@
 
 #include "hatn_test_config.h"
 
+#include <hatn/common/filesystem.h>
 #include <hatn/base/configtreejson.h>
 #include <hatn/test/multithreadfixture.h>
 
@@ -286,19 +287,16 @@ void checkConfigTree(const ConfigTree& t)
 
 BOOST_AUTO_TEST_SUITE(TestConfigTree)
 
-BOOST_AUTO_TEST_CASE(ConfigTreeLoadJson, *boost::unit_test::tolerance(0.000001))
+BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
 {
     ConfigTree t1;
 
+    // test parsing and serializing
     ConfigTreeJson jsonIo;
 
     auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
     auto ec=jsonIo.loadFile(t1,filename1);
-    if (!ec.isNull())
-    {
-        BOOST_FAIL(ec.message());
-    }
-    BOOST_CHECK(!ec);
+    HATN_TEST_EC(ec);
     checkConfigTree(t1);
 
     auto jsonR1=jsonIo.serialize(t1);
@@ -311,13 +309,23 @@ BOOST_AUTO_TEST_CASE(ConfigTreeLoadJson, *boost::unit_test::tolerance(0.000001))
 #endif
     ConfigTree t2;
     ec=jsonIo.parse(t2,jsonR1.value());
-    if (!ec.isNull())
-    {
-        BOOST_FAIL(ec.message());
-    }
-    BOOST_CHECK(!ec);
+    HATN_TEST_EC(ec);
     checkConfigTree(t2);
 
+    // write to file
+    auto tmpFile=MultiThreadFixture::tmpFilePath("config1-save.jsonc");
+    if (lib::filesystem::exists(tmpFile))
+    {
+        lib::filesystem::remove(tmpFile);
+    }
+    ec=jsonIo.saveToFile(t1,tmpFile);
+    HATN_TEST_EC(ec);
+    ConfigTree t3;
+    ec=jsonIo.loadFile(t3,tmpFile);
+    HATN_TEST_EC(ec);
+    checkConfigTree(t3);
+
+    // test errors
     auto filename2=MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc");
     ec=jsonIo.loadFile(t1,filename2);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
@@ -326,7 +334,24 @@ BOOST_AUTO_TEST_CASE(ConfigTreeLoadJson, *boost::unit_test::tolerance(0.000001))
     auto filename3=MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc");
     ec=jsonIo.loadFile(t1,filename3);
     BOOST_TEST_MESSAGE(fmt::format("Expected parsing failure: {}", ec.message()));
-    BOOST_CHECK(ec);    
+    BOOST_CHECK(ec);
+}
+
+BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.000001))
+{
+    // // test parsing with default values
+    // ConfigTree t3;
+    // t3.setDefault("default.one.two",100);
+    // ec=jsonIo.parse(t3,jsonR1.value());
+    // if (!ec.isNull())
+    // {
+    //     BOOST_FAIL(ec.message());
+    // }
+    // BOOST_CHECK(!ec);
+    // checkConfigTree(t3);
+    // BOOST_CHECK_EQUAL(t3.get("default.one.two")->as<uint32_t>().value(),100);
+
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

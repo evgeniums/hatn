@@ -139,7 +139,10 @@ class MultiThreadFixture
             ASSETS_PATH=std::move(path);
         }
 
-
+        static std::string tmpFilePath(const std::string& relPath) noexcept
+        {
+            return fmt::format("{}/{}",tmpPath(),relPath);
+        }
 
     private:
 
@@ -186,20 +189,26 @@ class MultiThreadFixture
     if ((Val1)!=(Val2)) \
     {\
         return;\
-    }\
+    }
 
 #define HATN_REQUIRE_GE(Val1,Val2) \
     BOOST_CHECK_GE(Val1,Val2); \
     if ((Val1)<(Val2)) \
     {\
         return;\
-    }\
+    }
 
 #define HATN_REQUIRE_GT(Val1,Val2) \
     BOOST_CHECK_GE(Val1,Val2); \
     if ((Val1)<=(Val2)) \
     {\
         return;\
-    }\
+    }
+
+#define HATN_TEST_EC(ec) \
+if (ec) \
+{\
+    BOOST_ERROR(ec.message());\
+}\
 
 #endif // HATNMULTITHREADFIXTURE_H

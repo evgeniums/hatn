@@ -83,4 +83,49 @@ Error ConfigTreeIo::loadFile(
 
 //---------------------------------------------------------------
 
+Error ConfigTreeIo::saveToFile(
+    const ConfigTree &source,
+    lib::string_view filename,
+    const ConfigTreePath &root,
+    const std::string& format
+    )
+{
+    common::PlainFile file;
+    file.setFilename(filename);
+    return saveToFile(source,file,root,format);
+}
+
+Error ConfigTreeIo::saveToFile(
+    const ConfigTree &source,
+    common::File& file,
+    const ConfigTreePath &root,
+    const std::string& format
+    )
+{
+    common::RunOnScopeExit closeOnExit{
+        [&file](){
+            file.close();
+        },
+        false
+    };
+    if (!file.isOpen())
+    {
+        HATN_CHECK_RETURN(file.open(common::File::Mode::write))
+        closeOnExit.setEnable(true);
+    }
+
+    auto serializeFormat=format.empty()?fileFormat(file.filename()):format;
+    auto r=serialize(source,root,serializeFormat);
+    if (r)
+    {
+        return r.error();
+    }
+
+    Error ec;
+    file.write(r.value().data(),r.value().size(),ec);
+    return ec;
+}
+
+//---------------------------------------------------------------
+
 HATN_BASE_NAMESPACE_END
