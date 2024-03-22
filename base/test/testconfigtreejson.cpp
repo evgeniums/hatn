@@ -355,6 +355,16 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_REQUIRE(tm1.isSet("one.two.default2"));
     BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->as<uint32_t>().value(),5000);
 
+    ConfigTreeJson jsonIo;
+    auto jsonR0=jsonIo.serialize(tm1);
+    BOOST_CHECK(!jsonR0);
+#if 1
+    std::cout<<"Serialize target tree with defaults before merge"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR0.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+#endif
+
     ConfigTree tm2;
     tm2.set("one.two.default",200);
     BOOST_REQUIRE(tm2.isSet("one.two.default"));
@@ -365,6 +375,16 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_CHECK_EQUAL(tm2.get("one.two.default2")->as<uint32_t>().value(),7000);
     BOOST_CHECK(tm2.isDefaultSet("one.two.default2"));
     BOOST_CHECK_EQUAL(tm2.get("one.two.default2")->getDefault<uint32_t>().value(),7000);
+
+    auto jsonR1=jsonIo.serialize(tm2);
+    BOOST_CHECK(!jsonR1);
+#if 1
+    std::cout<<"Serialize source tree with defaults before merge"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR1.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+#endif
+
     auto ec=tm1.merge(std::move(tm2));
     HATN_TEST_EC(ec);
     BOOST_REQUIRE(tm1.isSet("one.two.default"));
@@ -376,9 +396,16 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_REQUIRE(tm1.isDefaultSet("one.two.default2"));
     BOOST_CHECK_EQUAL(tm1.get("one.two.default2")->getDefault<uint32_t>().value(),7000);
 
+    auto jsonR2=jsonIo.serialize(tm1);
+    BOOST_CHECK(!jsonR2);
 #if 1
-    // test parsing with default and preset values
+    std::cout<<"Serialize tree with defaults after merge"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR2.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+#endif
 
+    // test parsing with default and preset values
     ConfigTree t1;
     t1.setDefault("default.one.two",100);
     t1.setDefault("subtree.subtree-subtree.default-string","Default value");
@@ -398,7 +425,6 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_REQUIRE(t1.isSet("subtree.4string",true));
     BOOST_CHECK_EQUAL(t1.get("subtree.4string")->as<std::string>().value(),"Default override");
 
-    ConfigTreeJson jsonIo;
     auto filename1=MultiThreadFixture::assetsFilePath("base/assets/config1.jsonc");
     ec=jsonIo.loadFile(t1,filename1);
     HATN_TEST_EC(ec);
@@ -415,7 +441,6 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonDefault, *boost::unit_test::tolerance(0.00000
     BOOST_CHECK_EQUAL(t1.get("subtree.4string")->as<std::string>().value(),"Hi!");
     BOOST_REQUIRE(t1.isDefaultSet("subtree.4string"));
     BOOST_CHECK_EQUAL(t1.get("subtree.4string")->getDefault<std::string>().value(),"Default override");
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()
