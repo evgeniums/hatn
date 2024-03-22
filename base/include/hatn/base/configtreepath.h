@@ -62,7 +62,9 @@ class HATN_BASE_EXPORT ConfigTreePath
             ) : ConfigTreePath(std::string(path),std::move(pathSeparator))
         {}
 
-        ConfigTreePath()=default;
+        ConfigTreePath(): ConfigTreePath(std::string())
+        {}
+
         ~ConfigTreePath()=default;
         ConfigTreePath(const ConfigTreePath&)=default;
         ConfigTreePath(ConfigTreePath&&)=default;
@@ -72,6 +74,7 @@ class HATN_BASE_EXPORT ConfigTreePath
         void setSeparator(std::string sep)
         {
             m_separator=std::move(sep);
+            updateState();
         }
 
         std::string separator() const
@@ -161,7 +164,7 @@ class HATN_BASE_EXPORT ConfigTreePath
 
         bool isRoot() const noexcept
         {
-            return m_path.empty() || m_path==m_separator;
+            return m_path.empty();
         }
 
         void reset()

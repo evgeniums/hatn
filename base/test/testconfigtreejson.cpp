@@ -299,6 +299,18 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
     HATN_TEST_EC(ec);
     checkConfigTree(t1);
 
+#if 1
+    auto keys=t1.allKeys();
+    BOOST_REQUIRE(!keys);
+    std::cout<<"Parsed keys"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    for (auto&& it: keys.value())
+    {
+        std::cout<<it<<std::endl;
+    }
+    std::cout<<"*********************************"<<std::endl;
+#endif
+
     auto jsonR1=jsonIo.serialize(t1);
     BOOST_CHECK(!jsonR1);
 #if 0
@@ -307,6 +319,7 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
     std::cout<<jsonR1.value()<<std::endl;
     std::cout<<"*********************************"<<std::endl;
 #endif
+
     ConfigTree t2;
     ec=jsonIo.parse(t2,jsonR1.value());
     HATN_TEST_EC(ec);

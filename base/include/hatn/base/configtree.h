@@ -21,6 +21,8 @@
 #ifndef HATNCONFIGTREE_H
 #define HATNCONFIGTREE_H
 
+#include <functional>
+
 #include <hatn/common/error.h>
 
 #include <hatn/base/base.h>
@@ -160,6 +162,10 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
          * @return Operation status.
          */
         Error merge(ConfigTree&& other, const ConfigTreePath& root=ConfigTreePath(), config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge);
+
+        Error each(const std::function<Error (const ConfigTreePath&,const ConfigTree&)>& handler, const ConfigTreePath& root=ConfigTreePath()) const;
+
+        Result<std::vector<std::string>> allKeys(const ConfigTreePath& root=ConfigTreePath()) const;
 
     private:
 

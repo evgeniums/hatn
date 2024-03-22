@@ -123,7 +123,10 @@ void ConfigTreePath::updateState()
 {
     if (m_parts.empty())
     {
-        boost::algorithm::split(m_parts, m_path, boost::algorithm::is_any_of(m_separator));
+        if (!m_path.empty())
+        {
+            boost::algorithm::split(m_parts, m_path, boost::algorithm::is_any_of(m_separator));
+        }
     }
     else
     {

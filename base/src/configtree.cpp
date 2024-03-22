@@ -375,4 +375,68 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
 
 //---------------------------------------------------------------
 
+Error nextEach(const std::function<Error (const ConfigTreePath&, const ConfigTree &)>& handler, const ConfigTreePath &path, const ConfigTree& current)
+{
+    if (!path.isRoot())
+    {
+        auto ec=handler(path,current);
+        HATN_CHECK_EC(ec)
+    }
+
+    if (current.isSet())
+    {
+        if (config_tree::isMap(current.type()))
+        {
+            auto m=current.asMap();
+            HATN_CHECK_RESULT(m)
+            for (auto&& it:m.value())
+            {
+                auto nextPath=path.copyAppend(it.first);
+                HATN_CHECK_RETURN(nextEach(handler,nextPath,*(it.second)))
+            }
+        }
+        else if (current.type()==config_tree::Type::ArrayTree)
+        {
+            auto a=current.asArray<ConfigTree>();
+            HATN_CHECK_RESULT(a)
+            for (size_t i=0;i<a->size();i++)
+            {
+                auto nextPath=path.copyAppend(std::to_string(i));
+                HATN_CHECK_RETURN(nextEach(handler,nextPath,*(a->at(i))))
+            }
+        }
+    }
+
+    return OK;
+}
+
+Error ConfigTree::each(const std::function<Error (const ConfigTreePath&, const ConfigTree&)>& handler, const ConfigTreePath &root) const
+{
+    auto current=this;
+    if (!root.isRoot())
+    {
+        auto subtree=get(root);
+        HATN_CHECK_RESULT(subtree)
+        current=&subtree.value();
+    }
+
+    return nextEach(handler,root,*current);
+}
+
+//---------------------------------------------------------------
+Result<std::vector<std::string>> ConfigTree::allKeys(const ConfigTreePath &root) const
+{
+    std::vector<std::string> keys;
+    auto handler=[&keys](const ConfigTreePath& path, const ConfigTree&)
+    {
+        keys.push_back(path.path());
+        return Error();
+    };
+
+    HATN_CHECK_RETURN(each(handler,root))
+    return keys;
+}
+
+//---------------------------------------------------------------
+
 HATN_BASE_NAMESPACE_END
