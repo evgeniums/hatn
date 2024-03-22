@@ -126,50 +126,6 @@ struct HATN_COMMON_EXPORT Utils final
     }
 };
 
-//! Run handler on scope exiting
-struct RunOnScopeExit final
-{
-    /**
-     * @brief Constructor
-     * @param handler handler to run when object is destroyed
-     */
-    RunOnScopeExit(std::function<void ()> handler, bool enable=true) noexcept
-        : m_handler(std::move(handler)),
-          m_enable(enable)
-    {}
-
-    //! Dtor
-    ~RunOnScopeExit()
-    {
-        if (m_enable && m_handler)
-        {
-            m_handler();
-        }
-    }
-
-    RunOnScopeExit(const RunOnScopeExit&)=delete;
-    RunOnScopeExit(RunOnScopeExit&&) =delete;
-    RunOnScopeExit& operator=(const RunOnScopeExit&)=delete;
-    RunOnScopeExit& operator=(RunOnScopeExit&&) =delete;
-
-    //! Enable handler
-    inline void setEnable(bool enable) noexcept
-    {
-        m_enable=enable;
-    }
-
-    //! Check if handler is enabled
-    inline bool isEnabled() const noexcept
-    {
-        return m_enable;
-    }
-
-    private:
-
-        std::function<void ()> m_handler;
-        bool m_enable;
-};
-
 #define Assert(condition,message) assert((condition) && message); if (!(condition)) throw std::runtime_error(message);
 #define AssertThrow(condition,message) if (!(condition)) {throw std::runtime_error(message);}
 #define AssertThrowEx(condition,message,ex) if (!(condition)) {throw ex(message);}
