@@ -25,6 +25,7 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Base class for singletons that can be registered in global registrar of singletons
+//! @todo Check singletons, edit docs.
 class HATN_COMMON_EXPORT Singleton : public HumanReadableType
 {
     public:
