@@ -35,7 +35,7 @@ class HATN_BASE_EXPORT BaseErrorCategory : public std::error_category
 public:
 
     //! Name of the category
-    virtual const char *name() const noexcept
+    virtual const char *name() const noexcept override
     {
         return "hatn.base";
     }

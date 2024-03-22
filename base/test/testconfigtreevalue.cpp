@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(IntValue)
 
     // set uint64_t
     uint64_t uint64_2{0xCC77665544332211};
-    t1.set(0xCC77665544332211);
+    t1.set(uint64_t(0xCC77665544332211));
     BOOST_CHECK_EQUAL(int(config_tree::Type::Int),int(t1.type()));
     // read uint64_t
     uint64_1=t1.asEx<uint64_t>();
