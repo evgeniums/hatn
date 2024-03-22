@@ -41,66 +41,6 @@
 #include <ctime>
 #endif
 
-
-#ifdef BUILD_ANDROID
-
-namespace std {
-
-namespace {
-inline int ctoi(char c) {
-  switch (c) {
-    case '0':
-      return 0;
-    case '1':
-      return 1;
-    case '2':
-      return 2;
-    case '3':
-      return 3;
-    case '4':
-      return 4;
-    case '5':
-      return 5;
-    case '6':
-      return 6;
-    case '7':
-      return 7;
-    case '8':
-      return 8;
-    case '9':
-      return 9;
-    default:
-      throw std::runtime_error("Invalid char conversion");
-  }
-}
-
-
-int stoi(const std::string& str) {
-  int rtn = 0;
-  int exp = 1;
-  for (auto cp = str.crbegin(); cp != str.crend(); ++cp) {
-    char c = *cp;
-    if (isdigit(c)) {
-      rtn +=  ctoi(c) * exp;
-      exp *= 10;
-    } else if (c == '+') {
-      return rtn;
-    } else if (c == '-') {
-      return rtn * -1;
-    }
-    else
-    {
-	break;
-    }
-  }
-  return 0;
-}
-
-}
-}
-
-#endif
-
 #include <hatn/common/loggermoduleimp.h>
 INIT_LOG_MODULE(global,HATN_COMMON_EXPORT)
 
