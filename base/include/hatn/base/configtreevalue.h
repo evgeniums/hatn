@@ -250,12 +250,44 @@ using HolderT=common::lib::optional<config_tree::ValueT>;
 
 enum class ArrayMerge: int
 {
-    Preserve,
     Merge,
     Append,
     Prepend,
-    Override
+    Override,
+    Preserve
 };
+
+inline std::string arrayMergeStr(ArrayMerge mode)
+{
+    switch (mode)
+    {
+        case(ArrayMerge::Merge): return "merge";
+        case(ArrayMerge::Append): return "append";
+        case(ArrayMerge::Prepend): return "prepend";
+        case(ArrayMerge::Override): return "override";
+        case(ArrayMerge::Preserve): return "preserve";
+    }
+    return "";
+}
+
+inline Result<ArrayMerge> arrayMerge(const std::string& mode)
+{
+    static std::map<std::string,ArrayMerge>  m{
+        {"merge",ArrayMerge::Merge},
+        {"append",ArrayMerge::Append},
+        {"prepend",ArrayMerge::Prepend},
+        {"override",ArrayMerge::Override},
+        {"preserbe",ArrayMerge::Preserve}
+    };
+
+    auto it=m.find(mode);
+    if (it!=m.end())
+    {
+        return it->second;
+    }
+
+    return baseError(BaseError::UNKKNOWN_CONFIG_MERGE_MODE);
+}
 
 } // namespace config_tree
 

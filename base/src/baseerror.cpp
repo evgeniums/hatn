@@ -70,6 +70,10 @@ std::string BaseErrorCategory::message(int code) const
             result=common::_TR("Failed to parse configuration file","base");
             break;
 
+        case (static_cast<int>(BaseError::UNKKNOWN_CONFIG_MERGE_MODE)):
+            result=common::_TR("Unknown mode for configuration files merging","base");
+            break;
+
         default:
             result=common::_TR("Unknown error");
     }

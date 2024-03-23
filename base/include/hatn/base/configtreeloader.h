@@ -31,24 +31,43 @@ HATN_BASE_NAMESPACE_BEGIN
  */
 struct ConfigTreeInclude
 {
+    ConfigTreeInclude()=default;
+
+    ConfigTreeInclude(std::string file):file(std::move(file))
+    {}
+
+    static Result<ConfigTreeInclude> fromMap(const config_tree::MapT&);
+
     /**
      * @brief File path.
      *
      * File path can be either absolute or relative.
      * In case of relative path the file will be looked in the folder where original configuration file resides.
      * If not found then the list of include directories will be used for file lookup.
+     *
+     * If file path is empty then this descriptor is used only to figure out the merge mode
+     * for merging current config into pre-merged list of includes.
      */
     std::string file;
 
     /**
      * @brief Mode of arrays merging. Can be one of: "merge", "append", "prepend", "override", "preserve".
+     *
+     * @note This mode affetcs only merging of one include file into another provided that both includes are of the same list of the same config.
+     * In general, the final merging of the current config does not respect this mode becase it is merged into result of previous merges where the modes are already mixed.
+     * To set the mode of the the final merging of the current config add a descriptor with empty file name to the list of includes.
      */
-    config_tree::ArrayMerge array_merge=config_tree::ArrayMerge::Merge;
+    config_tree::ArrayMerge merge=config_tree::ArrayMerge::Merge;
 
     /**
      * @brief If true then merge direction is reversed.
      */
     bool extend=false;
+
+    /**
+     * @brief Format of inculde file. If empty then autodetect by file name extension.
+     */
+    std::string format;
 };
 
 /**
@@ -165,7 +184,7 @@ class HATN_BASE_EXPORT ConfigTreeLoader
 
         Error loadFromFile(
             ConfigTree& target,
-            lib::string_view filename,
+            std::string filename,
             const ConfigTreePath& root=ConfigTreePath(),
             const std::string& format=std::string()
         ) const;

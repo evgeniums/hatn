@@ -374,7 +374,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
 }
 
 //---------------------------------------------------------------
-
+namespace {
 Error nextEach(const std::function<Error (const ConfigTreePath&, const ConfigTree &)>& handler, const ConfigTreePath &path, const ConfigTree& current)
 {
     if (!path.isRoot())
@@ -409,6 +409,7 @@ Error nextEach(const std::function<Error (const ConfigTreePath&, const ConfigTre
 
     return OK;
 }
+} // anonymous namespace
 
 Error ConfigTree::each(const std::function<Error (const ConfigTreePath&, const ConfigTree&)>& handler, const ConfigTreePath &root) const
 {

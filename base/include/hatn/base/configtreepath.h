@@ -106,6 +106,11 @@ class HATN_BASE_EXPORT ConfigTreePath
 
         void append(common::lib::string_view path);
 
+        void append(size_t index)
+        {
+            append(std::to_string(index));
+        }
+
         ConfigTreePath copyAppend(common::lib::string_view path) const
         {
             auto n=*this;
@@ -113,13 +118,28 @@ class HATN_BASE_EXPORT ConfigTreePath
             return n;
         }
 
+        ConfigTreePath copyAppend(size_t index) const
+        {
+            return copyAppend(std::to_string(index));
+        }
+
         void prepend(common::lib::string_view path);
+
+        void prepend(size_t index)
+        {
+            prepend(std::to_string(index));
+        }
 
         ConfigTreePath copyPrepend(common::lib::string_view path) const
         {
             auto n=*this;
             n.prepend(path);
             return n;
+        }
+
+        ConfigTreePath copyPrepend(size_t index) const
+        {
+            return copyPrepend(std::to_string(index));
         }
 
         size_t count() const noexcept
@@ -171,6 +191,47 @@ class HATN_BASE_EXPORT ConfigTreePath
         {
             m_parts.clear();
             m_path.clear();
+        }
+
+        friend inline bool operator ==(const ConfigTreePath& left,const ConfigTreePath& right) noexcept
+        {
+            if (left.m_parts.size()!=right.m_parts.size())
+            {
+                return false;
+            }
+
+            for (size_t i=0;i<left.m_parts.size();i++)
+            {
+                if (left.m_parts.at(i)!=right.m_parts.at(i))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        friend inline bool operator <(const ConfigTreePath& left,const ConfigTreePath& right) noexcept
+        {
+            for (size_t i=0;i<left.m_parts.size();i++)
+            {
+                if (i==right.m_parts.size())
+                {
+                    return false;
+                }
+                if (left.m_parts.at(i)<right.m_parts.at(i))
+                {
+                    return true;
+                }
+                else if (left.m_parts.at(i)>right.m_parts.at(i))
+                {
+                    return false;
+                }
+            }
+            if (left.m_parts.size()==right.m_parts.size())
+            {
+                return false;
+            }
+            return true;
         }
 
     private:
