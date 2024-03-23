@@ -209,6 +209,13 @@ class MultiThreadFixture
 if (ec) \
 {\
     BOOST_ERROR(ec.message());\
-}\
+}
+
+#define HATN_TEST_RESULT(r) \
+if (r) \
+{\
+    BOOST_ERROR(r.error().message());\
+}
+
 
 #endif // HATNMULTITHREADFIXTURE_H
