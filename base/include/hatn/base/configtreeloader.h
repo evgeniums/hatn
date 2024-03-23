@@ -156,9 +156,14 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         {
             return m_includeDirs;
         }
-        void addIncludeDir(std::string dir)
+
+        template <typename ...Args>
+        void addIncludeDirs(Args&& ...dirs)
         {
-            m_includeDirs.push_back(std::move(dir));
+            hana::for_each(hana::make_tuple(std::forward<Args>(dirs)...),
+            [this](auto&& dir) {
+                this->m_includeDirs.push_back(std::forward<decltype(dir)>(dir));
+            });
         }
 
         /**

@@ -406,6 +406,32 @@ auto ConfigTreeValue::getDefaultEx() const -> decltype(auto)
     return r.takeValue();
 }
 
+inline auto ConfigTreeValue::asString() const noexcept -> decltype(auto)
+{
+    return as<std::string>();
+}
+inline auto ConfigTreeValue::asBool() const noexcept -> decltype(auto)
+{
+    return as<bool>();
+}
+inline auto ConfigTreeValue::asDouble() const noexcept -> decltype(auto)
+{
+    return as<double>();
+}
+
+inline auto ConfigTreeValue::asString() noexcept -> decltype(auto)
+{
+    return as<std::string>();
+}
+inline auto ConfigTreeValue::asBool() noexcept -> decltype(auto)
+{
+    return as<bool>();
+}
+inline auto ConfigTreeValue::asDouble() noexcept -> decltype(auto)
+{
+    return as<double>();
+}
+
 //---------------------------------------------------------------
 
 template <typename T>

@@ -32,6 +32,18 @@ HATN_TEST_USING
 
 namespace {
 
+void serializeTree(const ConfigTree& t)
+{
+    ConfigTreeJson jsonIo;
+    auto jsonR2=jsonIo.serialize(t);
+    BOOST_CHECK(!jsonR2);
+
+    std::cout<<"Serialize tree"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR2.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+}
+
 void checkConfigTree(const ConfigTree& t)
 {
     BOOST_CHECK_EQUAL(t.get("int8")->as<int8_t>().value(),-127);
@@ -467,14 +479,8 @@ BOOST_AUTO_TEST_CASE(LoadIncludes, *boost::unit_test::tolerance(0.000001))
     HATN_TEST_RESULT(r)
     BOOST_REQUIRE(!r);
 
-    ConfigTreeJson jsonIo;
-    auto jsonR2=jsonIo.serialize(*r);
-    BOOST_CHECK(!jsonR2);
 #if 0
-    std::cout<<"Serialize tree"<<std::endl;
-    std::cout<<"*********************************"<<std::endl;
-    std::cout<<jsonR2.value()<<std::endl;
-    std::cout<<"*********************************"<<std::endl;
+    serializeTree(*r);
 #endif
 
     checkConfigTree(r.value());
@@ -488,6 +494,30 @@ BOOST_AUTO_TEST_CASE(IncludeCycle)
     auto r=loader.createFromFile(filename);
     BOOST_TEST_MESSAGE(r.error().message());
     BOOST_CHECK(r);
+}
+
+BOOST_AUTO_TEST_CASE(IncludeOverride)
+{
+    ConfigTreeLoader loader;
+    loader.addIncludeDirs(MultiThreadFixture::assetsFilePath("base/assets/inc1"),
+                          MultiThreadFixture::assetsFilePath("base/assets/inc2")
+                          );
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config2.jsonc");
+    auto r=loader.createFromFile(filename);
+    HATN_TEST_RESULT(r);
+    BOOST_CHECK(!r);
+
+    BOOST_CHECK_EQUAL(r->get("from_inc1")->asString().value(),"from_inc1");
+    BOOST_CHECK_EQUAL(r->get("from_inc2")->asString().value(),"from_inc2");
+    BOOST_CHECK_EQUAL(r->get("override_inc1")->asString().value(),"original1");
+    BOOST_CHECK_EQUAL(r->get("override_inc2")->asString().value(),"original2");
+    BOOST_CHECK_EQUAL(r->get("override_inc3")->asString().value(),"inc3");
+
+#if 0
+    serializeTree(*r);
+#endif
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
