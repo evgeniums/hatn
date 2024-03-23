@@ -1,0 +1,42 @@
+{
+	"#include":[
+		{
+			"file":"config_inc5.jsonc"
+		},
+		{
+			"file":"config_inc6.jsonc",
+			"format": "json"
+		}
+	],	
+    "subtree": {
+          "4array-int": [
+              -124,
+              -32764,
+              -2147483644,
+              -9223372036854775804,
+              124,
+              32764,
+              2147483644,
+              9223372036854775804        
+          ],
+          "4array-bool": [
+              true,
+              false,
+              false,
+              true
+          ],
+          "4array-double": [
+              5123.564,
+              589.4,
+              5100.104,
+              -515.4,
+              -5109.24
+          ],
+          "4array-string": [
+              "4one",
+              "4two",
+              "4three",
+              "4four"
+          ]
+    }    
+}

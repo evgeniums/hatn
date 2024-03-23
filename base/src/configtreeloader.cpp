@@ -22,6 +22,7 @@
 #include <hatn/common/filesystem.h>
 
 #include <hatn/base/baseerror.h>
+#include <hatn/base/configtreejson.h>
 #include <hatn/base/configtreeloader.h>
 
 HATN_BASE_NAMESPACE_BEGIN
@@ -32,6 +33,17 @@ std::string ConfigTreeLoader::DefaultFormat="jsonc";
 std::string ConfigTreeLoader::DefaultIncludeTag="#include";
 std::string ConfigTreeLoader::DefaultPathSeparator=".";
 std::string ConfigTreeLoader::DefaultRelFilePathPrefix="$rel/";
+
+//---------------------------------------------------------------
+
+ConfigTreeLoader::ConfigTreeLoader(
+    ) : m_defaultFormat(DefaultFormat),
+    m_includeTag(DefaultIncludeTag),
+    m_separator(DefaultPathSeparator),
+    m_relFilePathPrefix(DefaultRelFilePathPrefix)
+{
+    addHandler(std::make_shared<ConfigTreeJson>());
+}
 
 //---------------------------------------------------------------
 
@@ -207,48 +219,60 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
     auto currentPath=lib::filesystem::path(filename);
-    if (currentPath.is_absolute())
+    if (!lib::filesystem::exists(currentPath))
     {
-        if (!lib::filesystem::exists(currentPath))
+        if (currentPath.is_absolute())
         {
             return fileNotFound();
-        }
-    }
-    else
-    {
-        bool found=false;
-
-        std::vector<std::string> includeDirs;
-        if (chain.empty())
-        {
-            includeDirs.push_back(lib::filesystem::current_path().string());
         }
         else
         {
-            for (auto it=chain.crbegin();it!=chain.crend();++it)
-            {
-                includeDirs.push_back(*it);
-            }
-            if (!loader.includeDirs().empty())
-            {
-                includeDirs.insert(std::end(includeDirs),std::begin(loader.includeDirs()),std::end(loader.includeDirs()));
-            }
-        }
+            bool found=false;
 
-        for (auto&& it:includeDirs)
-        {
-            lib::filesystem::path newPath{it};
-            newPath/=currentPath;
-            if (lib::filesystem::exists(newPath))
+            std::vector<std::string> includeDirs;
+            std::set<std::string> uniqueIncludeDirs;
+            if (chain.empty())
             {
-                currentPath=std::move(newPath);
-                found=true;
-                break;
+                includeDirs.push_back(lib::filesystem::current_path().string());
+                uniqueIncludeDirs.insert(lib::filesystem::current_path().string());
             }
-        }
-        if (!found)
-        {
-            return fileNotFound();
+            else
+            {
+                for (auto it=chain.crbegin();it!=chain.crend();++it)
+                {
+                    lib::filesystem::path p{*it};
+                    auto dir=p.parent_path().string();
+                    if (uniqueIncludeDirs.find(dir)==uniqueIncludeDirs.end())
+                    {
+                        includeDirs.push_back(dir);
+                        uniqueIncludeDirs.insert(dir);
+                    }
+                }
+                for (auto it=loader.includeDirs().begin();it!=loader.includeDirs().end();++it)
+                {
+                    if (uniqueIncludeDirs.find(*it)==uniqueIncludeDirs.end())
+                    {
+                        includeDirs.push_back(*it);
+                        uniqueIncludeDirs.insert(*it);
+                    }
+                }
+            }
+
+            for (auto&& it:includeDirs)
+            {
+                lib::filesystem::path newPath{it};
+                newPath/=currentPath;
+                if (lib::filesystem::exists(newPath))
+                {
+                    currentPath=std::move(newPath);
+                    found=true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                return fileNotFound();
+            }
         }
     }
     filename=currentPath.string();
@@ -269,6 +293,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     std::ignore=onExit;
 
     // load config
+    //! @todo append file name to error
     HATN_CHECK_RETURN(handler->loadFromFile(current,filename,ConfigTreePath(),format))
 
     // find includes in the config
@@ -298,7 +323,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     // remove top includes from config
     if (!topIncludes.empty())
     {
-        current.reset(loader.includeTag());
+        current.remove(loader.includeTag());
     }
 
     // process top includes
@@ -347,11 +372,11 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
 
 } // anonymous namsepace
 
-Error ConfigTreeLoader::loadFromFile(ConfigTree &target, std::string filename, const ConfigTreePath &root, const std::string &format) const
+Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& filename, const ConfigTreePath &root, const std::string &format) const
 {
     // load config tree
     ConfigTree next;
-    ConfigTreeInclude descriptor{std::move(filename)};
+    ConfigTreeInclude descriptor{filename};
     descriptor.format=format;
     std::vector<std::string> chain;
     HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain))
@@ -401,9 +426,18 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, std::string filename, c
 
             return Error();
         };
-        target.each(handler);
+        std::ignore=target.each(handler);
     }
     return OK;
+}
+
+//---------------------------------------------------------------
+
+Result<ConfigTree> ConfigTreeLoader::createFromFile(const std::string& filename, const std::string &format) const
+{
+    ConfigTree t;
+    HATN_CHECK_RETURN(loadFromFile(t,filename,ConfigTreePath(),format))
+    return t;
 }
 
 //---------------------------------------------------------------

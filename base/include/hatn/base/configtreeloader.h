@@ -104,12 +104,7 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         static std::string DefaultPathSeparator; // "."
         static std::string DefaultRelFilePathPrefix; // "$rel/"
 
-        ConfigTreeLoader(
-            ) : m_defaultFormat(DefaultFormat),
-                m_includeTag(DefaultIncludeTag),
-                m_separator(DefaultPathSeparator),
-                m_relFilePathPrefix(DefaultRelFilePathPrefix)
-        {}
+        ConfigTreeLoader();
 
         ~ConfigTreeLoader()=default;
         ConfigTreeLoader(const ConfigTreeLoader&)=default;
@@ -157,7 +152,7 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         {
             m_includeDirs=std::move(dirs);
         }
-        std::vector<std::string> includeDirs() const
+        const std::vector<std::string>& includeDirs() const
         {
             return m_includeDirs;
         }
@@ -183,8 +178,13 @@ class HATN_BASE_EXPORT ConfigTreeLoader
 
         Error loadFromFile(
             ConfigTree& target,
-            std::string filename,
+            const std::string& filename,
             const ConfigTreePath& root=ConfigTreePath(),
+            const std::string& format=std::string()
+        ) const;
+
+        Result<ConfigTree> createFromFile(
+            const std::string& filename,
             const std::string& format=std::string()
         ) const;
 

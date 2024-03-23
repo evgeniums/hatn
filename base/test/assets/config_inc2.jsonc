@@ -1,0 +1,116 @@
+{
+	"#include":[
+		"config_inc3.jsonc",
+		"config_inc4.jsonc"
+	],
+	
+    "array-bool": [
+        true,
+        false,
+        false,
+        true
+    ],
+    "array-double": [
+        123.567,
+        89.0,
+        100.102,
+        -15.0,
+        -109.21
+    ],
+    "array-string": [
+        "one",
+        "two",
+        "three",
+        "four"
+    ],
+    "array-tree": [
+        {
+            "1int8":  -127,
+            "1int16": -32767,
+            "1int32": -2147483647,
+            "1int64": -9223372036854775807,
+            "1uint8":  127,
+            "1uint16": 32767,
+            "1uint32": 2147483647,
+            "1uint64": 9223372036854775807,
+            "1bool-true": true,
+            "1bool-false": false,
+            "1double-pos": 9.101,
+            "1double-neg": -9.101,
+            "1string": "Hello world!",
+            "1array-int": [
+                -127,
+                -32767,
+                -2147483647,
+                -9223372036854775807,
+                127,
+                32767,
+                2147483647,
+                9223372036854775807        
+            ],
+            "1array-bool": [
+                true,
+                false,
+                false,
+                true
+            ],
+            "1array-double": [
+                123.567,
+                89.0,
+                100.102,
+                -15.0,
+                -109.21
+            ],
+            "1array-string": [
+                "1one",
+                "1two",
+                "1three",
+                "1four"
+            ]
+        },
+        {
+          "2int8":  -125,
+          "2int16": -32765,
+          "2int32": -2147483645,
+          "2int64": -9223372036854775805,
+          "2uint8":  125,
+          "2uint16": 32765,
+          "2uint32": 2147483645,
+          "2uint64": 9223372036854775805,
+          "2bool-true": true,
+          "2bool-false": false,
+          "2double-pos": 9.501,
+          "2double-neg": -9.501,
+          "2string": "Hi!",
+          "2array-int": [
+              -126,
+              -32766,
+              -2147483646,
+              -9223372036854775806,
+              126,
+              32766,
+              2147483646,
+              9223372036854775806        
+          ],
+          "2array-bool": [
+              true,
+              false,
+              false,
+              true
+          ],
+          "2array-double": [
+              5123.567,
+              589.0,
+              5100.102,
+              -515.0,
+              -5109.21
+          ],
+          "2array-string": [
+              "2one",
+              "2two",
+              "2three",
+              "2four"
+          ]
+        }
+    ]    
+}

@@ -1,0 +1,37 @@
+{
+    "subtree": {
+          "subtree-subtree": {
+                  "3double-neg": -9.503,
+                  "3string": "How are you?",
+                  "3array-int": [
+                      -123,
+                      -32763,
+                      -2147483643,
+                      -9223372036854775803,
+                      123,
+                      32763,
+                      2147483643,
+                      9223372036854775803        
+                  ],
+                  "3array-bool": [
+                      true,
+                      false,
+                      false,
+                      true
+                  ],
+                  "3array-double": [
+                      3123.564,
+                      389.4,
+                      3100.104,
+                      -315.4,
+                      -3109.24
+                  ],
+                  "3array-string": [
+                      "3one",
+                      "3two",
+                      "3three",
+                      "3four"
+                  ]    
+            }              
+		}    
+}

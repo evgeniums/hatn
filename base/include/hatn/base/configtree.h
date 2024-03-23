@@ -155,6 +155,8 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
         void reset(const ConfigTreePath& path) noexcept;
         void resetDefault(const ConfigTreePath& path) noexcept;
 
+        void remove(const ConfigTreePath& path) noexcept;
+
         /**
          * @brief Merge other tree moving its content to this tree if applicable.
          * @param other Other tree to move into this.

@@ -1,0 +1,31 @@
+{
+	"#include": "config_inc2.jsonc",
+	
+    // plain fields
+    "int8":  -127,
+    "int16": -32767,
+    "int32": -2147483647,
+    "int64": -9223372036854775807,
+    "uint8":  127,
+    "uint16": 32767,
+    "uint32": 2147483647,
+    "uint64": 9223372036854775807,
+    "bool-true": true,
+    "bool-false": false,
+    "double-pos": 9.101,
+    "double-neg": -9.101,
+    "string": "Hello world!",
+    /*
+        compound fields
+    */
+    "array-int": [
+        -127,
+        -32767,
+        -2147483647,
+        -9223372036854775807,
+        127,
+        32767,
+        2147483647,
+        9223372036854775807        
+    ]    
+}

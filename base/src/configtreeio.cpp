@@ -65,6 +65,8 @@ Error ConfigTreeIo::loadFromFile(
         const std::string& format
     ) const
 {
+    //! @todo More verbose error.
+
     common::RunOnScopeExit closeOnExit{
         [&file](){
             file.close();

@@ -270,6 +270,30 @@ void ConfigTree::resetDefault(const ConfigTreePath& path) noexcept
 
 //---------------------------------------------------------------
 
+void ConfigTree::remove(const ConfigTreePath& path) noexcept
+{
+    if (path.count()==0)
+    {
+        reset();
+        resetDefault();
+    }
+    else
+    {
+        auto p=path.copyDropBack();
+        auto r=doGet<ConfigTree&>(p,this);
+        if (r.isValid())
+        {
+            auto m=r->asMap();
+            if (!r)
+            {
+                m->erase(path.back());
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------------
+
 template <typename T>
 Error mergeArrays(ConfigTree* current, ConfigTree &&other, config_tree::ArrayMerge arrayMergeMode)
 {
