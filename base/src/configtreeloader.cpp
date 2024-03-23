@@ -16,6 +16,8 @@
   *
   */
 
+#include <boost/algorithm/string.hpp>
+
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/filesystem.h>
 
@@ -186,7 +188,7 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
     return OK;
 }
 
-Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const ConfigTreeInclude& descriptor, std::set<std::string> chain, const lib::filesystem::path& parentPath)
+Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const ConfigTreeInclude& descriptor, std::vector<std::string> chain)
 {
     // find handler for format
     auto format=ConfigTreeIo::fileFormat(descriptor.format);
@@ -197,7 +199,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
 
-    // find include file using include dirs if required
+    // find include file using dirs of parent files and then include dirs
     auto filename=descriptor.file;
     auto fileNotFound=[&filename]()
     {
@@ -215,25 +217,33 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     else
     {
         bool found=false;
-        lib::filesystem::path newPath{parentPath};
-        newPath/=currentPath;
-        if (!lib::filesystem::exists(newPath))
+
+        std::vector<std::string> includeDirs;
+        if (chain.empty())
         {
-            currentPath=std::move(newPath);
-            found=true;
+            includeDirs.push_back(lib::filesystem::current_path().string());
         }
         else
         {
-            for (auto&& it:loader.includeDirs())
+            for (auto it=chain.crbegin();it!=chain.crend();++it)
             {
-                lib::filesystem::path newPath{it};
-                newPath/=currentPath;
-                if (!lib::filesystem::exists(newPath))
-                {
-                    currentPath=std::move(newPath);
-                    found=true;
-                    break;
-                }
+                includeDirs.push_back(*it);
+            }
+            if (!loader.includeDirs().empty())
+            {
+                includeDirs.insert(std::end(includeDirs),std::begin(loader.includeDirs()),std::end(loader.includeDirs()));
+            }
+        }
+
+        for (auto&& it:includeDirs)
+        {
+            lib::filesystem::path newPath{it};
+            newPath/=currentPath;
+            if (lib::filesystem::exists(newPath))
+            {
+                currentPath=std::move(newPath);
+                found=true;
+                break;
             }
         }
         if (!found)
@@ -244,16 +254,16 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     filename=currentPath.string();
 
     // check for cycles
-    if (chain.find(filename)!=chain.end())
+    if (std::find(chain.begin(), chain.end(), filename)!=chain.end())
     {
         auto msg=fmt::format("include cycle detected for file {}", filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
-    chain.insert(filename);
+    chain.push_back(filename);
     common::RunOnScopeExit onExit{
-        [&chain,&filename]()
+        [&chain]()
         {
-            chain.erase(filename);
+            chain.pop_back();
         }
     };
     std::ignore=onExit;
@@ -299,7 +309,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         if (!it.file.empty())
         {
             ConfigTree next;
-            HATN_CHECK_RETURN(loadNext(loader,next,it,chain,currentPath));
+            HATN_CHECK_RETURN(loadNext(loader,next,it,chain));
             if (!it.extend)
             {
                 HATN_CHECK_RETURN(merged.merge(std::move(next),ConfigTreePath(),it.merge))
@@ -326,7 +336,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         for (auto&& it1:it.second)
         {
             ConfigTree next;
-            HATN_CHECK_RETURN(loadNext(loader,next,it1,chain,currentPath));
+            HATN_CHECK_RETURN(loadNext(loader,next,it1,chain));
             HATN_CHECK_RETURN(current.merge(std::move(next),it.first,it1.merge))
         }
     }
@@ -339,12 +349,61 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
 
 Error ConfigTreeLoader::loadFromFile(ConfigTree &target, std::string filename, const ConfigTreePath &root, const std::string &format) const
 {
+    // load config tree
     ConfigTree next;
     ConfigTreeInclude descriptor{std::move(filename)};
     descriptor.format=format;
-    std::set<std::string> chain;
-    HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain,lib::filesystem::current_path()))
-    return target.merge(std::move(next),root);
+    std::vector<std::string> chain;
+    HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain))
+    HATN_CHECK_RETURN(target.merge(std::move(next),root))
+
+    // process relative paths in string parameters
+    if (!m_relFilePathPrefix.empty())
+    {
+        auto rootFilePath=lib::filesystem::current_path();
+        lib::filesystem::path filePath{filename};
+        if (filePath.is_absolute())
+        {
+            rootFilePath=filePath.parent_path();
+        }
+
+        auto handler=[this,&rootFilePath](const ConfigTreePath&, ConfigTree& value)
+        {
+            if (value.type(true)==config_tree::Type::String)
+            {
+                auto str=value.as<std::string>();
+                if (str.isValid())
+                {
+                    if (boost::algorithm::starts_with(str.value(),m_relFilePathPrefix))
+                    {
+                        auto path=rootFilePath;
+                        path/=str.value();
+                        value.set(path.string());
+                    }
+                }
+            }
+            else if (value.type(true)==config_tree::Type::ArrayString)
+            {
+                auto arr=value.asArray<std::string>();
+                if (arr.isValid())
+                {
+                    for (size_t i=0;i<arr->size();i++)
+                    {
+                        if (boost::algorithm::starts_with(arr->at(i),m_relFilePathPrefix))
+                        {
+                            auto path=rootFilePath;
+                            path/=arr->at(i);
+                            (*arr)[i]=path.string();
+                        }
+                    }
+                }
+            }
+
+            return Error();
+        };
+        target.each(handler);
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------

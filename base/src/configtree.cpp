@@ -375,7 +375,8 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
 
 //---------------------------------------------------------------
 namespace {
-Error nextEach(const std::function<Error (const ConfigTreePath&, const ConfigTree &)>& handler, const ConfigTreePath &path, const ConfigTree& current)
+template <typename T>
+Error nextEach(const std::function<Error (const ConfigTreePath&, T)>& handler, const ConfigTreePath &path, T current)
 {
     if (!path.isRoot())
     {
@@ -392,17 +393,17 @@ Error nextEach(const std::function<Error (const ConfigTreePath&, const ConfigTre
             for (auto&& it:m.value())
             {
                 auto nextPath=path.copyAppend(it.first);
-                HATN_CHECK_RETURN(nextEach(handler,nextPath,*(it.second)))
+                HATN_CHECK_RETURN(nextEach<T>(handler,nextPath,*(it.second)))
             }
         }
         else if (current.type()==config_tree::Type::ArrayTree)
         {
-            auto a=current.asArray<ConfigTree>();
+            auto a=current.template asArray<ConfigTree>();
             HATN_CHECK_RESULT(a)
             for (size_t i=0;i<a->size();i++)
             {
                 auto nextPath=path.copyAppend(std::to_string(i));
-                HATN_CHECK_RETURN(nextEach(handler,nextPath,*(a->at(i))))
+                HATN_CHECK_RETURN(nextEach<T>(handler,nextPath,*(a->at(i))))
             }
         }
     }
@@ -421,7 +422,20 @@ Error ConfigTree::each(const std::function<Error (const ConfigTreePath&, const C
         current=&subtree.value();
     }
 
-    return nextEach(handler,root,*current);
+    return nextEach<const ConfigTree&>(handler,root,*current);
+}
+
+Error ConfigTree::each(const std::function<Error (const ConfigTreePath&, ConfigTree&)>& handler, const ConfigTreePath &root)
+{
+    auto current=this;
+    if (!root.isRoot())
+    {
+        auto subtree=get(root);
+        HATN_CHECK_RESULT(subtree)
+        current=&subtree.value();
+    }
+
+    return nextEach<ConfigTree&>(handler,root,*current);
 }
 
 //---------------------------------------------------------------
