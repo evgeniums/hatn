@@ -218,7 +218,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         auto msg=fmt::format("file not found {}", filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
-    auto currentPath=lib::filesystem::path(filename);
+    auto currentPath=lib::filesystem::path(filename).lexically_normal();
     if (!lib::filesystem::exists(currentPath))
     {
         if (currentPath.is_absolute())
@@ -264,7 +264,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
                 newPath/=currentPath;
                 if (lib::filesystem::exists(newPath))
                 {
-                    currentPath=std::move(newPath);
+                    currentPath=newPath.lexically_normal();
                     found=true;
                     break;
                 }
@@ -403,7 +403,7 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
                     {
                         auto path=rootFilePath;
                         path/=str.value();
-                        value.set(path.string());
+                        value.set(path.lexically_normal().string());
                     }
                 }
             }
@@ -418,7 +418,7 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
                         {
                             auto path=rootFilePath;
                             path/=arr->at(i);
-                            (*arr)[i]=path.string();
+                            (*arr)[i]=path.lexically_normal().string();
                         }
                     }
                 }

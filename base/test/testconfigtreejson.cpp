@@ -480,4 +480,14 @@ BOOST_AUTO_TEST_CASE(LoadIncludes, *boost::unit_test::tolerance(0.000001))
     checkConfigTree(r.value());
 }
 
+BOOST_AUTO_TEST_CASE(IncludeCycle)
+{
+    ConfigTreeLoader loader;
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config_cycle1.jsonc");
+    auto r=loader.createFromFile(filename);
+    BOOST_TEST_MESSAGE(r.error().message());
+    BOOST_CHECK(r);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
