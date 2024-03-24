@@ -687,4 +687,26 @@ BOOST_AUTO_TEST_CASE(ConfigLoaderParams)
     BOOST_CHECK_EQUAL(loader.pathSeparator(),"/");
     BOOST_CHECK_EQUAL(loader.defaultFormat(),"yaml");
 }
+
+BOOST_AUTO_TEST_CASE(LoadNotRoot, *boost::unit_test::tolerance(0.000001))
+{
+    ConfigTreeLoader loader;
+
+    ConfigTree t;
+    BOOST_REQUIRE(!t.set("preset.existed","existed_value"));
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config1_with_inc.jsonc");
+    auto ec=loader.loadFromFile(t,filename,"preset.attach.subtree");
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+#if 0
+    serializeTree(t);
+#endif
+
+    checkConfigTree(t.get("preset.attach.subtree").value());
+    BOOST_CHECK_EQUAL(t.get("preset.existed")->asString().value(),"existed_value");
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
