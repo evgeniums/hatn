@@ -35,6 +35,7 @@ SET (HEADERS
     include/hatn/common/error.h
     include/hatn/common/nativeerror.h
     include/hatn/common/errorcategory.h
+    include/hatn/common/errorstack.h
     include/hatn/common/result.h
 
     include/hatn/common/logger.h

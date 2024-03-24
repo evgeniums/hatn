@@ -247,8 +247,6 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             m_code=static_cast<int>(CommonError::OK);
         }
 
-        Error serialize(ByteArray& buf) const;
-
     private:
 
         int32_t m_code;

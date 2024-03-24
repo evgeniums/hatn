@@ -59,14 +59,14 @@ class HATN_COMMON_EXPORT NativeError
                 m_category(category)
         {}
 
-        virtual ~NativeError()=default;
+        virtual ~NativeError();
         NativeError(const NativeError&)=default;
         NativeError(NativeError&&) =default;
         NativeError& operator=(const NativeError&)=default;
         NativeError& operator=(NativeError&&) =default;
 
         //! Get native error message.
-        std::string nativeMessage() const
+        virtual std::string nativeMessage() const
         {
             return m_nativeMessage;
         }
@@ -83,6 +83,11 @@ class HATN_COMMON_EXPORT NativeError
             return m_category;
         }
 
+        void setCategory(const std::error_category* cat) noexcept
+        {
+            m_category=cat;
+        }
+
         //! Compare with other error.
         inline bool isEqual(const NativeError& other) const noexcept
         {
@@ -95,7 +100,7 @@ class HATN_COMMON_EXPORT NativeError
             {
                 return false;
             }
-            return compareContent(other);
+            return true;
         }
 
         bool operator ==(const NativeError& other) const noexcept
@@ -105,17 +110,6 @@ class HATN_COMMON_EXPORT NativeError
         bool operator !=(const NativeError& other) const noexcept
         {
             return !isEqual(other);
-        }
-
-        virtual Error serializeAppend(ByteArray& buf) const;
-
-    protected:
-
-        //! Compare self content with content of other error.
-        virtual bool compareContent(const NativeError& other) const noexcept
-        {
-            std::ignore=other;
-            return false;
         }
 
     private:

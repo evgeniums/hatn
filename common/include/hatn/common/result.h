@@ -304,6 +304,12 @@ class Result
             return m_error;
         }
 
+        //! Take error.
+        Error takeError() noexcept
+        {
+            return std::move(m_error);
+        }
+
         //! Bool operator true if result holds error.
         operator bool() const noexcept
         {
@@ -524,6 +530,12 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
             return m_error;
         }
 
+        //! Take error.
+        Error takeError() noexcept
+        {
+            return std::move(m_error);
+        }
+
         //! Bool operator true if result holds error.
         operator bool() const noexcept
         {
@@ -644,6 +656,12 @@ class Result<Error>
         const Error& error() const noexcept
         {
             return m_error;
+        }
+
+        //! Take error.
+        Error takeError() noexcept
+        {
+            return std::move(m_error);
         }
 
         //! Bool operator true if result holds error.

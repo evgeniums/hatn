@@ -20,31 +20,22 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/translate.h>
 #include <hatn/common/error.h>
+#include <hatn/common/nativeerror.h>
+#include <hatn/common/errorstack.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 /********************** NativeError **************************/
 
 //---------------------------------------------------------------
-Error NativeError::serializeAppend(ByteArray& buf) const
-{
-    std::ignore=buf;
-    return Error();
-}
 
-/********************** Error **************************/
-Error Error::serialize(ByteArray& buf) const {
-    int32_t code=m_code;
-    boost::endian::native_to_little_inplace(code);
-    buf.resize(sizeof(code));
-    memcpy(buf.data(),&code,sizeof(code));
-    auto ntv=native();
-    if (ntv)
-    {
-        HATN_CHECK_RETURN(ntv->serializeAppend(buf))
-    }
-    return Error();
-}
+NativeError::~NativeError()=default;
+
+/********************** ErrorStack **************************/
+
+//---------------------------------------------------------------
+
+ErrorStack::~ErrorStack()=default;
 
 /********************** CommonErrorCategory **************************/
 
@@ -66,38 +57,45 @@ std::string CommonErrorCategory::message(int code) const
             result=_TR("OK");
         break;
         case (static_cast<int>(CommonError::INVALID_SIZE)):
-            result=_TR("Invalid size");
+            result=_TR("invalid size");
         break;
         case (static_cast<int>(CommonError::INVALID_ARGUMENT)):
-            result=_TR("Invalid argument");
+            result=_TR("invalid argument");
         break;
         case (static_cast<int>(CommonError::UNSUPPORTED)):
-            result=_TR("Operation is not supported");
+            result=_TR("operation is not supported");
         break;
         case (static_cast<int>(CommonError::INVALID_FILENAME)):
-            result=_TR("Invalide file name");
+            result=_TR("invalide file name");
         break;
         case (static_cast<int>(CommonError::FILE_FLUSH_FAILED)):
-            result=_TR("Failed to flush file");
+            result=_TR("failed to flush file");
         break;
         case (static_cast<int>(CommonError::FILE_ALREADY_OPEN)):
-            result=_TR("File is already open");
+            result=_TR("file is already open");
         break;
         case (static_cast<int>(CommonError::FILE_WRITE_FAILED)):
-            result=_TR("Failed to write file");
+            result=_TR("failed to write file");
         break;
         case (static_cast<int>(CommonError::FILE_NOT_OPEN)):
-            result=_TR("File not open");
+            result=_TR("file not open");
         break;
         case (static_cast<int>(CommonError::TIMEOUT)):
-            result=_TR("Operation timeout");
+            result=_TR("operation timeout");
         break;
         case (static_cast<int>(CommonError::NOT_IMPLEMENTED)):
-            result=_TR("Requested operation with provided arguments not implemented yet");
+            result=_TR("requested operation with provided arguments not implemented yet");
+            break;
+        case (static_cast<int>(CommonError::RESULT_ERROR)):
+            result=_TR("cannot get value of error result");
+            break;
+
+        case (static_cast<int>(CommonError::RESULT_NOT_ERROR)):
+            result=_TR("cannot move not error result");
             break;
 
         default:
-            result=_TR("Unknown error");
+            result=_TR("unknown error");
     }
     return result;
 }
