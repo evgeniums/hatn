@@ -21,6 +21,9 @@
 #ifndef HATNDATAUNITWIREDATAPACK_H
 #define HATNDATAUNITWIREDATAPACK_H
 
+#include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/wiredata.h>
+
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 #ifdef HATN_WIREDATA_SRC
