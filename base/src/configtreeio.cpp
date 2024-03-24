@@ -143,7 +143,7 @@ Error ConfigTreeIo::saveToFile(
     auto r=serialize(source,root,serializeFormat);
     if (r)
     {
-        auto err=std::make_shared<common::ErrorStack>(std::move(r.takeError()),fmt::format(_TR("failed to serialize configuration tree for {}","base"), file.filename()));
+        auto err=std::make_shared<common::ErrorStack>(r.takeError(),fmt::format(_TR("failed to serialize configuration tree for {}","base"), file.filename()));
         return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
     }
 

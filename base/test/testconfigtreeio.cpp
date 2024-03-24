@@ -342,6 +342,8 @@ BOOST_AUTO_TEST_SUITE(TestConfigTree)
 
 BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
 {
+    std::ignore=_serializeTree;
+
     ConfigTree t1;
 
     // test parsing and serializing
