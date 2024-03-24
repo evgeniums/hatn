@@ -56,7 +56,7 @@ job('hatn/hatn-desktop/hatn-desktop-single') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
           conditionalSteps {
@@ -150,7 +150,7 @@ matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
           conditionalSteps {
@@ -235,7 +235,7 @@ job('hatn/hatn-android/hatn-android-single') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
       shell('hatn/build/lib/android-build.sh ${hatn_lib} ${hatn_arch} ${hatn_api_level} ${hatn_plugins}')
@@ -311,7 +311,7 @@ matrixJob('hatn/hatn-android/hatn-android-matrix') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
       shell('hatn/build/lib/android-build.sh ${hatn_lib} ${hatn_arch} ${hatn_api_level} ${hatn_plugins}')
@@ -387,7 +387,7 @@ job('hatn/hatn-ios/hatn-ios-single') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
       shell('hatn/build/lib/ios-build.sh ${hatn_lib} ${hatn_arch} ${hatn_build} ${hatn_bitcode} ${hatn_visibility} ${hatn_plugins}')
@@ -470,7 +470,7 @@ matrixJob('hatn/hatn-ios/hatn-ios-matrix') {
         }
     }
 
-        environmentVariables(PREPARE_TESTS: '1')
+        environmentVariables(PREPARE_TESTS: '1',TREAT_WARNING_AS_ERROR:'1')
 
     steps {
       shell('hatn/build/lib/ios-build.sh ${hatn_lib} ${hatn_arch} ${hatn_build} ${hatn_bitcode} ${hatn_visibility} ${hatn_plugins}')
