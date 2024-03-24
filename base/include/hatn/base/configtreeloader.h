@@ -92,7 +92,7 @@ struct ConfigTreeInclude
  * If the name is a relative path then, at first, the loader tries to find the include file in the same directory with the current config file and then, if not found,
  * it uses a list of include directories to look for the file.
  *
- * Configuration files can contain other parameters representing relative file paths, in addition to the includes. If relFilePathPrefix() is not empty then each string parameter in configuration file
+ * Configuration files can contain other parameters containing some relative file paths, in addition to the includes. If relFilePathPrefix() is not empty then each string parameter in configuration file
  * that starts with relFilePathPrefix() will be expanded to absolute path by means of replacing relFilePathPrefix() with the absolute path of the root configuration file.
  */
 class HATN_BASE_EXPORT ConfigTreeLoader

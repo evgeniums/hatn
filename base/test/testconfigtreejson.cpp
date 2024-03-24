@@ -371,13 +371,7 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
 
     // write to file
     auto tmpFile=MultiThreadFixture::tmpFilePath("config1-save.jsonc");
-    serializeTreeToFile(t1,tmpFile);
-    // if (lib::filesystem::exists(tmpFile))
-    // {
-    //     lib::filesystem::remove(tmpFile);
-    // }
-    // ec=jsonIo.saveToFile(t1,tmpFile);
-    // HATN_TEST_EC(ec);
+    serializeTreeToFile(t1,"config1-save.jsonc");
     ConfigTree t3;
     ec=jsonIo.loadFromFile(t3,tmpFile);
     HATN_TEST_EC(ec);
@@ -674,4 +668,23 @@ BOOST_AUTO_TEST_CASE(ConfigRelParameters)
 #endif
 }
 
+BOOST_AUTO_TEST_CASE(ConfigLoaderParams)
+{
+    ConfigTreeLoader loader;
+
+    BOOST_CHECK_EQUAL(loader.includeTag(),"#include");
+    BOOST_CHECK_EQUAL(loader.relFilePathPrefix(),"$rel/");
+    BOOST_CHECK_EQUAL(loader.pathSeparator(),".");
+    BOOST_CHECK_EQUAL(loader.defaultFormat(),"jsonc");
+
+    loader.setIncludeTag("@import");
+    loader.setRelFilePathPrefix("%PREFIX%");
+    loader.setPathSeparator("/");
+    loader.setDefaultFormat("yaml");
+
+    BOOST_CHECK_EQUAL(loader.includeTag(),"@import");
+    BOOST_CHECK_EQUAL(loader.relFilePathPrefix(),"%PREFIX%");
+    BOOST_CHECK_EQUAL(loader.pathSeparator(),"/");
+    BOOST_CHECK_EQUAL(loader.defaultFormat(),"yaml");
+}
 BOOST_AUTO_TEST_SUITE_END()
