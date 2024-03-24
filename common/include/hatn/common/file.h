@@ -344,15 +344,15 @@ class File
          *
          * Can read only not open file.
          */
-        // template <typename FilenameT, typename ContainerT>
-        // Error readAll(const FilenameT& filename, ContainerT& container)
-        // {
-        //     HATN_CHECK_RETURN(open(filename,Mode::scan))
-        //     auto ec=readAll(container);
-        //     Error ec1;
-        //     close(ec1);
-        //     return ec;
-        // }
+        template <typename FilenameT, typename ContainerT>
+        Error readAll(const FilenameT& filename, ContainerT& container)
+        {
+            HATN_CHECK_RETURN(open(filename,Mode::scan))
+            auto ec=readAll(container);
+            Error ec1;
+            close(ec1);
+            return ec;
+        }
 
     private:
 
