@@ -34,17 +34,17 @@ inline static std::string fromFile(const std::string &fname)
 static void doTest(const std::string &encoding)
 {
     /* From common */
-    auto help=_TR("help");
+    auto help=hatn::_TR("help");
     BOOST_CHECK_EQUAL(help, fromFile("help." + encoding + ".txt"));
 
     /* From different dictionaries */
-    auto string1=_TR("string1");
+    auto string1=hatn::_TR("string1");
     BOOST_CHECK_EQUAL(string1, fromFile("string1." + encoding + ".txt"));
-    auto string2=_TR("string2");
+    auto string2=hatn::_TR("string2");
     BOOST_CHECK_EQUAL(string2, fromFile("string2." + encoding + ".txt"));
 
     /* Not existing */
-    BOOST_CHECK_EQUAL(_TR("something"), "something");
+    BOOST_CHECK_EQUAL(hatn::_TR("something"), "something");
 }
 
 BOOST_AUTO_TEST_CASE(Utf8Encoding)

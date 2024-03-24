@@ -400,7 +400,7 @@ BOOST_FIXTURE_TEST_CASE(DebugParse,MultiThreadFixture)
     std::string conf="globalljlj;debug;7;Some context,Some context 2;Some tag,Some tag 2";
     modules.push_back(conf);
     auto ret1=Logger::configureModules(modules);
-    BOOST_CHECK_EQUAL(ret1,(_TR("No such log module defined:")+" globalljlj"));
+    BOOST_CHECK_EQUAL(ret1,(hatn::_TR("No such log module defined:")+" globalljlj"));
 #ifdef HATN_TEST_LOG_CONSOLE
     std::cerr<<ret1<<std::endl;
 #endif
@@ -408,7 +408,7 @@ BOOST_FIXTURE_TEST_CASE(DebugParse,MultiThreadFixture)
     conf="oho,43-49-0kjkh ljh ihoihfweef";
     modules.push_back(conf);
     auto ret2=Logger::configureModules(modules);
-    BOOST_CHECK_EQUAL(ret2,(_TR("No such log module defined:")+" oho,43-49-0kjkh ljh ihoihfweef"));
+    BOOST_CHECK_EQUAL(ret2,(hatn::_TR("No such log module defined:")+" oho,43-49-0kjkh ljh ihoihfweef"));
 #ifdef HATN_TEST_LOG_CONSOLE
     std::cerr<<ret2<<std::endl;
 #endif
@@ -416,7 +416,7 @@ BOOST_FIXTURE_TEST_CASE(DebugParse,MultiThreadFixture)
     conf="";
     modules.push_back(conf);
     auto ret3=Logger::configureModules(modules);
-    BOOST_CHECK_EQUAL(ret3,(_TR("No such log module defined:")+" "));
+    BOOST_CHECK_EQUAL(ret3,(hatn::_TR("No such log module defined:")+" "));
 #ifdef HATN_TEST_LOG_CONSOLE
     std::cerr<<ret3<<std::endl;
 #endif
