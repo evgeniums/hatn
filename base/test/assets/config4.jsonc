@@ -1,0 +1,8 @@
+{
+	"#include": "inc2/config4_inc.jsonc",
+	"param1": "$rel/file1.dat",
+	"arr1": [
+		"$rel/arr0.dat",
+		"$rel/arr1.dat"
+	]
+}

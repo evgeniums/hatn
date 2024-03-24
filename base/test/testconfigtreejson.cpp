@@ -644,4 +644,34 @@ BOOST_AUTO_TEST_CASE(IncludeMergeArrays)
     }
 }
 
+BOOST_AUTO_TEST_CASE(ConfigRelParameters)
+{
+    ConfigTreeLoader loader;
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config4.jsonc");
+    auto r=loader.createFromFile(filename);
+    HATN_TEST_RESULT(r);
+    BOOST_REQUIRE(!r);
+
+    lib::filesystem::path filePath{filename};
+    auto rootFilePath=lib::filesystem::canonical(filePath.parent_path());
+    auto substitute=rootFilePath.string();
+    substitute+=lib::filesystem::path::preferred_separator;
+
+    BOOST_CHECK_EQUAL(substitute+"file1.dat",r->get("param1")->asString().value());
+    BOOST_CHECK_EQUAL(substitute+"inc_file1.dat",r->get("inc_map1.inc_param1")->asString().value());
+
+    auto arr1=r->get("arr1")->asArray<std::string>();
+    BOOST_CHECK_EQUAL(substitute+"arr0.dat",arr1->at(0));
+    BOOST_CHECK_EQUAL(substitute+"arr1.dat",arr1->at(1));
+
+    auto arr2=r->get("inc_map1.inc_arr1")->asArray<std::string>();
+    BOOST_CHECK_EQUAL(substitute+"inc_arr0.dat",arr2->at(0));
+    BOOST_CHECK_EQUAL(substitute+"inc_arr1.dat",arr2->at(1));
+
+#if 1
+        serializeTree(*r);
+#endif
+}
+
 BOOST_AUTO_TEST_SUITE_END()

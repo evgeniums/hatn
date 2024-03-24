@@ -392,25 +392,24 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
     // process relative paths in string parameters
     if (!m_relFilePathPrefix.empty())
     {
-        auto rootFilePath=lib::filesystem::current_path();
         lib::filesystem::path filePath{filename};
-        if (filePath.is_absolute())
+        auto rootFilePath=lib::filesystem::canonical(filePath.parent_path());
+        auto substitute=rootFilePath.string();
+        if (boost::algorithm::ends_with(m_relFilePathPrefix,"/"))
         {
-            rootFilePath=filePath.parent_path();
+            substitute+=lib::filesystem::path::preferred_separator;
         }
 
-        auto handler=[this,&rootFilePath](const ConfigTreePath&, ConfigTree& value)
+        auto handler=[this,&substitute](const ConfigTreePath&, ConfigTree& value)
         {
             if (value.type(true)==config_tree::Type::String)
             {
-                auto str=value.as<std::string>();
+                auto str=value.asString();
                 if (str.isValid())
                 {
                     if (boost::algorithm::starts_with(str.value(),m_relFilePathPrefix))
                     {
-                        auto path=rootFilePath;
-                        path/=str.value();
-                        value.set(path.lexically_normal().string());
+                        value.set(boost::algorithm::replace_first_copy(str.value(),m_relFilePathPrefix,substitute));
                     }
                 }
             }
@@ -423,9 +422,7 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
                     {
                         if (boost::algorithm::starts_with(arr->at(i),m_relFilePathPrefix))
                         {
-                            auto path=rootFilePath;
-                            path/=arr->at(i);
-                            (*arr)[i]=path.lexically_normal().string();
+                            boost::algorithm::replace_first(arr->at(i),m_relFilePathPrefix,substitute);
                         }
                     }
                 }

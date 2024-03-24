@@ -419,19 +419,6 @@ inline auto ConfigTreeValue::asDouble() const noexcept -> decltype(auto)
     return as<double>();
 }
 
-inline auto ConfigTreeValue::asString() noexcept -> decltype(auto)
-{
-    return as<std::string>();
-}
-inline auto ConfigTreeValue::asBool() noexcept -> decltype(auto)
-{
-    return as<bool>();
-}
-inline auto ConfigTreeValue::asDouble() noexcept -> decltype(auto)
-{
-    return as<double>();
-}
-
 //---------------------------------------------------------------
 
 template <typename T>

@@ -560,10 +560,6 @@ class HATN_BASE_EXPORT ConfigTreeValue
         auto asBool() const noexcept -> decltype(auto);
         auto asDouble() const noexcept -> decltype(auto);
 
-        auto asString() noexcept -> decltype(auto);
-        auto asBool() noexcept -> decltype(auto);
-        auto asDouble() noexcept -> decltype(auto);
-
         template <typename T>
         auto toArray() -> decltype(auto)
         {            

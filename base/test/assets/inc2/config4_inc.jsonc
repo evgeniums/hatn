@@ -1,0 +1,9 @@
+{
+	"inc_map1": {
+		"inc_param1": "$rel/inc_file1.dat",
+		"inc_arr1": [
+			"$rel/inc_arr0.dat",
+			"$rel/inc_arr1.dat"
+		]		
+	}
+}
