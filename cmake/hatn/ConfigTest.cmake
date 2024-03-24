@@ -146,27 +146,27 @@ ${TEST_CONFIG_H_TEXT}
 
 ENDFUNCTION(CREATE_TEST_CONFIG_FILE)
 
-MACRO(ADD_HATN_CTEST Name Label)
+MACRO(ADD_HATN_CTEST Name Label RunTest)
 
     IF (BUILD_ANDROID)
 
         ADD_TEST(NAME ${Name}
                          WORKING_DIRECTORY ${WORKING_DIR}
-                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml"
+                         COMMAND $ENV{ANDROID_PLATFORM_TOOLS}/adb shell "cd /data/local/tmp/test && ./${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${RunTest}"
                      )
 
     ELSEIF (BUILD_IOS)
 
         ADD_TEST(NAME ${Name}
                          WORKING_DIRECTORY ${WORKING_DIR}
-                         COMMAND xcrun simctl spawn ${HATN_TEST_IOS_DEVICE} ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml
+                         COMMAND xcrun simctl spawn ${HATN_TEST_IOS_DEVICE} ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${RunTest}
                      )
 
     ELSE()
 
         ADD_TEST(NAME ${Name}
                          WORKING_DIRECTORY ${WORKING_DIR}
-                         COMMAND ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS}
+                         COMMAND ${TEST_EXEC_CMD} --logger=HRF,test_suite --report_level=no --result_code=no --logger=XML,all,${RESULT_XML_DIR}/${TARGET_EXE}.xml ${MEMORY_LEAKS} ${RunTest}
                     )
 
     ENDIF()
@@ -229,8 +229,8 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				
                                 LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
 				
-                                ADD_HATN_CTEST(${SUITE_NAME}-all "ALL")
-                                ADD_HATN_CTEST(${SUITE_NAME} "SUITE")
+                                ADD_HATN_CTEST(${SUITE_NAME}-all "ALL" "")
+                                ADD_HATN_CTEST(${SUITE_NAME} "SUITE" --run_test=${SUITE_NAME})
 
                                 IF (NOT MSVC)
                                     TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wall -Wno-sign-compare)
@@ -258,7 +258,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 				IF (${FOUND_IDX} EQUAL -1)
 					MESSAGE(STATUS "Adding test ${SUITE_NAME}/${TEST_CASE}")
 					LIST (APPEND TEST_CASES ${TEST_CASE})
-                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE")
+                                        ADD_HATN_CTEST(${SUITE_NAME}/${TEST_CASE} "CASE" --run_test=${SUITE_NAME}/${TEST_CASE})
 				ENDIF()				
 			ENDFOREACH()
 		ENDIF()

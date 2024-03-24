@@ -72,14 +72,17 @@ IF "%PREPARE_TESTS%"=="1" (
 		SET CTEST_CONFIGURATION=Release
 	)                          	
 	
-    (		
+    (
+		@ECHO OFF
         ECHO ECHO Running test script
 		ECHO IF EXIST %BUILDS_ROOT%\result-xml rmdir /Q /S %BUILDS_ROOT%\result-xml
 		ECHO mkdir %BUILDS_ROOT%\result-xml
         ECHO SET CURRENT_DIR=%%CD%%
         ECHO SET "PATH=%PATH%;!TEST_DIR!"
         ECHO cd !TEST_DIR!
+		@ECHO ON
         ECHO ctest -C !CTEST_CONFIGURATION! !CTEST_ARGS! --verbose --test-dir %BUILD_DIR%/test
+		@ECHO OFF
         ECHO cd %%CURRENT_DIR%%
     ) > %WORKING_DIR%\run-tests.bat 
 )
