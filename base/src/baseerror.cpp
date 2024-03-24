@@ -43,39 +43,40 @@ std::string BaseErrorCategory::message(int code) const
             break;
 
         case (static_cast<int>(BaseError::VALUE_NOT_SET)):
-            result=_TR("Value not set","base");
+            result=_TR("value not set","base");
             break;
 
         case (static_cast<int>(BaseError::INVALID_TYPE)):
-            result=_TR("Invalid type","base");
+            result=_TR("invalid type","base");
             break;
-
-        case (static_cast<int>(BaseError::RESULT_ERROR)):
-            result=_TR("Cannot get value of error result","base");
-            break;
-
-        case (static_cast<int>(BaseError::RESULT_NOT_ERROR)):
-        result=_TR("Cannot move not error result","base");
-        break;
 
         case (static_cast<int>(BaseError::STRING_NOT_NUMBER)):
-            result=_TR("Cannot convert string to number","base");
+            result=_TR("cannot convert string to number","base");
             break;
 
         case (static_cast<int>(BaseError::UNSUPPORTED_CONFIG_FORMAT)):
-            result=_TR("Configuration format not supported","base");
+            result=_TR("configuration format not supported","base");
             break;
 
         case (static_cast<int>(BaseError::CONFIG_PARSE_ERROR)):
-            result=_TR("Failed to parse configuration file","base");
+            result=_TR("failed to parse configuration file","base");
+            break;
+
+        case (static_cast<int>(BaseError::CONFIG_LOAD_ERROR)):
+            result=_TR("failed to load configuration file","base");
+            break;
+
+        case (static_cast<int>(BaseError::CONFIG_SAVE_ERROR)):
+            result=_TR("failed to save configuration file","base");
             break;
 
         case (static_cast<int>(BaseError::UNKKNOWN_CONFIG_MERGE_MODE)):
-            result=_TR("Unknown merge mode","base");
+            result=_TR("unknown merge mode","base");
             break;
 
+
         default:
-            result=_TR("Unknown error");
+            result=_TR("unknown error");
     }
 
     return result;

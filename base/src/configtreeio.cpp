@@ -21,6 +21,8 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <hatn/common/errorstack.h>
+#include <hatn/common/translate.h>
 #include <hatn/common/plainfile.h>
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/filesystem.h>
@@ -75,14 +77,30 @@ Error ConfigTreeIo::loadFromFile(
     };
     if (!file.isOpen())
     {
-        HATN_CHECK_RETURN(file.open(common::File::Mode::scan))
+        auto ec=file.open(common::File::Mode::scan);
+        if (ec)
+        {
+            auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
+        }
         closeOnExit.setEnable(true);
     }
 
     std::vector<char> source;
-    HATN_CHECK_RETURN(file.readAll(source))
+    auto ec=file.readAll(source);
+    if (ec)
+    {
+        auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to read file {}","base"), file.filename()));
+        return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
+    }
     auto parseFormat=format.empty()?fileFormat(file.filename()):format;
-    return parse(target,lib::toStringView(source),root,parseFormat);
+    ec=parse(target,lib::toStringView(source),root,parseFormat);
+    if (ec)
+    {
+        auto err=std::make_shared<common::ErrorStack>(std::move(ec),file.filename());
+        return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -114,7 +132,12 @@ Error ConfigTreeIo::saveToFile(
     };
     if (!file.isOpen())
     {
-        HATN_CHECK_RETURN(file.open(common::File::Mode::write))
+        auto ec=file.open(common::File::Mode::write);
+        if (ec)
+        {
+            auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
+        }
         closeOnExit.setEnable(true);
     }
 
@@ -122,12 +145,18 @@ Error ConfigTreeIo::saveToFile(
     auto r=serialize(source,root,serializeFormat);
     if (r)
     {
-        return r.error();
+        auto err=std::make_shared<common::ErrorStack>(std::move(r.takeError()),fmt::format(_TR("failed to serialize configuration tree for {}","base"), file.filename()));
+        return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
     }
 
     Error ec;
     file.write(r.value().data(),r.value().size(),ec);
-    return ec;
+    if (ec)
+    {
+        auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to write to file {}","base"), file.filename()));
+        return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------

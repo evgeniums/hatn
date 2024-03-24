@@ -48,13 +48,25 @@ public:
 };
 
 /**
- * @brief Make error object from code..
+ * @brief Make error object from code.
  * @param code BaseError code.
  * @return Error object.
  */
 inline Error baseError(BaseError code) noexcept
 {
     return Error(static_cast<int>(code),&BaseErrorCategory::getCategory());
+}
+
+/**
+ * @brief Make error object from code and native error.
+ * @param code BaseError code.
+ * @param native Native error.
+ * @return Error object.
+ */
+inline Error baseError(BaseError code, std::shared_ptr<common::NativeError> err) noexcept
+{
+    err->setCategory(&BaseErrorCategory::getCategory());
+    return Error(static_cast<int>(code),std::move(err));
 }
 
 /**

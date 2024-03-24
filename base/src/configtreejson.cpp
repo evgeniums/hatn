@@ -31,6 +31,7 @@ namespace rapidjson { using SizeType=size_t; }
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
+#include <hatn/common/translate.h>
 #include <hatn/common/error.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/translate.h>
@@ -119,7 +120,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
     {
         if (parser.stack.empty())
         {
-            parser.error="stack empty";
+            parser.error=_TR("stack empty","base");
             return false;
         }
         parser.stack.pop();
@@ -134,7 +135,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
 
         if (current->map==nullptr)
         {
-            parser.error="key not within object";
+            parser.error=_TR("key not within object","base");
             return false;
         }
         auto next=std::make_shared<Context>();
@@ -150,7 +151,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
     {
         if (parser.stack.empty())
         {
-            parser.error="stack empty";
+            parser.error=_TR("stack empty","base");
             return false;
         }
         parser.stack.pop();
@@ -278,7 +279,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
 
         if (!current->inArray)
         {
-            parser.error="end of array not within array";
+            parser.error=_TR("end of array not within array","base");
             return false;
         }
 

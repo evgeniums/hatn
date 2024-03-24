@@ -33,6 +33,15 @@ HATN_TEST_USING
 
 namespace {
 
+void expectedError(const Error& ec, const std::string& msg=std::string())
+{
+    BOOST_TEST_MESSAGE(fmt::format("Expeceted error: {}",ec.message()));
+    if (!msg.empty())
+    {
+        BOOST_CHECK_EQUAL(msg,ec.message());
+    }
+}
+
 void serializeTree(const ConfigTree& t)
 {
     ConfigTreeJson jsonIo;
@@ -708,5 +717,29 @@ BOOST_AUTO_TEST_CASE(LoadNotRoot, *boost::unit_test::tolerance(0.000001))
     BOOST_CHECK_EQUAL(t.get("preset.existed")->asString().value(),"existed_value");
 }
 
+BOOST_AUTO_TEST_CASE(LoadWithErrors)
+{
+    ConfigTreeLoader loader;
+
+    auto r1=loader.createFromFile("not-existent-file.jsonc");
+    BOOST_REQUIRE(r1);
+    expectedError(r1.error(),"failed to parse configuration file: file not found: not-existent-file.jsonc");
+
+    r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config5.jsonc"));
+    BOOST_REQUIRE(r1);
+    expectedError(r1.error(),"failed to parse configuration file: include file not found: not-existent-include.jsonc");
+
+    r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config6.xml"));
+    BOOST_REQUIRE(r1);
+    expectedError(r1.error());
+
+    r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc"));
+    BOOST_REQUIRE(r1);
+    expectedError(r1.error());
+
+    r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc"));
+    BOOST_REQUIRE(r1);
+    expectedError(r1.error());
+}
 
 BOOST_AUTO_TEST_SUITE_END()
