@@ -14,7 +14,7 @@ folder('hatn/hatn-android') {
 job('hatn/hatn-desktop/hatn-desktop-single') {
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         labelParam('hatn_platform') {
             defaultValue('windows')
             description('Platform (operating system)')
@@ -103,7 +103,7 @@ job('hatn/hatn-desktop/hatn-desktop-single') {
 matrixJob('hatn/hatn-desktop/hatn-desktop-matrix') {
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         stringParam('hatn_plugins', '', 'List of plugins separated with semicolon (;)')
         stringParam('hatn_test_name', '', 'Name of test to run')
         stringParam('hatn_branch', 'main', 'Name of git branch')
@@ -199,7 +199,7 @@ job('hatn/hatn-android/hatn-android-single') {
   label('android')
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         choiceParam("hatn_arch", ["x86_64","aarch64","arm-linux-androideabi","x86"], "Processor architecture")
         choiceParam("hatn_api_level", ["21","34"], "Android API level")
         stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')
@@ -271,7 +271,7 @@ job('hatn/hatn-android/hatn-android-single') {
 matrixJob('hatn/hatn-android/hatn-android-matrix') {
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')
         stringParam('hatn_test_name', '', 'Name of test to run')
         stringParam('hatn_branch', 'main', 'Name of git branch')
@@ -349,7 +349,7 @@ job('hatn/hatn-ios/hatn-ios-single') {
   label('ios')
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         choiceParam("hatn_arch", ["x86_64","arm64"], "Processor architecture")
         choiceParam("hatn_bitcode", ["native","bitcode"], "Bitcode mode")
         choiceParam("hatn_visibility", ["normal","hidden"], "Visibility mode")
@@ -426,7 +426,7 @@ job('hatn/hatn-ios/hatn-ios-single') {
 matrixJob('hatn/hatn-ios/hatn-ios-matrix') {
 
   parameters {
-        choiceParam("hatn_lib", ["all","common","validator","dataunit"], "hatn library")
+        choiceParam("hatn_lib", ["all","common","validator","dataunit","base"], "hatn library")
         stringParam('hatn_plugins', '', 'List of plugins to build, separated with semicolon (;)')
         stringParam('hatn_test_name', '', 'Name of test to run')
         stringParam('hatn_branch', 'main', 'Name of git branch')
