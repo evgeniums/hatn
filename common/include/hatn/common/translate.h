@@ -174,4 +174,16 @@ class HATN_COMMON_EXPORT BoostTranslatorFactory final
 
 HATN_COMMON_NAMESPACE_END
 
+HATN_NAMESPACE_BEGIN
+
+inline std::string _TR(
+        const std::string& phrase,
+        const std::string& context="generic"
+        )
+{
+    return common::_TR(phrase,context);
+}
+
+HATN_NAMESPACE_END
+
 #endif // HATNTRANSLATE_H
