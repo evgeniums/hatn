@@ -386,7 +386,6 @@ BOOST_AUTO_TEST_CASE(TestValidatorWithNestedSize)
                 vld::_[byte_types::type_string][vld::size](vld::gte,2)
             );
     byte_types::type obj2;
-    v2.apply(obj2);
     BOOST_CHECK(!v2.apply(obj2));
 }
 
