@@ -1,7 +1,7 @@
 SET (TEST_SOURCES
     ${BASE_TEST_SRC}/testconfigtree.cpp
     ${BASE_TEST_SRC}/testconfigtreevalue.cpp
-    ${BASE_TEST_SRC}/testconfigtreejson.cpp
+    ${BASE_TEST_SRC}/testconfigtreeio.cpp
 )
 
 SET (TEST_HEADERS
