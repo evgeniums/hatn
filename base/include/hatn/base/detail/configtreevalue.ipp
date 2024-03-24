@@ -280,7 +280,7 @@ Error ArrayViewT<T,Constant>::merge(ArrayViewT<T,Constant>&& other, config_tree:
                 }
 
                 auto self=this;
-                return hana::eval_if(
+                auto ec=hana::eval_if(
                     hana::equal(hana::type_c<T>,hana::type_c<ConfigTree>),
                     [&](auto _)
                     {
@@ -292,12 +292,12 @@ Error ArrayViewT<T,Constant>::merge(ArrayViewT<T,Constant>&& other, config_tree:
                         return Error();
                     }
                 );
+                HATN_CHECK_EC(ec)
             }
 
             if (other.size()>size())
             {
-                size_t offset=other.size()-size();
-                m_arrayPtr->insert(m_arrayPtr->end(), std::make_move_iterator(other.m_arrayPtr->begin()+offset),
+                m_arrayPtr->insert(m_arrayPtr->end(), std::make_move_iterator(other.m_arrayPtr->begin()+size()),
                                    std::make_move_iterator(other.m_arrayPtr->end()));
             }
             break;

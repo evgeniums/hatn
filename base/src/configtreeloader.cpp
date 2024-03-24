@@ -20,6 +20,7 @@
 
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/filesystem.h>
+#include <hatn/common/translate.h>
 
 #include <hatn/base/baseerror.h>
 #include <hatn/base/configtreejson.h>
@@ -102,30 +103,36 @@ Result<ConfigTreeInclude> ConfigTreeInclude::fromMap(const config_tree::MapT &ma
     HATN_CHECK_RESULT(file)
     ConfigTreeInclude val{file.takeValue()};
 
-    auto formatIt=map.find("format");
-    if (formatIt!=map.end())
     {
-        auto format=formatIt->second->as<std::string>();
-        HATN_CHECK_RESULT(format)
-        val.format=format.takeValue();
+        auto formatIt=map.find("format");
+        if (formatIt!=map.end())
+        {
+            auto format=formatIt->second->as<std::string>();
+            HATN_CHECK_RESULT(format)
+            val.format=format.takeValue();
+        }
     }
 
-    auto extendIt=map.find("extend");
-    if (extendIt!=map.end())
     {
-        auto extend=extendIt->second->as<bool>();
-        HATN_CHECK_RESULT(extend)
-        val.extend=extend.value();
+        auto extendIt=map.find("extend");
+        if (extendIt!=map.end())
+        {
+            auto extend=extendIt->second->as<bool>();
+            HATN_CHECK_RESULT(extend)
+            val.extend=extend.value();
+        }
     }
 
-    auto mergeIt=map.find("merge");
-    if (mergeIt!=map.end())
     {
-        auto mergeStr=extendIt->second->as<std::string>();
-        HATN_CHECK_RESULT(mergeStr)
-        auto merge=config_tree::arrayMerge(mergeStr.value());
-        HATN_CHECK_EC(merge)
-        val.merge=merge.value();
+        auto mergeIt=map.find("merge");
+        if (mergeIt!=map.end())
+        {
+            auto mergeStr=mergeIt->second->as<std::string>();
+            HATN_CHECK_RESULT(mergeStr)
+            auto merge=config_tree::arrayMerge(mergeStr.value());
+            HATN_CHECK_EC(merge)
+            val.merge=merge.value();
+        }
     }
 
     return val;
@@ -135,9 +142,9 @@ namespace {
 
 Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, const ConfigTreePath& path, std::vector<ConfigTreeInclude>& includes)
 {
-    auto makeError=[&filename](const ConfigTreePath& path)
+    auto makeError=[&filename](const ConfigTreePath& path, const Error& origin)
     {
-        auto msg=fmt::format("invalid format of include at path {} in file {}", path.path(), filename);
+        auto msg=fmt::format(_TR("Invalid format of include: {} at path {} in file {}","base"), origin.message(), path.path(), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
 
@@ -166,13 +173,13 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
             const auto& m=arr->at(i)->asMap();
             if (m)
             {
-                return makeError(p);
+                return makeError(p,m.error());
             }
 
             auto include=ConfigTreeInclude::fromMap(m.value());
             if (include)
             {
-                return makeError(p);
+                return makeError(p,include.error());
             }
             includes.emplace_back(include.takeValue());
         }
@@ -182,19 +189,19 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
         auto m=value.asMap();
         if (m)
         {
-            return makeError(path);
+            return makeError(path,m.error());
         }
 
         auto include=ConfigTreeInclude::fromMap(m.value());
         if (include)
         {
-            return makeError(path);
+            return makeError(path,include.error());
         }
         includes.emplace_back(include.takeValue());
     }
     else
     {
-        return makeError(path);
+        return makeError(path, baseError(BaseError::INVALID_TYPE));
     }
 
     return OK;
@@ -207,7 +214,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     std::shared_ptr<ConfigTreeIo> handler{loader.handler(format)};
     if (!handler)
     {
-        auto msg=fmt::format("unsupported config format \"{}\" of file {}", format, descriptor.file);
+        auto msg=fmt::format(_TR("Unsupported config format \"{}\" of file {}","base"), format, descriptor.file);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
 
@@ -215,7 +222,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     auto filename=descriptor.file;
     auto fileNotFound=[&filename]()
     {
-        auto msg=fmt::format("file not found {}", filename);
+        auto msg=fmt::format(_TR("File not found {}","base"), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
     auto currentPath=lib::filesystem::path(filename).lexically_normal();
@@ -280,7 +287,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     // check for cycles
     if (std::find(chain.begin(), chain.end(), filename)!=chain.end())
     {
-        auto msg=fmt::format("include cycle detected for file {}", filename);
+        auto msg=fmt::format(_TR("Include cycle detected for file {}","base"), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
     chain.push_back(filename);

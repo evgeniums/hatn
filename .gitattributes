@@ -1,3 +1,4 @@
 *.dat -text
 *.json -text
 *.sh -text
+*.jsonc -text

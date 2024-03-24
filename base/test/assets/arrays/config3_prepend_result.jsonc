@@ -1,0 +1,117 @@
+{
+    "merge_scalar": [
+        1,
+        4,
+        5,
+        6,
+        7,
+        8,
+        1,
+        2,
+        3
+    ],
+    "merge_subarray_subtrees": [
+        [
+            {
+                "0aa": "0aav_inc",
+                "0ab": "0abv_inc",
+                "0ac": "0abc_inc"
+            },
+            {
+                "0ba": "0bav_inc",
+                "0bb": "0bbv_inc"
+            },
+            {
+                "0da": "0dav_inc",
+                "0db": "0dbv_inc"
+            },
+            {
+                "0ea": "0eav_inc",
+                "0eb": "0ebv_inc"
+            }
+        ],
+        [
+            {
+                "1aa": "1aav_inc",
+                "1ab": "1abv_inc"
+            },
+            {
+                "1ba": "1bav_inc",
+                "1bb": "1bbv_inc"
+            }
+        ],
+        [
+            {
+                "2aa": "2aav_inc",
+                "2ab": "2abv_inc"
+            },
+            {
+                "2ba": "2bav_inc",
+                "2bb": "2bbv_inc"
+            },
+            {
+                "2ca": "2cav_inc",
+                "2cb": "2cbv_inc"
+            }
+        ],
+        [
+            {
+                "0aa": "0aav",
+                "0ab": "0abv"
+            },
+            {
+                "0ba": "0bav",
+                "0bb": "0bbv"
+            },
+            {
+                "0ca": "0cav",
+                "0cb": "0cbv"
+            }
+        ],
+        [
+            {
+                "1aa": "1aav",
+                "1ab": "1abv"
+            },
+            {
+                "1ba": "1bav",
+                "1bb": "1bbv"
+            },
+            {
+                "1ca": "1cav",
+                "1cb": "1cbv"
+            }
+        ]
+    ],
+    "merge_subtrees": [
+        {
+            "aa": "aav_inc",
+            "ab": "abv_inc",
+            "ac": "abc_inc"
+        },
+        {
+            "ca": "cav_inc",
+            "cb": "cbv_inc"
+        },
+        {
+            "da": "dav_inc",
+            "db": "dbv_inc"
+        },
+        {
+            "ea": "eav_inc",
+            "eb": "ebv_inc"
+        },
+        {
+            "aa": "aav",
+            "ab": "abv"
+        },
+        {
+            "ba": "cav",
+            "bb": "cbv"
+        },
+        {
+            "ca": "cav",
+            "cb": "cbv"
+        }
+    ]
+}

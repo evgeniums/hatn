@@ -20,6 +20,7 @@
 #include "hatn_test_config.h"
 
 #include <hatn/common/filesystem.h>
+#include <hatn/common/plainfile.h>
 #include <hatn/base/configtreejson.h>
 #include <hatn/base/configtreeloader.h>
 
@@ -42,6 +43,35 @@ void serializeTree(const ConfigTree& t)
     std::cout<<"*********************************"<<std::endl;
     std::cout<<jsonR2.value()<<std::endl;
     std::cout<<"*********************************"<<std::endl;
+}
+
+constexpr auto _serializeTree=serializeTree;
+
+void serializeTreeToFile(const ConfigTree& t, const std::string& filename, const ConfigTreePath& root=ConfigTreePath())
+{
+    auto tmpFile=MultiThreadFixture::tmpFilePath(filename);
+    if (lib::filesystem::exists(tmpFile))
+    {
+        lib::filesystem::remove(tmpFile);
+    }
+
+    ConfigTreeJson jsonIo;
+    auto ec=jsonIo.saveToFile(t,tmpFile,root);
+    HATN_TEST_EC(ec)
+}
+
+void compareTreeContents(const ConfigTree& t, const std::string& filename)
+{
+    PlainFile sample;
+    std::vector<char> data;
+    auto ec=sample.readAll(filename,data);
+    HATN_TEST_EC(ec)
+    std::string sampleStr(data.data(),data.size());
+
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t);
+    BOOST_CHECK(!jsonR);
+    BOOST_CHECK(sampleStr==jsonR.value());
 }
 
 void checkConfigTree(const ConfigTree& t)
@@ -341,12 +371,13 @@ BOOST_AUTO_TEST_CASE(ConfigTreeJsonIo, *boost::unit_test::tolerance(0.000001))
 
     // write to file
     auto tmpFile=MultiThreadFixture::tmpFilePath("config1-save.jsonc");
-    if (lib::filesystem::exists(tmpFile))
-    {
-        lib::filesystem::remove(tmpFile);
-    }
-    ec=jsonIo.saveToFile(t1,tmpFile);
-    HATN_TEST_EC(ec);
+    serializeTreeToFile(t1,tmpFile);
+    // if (lib::filesystem::exists(tmpFile))
+    // {
+    //     lib::filesystem::remove(tmpFile);
+    // }
+    // ec=jsonIo.saveToFile(t1,tmpFile);
+    // HATN_TEST_EC(ec);
     ConfigTree t3;
     ec=jsonIo.loadFromFile(t3,tmpFile);
     HATN_TEST_EC(ec);
@@ -518,6 +549,99 @@ BOOST_AUTO_TEST_CASE(IncludeOverride)
     serializeTree(*r);
 #endif
 
+}
+
+BOOST_AUTO_TEST_CASE(IncludeMergeArrays)
+{
+    ConfigTreeLoader loader;
+
+    auto checkMerge=[](const ConfigTree& t)
+    {
+        auto a1=t.get("merge_scalar")->asArray<int32_t>();
+        BOOST_REQUIRE(!a1);
+        BOOST_CHECK_EQUAL(a1->size(),6);
+        BOOST_CHECK_EQUAL(a1->at(0),1);
+        BOOST_CHECK_EQUAL(a1->at(1),4);
+        BOOST_CHECK_EQUAL(a1->at(2),5);
+        BOOST_CHECK_EQUAL(a1->at(3),6);
+        BOOST_CHECK_EQUAL(a1->at(4),7);
+        BOOST_CHECK_EQUAL(a1->at(5),8);
+
+        auto a2=t.get("merge_subtrees")->asArray<ConfigTree>();
+        BOOST_REQUIRE(!a2);
+        BOOST_CHECK_EQUAL(a2->size(),4);
+
+        auto sampleFile=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_merge_result.jsonc");
+        compareTreeContents(t,sampleFile);
+    };
+
+    BOOST_TEST_CONTEXT("merge"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_merge.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+        checkMerge(r.value());
+    }
+
+    BOOST_TEST_CONTEXT("merge_explicit"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_merge_explicit.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+        checkMerge(r.value());
+    }
+
+    BOOST_TEST_CONTEXT("append"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_append.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+#if 0
+        serializeTree(*r);
+        // serializeTreeToFile(*r,"config3_append_result.jsonc");
+#endif
+        auto sampleFile=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_append_result.jsonc");
+        compareTreeContents(r.value(),sampleFile);
+    }
+
+    BOOST_TEST_CONTEXT("prepend"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_prepend.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+#if 0
+        serializeTree(*r);
+        serializeTreeToFile(*r,"config3_prepend_result.jsonc");
+#endif
+        auto sampleFile=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_prepend_result.jsonc");
+        compareTreeContents(r.value(),sampleFile);
+    }
+
+    BOOST_TEST_CONTEXT("preserve"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_preserve.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+#if 0
+        serializeTree(*r);
+        serializeTreeToFile(*r,"config3_preserve_result.jsonc");
+#endif
+        auto sampleFile=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_preserve_result.jsonc");
+        compareTreeContents(r.value(),sampleFile);
+    }
+
+    BOOST_TEST_CONTEXT("override"){
+        auto merge=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_override.jsonc");
+        auto r=loader.createFromFile(merge);
+        HATN_TEST_RESULT(r);
+        BOOST_CHECK(!r);
+#if 0
+        serializeTree(*r);
+        serializeTreeToFile(*r,"config3_override_result.jsonc");
+#endif
+        auto sampleFile=MultiThreadFixture::assetsFilePath("base/assets/arrays/config3_override_result.jsonc");
+        compareTreeContents(r.value(),sampleFile);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -1,0 +1,52 @@
+{
+	"merge_scalar":[
+		1,2,3
+	],
+
+	"merge_subtrees":[
+		{
+			"aa":"aav",
+			"ab":"abv",
+		},
+		{
+			"ba":"cav",
+			"bb":"cbv",
+		},
+		{
+			"ca":"cav",
+			"cb":"cbv",
+		}		
+	],
+
+	"merge_subarray_subtrees":[
+		[
+			{
+				"0aa":"0aav",
+				"0ab":"0abv",
+			},
+			{
+				"0ba":"0bav",
+				"0bb":"0bbv",
+			},
+			{
+				"0ca":"0cav",
+				"0cb":"0cbv",
+			}				
+		],
+		[
+			{
+				"1aa":"1aav",
+				"1ab":"1abv",
+			},
+			{
+				"1ba":"1bav",
+				"1bb":"1bbv",
+			},
+			{
+				"1ca":"1cav",
+				"1cb":"1cbv",
+			}				
+		]		
+	],
+	
+}

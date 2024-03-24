@@ -277,7 +277,7 @@ inline Result<ArrayMerge> arrayMerge(const std::string& mode)
         {"append",ArrayMerge::Append},
         {"prepend",ArrayMerge::Prepend},
         {"override",ArrayMerge::Override},
-        {"preserbe",ArrayMerge::Preserve}
+        {"preserve",ArrayMerge::Preserve}
     };
 
     auto it=m.find(mode);
@@ -447,7 +447,9 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
         ConfigTreeValue()
             :m_type(Type::None),
-             m_defaultType(Type::None)
+             m_defaultType(Type::None),
+             m_numericType(NumericType::None),
+             m_defaultNumericType(NumericType::None)
         {}
 
         ConfigTreeValue(
@@ -455,7 +457,9 @@ class HATN_BASE_EXPORT ConfigTreeValue
             ) : m_type(other.m_type),
                 m_defaultType(other.m_defaultType),
                 m_value(std::move(other.m_value)),
-                m_defaultValue(std::move(other.m_defaultValue))
+                m_defaultValue(std::move(other.m_defaultValue)),
+                m_numericType(other.m_numericType),
+                m_defaultNumericType(other.m_defaultNumericType)
         {
             other.reset();
             other.resetDefault();
@@ -469,6 +473,8 @@ class HATN_BASE_EXPORT ConfigTreeValue
                 m_defaultType=other.m_defaultType;
                 m_value=std::move(other.m_value);
                 m_defaultValue=std::move(other.m_defaultValue);
+                m_numericType=other.m_numericType;
+                m_defaultNumericType=other.m_defaultNumericType;
                 other.reset();
                 other.resetDefault();
             }

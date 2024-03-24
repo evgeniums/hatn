@@ -1,0 +1,11 @@
+{
+	"#include":[
+		{
+			"file": "config3_arrays.jsonc"
+		},	
+		{
+			"file": "config3_inc_arrays.jsonc",
+			"merge": "prepend"
+		}
+	]
+}
