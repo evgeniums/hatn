@@ -1445,12 +1445,13 @@ HATN_DATAUNIT_NAMESPACE_END
 
 BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
 {
-    int runs=1000000;
+    int runs=5000000;
     hatn::common::ElapsedTimer elapsed;
+    uint64_t elapsedMs=0;
 
-    auto perSecond=[&runs,&elapsed]()
+    auto perSecond=[&runs,&elapsedMs]()
     {
-        auto ms=elapsed.elapsed().totalMilliseconds;
+        auto ms=elapsedMs;
         if (ms==0)
         {
             return 1000*runs;
@@ -1468,8 +1469,9 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
         auto& f1=unit1.field(all_types::type_bool);
         f1.set(true);
     }
-
-    std::cerr<<"Duration "<<elapsed.toString(true)<<", perSecond="<<perSecond()<<std::endl;
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    auto elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
     std::cerr<<"Cycle new/delete unit"<<std::endl;
 
@@ -1480,9 +1482,10 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
         auto& f1=unit1->field(all_types::type_bool);
         f1.set(true);
         delete unit1;
-    }
-
-    std::cerr<<"Duration "<<elapsed.toString(true)<<", perSecond="<<perSecond()<<std::endl;
+    }    
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
     std::cerr<<"Cycle setting values"<<std::endl;
 
@@ -1492,7 +1495,9 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     {
         fillForPerformance(unit1,i);
     }
-    std::cerr<<"Duration "<<elapsed.toString(true)<<", perSecond="<<perSecond()<<std::endl;
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
     std::cerr<<"Cycle serialization"<<std::endl;
 
@@ -1503,8 +1508,9 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
         hatn::dataunit::WireDataSingle wired;
         unit1.serialize(wired);
     }
-
-    std::cerr<<"Duration "<<elapsed.toString(true)<<", perSecond="<<perSecond()<<std::endl;
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
     std::cerr<<"Cycle parsing"<<std::endl;
 
@@ -1517,8 +1523,9 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     {
         unit2.parse(wired1);
     }
-
-    std::cerr<<"Duration "<<elapsed.toString(true)<<", perSecond="<<perSecond()<<std::endl;
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 }
 
 BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
