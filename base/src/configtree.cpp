@@ -354,7 +354,7 @@ Error ConfigTree::merge(ConfigTree &&other, const ConfigTreePath &root, config_t
                 else
                 {
                     // merge subtree
-                    currentIt->second->merge(std::move(*(otherIt.second)),ConfigTreePath(),arrayMergeMode);
+                    HATN_CHECK_RETURN(currentIt->second->merge(std::move(*(otherIt.second)),ConfigTreePath(),arrayMergeMode))
                 }
             }
         }
