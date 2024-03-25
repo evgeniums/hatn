@@ -23,9 +23,11 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /********************** Field **************************/
 
 //---------------------------------------------------------------
-Field::Field(Unit* unit)
+Field::Field(ValueType valeuTypeId,Unit* unit, bool array)
     : m_set(false),
-    m_unit(unit)
+      m_unit(unit),
+      m_valueTypeId(valeuTypeId),
+      m_array(array)
 {}
 
 //---------------------------------------------------------------

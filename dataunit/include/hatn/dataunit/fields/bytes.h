@@ -80,8 +80,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         explicit FieldTmplBytes(
             Unit *parentUnit
-        ) :
-            Field(parentUnit),
+            ) : Field(Type::typeId,parentUnit),
             m_factory(parentUnit->factory()),
             m_value(parentUnit)
         {

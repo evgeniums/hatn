@@ -11,6 +11,7 @@ SET (HEADERS
     include/hatn/dataunit/stream.h
     include/hatn/dataunit/unit.h
     include/hatn/dataunit/fieldgetset.h
+    include/hatn/dataunit/valuetypes.h
     include/hatn/dataunit/field.h
     include/hatn/dataunit/rapidjsonstream.h
     include/hatn/dataunit/rapidjsonsaxhandlers.h

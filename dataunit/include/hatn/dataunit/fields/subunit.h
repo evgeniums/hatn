@@ -53,7 +53,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          *        thta's why it is propagated to the value constructor
          */
         explicit FieldTmplUnitEmbedded(Unit* parentUnit):
-            Field(parentUnit),
+            Field(Type::typeId,parentUnit),
             m_value(
                     ::hatn::common::ConstructWithArgsOrDefault<
                                         type,

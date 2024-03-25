@@ -39,6 +39,7 @@ template <typename Type> struct RepeatedTraits
    using fieldType=FieldTmpl<Type>;
    using valueType=typename Type::type;
    constexpr static const bool isSizeIterateNeeded=Type::isSizeIterateNeeded;
+   constexpr static const ValueType typeId=Type::typeId;
 
    template <typename T,typename=void> struct Ctor
    {};
@@ -73,6 +74,7 @@ template <typename Type> struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
    using fieldType=SharedUnitFieldTmpl<Type>;
    using valueType=typename Type::shared_type;
    constexpr static const bool isSizeIterateNeeded=true;
+   constexpr static const ValueType typeId=Type::typeId;
 
    template <typename> inline static valueType createValue(Unit* parentUnit)
    {
@@ -91,6 +93,7 @@ template <typename Type> struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
    using fieldType=EmbeddedUnitFieldTmpl<Type>;
    using valueType=typename Type::type;
    constexpr static const bool isSizeIterateNeeded=true;
+   constexpr static const ValueType typeId=Type::typeId;
 
    template <typename> inline static valueType createValue(
                Unit* parentUnit
@@ -360,7 +363,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /**  Ctor */
     explicit RepeatedFieldTmpl(
         Unit* parentUnit
-    ): Field(parentUnit),
+    ): Field(RepeatedTraits<Type>::typeId,parentUnit,true),
        vector(parentUnit->factory()->dataAllocator<type>()),
        m_parseToSharedArrays(false),
        m_parentUnit(parentUnit)

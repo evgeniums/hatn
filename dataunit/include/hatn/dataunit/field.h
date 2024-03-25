@@ -27,6 +27,7 @@
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/allocatorfactory.h>
 #include <hatn/dataunit/fieldgetset.h>
+#include <hatn/dataunit/valuetypes.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -54,7 +55,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         constexpr static const bool CanChainBlocks=false;
 
         //! Ctor
-        Field(Unit* unit);
+        Field(ValueType type, Unit* unit, bool array=false);
 
         virtual ~Field();
         Field(const Field& other)=default;
@@ -124,7 +125,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             clear();
         }
 
-        //! Check if this field is compatible of repeated unpacked type with Google Protocol Buffers
+        //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
         virtual bool isRepeatedUnpackedProtoBuf() const noexcept;
 
         /**
@@ -157,6 +158,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return m_unit;
         }
 
+        ValueType valueTypeId() const noexcept
+        {
+            return m_valueTypeId;
+        }
+
+        bool isArray() const noexcept
+        {
+            return m_array;
+        }
+
     protected:
 
         //! Load field from wire
@@ -172,6 +183,8 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
     private:
 
         Unit* m_unit;
+        ValueType m_valueTypeId;
+        bool m_array;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

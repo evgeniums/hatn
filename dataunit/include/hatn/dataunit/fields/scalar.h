@@ -139,14 +139,14 @@ class Scalar : public Field
 
         //! Ctor with default value
         Scalar(Unit* unit,const type& defaultValue)
-            : Field(unit),
+            : Field(Type::typeId,unit),
               m_value(defaultValue)
         {
         }
 
         //! Ctor with parent unit
         explicit Scalar(Unit* unit)
-            : Field(unit),
+            : Field(Type::typeId,unit),
               m_value(common::ConstructWithArgsOrDefault<type,type>::f(static_cast<type>(0)))
         {
         }
