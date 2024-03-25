@@ -16,7 +16,6 @@
   */
 
 #include <hatn/base/configtree.h>
-#include <hatn/base/detail/configtree.ipp>
 #include <hatn/base/configtreepath.h>
 
 HATN_BASE_NAMESPACE_BEGIN
