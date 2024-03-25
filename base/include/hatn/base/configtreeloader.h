@@ -21,6 +21,8 @@
 #ifndef HATNCONFIGTREELOADER_H
 #define HATNCONFIGTREELOADER_H
 
+#include <hatn/common/containerutils.h>
+
 #include <hatn/base/base.h>
 #include <hatn/base/configtreeio.h>
 
@@ -160,10 +162,11 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         template <typename ...Args>
         void addIncludeDirs(Args&& ...dirs)
         {
-            hana::for_each(hana::make_tuple(std::forward<Args>(dirs)...),
-            [this](auto&& dir) {
-                this->m_includeDirs.push_back(std::forward<decltype(dir)>(dir));
-            });
+            common::ContainerUtils::addElements(m_includeDirs,std::forward<Args>(dirs)...);
+            // hana::for_each(hana::make_tuple(std::forward<Args>(dirs)...),
+            // [this](auto&& dir) {
+            //     this->m_includeDirs.push_back(std::forward<decltype(dir)>(dir));
+            // });
         }
 
         /**
