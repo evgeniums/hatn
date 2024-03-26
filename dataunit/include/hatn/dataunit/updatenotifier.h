@@ -30,6 +30,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 struct UpdateInvoker{};
 
+//! @todo Implement notifier.
 class UpdateNotifier
 {
     public:
