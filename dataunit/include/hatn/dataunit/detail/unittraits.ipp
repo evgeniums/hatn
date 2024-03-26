@@ -19,6 +19,8 @@
 #ifndef HATNDATAUNITSIMPL_H
 #define HATNDATAUNITSIMPL_H
 
+#include <hatn/validator/utils/foreach_if.hpp>
+
 #include <hatn/dataunit/unittraits.h>
 
 namespace hatn {
@@ -129,6 +131,22 @@ template <typename ...Fields>
 bool UnitImpl<Fields...>::iterateConst(const Unit::FieldVisitorConst& visitor) const
 {
     return Iterator<UnitImpl<Fields...>,MaxI>::nextConst(*this,visitor);
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename PredicateT, typename HandlerT>
+auto UnitImpl<Fields...>::each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
+{
+    return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename PredicateT, typename HandlerT>
+auto UnitImpl<Fields...>::each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto)
+{
+    return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
 }
 
 /********************** UnitConcat **************************/

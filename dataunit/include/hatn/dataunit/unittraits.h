@@ -409,6 +409,12 @@ template <typename ...Fields>
             );
         };
 
+        template <typename PredicateT, typename HandlerT>
+        auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto);
+
+        template <typename PredicateT, typename HandlerT>
+        auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto);
+
         /**  Copy one DataUnit to other */
         static void copy(UnitImpl& dst,const UnitImpl& src);
 
