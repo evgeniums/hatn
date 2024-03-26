@@ -21,7 +21,10 @@
 #ifndef HATNFIELDVALUETYPES_H
 #define HATNFIELDVALUETYPES_H
 
+#include <boost/hana.hpp>
 #include <hatn/dataunit/dataunit.h>
+
+namespace hana=boost::hana;
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -42,6 +45,35 @@ enum class ValueType : int
     Bytes,
     Dataunit
 };
+
+namespace types {
+
+template <ValueType TypeId>
+constexpr auto IsInt=hana::bool_c<
+                                TypeId==ValueType::Int8 ||
+                                TypeId==ValueType::Int16 ||
+                                TypeId==ValueType::Int32 ||
+                                TypeId==ValueType::Int64 ||
+                                TypeId==ValueType::Int8 ||
+                                TypeId==ValueType::Int16 ||
+                                TypeId==ValueType::Int32 ||
+                                TypeId==ValueType::Int64
+                                 >;
+
+template <ValueType TypeId>
+constexpr auto IsBool=hana::bool_c<
+    TypeId==ValueType::Bool
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsDouble=hana::bool_c<
+    TypeId==ValueType::Double || TypeId==ValueType::Float
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsScalar=hana::or_(IsInt<TypeId>,IsDouble<TypeId>,IsBool<TypeId>);
+
+}
 
 HATN_DATAUNIT_NAMESPACE_END
 

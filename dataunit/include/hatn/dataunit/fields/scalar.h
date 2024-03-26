@@ -130,6 +130,8 @@ class Scalar : public Field
         using isEnum=typename Type::isEnum;
         using Enum=typename Type::Enum;
         using selfType=Scalar<Type>;
+        constexpr static auto typeId=Type::typeId;
+        constexpr static auto isArray=isRepeatedType{};
 
         //! Move ctor
         explicit Scalar(type&& defaultValue)
