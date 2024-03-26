@@ -22,6 +22,7 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
+#include <hatn/common/apierror.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -60,6 +61,15 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
                 m_apiError(nullptr)
         {}
 
+        //! Ctor
+        ErrorStack(
+                Error prevError,
+                std::shared_ptr<ApiError> apiError
+            ) : NativeError(*static_cast<const NativeError*>(apiError.get())),
+                m_prevError(std::move(prevError)),
+                m_apiError(std::move(apiError))
+        {}
+
         ~ErrorStack();
         ErrorStack(const ErrorStack&)=default;
         ErrorStack(ErrorStack&&) =default;
@@ -82,24 +92,19 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
             return fmt::format("{}: {}",msg,m_prevError.message());
         }
 
-        void setApiError(ApiError* err)
+        virtual const ApiError* apiError() const noexcept override
         {
-            m_apiError=err;
-        }
-
-        virtual ApiError* apiError() const override
-        {
-            if (m_apiError!=nullptr)
+            if (m_apiError)
             {
-                return m_apiError;
+                return m_apiError.get();
             }
             return m_prevError.apiError();
         }
 
     private:
 
-        ApiError *m_apiError;
         Error m_prevError;
+        std::shared_ptr<ApiError> m_apiError;
 };
 
 //---------------------------------------------------------------

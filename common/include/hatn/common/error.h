@@ -257,7 +257,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             return err->apiError()!=nullptr;
         }
 
-        inline ApiError* apiError() const noexcept
+        inline const ApiError* apiError() const noexcept
         {
             auto err=native();
             if (err==nullptr)

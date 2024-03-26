@@ -34,17 +34,17 @@ class HATN_COMMON_EXPORT ApiError : public NativeError
 
         using NativeError::NativeError;
 
-        virtual ApiError* apiError() const noexcept override
+        virtual const ApiError* apiError() const noexcept override
         {
             return this;
         }
 
-        virtual void* apiData() const noexcept
+        virtual const void* apiData() const noexcept
         {
             return nullptr;
         }
 
-        virtual std::string apiCode() const noexcept
+        virtual int apiCode() const noexcept
         {
             return nativeCode();
         }
@@ -65,7 +65,7 @@ class HATN_COMMON_EXPORT ApiError : public NativeError
 
         virtual Result<SpanBuffer> apiWireData() const
         {
-            return CommonError::UNSUPPORTED;
+            return Error{CommonError::UNSUPPORTED};
         }
 };
 

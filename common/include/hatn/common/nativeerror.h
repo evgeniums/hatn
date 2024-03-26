@@ -113,7 +113,7 @@ class HATN_COMMON_EXPORT NativeError
             return !isEqual(other);
         }
 
-        virtual ApiError* apiError() const noexcept
+        virtual const ApiError* apiError() const noexcept
         {
             return nullptr;
         }
