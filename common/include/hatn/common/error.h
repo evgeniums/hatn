@@ -247,6 +247,26 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             m_code=static_cast<int>(CommonError::OK);
         }
 
+        inline bool isApiError() const noexcept
+        {
+            auto err=native();
+            if (err==nullptr)
+            {
+                return false;
+            }
+            return err->apiError()!=nullptr;
+        }
+
+        inline ApiError* apiError() const noexcept
+        {
+            auto err=native();
+            if (err==nullptr)
+            {
+                return nullptr;
+            }
+            return err->apiError();
+        }
+
     private:
 
         int32_t m_code;

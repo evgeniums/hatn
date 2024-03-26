@@ -28,6 +28,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 class Error;
 class ByteArray;
+class ApiError;
 
 //! Base class for native errors.
 class HATN_COMMON_EXPORT NativeError
@@ -110,6 +111,11 @@ class HATN_COMMON_EXPORT NativeError
         bool operator !=(const NativeError& other) const noexcept
         {
             return !isEqual(other);
+        }
+
+        virtual ApiError* apiError() const noexcept
+        {
+            return nullptr;
         }
 
     private:

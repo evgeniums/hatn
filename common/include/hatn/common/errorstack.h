@@ -37,7 +37,8 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
                 int nativeCode=-1,
                 const std::error_category* category=nullptr
             ) : NativeError(std::move(nativeMessage),nativeCode,category),
-                m_prevError(std::move(prevError))
+                m_prevError(std::move(prevError)),
+                m_apiError(nullptr)
         {}
 
         //! Ctor
@@ -46,7 +47,8 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
                 int nativeCode,
                 const std::error_category* category=nullptr
             ) : NativeError(nativeCode,category),
-                m_prevError(std::move(prevError))
+                m_prevError(std::move(prevError)),
+                m_apiError(nullptr)
         {}
 
         //! Ctor
@@ -54,7 +56,8 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
                 Error prevError,
                 const std::error_category* category
             ) : NativeError(category),
-                m_prevError(std::move(prevError))
+                m_prevError(std::move(prevError)),
+                m_apiError(nullptr)
         {}
 
         ~ErrorStack();
@@ -79,8 +82,23 @@ class HATN_COMMON_EXPORT ErrorStack : public NativeError
             return fmt::format("{}: {}",msg,m_prevError.message());
         }
 
+        void setApiError(ApiError* err)
+        {
+            m_apiError=err;
+        }
+
+        virtual ApiError* apiError() const override
+        {
+            if (m_apiError!=nullptr)
+            {
+                return m_apiError;
+            }
+            return m_prevError.apiError();
+        }
+
     private:
 
+        ApiError *m_apiError;
         Error m_prevError;
 };
 
