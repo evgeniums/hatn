@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/bytes.h
+/** @file dataunit/bytes.h
   *
   *      DataUnit fields for bytes and strings
   *

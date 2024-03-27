@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldvalidators.h
+/** @file dataunit/fieldvalidators.h
   *
   *  Definitions of field validators
   *
@@ -381,7 +381,7 @@ struct FieldValidator
 //        {
 //            return true;
 //        }
-//        //! \todo process callback
+//        //! @todo process callback
 //        return false;
 //    }
 //    bool validateValue(Field* field,const T& val,const ValidateCb& validateCb=ValidateCb())
@@ -390,7 +390,7 @@ struct FieldValidator
 //        {
 //            return true;
 //        }
-//        //! \todo process callback
+//        //! @todo process callback
 //        return false;
 //    }
 //    bool validateValue(Field* field,const ValidateCb& validateCb=ValidateCb())
@@ -405,7 +405,7 @@ struct FieldValidator
 //        {
 //            return true;
 //        }
-//        //! \todo process callback
+//        //! @todo process callback
 //        return false;
 //    }
 //    bool validateBufSize(Field* field,const ValidateCb& validateCb=ValidateCb())
@@ -418,7 +418,7 @@ struct FieldValidator
 //        {
 //            return true;
 //        }
-//        //! \todo process callback
+//        //! @todo process callback
 //        return false;
 //    }
 //    bool validateArraySize(Field* field,const ValidateCb& validateCb=ValidateCb())

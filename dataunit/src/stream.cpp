@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/stream.сpp
+/** @file dataunit/stream.сpp
   *
   *      Classes for serializing data to stream and deserializing data from stream
   *

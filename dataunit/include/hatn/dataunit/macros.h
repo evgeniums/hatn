@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/macros.h
+/** @file dataunit/macros.h
   *
   *      Definitions of macros used to declare data units
   *

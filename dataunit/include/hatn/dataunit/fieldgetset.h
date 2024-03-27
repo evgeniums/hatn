@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldgetset.h
+/** @file dataunit/fieldgetset.h
   *
   *  Getter and setter methods for data unit fields
   *

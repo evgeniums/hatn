@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/validator.h
+/** @file dataunit/validator.h
   *
   *  Base class for unit validators
   *

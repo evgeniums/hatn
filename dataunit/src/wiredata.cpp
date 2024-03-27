@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/wiredata.сpp
+/** @file dataunit/wiredata.сpp
   *
   *      Packed (serialized) DataUnit for wire.
   *

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/stream.h
+/** @file dataunit/stream.h
   *
   *      Classes for serializing data to stream and deserializing data from stream
   *

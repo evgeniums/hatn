@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/allocatorfactory.h
+/** @file dataunit/allocatorfactory.h
   *
   *  Factory of allocators for allocation of units and data fields
   *

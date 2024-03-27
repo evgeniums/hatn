@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/field.h
+/** @file dataunit/field.h
   *
   *      Common templates for field types
   *

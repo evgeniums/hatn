@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unit.сpp
+/** @file dataunit/unit.сpp
   *
   *      Base classes for data units and dataunit fields
   *

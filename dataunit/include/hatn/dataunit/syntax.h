@@ -10,7 +10,7 @@
 /*
 
 */
-/** \file dataunit/syntax.h
+/** @file dataunit/syntax.h
   *
   *      Hatn DataUnit top level header to use in sources for DataUnit definitions
   *

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/repeated.h
+/** @file dataunit/repeated.h
   *
   *      DataUnit fields of repeated types
   *

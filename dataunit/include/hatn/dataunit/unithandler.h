@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unit.h
+/** @file dataunit/unit.h
   *
   *      Base class for data unit handling
   *

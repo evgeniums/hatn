@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/subunit.h
+/** @file dataunit/subunit.h
   *
   *      DataUnit fields for embedded subunits
   *

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/rapidjsonstringviewstream.h
+/** @file dataunit/rapidjsonstringviewstream.h
   *
   *      Stream wrapper around string view for rapidjson
   *
@@ -67,14 +67,14 @@ class HATN_DATAUNIT_EXPORT RapidJsonStringViewStream
     }
 
     //! Get the current read cursor.
-    //! \return Number of characters read from start.
+    //! @return Number of characters read from start.
     size_t Tell()
     {
         return m_cursor;
     }
 
     //! Begin writing operation at the current read pointer.
-    //! \return The begin writer pointer.
+    //! @return The begin writer pointer.
     Ch* PutBegin()
     {
         m_cursor=0;
@@ -92,8 +92,8 @@ class HATN_DATAUNIT_EXPORT RapidJsonStringViewStream
     {}
 
     //! End the writing operation.
-    //! \param begin The begin write pointer returned by PutBegin().
-    //! \return Number of characters written.
+    //! @param begin The begin write pointer returned by PutBegin().
+    //! @return Number of characters written.
     size_t PutEnd(Ch*)
     {
         return 0;
@@ -142,14 +142,14 @@ class HATN_DATAUNIT_EXPORT RapidJsonBufStream
     }
 
     //! Get the current read cursor.
-    //! \return Number of characters read from start.
+    //! @return Number of characters read from start.
     size_t Tell()
     {
         return m_cursor;
     }
 
     //! Begin writing operation at the current read pointer.
-    //! \return The begin writer pointer.
+    //! @return The begin writer pointer.
     Ch* PutBegin()
     {
         size_t freeCapacity=m_buffer.capacity()-m_cursor;
@@ -172,8 +172,8 @@ class HATN_DATAUNIT_EXPORT RapidJsonBufStream
     {}
 
     //! End the writing operation.
-    //! \param begin The begin write pointer returned by PutBegin().
-    //! \return Number of characters written.
+    //! @param begin The begin write pointer returned by PutBegin().
+    //! @return Number of characters written.
     size_t PutEnd(Ch*)
     {
         return m_cursor;

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldserialization.h
+/** @file dataunit/fieldserialization.h
   *
   *      Classes for serializing and deserializing dataunit fields
   *

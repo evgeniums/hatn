@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldbase.сpp
+/** @file dataunit/fieldbase.сpp
   *
   *      Base class of dataunit fields
   *

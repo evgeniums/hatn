@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/updatenotifier.h
+/** @file dataunit/updatenotifier.h
   *
   *  Notifier of data unit updates
   *

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldserialization.cpp
+/** @file dataunit/fieldserialization.cpp
   *
   *      Classes for serializing and deserializing dataunit fields
   *

@@ -114,7 +114,7 @@ class SharedLocker final
         /**
          * @brief Release locker after shared access
          *
-         * \attention Call only one releaseShared() per single acquireShared(),
+         * @attention Call only one releaseShared() per single acquireShared(),
          *  otherwise the behaviour is undefined
          */
         inline void releaseShared() noexcept
@@ -139,7 +139,7 @@ class SharedLocker final
         /**
          * @brief Release locker after exclusive access
          *
-         * \attention Call only one releaseExclusive() per single acquireExclusive(),
+         * @attention Call only one releaseExclusive() per single acquireExclusive(),
          *  otherwise the behaviour is undefined
          */
         inline void releaseExclusive() noexcept

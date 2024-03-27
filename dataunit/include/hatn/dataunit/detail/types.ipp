@@ -10,7 +10,7 @@
 /*
 
 */
-/** \file datauint/detail/types.h
+/** @file datauint/detail/types.h
   *
   *      Internal implementation of list of standard types of dataunit fields.
   *

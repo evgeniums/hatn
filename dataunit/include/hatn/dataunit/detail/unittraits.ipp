@@ -10,7 +10,7 @@
 /*
 
 */
-/** \file datauint/detail/unittraits.ipp
+/** @file datauint/detail/unittraits.ipp
   *
   *      Implementations of DataUnit templates
   *

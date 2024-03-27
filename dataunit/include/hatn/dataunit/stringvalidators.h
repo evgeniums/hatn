@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/stringvalidators.h
+/** @file dataunit/stringvalidators.h
   *
   *  Difinitions of elementary string validators
   *
@@ -157,7 +157,7 @@ struct str_ne_i
     };
 };
 
-//! \todo
+//! @todo
 //! str_gt, str_gt_i, str_gte, str_gte_i, str_lt, str_lt_i, str_lte, str_lte_i,
 //! str_starts_with, str_starts_with_i, str_ends_with, str_ends_with_i, str_nstarts_with, str_nstarts_with_i, str_nends_with, str_nends_with_i,
 //! str_contains, str_contains_i, str_ncontains, str_ncontains_i,

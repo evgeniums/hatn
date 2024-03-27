@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unitstrings.h
+/** @file dataunit/unitstrings.h
   *
   *      Global object for localization of unit field names
   *

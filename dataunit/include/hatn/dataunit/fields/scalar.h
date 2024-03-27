@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/scalar.h
+/** @file dataunit/scalar.h
   *
   *      DataUnit fields of scalar types
   *

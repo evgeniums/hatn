@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/valuetypes.h
+/** @file dataunit/valuetypes.h
   *
   * Contains list of field value types.
   *

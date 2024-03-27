@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/rapidjsonsaxhandlers.h
+/** @file dataunit/rapidjsonsaxhandlers.h
   *
   *      Handlers for SAX rapidjson API
   *

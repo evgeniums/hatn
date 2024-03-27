@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/wiredatapack.h
+/** @file dataunit/wiredatapack.h
   *
   *      Wire dataunit pack.
   *

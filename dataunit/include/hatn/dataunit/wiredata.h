@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/wiredata.h
+/** @file dataunit/wiredata.h
   *
   *      Packed (serialized) DataUnit data for wire.
   *

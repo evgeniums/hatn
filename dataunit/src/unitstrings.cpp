@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unitstrings.cpp
+/** @file dataunit/unitstrings.cpp
   *
   *      Global object for localization of unit field names
   *

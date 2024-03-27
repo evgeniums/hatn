@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/dataunit.h
+/** @file dataunit/dataunit.h
   *
   *  Hatn DataUnit Library for units definition and serialization/deserialization
   *

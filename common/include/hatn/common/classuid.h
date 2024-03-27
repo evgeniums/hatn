@@ -97,7 +97,7 @@ class HumanReadableType
         HumanReadableType& operator=(HumanReadableType&&) =default;
 
 		/**
-			\brief Set human readable type
+			@brief Set human readable type
 		**/
         virtual void setHumanReadableType(std::string type) noexcept
 		{
@@ -105,8 +105,8 @@ class HumanReadableType
 		}
 
 		/**
-			\brief Set human readable type
-			\return Human readable type intended to be used for all objects of the same type
+			@brief Set human readable type
+			@return Human readable type intended to be used for all objects of the same type
 		**/
         virtual std::string humanReadableType() const noexcept
 		{
