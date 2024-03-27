@@ -1,8 +1,10 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-  */
+*/
 
 /****************************************************************************/
 /*
@@ -29,8 +31,7 @@
 #include <hatn/dataunit/allocatorfactory.h>
 #include <hatn/dataunit/valuetypes.h>
 
-namespace hatn {
-namespace dataunit {
+HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace types
 {
@@ -329,6 +330,7 @@ template <typename _type> struct TYPE_ENUM : public BaseType<int32_t,std::true_t
 };
 
 }
-}
-}
+
+HATN_DATAUNIT_NAMESPACE_END
+
 #endif// HATNDATAUNITTYPESIMPL_H
