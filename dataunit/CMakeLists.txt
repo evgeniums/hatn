@@ -48,6 +48,7 @@ SET (HEADERS
     include/hatn/dataunit/prevalidatedupdate.h
 
     include/hatn/dataunit/wirebuf.h
+    include/hatn/dataunit/wirebufsolid.h
     include/hatn/dataunit/detail/wirebuf.ipp
 
     include/hatn/dataunit/visitors/serialize.h

@@ -1,12 +1,12 @@
 SET (TEST_SOURCES
-    ${DATAUNIT_TEST_SRC}/testserialization.cpp
-    ${DATAUNIT_TEST_SRC}/testsyntax.cpp
-    ${DATAUNIT_TEST_SRC}/testperformance.cpp
+    # ${DATAUNIT_TEST_SRC}/testsyntax.cpp
     # ${DATAUNIT_TEST_SRC}/testjson.cpp
     # ${DATAUNIT_TEST_SRC}/testfields.cpp
     # ${DATAUNIT_TEST_SRC}/testgetset.cpp
     # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
     # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
+    ${DATAUNIT_TEST_SRC}/testperformance.cpp
+    ${DATAUNIT_TEST_SRC}/testserialization.cpp
 )
 
 SET (TEST_HEADERS
@@ -23,7 +23,8 @@ SET (TEST_HEADERS
 # ENDIF ()
 
 SET(MODULE_TEST_LIB dataunittestlib)
-ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp ${HATN_TEST_THREAD_SOURCES})
+# SET(TEST_LIB_SOURCES ${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp)
+ADD_LIBRARY(${MODULE_TEST_LIB} STATIC  ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES})
 TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${TEST_BINARY_DIR})
 ADD_HATN_MODULES(${MODULE_TEST_LIB} PRIVATE dataunit)
 

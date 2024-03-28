@@ -16,6 +16,8 @@
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/wirebufsolid.h>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 
 namespace {
 
@@ -66,6 +68,10 @@ BOOST_AUTO_TEST_CASE(SerializeEmptyUnit)
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
+
+    du::WireBufSolid buf2;
+    r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r==0);
 }
 
 BOOST_AUTO_TEST_CASE(SerializeIntField)
@@ -85,6 +91,10 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL(300,obj2.field(du1::field2).get());
+
+    du::WireBufSolid buf2;
+    r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r>0);
 }
 
 BOOST_AUTO_TEST_CASE(SerializeStringField)
@@ -104,6 +114,10 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL("Hello world!",obj2.field(du3::field4).c_str());
+
+    du::WireBufSolid buf2;
+    r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r>0);
 }
 
 BOOST_AUTO_TEST_CASE(SerializeSubunitField)
@@ -127,6 +141,10 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     const auto& c_f3=obj2.field(du4::f3).get();
     const auto& c_f3_4=c_f3.field(du3::field4);
     BOOST_CHECK_EQUAL("Hello world!",c_f3_4.c_str());
+
+    du::WireBufSolid buf2;
+    r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r>0);
 }
 
 BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
@@ -146,6 +164,10 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL("Hello world!",obj2.field(du5::field5).value(0).buf()->c_str());
+
+    du::WireBufSolid buf2;
+    r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r>0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

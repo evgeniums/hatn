@@ -16,6 +16,8 @@
 
 #include <hatn/dataunit/detail/fieldserialization.ipp>
 #include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/wirebufsolid.h>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 #include <hatn/dataunit/detail/syntax.ipp>
 
 #include <hatn/test/multithreadfixture.h>
@@ -172,11 +174,26 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     elapsedStr=elapsed.toString(true);
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
+    std::cerr<<"Cycle solid buf serialization"<<std::endl;
+
+    fillForPerformance(unit1,1234);
+    hatn::dataunit::WireBufSolid buf1;
+    int resultCount=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        resultCount+=static_cast<int>(hatn::dataunit::io::serialize(unit1,buf1)>0);
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
+
     std::cerr<<"Cycle serialization"<<std::endl;
 
     fillForPerformance(unit1,1234);
     hatn::dataunit::WireDataSingle wired;
-    int resultCount=0;
+    resultCount=0;
     elapsed.reset();
     for (int i=0;i<runs;++i)
     {
