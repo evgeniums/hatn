@@ -1,6 +1,7 @@
 SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testserialization.cpp
     ${DATAUNIT_TEST_SRC}/testsyntax.cpp
+    ${DATAUNIT_TEST_SRC}/testperformance.cpp
     # ${DATAUNIT_TEST_SRC}/testjson.cpp
     # ${DATAUNIT_TEST_SRC}/testfields.cpp
     # ${DATAUNIT_TEST_SRC}/testgetset.cpp
