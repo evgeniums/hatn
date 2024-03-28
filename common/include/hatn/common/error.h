@@ -34,7 +34,11 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 class ByteArray;
 
-//! Error class.
+/**
+ * @brief The Error class.
+ *
+ * @todo Test performance.
+ */
 class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 {
     public:
