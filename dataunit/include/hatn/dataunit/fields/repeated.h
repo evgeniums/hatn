@@ -27,6 +27,8 @@
 #include <vector>
 #include <array>
 
+#include <hatn/common/containerutils.h>
+
 #include <hatn/dataunit/fields/fieldtraits.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -315,7 +317,7 @@ template <typename Base, typename Type,typename DefaultV>
     using Base::Base;
 
     /**  Create and add value */
-    virtual typename Base::type& createAndAddValue() override
+    typename Base::type& createAndAddValue() override
     {
         this->markSet();
         auto val=RepeatedTraits<Type>::template createValue<DefaultV>(this->m_parentUnit);
@@ -349,16 +351,20 @@ template <typename Base, typename Type,typename DefaultV>
 struct RepeatedType{};
 
 /**  Template class for repeated dataunit field */
-template <typename Type>
+template <typename Type, int Id>
 struct RepeatedFieldTmpl : public Field, public RepeatedType
 {
     using type=typename RepeatedTraits<Type>::valueType;
     using fieldType=typename RepeatedTraits<Type>::fieldType;
     using vectorType=::hatn::common::pmr::vector<type>;
     using isRepeatedType=std::true_type;
-    using selfType=RepeatedFieldTmpl<Type>;
+    using selfType=RepeatedFieldTmpl<Type,Id>;
 
     constexpr static const bool isSizeIterateNeeded=RepeatedTraits<Type>::isSizeIterateNeeded;
+    constexpr static int fieldId()
+    {
+        return Id;
+    }
 
     /**  Ctor */
     explicit RepeatedFieldTmpl(
@@ -439,6 +445,8 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
       return vector;
     }
 
+    //! @todo add access helpers for string types
+
     /**  Set value by index */
     template <typename T>
     inline void setValue(size_t index, T&& val)
@@ -463,7 +471,8 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     };
     template <typename T> struct AddStringHelper<T,std::enable_if_t<T::isBytesType::value>>
     {
-       inline static void f(selfType& field,const char* data, size_t size)
+       template <typename FieldT>
+       static void f(FieldT& field,const char* data, size_t size)
        {
            auto& val=field.createAndAddValue();
            val.buf()->load(data,size);
@@ -497,19 +506,14 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     template <typename ... Vals>
     inline size_t appendValues(Vals&&... vals)
     {
-       this->markSet();
-
-#if __cplusplus >= 201703L
-        (vector.push_back(std::forward<Vals>(vals)),...);
-#else
-       int stub[] = {0, (vector.push_back(std::forward<Vals>(vals)), 0)...};
-       std::ignore=stub;
-#endif
-
+       this->markSet();        
+       common::ContainerUtils::addElements(vector,std::forward<Vals>(vals)...);
        return vector.size();
     }
 
-    /**  Create and add value */
+    /**  Create and add value
+       @todo Implement variant for static polymorphism.
+    */
     virtual type& createAndAddValue() =0;
 
     /**  Add number of values */
@@ -621,31 +625,38 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return CanChainBlocks;
     }
 
+    /**  Serialize field to wire */
+    template <typename BufferT>
+    bool serialize(BufferT& wired) const
+    {
+        /* append array count */
+        if (CanChainBlocks && !wired.isSingleBuffer())
+        {
+            wired.appendUint32(static_cast<uint32_t>(count()));
+        }
+        else
+        {
+            wired.incSize(Stream<uint32_t>::packVarInt(wired.mainContainer(),static_cast<int>(count())));
+        }
+
+        /* append each field */
+        for (size_t i=0;i<count();i++)
+        {
+            const auto& field=value(i);
+            if (!fieldType::serialize(field,wired))
+            {
+                return false;
+            }
+        }
+
+        /* ok */
+        return true;
+    }
+
     /**  Store field to wire */
     virtual bool doStore(WireData& wired) const override
     {
-       /* append array count */
-       if (!wired.isSingleBuffer() && CanChainBlocks)
-       {
-           wired.appendUint32(static_cast<uint32_t>(count()));
-       }
-       else
-       {
-           wired.incSize(Stream<uint32_t>::packVarInt(wired.mainContainer(),static_cast<int>(count())));
-       }
-
-       /* append each field */
-       for (size_t i=0;i<count();i++)
-       {
-           const auto& field=value(i);
-           if (!fieldType::serialize(field,wired))
-           {
-               return false;
-           }
-       }
-
-       /* ok */
-       return true;
+        return serialize(wired);
     }
 
     /**
@@ -776,14 +787,14 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 };
 
 /**  Template class for repeated dataunit field compatible with packed repeated fields of Google Protocol Buffers*/
-template <typename Type,typename DefaultV=DefaultValue<Type>>
-struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type>
+template <typename Type, int Id>
+struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
 {
-   using type=typename RepeatedFieldTmpl<Type>::type;
-   using fieldType=typename RepeatedFieldTmpl<Type>::fieldType;
+   using type=typename RepeatedFieldTmpl<Type,Id>::type;
+   using fieldType=typename RepeatedFieldTmpl<Type,Id>::fieldType;
    static_assert(Type::isPackedProtoBufCompatible::value,"You can't use this type in fields compatible with repeated packed type of Google Protol Buffers");
 
-   using RepeatedFieldTmpl<Type>::RepeatedFieldTmpl;
+   using RepeatedFieldTmpl<Type,Id>::RepeatedFieldTmpl;
 
    /**  Load fields from wire */
    virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
@@ -829,8 +840,8 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type>
        return true;
    }
 
-   /**  Store field to wire */
-   virtual bool doStore(WireData& wired) const override
+   template <typename BufferT>
+   bool serialize(BufferT& wired) const
    {
        auto* buf=wired.mainContainer();
 
@@ -886,7 +897,14 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type>
        }
 
        /* ok */
+       //! @todo return Error()
        return true;
+   }
+
+   /**  Store field to wire */
+   virtual bool doStore(WireData& wired) const override
+   {
+       return serialize(wired);
    }
 
    /** Get expected field size */
@@ -897,13 +915,13 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type>
 };
 
 /**  Template class for repeated dataunit field compatible with unpacked repeated fields of Google Protocol Buffers for ordinary types*/
-template <typename Type>
-struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
+template <typename Type, int Id>
+struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
 {
    using type=typename RepeatedTraits<Type>::valueType;
    using fieldType=typename RepeatedTraits<Type>::fieldType;
 
-   using RepeatedFieldTmpl<Type>::RepeatedFieldTmpl;
+   using RepeatedFieldTmpl<Type,Id>::RepeatedFieldTmpl;
 
    constexpr static WireType fieldWireType() noexcept
    {
@@ -918,7 +936,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
    /** Get expected field size */
    virtual size_t size() const noexcept override
    {
-       if (RepeatedFieldTmpl<Type>::isSizeIterateNeeded)
+       if (RepeatedFieldTmpl<Type,Id>::isSizeIterateNeeded)
        {
            size_t result=0;
            for (auto&& it:this->vector)
@@ -959,10 +977,11 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
        return true;
    }
 
-   /**  Store field to wire */
-   virtual bool doStore(WireData& wired) const override
+   template <typename BufferT>
+   bool serialize(BufferT& wired) const
    {
-       auto tagWireType=fieldType::fieldWireType();
+       constexpr auto tagWireType=fieldType::fieldWireType();
+       constexpr auto id=Id;
 
        /* append each field with tag */
        for (size_t i=0;i<this->count();i++)
@@ -970,8 +989,8 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
            const auto& field=this->vector[i];
 
            /* append tag to sream */
-           uint32_t tag=(this->getID()<<3)|static_cast<int>(tagWireType);
-           if (!wired.isSingleBuffer() && RepeatedFieldTmpl<Type>::CanChainBlocks)
+           constexpr uint32_t tag=(id<<3)|static_cast<int>(tagWireType);
+           if (RepeatedFieldTmpl<Type,Id>::CanChainBlocks && !wired.isSingleBuffer())
            {
                wired.appendUint32(tag);
            }
@@ -988,37 +1007,45 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
        }
 
        /* ok */
+       //! @todo return Error()
        return true;
    }
+
+   /**  Store field to wire */
+   virtual bool doStore(WireData& wired) const override
+   {
+       return serialize(wired);
+   }
+
 };
 
 template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
     struct RepeatedField : public FieldConf<
-            RepeatedDefault<RepeatedFieldTmpl<Type>,Type,DefaultAlias>,
+            RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
             Id,FieldName,Tag,false>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldTmpl<Type>,Type,DefaultAlias>,
+        RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
         Id,FieldName,Tag,false>::FieldConf;
 };
 
 template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
     struct RepeatedFieldProtoBufPacked : public FieldConf<
-            RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type>,Type,DefaultAlias>,
+            RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
             Id,FieldName,Tag,false>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type>,Type,DefaultAlias>,
+        RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
         Id,FieldName,Tag,false>::FieldConf;
 };
 
 template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
     struct RepeatedFieldProtoBufOrdinary : public FieldConf<
-            RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type>,Type,DefaultAlias>,
+            RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
             Id,FieldName,Tag,false>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type>,Type,DefaultAlias>,
+        RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
         Id,FieldName,Tag,false>::FieldConf;
 };
 

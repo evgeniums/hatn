@@ -411,11 +411,23 @@ class Fixed : public Scalar<Type>
             return FixedSer<typename Type::type>::serialize(value,wired);
         }
 
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            return FixedSer<typename Type::type>::serialize(this->m_value,wired);
+        }
+
         //! Deserialize from wire.
         template <typename BufferT>
         static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory*)
         {
             return FixedSer<typename Type::type>::deserialize(value,wired);
+        }
+
+        template <typename BufferT>
+        bool deserialize(BufferT& wired, AllocatorFactory*)
+        {
+            return FixedSer<typename Type::type>::deserialize(this->m_value,wired);
         }
 
     protected:

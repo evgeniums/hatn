@@ -93,11 +93,11 @@ public:
 
     //! Serialize to wir
     template <typename UnitT, typename BufferT>
-    static Error serialize(const UnitT* value, BufferT& wired);
+    static bool serialize(const UnitT* value, BufferT& wired);
 
     //! Deserialize from wire
     template <typename UnitT, typename BufferT>
-    static Error deserialize(UnitT* value, BufferT& wired);
+    static bool deserialize(UnitT* value, BufferT& wired);
 };
 
 HATN_DATAUNIT_NAMESPACE_END

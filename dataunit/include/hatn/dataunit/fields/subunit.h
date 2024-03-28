@@ -82,26 +82,20 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         template <typename UnitT, typename BufferT>
         static bool serialize(const UnitT* value, BufferT& wired)
         {
-            //! @todo return Error
-            auto ec=UnitSer::serialize(value,wired);
-            return !ec;
+            return UnitSer::serialize(value,wired);
         }
 
         template <typename BufferT>
         bool serialize(BufferT& wired) const
         {
-            //! @todo return Error
-            auto ec=UnitSer::serialize(&this->m_value.value(),wired);
-            return !ec;
+            return UnitSer::serialize(&this->m_value.value(),wired);
         }
 
         //! Deserialize DataUnit from wire
         template <typename BufferT>
         static bool deserialize(Unit* value, BufferT& wired, AllocatorFactory*)
         {
-            //! @todo See doLoad()
-            auto ec=UnitSer::deserialize(value,wired);
-            return !ec;
+            return UnitSer::deserialize(value,wired);
         }
 
         //! Format as JSON element
@@ -377,36 +371,33 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
 };
 
 template <>
-class FieldTmpl<TYPE_DATAUNIT>
-    : public FieldTmplUnit<TYPE_DATAUNIT>
+struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnit<TYPE_DATAUNIT>
 {
     using FieldTmplUnit<TYPE_DATAUNIT>::FieldTmplUnit;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-    struct EmbeddedUnitFieldTmpl
-        : public FieldTmplUnitEmbedded<Type>
+struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
 {
     using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-    struct SharedUnitFieldTmpl
-        : public FieldTmplUnit<Type>
+struct SharedUnitFieldTmpl : public FieldTmplUnit<Type>
 {
     using FieldTmplUnit<Type>::FieldTmplUnit;
 };
 
 template <typename FieldName,typename Type,int Id>
-    struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
+struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
 {
     using FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
 };
 
 template <typename FieldName,typename Type,int Id>
-    struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
+struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
 {
     using FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
 };

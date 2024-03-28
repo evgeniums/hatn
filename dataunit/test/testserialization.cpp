@@ -43,6 +43,11 @@ HDU_DATAUNIT(du4,
 )
 HDU_INSTANTIATE_DATAUNIT(du4)
 
+HDU_DATAUNIT(du5,
+    HDU_FIELD_REPEATED(field5,TYPE_STRING,50)
+)
+HDU_INSTANTIATE_DATAUNIT(du5)
+
 } // anonymous namespace
 
 namespace du=HATN_DATAUNIT_NAMESPACE;
@@ -57,7 +62,7 @@ BOOST_AUTO_TEST_CASE(SerializeEmptyUnit)
     type obj1;
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
-    BOOST_CHECK(!r);
+    BOOST_CHECK(r==0);
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
@@ -75,7 +80,7 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
-    BOOST_CHECK(!r);
+    BOOST_CHECK(r>0);
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
@@ -94,7 +99,7 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
-    BOOST_CHECK(!r);
+    BOOST_CHECK(r>0);
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_CHECK(ok);
@@ -114,7 +119,7 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
-    BOOST_CHECK(!r);
+    BOOST_CHECK(r>0);
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_REQUIRE(ok);
@@ -122,6 +127,25 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     const auto& c_f3=obj2.field(du4::f3).get();
     const auto& c_f3_4=c_f3.field(du3::field4);
     BOOST_CHECK_EQUAL("Hello world!",c_f3_4.c_str());
+}
+
+BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
+{
+    using traits=du5::traits;
+    using type=traits::type;
+
+    type obj1;
+    auto& f5=obj1.field(du5::field5);
+    f5.addValue("Hello world!");
+    BOOST_CHECK_EQUAL("Hello world!",f5.value(0).buf()->c_str());
+
+    du::WireDataSingle buf1;
+    auto r=du::io::serialize(obj1,buf1);
+    BOOST_CHECK(r>0);
+    type obj2;
+    auto ok=obj2.parse(buf1);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL("Hello world!",obj2.field(du5::field5).value(0).buf()->c_str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

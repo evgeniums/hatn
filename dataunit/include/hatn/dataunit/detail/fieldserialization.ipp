@@ -364,7 +364,7 @@ template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow1024,com
 //---------------------------------------------------------------
 
 template <typename UnitT, typename BufferT>
-Error UnitSer::serialize(const UnitT* value, BufferT& wired)
+bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 {
     if (value!=nullptr)
     {
@@ -388,7 +388,6 @@ Error UnitSer::serialize(const UnitT* value, BufferT& wired)
         // serialize field
         int size=-1;
 
-        //! @todo Keep prepared buffer in dataunit?
         const auto& preparedWireDataPack=value->wireDataPack();
         if (!preparedWireDataPack.isNull())
         {
@@ -398,13 +397,7 @@ Error UnitSer::serialize(const UnitT* value, BufferT& wired)
         {
             auto serializeSubunit=[&value,&wired,&size]()
             {
-                auto r=io::serialize(*value,wired,false);
-                if (r)
-                {
-                    return r.takeError();
-                }
-                size=r.value();
-                return Error();
+                return io::serialize(*value,wired,false);
             };
 
             if (!wired.isSingleBuffer())
@@ -417,7 +410,11 @@ Error UnitSer::serialize(const UnitT* value, BufferT& wired)
                 auto keepOffset=wired.currentOffset();
                 wired.setCurrentOffset(0);
 
-                HATN_CHECK_RETURN(serializeSubunit())
+                size=serializeSubunit();
+                if (size<0)
+                {
+                    return false;
+                }
 
                 wired.setCurrentOffset(keepOffset);
                 wired.setCurrentMainContainer(nullptr);
@@ -425,13 +422,11 @@ Error UnitSer::serialize(const UnitT* value, BufferT& wired)
             }
             else
             {
-                HATN_CHECK_RETURN(serializeSubunit())
-            }
-            if (size<0)
-            {
-                //! @todo is it possible?
-                //! @todo make error
-                return commonError(CommonError::NOT_IMPLEMENTED);
+                size=serializeSubunit();
+                if (size<0)
+                {
+                    return false;
+                }
             }
         }
 
@@ -451,17 +446,16 @@ Error UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
 
         // ok
-        return OK;
+        return true;
     }
     HATN_WARN(dataunit,"Embedded or external object is not set, but requested for serializing");
-    //! @todo make error
-    return commonError(CommonError::NOT_IMPLEMENTED);
+    return false;
 }
 
 //---------------------------------------------------------------
 
 template <typename UnitT, typename BufferT>
-Error UnitSer::deserialize(UnitT* value, BufferT& wired)
+bool UnitSer::deserialize(UnitT* value, BufferT& wired)
 {
     // find data size
     uint32_t dataSize=0;
@@ -471,8 +465,7 @@ Error UnitSer::deserialize(UnitT* value, BufferT& wired)
     auto consumed=Stream<uint32_t>::unpackVarInt(ptr,availableBufSize,dataSize);
     if (consumed<0)
     {
-        //! @todo make error
-        return commonError(CommonError::NOT_IMPLEMENTED);
+        return false;
     }
     wired.incCurrentOffset(consumed);
 
@@ -487,8 +480,7 @@ Error UnitSer::deserialize(UnitT* value, BufferT& wired)
     if (buf->size()<(wired.currentOffset()+dataSize))
     {
         HATN_WARN(dataunit,"Size of bytes buffer is less than requested size")
-        //! @todo make error
-        return commonError(CommonError::NOT_IMPLEMENTED);
+        return false;
     }
 
     // temporarily set WireData size to SubUnit size with current offset
@@ -499,14 +491,8 @@ Error UnitSer::deserialize(UnitT* value, BufferT& wired)
     // restore size
     wired.setSize(keepSize);
 
-    //! @todo make error
-    if (!ok)
-    {
-        return commonError(CommonError::NOT_IMPLEMENTED);
-    }
-
     // done
-    return OK;
+    return ok;
 }
 
 

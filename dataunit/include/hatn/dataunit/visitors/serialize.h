@@ -19,6 +19,8 @@
 #ifndef HATNDATAUNITSERIALIZE_H
 #define HATNDATAUNITSERIALIZE_H
 
+#include <system_error>
+
 #include <boost/hana.hpp>
 
 #include <hatn/common/error.h>
@@ -34,75 +36,98 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 struct HATN_DATAUNIT_EXPORT io
 {
-
+    /**
+     * @brief Serialize data unit without invokation of virtual methods.
+     * @param obj Object to serialize.
+     * @param wired Buffer containing data.
+     * @param top Is it top level object or subunit.
+     * @return Serialized size or -1 in case of error.
+     *
+     * @todo Use descriptive error or maybe just throw on missing required fields?
+     */
     template <typename UnitT, typename BufferT>
-    Result<size_t> static serialize(const UnitT& unit, BufferT& buf, bool topLevel=true)
+    int static serialize(const UnitT& obj, BufferT& wired, bool top=true)
     {
-        if (topLevel)
-        {
-            buf.clear();
-        }
-
-        // remember previous buffer size
-        auto prevSize=buf.size();
-
-        // predicate with Error
-        auto predicate=[](auto&& ec)
-        {
-            return !ec;
-        };
-
-        // handler for each field
-        auto handler=[&buf](auto&& field, auto&&)
-        {
-            using fieldT=std::decay_t<decltype(field)>;
-
-            // skip optional fields which are not set
-            if (!field.fieldIsSet())
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
             {
-                if (fieldT::fieldRequired())
-                {
-                    //! @todo Make error.
-                    return commonError(CommonError::NOT_IMPLEMENTED);
-                }
-                return Error();
-            }
-
-            // append tag to stream
-            if (!fieldT::fieldRepeatedUnpackedProtoBuf())
+                // invoke virtual searilize() of unit object
+                return _(obj).serialize(_(wired),_(top));
+            },
+            [&](auto _)
             {
-                constexpr uint32_t tag=static_cast<uint32_t>((fieldT::fieldId()<<3)|static_cast<uint32_t>(fieldT::fieldWireType()));
-                auto* buffer=buf.mainContainer();
-                bool storeTagToMeta=fieldT::fieldCanChainBlocks() && !buf.isSingleBuffer();
-                if (storeTagToMeta)
+                // invoke searilization of each field
+
+                auto&& topLevel=_(top);
+                auto&& unit=_(obj);
+                auto&& buf=_(wired);
+
+                if (topLevel)
                 {
-                    buf.appendUint32(tag);
+                    buf.clear();
                 }
-                else
+
+                // remember previous buffer size
+                auto prevSize=buf.size();
+
+                // predicate with Error
+                auto predicate=[](auto&& ok)
                 {
-                    buf.incSize(Stream<uint32_t>::packVarInt(buffer,tag));
+                    return ok;
+                };
+
+                // handler for each field
+                auto handler=[&buf](auto&& field, auto&&)
+                {
+                    using fieldT=std::decay_t<decltype(field)>;
+
+                    // skip optional fields which are not set
+                    if (!field.fieldIsSet())
+                    {
+                        if (fieldT::fieldRequired())
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    // append tag to stream
+                    if (!fieldT::fieldRepeatedUnpackedProtoBuf())
+                    {
+                        constexpr uint32_t tag=static_cast<uint32_t>((fieldT::fieldId()<<3)|static_cast<uint32_t>(fieldT::fieldWireType()));
+                        auto* buffer=buf.mainContainer();
+                        bool storeTagToMeta=fieldT::fieldCanChainBlocks() && !buf.isSingleBuffer();
+                        if (storeTagToMeta)
+                        {
+                            buf.appendUint32(tag);
+                        }
+                        else
+                        {
+                            buf.incSize(Stream<uint32_t>::packVarInt(buffer,tag));
+                        }
+                    }
+
+                    if (!field.serialize(buf))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                };
+
+
+                auto ok=_(unit).each(predicate,true,handler);
+                if (!ok)
+                {
+                    return -1;
                 }
+
+                // return added size
+                auto addedBytes=static_cast<int>(buf.size()-prevSize);
+                return addedBytes;
             }
-
-            if (!field.serialize(buf))
-            {
-                //! @todo Make error.
-                return commonError(CommonError::NOT_IMPLEMENTED);
-            }
-
-            return Error();
-        };
-
-        // serialize each field
-        auto ec=unit.each(predicate,Error(),handler);
-        if (ec)
-        {
-            return ec;
-        }
-
-        // return added size
-        auto addedBytes=buf.size()-prevSize;
-        return addedBytes;
+        );
     }
 };
 

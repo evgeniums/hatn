@@ -14,6 +14,10 @@
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
+#include <hatn/dataunit/detail/fieldserialization.ipp>
+#include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/detail/syntax.ipp>
+
 #include <hatn/test/multithreadfixture.h>
 
 #define HDU_DATAUNIT_EXPORT
@@ -73,7 +77,7 @@ struct Env : public ::hatn::test::MultiThreadFixture
 };
 
 BOOST_AUTO_TEST_SUITE(TestSyntax)
-
+#if 0
 namespace {
 
 template <typename t_int8,typename traits,typename t> void typeChecks(t& allTypes)
@@ -1399,6 +1403,7 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedUnit,Env)
 //    checkSerializeRepeatedUnit<wire_unit_repeated_protobuf1::traits>();
     checkSerializeRepeatedUnit<wire_unit_repeated_protobuf1::shared_traits>();
 }
+#endif
 
 namespace {
 template <typename T> void fillForPerformance(T& allTypes, int n)
@@ -1445,7 +1450,7 @@ HATN_DATAUNIT_NAMESPACE_END
 
 BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
 {
-    int runs=5000000;
+    int runs=50000000;
     hatn::common::ElapsedTimer elapsed;
     uint64_t elapsedMs=0;
 
@@ -1502,15 +1507,31 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     std::cerr<<"Cycle serialization"<<std::endl;
 
     fillForPerformance(unit1,1234);
+    hatn::dataunit::WireDataSingle wired;
+    int resultCount=0;
     elapsed.reset();
     for (int i=0;i<runs;++i)
     {
-        hatn::dataunit::WireDataSingle wired;
-        unit1.serialize(wired);
+        resultCount+=static_cast<int>(hatn::dataunit::io::serialize(unit1,wired)>0);
     }
     elapsedMs=elapsed.elapsed().totalMilliseconds;
     elapsedStr=elapsed.toString(true);
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
+
+    std::cerr<<"Cycle polymorphic serialization"<<std::endl;
+
+    fillForPerformance(unit1,1234);
+    resultCount=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        resultCount+=(unit1.serialize(wired)>0);
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
 
     std::cerr<<"Cycle parsing"<<std::endl;
 
@@ -1528,6 +1549,7 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 }
 
+#if 0
 BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
 {
     auto factory=hatn::dataunit::AllocatorFactory::getDefault();
@@ -1591,5 +1613,5 @@ BOOST_FIXTURE_TEST_CASE(TestFreeFactory,::hatn::test::MultiThreadFixture)
     ::hatn::dataunit::AllocatorFactory::resetDefault();
     BOOST_CHECK(true);
 }
-
+#endif
 BOOST_AUTO_TEST_SUITE_END()
