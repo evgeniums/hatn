@@ -76,7 +76,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return doStore(wired);
         }
 
-        static inline WireType wireTypeDef() noexcept
+        constexpr static inline WireType fieldWireType() noexcept
         {
             return WireType::VarInt;
         }
@@ -90,8 +90,20 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return CanChainBlocks;
         }
 
+        //! Can chain blocks
+        constexpr static bool fieldCanChainBlocks() noexcept
+        {
+            return CanChainBlocks;
+        }
+
         //! Check if field is set
         inline bool isSet() const noexcept
+        {
+            return m_set;
+        }
+
+        //! Check if field is set
+        inline bool fieldIsSet() const noexcept
         {
             return m_set;
         }

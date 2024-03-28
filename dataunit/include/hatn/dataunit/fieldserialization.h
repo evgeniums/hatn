@@ -22,6 +22,7 @@
 #define HATNFIELDSERIALIZATON_H
 
 #include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/allocatorfactory.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -29,64 +30,78 @@ class Unit;
 class WireData;
 
 //! Setrializer/deserializer of fixed size fields
-template <typename T> class FixedSer
+template <typename T>
+class FixedSer
 {
     public:
 
         //! Serialize to wire
-        static bool serialize(const T& value, WireData& wired);
+        template <typename BufferT>
+        static bool serialize(const T& value, BufferT& wired);
 
         //! Deserialize from wire
-        static bool deserialize(T& value, WireData& wired);
+        template <typename BufferT>
+        static bool deserialize(T& value, BufferT& wired);
 };
 
 //! Setrializer/deserializer of variable size fields on
-template <typename T> class VariableSer
+template <typename T>
+class VariableSer
 {
     public:
 
         //! Serialize to wire
-        static bool serialize(const T& value, WireData& wired);
+        template <typename BufferT>
+        static bool serialize(const T& value, BufferT& wired);
 
         //! Deserialize from wire
-        static bool deserialize(T& value, WireData& wired);
+        template <typename BufferT>
+        static bool deserialize(T& value, BufferT& wired);
 };
 
 //! Setrializer/deserializer of byte fields
-template <typename onstackT,typename sharedT> class BytesSer
+template <typename OnStackT,typename SharedT>
+class BytesSer
 {
     public:
 
         //! Serialize to wire
+        template <typename BufferT>
         static bool serialize(
-                                WireData& wired,
-                                const onstackT* buf,
-                                const sharedT& shared,
+                                BufferT& wired,
+                                const OnStackT* buf,
+                                const SharedT& shared,
                                 bool canChainBlocks
                               );
 
         //! Deserialize from wire
+        template <typename BufferT>
         static bool deserialize(
-                                WireData& wired,
-                                onstackT* buf,
-                                sharedT& shared,
+                                BufferT& wired,
+                                OnStackT* buf,
+                                SharedT& shared,
                                 AllocatorFactory *factory,
                                 int maxSize=0,
                                 bool canChainBlocks=true
                                 );
 };
 
-//! Setrializer/deserializer of subdataunit fields
+//! Serializer/deserializer of subunit fields
 class HATN_DATAUNIT_EXPORT UnitSer
 {
-    public:
+public:
 
-        //! Serialize to wire
-        static bool serialize(const Unit* value, WireData& wired);
+    //! Serialize to wir
+    template <typename UnitT, typename BufferT>
+    static Error serialize(const UnitT* value, BufferT& wired);
 
-        //! Deserialize from wire
-        static bool deserialize(Unit* value, WireData& wired);
+    //! Deserialize from wire
+    template <typename UnitT, typename BufferT>
+    static Error deserialize(UnitT* value, BufferT& wired);
 };
 
 HATN_DATAUNIT_NAMESPACE_END
+
+#include <hatn/dataunit/detail/fieldserialization.ipp>
+
 #endif // HATNFIELDSERIALIZATON_H

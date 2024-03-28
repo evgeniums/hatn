@@ -50,7 +50,8 @@ template <typename ...Args> inline void reportDebug(const char* context,const ch
 template <typename ...Args> inline void reportWarn(const char* context,const char* msg, Args&&... args) noexcept
 {
     HATN_WARN_CONTEXT(dataunit,context,HATN_FORMAT(msg,std::forward<Args>(args)...));
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 /********************** Unit **************************/
 
@@ -198,7 +199,7 @@ int Unit::serialize(
                             return true;
                         }
 
-                        // append tag to sream
+                        // append tag to stream
                         if (!field.isRepeatedUnpackedProtoBuf())
                         {
                             uint32_t tag=static_cast<uint32_t>((field.getID()<<3)|static_cast<uint32_t>(field.wireType()));
@@ -307,7 +308,7 @@ bool Unit::parse(WireData &wired,bool topLevel)
         {
             break;
         }
-        Assert(wired.currentOffset()<buf->size(),"Wire offet overflow");
+        Assert(wired.currentOffset()<buf->size(),"Wire offset overflow");
 
         auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),buf->size()-wired.currentOffset(),tag);
         if (consumed<0)

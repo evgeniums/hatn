@@ -147,8 +147,8 @@ struct FieldConf : public T
 
     using T::T;
 
-    //! Get field ID
-    virtual int getID() const noexcept override
+    //! Get static field id.
+    constexpr static int fieldId() noexcept
     {
         return Id;
     }
@@ -163,6 +163,24 @@ struct FieldConf : public T
     constexpr static const char* fieldDescription() noexcept
     {
         return FieldName::description;
+    }
+
+    //! Get field required statically.
+    constexpr static bool fieldRequired() noexcept
+    {
+        return Required;
+    }
+
+    //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
+    constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
+    {
+        return false;
+    }
+
+    //! Get field ID
+    virtual int getID() const noexcept override
+    {
+        return Id;
     }
 
     //! Get field name.
@@ -187,7 +205,7 @@ struct FieldConf : public T
     virtual bool isRequired() const noexcept override
     {
         return Required;
-    }
+    }    
 };
 
 /**  Template to set default values */

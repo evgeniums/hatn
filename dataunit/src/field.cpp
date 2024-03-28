@@ -36,7 +36,7 @@ Field::~Field()=default;
 //---------------------------------------------------------------
 WireType Field::wireType() const noexcept
 {
-    return wireTypeDef();
+    return fieldWireType();
 }
 
 //---------------------------------------------------------------

@@ -93,7 +93,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  */
 #define HDU_FIELD_EXTERNAL(...) _HDU_FIELD_EXTERNAL_DEF(__VA_ARGS__)
 
-//! Use this macro to declare an embedded dataunit field with shared embedded comand
+//! Use this macro to declare an embedded dataunit field
 /**
  * @param FieldName Name of the field.
  * @param Type Field type, Type must be one of supported types.
@@ -212,7 +212,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //! Instantiate DataUnit class
 #define HDU_INSTANTIATE_DATAUNIT(UnitName) _HDU_INSTANTIATE_DATAUNIT(UnitName)
 
-//! Instantiate DataUnit extntion class
+//! Instantiate DataUnit extention class
 #define HDU_INSTANTIATE_DATAUNIT_EXT(UnitName,ExtentionName) _HDU_INSTANTIATE_DATAUNIT_EXT(UnitName,ExtentionName)
 
 /**

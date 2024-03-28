@@ -114,7 +114,7 @@ class HATN_DATAUNIT_EXPORT UnitStrings : public common::Singleton
         static void free();
         /**
          * @brief Get singleton's instance.
-         * @return SIngleton's instance.
+         * @return SIingleton's instance.
          */
         static UnitStrings& instance();
 

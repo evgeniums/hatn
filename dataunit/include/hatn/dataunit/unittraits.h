@@ -415,6 +415,12 @@ template <typename ...Fields>
         template <typename PredicateT, typename HandlerT>
         auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto);
 
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto);
+
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto);
+
         /**  Copy one DataUnit to other */
         static void copy(UnitImpl& dst,const UnitImpl& src);
 
@@ -580,6 +586,18 @@ class EmptyUnit : public Unit
         constexpr static const char* unitName() noexcept
         {
             return Conf::name;
+        }
+
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT&, InitT&& init, const HandlerT&) -> decltype(auto)
+        {
+            return hana::id(std::forward<InitT>(init));
+        }
+
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT&, InitT&& init, const HandlerT&) const -> decltype(auto)
+        {
+            return hana::id(std::forward<InitT>(init));
         }
 
     protected:

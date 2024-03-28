@@ -150,6 +150,22 @@ auto UnitImpl<Fields...>::each(const PredicateT& pred, const HandlerT& handler) 
     return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
 }
 
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename PredicateT, typename HandlerT, typename InitT>
+auto UnitImpl<Fields...>::each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto)
+{
+    return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename PredicateT, typename HandlerT, typename InitT>
+auto UnitImpl<Fields...>::each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto)
+{
+    return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+}
+
 /********************** UnitConcat **************************/
 
 //---------------------------------------------------------------

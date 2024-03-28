@@ -399,14 +399,14 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /** Move assignment **/
     RepeatedFieldTmpl& operator=(RepeatedFieldTmpl&& other) =default;
 
-    inline static WireType wireTypeDef() noexcept
+    constexpr static WireType fieldWireType() noexcept
     {
        return WireType::WithLength;
     }
     //! Get wire type of the field
     virtual WireType wireType() const noexcept override
     {
-       return wireTypeDef();
+       return fieldWireType();
     }
 
     /**  Get value by index */
@@ -615,6 +615,10 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual bool canChainBlocks() const noexcept override
     {
        return CanChainBlocks;
+    }
+    constexpr static bool fieldCanChainBlocks() noexcept
+    {
+        return CanChainBlocks;
     }
 
     /**  Store field to wire */
@@ -901,14 +905,14 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
 
    using RepeatedFieldTmpl<Type>::RepeatedFieldTmpl;
 
-   inline static WireType wireTypeDef() noexcept
+   constexpr static WireType fieldWireType() noexcept
    {
-       return fieldType::wireTypeDef();
+       return fieldType::fieldWireType();
    }
    //! Get wire type of the field
    virtual WireType wireType() const noexcept override
    {
-       return wireTypeDef();
+       return fieldWireType();
    }
 
    /** Get expected field size */
@@ -944,6 +948,11 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
        return true;
    }
 
+   constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
+   {
+       return true;
+   }
+
    /** Check if this field is compatible of repeated unpacked type with Google Protocol Buffers */
    virtual bool isRepeatedUnpackedProtoBuf() const noexcept override
    {
@@ -953,7 +962,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type>
    /**  Store field to wire */
    virtual bool doStore(WireData& wired) const override
    {
-       auto tagWireType=fieldType::wireTypeDef();
+       auto tagWireType=fieldType::fieldWireType();
 
        /* append each field with tag */
        for (size_t i=0;i<this->count();i++)

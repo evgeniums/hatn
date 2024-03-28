@@ -29,6 +29,7 @@ SET (HEADERS
     include/hatn/dataunit/detail/types.ipp
 
     include/hatn/dataunit/fieldserialization.h
+    include/hatn/dataunit/detail/fieldserialization.ipp
 
     include/hatn/dataunit/updatefilter.h
     include/hatn/dataunit/validator.h
@@ -45,6 +46,11 @@ SET (HEADERS
     include/hatn/dataunit/updateunitfieldatpath.h
 
     include/hatn/dataunit/prevalidatedupdate.h
+
+    include/hatn/dataunit/wirebuf.h
+    include/hatn/dataunit/detail/wirebuf.ipp
+
+    include/hatn/dataunit/visitors/serialize.h
 )
 
 SET (SOURCES
@@ -53,7 +59,6 @@ SET (SOURCES
     src/stream.cpp
     src/unit.cpp
     src/field.cpp
-    src/fieldserialization.cpp
     src/unitstrings.cpp
 )
 

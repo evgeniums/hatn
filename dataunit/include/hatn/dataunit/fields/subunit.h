@@ -22,6 +22,7 @@
 #define HATNSUBUNIT_H
 
 #include <hatn/dataunit/fields/fieldtraits.h>
+#include <hatn/dataunit/visitors/serialize.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -67,26 +68,40 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         {
         }
 
-        inline static WireType wireTypeDef() noexcept
+        constexpr static WireType fieldWireType() noexcept
         {
             return WireType::WithLength;
         }
         //! Get wire type of the field
         virtual WireType wireType() const noexcept override
         {
-            return wireTypeDef();
+            return fieldWireType();
         }
 
         //! Serialize DataUnit to wire
-        inline static bool serialize(const Unit* value, WireData& wired)
+        template <typename UnitT, typename BufferT>
+        static bool serialize(const UnitT* value, BufferT& wired)
         {
-            return UnitSer::serialize(value,wired);
+            //! @todo return Error
+            auto ec=UnitSer::serialize(value,wired);
+            return !ec;
+        }
+
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            //! @todo return Error
+            auto ec=UnitSer::serialize(&this->m_value.value(),wired);
+            return !ec;
         }
 
         //! Deserialize DataUnit from wire
-        inline static bool deserialize(Unit* value, WireData& wired, AllocatorFactory*)
+        template <typename BufferT>
+        static bool deserialize(Unit* value, BufferT& wired, AllocatorFactory*)
         {
-            return UnitSer::deserialize(value,wired);
+            //! @todo See doLoad()
+            auto ec=UnitSer::deserialize(value,wired);
+            return !ec;
         }
 
         //! Format as JSON element
@@ -158,7 +173,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          *
          * After calling this method the value will be regarded as set.
          */
-        virtual typename baseFieldType::base* mutableValue()
+        typename baseFieldType::base* mutableValue()
         {
             this->m_set=true;
             return this->m_value.mutableValue();
@@ -252,6 +267,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return CanChainBlocks;
         }
 
+        //! Can chain blocks
+        constexpr static bool fieldCanChainBlocks() noexcept
+        {
+            return CanChainBlocks;
+        }
+
         //! Prepare shared form of value storage for parsing from wire
         inline static void prepareSharedStorage(type& /*value*/,AllocatorFactory*)
         {
@@ -288,7 +309,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         //! Store field to wire
         virtual bool doStore(WireData& wired) const override
         {
-            return serialize(&this->m_value.value(),wired);
+            return serialize(wired);
         }
 
         type m_value;
@@ -307,13 +328,16 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
         using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
         using isEmbeddedUnitType=std::false_type;
 
+#if 0
         /**
          * @brief Get pointer to mutable value
          * @return Pointer to value
          *
          * After calling this method the value will be regarded as set.
+         *
+         * @todo Not used any more?
          */
-        virtual typename baseFieldType::base* mutableValue() override
+        typename baseFieldType::base* mutableValue()
         {
             this->m_set=true;
             if (this->m_value.isNull())
@@ -326,6 +350,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
             }
             return this->m_value.mutableValue();
         }
+#endif
 
         //! Create value
         typename baseFieldType::type createValue(AllocatorFactory* factory=nullptr) const

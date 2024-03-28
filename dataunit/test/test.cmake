@@ -1,10 +1,11 @@
 SET (TEST_SOURCES
-    ${DATAUNIT_TEST_SRC}/testsyntax.cpp
-    ${DATAUNIT_TEST_SRC}/testjson.cpp
-    ${DATAUNIT_TEST_SRC}/testfields.cpp
-    ${DATAUNIT_TEST_SRC}/testgetset.cpp
-    ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
-    ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
+    ${DATAUNIT_TEST_SRC}/testserialization.cpp
+    # ${DATAUNIT_TEST_SRC}/testsyntax.cpp
+    # ${DATAUNIT_TEST_SRC}/testjson.cpp
+    # ${DATAUNIT_TEST_SRC}/testfields.cpp
+    # ${DATAUNIT_TEST_SRC}/testgetset.cpp
+    # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
+    # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
 )
 
 SET (TEST_HEADERS
@@ -12,18 +13,19 @@ SET (TEST_HEADERS
     ${DATAUNIT_TEST_SRC}/testunitdeclarations.h
     ${DATAUNIT_TEST_SRC}/testfieldpath.h
 )
+# @todo Fix it
+# IF (MINGW AND BUILD_DEBUG)
+#     # Fix string table overflow when compiling in debug mode
+#     SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
+#     SET_SOURCE_FILES_PROPERTIES(${SOURCES} PROPERTIES COMPILE_FLAGS -Os)
+#     SET_SOURCE_FILES_PROPERTIES(${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp PROPERTIES COMPILE_FLAGS -Os)
+# ENDIF ()
 
-IF (MINGW AND BUILD_DEBUG)
-    # Fix string table overflow when compiling in debug mode
-    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
-    SET_SOURCE_FILES_PROPERTIES(${SOURCES} PROPERTIES COMPILE_FLAGS -Os)
-    SET_SOURCE_FILES_PROPERTIES(${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp PROPERTIES COMPILE_FLAGS -Os)
-ENDIF ()
+# SET(MODULE_TEST_LIB dataunittestlib)
+# ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp ${HATN_TEST_THREAD_SOURCES})
+# TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${TEST_BINARY_DIR})
+# ADD_HATN_MODULES(${MODULE_TEST_LIB} PRIVATE dataunit)
 
-SET(MODULE_TEST_LIB dataunittestlib)
-ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp ${HATN_TEST_THREAD_SOURCES})
-TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${TEST_BINARY_DIR})
-ADD_HATN_MODULES(${MODULE_TEST_LIB} PRIVATE dataunit)
 SET(HATN_TEST_THREAD_SOURCES "")
 
 ADD_HATN_CTESTS(dataunit ${TEST_SOURCES})

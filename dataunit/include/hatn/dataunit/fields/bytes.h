@@ -86,18 +86,19 @@ class FieldTmplBytes : public Field, public BytesType
         {
         }
 
-        inline static WireType wireTypeDef() noexcept
+        constexpr inline static WireType fieldWireType() noexcept
         {
             return WireType::WithLength;
         }
         //! Get wire type of the field
         virtual WireType wireType() const noexcept override
         {
-            return wireTypeDef();
+            return fieldWireType();
         }
 
         //! Deserialize field from wire
-        inline static bool deserialize(typename Type::type& value, WireData& wired, AllocatorFactory *factory)
+        template <typename BufferT>
+        static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory *factory)
         {
             return BytesSer<
                         typename Type::type::onstackType,
@@ -114,8 +115,28 @@ class FieldTmplBytes : public Field, public BytesType
                         );
         }
 
+        //! Deserialize field from wire
+        template <typename BufferT>
+        bool deserialize(BufferT& wired, AllocatorFactory *factory)
+        {
+            return BytesSer<
+                typename Type::type::onstackType,
+                typename Type::type::sharedType
+                >
+                ::
+                deserialize(
+                    wired,
+                    this->m_value.buf(),
+                    this->m_value.byteArrayShared(),
+                    factory,
+                    Type::type::maxSize::value,
+                    Type::type::canChainBlocks::value
+                    );
+        }
+
         //! Serialize field to wire
-        inline static bool serialize(const typename Type::type& value, WireData& wired)
+        template <typename BufferT>
+        static bool serialize(const typename Type::type& value, BufferT& wired)
         {
             return BytesSer<
                         typename Type::type::onstackType,
@@ -128,6 +149,23 @@ class FieldTmplBytes : public Field, public BytesType
                         value.byteArrayShared(),
                         Type::type::canChainBlocks::value
                         );
+        }
+
+        //! Serialize field to wire
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            return BytesSer<
+                typename Type::type::onstackType,
+                typename Type::type::sharedType
+                >
+                ::
+                serialize(
+                    wired,
+                    this->m_value.buf(),
+                    this->m_value.byteArrayShared(),
+                    Type::type::canChainBlocks::value
+                    );
         }
 
         //! Get field size
@@ -328,6 +366,12 @@ class FieldTmplBytes : public Field, public BytesType
             return CanChainBlocks;
         }
 
+        //! Can chain blocks
+        constexpr static bool fieldCanChainBlocks() noexcept
+        {
+            return CanChainBlocks;
+        }
+
         virtual bool less(const char* data, size_t length) const override{return buf()->isLess(data,length);}
         virtual bool equals(const char* data, size_t length) const override {return buf()->isEqual(data,length);}
 
@@ -396,6 +440,10 @@ struct FieldTmpl<_S<Length>> : public FieldTmplBytes<_S<Length>>
     using FieldTmplBytes<_S<Length>>::FieldTmplBytes;
     constexpr static const bool CanChainBlocks=false;
     virtual bool canChainBlocks() const noexcept override
+    {
+        return CanChainBlocks;
+    }
+    constexpr static bool fieldCanChainBlocks() noexcept
     {
         return CanChainBlocks;
     }

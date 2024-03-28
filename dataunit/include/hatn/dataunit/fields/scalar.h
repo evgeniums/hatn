@@ -28,6 +28,9 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+//---------------------------------------------------------------
+
+//! Helper fpr comparation of scalar fields.
 template <typename LeftT, typename RightT, typename=void>
 struct ScalarCompare
 {
@@ -40,6 +43,7 @@ struct ScalarCompare
         return left == right;
     }
 };
+
 template <typename LeftT, typename RightT>
 struct ScalarCompare<LeftT,RightT,
                         std::enable_if_t<
@@ -117,7 +121,9 @@ struct ScalarCompare<LeftT, RightT,
     }
 };
 
-//! Base template class for scalar fields
+//---------------------------------------------------------------
+
+//! Base template class for scalar fields.
 template <typename Type>
 class Scalar : public Field
 {
@@ -308,23 +314,39 @@ class Scalar : public Field
         type m_value;
 };
 
-//! Base class template for fixed size fields on wire
-template <typename Type> class VarInt : public Scalar<Type>
+//---------------------------------------------------------------
+
+//! Base class template for fixed size fields on wire.
+template <typename Type>
+class VarInt : public Scalar<Type>
 {
     public:
 
         using Scalar<Type>::Scalar;
         using type=typename Type::type;
 
-        //! Serialize value to wire
-        inline static bool serialize(const typename Type::type& val, WireData& wired)
+        template <typename BufferT>
+        static bool serialize(const typename Type::type& val, BufferT& wired)
         {
             return VariableSer<typename Type::type>::serialize(val,wired);
         }
 
-        inline static bool deserialize(typename Type::type& val, WireData& wired, AllocatorFactory*)
+        template <typename BufferT>
+        static bool deserialize(typename Type::type& val, BufferT& wired, AllocatorFactory*)
         {
             return VariableSer<typename Type::type>::deserialize(val,wired);
+        }
+
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            return VariableSer<typename Type::type>::serialize(this->m_value,wired);
+        }
+
+        template <typename BufferT>
+        bool deserialize(BufferT& wired, AllocatorFactory*)
+        {
+            return VariableSer<typename Type::type>::deserialize(this->m_value,wired);
         }
 
     protected:
@@ -332,18 +354,21 @@ template <typename Type> class VarInt : public Scalar<Type>
         //! Load field from wire
         virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
         {
-            return deserialize(this->m_value,wired,factory);
+            return deserialize(wired,factory);
         }
 
         //! Store field to wire
         virtual bool doStore(WireData& wired) const override
         {
-            return serialize(this->m_value,wired);
+            return serialize(wired);
         }
 };
 
+//---------------------------------------------------------------
+
 //! Base class template for fixed size fields on wire
-template <typename Type> class IntEnum : public VarInt<Type>
+template <typename Type>
+class IntEnum : public VarInt<Type>
 {
     public:
 
@@ -369,21 +394,26 @@ template <typename Type> class IntEnum : public VarInt<Type>
         }
 };
 
+//---------------------------------------------------------------
+
 //! Base class template for fixed size fields on wire
-template <typename Type> class Fixed : public Scalar<Type>
+template <typename Type>
+class Fixed : public Scalar<Type>
 {
     public:
 
         using Scalar<Type>::Scalar;
 
-        //! Serialize to wire
-        inline static bool serialize(const typename Type::type& value, WireData& wired)
+        //! Serialize to wire.
+        template <typename BufferT>
+        static bool serialize(const typename Type::type& value, BufferT& wired)
         {
             return FixedSer<typename Type::type>::serialize(value,wired);
         }
 
-        //! Deserialize from wire
-        inline static bool deserialize(typename Type::type& value, WireData& wired, AllocatorFactory*)
+        //! Deserialize from wire.
+        template <typename BufferT>
+        static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory*)
         {
             return FixedSer<typename Type::type>::deserialize(value,wired);
         }
@@ -403,20 +433,21 @@ template <typename Type> class Fixed : public Scalar<Type>
         }
 };
 
+//---------------------------------------------------------------
+
 /**  Base field template for fixed wire integer types */
 template <typename Type, WireType wTp= WireType::Fixed32>
-struct IntFixed
-    : public Fixed<Type>
+struct IntFixed : public Fixed<Type>
 {
     using Fixed<Type>::Fixed;
-    inline static WireType wireTypeDef() noexcept
+    constexpr static WireType fieldWireType() noexcept
     {
         return wTp;
     }
     //! Get wire type of the field
     virtual WireType wireType() const noexcept override
     {
-        return wireTypeDef();
+        return fieldWireType();
     }
 };
 
@@ -435,110 +466,109 @@ template <>
 {
     using Fixed<TYPE_FLOAT>::Fixed;
 
-    inline static WireType wireTypeDef() noexcept
+    constexpr static WireType fieldWireType() noexcept
     {
         return WireType::Fixed32;
     }
     //! Get wire type of the field
     virtual WireType wireType() const noexcept override
     {
-        return wireTypeDef();
+        return fieldWireType();
     }
 };
+//---------------------------------------------------------------
 
-/**  Field template for double type */
+// specializations of field descriptors
+
 template <>
-    struct FieldTmpl<TYPE_DOUBLE>
-        : public Fixed<TYPE_DOUBLE>
+struct FieldTmpl<TYPE_DOUBLE> : public Fixed<TYPE_DOUBLE>
 {
     using Fixed<TYPE_DOUBLE>::Fixed;
 
-    inline static WireType wireTypeDef() noexcept
+    constexpr static WireType fieldWireType() noexcept
     {
         return WireType::Fixed64;
     }
     //! Get wire type of the field
     virtual WireType wireType() const noexcept override
     {
-        return wireTypeDef();
+        return fieldWireType();
     }
 };
 
 template <>
-    struct FieldTmpl<TYPE_INT8>
-        : public VarInt<TYPE_INT8>
+struct FieldTmpl<TYPE_INT8> : public VarInt<TYPE_INT8>
 {
     using VarInt<TYPE_INT8>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_INT16>
-        : public VarInt<TYPE_INT16>
+struct FieldTmpl<TYPE_INT16> : public VarInt<TYPE_INT16>
 {
     using VarInt<TYPE_INT16>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_INT32>
-        : public VarInt<TYPE_INT32>
+struct FieldTmpl<TYPE_INT32> : public VarInt<TYPE_INT32>
 {
     using VarInt<TYPE_INT32>::VarInt;
 };
+
 template <template <typename EnumType> class _Enum,typename EnumType>
-    struct FieldTmpl<_Enum<EnumType>>
-        : public IntEnum<_Enum<EnumType>>
+struct FieldTmpl<_Enum<EnumType>> : public IntEnum<_Enum<EnumType>>
 {
     using IntEnum<_Enum<EnumType>>::IntEnum;
 };
-template <>
-    struct FieldTmpl<TYPE_FIXED_INT32>
-        : public IntFixed<TYPE_FIXED_INT32,WireType::Fixed32>
+
+template <> struct FieldTmpl<TYPE_FIXED_INT32> : public IntFixed<TYPE_FIXED_INT32,WireType::Fixed32>
 {
     using IntFixed<TYPE_FIXED_INT32,WireType::Fixed32>::IntFixed;
 };
+
 template <>
-    struct FieldTmpl<TYPE_INT64>
-        : public VarInt<TYPE_INT64>
+struct FieldTmpl<TYPE_INT64> : public VarInt<TYPE_INT64>
 {
     using VarInt<TYPE_INT64>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_FIXED_INT64>
-        : public IntFixed<TYPE_FIXED_INT64,WireType::Fixed64>
+struct FieldTmpl<TYPE_FIXED_INT64> : public IntFixed<TYPE_FIXED_INT64,WireType::Fixed64>
 {
     using IntFixed<TYPE_FIXED_INT64,WireType::Fixed64>::IntFixed;
 };
+
 template <>
-    struct FieldTmpl<TYPE_UINT8>
-        : public VarInt<TYPE_UINT8>
+struct FieldTmpl<TYPE_UINT8> : public VarInt<TYPE_UINT8>
 {
     using VarInt<TYPE_UINT8>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_UINT16>
-        : public VarInt<TYPE_UINT16>
+struct FieldTmpl<TYPE_UINT16> : public VarInt<TYPE_UINT16>
 {
     using VarInt<TYPE_UINT16>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_UINT32>
-        : public VarInt<TYPE_UINT32>
+struct FieldTmpl<TYPE_UINT32> : public VarInt<TYPE_UINT32>
 {
     using VarInt<TYPE_UINT32>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_FIXED_UINT32>
-        : public IntFixed<TYPE_FIXED_UINT32,WireType::Fixed32>
+struct FieldTmpl<TYPE_FIXED_UINT32> : public IntFixed<TYPE_FIXED_UINT32,WireType::Fixed32>
 {
     using IntFixed<TYPE_FIXED_UINT32,WireType::Fixed32>::IntFixed;
 };
+
 template <>
-    struct FieldTmpl<TYPE_UINT64>
-        : public VarInt<TYPE_UINT64>
+struct FieldTmpl<TYPE_UINT64> : public VarInt<TYPE_UINT64>
 {
     using VarInt<TYPE_UINT64>::VarInt;
 };
+
 template <>
-    struct FieldTmpl<TYPE_FIXED_UINT64>
-        : public IntFixed<TYPE_FIXED_UINT64,WireType::Fixed64>
+struct FieldTmpl<TYPE_FIXED_UINT64> : public IntFixed<TYPE_FIXED_UINT64,WireType::Fixed64>
 {
     using IntFixed<TYPE_FIXED_UINT64,WireType::Fixed64>::IntFixed;
 };

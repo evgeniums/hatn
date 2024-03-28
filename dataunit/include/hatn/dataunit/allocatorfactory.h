@@ -24,6 +24,8 @@
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
+#include <hatn/dataunit/dataunit.h>
+
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 using AllocatorFactory=common::pmr::AllocatorFactory;
