@@ -395,11 +395,6 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
         else
         {
-            auto serializeSubunit=[&value,&wired,&size]()
-            {
-                return io::serialize(*value,wired,false);
-            };
-
             if (!wired.isSingleBuffer())
             {
                 auto&& f=wired.factory();
@@ -410,7 +405,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
                 auto keepOffset=wired.currentOffset();
                 wired.setCurrentOffset(0);
 
-                size=serializeSubunit();
+                size=io::serialize(*value,wired,false);
                 if (size<0)
                 {
                     return false;
@@ -422,7 +417,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
             }
             else
             {
-                size=serializeSubunit();
+                size=io::serialize(*value,wired,false);
                 if (size<0)
                 {
                     return false;
@@ -448,7 +443,6 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         // ok
         return true;
     }
-    HATN_WARN(dataunit,"Embedded or external object is not set, but requested for serializing");
     return false;
 }
 

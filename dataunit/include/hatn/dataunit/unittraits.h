@@ -28,6 +28,8 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 
+#include <hatn/validator/utils/foreach_if.hpp>
+
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/fields/scalar.h>
 #include <hatn/dataunit/fields/bytes.h>
@@ -358,18 +360,6 @@ template <typename ...Fields>
         /**  Template of fields iterator */
         template <typename T,int Index> struct Iterator
         {
-            /**  Apply visitor to next field */
-            static bool next(
-                T& unit,
-                const Unit::FieldVisitor& callback=Unit::FieldVisitor()
-            );
-
-            /**  Apply visitor to next const field */
-            static bool nextConst(
-                const T& unit,
-                const Unit::FieldVisitorConst& callback=Unit::FieldVisitorConst()
-            );
-
             /**  Copy next field */
             static void copyNext(
                 T& unit,
@@ -385,18 +375,6 @@ template <typename ...Fields>
         /**  Iterator template specialization for last field */
         template <typename T> struct Iterator<T,0>
         {
-            /**  Iterate */
-            static bool next(
-                T& unit,
-                const Unit::FieldVisitor& callback=Unit::FieldVisitor()
-            );
-
-            /**  Iterate */
-            static bool nextConst(
-                const T& unit,
-                const Unit::FieldVisitorConst& callback=Unit::FieldVisitorConst()
-            );
-
             /**  Copy next field */
             static void copyNext(
                 T& unit,
@@ -410,16 +388,28 @@ template <typename ...Fields>
         };
 
         template <typename PredicateT, typename HandlerT>
-        auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto);
+        auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
+        }
 
         template <typename PredicateT, typename HandlerT>
-        auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto);
+        auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
+        }
 
         template <typename PredicateT, typename HandlerT, typename InitT>
-        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto);
+        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+        }
 
         template <typename PredicateT, typename HandlerT, typename InitT>
-        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto);
+        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+        }
 
         /**  Copy one DataUnit to other */
         static void copy(UnitImpl& dst,const UnitImpl& src);

@@ -21,8 +21,6 @@
 #ifndef HATNDATAUNITSIMPL_H
 #define HATNDATAUNITSIMPL_H
 
-#include <hatn/validator/utils/foreach_if.hpp>
-
 #include <hatn/dataunit/unittraits.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -44,126 +42,36 @@ UnitImpl<Fields...>::UnitImpl(Unit* self)
 
 //---------------------------------------------------------------
 template <typename ...Fields>
-template <typename T,int Index>
-bool UnitImpl<Fields...>::Iterator<T,Index>::next(
-        T& unit,
-        const Unit::FieldVisitor& callback
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    auto& field = std::get<Index>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return Iterator<T,Index-1>::next(unit,callback);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-bool UnitImpl<Fields...>::Iterator<T,0>::next(
-        T& unit,
-        const Unit::FieldVisitor& callback
-    )
-{
-    auto& field = std::get<0>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T,int Index>
-bool UnitImpl<Fields...>::Iterator<T,Index>::nextConst(
-        const T& unit,
-        const Unit::FieldVisitorConst& callback
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    const auto& field = std::get<Index>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return Iterator<T,Index-1>::nextConst(unit,callback);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-bool UnitImpl<Fields...>::Iterator<T,0>::nextConst(
-        const T& unit,
-        const Unit::FieldVisitorConst& callback
-    )
-{
-    auto& field = std::get<0>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
 bool UnitImpl<Fields...>::iterate(const Unit::FieldVisitor& visitor)
 {
-    return Iterator<UnitImpl<Fields...>,MaxI>::next(*this,visitor);
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
+
+    auto handler=[&visitor](auto& field, auto&&)
+    {
+        return visitor(field);
+    };
+
+    return each(predicate,handler);
 }
 
 //---------------------------------------------------------------
 template <typename ...Fields>
 bool UnitImpl<Fields...>::iterateConst(const Unit::FieldVisitorConst& visitor) const
 {
-    return Iterator<UnitImpl<Fields...>,MaxI>::nextConst(*this,visitor);
-}
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
 
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename PredicateT, typename HandlerT>
-auto UnitImpl<Fields...>::each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
-{
-    return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
-}
+    auto handler=[&visitor](const auto& field, auto&&)
+    {
+        return visitor(field);
+    };
 
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename PredicateT, typename HandlerT>
-auto UnitImpl<Fields...>::each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto)
-{
-    return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename PredicateT, typename HandlerT, typename InitT>
-auto UnitImpl<Fields...>::each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto)
-{
-    return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename PredicateT, typename HandlerT, typename InitT>
-auto UnitImpl<Fields...>::each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto)
-{
-    return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+    return each(predicate,handler);
 }
 
 /********************** UnitConcat **************************/

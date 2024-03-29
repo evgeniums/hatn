@@ -68,6 +68,13 @@ struct HATN_DATAUNIT_EXPORT io
                     buf.clear();
                 }
 
+                if (!unit.wireDataPack().isNull())
+                {
+                    // use already serialized data
+                    auto addedBytes=buf.append(unit.wireDataPack()->wireData());
+                    return addedBytes;
+                }
+
                 // remember previous buffer size
                 auto prevSize=buf.size();
 

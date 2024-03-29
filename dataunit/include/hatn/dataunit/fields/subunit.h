@@ -166,8 +166,10 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          * @return Pointer to value
          *
          * After calling this method the value will be regarded as set.
+         *
+         * @todo Use static polymorphism.
          */
-        typename baseFieldType::base* mutableValue()
+        virtual typename baseFieldType::base* mutableValue()
         {
             this->m_set=true;
             return this->m_value.mutableValue();
@@ -322,7 +324,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
         using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
         using isEmbeddedUnitType=std::false_type;
 
-#if 0
+#if 1
         /**
          * @brief Get pointer to mutable value
          * @return Pointer to value
@@ -331,7 +333,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
          *
          * @todo Not used any more?
          */
-        typename baseFieldType::base* mutableValue()
+        virtual typename baseFieldType::base* mutableValue() override
         {
             this->m_set=true;
             if (this->m_value.isNull())
