@@ -315,7 +315,7 @@ class FlatContainer
         const_iterator find(const KeyT& item) const
         {
             auto it=detail::binary_find(m_vec.begin(),m_vec.end(),item,CompareT());
-            return iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
+            return const_iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
         }
 
         iterator erase(iterator position)
