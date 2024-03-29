@@ -21,6 +21,7 @@
 
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/wirebuf.h>
+#include <hatn/dataunit/wirebufsolid.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -90,6 +91,18 @@ int WireBuf<TraitsT>::append(T* other)
     incSize(size);
 
     return size;
+}
+
+//---------------------------------------------------------------
+
+template <typename TraitsT>
+WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
+{
+    auto f=factory();
+    common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
+    common::ByteArray singleBuf(memResource);
+    copyToContainer(singleBuf);
+    return WireBufSolid(std::move(singleBuf),f);
 }
 
 //---------------------------------------------------------------

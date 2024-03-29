@@ -29,6 +29,8 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+class WireBufSolid;
+
 struct WireBufTraits
 {
     common::SpanBuffer nextBuffer() const noexcept {return common::SpanBuffer();}
@@ -203,7 +205,7 @@ class WireBuf
         template <typename ContainerT>
         void copyToContainer(ContainerT& container) const
         {
-            auto self=const_cast<decltype(this)>(this);
+            auto* self=const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this);
 
             self->resetState();
             container.reserve(container.size()+size());
@@ -232,6 +234,8 @@ class WireBuf
         {
             return m_useShareBuffers;
         }
+
+        WireBufSolid toSingleWireData() const;
 
     private:
 

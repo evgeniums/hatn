@@ -398,6 +398,11 @@ class HATN_DATAUNIT_EXPORT Unit
             return false;
         }
 
+        bool isClean() const noexcept
+        {
+            return m_clean;
+        }
+
     private:
 
         template <typename T>
@@ -406,12 +411,18 @@ class HATN_DATAUNIT_EXPORT Unit
           int maxDecimalPlaces=0
         ) const;
 
+        bool setClean(bool val) noexcept
+        {
+            return m_clean=val;
+        }
 
         common::SharedPtr<WireDataPack> m_wireDataPack;
         bool m_clean;
 
         AllocatorFactory* m_factory;
         common::pmr::list<JsonParseHandler> m_jsonParseHandlers;
+
+        friend struct visitors;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

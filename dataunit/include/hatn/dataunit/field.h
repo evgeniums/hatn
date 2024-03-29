@@ -33,15 +33,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 class Unit;
 
-//! Field types as defined in Google Protocol Buffers
-enum class WireType : int
-{
-    VarInt=0,
-    Fixed64=1,
-    WithLength=2,
-    Fixed32=5
-};
-
 namespace json
 {
     class Writer;

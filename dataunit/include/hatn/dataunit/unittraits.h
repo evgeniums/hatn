@@ -372,12 +372,17 @@ template <typename ...Fields>
         static Field* findField(UnitImpl* unit,int id);
 
         template <typename BufferT>
-        using ParsingHandlerFnT=std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)>;
+        struct FieldParser
+        {
+            std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)> fn;
+            WireType wireType;
+            const char* fieldName;
+        };
 
         template <typename BufferT>
-        static const ParsingHandlerFnT<BufferT>* fieldParser(int id)
+        static const FieldParser<BufferT>* fieldParser(int id)
         {
-            auto&& map=parsingHandlers<BufferT>();
+            auto&& map=fieldParsers<BufferT>();
             const auto it=map.find(id);
             if (it==map.end())
             {
@@ -387,7 +392,7 @@ template <typename ...Fields>
         }
 
         template <typename BufferT, typename T>
-        static const ParsingHandlerFnT<BufferT>* fieldParser(T&& /*field*/)
+        static const FieldParser<BufferT>* fieldParser(T&& /*field*/)
         {
             return fieldParser<BufferT>(std::decay_t<T>::ID);
         }
@@ -405,7 +410,7 @@ template <typename ...Fields>
         static const common::FlatMap<int,uintptr_t>& fieldsMap();
 
         template <typename BufferT>
-        static const common::FlatMap<int,ParsingHandlerFnT<BufferT>>& parsingHandlers();
+        static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();
 };
 
 /** Base DataUnit template for concatenation **/
@@ -560,6 +565,26 @@ class EmptyUnit : public Unit
         auto each(const PredicateT&, InitT&& init, const HandlerT&) const -> decltype(auto)
         {
             return hana::id(std::forward<InitT>(init));
+        }
+
+        template <typename BufferT>
+        struct FieldParser
+        {
+            std::function<bool(EmptyUnit&, BufferT&, AllocatorFactory*)> fn;
+            WireType wireType;
+            const char* fieldName;
+        };
+
+        template <typename BufferT>
+        static const FieldParser<BufferT>* fieldParser(int)
+        {
+            return nullptr;
+        }
+
+        template <typename BufferT, typename T>
+        static const FieldParser<BufferT>* fieldParser(T&& /*field*/)
+        {
+            return nullptr;
         }
 
     protected:

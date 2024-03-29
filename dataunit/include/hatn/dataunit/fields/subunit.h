@@ -151,7 +151,8 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Deserialize DataUnit from wire
-        template <typename T> inline static bool deserialize(T& value,WireData& wired, AllocatorFactory* factory)
+        template <typename UnitT, typename BufferT>
+        static bool deserialize(UnitT& value,BufferT& wired, AllocatorFactory* factory)
         {
             return deserialize(value.mutableValue(),wired,factory);
         }

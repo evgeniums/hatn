@@ -95,10 +95,13 @@ template <typename ...Fields>
 template <typename BufferT>
 const common::FlatMap<
         int,
-        typename UnitImpl<Fields...>::template ParsingHandlerFnT<BufferT>
+        typename UnitImpl<Fields...>::template FieldParser<BufferT>
     >&
-UnitImpl<Fields...>::parsingHandlers()
+UnitImpl<Fields...>::fieldParsers()
 {
+    using unitT=UnitImpl<Fields...>;
+    using itemT=typename UnitImpl<Fields...>::template FieldParser<BufferT>;
+
     auto f=[](auto&& state, auto fieldTypeC) {
 
         using type=typename decltype(fieldTypeC)::type;
@@ -106,12 +109,17 @@ UnitImpl<Fields...>::parsingHandlers()
         auto index=hana::first(state);
         auto map=hana::second(state);
 
-        auto handler=[index](UnitImpl<Fields...>& unit, BufferT& buf, AllocatorFactory* factory)
+        auto handler=[index](unitT& unit, BufferT& buf, AllocatorFactory* factory)
         {
             auto& field=unit.template getInterface<decltype(index)::value>();
             return field.deserialize(buf,factory);
         };
-        map[type::fieldId()]=handler;
+        auto item=itemT{
+            handler,
+            type::fieldWireType(),
+            type::fieldName()
+        };
+        map[type::fieldId()]=item;
 
         return hana::make_pair(hana::plus(index,hana::int_c<1>),std::move(map));
     };
@@ -120,7 +128,7 @@ UnitImpl<Fields...>::parsingHandlers()
             hana::tuple_t<Fields...>,
             hana::make_pair(
                 hana::int_c<0>,
-                common::FlatMap<int,typename UnitImpl<Fields...>::template ParsingHandlerFnT<BufferT>>{}
+                common::FlatMap<int,itemT>{}
             ),
             f
         );

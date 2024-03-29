@@ -220,6 +220,23 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
 
     std::cerr<<"Cycle parsing"<<std::endl;
 
+    hatn::dataunit::WireBufSolid solid1;
+    BOOST_CHECK(hatn::dataunit::io::serialize(unit1,solid1)>0);
+
+    typename internal::all_types::type unit2_1;
+    resultCount=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        resultCount+=static_cast<int>(hatn::dataunit::io::deserialize(unit2_1,solid1));
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
+
+    std::cerr<<"Cycle polymorphic parsing"<<std::endl;
+
     hatn::dataunit::WireDataSingle wired1;
     unit1.serialize(wired1);
 

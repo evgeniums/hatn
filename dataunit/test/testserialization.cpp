@@ -84,6 +84,13 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     f1.set(300);
     BOOST_CHECK_EQUAL(300,f1.get());
 
+    auto du1f2=du1::field2;
+    const auto* f1Parser=obj1.fieldParser<du::WireDataSingle>(du1f2);
+    BOOST_CHECK(static_cast<bool>(f1Parser));
+
+    const auto* noParser=obj1.fieldParser<du::WireDataSingle>(100);
+    BOOST_CHECK(!static_cast<bool>(noParser));
+
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
     BOOST_CHECK(r>0);
@@ -96,12 +103,10 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     r=du::io::serialize(obj1,buf2);
     BOOST_CHECK(r>0);
 
-    auto du1f2=du1::field2;
-    const auto* f1Parser=obj1.fieldParser<du::WireDataSingle>(du1f2);
-    BOOST_CHECK(static_cast<bool>(f1Parser));
-
-    const auto* noParser=obj1.fieldParser<du::WireDataSingle>(100);
-    BOOST_CHECK(!static_cast<bool>(noParser));
+    type obj3;
+    ok=du::io::deserialize(obj3,buf2);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL(300,obj3.field(du1::field2).get());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeStringField)
@@ -125,6 +130,11 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
     du::WireBufSolid buf2;
     r=du::io::serialize(obj1,buf2);
     BOOST_CHECK(r>0);
+
+    type obj3;
+    ok=du::io::deserialize(obj3,buf2);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL("Hello world!",obj3.field(du3::field4).c_str());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeSubunitField)
@@ -152,6 +162,13 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     du::WireBufSolid buf2;
     r=du::io::serialize(obj1,buf2);
     BOOST_CHECK(r>0);
+
+    type obj3;
+    ok=du::io::deserialize(obj3,buf2);
+    BOOST_CHECK(ok);
+    const auto& c3_f3=obj3.field(du4::f3).get();
+    const auto& c3_f3_4=c3_f3.field(du3::field4);
+    BOOST_CHECK_EQUAL("Hello world!",c3_f3_4.c_str());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
@@ -175,6 +192,11 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
     du::WireBufSolid buf2;
     r=du::io::serialize(obj1,buf2);
     BOOST_CHECK(r>0);
+
+    type obj3;
+    ok=du::io::deserialize(obj3,buf2);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL("Hello world!",obj3.field(du5::field5).value(0).buf()->c_str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -480,8 +480,11 @@ bool UnitSer::deserialize(UnitT* value, BufferT& wired)
     // temporarily set WireData size to SubUnit size with current offset
     auto keepSize=wired.size();
     wired.setSize(wired.currentOffset()+dataSize);
+
     // parse SubUnit
-    auto ok=value->parse(wired,false);
+    auto ok=io::deserialize(*value,wired,false);
+    // auto ok=value->parse(wired,false);
+
     // restore size
     wired.setSize(keepSize);
 
