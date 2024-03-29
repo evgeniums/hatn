@@ -113,20 +113,8 @@ template <typename ...Fields>
         UnitImpl(Unit* self);
 
         virtual ~UnitImpl()=default;
-        UnitImpl(const UnitImpl& other) :
-            hatn::common::VInterfacesPack<Fields...>(other)
-        {
-            copy(*this,other);
-        }
-        UnitImpl& operator= (const UnitImpl& other)
-        {
-            if (this!=&other)
-            {
-                hatn::common::VInterfacesPack<Fields...>::operator =(other);
-                copy(*this,other);
-            }
-            return *this;
-        }
+        UnitImpl(const UnitImpl& other)=default;
+        UnitImpl& operator= (const UnitImpl& other)=default;
         UnitImpl(UnitImpl&& other) =default;
         UnitImpl& operator= (UnitImpl&& other) =default;
 
@@ -356,26 +344,6 @@ template <typename ...Fields>
             autoAppendUnitFieldAtPath(*this,std::forward<PathT>(path),size);
         }
 
-        /**  Template of fields iterator */
-        template <typename T,int Index> struct Iterator
-        {
-            /**  Copy next field */
-            static void copyNext(
-                T& unit,
-                const T& otherUnit
-            );
-        };
-
-        /**  Iterator template specialization for last field */
-        template <typename T> struct Iterator<T,0>
-        {
-            /**  Copy next field */
-            static void copyNext(
-                T& unit,
-                const T& otherUnit
-            );
-        };
-
         template <typename PredicateT, typename HandlerT>
         auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
         {
@@ -399,9 +367,6 @@ template <typename ...Fields>
         {
             return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
         }
-
-        /**  Copy one DataUnit to other */
-        static void copy(UnitImpl& dst,const UnitImpl& src);
 
         static const Field* findField(const UnitImpl* unit,int id);
         static Field* findField(UnitImpl* unit,int id);
@@ -664,41 +629,6 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
 
     // complete
     return true;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T,int Index>
-void UnitImpl<Fields...>::Iterator<T,Index>::copyNext(
-        T& unit,
-        const T& otherUnit
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    auto& field = std::get<Index>(unit.m_interfaces);
-    const auto& otherField = std::get<Index>(otherUnit.m_interfaces);
-    field=otherField;
-    Iterator<T,Index-1>::copyNext(unit,otherUnit);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-void UnitImpl<Fields...>::Iterator<T,0>::copyNext(
-        T& unit,
-        const T& otherUnit
-    )
-{
-    auto& field = std::get<0>(unit.m_interfaces);
-    const auto& otherField = std::get<0>(otherUnit.m_interfaces);
-    field=otherField;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-void UnitImpl<Fields...>::copy(UnitImpl& dst,const UnitImpl& src)
-{
-    Iterator<UnitImpl<Fields...>,MaxI>::copyNext(dst,src);
 }
 
 //---------------------------------------------------------------
