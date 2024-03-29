@@ -21,10 +21,9 @@
 #ifndef HATNDATAUNITS_H
 #define HATNDATAUNITS_H
 
-#include <map>
-
 #include <boost/hana.hpp>
 
+#include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 
@@ -365,11 +364,6 @@ template <typename ...Fields>
                 T& unit,
                 const T& otherUnit
             );
-
-            static void addToMapNext(
-                const T* unit,
-                std::map<int,uintptr_t>& map
-            );
         };
 
         /**  Iterator template specialization for last field */
@@ -379,11 +373,6 @@ template <typename ...Fields>
             static void copyNext(
                 T& unit,
                 const T& otherUnit
-            );
-
-            static void addToMapNext(
-                const T* unit,
-                std::map<int,uintptr_t>& map
             );
         };
 
@@ -414,7 +403,8 @@ template <typename ...Fields>
         /**  Copy one DataUnit to other */
         static void copy(UnitImpl& dst,const UnitImpl& src);
 
-        static Field* findField(const UnitImpl* unit,int id);
+        static const Field* findField(const UnitImpl* unit,int id);
+        static Field* findField(UnitImpl* unit,int id);
 
     protected:
 
@@ -426,15 +416,8 @@ template <typename ...Fields>
 
     private:
 
-        static std::map<int,uintptr_t> m_map;
-        static common::MutexLock m_mapLocker;
-        static std::atomic<bool> m_mapReady;
-
-        static void fillMap(const UnitImpl* unit);
+        static const common::FlatMap<int,uintptr_t>& fieldsMap();
 };
-template <typename ...Fields> std::map<int,uintptr_t> UnitImpl<Fields...>::m_map;
-template <typename ...Fields> common::MutexLock UnitImpl<Fields...>::m_mapLocker;
-template <typename ...Fields> std::atomic<bool> UnitImpl<Fields...>::m_mapReady;
 
 /** Base DataUnit template for concatenation **/
 template <typename Conf, typename ...Fields>
@@ -720,51 +703,25 @@ void UnitImpl<Fields...>::copy(UnitImpl& dst,const UnitImpl& src)
 
 //---------------------------------------------------------------
 template <typename ...Fields>
-template <typename T,int Index>
-void UnitImpl<Fields...>::Iterator<T,Index>::addToMapNext(
-        const T* unit,
-        std::map<int,uintptr_t>& map
-    )
+Field* UnitImpl<Fields...>::findField(UnitImpl* unit,int id)
 {
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    const auto& field = std::get<Index>(unit->m_interfaces);
-    map[field.getID()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(unit);
-    Iterator<T,Index-1>::addToMapNext(unit,map);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-void UnitImpl<Fields...>::Iterator<T,0>::addToMapNext(
-        const T* unit,
-        std::map<int,uintptr_t>& map
-    )
-{
-    const auto& field = std::get<0>(unit->m_interfaces);
-    map[field.getID()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(unit);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-void UnitImpl<Fields...>::fillMap(const UnitImpl* unit)
-{
-    m_mapLocker.lock();
-    if (m_map.empty())
-    {
-        Iterator<UnitImpl<Fields...>,MaxI>::addToMapNext(unit,m_map);
-    }
-    m_mapLocker.unlock();
-    m_mapReady.store(true,std::memory_order_release);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
-{
-    auto it=m_map.find(id);
-    if (it!=m_map.end())
+    const auto& m=fieldsMap();
+    const auto it=m.find(id);
+    if (it!=m.end())
     {
         return reinterpret_cast<Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+template <typename ...Fields>
+const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
+{
+    const auto& m=fieldsMap();
+    const auto it=m.find(id);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<const Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
     }
     return nullptr;
 }

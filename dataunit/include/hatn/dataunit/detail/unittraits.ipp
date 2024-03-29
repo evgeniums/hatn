@@ -34,10 +34,6 @@ UnitImpl<Fields...>::UnitImpl(Unit* self)
                     Fields(std::forward<Unit*>(self))...
             )
 {
-    if (!m_mapReady.load(std::memory_order_acquire))
-    {
-        fillMap(this);
-    }
 }
 
 //---------------------------------------------------------------
@@ -72,6 +68,25 @@ bool UnitImpl<Fields...>::iterateConst(const Unit::FieldVisitorConst& visitor) c
     };
 
     return each(predicate,handler);
+}
+
+//---------------------------------------------------------------
+
+template <typename ...Fields>
+const common::FlatMap<int,uintptr_t>& UnitImpl<Fields...>::fieldsMap()
+{
+    static Unit sampleUnit{};
+    static const UnitImpl<Fields...> sample(&sampleUnit);
+
+    auto f = [](common::FlatMap<int,uintptr_t> m, const auto& field) {
+        auto m1=std::move(m);
+        m1[field.fieldId()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(&sample);
+        return m1;
+    };
+
+    static const common::FlatMap<int,uintptr_t> map=hana::fold(sample.m_interfaces,common::FlatMap<int,uintptr_t>{},f);
+
+    return map;
 }
 
 /********************** UnitConcat **************************/
