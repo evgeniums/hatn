@@ -109,7 +109,7 @@ UnitImpl<Fields...>::parsingHandlers()
         auto handler=[index](UnitImpl<Fields...>& unit, BufferT& buf, AllocatorFactory* factory)
         {
             auto& field=unit.template getInterface<decltype(index)::value>();
-            return field.load(buf,factory);
+            return field.deserialize(buf,factory);
         };
         map[type::fieldId()]=handler;
 

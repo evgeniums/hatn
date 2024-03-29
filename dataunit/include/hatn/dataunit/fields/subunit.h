@@ -92,10 +92,33 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Deserialize DataUnit from wire
-        template <typename BufferT>
-        static bool deserialize(Unit* value, BufferT& wired, AllocatorFactory*)
+        template <typename UnitT, typename BufferT>
+        static bool deserialize(UnitT* value, BufferT& wired, AllocatorFactory* factory, bool /*repeated*/=false)
         {
             return UnitSer::deserialize(value,wired);
+        }
+
+        template <typename BufferT>
+        bool deserialize(BufferT& wired, AllocatorFactory* factory)
+        {
+            this->fieldClear();
+            if (factory==nullptr)
+            {
+                factory=this->unit()->factory();
+            }
+
+            auto* value=mutableValue();
+            value->setParseToSharedArrays(m_parseToSharedArrays,factory);
+            bool ok=this->deserialize(mutableValue(),wired,factory);
+            if (ok)
+            {
+                this->markSet();
+            }
+            else
+            {
+                this->m_set=false;
+            }
+            return ok;
         }
 
         //! Format as JSON element
@@ -157,8 +180,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         //! Clear field
         virtual void clear() override
         {
-            this->m_value.reset();
-            this->m_set=false;
+            fieldClear();
         }
 
         /**
@@ -277,29 +299,18 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         virtual const Unit* subunit() const override {return &value();}
         virtual Unit* subunit() override {return mutableValue();}
 
+        void fieldClear()
+        {
+            this->m_value.reset();
+            this->m_set=false;
+        }
+
     protected:
 
         //! Load field from wire
         virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
         {
-            clear();
-            if (factory==nullptr)
-            {
-                factory=this->unit()->factory();
-            }
-
-            auto* value=mutableValue();
-            value->setParseToSharedArrays(m_parseToSharedArrays,factory);
-            bool ok=this->deserialize(mutableValue(),wired,factory);
-            if (ok)
-            {
-                this->markSet();
-            }
-            else
-            {
-                this->m_set=false;
-            }
-            return ok;
+            return this->deserialize(mutableValue(),wired,factory);
         }
 
         //! Store field to wire
@@ -331,7 +342,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
          *
          * After calling this method the value will be regarded as set.
          *
-         * @todo Not used any more?
+         * @todo Make static dispatching.
          */
         virtual typename baseFieldType::base* mutableValue() override
         {
@@ -367,8 +378,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
         //! Clear field
         virtual void clear() override
         {
-            this->m_value.reset();
-            this->m_set=false;
+            this->fieldClear();
         }
 };
 

@@ -516,7 +516,9 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     */
     virtual type& createAndAddValue() =0;
 
-    /**  Add number of values */
+    /**  Add number of values
+     *   @todo Implement variant for static polymorphism.
+    */
     virtual void addValues(size_t n)=0;
 
     /**  Get number of repeated fields */
@@ -571,48 +573,60 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
        return count()*sizeof(type);
     }
 
+    /**  Clear field */
+    void fieldClear()
+    {
+        this->m_set=false;
+        clearArray();
+    }
+
     /**  Clear array */
     virtual void clear() override
     {
-       this->m_set=false;
-       clearArray();
+        fieldClear();
+    }
+
+    template <typename BufferT>
+    bool deserialize(BufferT& wired, AllocatorFactory* factory)
+    {
+        fieldClear();
+        if (factory==nullptr)
+        {
+            factory=m_parentUnit->factory();
+        }
+
+        /* get count of elements in array */
+        uint32_t counter=0;
+        auto* buf=wired.mainContainer();
+        size_t availableBufSize=buf->size()-wired.currentOffset();
+        auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),availableBufSize,counter);
+        if (consumed<0)
+        {
+            return false;
+        }
+        wired.incCurrentOffset(consumed);
+
+        /* add required number of elements */
+        addValues(counter);
+
+        /* fill each field */
+        for (uint32_t i=0;i<counter;i++)
+        {
+            auto& field=value(i);
+            if (!fieldType::deserialize(field,wired,factory))
+            {
+                return false;
+            }
+        }
+
+        /* ok */
+        return true;
     }
 
     /**  Load fields from wire */
     virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
     {
-       clear();
-       if (factory==nullptr)
-       {
-           factory=m_parentUnit->factory();
-       }
-
-       /* get count of elements in array */
-       uint32_t counter=0;
-       auto* buf=wired.mainContainer();
-       size_t availableBufSize=buf->size()-wired.currentOffset();
-       auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),availableBufSize,counter);
-       if (consumed<0)
-       {
-           return false;
-       }
-       wired.incCurrentOffset(consumed);
-
-       /* add required number of elements */
-       addValues(counter);
-
-       /* fill each field */
-       for (uint32_t i=0;i<counter;i++)
-       {
-           auto& field=value(i);
-           if (!fieldType::deserialize(field,wired,factory))
-           {
-               return false;
-           }
-       }
-
-       /* ok */
-       return true;
+        return deserialize(wired,factory);
     }
 
     constexpr static const bool CanChainBlocks=fieldType::CanChainBlocks;
@@ -796,10 +810,10 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
 
    using RepeatedFieldTmpl<Type,Id>::RepeatedFieldTmpl;
 
-   /**  Load fields from wire */
-   virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+   template <typename BufferT>
+   bool deserialize(BufferT& wired, AllocatorFactory* factory)
    {
-       this->clear();
+       this->fieldClear();
 
        if (factory==nullptr)
        {
@@ -838,6 +852,12 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
 
        /* ok */
        return true;
+   }
+
+   /**  Load fields from wire */
+   virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+   {
+       return deserialize(wired,factory);
    }
 
    template <typename BufferT>
@@ -897,7 +917,6 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
        }
 
        /* ok */
-       //! @todo return Error()
        return true;
    }
 
@@ -949,7 +968,8 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
    }
 
    /**  Load fields from wire */
-   virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+   template <typename BufferT>
+   bool deserialize(BufferT& wired, AllocatorFactory* factory)
    {
        if (factory==nullptr)
        {
@@ -964,6 +984,12 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
 
        /* ok */
        return true;
+   }
+
+   /**  Load fields from wire */
+   virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+   {
+       return deserialize(wired,factory);
    }
 
    constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
@@ -1007,7 +1033,6 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
        }
 
        /* ok */
-       //! @todo return Error()
        return true;
    }
 
@@ -1016,7 +1041,6 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
    {
        return serialize(wired);
    }
-
 };
 
 template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
