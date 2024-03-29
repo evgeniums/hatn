@@ -95,6 +95,13 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     du::WireBufSolid buf2;
     r=du::io::serialize(obj1,buf2);
     BOOST_CHECK(r>0);
+
+    auto du1f2=du1::field2;
+    const auto* f1Parser=obj1.fieldParser<du::WireDataSingle>(du1f2);
+    BOOST_CHECK(static_cast<bool>(f1Parser));
+
+    const auto* noParser=obj1.fieldParser<du::WireDataSingle>(100);
+    BOOST_CHECK(!static_cast<bool>(noParser));
 }
 
 BOOST_AUTO_TEST_CASE(SerializeStringField)

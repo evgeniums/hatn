@@ -89,6 +89,46 @@ const common::FlatMap<int,uintptr_t>& UnitImpl<Fields...>::fieldsMap()
     return map;
 }
 
+//---------------------------------------------------------------
+
+template <typename ...Fields>
+template <typename BufferT>
+const common::FlatMap<
+        int,
+        typename UnitImpl<Fields...>::template ParsingHandlerFnT<BufferT>
+    >&
+UnitImpl<Fields...>::parsingHandlers()
+{
+    auto f=[](auto&& state, auto fieldTypeC) {
+
+        using type=typename decltype(fieldTypeC)::type;
+
+        auto index=hana::first(state);
+        auto map=hana::second(state);
+
+        auto handler=[index](UnitImpl<Fields...>& unit, BufferT& buf, AllocatorFactory* factory)
+        {
+            auto& field=unit.template getInterface<decltype(index)::value>();
+            return field.load(buf,factory);
+        };
+        map[type::fieldId()]=handler;
+
+        return hana::make_pair(hana::plus(index,hana::int_c<1>),std::move(map));
+    };
+
+    static const auto result=hana::fold(
+            hana::tuple_t<Fields...>,
+            hana::make_pair(
+                hana::int_c<0>,
+                common::FlatMap<int,typename UnitImpl<Fields...>::template ParsingHandlerFnT<BufferT>>{}
+            ),
+            f
+        );
+    static const auto map=hana::second(result);
+
+    return map;
+}
+
 /********************** UnitConcat **************************/
 
 //---------------------------------------------------------------

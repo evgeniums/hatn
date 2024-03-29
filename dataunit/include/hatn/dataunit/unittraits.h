@@ -371,6 +371,27 @@ template <typename ...Fields>
         static const Field* findField(const UnitImpl* unit,int id);
         static Field* findField(UnitImpl* unit,int id);
 
+        template <typename BufferT>
+        using ParsingHandlerFnT=std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)>;
+
+        template <typename BufferT>
+        static const ParsingHandlerFnT<BufferT>* fieldParser(int id)
+        {
+            auto&& map=parsingHandlers<BufferT>();
+            const auto it=map.find(id);
+            if (it==map.end())
+            {
+                return nullptr;
+            }
+            return &it->second;
+        }
+
+        template <typename BufferT, typename T>
+        static const ParsingHandlerFnT<BufferT>* fieldParser(T&& /*field*/)
+        {
+            return fieldParser<BufferT>(std::decay_t<T>::ID);
+        }
+
     protected:
 
         /**  Iterate fields applying visitor handler */
@@ -382,6 +403,9 @@ template <typename ...Fields>
     private:
 
         static const common::FlatMap<int,uintptr_t>& fieldsMap();
+
+        template <typename BufferT>
+        static const common::FlatMap<int,ParsingHandlerFnT<BufferT>>& parsingHandlers();
 };
 
 /** Base DataUnit template for concatenation **/
