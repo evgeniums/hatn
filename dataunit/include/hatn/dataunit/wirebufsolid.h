@@ -30,6 +30,23 @@ class WireDataSingle;
 
 struct WireBufSolidTraits : public WireBufTraits
 {
+    WireBufSolidTraits(
+        AllocatorFactory* factory
+    ) : container(factory->dataMemoryResource())
+    {}
+
+    WireBufSolidTraits(
+        const char* data,
+        size_t size,
+        bool inlineBuffer
+    ) : container(data,size,inlineBuffer)
+    {}
+
+    explicit WireBufSolidTraits(
+        common::ByteArray container
+    ) noexcept : container(std::move(container))
+    {}
+
     constexpr static bool isSingleBuffer() noexcept
     {
         return true;
@@ -37,17 +54,15 @@ struct WireBufSolidTraits : public WireBufTraits
 
     common::ByteArray* mainContainer() const noexcept
     {
-        return const_cast<common::ByteArray*>(&m_container);
+        return const_cast<common::ByteArray*>(&container);
     }
 
     void clear()
     {
-        m_container.clear();
+        container.clear();
     }
 
-    private:
-
-        common::ByteArray m_container;
+    common::ByteArray container;
 };
 
 class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
@@ -56,36 +71,85 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
 
         explicit WireBufSolid(
             AllocatorFactory* factory=AllocatorFactory::getDefault()
-        ) : WireBuf<WireBufSolidTraits>(factory),
-            m_container(factory->dataMemoryResource())
+        ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{factory},factory)
         {}
+
+        explicit WireBufSolid(
+            common::ByteArray container,
+            AllocatorFactory* factory=AllocatorFactory::getDefault()
+        ) noexcept
+            : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{std::move(container)},0,factory)
+        {
+            setSize(traits().container.size());
+        }
 
         WireBufSolid(
             const char* data,
             size_t size,
             bool inlineBuffer,
             AllocatorFactory* factory=AllocatorFactory::getDefault()
-        ) : WireBuf<WireBufSolidTraits>(size,factory),
-            m_container(data,size,inlineBuffer)
+            ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{data,size,inlineBuffer},size,factory)
         {
             setUseInlineBuffers(inlineBuffer);
         }
 
-        explicit WireBufSolid(
-            common::ByteArray container,
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
-        ) noexcept
-            : WireBuf<WireBufSolidTraits>(container.size(),factory),
-              m_container(std::move(container))
-        {}
-
         WireBufSolid(
             WireDataSingle&& buf
         ) noexcept;
+};
 
-    private:
+struct WireBufSolidSharedTraits : public WireBufTraits
+{
+    WireBufSolidSharedTraits(
+        AllocatorFactory* factory
+    ) : container(factory->createObject<common::ByteArrayManaged>(factory->dataMemoryResource()))
+    {}
 
-        common::ByteArray m_container;
+    WireBufSolidSharedTraits(
+        common::ByteArrayShared container
+    ) noexcept : container(std::move(container))
+    {}
+
+    constexpr static bool isSingleBuffer() noexcept
+    {
+        return true;
+    }
+
+    common::ByteArray* mainContainer() const noexcept
+    {
+        return sharedMainContainer();
+    }
+
+    common::ByteArray* sharedMainContainer() const noexcept
+    {
+        return const_cast<common::ByteArrayManaged*>(container.get());
+    }
+
+    void clear()
+    {
+        container->clear();
+    }
+
+    common::ByteArrayShared container;
+};
+
+class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidSharedTraits>
+{
+    public:
+
+        explicit WireBufSolidShared(
+            AllocatorFactory* factory=AllocatorFactory::getDefault()
+        ) : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{factory},factory)
+        {}
+
+        explicit WireBufSolidShared(
+            common::ByteArrayShared container,
+            AllocatorFactory* factory=AllocatorFactory::getDefault()
+        ) noexcept
+            : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{std::move(container)},0,factory)
+        {
+            setSize(traits().container->size());
+        }
 };
 
 HATN_DATAUNIT_NAMESPACE_END

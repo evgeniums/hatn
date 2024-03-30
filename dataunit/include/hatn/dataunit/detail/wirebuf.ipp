@@ -44,7 +44,7 @@ int WireBuf<TraitsT>::appendUint32(uint32_t val)
 
     if (!isSingleBuffer())
     {
-        m_traits.setActualMetaVarSize(consumed);
+        this->traits().setActualMetaVarSize(consumed);
     }
     return consumed;
 }
@@ -96,7 +96,7 @@ int WireBuf<TraitsT>::append(T* other)
 //---------------------------------------------------------------
 
 template <typename TraitsT>
-WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
+WireBufSolid WireBuf<TraitsT>::toSolidWireBuf() const
 {
     auto f=factory();
     common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
@@ -105,15 +105,18 @@ WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
     return WireBufSolid(std::move(singleBuf),f);
 }
 
+template <typename TraitsT>
+WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
+{
+    return toSolidWireBuf();
+}
+
 //---------------------------------------------------------------
 
 inline WireBufSolid::WireBufSolid(
-    WireDataSingle&& buf
-    ) noexcept :
-    WireBuf<WireBufSolidTraits>(buf.factory()),
-    m_container(std::move(buf.m_container))
-{
-}
+        WireDataSingle&& buf
+    ) noexcept : WireBufSolid(std::move(buf.m_container),buf.factory())
+{}
 
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

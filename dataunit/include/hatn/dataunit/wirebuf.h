@@ -23,6 +23,7 @@
 
 #include <hatn/common/bytearray.h>
 #include <hatn/common/spanbuffer.h>
+#include <hatn/common/objecttraits.h>
 
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/allocatorfactory.h>
@@ -30,6 +31,75 @@
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 class WireBufSolid;
+
+class WireBufBase
+{
+    public:
+
+        explicit WireBufBase(
+            AllocatorFactory* factory,
+            bool useShareBuffers=false
+        ) : WireBufBase(0,factory,useShareBuffers)
+        {}
+
+        explicit WireBufBase(
+            size_t size=0,
+            AllocatorFactory* factory=nullptr,
+            bool useShareBuffers=false
+        ) noexcept :
+            m_size(size),
+            m_factory(factory),
+            m_useShareBuffers(useShareBuffers),
+            m_useInlineBuffers(false)
+        {}
+
+        void setSize(size_t size) noexcept
+        {
+            m_size=size;
+        }
+
+        size_t size() const noexcept
+        {
+            return m_size;
+        }
+
+        void incSize(int increment) noexcept
+        {
+            m_size+=increment;
+        }
+
+        AllocatorFactory* factory() const noexcept
+        {
+            return m_factory;
+        }
+
+        inline void setUseInlineBuffers(bool enable) noexcept
+        {
+            m_useInlineBuffers=enable;
+        }
+        inline bool isUseInlineBuffers() const noexcept
+        {
+            return m_useInlineBuffers;
+        }
+
+        inline bool isUseSharedBuffers() const noexcept
+        {
+            return m_useShareBuffers;
+        }
+
+    protected:
+
+        void setFactory(AllocatorFactory* factory) noexcept
+        {
+            m_factory=factory;
+        }
+
+        size_t m_size;
+        AllocatorFactory* m_factory;
+
+        bool m_useShareBuffers;
+        bool m_useInlineBuffers;
+};
 
 struct WireBufTraits
 {
@@ -64,7 +134,8 @@ struct WireBufTraits
 };
 
 template <typename TraitsT>
-class WireBuf
+class WireBuf : public common::WithTraits<TraitsT>,
+                public WireBufBase
 {    
     public:
 
@@ -74,20 +145,20 @@ class WireBuf
         }
 
         explicit WireBuf(
+            TraitsT&& traits,
             AllocatorFactory* factory,
             bool useShareBuffers=false
-        ) noexcept : WireBuf(0,factory,useShareBuffers)
+        ) :  WireBuf(std::move(traits),0,factory,useShareBuffers)
         {}
 
         explicit WireBuf(
+            TraitsT&& traits,
             size_t size=0,
             AllocatorFactory* factory=nullptr,
             bool useShareBuffers=false
-        ) noexcept :
-            m_size(size),
-            m_factory(factory),
-            m_useShareBuffers(useShareBuffers),
-            m_useInlineBuffers(false)
+        ) noexcept
+            : common::WithTraits<TraitsT>(std::move(traits)),
+              WireBufBase(size,factory,useShareBuffers)
         {}
 
 #if __cplusplus < 201703L
@@ -101,56 +172,6 @@ class WireBuf
         WireBuf& operator=(WireBuf&&) =default;
 
         // begin methods with traits
-
-        common::SpanBuffer nextBuffer() const noexcept
-        {
-            return m_traits.nextBuffer();
-        }
-
-        common::ByteArray* mainContainer() const noexcept
-        {
-            return m_traits.mainContainer();
-        }
-
-        void appendBuffer(common::SpanBuffer&& buf)
-        {
-            m_traits.appendBuffer(std::move(buf));
-        }
-
-        void appendBuffer(const common::SpanBuffer& buf)
-        {
-            m_traits.appendBuffer(buf);
-        }
-
-        void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
-        {
-            m_traits.setCurrentMainContainer(currentMainContainer);
-        }
-
-        void reserveMetaCapacity(size_t size)
-        {
-            m_traits.reserveMetaCapacity(size);
-        }
-
-        void resetState()
-        {
-            m_traits.m_offset=0;
-            m_traits.resetState();
-        }
-
-        void clear()
-        {
-            m_traits.clear();
-            resetState();
-            m_size=0;
-        }
-
-        common::ByteArray* appendMetaVar(size_t varTypeSize)
-        {
-            return m_traits.appendMetaVar(varTypeSize);
-        }
-
-        // end methods with traits
 
         int appendUint32(uint32_t val);
 
@@ -167,39 +188,67 @@ class WireBuf
             appendBuffer(common::SpanBuffer(std::move(buf)));
         }
 
+        common::SpanBuffer nextBuffer() const noexcept
+        {
+            return this->traits().nextBuffer();
+        }
+
+        common::ByteArray* mainContainer() const noexcept
+        {
+            return this->traits().mainContainer();
+        }
+
+        void appendBuffer(common::SpanBuffer&& buf)
+        {
+            this->traits().appendBuffer(std::move(buf));
+        }
+
+        void appendBuffer(const common::SpanBuffer& buf)
+        {
+            this->traits().appendBuffer(buf);
+        }
+
+        void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
+        {
+            this->traits().setCurrentMainContainer(currentMainContainer);
+        }
+
+        void reserveMetaCapacity(size_t size)
+        {
+            this->traits().reserveMetaCapacity(size);
+        }
+
+        void resetState()
+        {
+            this->traits().m_offset=0;
+            this->traits().resetState();
+        }
+
+        void clear()
+        {
+            this->traits().clear();
+            resetState();
+            m_size=0;
+        }
+
+        common::ByteArray* appendMetaVar(size_t varTypeSize)
+        {
+            return this->traits().appendMetaVar(varTypeSize);
+        }
+
         void setCurrentOffset(size_t offs) noexcept
         {
-            m_traits.m_offset=offs;
+            this->traits().m_offset=offs;
         }
 
         size_t currentOffset() const noexcept
         {
-            return m_traits.m_offset;
+            return this->traits().m_offset;
         }
 
         void incCurrentOffset(int increment) noexcept
         {
-            m_traits.m_offset+=increment;
-        }
-
-        void setSize(size_t size) noexcept
-        {
-            m_size=size;
-        }
-
-        size_t size() const noexcept
-        {
-            return m_size;
-        }
-
-        void incSize(int increment) noexcept
-        {
-            m_size+=increment;
-        }
-
-        AllocatorFactory* factory() const noexcept
-        {
-            return m_factory;
+            this->traits().m_offset+=increment;
         }
 
         template <typename ContainerT>
@@ -221,31 +270,12 @@ class WireBuf
             self->resetState();
         }
 
-        inline void setUseInlineBuffers(bool enable) noexcept
-        {
-            m_useInlineBuffers=enable;
-        }
-        inline bool isUseInlineBuffers() const noexcept
-        {
-            return m_useInlineBuffers;
-        }
+        WireBufSolid toSolidWireBuf() const;
 
-        inline bool isUseSharedBuffers() const noexcept
-        {
-            return m_useShareBuffers;
-        }
-
+        //! @todo remove it
         WireBufSolid toSingleWireData() const;
 
-    private:
-
-        size_t m_size;
-        AllocatorFactory* m_factory;
-
-        bool m_useShareBuffers;
-        bool m_useInlineBuffers;
-
-        TraitsT m_traits;
+        // end methods with traits                   
 };
 
 HATN_DATAUNIT_NAMESPACE_END
