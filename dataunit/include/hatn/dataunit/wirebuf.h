@@ -130,7 +130,7 @@ struct WireBufTraits
         std::ignore=actualVarSize;
     }
 
-    size_t m_offset;
+    size_t m_offset=0;
 };
 
 template <typename TraitsT>

@@ -18,7 +18,7 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
-
+#if 1
 namespace {
 
 HDU_DATAUNIT_EMPTY(du0)
@@ -152,6 +152,19 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
     ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL("Hello world!",obj3.field(du3::field4).c_str());
+
+    du::WireBufChained buf3;
+    auto r1=du::io::serialize(obj1,buf3);
+    BOOST_CHECK(r1>0);
+    BOOST_CHECK_EQUAL(r,r1);
+
+    auto buf3Solid=buf3.toSolidWireBuf();
+    BOOST_CHECK_EQUAL(buf2.mainContainer()->size(),buf3Solid.mainContainer()->size());
+
+    type obj4;
+    ok=du::io::deserialize(obj4,buf3Solid);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL("Hello world!",obj4.field(du3::field4).c_str());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeSubunitField)
@@ -188,6 +201,21 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     const auto& c3_f3=obj3.field(du4::f3).get();
     const auto& c3_f3_4=c3_f3.field(du3::field4);
     BOOST_CHECK_EQUAL("Hello world!",c3_f3_4.c_str());
+
+    du::WireBufChained buf3;
+    auto r1=du::io::serialize(obj1,buf3);
+    BOOST_CHECK(r1>0);
+    BOOST_CHECK_EQUAL(r,r1);
+
+    auto buf3Solid=buf3.toSolidWireBuf();
+    BOOST_CHECK_EQUAL(buf2.mainContainer()->size(),buf3Solid.mainContainer()->size());
+
+    type obj4;
+    ok=du::io::deserialize(obj4,buf3Solid);
+    BOOST_CHECK(ok);
+    const auto& c4_f3=obj4.field(du4::f3).get();
+    const auto& c4_f3_4=c4_f3.field(du3::field4);
+    BOOST_CHECK_EQUAL("Hello world!",c4_f3_4.c_str());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
@@ -218,6 +246,19 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
     ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL("Hello world!",obj3.field(du5::field5).value(0).buf()->c_str());
+
+    du::WireBufChained buf3;
+    auto r1=du::io::serialize(obj1,buf3);
+    BOOST_CHECK(r1>0);
+    BOOST_CHECK_EQUAL(r,r1);
+
+    auto buf3Solid=buf3.toSolidWireBuf();
+    BOOST_CHECK_EQUAL(buf2.mainContainer()->size(),buf3Solid.mainContainer()->size());
+
+    type obj4;
+    ok=du::io::deserialize(obj4,buf3Solid);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL("Hello world!",obj4.field(du5::field5).value(0).buf()->c_str());
 }
 
 BOOST_AUTO_TEST_CASE(SerializeSubunitFieldWithRequired)
@@ -241,5 +282,5 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitFieldWithRequired)
     auto ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
 }
-
 BOOST_AUTO_TEST_SUITE_END()
+#endif

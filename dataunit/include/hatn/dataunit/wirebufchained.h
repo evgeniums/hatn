@@ -68,8 +68,7 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
         m_meta.resize(offset+varTypeSize);
 
         // create buffer and append it to chain
-        m_bufferChain.push_back(common::SpanBuffer(m_meta,offset,varTypeSize));
-        m_cursor=m_bufferChain.begin();
+        appendBuffer(common::SpanBuffer(m_meta,offset,varTypeSize));
 
         // return inline buffer
         m_tmpInline.loadInline(m_meta.data()+offset,varTypeSize);
@@ -129,6 +128,16 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
     void reserveMetaCapacity(size_t capacity)
     {
         m_meta.reserve(capacity);
+    }
+
+    common::ByteArray* mainContainer() const noexcept
+    {
+        return (m_currentMainContainer==nullptr)?sharedMainContainer():m_currentMainContainer;
+    }
+
+    void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
+    {
+        m_currentMainContainer=currentMainContainer;
     }
 
     common::ByteArray m_meta;

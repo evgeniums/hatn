@@ -29,6 +29,8 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+#if 0
+
 /********************** WireData **************************/
 
 //---------------------------------------------------------------
@@ -213,5 +215,6 @@ void WireDataChained::reserveMetaCapacity(size_t capacity)
 
 /********************** WireDataPack **************************/
 
+#endif
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

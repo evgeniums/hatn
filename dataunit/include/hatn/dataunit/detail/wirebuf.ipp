@@ -113,9 +113,10 @@ WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
 
 //---------------------------------------------------------------
 
-inline WireBufSolid::WireBufSolid(
-        WireDataSingle&& buf
-    ) noexcept : WireBufSolid(std::move(buf.m_container),buf.factory())
+template <typename T>
+WireBufSolid::WireBufSolid(
+        WireDataDerived<T>&& buf
+    ) : WireBufSolid(buf.toSolidWireBuf())
 {}
 
 //---------------------------------------------------------------

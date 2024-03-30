@@ -413,7 +413,10 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 
                 wired.setCurrentOffset(keepOffset);
                 wired.setCurrentMainContainer(nullptr);
-                wired.appendBuffer(std::move(sharedBuf));
+                if (!sharedBuf->isEmpty())
+                {
+                    wired.appendBuffer(std::move(sharedBuf));
+                }
             }
             else
             {

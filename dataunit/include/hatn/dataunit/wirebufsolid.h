@@ -26,7 +26,7 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-class WireDataSingle;
+template <typename ImplT> class WireDataDerived;
 
 struct WireBufSolidTraits : public WireBufTraits
 {
@@ -93,9 +93,16 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
             setUseInlineBuffers(inlineBuffer);
         }
 
+        ~WireBufSolid()=default;
+        WireBufSolid(const WireBufSolid&)=default;
+        WireBufSolid(WireBufSolid&&)=default;
+        WireBufSolid& operator=(const WireBufSolid&)=default;
+        WireBufSolid& operator=(WireBufSolid&&)=default;
+
+        template <typename T>
         WireBufSolid(
-            WireDataSingle&& buf
-        ) noexcept;
+            WireDataDerived<T>&& buf
+        );
 };
 
 struct WireBufSolidSharedTraits : public WireBufTraits

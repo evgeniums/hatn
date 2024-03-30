@@ -30,11 +30,239 @@
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/weakptr.h>
 #include <hatn/common/spanbuffer.h>
+#include <hatn/common/objecttraits.h>
 
 #include <hatn/dataunit/allocatorfactory.h>
 #include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/wirebuf.h>
+#include <hatn/dataunit/wirebufsolid.h>
+#include <hatn/dataunit/wirebufchained.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
+
+#if 1
+
+template <typename ImplT> class WireDataDerived;
+
+class HATN_DATAUNIT_EXPORT WireData
+{
+public:
+
+    WireData(
+        WireBufBase &impl
+    ) : baseImpl(impl)
+    {}
+
+    virtual ~WireData()=default;
+#if __cplusplus < 201703L
+    // to use as return in create() method
+    WireData(const WireData&)=default;
+#else
+    WireData(const WireData&)=delete;
+#endif
+    WireData& operator=(const WireData&)=delete;
+    WireData(WireData&&) =default;
+    WireData& operator=(WireData&&) =default;
+
+    virtual common::SpanBuffer nextBuffer() const noexcept=0;
+    virtual common::ByteArray* mainContainer() const noexcept=0;
+    virtual void appendBuffer(common::SpanBuffer&& buf)=0;
+    virtual void appendBuffer(const common::SpanBuffer& buf)=0;
+    virtual bool isSingleBuffer() const noexcept=0;
+    virtual void reserveMetaCapacity(size_t size)=0;
+    virtual void resetState()=0;
+    virtual void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept=0;
+    virtual common::ByteArray* appendMetaVar(size_t varTypeSize)=0;
+    virtual void setCurrentOffset(size_t offs) noexcept=0;
+    virtual size_t currentOffset() const noexcept=0;
+    virtual void incCurrentOffset(int increment) noexcept=0;
+    virtual void appendBuffer(const common::ByteArrayShared& buf)=0;
+    virtual void appendBuffer(common::ByteArrayShared&& buf)=0;
+    virtual int appendUint32(uint32_t val)=0;
+    virtual int append(WireData* other)=0;
+    virtual WireBufSolid toSolidWireBuf() const=0;
+    virtual void clear()=0;
+
+    //! @todo make it somewhere as templated and use from one place
+    template <typename ContainerT>
+    void copyToContainer(ContainerT& container) const
+    {
+        auto* self=const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this);
+
+        self->resetState();
+        container.reserve(container.size()+size());
+        auto mContainer=mainContainer();
+        if (mContainer && !mContainer->isEmpty())
+        {
+            container.append(*mContainer);
+        }
+        while (auto buf=nextBuffer())
+        {
+            container.append(buf.view());
+        }
+        self->resetState();
+    }
+
+    //! @todo remove it
+    virtual WireDataDerived<WireBufSolid> toSingleWireData() const=0;
+
+    inline bool isUseSharedBuffers() const noexcept
+    {
+        return baseImpl.isUseSharedBuffers();
+    }
+
+    //! Set wired size
+    inline void setSize(size_t size) noexcept
+    {
+        baseImpl.setSize(size);
+    }
+
+    //! Get wired size
+    inline size_t size() const noexcept
+    {
+        return baseImpl.size();
+    }
+
+    //! Increment size
+    inline void incSize(int increment) noexcept
+    {
+        baseImpl.incSize(increment);
+    }
+
+    inline AllocatorFactory* factory() const noexcept
+    {
+        return baseImpl.factory();
+    }
+
+    inline void setUseInlineBuffers(bool enable) noexcept
+    {
+        baseImpl.setUseInlineBuffers(enable);
+    }
+    inline bool isUseInlineBuffers() const noexcept
+    {
+        return baseImpl.isUseInlineBuffers();
+    }
+
+private:
+
+    WireBufBase& baseImpl;
+};
+
+template <typename ImplT>
+class WireDataDerived : public common::WithImpl<ImplT>, public WireData
+{
+public:
+
+    template <typename ...Args>
+    WireDataDerived(Args&&... args)
+        : common::WithImpl<ImplT>(std::forward<Args>(args)...),
+          WireData(this->impl())
+    {}
+
+    virtual common::SpanBuffer nextBuffer() const noexcept override
+    {
+        return this->impl().nextBuffer();
+    }
+
+    virtual common::ByteArray* mainContainer() const noexcept override
+    {
+        return this->impl().mainContainer();
+    }
+
+    virtual void appendBuffer(common::SpanBuffer&& buf) override
+    {
+        this->impl().appendBuffer(std::move(buf));
+    }
+
+    virtual void appendBuffer(const common::SpanBuffer& buf) override
+    {
+        this->impl().appendBuffer(buf);
+    }
+
+    virtual bool isSingleBuffer() const noexcept override
+    {
+        return this->impl().isSingleBuffer();
+    }
+
+    virtual void reserveMetaCapacity(size_t size) override
+    {
+        this->impl().reserveMetaCapacity(size);
+    }
+
+    virtual void resetState() override
+    {
+        this->impl().resetState();
+    }
+
+    virtual void setCurrentMainContainer(common::ByteArray* container) noexcept override
+    {
+        this->impl().setCurrentMainContainer(container);
+    }
+
+    virtual common::ByteArray* appendMetaVar(size_t varTypeSize) override
+    {
+        return this->impl().appendMetaVar(varTypeSize);
+    }
+
+    virtual void setCurrentOffset(size_t offs) noexcept override
+    {
+        this->impl().setCurrentOffset(offs);
+    }
+
+    virtual size_t currentOffset() const noexcept override
+    {
+        return this->impl().currentOffset();
+    }
+
+    virtual void incCurrentOffset(int increment) noexcept override
+    {
+        this->impl().incCurrentOffset(increment);
+    }
+
+    virtual void appendBuffer(const common::ByteArrayShared& buf) override
+    {
+        this->impl().appendBuffer(common::SpanBuffer(buf));
+    }
+    virtual void appendBuffer(common::ByteArrayShared&& buf) override
+    {
+        this->impl().appendBuffer(common::SpanBuffer(std::move(buf)));
+    }
+    virtual int appendUint32(uint32_t val) override
+    {
+        return this->impl().appendUint32(val);
+    }
+
+    virtual int append(WireData* other) override
+    {
+        return this->impl().append(other);
+    }
+
+    virtual void clear() override
+    {
+        this->impl().clear();
+    }
+
+    //! @todo remove it
+    virtual WireDataDerived<WireBufSolid> toSingleWireData() const override
+    {
+        auto f=this->impl().factory();
+        common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
+        common::ByteArray singleBuf(memResource);
+        copyToContainer(singleBuf);
+        return WireDataDerived<WireBufSolid>(std::move(singleBuf),f);
+    }
+
+    WireBufSolid toSolidWireBuf() const override
+    {
+        return this->impl().toSolidWireBuf();
+    }
+};
+
+using WireDataSingle=WireDataDerived<WireBufSolid>;
+using WireDataSingleShared=WireDataDerived<WireBufSolidShared>;
+using WireDataChained=WireDataDerived<WireBufChained>;
+
+#else
 
 class WireDataSingle;
 
@@ -340,7 +568,7 @@ class HATN_DATAUNIT_EXPORT WireDataChained : public WireDataSingleShared
         common::SpanBuffers m_bufferChain;
         mutable decltype(m_bufferChain)::iterator m_cursor;
 };
-
+#endif
 HATN_DATAUNIT_NAMESPACE_END
 
 #ifndef HATN_WIREDATA_SRC

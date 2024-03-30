@@ -612,11 +612,11 @@ void checkByteArray(bool inlineBuffers=false)
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckByteArray,::hatn::test::MultiThreadFixture)
 {
-    checkByteArray<hatn::dataunit::WireDataSingle>();
-    checkByteArray<hatn::dataunit::WireDataSingleShared>();
-    checkByteArray<hatn::dataunit::WireDataChained>();
-    checkByteArray<hatn::dataunit::WireDataSingle>(true);
-    checkByteArray<hatn::dataunit::WireDataSingleShared>(true);
+    BOOST_TEST_CONTEXT("WireDataSingle,false"){checkByteArray<hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,false"){checkByteArray<hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("WireDataChained,false"){checkByteArray<hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("WireDataSingle,true"){checkByteArray<hatn::dataunit::WireDataSingle>(true);}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,true"){checkByteArray<hatn::dataunit::WireDataSingleShared>(true);}
     // inline buffers for chained wire are useless because data will be internally copied for parsing
     //checkByteArray<hatn::dataunit::WireDataChained>(true);
 }
@@ -936,31 +936,31 @@ void serializeCheckRepeatedFixedString(bool shared=false, bool inlineBuffers=fal
 template <typename WiredT>
 void checkRepeatedBytes(bool inlineBuffers=false)
 {
-    serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(false,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_bytes_repeated::traits,false"){serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_bytes_repeated_proto::traits,false"){serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated::traits,false"){serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated_proto::traits,false"){serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(false,inlineBuffers);}
 
-    serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(true,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_bytes_repeated::traits,true"){serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_bytes_repeated_proto::traits,true"){serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated::traits,true"){serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated_proto::traits,true"){serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(true,inlineBuffers);}
 
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(false,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated::traits,false"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated_proto::traits,false"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(false,inlineBuffers);}
 
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(true,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated::traits,true"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated_proto::traits,true"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(true,inlineBuffers);}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedBytes,Env)
 {
-    checkRepeatedBytes<hatn::dataunit::WireDataSingle>();
-    checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>();
-    checkRepeatedBytes<hatn::dataunit::WireDataChained>();
+    BOOST_TEST_CONTEXT("WireDataSingle,false"){checkRepeatedBytes<hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,false"){checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("WireDataChained,false"){checkRepeatedBytes<hatn::dataunit::WireDataChained>();}
 
-    checkRepeatedBytes<hatn::dataunit::WireDataSingle>(true);
-    checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>(true);
+    BOOST_TEST_CONTEXT("WireDataSingle,true"){checkRepeatedBytes<hatn::dataunit::WireDataSingle>(true);}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,true"){checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>(true);}
 
     // inline buffers for chained wire are useless because data will be internally copied for parsing
     //checkRepeatedBytes<hatn::dataunit::WireDataChained>(true);

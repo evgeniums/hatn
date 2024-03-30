@@ -273,7 +273,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                 // can deserialize only from solid buffer
                 if (!wired.isSingleBuffer())
                 {
-                    WireBufSolid singleW(wired.toSingleWireData());
+                    WireBufSolid singleW(wired.toSolidWireBuf());
                     return deserialize(obj,singleW,topLevel);
                 }
 
@@ -306,6 +306,12 @@ struct HATN_DATAUNIT_EXPORT visitors
                     if (consumed<0)
                     {
                         reportDebug("parse","Failed to parse DataUnit message {}: broken tag at offset ",obj.name(),wired.currentOffset());
+                        cleanup();
+                        return false;
+                    }
+                    if (tag==0)
+                    {
+                        reportDebug("parse","Failed to parse DataUnit message {}: null tag at offset ",obj.name(),wired.currentOffset());
                         cleanup();
                         return false;
                     }
