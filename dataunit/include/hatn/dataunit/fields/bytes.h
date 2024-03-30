@@ -119,19 +119,8 @@ class FieldTmplBytes : public Field, public BytesType
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory *factory)
         {
-            return BytesSer<
-                typename Type::type::onstackType,
-                typename Type::type::sharedType
-                >
-                ::
-                deserialize(
-                    wired,
-                    this->m_value.buf(),
-                    this->m_value.byteArrayShared(),
-                    factory,
-                    Type::type::maxSize::value,
-                    Type::type::canChainBlocks::value
-                    );
+            this->m_set=deserialize(this->m_value,wired,factory);
+            return this->m_set;
         }
 
         //! Serialize field to wire
@@ -178,6 +167,11 @@ class FieldTmplBytes : public Field, public BytesType
         static inline size_t valueSize(const typename Type::type& value) noexcept
         {
             return value.size();
+        }
+
+        size_t fieldSize() const noexcept
+        {
+            return valueSize(m_value);
         }
 
         //! Prepare shared form of value storage for parsing from wire
@@ -257,12 +251,24 @@ class FieldTmplBytes : public Field, public BytesType
         //! Clear field
         virtual void clear() override
         {
+            fieldClear();
+        }
+
+        //! Clear field
+        void fieldClear()
+        {
             this->m_value.clear();
             this->m_set=false;
         }
 
         //! Reset field
         virtual void reset() override
+        {
+            fieldReset();
+        }
+
+        //! Reset field
+        void fieldReset()
         {
             this->m_value.reset();
             this->m_set=false;
@@ -428,6 +434,7 @@ struct FieldTmpl<TYPE_BYTES> : public FieldTmplBytes<TYPE_BYTES>
 {
     using FieldTmplBytes<TYPE_BYTES>::FieldTmplBytes;
 };
+//! @todo Support default values for strings?
 template<>
 struct FieldTmpl<TYPE_STRING> : public FieldTmplBytes<TYPE_STRING>
 {

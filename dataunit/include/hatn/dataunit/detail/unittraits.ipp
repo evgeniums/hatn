@@ -38,7 +38,8 @@ UnitImpl<Fields...>::UnitImpl(Unit* self)
 
 //---------------------------------------------------------------
 template <typename ...Fields>
-bool UnitImpl<Fields...>::iterate(const Unit::FieldVisitor& visitor)
+template <typename T>
+bool UnitImpl<Fields...>::iterate(const T& visitor)
 {
     auto predicate=[](bool ok)
     {
@@ -55,7 +56,8 @@ bool UnitImpl<Fields...>::iterate(const Unit::FieldVisitor& visitor)
 
 //---------------------------------------------------------------
 template <typename ...Fields>
-bool UnitImpl<Fields...>::iterateConst(const Unit::FieldVisitorConst& visitor) const
+template <typename T>
+bool UnitImpl<Fields...>::iterateConst(const T& visitor) const
 {
     auto predicate=[](bool ok)
     {
@@ -159,20 +161,6 @@ template <typename Conf, typename ...Fields>
 Field* UnitConcat<Conf,Fields...>::doFieldById(int id)
 {
     return baseType::findField(this,id);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-bool UnitConcat<Conf,Fields...>::doIterateFields(const Unit::FieldVisitor& visitor)
-{
-    return this->iterate(visitor);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-bool UnitConcat<Conf,Fields...>::doIterateFieldsConst(const Unit::FieldVisitorConst& visitor) const
-{
-    return this->iterateConst(visitor);
 }
 
 //---------------------------------------------------------------

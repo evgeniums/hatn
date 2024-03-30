@@ -157,8 +157,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 #define _HDU_DATAUNIT_IMPLEMENT_TYPE_IMPL_(type,base) \
         const Field* type::fieldById(int id) const {return this->doFieldById(id);} \
         Field* type::fieldById(int id) {return this->doFieldById(id);} \
-        bool type::iterateFields(const Unit::FieldVisitor& visitor) {return this->doIterateFields(visitor);}; \
-        bool type::iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const {return this->doIterateFieldsConst(visitor);} \
+        bool type::iterateFields(const Unit::FieldVisitor& visitor) {return this->iterate(visitor);}; \
+        bool type::iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const {return this->iterateConst(visitor);} \
         size_t type::fieldCount() const noexcept {return this->doFieldCount();} \
         const char* type::name() const noexcept {return this->unitName();} \
         type::type(::hatn::dataunit::AllocatorFactory* factory):base(factory){}

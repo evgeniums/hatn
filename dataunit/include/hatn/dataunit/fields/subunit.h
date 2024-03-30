@@ -163,11 +163,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          */
         virtual size_t size() const noexcept override
         {
-            return valueSize(this->m_value);
+            return fieldSize();
         }
 
         //! Get size of value
-        template <typename T> inline static size_t valueSize(const T& value) noexcept
+        template <typename T>
+        static size_t valueSize(const T& value) noexcept
         {
             if (value.isNull())
             {
@@ -176,6 +177,11 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             }
             // return data size plus unpacked space reserved for length field
             return (value.value().size()+sizeof(uint32_t)+1);
+        }
+
+        size_t fieldSize() const noexcept
+        {
+            return valueSize(this->m_value);
         }
 
         //! Clear field
@@ -304,6 +310,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         {
             this->m_value.reset();
             this->m_set=false;
+        }
+
+        //! Reset field
+        void fieldReset()
+        {
+            fieldClear();
         }
 
     protected:

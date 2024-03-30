@@ -561,16 +561,21 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /** Get expected field size */
     virtual size_t size() const noexcept override
     {
-       if (isSizeIterateNeeded)
-       {
-           size_t result=0;
-           for (auto&& it:vector)
-           {
-               result+=fieldType::valueSize(it);
-           }
-           return result;
-       }
-       return count()*sizeof(type);
+        return fieldSize();
+    }
+
+    size_t fieldSize() const noexcept
+    {
+        if (isSizeIterateNeeded)
+        {
+            size_t result=0;
+            for (auto&& it:vector)
+            {
+                result+=fieldType::valueSize(it);
+            }
+            return result;
+        }
+        return count()*sizeof(type);
     }
 
     /**  Clear field */
@@ -578,6 +583,12 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     {
         this->m_set=false;
         clearArray();
+    }
+
+    //! Reset field
+    void fieldReset()
+    {
+        fieldClear();
     }
 
     /**  Clear array */
@@ -954,6 +965,11 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
 
    /** Get expected field size */
    virtual size_t size() const noexcept override
+   {
+       return fieldSize();
+   }
+
+   size_t fieldSize() const noexcept
    {
        if (RepeatedFieldTmpl<Type,Id>::isSizeIterateNeeded)
        {

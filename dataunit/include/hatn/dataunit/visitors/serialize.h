@@ -154,40 +154,77 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static void clear(UnitT& obj)
     {
-        //! @todo implement
-        // if (!m_clean)
-        // {
-        //     iterateFields([](Field& field){field.clear(); return true;});
-        // }
-        // resetWireData();
-        // m_clean=true;
+        if (!obj.isClean())
+        {
+            obj.iterate([](auto& field){field.fieldClear(); return true;});
+        }
+        obj.resetWireData();
+        obj.setClean(true);
     }
 
     template <typename UnitT>
     static void reset(UnitT& obj)
     {
-        //! @todo implement
-        // if (!m_clean)
-        // {
-        //     iterateFields([](Field& field){field.reset(); return true;});
-        // }
-        // resetWireData();
-        // m_clean=true;
+        if (!obj.isClean())
+        {
+            obj.iterate([](auto& field){field.fieldReset(); return true;});
+        }
+        obj.resetWireData();
+        obj.setClean(true);
+    }
+
+    /**
+     * @brief Check if all required fields are set.
+     * @param obj Unit to check.
+     * @return Name of failed field or nullptr.
+     */
+    template <typename UnitT>
+    static const char* checkRequiredFields(UnitT& obj)
+    {
+        const char* failedFieldName=nullptr;
+        if (!obj.iterate(
+                    [&failedFieldName](const auto& field)
+                    {
+                        using fieldType=std::decay_t<decltype(field)>;
+
+                        if (!fieldType::fieldRequired())
+                        {
+                            return true;
+                        }
+
+                        bool ok=field.isSet();
+                        if (!ok)
+                        {
+                            failedFieldName=fieldType::fieldName();
+                        }
+                        return ok;
+                    }
+                )
+            )
+        {
+            return failedFieldName;
+        }
+
+        return nullptr;
     }
 
     template <typename UnitT>
     static size_t size(const UnitT& obj)
     {
-        //! @todo implement
+        auto predicate=[](auto&&)
+        {
+            return true;
+        };
         size_t acc=0;
-        // iterateFieldsConst([&acc](const Field& field)
-        //                    {
-        //                        // add tag size
-        //                        acc+=sizeof(uint32_t);
-        //                        // add field size
-        //                        acc+=field.size();
-        //                        return true;
-        //                    });
+        auto handler=[&acc](auto&& field, auto&&)
+        {
+            // add tag size
+            acc+=sizeof(uint32_t);
+            // add field size
+            acc+=field.fieldSize();
+            return true;
+        };
+        obj.each(predicate,true,handler);
         return acc;
     }
 
@@ -198,7 +235,7 @@ struct HATN_DATAUNIT_EXPORT visitors
             std::is_same<Unit,UnitT>{},
             [&](auto _)
             {
-                // invoke virtual searilize() of unit object
+                // invoke virtual serialize() of unit object
                 //! @todo implement methods for wire bufs
                 return _(unit).parse(_(buf),_(top));
             },
@@ -362,24 +399,13 @@ struct HATN_DATAUNIT_EXPORT visitors
                 }
 
                 // check if all required fields are set
-                //! @todo implement
-                // const char* failedFieldName=nullptr;
-                // if (!iterateFieldsConst([&failedFieldName](const Field& field)
-                //                         {
-                //                             bool ok=!field.isRequired()||field.isSet();
-                //                             if (!ok)
-                //                             {
-                //                                 failedFieldName=field.name();
-                //                             }
-                //                             return ok;
-                //                         }
-                //                         )
-                //     )
-                // {
-                //     reportDebug("parse","Failed to parse DataUnit message {}: required field {} is not set",name(),failedFieldName);
-                //     cleanup();
-                //     return false;
-                // }
+                const char* failedFieldName=checkRequiredFields(obj);
+                if (failedFieldName!=nullptr)
+                {
+                    reportDebug("parse","Failed to parse DataUnit message {}: required field {} is not set",obj.name(),failedFieldName);
+                    cleanup();
+                    return false;
+                }
 
                 if (topLevel)
                 {

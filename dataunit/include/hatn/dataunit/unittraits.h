@@ -356,16 +356,16 @@ template <typename ...Fields>
             return hatn::validator::foreach_if(this->m_interfaces,pred,handler);
         }
 
-        template <typename PredicateT, typename HandlerT, typename InitT>
-        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) -> decltype(auto)
+        template <typename PredicateT, typename HandlerT, typename DefaultT>
+        auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) -> decltype(auto)
         {
-            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<DefaultT>(defaultRet),handler);
         }
 
-        template <typename PredicateT, typename HandlerT, typename InitT>
-        auto each(const PredicateT& pred, InitT&& init, const HandlerT& handler) const -> decltype(auto)
+        template <typename PredicateT, typename HandlerT, typename DefaultT>
+        auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) const -> decltype(auto)
         {
-            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<InitT>(init),handler);
+            return hatn::validator::foreach_if(this->m_interfaces,pred,std::forward<DefaultT>(defaultRet),handler);
         }
 
         static const Field* findField(const UnitImpl* unit,int id);
@@ -397,13 +397,13 @@ template <typename ...Fields>
             return fieldParser<BufferT>(std::decay_t<T>::ID);
         }
 
-    protected:
-
         /**  Iterate fields applying visitor handler */
-        bool iterate(const Unit::FieldVisitor& visitor);
+        template <typename T>
+        bool iterate(const T& visitor);
 
         /**  Iterate fields applying const visitor handler */
-        bool iterateConst(const Unit::FieldVisitorConst& visitor) const;
+        template <typename T>
+        bool iterateConst(const T& visitor) const;
 
     private:
 
@@ -488,12 +488,6 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
 
         /**  Get field pointer by ID */
         Field* doFieldById(int id);
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFields(const Unit::FieldVisitor& visitor);
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFieldsConst(const Unit::FieldVisitorConst& visitor) const;
 
         /**  Get field count */
         size_t doFieldCount() const noexcept;
@@ -587,19 +581,21 @@ class EmptyUnit : public Unit
             return nullptr;
         }
 
+        /**  Iterate fields applying visitor handler */
+        template <typename T>
+        bool iterate(const T&)
+        {
+            return true;
+        }
+
+        /**  Iterate fields applying const visitor handler */
+        template <typename T>
+        bool iterateConst(const T&) const
+        {
+            return true;
+        }
+
     protected:
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFields(const Unit::FieldVisitor&)
-        {
-            return true;
-        }
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFieldsConst(const Unit::FieldVisitorConst&) const
-        {
-            return true;
-        }
 
         /**  Get field count */
         constexpr static size_t doFieldCount() noexcept
@@ -665,6 +661,7 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
         return false;
     }
 
+    //! find field by id non virtual
     const auto& field=this->field(fieldName);
     // process all units in field array
     for (auto&& it:field.vector)

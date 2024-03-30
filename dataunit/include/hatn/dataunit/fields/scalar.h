@@ -187,8 +187,7 @@ class Scalar : public Field
         //! Clear field
         virtual void clear() override
         {
-            m_value=defaultValue();
-            m_set=false;
+            fieldClear();
         }
 
         //! Get default value
@@ -197,14 +196,38 @@ class Scalar : public Field
             return DummyConst<type>::f();
         }
 
+        //! Clear field
+        void fieldClear()
+        {
+            m_value=fieldDefaultValue();
+            m_set=false;
+        }
+
+        //! Reset field
+        void fieldReset()
+        {
+            fieldClear();
+        }
+
+        //! Get default value
+        type fieldDefaultValue() const
+        {
+            return DummyConst<type>::f();
+        }
+
         //! Get field size
         virtual size_t size() const noexcept override
         {
-            return valueSize(m_value);
+            return valueSize();
         }
 
         //! Get size of value
-        inline static size_t valueSize(const type& /*value*/) noexcept
+        constexpr static size_t valueSize() noexcept
+        {
+            return sizeof(type);
+        }
+
+        constexpr static size_t fieldSize() noexcept
         {
             return sizeof(type);
         }
