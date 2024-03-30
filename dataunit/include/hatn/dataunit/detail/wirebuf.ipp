@@ -106,6 +106,16 @@ WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
 }
 
 //---------------------------------------------------------------
+
+inline WireBufSolid::WireBufSolid(
+    WireDataSingle&& buf
+    ) noexcept :
+    WireBuf<WireBufSolidTraits>(buf.factory()),
+    m_container(std::move(buf.m_container))
+{
+}
+
+//---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITWIREBUF_IPP

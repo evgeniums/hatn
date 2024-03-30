@@ -26,6 +26,8 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+class WireDataSingle;
+
 struct WireBufSolidTraits : public WireBufTraits
 {
     constexpr static bool isSingleBuffer() noexcept
@@ -48,7 +50,7 @@ struct WireBufSolidTraits : public WireBufTraits
         common::ByteArray m_container;
 };
 
-class WireBufSolid : public WireBuf<WireBufSolidTraits>
+class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
 {
     public:
 
@@ -76,6 +78,10 @@ class WireBufSolid : public WireBuf<WireBufSolidTraits>
             : WireBuf<WireBufSolidTraits>(container.size(),factory),
               m_container(std::move(container))
         {}
+
+        WireBufSolid(
+            WireDataSingle&& buf
+        ) noexcept;
 
     private:
 

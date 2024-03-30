@@ -247,12 +247,12 @@ struct HATN_DATAUNIT_EXPORT visitors
                 auto&& obj=_(unit);
                 auto&& wired=_(buf);
 
-                //! @todo make solid buffer
-                // if (!wired.isSingleBuffer())
-                // {
-                //     WireBufSolid singleW(wired.toSingleWireData());
-                //     return deserialize(obj,singleW,topLevel);
-                // }
+                // can deserialize only from solid buffer
+                if (!wired.isSingleBuffer())
+                {
+                    WireBufSolid singleW(wired.toSingleWireData());
+                    return deserialize(obj,singleW,topLevel);
+                }
 
                 clear(obj);
                 obj.setClean(false);

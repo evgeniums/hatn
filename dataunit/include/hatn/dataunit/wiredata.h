@@ -245,6 +245,7 @@ class HATN_DATAUNIT_EXPORT WireDataSingle : public WireData
         private:
 
             common::ByteArray m_container;
+            friend class WireBufSolid;
 };
 
 //! Packed DataUnit for wire with single shared buffer
