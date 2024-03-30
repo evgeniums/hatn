@@ -15,7 +15,7 @@
 #include <hatn/dataunit/detail/syntax.ipp>
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/wiredata.h>
-#include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
 

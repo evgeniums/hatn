@@ -51,7 +51,7 @@ SET (HEADERS
     include/hatn/dataunit/wirebufsolid.h
     include/hatn/dataunit/detail/wirebuf.ipp
 
-    include/hatn/dataunit/visitors/serialize.h
+    include/hatn/dataunit/visitors.h
 )
 
 SET (SOURCES

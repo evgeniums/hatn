@@ -22,7 +22,7 @@
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/fieldserialization.h>
-#include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/visitors.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

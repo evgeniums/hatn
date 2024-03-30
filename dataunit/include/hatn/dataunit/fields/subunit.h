@@ -22,7 +22,7 @@
 #define HATNSUBUNIT_H
 
 #include <hatn/dataunit/fields/fieldtraits.h>
-#include <hatn/dataunit/visitors/serialize.h>
+#include <hatn/dataunit/visitors.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

@@ -8,7 +8,7 @@
 /*
 
 */
-/** @file dataunit/visitors/serialize.h
+/** @file dataunit/visitors.h
   *
   * Contains visitor for data units serialization.
   *
@@ -16,8 +16,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNDATAUNITSERIALIZE_H
-#define HATNDATAUNITSERIALIZE_H
+#ifndef HATNDATAUNITVISITORS_H
+#define HATNDATAUNITVISITORS_H
 
 #include <system_error>
 
@@ -39,6 +39,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 struct HATN_DATAUNIT_EXPORT visitors
 {
 
+    //! @todo Change error processing.
     template <typename ...Args>
     static void reportDebug(const char* context,const char* msg, Args&&... args) noexcept
     {
@@ -53,7 +54,7 @@ struct HATN_DATAUNIT_EXPORT visitors
     /**
      * @brief Serialize data unit without invokation of virtual methods.
      * @param obj Object to serialize.
-     * @param wired Buffer containing data.
+     * @param wired Buffer to put data to.
      * @param top Is it top level object or subunit.
      * @return Serialized size or -1 in case of error.
      *
@@ -151,7 +152,11 @@ struct HATN_DATAUNIT_EXPORT visitors
             }
         );
     }
-#if 1
+
+    /**
+     * @brief Clear data unit without invokation of virtual methods.
+     * @param obj Data unit object.
+     */
     template <typename UnitT>
     static void clear(UnitT& obj)
     {
@@ -163,6 +168,10 @@ struct HATN_DATAUNIT_EXPORT visitors
         obj.setClean(true);
     }
 
+    /**
+     * @brief Reset data unit without invokation of virtual methods.
+     * @param obj Data unit object.
+     */
     template <typename UnitT>
     static void reset(UnitT& obj)
     {
@@ -209,6 +218,10 @@ struct HATN_DATAUNIT_EXPORT visitors
         return nullptr;
     }
 
+    /**
+     * @brief Get size of data unit without invokation of virtual methods.
+     * @param obj Data unit object.
+     */
     template <typename UnitT>
     static size_t size(const UnitT& obj)
     {
@@ -229,6 +242,15 @@ struct HATN_DATAUNIT_EXPORT visitors
         return acc;
     }
 
+    /**
+     * @brief Deserialize data unit without invokation of virtual methods.
+     * @param unit Object to deserialize to.
+     * @param obj Buffer containing data.
+     * @param top Is it top level object or subunit.
+     * @return Serialized size or -1 in case of error.
+     *
+     * @todo Use descriptive errors.
+     */
     template <typename UnitT, typename BufferT>
     static bool deserialize(UnitT& unit, BufferT& buf, bool top=true)
     {
@@ -416,7 +438,6 @@ struct HATN_DATAUNIT_EXPORT visitors
             }
         );
     }
-#endif
 };
 
 using io=visitors;
@@ -425,4 +446,4 @@ using io=visitors;
 
 HATN_DATAUNIT_NAMESPACE_END
 
-#endif // HATNDATAUNITSERIALIZE_H
+#endif // HATNDATAUNITVISITORS_H
