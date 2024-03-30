@@ -21,20 +21,9 @@
 #ifndef HATNDATAUNITSTREAM_H
 #define HATNDATAUNITSTREAM_H
 
-#include <functional>
-#include <tuple>
-#include <type_traits>
-
 #include <boost/endian/conversion.hpp>
 
-#include <hatn/common/metautils.h>
-#include <hatn/common/bytearray.h>
-#include <hatn/common/pmr/pmrtypes.h>
-#include <hatn/common/sharedptr.h>
-#include <hatn/common/logger.h>
-
 #include <hatn/dataunit/dataunit.h>
-#include <hatn/dataunit/types.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -67,8 +56,9 @@ struct HATN_DATAUNIT_EXPORT StreamBase
         bool& moreBytesLeft
     ) noexcept;
 
+    template <typename BufT>
     static int packVarInt32(
-        common::ByteArray* buf,
+        BufT* buf,
         const uint32_t& value
     );
 
@@ -82,8 +72,9 @@ struct HATN_DATAUNIT_EXPORT StreamBase
         const uint32_t& value
     );
 
+    template <typename BufT>
     static int packVarInt64(
-        common::ByteArray* buf,
+        BufT* buf,
         const uint64_t& value
     );
 
@@ -135,7 +126,8 @@ struct HATN_DATAUNIT_EXPORT StreamBase
 };
 
 //! Serialize/deserialize unsigned integer types
-template <typename Type> struct StreamUnsigned
+template <typename Type>
+struct StreamUnsigned
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -175,8 +167,9 @@ template <typename Type> struct StreamUnsigned
      * @param field Field to pack
      * @return Number of bytes occupied by VarInt or -1 or on failure
      */
-    static inline int packVarInt(
-        common::ByteArray* buf,
+    template <typename BufT>
+    static int packVarInt(
+        BufT* buf,
         const Type& field
     )
     {
@@ -187,7 +180,8 @@ template <typename Type> struct StreamUnsigned
 };
 
 //! Serialize/deserialize signed integer types
-template <typename Type> struct StreamSigned
+template <typename Type>
+struct StreamSigned
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -221,8 +215,9 @@ template <typename Type> struct StreamSigned
      * @param field Field to pack
      * @return Number of bytes occupied by VarInt or -1 or on failure
      */
-    static inline int packVarInt(
-        common::ByteArray* buf,
+    template <typename BufT>
+    static int packVarInt(
+        BufT* buf,
         const Type& field
     )
     {
@@ -237,11 +232,13 @@ template <typename Type> struct StreamSigned
 };
 
 //! Template classes of streams
-template <typename Type> struct Stream : public StreamUnsigned<Type>
+template <typename Type>
+struct Stream : public StreamUnsigned<Type>
 {
 };
 
-template <> struct Stream<uint32_t>
+template <>
+struct Stream<uint32_t>
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -272,8 +269,9 @@ template <> struct Stream<uint32_t>
      * @param field Field to pack
      * @return Number of bytes occupied by VarInt or -1 or on failure
      */
-    static inline int packVarInt(
-        common::ByteArray* buf,
+    template <typename BufT>
+    static int packVarInt(
+        BufT* buf,
         const uint32_t& field
     )
     {
@@ -286,17 +284,21 @@ template <> struct Stream<uint32_t>
     }
 };
 
-template <> struct Stream<int8_t> : public StreamSigned<int8_t>
+template <>
+struct Stream<int8_t> : public StreamSigned<int8_t>
 {
 };
-template <> struct Stream<int16_t> : public StreamSigned<int16_t>
+template <>
+struct Stream<int16_t> : public StreamSigned<int16_t>
 {
 };
-template <> struct Stream<int32_t> : public StreamSigned<int32_t>
+template <>
+struct Stream<int32_t> : public StreamSigned<int32_t>
 {
 };
 
-template <> struct Stream<uint64_t>
+template <>
+struct Stream<uint64_t>
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -327,8 +329,9 @@ template <> struct Stream<uint64_t>
      * @param field Field to pack
      * @return Number of bytes occupied by VarInt or -1 or on failure
      */
-    static inline int packVarInt(
-        common::ByteArray* buf,
+    template <typename BufT>
+    static int packVarInt(
+        BufT* buf,
         const uint64_t& field
     )
     {
@@ -341,7 +344,8 @@ template <> struct Stream<uint64_t>
     }
 };
 
-template <> struct Stream<int64_t>
+template <>
+struct Stream<int64_t>
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -374,8 +378,9 @@ template <> struct Stream<int64_t>
      * @param field Field to pack
      * @return Number of bytes occupied by VarInt or -1 or on failure
      */
-    static inline int packVarInt(
-        common::ByteArray* buf,
+    template <typename BufT>
+    static int packVarInt(
+        BufT* buf,
         const int64_t& field
     )
     {
@@ -388,6 +393,148 @@ template <> struct Stream<int64_t>
         return processedSize;
     }
 };
+
+//---------------------------------------------------------------
+template <typename BufT>
+int StreamBase::packVarInt32(
+        BufT* buf,
+        const uint32_t& value
+    )
+{
+    // prepare buffer
+    auto accumulatedSize=buf->size();
+    int processedSize=0;
+    buf->resize(accumulatedSize+5);
+    char* target=buf->data()+accumulatedSize;
+
+    // fill buffer
+    target[processedSize++]=static_cast<uint8_t>(value | 0x80);
+    if (value >= (1 << 7))
+    {
+        target[processedSize++]=static_cast<uint8_t>((value >>  7) | 0x80);
+        if (value >= (1 << 14))
+        {
+            target[processedSize++]=static_cast<uint8_t>((value >> 14) | 0x80);
+            if (value >= (1 << 21))
+            {
+                target[processedSize++]=static_cast<uint8_t>((value >> 21) | 0x80);
+                if (value >= (1 << 28))
+                {
+                    target[processedSize++]=static_cast<uint8_t>(value >> 28);
+                }
+                else
+                {
+                    target[3] &= 0x7F;
+                }
+            }
+            else
+            {
+                target[2] &= 0x7F;
+            }
+        }
+        else
+        {
+            target[1] &= 0x7F;
+        }
+    }
+    else
+    {
+        target[0] &= 0x7F;
+    }
+
+    // resize buffer back
+    if (processedSize!=5)
+    {
+        buf->resize(accumulatedSize+processedSize);
+    }
+
+    // return count of consumed bytes
+    return processedSize;
+}
+
+//---------------------------------------------------------------
+template <typename BufT>
+int StreamBase::packVarInt64(
+        BufT* buf,
+        const uint64_t& value
+    )
+{
+    int processedSize=0;
+    char* target=nullptr;
+    bool alreadyAppended=false;
+    auto appendBytes=[&buf,&target,&processedSize,&alreadyAppended]()
+    {
+        if (!alreadyAppended)
+        {
+            alreadyAppended=true;
+            auto initialSize=buf->size();
+            buf->resize(initialSize+processedSize);
+            target=buf->data()+initialSize;
+        }
+    };
+
+    /************** Snippet from Google Protobuf ********************/
+
+    uint32_t part0 = static_cast<uint32_t>(value      );
+    uint32_t part1 = static_cast<uint32_t>(value >> 28);
+    uint32_t part2 = static_cast<uint32_t>(value >> 56);
+
+    int& size=processedSize;
+
+    if (part2 == 0) {
+        if (part1 == 0) {
+            if (part0 < (1 << 14)) {
+                if (part0 < (1 << 7)) {
+                    size = 1; goto size1;
+                } else {
+                    size = 2; goto size2;
+                }
+            } else {
+                if (part0 < (1 << 21)) {
+                    size = 3; goto size3;
+                } else {
+                    size = 4; goto size4;
+                }
+            }
+        } else {
+            if (part1 < (1 << 14)) {
+                if (part1 < (1 << 7)) {
+                    size = 5; goto size5;
+                } else {
+                    size = 6; goto size6;
+                }
+            } else {
+                if (part1 < (1 << 21)) {
+                    size = 7; goto size7;
+                } else {
+                    size = 8; goto size8;
+                }
+            }
+        }
+    } else {
+        if (part2 < (1 << 7)) {
+            size = 9; goto size9;
+        } else {
+            size = 10; goto size10;
+        }
+    }
+
+size10: appendBytes(); target[9] = static_cast<uint8_t>((part2 >>  7) | 0x80);
+size9 : appendBytes(); target[8] = static_cast<uint8_t>((part2      ) | 0x80);
+size8 : appendBytes(); target[7] = static_cast<uint8_t>((part1 >> 21) | 0x80);
+size7 : appendBytes(); target[6] = static_cast<uint8_t>((part1 >> 14) | 0x80);
+size6 : appendBytes(); target[5] = static_cast<uint8_t>((part1 >>  7) | 0x80);
+size5 : appendBytes(); target[4] = static_cast<uint8_t>((part1      ) | 0x80);
+size4 : appendBytes(); target[3] = static_cast<uint8_t>((part0 >> 21) | 0x80);
+size3 : appendBytes(); target[2] = static_cast<uint8_t>((part0 >> 14) | 0x80);
+size2 : appendBytes(); target[1] = static_cast<uint8_t>((part0 >>  7) | 0x80);
+size1 : appendBytes(); target[0] = static_cast<uint8_t>((part0      ) | 0x80);
+
+    target[size-1] &= 0x7F;
+
+    // return count of consumed bytes
+    return processedSize;
+}
 
 HATN_DATAUNIT_NAMESPACE_END
 

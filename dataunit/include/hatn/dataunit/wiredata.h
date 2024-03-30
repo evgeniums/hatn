@@ -68,20 +68,28 @@ public:
     virtual common::ByteArray* mainContainer() const noexcept=0;
     virtual void appendBuffer(common::SpanBuffer&& buf)=0;
     virtual void appendBuffer(const common::SpanBuffer& buf)=0;
+    virtual void appendBuffer(common::DataBuf buf)=0;
     virtual bool isSingleBuffer() const noexcept=0;
-    virtual void reserveMetaCapacity(size_t size)=0;
     virtual void resetState()=0;
     virtual void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept=0;
-    virtual common::ByteArray* appendMetaVar(size_t varTypeSize)=0;
+    virtual common::DataBuf* appendMetaVar(size_t varTypeSize)=0;
     virtual void setCurrentOffset(size_t offs) noexcept=0;
     virtual size_t currentOffset() const noexcept=0;
     virtual void incCurrentOffset(int increment) noexcept=0;
-    virtual void appendBuffer(const common::ByteArrayShared& buf)=0;
-    virtual void appendBuffer(common::ByteArrayShared&& buf)=0;
     virtual int appendUint32(uint32_t val)=0;
     virtual int append(WireData* other)=0;
     virtual WireBufSolid toSolidWireBuf() const=0;
     virtual void clear()=0;
+
+
+    inline void appendBuffer(const common::ByteArrayShared& buf)
+    {
+        appendBuffer(common::SpanBuffer(buf));
+    }
+    inline void appendBuffer(common::ByteArrayShared&& buf)
+    {
+        appendBuffer(common::SpanBuffer(std::move(buf)));
+    }
 
     //! @todo make it somewhere as templated and use from one place
     template <typename ContainerT>
@@ -179,14 +187,14 @@ public:
         this->impl().appendBuffer(buf);
     }
 
+    virtual void appendBuffer(common::DataBuf buf) override
+    {
+        this->impl().appendBuffer(std::move(buf));
+    }
+
     virtual bool isSingleBuffer() const noexcept override
     {
         return this->impl().isSingleBuffer();
-    }
-
-    virtual void reserveMetaCapacity(size_t size) override
-    {
-        this->impl().reserveMetaCapacity(size);
     }
 
     virtual void resetState() override
@@ -199,7 +207,7 @@ public:
         this->impl().setCurrentMainContainer(container);
     }
 
-    virtual common::ByteArray* appendMetaVar(size_t varTypeSize) override
+    virtual common::DataBuf* appendMetaVar(size_t varTypeSize) override
     {
         return this->impl().appendMetaVar(varTypeSize);
     }
@@ -219,14 +227,6 @@ public:
         this->impl().incCurrentOffset(increment);
     }
 
-    virtual void appendBuffer(const common::ByteArrayShared& buf) override
-    {
-        this->impl().appendBuffer(common::SpanBuffer(buf));
-    }
-    virtual void appendBuffer(common::ByteArrayShared&& buf) override
-    {
-        this->impl().appendBuffer(common::SpanBuffer(std::move(buf)));
-    }
     virtual int appendUint32(uint32_t val) override
     {
         return this->impl().appendUint32(val);

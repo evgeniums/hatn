@@ -16,14 +16,15 @@
   *
   */
 
-#include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/stream.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-    namespace {
+namespace {
+
 //---------------------------------------------------------------
-template <typename T> bool unpackVarIntByteImpl
+template <typename T>
+bool unpackVarIntByteImpl
     (
         const char *buf,
         T& result,
@@ -56,7 +57,8 @@ template <typename T> bool unpackVarIntByteImpl
     }
     shift+=7;
     return true;
-HATN_DATAUNIT_NAMESPACE_END
+}
+} // anonymous namespace
 
 //---------------------------------------------------------------
 bool StreamBase::unpackVarIntByte(
@@ -92,14 +94,16 @@ int StreamBase::unpackVarInt32(
     // check for overflow
     if (overflow)
     {
-        HATN_WARN(dataunit,"Unexpected end of buffer");
+        //! @todo collect errors
+        // HATN_WARN(dataunit,"Unexpected end of buffer");
         return -1;
     }
 
     // check if more bytes left
     if (moreBytesLeft)
     {
-        HATN_WARN(dataunit,"Unterminated VarInt");
+        //! @todo collect errors
+        // HATN_WARN(dataunit,"Unterminated VarInt");
         return -1;
     }
 
@@ -135,146 +139,6 @@ int StreamBase::unpackVarInt64(
         HATN_WARN(dataunit,"Unterminated VarInt");
         return -1;
     }
-
-    // return count of consumed bytes
-    return processedSize;
-}
-
-//---------------------------------------------------------------
-int StreamBase::packVarInt32(
-        common::ByteArray* buf,
-        const uint32_t& value
-    )
-{
-    // prepare buffer
-    auto accumulatedSize=buf->size();
-    int processedSize=0;
-    buf->resize(accumulatedSize+5);
-    char* target=buf->data()+accumulatedSize;
-
-    // fill buffer
-    target[processedSize++]=static_cast<uint8_t>(value | 0x80);
-    if (value >= (1 << 7))
-    {
-        target[processedSize++]=static_cast<uint8_t>((value >>  7) | 0x80);
-        if (value >= (1 << 14))
-        {
-            target[processedSize++]=static_cast<uint8_t>((value >> 14) | 0x80);
-            if (value >= (1 << 21))
-            {
-                target[processedSize++]=static_cast<uint8_t>((value >> 21) | 0x80);
-                if (value >= (1 << 28))
-                {
-                    target[processedSize++]=static_cast<uint8_t>(value >> 28);
-                }
-                else
-                {
-                    target[3] &= 0x7F;
-                }
-            }
-            else
-            {
-                target[2] &= 0x7F;
-            }
-        }
-        else
-        {
-            target[1] &= 0x7F;
-        }
-    }
-    else
-    {
-        target[0] &= 0x7F;
-    }
-
-    // resize buffer back
-    if (processedSize!=5)
-    {
-        buf->resize(accumulatedSize+processedSize);
-    }
-
-    // return count of consumed bytes
-    return processedSize;
-}
-
-//---------------------------------------------------------------
-int StreamBase::packVarInt64(
-        common::ByteArray* buf,
-        const uint64_t& value
-    )
-{
-    int processedSize=0;
-    char* target=nullptr;
-    bool alreadyAppended=false;
-    auto appendBytes=[&buf,&target,&processedSize,&alreadyAppended]()
-    {
-        if (!alreadyAppended)
-        {
-            alreadyAppended=true;
-            auto initialSize=buf->size();
-            buf->resize(initialSize+processedSize);
-            target=buf->data()+initialSize;
-        }
-    };
-
-    /************** Snippet from Google Protobuf ********************/
-
-    uint32_t part0 = static_cast<uint32_t>(value      );
-    uint32_t part1 = static_cast<uint32_t>(value >> 28);
-    uint32_t part2 = static_cast<uint32_t>(value >> 56);
-
-    int& size=processedSize;
-
-    if (part2 == 0) {
-      if (part1 == 0) {
-        if (part0 < (1 << 14)) {
-          if (part0 < (1 << 7)) {
-            size = 1; goto size1;
-          } else {
-            size = 2; goto size2;
-          }
-        } else {
-          if (part0 < (1 << 21)) {
-            size = 3; goto size3;
-          } else {
-            size = 4; goto size4;
-          }
-        }
-      } else {
-        if (part1 < (1 << 14)) {
-          if (part1 < (1 << 7)) {
-            size = 5; goto size5;
-          } else {
-            size = 6; goto size6;
-          }
-        } else {
-          if (part1 < (1 << 21)) {
-            size = 7; goto size7;
-          } else {
-            size = 8; goto size8;
-          }
-        }
-      }
-    } else {
-      if (part2 < (1 << 7)) {
-        size = 9; goto size9;
-      } else {
-        size = 10; goto size10;
-      }
-    }
-
-    size10: appendBytes(); target[9] = static_cast<uint8_t>((part2 >>  7) | 0x80);
-    size9 : appendBytes(); target[8] = static_cast<uint8_t>((part2      ) | 0x80);
-    size8 : appendBytes(); target[7] = static_cast<uint8_t>((part1 >> 21) | 0x80);
-    size7 : appendBytes(); target[6] = static_cast<uint8_t>((part1 >> 14) | 0x80);
-    size6 : appendBytes(); target[5] = static_cast<uint8_t>((part1 >>  7) | 0x80);
-    size5 : appendBytes(); target[4] = static_cast<uint8_t>((part1      ) | 0x80);
-    size4 : appendBytes(); target[3] = static_cast<uint8_t>((part0 >> 21) | 0x80);
-    size3 : appendBytes(); target[2] = static_cast<uint8_t>((part0 >> 14) | 0x80);
-    size2 : appendBytes(); target[1] = static_cast<uint8_t>((part0 >>  7) | 0x80);
-    size1 : appendBytes(); target[0] = static_cast<uint8_t>((part0      ) | 0x80);
-
-    target[size-1] &= 0x7F;
 
     // return count of consumed bytes
     return processedSize;

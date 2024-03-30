@@ -24,11 +24,15 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/spanbuffer.h>
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/databuf.h>
 
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
+
+struct WireBufSolidTag{};
+struct WireBufChainedTag{};
 
 class WireBufSolid;
 
@@ -103,19 +107,18 @@ class WireBufBase
 
 struct WireBufTraits
 {
-    common::SpanBuffer nextBuffer() const noexcept {return common::SpanBuffer();}
+    common::DataBuf nextBuffer() const noexcept {return common::DataBuf{};}
     common::ByteArray* mainContainer() const noexcept {return nullptr;}
+
     void appendBuffer(common::SpanBuffer&& /*buf*/){}
     void appendBuffer(const common::SpanBuffer& /*buf*/){}
+    void appendBuffer(common::DataBuf /*buf*/){}
 
-    // bool isSingleBuffer() const noexcept {return true;}
-
-    void reserveMetaCapacity(size_t) {}
     void resetState() {m_offset=0;}
     void setCurrentMainContainer(common::ByteArray* /*currentMainContainer*/) noexcept
     {}
 
-    common::ByteArray* appendMetaVar(size_t varTypeSize)
+    common::DataBuf* appendMetaVar(size_t varTypeSize)
     {
         Assert(false,"Invalid operation");
         std::ignore=varTypeSize;
@@ -123,12 +126,6 @@ struct WireBufTraits
     }
 
     void clear(){}
-
-    void setActualMetaVarSize(size_t actualVarSize)
-    {
-        Assert(false,"Invalid operation");
-        std::ignore=actualVarSize;
-    }
 
     size_t m_offset=0;
 };
@@ -176,7 +173,12 @@ class WireBuf : public common::WithTraits<TraitsT>,
         int appendUint32(uint32_t val);
 
         template <typename T>
-        int append(T* other);
+        int append(const T& other)
+        {
+            auto size=this->traits().append(other,this->factory());
+            this->incSize(size);
+            return size;
+        }
 
         void appendBuffer(const common::ByteArrayShared& buf)
         {
@@ -188,7 +190,7 @@ class WireBuf : public common::WithTraits<TraitsT>,
             appendBuffer(common::SpanBuffer(std::move(buf)));
         }
 
-        common::SpanBuffer nextBuffer() const noexcept
+        common::DataBuf nextBuffer() const noexcept
         {
             return this->traits().nextBuffer();
         }
@@ -208,14 +210,14 @@ class WireBuf : public common::WithTraits<TraitsT>,
             this->traits().appendBuffer(buf);
         }
 
+        void appendBuffer(common::DataBuf buf)
+        {
+            this->traits().appendBuffer(std::move(buf));
+        }
+
         void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
         {
             this->traits().setCurrentMainContainer(currentMainContainer);
-        }
-
-        void reserveMetaCapacity(size_t size)
-        {
-            this->traits().reserveMetaCapacity(size);
         }
 
         void resetState()
@@ -231,7 +233,7 @@ class WireBuf : public common::WithTraits<TraitsT>,
             m_size=0;
         }
 
-        common::ByteArray* appendMetaVar(size_t varTypeSize)
+        common::DataBuf* appendMetaVar(size_t varTypeSize)
         {
             return this->traits().appendMetaVar(varTypeSize);
         }
@@ -265,7 +267,7 @@ class WireBuf : public common::WithTraits<TraitsT>,
             }
             while (auto buf=nextBuffer())
             {
-                container.append(buf.view());
+                container.append(buf);
             }
             self->resetState();
         }

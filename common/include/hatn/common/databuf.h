@@ -27,8 +27,13 @@ HATN_COMMON_NAMESPACE_BEGIN
 template <typename DataPointerT> struct DataBufWrapper
 {
     template <typename ContainerT>
-    DataBufWrapper(const ContainerT& container, size_t offset, size_t size=0) noexcept
+    DataBufWrapper(const ContainerT& container, size_t offset, size_t size) noexcept
         : m_buf(reinterpret_cast<DataPointerT>(container.data())+offset),m_size((size==0)?(container.size()-offset):size)
+    {}
+
+    template <typename ContainerT>
+    DataBufWrapper(const ContainerT& container, size_t size) noexcept
+        : m_buf(reinterpret_cast<DataPointerT>(container.data())),m_size(size)
     {}
 
     template <typename ContainerT>
@@ -115,10 +120,25 @@ template <typename DataPointerT> struct DataBufWrapper
         m_size=size;
     }
 
+    inline void rebind(char* buf) noexcept
+    {
+        m_buf=const_cast<DataPointerT>(buf);
+    }
+
+    inline void rebind(const char* buf) noexcept
+    {
+        m_buf=const_cast<DataPointerT>(buf);
+    }
+
     inline void reset() noexcept
     {
         m_buf=nullptr;
         m_size=0;
+    }
+
+    inline operator bool() const noexcept
+    {
+        return m_buf!=nullptr;
     }
 
     private:

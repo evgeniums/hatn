@@ -19,6 +19,8 @@
 #ifndef HATNDATAUNITWIREBUF_IPP
 #define HATNDATAUNITWIREBUF_IPP
 
+#include <boost/hana.hpp>
+
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/wirebuf.h>
 #include <hatn/dataunit/wirebufsolid.h>
@@ -32,25 +34,19 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 template <typename TraitsT>
 int WireBuf<TraitsT>::appendUint32(uint32_t val)
 {
-    auto* buf=mainContainer();
-
-    if (!isSingleBuffer())
-    {
-        buf=appendMetaVar(sizeof(uint32_t));
-    }
+    auto* buf=hana::if_(
+        boost::hana::is_a<WireBufSolidTag>,
+        mainContainer(),
+        appendMetaVar(sizeof(uint32_t))
+    );
 
     auto consumed=Stream<uint32_t>::packVarInt(buf,val);
     incSize(consumed);
-
-    if (!isSingleBuffer())
-    {
-        this->traits().setActualMetaVarSize(consumed);
-    }
     return consumed;
 }
 
 //---------------------------------------------------------------
-
+#if 0
 template <typename TraitsT>
 template <typename T>
 int WireBuf<TraitsT>::append(T* other)
@@ -79,7 +75,7 @@ int WireBuf<TraitsT>::append(T* other)
 
         if (!other->isSingleBuffer())
         {
-            // copy chain of shared buffers
+            // copy chain of buffers
             while (auto buf=other->nextBuffer())
             {
                 appendBuffer(std::move(buf));
@@ -92,6 +88,7 @@ int WireBuf<TraitsT>::append(T* other)
 
     return size;
 }
+#endif
 
 //---------------------------------------------------------------
 

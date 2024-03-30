@@ -62,12 +62,22 @@ struct WireBufSolidTraits : public WireBufTraits
         container.clear();
     }
 
+    template <typename T>
+    int append(const T& other, AllocatorFactory*)
+    {
+        int size=static_cast<int>(other->size());
+        other.copyToContainer(mainContainer());
+        return size;
+    }
+
     common::ByteArray container;
 };
 
 class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
 {
     public:
+
+        using hana_tag=WireBufSolidTag;
 
         explicit WireBufSolid(
             AllocatorFactory* factory=AllocatorFactory::getDefault()
@@ -143,6 +153,8 @@ struct WireBufSolidSharedTraits : public WireBufTraits
 class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidSharedTraits>
 {
     public:
+
+        using hana_tag=WireBufSolidTag;
 
         explicit WireBufSolidShared(
             AllocatorFactory* factory=AllocatorFactory::getDefault()

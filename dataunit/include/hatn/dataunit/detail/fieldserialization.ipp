@@ -372,6 +372,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 
         // prepare buffer for size of the packed unit
         size_t reserveSizeLength=sizeof(uint32_t)+1;
+        //! @todo sizebuf hana if
         auto* sizeBuf=wired.mainContainer();
         if (wired.isSingleBuffer())
         {
@@ -395,6 +396,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
         else
         {
+            //! @todo hana if
             if (!wired.isSingleBuffer())
             {
                 auto&& f=wired.factory();
@@ -415,7 +417,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
                 wired.setCurrentMainContainer(nullptr);
                 if (!sharedBuf->isEmpty())
                 {
-                    wired.appendBuffer(std::move(sharedBuf));
+                    wired.appendBuffer(common::SpanBuffer{std::move(sharedBuf)});
                 }
             }
             else
