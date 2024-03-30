@@ -483,7 +483,6 @@ bool UnitSer::deserialize(UnitT* value, BufferT& wired)
 
     // parse SubUnit
     auto ok=io::deserialize(*value,wired,false);
-    // auto ok=value->parse(wired,false);
 
     // restore size
     wired.setSize(keepSize);

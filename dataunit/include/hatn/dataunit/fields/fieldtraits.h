@@ -242,12 +242,41 @@ struct FieldDefault<Base,Type,
 
     virtual vtype defaultValue() const override
     {
-        return static_cast<vtype>(DefaultV::value());
+        return fieldDefaultValue();
     }
 
     virtual bool hasDefaultValue() const noexcept override
     {
+        return fieldHasDefaultValue();
+    }
+
+    bool fieldHasDefaultValue() const noexcept
+    {
         return DefaultV::HasDefV::value;
+    }
+
+    vtype fieldDefaultValue() const
+    {
+        return static_cast<vtype>(DefaultV::value());
+    }
+
+    //! Clear field
+    virtual void clear() override
+    {
+        fieldClear();
+    }
+
+    //! Clear field
+    void fieldClear()
+    {
+        this->m_value=fieldDefaultValue();
+        this->markSet(false);
+    }
+
+    //! Reset field
+    void fieldReset()
+    {
+        fieldClear();
     }
 };
 

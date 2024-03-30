@@ -180,15 +180,10 @@ class Scalar : public Field
         //! Set field
         inline void set(const type& val)
         {
-            m_set=true;
+            this->markSet(true);
             m_value=val;
         }
 
-        //! Clear field
-        virtual void clear() override
-        {
-            fieldClear();
-        }
 
         //! Get default value
         virtual type defaultValue() const
@@ -197,14 +192,7 @@ class Scalar : public Field
         }
 
         //! Clear field
-        void fieldClear()
-        {
-            m_value=fieldDefaultValue();
-            m_set=false;
-        }
-
-        //! Reset field
-        void fieldReset()
+        virtual void clear() override
         {
             fieldClear();
         }
@@ -215,14 +203,27 @@ class Scalar : public Field
             return DummyConst<type>::f();
         }
 
+        //! Clear field
+        void fieldClear()
+        {
+            m_value=fieldDefaultValue();
+            this->markSet(false);
+        }
+
+        //! Reset field
+        void fieldReset()
+        {
+            fieldClear();
+        }
+
         //! Get field size
         virtual size_t size() const noexcept override
         {
-            return valueSize();
+            return fieldSize();
         }
 
         //! Get size of value
-        constexpr static size_t valueSize() noexcept
+        static size_t valueSize(const type&) noexcept
         {
             return sizeof(type);
         }
@@ -369,7 +370,8 @@ class VarInt : public Scalar<Type>
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory*)
         {
-            return VariableSer<typename Type::type>::deserialize(this->m_value,wired);
+            this->markSet(VariableSer<typename Type::type>::deserialize(this->m_value,wired));
+            return this->isSet();
         }
 
     protected:
@@ -412,7 +414,7 @@ class IntEnum : public VarInt<Type>
         //! Set enum field
         inline void set(const typename Type::Enum& val) noexcept
         {
-            this->m_set=true;
+            this->markSet(true);
             this->m_value=static_cast<uint32_t>(val);
         }
 };
@@ -450,7 +452,8 @@ class Fixed : public Scalar<Type>
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory*)
         {
-            return FixedSer<typename Type::type>::deserialize(this->m_value,wired);
+            this->markSet(FixedSer<typename Type::type>::deserialize(this->m_value,wired));
+            return this->isSet();
         }
 
     protected:

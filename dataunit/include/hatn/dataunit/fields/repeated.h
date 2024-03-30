@@ -581,7 +581,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /**  Clear field */
     void fieldClear()
     {
-        this->m_set=false;
+        this->markSet(false);
         clearArray();
     }
 
@@ -631,7 +631,8 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         }
 
         /* ok */
-        return true;
+        this->markSet();
+        return this->isSet();
     }
 
     /**  Load fields from wire */
@@ -862,7 +863,8 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
        }
 
        /* ok */
-       return true;
+       this->markSet();
+       return this->isSet();
    }
 
    /**  Load fields from wire */
@@ -999,7 +1001,8 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
        }
 
        /* ok */
-       return true;
+       this->markSet();
+       return this->isSet();
    }
 
    /**  Load fields from wire */

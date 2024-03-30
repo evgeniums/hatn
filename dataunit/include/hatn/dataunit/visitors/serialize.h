@@ -30,6 +30,7 @@
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/wirebuf.h>
 #include <hatn/dataunit/wirebufsolid.h>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

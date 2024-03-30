@@ -50,6 +50,16 @@ HDU_DATAUNIT(du5,
 )
 HDU_INSTANTIATE_DATAUNIT(du5)
 
+HDU_DATAUNIT(du6,
+    HDU_FIELD_REQUIRED(field1,TYPE_INT32,1)
+)
+HDU_INSTANTIATE_DATAUNIT(du6)
+
+HDU_DATAUNIT(du7,
+    HDU_FIELD_DATAUNIT(f2,du6::TYPE,2)
+)
+HDU_INSTANTIATE_DATAUNIT(du7)
+
 } // anonymous namespace
 
 namespace du=HATN_DATAUNIT_NAMESPACE;
@@ -208,6 +218,28 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
     ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL("Hello world!",obj3.field(du5::field5).value(0).buf()->c_str());
+}
+
+BOOST_AUTO_TEST_CASE(SerializeSubunitFieldWithRequired)
+{
+    using traits=du7::traits;
+    using type=traits::type;
+
+    type obj1;
+    auto f2=obj1.field(du7::f2).mutableValue();
+    auto& f2_1=f2->field(du6::field1);
+    BOOST_CHECK(!f2_1.isSet());
+    f2_1.set(112233);
+    BOOST_CHECK(f2_1.isSet());
+    BOOST_CHECK_EQUAL(112233,f2_1.value());
+
+    du::WireBufSolid buf2;
+    auto r=du::io::serialize(obj1,buf2);
+    BOOST_CHECK(r>0);
+
+    type obj3;
+    auto ok=du::io::deserialize(obj3,buf2);
+    BOOST_CHECK(ok);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

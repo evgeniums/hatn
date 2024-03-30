@@ -119,8 +119,8 @@ class FieldTmplBytes : public Field, public BytesType
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory *factory)
         {
-            this->m_set=deserialize(this->m_value,wired,factory);
-            return this->m_set;
+            this->markSet(deserialize(this->m_value,wired,factory));
+            return this->isSet();
         }
 
         //! Serialize field to wire
@@ -258,7 +258,7 @@ class FieldTmplBytes : public Field, public BytesType
         void fieldClear()
         {
             this->m_value.clear();
-            this->m_set=false;
+            this->markSet(false);
         }
 
         //! Reset field
@@ -271,7 +271,7 @@ class FieldTmplBytes : public Field, public BytesType
         void fieldReset()
         {
             this->m_value.reset();
-            this->m_set=false;
+            this->markSet(false);
         }
 
         inline typename Type::type::onstackType& byteArray() noexcept

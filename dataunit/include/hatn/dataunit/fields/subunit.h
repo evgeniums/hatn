@@ -109,16 +109,8 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
             auto* value=mutableValue();
             value->setParseToSharedArrays(m_parseToSharedArrays,factory);
-            bool ok=this->deserialize(mutableValue(),wired,factory);
-            if (ok)
-            {
-                this->markSet();
-            }
-            else
-            {
-                this->m_set=false;
-            }
-            return ok;
+            this->markSet(this->deserialize(mutableValue(),wired,factory));
+            return this->isSet();
         }
 
         //! Format as JSON element
@@ -200,7 +192,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          */
         virtual typename baseFieldType::base* mutableValue()
         {
-            this->m_set=true;
+            this->markSet(true);
             return this->m_value.mutableValue();
         }
 
@@ -226,7 +218,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         //! Set field
         inline void set(type val)
         {
-            m_set=true;
+            this->markSet(true);
             m_value=std::move(val);
         }
 
@@ -309,7 +301,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         void fieldClear()
         {
             this->m_value.reset();
-            this->m_set=false;
+            this->markSet(false);
         }
 
         //! Reset field
@@ -359,7 +351,7 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
          */
         virtual typename baseFieldType::base* mutableValue() override
         {
-            this->m_set=true;
+            this->markSet(true);
             if (this->m_value.isNull())
             {
                 this->m_value=this->createValue();
