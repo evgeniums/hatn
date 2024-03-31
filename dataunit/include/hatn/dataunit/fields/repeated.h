@@ -1019,7 +1019,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
    /** Check if this field is compatible of repeated unpacked type with Google Protocol Buffers */
    virtual bool isRepeatedUnpackedProtoBuf() const noexcept override
    {
-       return true;
+       return fieldRepeatedUnpackedProtoBuf();
    }
 
    template <typename BufferT>

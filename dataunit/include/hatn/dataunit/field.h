@@ -45,6 +45,12 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 
         constexpr static const bool CanChainBlocks=false;
 
+        //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
+        constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
+        {
+            return false;
+        }
+
         //! Ctor
         Field(ValueType type, Unit* unit, bool array=false);
 

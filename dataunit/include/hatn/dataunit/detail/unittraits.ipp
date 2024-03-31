@@ -21,6 +21,7 @@
 #ifndef HATNDATAUNITSIMPL_H
 #define HATNDATAUNITSIMPL_H
 
+#include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/unittraits.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN

@@ -595,6 +595,11 @@ class EmptyUnit : public Unit
             return true;
         }
 
+        virtual int serialize(WireData&,bool) const override
+        {
+            return 0;
+        }
+
     protected:
 
         /**  Get field count */

@@ -23,11 +23,7 @@
 
 #include <vector>
 
-#include <hatn/common/logger.h>
 #include <hatn/dataunit/dataunit.h>
-
-DECLARE_LOG_MODULE_EXPORT(dataunit,HATN_DATAUNIT_EXPORT)
-
 #include <hatn/dataunit/macros.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN

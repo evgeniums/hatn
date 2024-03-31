@@ -171,12 +171,6 @@ struct FieldConf : public T
         return Required;
     }
 
-    //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
-    constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
-    {
-        return false;
-    }
-
     //! Get field ID
     virtual int getID() const noexcept override
     {

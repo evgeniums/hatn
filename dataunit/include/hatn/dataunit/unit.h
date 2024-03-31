@@ -152,7 +152,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @todo Use Error with NativeError.
          * If serialization fails then warnings will appear in log describing the problem
          */
-        int serialize(
+        virtual int serialize(
             WireData& wired,
             bool topLevel=true
         ) const;
@@ -179,7 +179,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param offsetOut Offest in target container
          * @return Operation status
          *
-         * @todo Use Error with NativeError.
+         * @todo Use Error with NativeError. Why bool?
          */
         template <typename ContainerT>
         bool serialize(ContainerT& container,

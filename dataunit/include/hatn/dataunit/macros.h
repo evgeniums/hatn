@@ -152,6 +152,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             { \
                 return ::hatn::common::dynamicCastWithSample(unit,this); \
             } \
+            virtual int serialize(WireData& wired,bool topLevel=true) const override; \
     };
 
 #define _HDU_DATAUNIT_IMPLEMENT_TYPE_IMPL_(type,base) \
@@ -161,7 +162,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
         bool type::iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const {return this->iterateConst(visitor);} \
         size_t type::fieldCount() const noexcept {return this->doFieldCount();} \
         const char* type::name() const noexcept {return this->unitName();} \
-        type::type(::hatn::dataunit::AllocatorFactory* factory):base(factory){}
+        type::type(::hatn::dataunit::AllocatorFactory* factory):base(factory){} \
+        int type::serialize(WireData& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);}
 
 #define _HDU_DATAUNIT_CREATE_TYPE_IMPL() \
     _HDU_DATAUNIT_CREATE_TYPE_IMPL_(type_impl,_type_impl) \

@@ -21,6 +21,7 @@
 #ifndef HATNDATAUNIT_H
 #define HATNDATAUNIT_H
 
+#include <hatn/common/logger.h>
 #include <hatn/dataunit/config.h>
 
 // define export symbols for windows platform
@@ -42,5 +43,7 @@
 #define HATN_DATAUNIT_NAMESPACE hatn::dataunit
 #define HATN_DATAUNIT_NS dataunit
 #define HATN_DATAUNIT_USING using namespace hatn::dataunit;
+
+DECLARE_LOG_MODULE_EXPORT(dataunit,HATN_DATAUNIT_EXPORT)
 
 #endif // HATNDATAUNIT_H

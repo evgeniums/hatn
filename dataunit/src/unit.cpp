@@ -39,8 +39,8 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
 #include <hatn/dataunit/stream.h>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 #include <hatn/dataunit/unit.h>
-#include <hatn/dataunit/syntax.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -164,81 +164,10 @@ void Unit::fillFieldNamesTable(common::pmr::map<FieldNamesKey, Field *> &table)
 }
 
 //---------------------------------------------------------------
-int Unit::serialize(
-        WireData &wired,
-        bool topLevel
-    ) const
+int Unit::serialize(WireData&, bool) const
 {
-    if (topLevel)
-    {
-        wired.clear();
-    }
-
-    int result=-1;
-    if (!m_wireDataKeeper.isNull())
-    {
-        // use already serialized data
-        result=wired.append(*m_wireDataKeeper);
-    }
-    else
-    {
-        auto prevSize=wired.size();
-        // serialize unit
-        if (iterateFieldsConst(
-                    [&wired,this](const Field& field)
-                    {
-                        // skip optional fields which are not set
-                        if (!field.isSet())
-                        {
-                            if (field.isRequired())
-                            {
-                                reportWarn("serialize",
-                                                    "Failed to serialize DataUnit message {}: required field {} is not set",
-                                                     name(),field.name()
-                                                  );
-                                return false;
-                            }
-                            return true;
-                        }
-
-                        // append tag to stream
-                        if (!field.isRepeatedUnpackedProtoBuf())
-                        {
-                            uint32_t tag=static_cast<uint32_t>((field.getID()<<3)|static_cast<uint32_t>(field.wireType()));
-                            auto* buf=wired.mainContainer();
-                            bool storeTagToMeta=
-                                    !wired.isSingleBuffer()
-                                    &&
-                                    field.canChainBlocks()
-                                ;
-                            if (storeTagToMeta)
-                            {
-                                wired.appendUint32(tag);
-                            }
-                            else
-                            {
-                                wired.incSize(Stream<uint32_t>::packVarInt(buf,tag));
-                            }
-                        }
-
-                        // pack field
-                        if (!field.store(wired))
-                        {
-                            reportWarn("serialize","Failed to serialize DataUnit message {}: broken on field {}",
-                                        name(),field.name());
-                            return false;
-                        }
-
-                        // ok
-                        return true;
-                    }
-               )
-            )
-        {
-            result=static_cast<int>(wired.size()-prevSize);
-        }
-    }
-    return result;
+    // must be implemented in derived class
+    return -1;
 }
 
 //---------------------------------------------------------------
