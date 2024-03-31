@@ -12,7 +12,7 @@
 */
 /** @file dataunit/unit.сpp
   *
-  *      Base classes for data units and dataunit fields
+  * Defines Unit class.
   *
   */
 
