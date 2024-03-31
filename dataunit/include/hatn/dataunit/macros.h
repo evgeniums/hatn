@@ -153,6 +153,12 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
                 return ::hatn::common::dynamicCastWithSample(unit,this); \
             } \
             virtual int serialize(WireData& wired,bool topLevel=true) const override; \
+            /*virtual int serialize(WireBufSolid& wired,bool topLevel=true) const override;*/ \
+            /*virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const override;*/ \
+            /*virtual int serialize(WireBufChained& wired,bool topLevel=true) const override;*/ \
+            virtual bool parse(WireData& wired,bool topLevel=true) override; \
+            virtual bool parse(WireBufSolid& wired,bool topLevel=true) override; \
+            /*virtual bool parse(WireBufSolidShared& wired,bool topLevel=true) override;*/ \
     };
 
 #define _HDU_DATAUNIT_IMPLEMENT_TYPE_IMPL_(type,base) \
@@ -163,7 +169,13 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
         size_t type::fieldCount() const noexcept {return this->doFieldCount();} \
         const char* type::name() const noexcept {return this->unitName();} \
         type::type(::hatn::dataunit::AllocatorFactory* factory):base(factory){} \
-        int type::serialize(WireData& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);}
+        int type::serialize(WireData& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);} \
+        /*int type::serialize(WireBufSolid& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);}*/ \
+        /*int type::serialize(WireBufSolidShared& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);}*/ \
+        /*int type::serialize(WireBufChained& wired,bool topLevel) const{return io::serialize(*this,wired,topLevel);}*/ \
+        bool type::parse(WireData& wired,bool topLevel) {return io::deserialize(*this,wired,topLevel);} \
+        bool type::parse(WireBufSolid& wired,bool topLevel) {return io::deserialize(*this,wired,topLevel);} \
+        // bool type::parse(WireBufSolidShared& wired,bool topLevel) {return io::deserialize(*this,wired,topLevel);}
 
 #define _HDU_DATAUNIT_CREATE_TYPE_IMPL() \
     _HDU_DATAUNIT_CREATE_TYPE_IMPL_(type_impl,_type_impl) \

@@ -70,7 +70,6 @@ struct HATN_DATAUNIT_EXPORT visitors
             [&](auto _)
             {
                 // invoke virtual searilize() of unit object
-                //! @todo implement methods for wire bufs
                 return _(obj).serialize(_(wired),_(top));
             },
             [&](auto _)
@@ -261,7 +260,6 @@ struct HATN_DATAUNIT_EXPORT visitors
             [&](auto _)
             {
                 // invoke virtual serialize() of unit object
-                //! @todo implement methods for wire bufs
                 return _(unit).parse(_(buf),_(top));
             },
             [&](auto _)

@@ -138,11 +138,23 @@ class HATN_DATAUNIT_EXPORT Unit
          * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "parse"
          *
          */
-        bool parse(
+        virtual bool parse(
             WireData& wired,
             bool topLevel=true
         );
 
+        //! @todo Maybe implement later
+        virtual bool parse(
+            WireBufSolid& wired,
+            bool topLevel=true
+        );
+
+#if 0
+        virtual bool parse(
+            WireBufSolidShared& wired,
+            bool topLevel=true
+        );
+#endif
         /**
          * @brief Serialize DataUnit to wired data unit
          * @param wired Control structure
@@ -156,7 +168,23 @@ class HATN_DATAUNIT_EXPORT Unit
             WireData& wired,
             bool topLevel=true
         ) const;
+#if 0
+        //! @todo Maybe implement later
+        virtual int serialize(
+            WireBufSolid& wired,
+            bool topLevel=true
+        ) const;
 
+        virtual int serialize(
+            WireBufSolidShared& wired,
+            bool topLevel=true
+        ) const;
+
+        virtual int serialize(
+            WireBufChained& wired,
+            bool topLevel=true
+        ) const;
+#endif
         /**
          * @brief Serialize DataUnit to plain data buffer
          * @param buf Buffer
@@ -176,7 +204,7 @@ class HATN_DATAUNIT_EXPORT Unit
         /**
          * @brief Serialize to data container
          * @param container Target container
-         * @param offsetOut Offest in target container
+         * @param offsetOut Offset in target container
          * @return Operation status
          *
          * @todo Use Error with NativeError. Why bool?
@@ -184,7 +212,11 @@ class HATN_DATAUNIT_EXPORT Unit
         template <typename ContainerT>
         bool serialize(ContainerT& container,
                        size_t offsetOut=0,
-                       typename std::enable_if<!std::is_base_of<WireData,ContainerT>::value,void*>::type=nullptr
+                       typename std::enable_if<
+                           !std::is_base_of<WireData,ContainerT>::value
+                           &&
+                           !std::is_base_of<WireBufBase,ContainerT>::value
+                        ,void*>::type=nullptr
                 )
         {
             auto expectedSize=size();

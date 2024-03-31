@@ -600,6 +600,38 @@ class EmptyUnit : public Unit
             return 0;
         }
 
+        virtual bool parse(WireData&,bool =true) override
+        {
+            return true;
+        }
+
+        virtual bool parse(WireBufSolid& wired,bool topLevel=true) override
+        {
+            return true;
+        }
+
+#if 0
+        virtual int serialize(WireBufSolid& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual int serialize(WireBufChained& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual bool parse(WireBufSolidShared& wired,bool topLevel=true) override
+        {
+            return true;
+        }
+#endif
+
     protected:
 
         /**  Get field count */

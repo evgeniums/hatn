@@ -85,6 +85,20 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return UnitSer::serialize(value,wired);
         }
 
+        //! Serialize DataUnit to wire
+        template <typename UnitT, typename BufferT>
+        static bool serialize(const common::SharedPtr<UnitT>& value, BufferT& wired)
+        {
+            return UnitSer::serialize(value.get(),wired);
+        }
+
+        //! Serialize DataUnit to wire
+        template <typename UnitT, typename BufferT>
+        static bool serialize(const UnitT& value, BufferT& wired)
+        {
+            return UnitSer::serialize(&value,wired);
+        }
+
         template <typename BufferT>
         bool serialize(BufferT& wired) const
         {

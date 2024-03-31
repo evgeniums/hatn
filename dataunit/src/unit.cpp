@@ -69,6 +69,7 @@ Unit::Unit(AllocatorFactory *factory)
 Unit::~Unit()=default;
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 void Unit::clear()
 {
     if (!m_clean)
@@ -91,6 +92,7 @@ void Unit::reset()
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 size_t Unit::size() const
 {
     size_t acc=0;
@@ -106,6 +108,7 @@ size_t Unit::size() const
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 const Field* Unit::fieldByName(const char* name,size_t size) const
 {
     const Field* foundField=nullptr;
@@ -129,6 +132,7 @@ const Field* Unit::fieldByName(const char* name,size_t size) const
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 Field* Unit::fieldByName(const char* name,size_t size)
 {
     Field* foundField=nullptr;
@@ -152,6 +156,7 @@ Field* Unit::fieldByName(const char* name,size_t size)
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 void Unit::fillFieldNamesTable(common::pmr::map<FieldNamesKey, Field *> &table)
 {
     iterateFields(
@@ -170,6 +175,29 @@ int Unit::serialize(WireData&, bool) const
     return -1;
 }
 
+#if 0
+//---------------------------------------------------------------
+int Unit::serialize(WireBufSolid&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
+}
+
+//---------------------------------------------------------------
+int Unit::serialize(WireBufSolidShared&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
+}
+
+//---------------------------------------------------------------
+int Unit::serialize(WireBufChained&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
+}
+#endif
+
 //---------------------------------------------------------------
 int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
 {
@@ -187,6 +215,7 @@ int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 void Unit::setParseToSharedArrays(bool enable, AllocatorFactory *factory)
 {
     if (factory==nullptr)
@@ -207,184 +236,25 @@ bool Unit::parse(const char *data, size_t size, bool inlineBuffer)
     return parse(wired);
 }
 
-//---------------------------------------------------------------
-bool Unit::parse(WireData &wired,bool topLevel)
+bool Unit::parse(WireData&,bool)
 {
-    if (!wired.isSingleBuffer())
-    {
-        WireDataSingle singleW(wired.toSingleWireData());
-        return parse(singleW,topLevel);
-    }
-
-    clear();
-    m_clean=false;
-
-    uint32_t tag=0;
-    common::ByteArray* buf=wired.mainContainer();
-
-    auto cleanup=[this,&wired,topLevel]()
-    {
-        this->clear();
-        if (topLevel)
-        {
-            wired.resetState();
-        }
-    };
-
-    // parse stream and load fields
-    for(;;)
-    {
-        // parse tag from the buffer
-        if (wired.currentOffset()>=wired.size())
-        {
-            break;
-        }
-        Assert(wired.currentOffset()<buf->size(),"Wire offset overflow");
-
-        auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),buf->size()-wired.currentOffset(),tag);
-        if (consumed<0)
-        {
-            reportDebug("parse","Failed to parse DataUnit message {}: broken tag at offset ",name(),wired.currentOffset());
-            cleanup();
-            return false;
-        }
-        wired.incCurrentOffset(consumed);
-
-        // calc field ID and type
-        int fieldType=static_cast<int>(tag&0x7u);
-        int fieldId=tag>>3;
-
-        // find and process field
-        auto* field=fieldById(fieldId);
-        if (field!=nullptr)
-        {
-            auto fieldWireType=static_cast<int>(field->wireType());
-            if (fieldWireType!=fieldType)
-            {
-                reportDebug("parse","Failed to parse DataUnit message {}: for field {} invalid wire type {}",name(),field->name(),fieldType);
-                cleanup();
-                return false;
-            }
-            if (!field->load(wired,m_factory))
-            {
-                reportDebug("parse","Failed to parse DataUnit message {}: for field {} at offset {}",name(),field->name(),wired.currentOffset());
-                cleanup();
-                return false;
-            }
-        }
-        else
-        {
-            consumed=0;
-            char* data=buf->data()+wired.currentOffset();
-            switch (fieldType)
-            {
-                case (static_cast<int>(WireType::WithLength)):
-                case (static_cast<int>(WireType::VarInt)):
-                {
-                    uint32_t shift=0;
-                    bool moreBytesLeft=false;
-                    uint32_t value=0;
-                    bool overflow=false;
-                    auto availableSize=buf->size()-wired.currentOffset();
-                    while (StreamBase::unpackVarIntByte(data,value,availableSize,consumed,overflow,moreBytesLeft,shift,56)){}
-                    if (moreBytesLeft||overflow)
-                    {
-                        if (overflow)
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-                        }
-                        else
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: unterminated VarInt for field {} at offset ",name(),fieldId,wired.currentOffset());
-                        }
-                        cleanup();
-                        return false;
-                    }
-                    wired.incCurrentOffset(consumed);
-
-                    if (fieldType==static_cast<int>(WireType::WithLength))
-                    {
-                        if (shift>28)
-                        {
-                            // length can't be more than 32 bit word
-                            reportDebug("parse","Failed to parse DataUnit message {}: invalid block length for field {} at offset ",name(),fieldId,wired.currentOffset());
-                            cleanup();
-                            return false;
-                        }
-                        wired.incCurrentOffset(value);
-                        if (buf->size()<wired.currentOffset())
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: block length overflow for field {} at offset ",name(),fieldId,wired.currentOffset());
-                            cleanup();
-                            return false;
-                        }
-                    }
-                }
-                break;
-
-                case (static_cast<int>(WireType::Fixed32)):
-                {
-                    wired.incCurrentOffset(4);
-                    if (buf->size()<wired.currentOffset())
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-
-                        cleanup();
-                        return false;
-                    }
-                }
-                break;
-
-                case (static_cast<int>(WireType::Fixed64)):
-                {
-                    wired.incCurrentOffset(8);
-                    if (buf->size()<wired.currentOffset())
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-
-                        cleanup();
-                        return false;
-                    }
-                }
-                break;
-
-                default:
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unknown field type {} at offset {}",name(),fieldType,wired.currentOffset());
-                        cleanup();
-                        return false;
-                    }
-                    break;
-
-            }
-        }
-    }
-
-    // check if all required fields are set
-    const char* failedFieldName=nullptr;
-    if (!iterateFieldsConst([&failedFieldName](const Field& field)
-                {
-                    bool ok=!field.isRequired()||field.isSet();
-                    if (!ok)
-                    {
-                        failedFieldName=field.name();
-                    }
-                    return ok;
-                }
-           )
-        )
-    {
-        reportDebug("parse","Failed to parse DataUnit message {}: required field {} is not set",name(),failedFieldName);
-        cleanup();
-        return false;
-    }
-
-    if (topLevel)
-    {
-        wired.resetState();
-    }
-    return true;
+    // must be implemented in derived class
+    return false;
 }
+
+bool Unit::parse(WireBufSolid&,bool)
+{
+    // must be implemented in derived class
+    return false;
+}
+
+#if 0
+bool Unit::parse(WireBufSolidShared&,bool)
+{
+    // must be implemented in derived class
+    return false;
+}
+#endif
 
 template <typename T> using JsonWriter=json::WriterTmpl<
 rapidjson::Writer<RapidJsonBufStream<T>>,RapidJsonBufStream<T>
@@ -431,6 +301,7 @@ bool Unit::toJSONImpl(
 }
 
 //---------------------------------------------------------------
+//! @todo Make it in visitors
 bool Unit::toJSON(
         json::Writer* writer
     ) const
