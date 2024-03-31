@@ -1211,12 +1211,12 @@ void checkSerializeSubUnit()
     BOOST_REQUIRE(field3.isSet());
     BOOST_REQUIRE(obj3!=nullptr);
     fillUnitFields(*obj3,0);
-    auto subWired3_1=hatn::common::makeShared<hatn::dataunit::WireDataPackSingleShared>();
+    auto subWired3_1=hatn::common::makeShared<hatn::dataunit::WireDataSingle>();
     auto expectedSizeSub=obj3->size();
-    auto packedSizeSub=obj3->serialize(*subWired3_1->wireData());
+    auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
-    obj3->keepWireDataPack(subWired3_1);
+    obj3->keepWireData(subWired3_1);
     hatn::dataunit::WireDataSingle wired3;
     auto packedSize3=unit3.serialize(wired3);
     BOOST_REQUIRE(packedSize3>0);
@@ -1300,10 +1300,10 @@ void checkSerializePreparedSubUnit()
     fillUnitFields(*obj3,0);
     auto subWired3_1=hatn::common::makeShared<subWiredT>();
     auto expectedSizeSub=obj3->size();
-    auto packedSizeSub=obj3->serialize(*subWired3_1->wireData());
+    auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
-    obj3->keepWireDataPack(subWired3_1);
+    obj3->keepWireData(subWired3_1);
     WiredT wired3;
     auto packedSize3=unit3.serialize(wired3);
     BOOST_REQUIRE(packedSize3>0);
@@ -1339,20 +1339,20 @@ void checkSerializePreparedSubUnit()
 template <typename WiredT>
 void checkSerializePrepared()
 {
-    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();}
-    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();}
-    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();}
-    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingle"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingle>();}
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingle>();}
 
-    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();}
-    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();}
-    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();}
-    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingleShared"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();}
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
 
-    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackChained"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();}
-    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataPackChained"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();}
-    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataPackChained"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();}
-    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackChained"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackChained>();}
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataChained>();}
 }
 }
 

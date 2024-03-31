@@ -205,24 +205,24 @@ class HATN_DATAUNIT_EXPORT Unit
          */
         size_t size() const;
 
-        //! Hold wired data unit
-        inline void keepWireDataPack(
-            common::SharedPtr<WireDataPack> wired
+        //! Keep serialized data unit.
+        inline void keepWireData(
+            common::SharedPtr<WireData> wired
         ) noexcept
         {
-            m_wireDataPack=std::move(wired);
+            m_wireDataKeeper=std::move(wired);
         }
 
-        //! Get wired data unit
-        inline const common::SharedPtr<WireDataPack>& wireDataPack() const noexcept
+        //! Get serialized data unit.
+        inline const common::SharedPtr<WireData>& wireDataKeeper() const noexcept
         {
-            return m_wireDataPack;
+            return m_wireDataKeeper;
         }
 
-        //! Reset wire dataunit
-        inline void resetWireData() noexcept
+        //! Reset keeper of serialized data unit.
+        inline void resetWireDataKeeper() noexcept
         {
-            m_wireDataPack.reset();
+            m_wireDataKeeper.reset();
         }
 
         //! Handler type for fields iterator
@@ -416,7 +416,7 @@ class HATN_DATAUNIT_EXPORT Unit
             return m_clean=val;
         }
 
-        common::SharedPtr<WireDataPack> m_wireDataPack;
+        common::SharedPtr<WireData> m_wireDataKeeper;
         bool m_clean;
 
         AllocatorFactory* m_factory;

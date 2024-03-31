@@ -7,7 +7,6 @@ SET (HEADERS
     include/hatn/dataunit/types.h
     include/hatn/dataunit/allocatorfactory.h
     include/hatn/dataunit/wiredata.h
-    include/hatn/dataunit/wiredatapack.h
     include/hatn/dataunit/stream.h
     include/hatn/dataunit/unit.h
     include/hatn/dataunit/fieldgetset.h

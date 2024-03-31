@@ -356,11 +356,10 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         // serialize field
         int size=-1;
 
-        const auto& preparedWireDataPack=value->wireDataPack();
-        if (!preparedWireDataPack.isNull())
+        const auto& preparedWireData=value->wireDataKeeper();
+        if (!preparedWireData.isNull())
         {
-            //! @todo fix it
-            size=wired.append(*(preparedWireDataPack->wireData()));
+            size=wired.append(*preparedWireData);
         }
         else
         {

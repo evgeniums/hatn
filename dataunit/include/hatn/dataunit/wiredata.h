@@ -21,18 +21,6 @@
 #ifndef HATNDATAUNITWIREDATA_H
 #define HATNDATAUNITWIREDATA_H
 
-#include <list>
-
-#include <hatn/common/managedobject.h>
-#include <hatn/common/bytearray.h>
-#include <hatn/common/makeshared.h>
-#include <hatn/common/pmr/pmrtypes.h>
-#include <hatn/common/sharedptr.h>
-#include <hatn/common/weakptr.h>
-#include <hatn/common/spanbuffer.h>
-#include <hatn/common/objecttraits.h>
-
-#include <hatn/dataunit/allocatorfactory.h>
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/wirebuf.h>
 #include <hatn/dataunit/wirebufsolid.h>
@@ -255,9 +243,5 @@ using WireDataSingleShared=WireDataDerived<WireBufSolidShared>;
 using WireDataChained=WireDataDerived<WireBufChained>;
 
 HATN_DATAUNIT_NAMESPACE_END
-
-#ifndef HATN_WIREDATA_SRC
-#include <hatn/dataunit/wiredatapack.h>
-#endif
 
 #endif // HATNDATAUNITWIREDATA_H

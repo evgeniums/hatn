@@ -75,7 +75,7 @@ void Unit::clear()
     {
         iterateFields([](Field& field){field.clear(); return true;});
     }
-    resetWireData();
+    resetWireDataKeeper();
     m_clean=true;
 }
 
@@ -86,7 +86,7 @@ void Unit::reset()
     {
         iterateFields([](Field& field){field.reset(); return true;});
     }
-    resetWireData();
+    resetWireDataKeeper();
     m_clean=true;
 }
 
@@ -175,11 +175,10 @@ int Unit::serialize(
     }
 
     int result=-1;
-    if (!m_wireDataPack.isNull())
+    if (!m_wireDataKeeper.isNull())
     {
         // use already serialized data
-        //! @todo refactor wirepack
-        result=wired.append(*(m_wireDataPack->wireData()));
+        result=wired.append(*m_wireDataKeeper);
     }
     else
     {

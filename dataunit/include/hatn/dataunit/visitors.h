@@ -86,11 +86,10 @@ struct HATN_DATAUNIT_EXPORT visitors
                     buf.clear();
                 }
 
-                if (!unit.wireDataPack().isNull())
+                if (!unit.wireDataKeeper().isNull())
                 {
                     // use already serialized data
-                    //! @todo refactor
-                    auto addedBytes=buf.append(*(unit.wireDataPack()->wireData()));
+                    auto addedBytes=buf.append(*(unit.wireDataKeeper()));
                     return addedBytes;
                 }
 
@@ -167,7 +166,7 @@ struct HATN_DATAUNIT_EXPORT visitors
         {
             obj.iterate([](auto& field){field.fieldClear(); return true;});
         }
-        obj.resetWireData();
+        obj.resetWireDataKeeper();
         obj.setClean(true);
     }
 
@@ -182,7 +181,7 @@ struct HATN_DATAUNIT_EXPORT visitors
         {
             obj.iterate([](auto& field){field.fieldReset(); return true;});
         }
-        obj.resetWireData();
+        obj.resetWireDataKeeper();
         obj.setClean(true);
     }
 
