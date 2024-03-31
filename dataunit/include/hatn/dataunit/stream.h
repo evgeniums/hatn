@@ -31,7 +31,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace du_detail
 {
-    struct HATN_DATAUNIT_EXPORT StreamDataBufProxy
+    struct StreamDataBufProxy
     {
         StreamDataBufProxy(common::DataBuf* d=nullptr) : d(d)
         {}
@@ -56,24 +56,38 @@ namespace du_detail
         common::DataBuf* d;
     };
 
+    struct StreamDataBufWrapper
+    {
+        StreamDataBufWrapper(common::DataBuf* d=nullptr):p{d}
+        {}
+
+        inline const auto* operator->() const noexcept
+        {
+            return &p;
+        }
+
+        inline auto* operator->() noexcept
+        {
+            return &p;
+        }
+
+        StreamDataBufProxy p;
+    };
+
     template <typename BufT>
     auto wrapBuffer(BufT *buffer) -> decltype(auto)
     {
-        StreamDataBufProxy tmpBuf;
-        auto&& buf=boost::hana::eval_if(
+        return boost::hana::eval_if(
             std::is_same<common::DataBuf,std::decay_t<BufT>>{},
             [&](auto _)
             {
-                auto& b=_(tmpBuf);
-                b.d=_(buffer);
-                return &b;
+                return StreamDataBufWrapper{_(buffer)};
             },
             [&](auto _)
             {
                 return boost::hana::id(_(buffer));
             }
         );
-        return std::make_pair(std::move(buf),std::move(tmpBuf));
     }
 }
 
@@ -451,8 +465,7 @@ int StreamBase::packVarInt32(
         const uint32_t& value
     )
 {
-    auto wrapper=du_detail::wrapBuffer(buffer);
-    auto buf=wrapper.first;
+    auto buf=du_detail::wrapBuffer(buffer);
 
     // prepare buffer
     auto accumulatedSize=buf->size();
@@ -512,8 +525,7 @@ int StreamBase::packVarInt64(
         const uint64_t& value
     )
 {
-    auto wrapper=du_detail::wrapBuffer(buffer);
-    auto buf=wrapper.first;
+    auto buf=du_detail::wrapBuffer(buffer);
 
     int processedSize=0;
     char* target=nullptr;

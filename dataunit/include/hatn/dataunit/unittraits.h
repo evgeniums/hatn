@@ -703,6 +703,42 @@ const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
 }
 
 //---------------------------------------------------------------
+template <typename ...Fields>
+template <typename T>
+bool UnitImpl<Fields...>::iterate(const T& visitor)
+{
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
+
+    auto handler=[&visitor](auto& field, auto&&)
+    {
+        return visitor(field);
+    };
+
+    return each(predicate,handler);
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename T>
+bool UnitImpl<Fields...>::iterateConst(const T& visitor) const
+{
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
+
+    auto handler=[&visitor](const auto& field, auto&&)
+    {
+        return visitor(field);
+    };
+
+    return each(predicate,handler);
+}
+
+//---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITS_H
