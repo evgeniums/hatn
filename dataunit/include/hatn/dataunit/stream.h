@@ -22,10 +22,60 @@
 #define HATNDATAUNITSTREAM_H
 
 #include <boost/endian/conversion.hpp>
+#include <boost/hana.hpp>
 
+#include <hatn/common/databuf.h>
 #include <hatn/dataunit/dataunit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
+
+namespace du_detail
+{
+    struct HATN_DATAUNIT_EXPORT StreamDataBufProxy
+    {
+        StreamDataBufProxy(common::DataBuf* d=nullptr) : d(d)
+        {}
+
+        inline size_t size() const noexcept
+        {
+            return 0;
+        }
+        inline auto data() const noexcept -> decltype(auto)
+        {
+            return d->data();
+        }
+
+        inline void resize(size_t size)
+        {
+            if (size<d->size())
+            {
+                d->resize(size);
+            }
+        }
+
+        common::DataBuf* d;
+    };
+
+    template <typename BufT>
+    auto wrapBuffer(BufT *buffer) -> decltype(auto)
+    {
+        StreamDataBufProxy tmpBuf;
+        auto&& buf=boost::hana::eval_if(
+            std::is_same<common::DataBuf,std::decay_t<BufT>>{},
+            [&](auto _)
+            {
+                auto& b=_(tmpBuf);
+                b.d=_(buffer);
+                return &b;
+            },
+            [&](auto _)
+            {
+                return boost::hana::id(_(buffer));
+            }
+        );
+        return std::make_pair(std::move(buf),std::move(tmpBuf));
+    }
+}
 
 //! Base serializer/deserializer
 struct HATN_DATAUNIT_EXPORT StreamBase
@@ -397,10 +447,13 @@ struct Stream<int64_t>
 //---------------------------------------------------------------
 template <typename BufT>
 int StreamBase::packVarInt32(
-        BufT* buf,
+        BufT* buffer,
         const uint32_t& value
     )
 {
+    auto wrapper=du_detail::wrapBuffer(buffer);
+    auto buf=wrapper.first;
+
     // prepare buffer
     auto accumulatedSize=buf->size();
     int processedSize=0;
@@ -455,10 +508,13 @@ int StreamBase::packVarInt32(
 //---------------------------------------------------------------
 template <typename BufT>
 int StreamBase::packVarInt64(
-        BufT* buf,
+        BufT* buffer,
         const uint64_t& value
     )
 {
+    auto wrapper=du_detail::wrapBuffer(buffer);
+    auto buf=wrapper.first;
+
     int processedSize=0;
     char* target=nullptr;
     bool alreadyAppended=false;

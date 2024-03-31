@@ -53,18 +53,13 @@ public:
     ) : baseImpl(impl)
     {}
 
-    virtual ~WireData()=default;
-#if __cplusplus < 201703L
-    // to use as return in create() method
+    virtual ~WireData();
     WireData(const WireData&)=default;
-#else
-    WireData(const WireData&)=delete;
-#endif
-    WireData& operator=(const WireData&)=delete;
-    WireData(WireData&&) =default;
-    WireData& operator=(WireData&&) =default;
+    WireData& operator=(const WireData&)=default;
+    WireData(WireData&&)=default;
+    WireData& operator=(WireData&&)=default;
 
-    virtual common::SpanBuffer nextBuffer() const noexcept=0;
+    virtual common::DataBuf nextBuffer() const noexcept=0;
     virtual common::ByteArray* mainContainer() const noexcept=0;
     virtual void appendBuffer(common::SpanBuffer&& buf)=0;
     virtual void appendBuffer(const common::SpanBuffer& buf)=0;
@@ -77,10 +72,12 @@ public:
     virtual size_t currentOffset() const noexcept=0;
     virtual void incCurrentOffset(int increment) noexcept=0;
     virtual int appendUint32(uint32_t val)=0;
-    virtual int append(WireData* other)=0;
+    virtual int append(const WireData& other)=0;
     virtual WireBufSolid toSolidWireBuf() const=0;
     virtual void clear()=0;
-
+    virtual common::SpanBuffers buffers() const=0;
+    virtual std::vector<WireBufChainItem> chain() const=0;
+    virtual const common::ByteArray* meta() const=0;
 
     inline void appendBuffer(const common::ByteArrayShared& buf)
     {
@@ -89,26 +86,6 @@ public:
     inline void appendBuffer(common::ByteArrayShared&& buf)
     {
         appendBuffer(common::SpanBuffer(std::move(buf)));
-    }
-
-    //! @todo make it somewhere as templated and use from one place
-    template <typename ContainerT>
-    void copyToContainer(ContainerT& container) const
-    {
-        auto* self=const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this);
-
-        self->resetState();
-        container.reserve(container.size()+size());
-        auto mContainer=mainContainer();
-        if (mContainer && !mContainer->isEmpty())
-        {
-            container.append(*mContainer);
-        }
-        while (auto buf=nextBuffer())
-        {
-            container.append(buf.view());
-        }
-        self->resetState();
     }
 
     //! @todo remove it
@@ -167,7 +144,7 @@ public:
           WireData(this->impl())
     {}
 
-    virtual common::SpanBuffer nextBuffer() const noexcept override
+    virtual common::DataBuf nextBuffer() const noexcept override
     {
         return this->impl().nextBuffer();
     }
@@ -176,6 +153,8 @@ public:
     {
         return this->impl().mainContainer();
     }
+
+    using WireData::appendBuffer;
 
     virtual void appendBuffer(common::SpanBuffer&& buf) override
     {
@@ -232,7 +211,7 @@ public:
         return this->impl().appendUint32(val);
     }
 
-    virtual int append(WireData* other) override
+    virtual int append(const WireData& other) override
     {
         return this->impl().append(other);
     }
@@ -242,13 +221,28 @@ public:
         this->impl().clear();
     }
 
+    virtual common::SpanBuffers buffers() const override
+    {
+        return this->impl().buffers();
+    }
+
+    virtual std::vector<WireBufChainItem> chain() const override
+    {
+        return this->impl().chain();
+    }
+
+    virtual const common::ByteArray* meta() const override
+    {
+        return this->impl().meta();
+    }
+
     //! @todo remove it
     virtual WireDataDerived<WireBufSolid> toSingleWireData() const override
     {
         auto f=this->impl().factory();
         common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
         common::ByteArray singleBuf(memResource);
-        copyToContainer(singleBuf);
+        copyToContainer(*this,&singleBuf);
         return WireDataDerived<WireBufSolid>(std::move(singleBuf),f);
     }
 

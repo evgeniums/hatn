@@ -34,61 +34,23 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 template <typename TraitsT>
 int WireBuf<TraitsT>::appendUint32(uint32_t val)
 {
-    auto* buf=hana::if_(
-        boost::hana::is_a<WireBufSolidTag>,
-        mainContainer(),
-        appendMetaVar(sizeof(uint32_t))
+    auto self=this;
+    auto* buf=boost::hana::eval_if(
+        boost::hana::bool_<WireBuf<TraitsT>::isSingleBuffer()>{},
+        [&](auto _)
+        {
+            return _(self)->mainContainer();
+        },
+        [&](auto _)
+        {
+            return _(self)->appendMetaVar(sizeof(uint32_t));
+        }
     );
 
     auto consumed=Stream<uint32_t>::packVarInt(buf,val);
     incSize(consumed);
     return consumed;
 }
-
-//---------------------------------------------------------------
-#if 0
-template <typename TraitsT>
-template <typename T>
-int WireBuf<TraitsT>::append(T* other)
-{
-    other->resetState();
-
-    int size=static_cast<int>(other->size());
-
-    if (isSingleBuffer())
-    {
-        // copy pre-serialized data to signle data container
-        auto* targetBuf=mainContainer();
-        other->copyToContainer(*targetBuf);
-    }
-    else
-    {
-        auto srcContainer=other->mainContainer();
-        if (srcContainer && !srcContainer->isEmpty())
-        {
-            // allocated new shared buffer and copy prepared main container buffer to it
-            auto&& sharedBuf=factory()->template createObject<::hatn::common::ByteArrayManaged>(
-                                srcContainer->data(),srcContainer->size(),factory()->dataMemoryResource()
-                            );
-            appendBuffer(std::move(sharedBuf));
-        }
-
-        if (!other->isSingleBuffer())
-        {
-            // copy chain of buffers
-            while (auto buf=other->nextBuffer())
-            {
-                appendBuffer(std::move(buf));
-            }
-        }
-    }
-
-    other->resetState();
-    incSize(size);
-
-    return size;
-}
-#endif
 
 //---------------------------------------------------------------
 
@@ -98,7 +60,7 @@ WireBufSolid WireBuf<TraitsT>::toSolidWireBuf() const
     auto f=factory();
     common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
     common::ByteArray singleBuf(memResource);
-    copyToContainer(singleBuf);
+    copyToContainer(*this,&singleBuf);
     return WireBufSolid(std::move(singleBuf),f);
 }
 

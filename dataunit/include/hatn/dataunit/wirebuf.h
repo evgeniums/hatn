@@ -31,12 +31,9 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-struct WireBufSolidTag{};
-struct WireBufChainedTag{};
-
 class WireBufSolid;
 
-class WireBufBase
+class HATN_DATAUNIT_EXPORT WireBufBase
 {
     public:
 
@@ -57,22 +54,22 @@ class WireBufBase
             m_useInlineBuffers(false)
         {}
 
-        void setSize(size_t size) noexcept
+        inline void setSize(size_t size) noexcept
         {
             m_size=size;
         }
 
-        size_t size() const noexcept
+        inline size_t size() const noexcept
         {
             return m_size;
         }
 
-        void incSize(int increment) noexcept
+        inline void incSize(int increment) noexcept
         {
             m_size+=increment;
         }
 
-        AllocatorFactory* factory() const noexcept
+        inline AllocatorFactory* factory() const noexcept
         {
             return m_factory;
         }
@@ -93,7 +90,7 @@ class WireBufBase
 
     protected:
 
-        void setFactory(AllocatorFactory* factory) noexcept
+        inline void setFactory(AllocatorFactory* factory) noexcept
         {
             m_factory=factory;
         }
@@ -105,18 +102,41 @@ class WireBufBase
         bool m_useInlineBuffers;
 };
 
-struct WireBufTraits
+struct HATN_DATAUNIT_EXPORT WireBufChainItem
 {
-    common::DataBuf nextBuffer() const noexcept {return common::DataBuf{};}
-    common::ByteArray* mainContainer() const noexcept {return nullptr;}
+    WireBufChainItem(
+        common::DataBuf buf,
+        bool inMeta=true
+        ) : buf(buf),inMeta(inMeta)
+    {}
 
-    void appendBuffer(common::SpanBuffer&& /*buf*/){}
-    void appendBuffer(const common::SpanBuffer& /*buf*/){}
-    void appendBuffer(common::DataBuf /*buf*/){}
+    common::DataBuf buf;
+    bool inMeta;
+};
 
+struct HATN_DATAUNIT_EXPORT WireBufTraits
+{
     void resetState() {m_offset=0;}
     void setCurrentMainContainer(common::ByteArray* /*currentMainContainer*/) noexcept
     {}
+
+    common::SpanBuffers buffers() const
+    {
+        Assert(false,"Invalid operation");
+        return common::SpanBuffers{};
+    }
+
+    std::vector<WireBufChainItem> chain() const
+    {
+        Assert(false,"Invalid operation");
+        return std::vector<WireBufChainItem>{};
+    }
+
+    const common::ByteArray* meta() const
+    {
+        Assert(false,"Invalid operation");
+        return nullptr;
+    }
 
     common::DataBuf* appendMetaVar(size_t varTypeSize)
     {
@@ -127,8 +147,21 @@ struct WireBufTraits
 
     void clear(){}
 
-    size_t m_offset=0;
+    mutable size_t m_offset=0;
 };
+
+template <typename BufferT, typename ContainerT>
+void copyToContainer(const BufferT& buf, ContainerT* container)
+{
+    auto& src=const_cast<BufferT&>(buf);
+
+    src.resetState();
+    while (auto buf=src.nextBuffer())
+    {
+        container->append(buf);
+    }
+    src.resetState();
+}
 
 template <typename TraitsT>
 class WireBuf : public common::WithTraits<TraitsT>,
@@ -158,20 +191,24 @@ class WireBuf : public common::WithTraits<TraitsT>,
               WireBufBase(size,factory,useShareBuffers)
         {}
 
-#if __cplusplus < 201703L
-        // to use as return in create() method
-        WireBuf(const WireBuf&)=default;
-#else
-        WireBuf(const WireBuf&)=delete;
-#endif
-        WireBuf& operator=(const WireBuf&)=delete;
-        WireBuf(WireBuf&&) =default;
-        WireBuf& operator=(WireBuf&&) =default;
-
         // begin methods with traits
 
+        /**
+         * @brief Append uint32 value.
+         * @param val Vaue.
+         * @return Increment of size.
+         *
+         * Size of WireBuf is automatically increased.
+         */
         int appendUint32(uint32_t val);
 
+        /**
+         * @brief Append other WireBuf
+         * @param other Other WireBuf.
+         * @return Increment of size.
+         *
+         * Size of WireBuf is automatically increased.
+         */
         template <typename T>
         int append(const T& other)
         {
@@ -180,14 +217,59 @@ class WireBuf : public common::WithTraits<TraitsT>,
             return size;
         }
 
+        /**
+         * @brief Push shared buffer to WireBuf.
+         * @param buf Buffer.
+         *
+         * Size of WireBuf is NOT automatically increased.
+         */
         void appendBuffer(const common::ByteArrayShared& buf)
         {
             appendBuffer(common::SpanBuffer(buf));
         }
 
+        /**
+         * @brief Push shared buffer to WireBuf.
+         * @param buf Buffer.
+         *
+         * Size of WireBuf is NOT automatically increased.
+         */
         void appendBuffer(common::ByteArrayShared&& buf)
         {
             appendBuffer(common::SpanBuffer(std::move(buf)));
+        }
+
+        /**
+         * @brief Push span buffer to WireBuf.
+         * @param buf Buffer.
+         *
+         * Size of WireBuf is NOT automatically increased.
+         */
+        void appendBuffer(common::SpanBuffer&& buf)
+        {
+            this->traits().appendBuffer(std::move(buf));
+        }
+
+        /**
+         * @brief Push span buffer to WireBuf.
+         * @param buf Buffer.
+         *
+         * Size of WireBuf is NOT automatically increased.
+         */
+        void appendBuffer(const common::SpanBuffer& buf)
+        {
+            this->traits().appendBuffer(buf);
+        }
+
+        /**
+         * @brief Push data buffer to WireBuf.
+         * @param buf Buffer.
+         *
+         * Size of WireBuf is NOT automatically increased.
+         */
+        void appendBuffer(common::DataBuf buf)
+        {
+            this->traits().appendBuffer(std::move(buf));
         }
 
         common::DataBuf nextBuffer() const noexcept
@@ -198,21 +280,6 @@ class WireBuf : public common::WithTraits<TraitsT>,
         common::ByteArray* mainContainer() const noexcept
         {
             return this->traits().mainContainer();
-        }
-
-        void appendBuffer(common::SpanBuffer&& buf)
-        {
-            this->traits().appendBuffer(std::move(buf));
-        }
-
-        void appendBuffer(const common::SpanBuffer& buf)
-        {
-            this->traits().appendBuffer(buf);
-        }
-
-        void appendBuffer(common::DataBuf buf)
-        {
-            this->traits().appendBuffer(std::move(buf));
         }
 
         void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
@@ -253,23 +320,19 @@ class WireBuf : public common::WithTraits<TraitsT>,
             this->traits().m_offset+=increment;
         }
 
-        template <typename ContainerT>
-        void copyToContainer(ContainerT& container) const
+        common::SpanBuffers buffers() const
         {
-            auto* self=const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this);
+            return this->traits().buffers();
+        }
 
-            self->resetState();
-            container.reserve(container.size()+size());
-            auto mContainer=mainContainer();
-            if (mContainer && !mContainer->isEmpty())
-            {
-                container.append(*mContainer);
-            }
-            while (auto buf=nextBuffer())
-            {
-                container.append(buf);
-            }
-            self->resetState();
+        std::vector<WireBufChainItem> chain() const
+        {
+            return this->traits().chain();
+        }
+
+        const common::ByteArray* meta() const
+        {
+            return this->traits().meta();
         }
 
         WireBufSolid toSolidWireBuf() const;

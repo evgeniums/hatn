@@ -87,7 +87,8 @@ struct HATN_DATAUNIT_EXPORT visitors
                 if (!unit.wireDataPack().isNull())
                 {
                     // use already serialized data
-                    auto addedBytes=buf.append(unit.wireDataPack()->wireData());
+                    //! @todo refactor
+                    auto addedBytes=buf.append(*(unit.wireDataPack()->wireData()));
                     return addedBytes;
                 }
 

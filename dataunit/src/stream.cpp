@@ -129,14 +129,16 @@ int StreamBase::unpackVarInt64(
     // check for overflow
     if (overflow)
     {
-        HATN_WARN(dataunit,"Unexpected end of buffer");
+        //! @todo handle errors
+        // HATN_WARN(dataunit,"Unexpected end of buffer");
         return -1;
     }
 
     // check if more bytes left
     if (moreBytesLeft)
     {
-        HATN_WARN(dataunit,"Unterminated VarInt");
+        //! @todo handle errors
+        // HATN_WARN(dataunit,"Unterminated VarInt");
         return -1;
     }
 

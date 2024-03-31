@@ -33,6 +33,8 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/logger.h>
 
+#include <hatn/dataunit/wiredata.h>
+
 #include <hatn/dataunit/rapidjsonstream.h>
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
@@ -176,7 +178,8 @@ int Unit::serialize(
     if (!m_wireDataPack.isNull())
     {
         // use already serialized data
-        result=wired.append(m_wireDataPack->wireData());
+        //! @todo refactor wirepack
+        result=wired.append(*(m_wireDataPack->wireData()));
     }
     else
     {

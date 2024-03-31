@@ -159,26 +159,6 @@ bool VariableSer<T>::deserialize(T& value, BufferT& wired)
     return true;
 }
 
-#if 0
-template class HATN_DATAUNIT_EXPORT FixedSer<int32_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<int64_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<uint32_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<uint64_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<float>;
-template class HATN_DATAUNIT_EXPORT FixedSer<double>;
-
-template class HATN_DATAUNIT_EXPORT VariableSer<bool>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int8_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int16_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int32_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int64_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint8_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint16_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint32_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint64_t>;
-
-#endif
-
 /********************** BytesSer **************************/
 
 //---------------------------------------------------------------
@@ -345,20 +325,6 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     return true;
 }
 
-#if 0
-template class HATN_DATAUNIT_EXPORT BytesSer<common::ByteArray,common::ByteArrayShared>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow8,common::FixedByteArraySharedThrow8>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow16,common::FixedByteArraySharedThrow16>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow20,common::FixedByteArraySharedThrow20>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow32,common::FixedByteArraySharedThrow32>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow40,common::FixedByteArraySharedThrow40>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow64,common::FixedByteArraySharedThrow64>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow128,common::FixedByteArraySharedThrow128>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow256,common::FixedByteArraySharedThrow256>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow512,common::FixedByteArraySharedThrow512>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow1024,common::FixedByteArraySharedThrow1024>;
-#endif
-
 /********************** UnitSer **************************/
 
 //---------------------------------------------------------------
@@ -372,17 +338,17 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 
         // prepare buffer for size of the packed unit
         size_t reserveSizeLength=sizeof(uint32_t)+1;
-        //! @todo sizebuf hana if
-        auto* sizeBuf=wired.mainContainer();
+        auto* sizeBufSingle=wired.mainContainer();
+        common::DataBuf* sizeBufChained=nullptr;
         if (wired.isSingleBuffer())
         {
             // reserve sizeof(int32_t)+1 to keep size of packed unit
-            sizeBuf->resize(sizeBuf->size()+reserveSizeLength);
+            sizeBufSingle->resize(sizeBufSingle->size()+reserveSizeLength);
         }
         else
         {
             // just append meta block to keep size of packed unit
-            sizeBuf=wired.appendMetaVar(sizeof(uint32_t));
+            sizeBufChained=wired.appendMetaVar(sizeof(uint32_t));
         }
         wired.incSize(static_cast<int>(reserveSizeLength));
 
@@ -392,11 +358,11 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         const auto& preparedWireDataPack=value->wireDataPack();
         if (!preparedWireDataPack.isNull())
         {
-            size=wired.append(preparedWireDataPack->wireData());
+            //! @todo fix it
+            size=wired.append(*(preparedWireDataPack->wireData()));
         }
         else
         {
-            //! @todo hana if
             if (!wired.isSingleBuffer())
             {
                 auto&& f=wired.factory();
@@ -431,10 +397,15 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
 
         // preset size of embedded unit with 0
-        char* sizePtr=sizeBuf->data();
+        char* sizePtr=nullptr;
         if (wired.isSingleBuffer())
         {
+            sizePtr=sizeBufSingle->data();
             sizePtr+=prevSize;
+        }
+        else
+        {
+            sizePtr=sizeBufChained->data();
         }
         memset(sizePtr,0,reserveSizeLength);
 

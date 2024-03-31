@@ -29,6 +29,8 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+WireData::~WireData()=default;
+
 #if 0
 
 /********************** WireData **************************/
