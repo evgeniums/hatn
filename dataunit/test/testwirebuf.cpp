@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(WireBufBasicOp)
 
     solid.appendBuffer(sharedBuf);
     BOOST_CHECK_EQUAL(oldSize,solid.size());
-    size=solid.mainContainer()->size();
+    size=static_cast<int>(solid.mainContainer()->size());
     BOOST_CHECK_EQUAL(14,size);
     solidB.clear();
     du::copyToContainer(solid,&solidB);

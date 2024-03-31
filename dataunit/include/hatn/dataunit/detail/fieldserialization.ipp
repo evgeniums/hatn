@@ -339,7 +339,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         // prepare buffer for size of the packed unit
         size_t reserveSizeLength=sizeof(uint32_t)+1;
         auto* sizeBufSingle=wired.mainContainer();
-        common::DataBuf* sizeBufChained=nullptr;
+        size_t sizeBufChainedIdx=0;
         if (wired.isSingleBuffer())
         {
             // reserve sizeof(int32_t)+1 to keep size of packed unit
@@ -348,7 +348,8 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         else
         {
             // just append meta block to keep size of packed unit
-            sizeBufChained=wired.appendMetaVar(sizeof(uint32_t));
+            wired.appendMetaVar(sizeof(uint32_t));
+            sizeBufChainedIdx=wired.chain().size()-1;
         }
         wired.incSize(static_cast<int>(reserveSizeLength));
 
@@ -405,7 +406,8 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
         else
         {
-            sizePtr=sizeBufChained->data();
+            auto& sizeBufChained=wired.chain().at(sizeBufChainedIdx).buf;
+            sizePtr=sizeBufChained.data();
         }
         memset(sizePtr,0,reserveSizeLength);
 

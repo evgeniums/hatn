@@ -6,7 +6,7 @@ SET (TEST_SOURCES
     # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
     # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
     # ${DATAUNIT_TEST_SRC}/testperformance.cpp
-    # ${DATAUNIT_TEST_SRC}/testserialization.cpp
+    ${DATAUNIT_TEST_SRC}/testserialization.cpp
     ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
 )
 

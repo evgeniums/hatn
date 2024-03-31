@@ -18,6 +18,8 @@
 #ifndef HATNDATABUF_H
 #define HATNDATABUF_H
 
+#include <system_error>
+
 #include <hatn/common/common.h>
 #include <hatn/common/metautils.h>
 
