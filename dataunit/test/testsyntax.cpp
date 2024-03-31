@@ -1282,7 +1282,7 @@ void checkSerializePreparedSubUnit()
     auto packedSizeSingle=unit1.serialize(wiredSingle1);
     BOOST_CHECK_EQUAL(packedSize,packedSizeSingle);
     BOOST_REQUIRE(wiredSingle1.mainContainer());
-    hatn::dataunit::WireDataSingle wiredSingle2=wired.toSingleWireData();
+    auto wiredSingle2=wired.toSolidWireBuf();
     BOOST_REQUIRE(wiredSingle2.mainContainer());
     BOOST_CHECK(*wiredSingle1.mainContainer()==*wiredSingle2.mainContainer());
 

@@ -337,9 +337,6 @@ class WireBuf : public common::WithTraits<TraitsT>,
 
         WireBufSolid toSolidWireBuf() const;
 
-        //! @todo remove it
-        WireBufSolid toSingleWireData() const;
-
         // end methods with traits                   
 };
 

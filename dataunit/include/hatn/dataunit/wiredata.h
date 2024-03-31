@@ -74,9 +74,6 @@ public:
         appendBuffer(common::SpanBuffer(std::move(buf)));
     }
 
-    //! @todo remove it
-    virtual WireDataDerived<WireBufSolid> toSingleWireData() const=0;
-
     inline bool isUseSharedBuffers() const noexcept
     {
         return baseImpl.isUseSharedBuffers();
@@ -220,16 +217,6 @@ public:
     virtual const common::ByteArray* meta() const override
     {
         return this->impl().meta();
-    }
-
-    //! @todo remove it
-    virtual WireDataDerived<WireBufSolid> toSingleWireData() const override
-    {
-        auto f=this->impl().factory();
-        common::pmr::memory_resource* memResource=f?f->dataMemoryResource():common::pmr::get_default_resource();
-        common::ByteArray singleBuf(memResource);
-        copyToContainer(*this,&singleBuf);
-        return WireDataDerived<WireBufSolid>(std::move(singleBuf),f);
     }
 
     WireBufSolid toSolidWireBuf() const override

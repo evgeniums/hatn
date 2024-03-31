@@ -64,12 +64,6 @@ WireBufSolid WireBuf<TraitsT>::toSolidWireBuf() const
     return WireBufSolid(std::move(singleBuf),f);
 }
 
-template <typename TraitsT>
-WireBufSolid WireBuf<TraitsT>::toSingleWireData() const
-{
-    return toSolidWireBuf();
-}
-
 //---------------------------------------------------------------
 
 template <typename T>
