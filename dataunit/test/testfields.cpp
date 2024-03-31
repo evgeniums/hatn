@@ -280,7 +280,7 @@ struct Aaa
     {}
 };
 
-BOOST_AUTO_TEST_SUITE(Fieldss)
+BOOST_AUTO_TEST_SUITE(Fields)
 
 BOOST_AUTO_TEST_CASE(Performance)
 {

@@ -1309,7 +1309,7 @@ void checkSerializePreparedSubUnit()
     BOOST_REQUIRE(packedSize3>0);
     BOOST_CHECK_EQUAL(packedSize,packedSize3);
     hatn::common::ByteArray barr3;
-    wired3.copyToContainer(barr3);
+    copyToContainer(wired3,&barr3);
     BOOST_CHECK(*wiredSingle1.mainContainer()==barr3);
     if (*wiredSingle1.mainContainer()!=barr3)
     {
