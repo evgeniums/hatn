@@ -75,10 +75,10 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 #define _HDU_DATAUNIT_PREPARE(UnitName) \
     template <int N> struct field{}; \
     struct Conf {constexpr static const char* name=#UnitName;}; \
-    template <> struct field<HATN_GET_COUNT(Fields)>{using type=Conf;using shared=Conf;constexpr static const int index=HATN_GET_COUNT(Fields);}; \
+    template <> struct field<HATN_COUNTER_GET(Fields)>{using type=Conf;using shared=Conf;constexpr static const int index=HATN_COUNTER_GET(Fields);}; \
     template <int N> struct _FieldTypes {}; \
     template <> struct _FieldTypes<0> {}; \
-    HATN_INC_COUNT(Fields); \
+    HATN_COUNTER_INC(Fields); \
     template <typename ...Types> struct VariadicTypedef \
     {}; \
     \
@@ -182,9 +182,9 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     _HDU_DATAUNIT_CREATE_TYPE_IMPL_(shared_fields_type,_shared_fields_type)
 
 #define _HDU_DATAUNIT_CREATE_TYPES() \
-    using fields_impl=_FieldTypes<HATN_GET_COUNT(Fields)-1>; \
-    using _type_impl=Concat<field,HATN_GET_COUNT(Fields)-1,DataUnit>::type; \
-    using _shared_fields_type=ConcatShared<field,HATN_GET_COUNT(Fields)-1,DataUnit>::type; \
+    using fields_impl=_FieldTypes<HATN_COUNTER_GET(Fields)-1>; \
+    using _type_impl=Concat<field,HATN_COUNTER_GET(Fields)-1,DataUnit>::type; \
+    using _shared_fields_type=ConcatShared<field,HATN_COUNTER_GET(Fields)-1,DataUnit>::type; \
     _HDU_DATAUNIT_CREATE_TYPE_IMPL() \
     HATN_WITH_STATIC_ALLOCATOR_INLINE \
     HATN_WITH_STATIC_ALLOCATOR_DECLARE(managed_impl,HDU_DATAUNIT_EXPORT) \
@@ -210,10 +210,9 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     namespace UnitName { \
         using namespace hatn::dataunit; \
         using namespace hatn::dataunit::types; \
-        HATN_PREPARE_COUNTERS() \
-        HATN_MAKE_COUNTER(Fields); \
-        HATN_MAKE_COUNTER(Extensions); \
-        HATN_MAKE_COUNTER(ExtensionsInst); \
+        HATN_COUNTER_MAKE(Fields); \
+        HATN_COUNTER_MAKE(Extensions); \
+        HATN_COUNTER_MAKE(ExtensionsInst); \
         _HDU_DATAUNIT_PREPARE_CHECKS() \
         _HDU_DATAUNIT_PREPARE(UnitName) \
         __VA_ARGS__ \
@@ -226,10 +225,9 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
     namespace UnitName { \
         using namespace hatn::dataunit; \
         using namespace hatn::dataunit::types; \
-        HATN_PREPARE_COUNTERS() \
-        HATN_MAKE_COUNTER(Fields); \
-        HATN_MAKE_COUNTER(Extensions); \
-        HATN_MAKE_COUNTER(ExtensionsInst); \
+        HATN_COUNTER_MAKE(Fields); \
+        HATN_COUNTER_MAKE(Extensions); \
+        HATN_COUNTER_MAKE(ExtensionsInst); \
         _HDU_DATAUNIT_PREPARE_CHECKS() \
         _HDU_DATAUNIT_PREPARE(UnitName) \
         using _type_impl=EmptyUnit<Conf>;  \
@@ -255,7 +253,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             _HDU_DATAUNIT_CREATE_TYPES() \
             _HDU_DATAUNIT_DECLARE_TRAITS() \
         } \
-        template <> struct extension<HATN_GET_COUNT(Extensions)> \
+        template <> struct extension<HATN_COUNTER_GET(Extensions)> \
         {\
             using fields_impl=_Ext##ExtensionName::fields_impl; \
             using _type_impl=_Ext##ExtensionName::_type_impl; \
@@ -269,8 +267,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             using traits=_Ext##ExtensionName::traits; \
             using TYPE=_Ext##ExtensionName::TYPE; \
         }; \
-        using ExtensionName=extension<HATN_GET_COUNT(Extensions)>;\
-        HATN_INC_COUNT(Extensions); \
+        using ExtensionName=extension<HATN_COUNTER_GET(Extensions)>;\
+        HATN_COUNTER_INC(Extensions); \
     } \
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
     HATN_IGNORE_UNUSED_VARIABLE_END
@@ -278,9 +276,9 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //! Use this macro to reserve field ID
 #define _HDU_FIELD_RESERVE_ID(Id) \
         static_assert(std::is_integral<decltype(Id)>::value,"ID must be integer"); \
-        HATN_MAKE_COUNTER(Id); \
-        HATN_INC_COUNT(Id); \
-        static_assert(HATN_GET_COUNT(Id)==1,"Duplicate field ID");
+        HATN_COUNTER_MAKE(Id); \
+        HATN_COUNTER_INC(Id); \
+        static_assert(HATN_COUNTER_GET(Id)==1,"Duplicate field ID");
 
 //! Use this macro to reserve field name
 #define _HDU_FIELD_RESERVE_NAME(FieldName,Description) \
@@ -297,7 +295,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
         static_assert(CheckUnitType<Type>::ok(),"Invalid type of dataunit field");
 
 #define _HDU_FIELD_END(FieldName,FieldType,FieldShared,Type_,Id) \
-        template <> struct field<HATN_GET_COUNT(Fields)> { \
+        template <> struct field<HATN_COUNTER_GET(Fields)> { \
             using hana_tag=FieldTag;\
             using type=FieldType;\
             using shared=FieldShared;\
@@ -306,7 +304,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             constexpr static const char* description() {return FieldType::fieldDescription();}\
             constexpr static int id() noexcept {return Id;};\
             constexpr static const int ID=Id;\
-            constexpr static const int index=HATN_GET_COUNT(Fields)-1;\
+            constexpr static const int index=HATN_COUNTER_GET(Fields)-1;\
             template <typename T> bool operator ==(const T& other) const \
             { \
                 return std::is_same<Type,typename T::Type>::value && id()==other.id(); \
@@ -316,14 +314,14 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
                 return !(*this==other); \
             } \
         }; \
-        using _f##FieldName=field<HATN_GET_COUNT(Fields)>; \
+        using _f##FieldName=field<HATN_COUNTER_GET(Fields)>; \
         constexpr _f##FieldName FieldName{}; \
         constexpr _f##FieldName instance##FieldName{}; \
-        template <> struct _FieldTypes<HATN_GET_COUNT(Fields)> : public _FieldTypes<HATN_GET_COUNT(Fields)-1> \
+        template <> struct _FieldTypes<HATN_COUNTER_GET(Fields)> : public _FieldTypes<HATN_COUNTER_GET(Fields)-1> \
         { \
             constexpr static const auto& FieldName=instance##FieldName; \
         }; \
-        HATN_INC_COUNT(Fields);
+        HATN_COUNTER_INC(Fields);
 
 //! Use this macro to declare an optional dataunit field
 #define _HDU_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description) \
@@ -655,7 +653,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             _HDU_DATAUNIT_IMPLEMENT_TYPE_IMPL_(type_impl,_type_impl) \
             _HDU_DATAUNIT_IMPLEMENT_TYPE_IMPL_(shared_fields_type,_shared_fields_type) \
         } \
-        HATN_INC_COUNT(ExtensionsInst) \
+        HATN_COUNTER_INC(ExtensionsInst) \
     }
 
 HATN_DATAUNIT_NAMESPACE_END

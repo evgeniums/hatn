@@ -34,4 +34,14 @@ BOOST_AUTO_TEST_CASE(InterfacesPack)
     BOOST_CHECK_EQUAL(sizeof(i2),sizeof(Interface2));
 }
 
+BOOST_AUTO_TEST_CASE(Counters)
+{
+    HATN_COUNTER_MAKE(c1)
+    constexpr auto v0=HATN_COUNTER_GET(c1);
+    static_assert(0==v0,"");
+    HATN_COUNTER_INC(c1)
+    constexpr auto v1=HATN_COUNTER_GET(c1);
+    static_assert(1==v1,"");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

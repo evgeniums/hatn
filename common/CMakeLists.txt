@@ -13,6 +13,7 @@ ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)
 INCLUDE(thirdparty/md5/md5.cmake)
 INCLUDE(thirdparty/base64/base64.cmake)
+INCLUDE(thirdparty/fameta/fameta.cmake)
 
 IF (NOT HATNCOMMON_PYTHON_SCRIPTS_DIR)
     INCLUDE(hatn/Scripts)

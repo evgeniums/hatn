@@ -1,5 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
+#include <hatn/thirdparty/fameta/counter.hpp>
+
 #define HDU_DATAUNIT_EXPORT
 
 #include <hatn/common/pmr/withstaticallocator.h>
@@ -18,7 +20,7 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
-#if 1
+
 namespace {
 
 HDU_DATAUNIT_EMPTY(du0)
@@ -61,6 +63,10 @@ HDU_DATAUNIT(du7,
 HDU_INSTANTIATE_DATAUNIT(du7)
 
 } // anonymous namespace
+
+// HATN_COUNTER_MAKE(Extra)
+// HATN_COUNTER_INC(Extra)
+// constexpr auto abc=HATN_COUNTER_GET(Extra);
 
 namespace du=HATN_DATAUNIT_NAMESPACE;
 
@@ -282,5 +288,6 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitFieldWithRequired)
     auto ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
 }
+
 BOOST_AUTO_TEST_SUITE_END()
-#endif
+

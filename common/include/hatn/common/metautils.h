@@ -27,6 +27,7 @@
 #endif
 
 #include <hatn/common/common.h>
+#include <hatn/thirdparty/fameta/counter.hpp>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -37,6 +38,7 @@ HATN_COMMON_NAMESPACE_BEGIN
      }
 
      /****************************** Compilation time counter ************************************/
+#if 0
      /* first method
       * call once per scope HATN_PREPARE_COUNTERS()
       * then create counter with HATN_MAKE_COUNTER(Id)
@@ -53,6 +55,13 @@ HATN_COMMON_NAMESPACE_BEGIN
      template<unsigned int n> struct _Count { char data[n]; }; \
      template<int n> struct _ICount : public _ICount<n-1> {}; \
      template<> struct _ICount<0> {};
+#else
+    #define HATN_COUNTER_PREPARE(Id) template <int> struct c_foo_##Id{}; struct cc_##Id{}; constexpr fameta::counter<cc_##Id,0> c_##Id{};
+    #define HATN_COUNTER_INC(Id) template <> struct c_foo_##Id<c_##Id.next<__COUNTER__>()>{};
+    #define HATN_COUNTER_MAKE(Id) HATN_COUNTER_PREPARE(Id) \
+                                  HATN_COUNTER_INC(Id)
+    #define HATN_COUNTER_GET(Id) c_##Id.current<__COUNTER__>()
+#endif
 
      /****************************** Check if variadic list contains a type **************************/
 
