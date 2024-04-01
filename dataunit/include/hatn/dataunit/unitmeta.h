@@ -348,6 +348,7 @@ struct subunit : public types::TYPE_DATAUNIT
         }
 };
 
+//! @todo implement checks of dataunit fields
 //---------------------------------------------------------------
 } // namespace meta
 

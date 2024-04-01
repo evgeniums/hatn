@@ -129,6 +129,14 @@ using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedCon
     using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::EmbeddedDataunit>;\
     HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
 
+#define HDU_V2_ENUM(EnumName,...) \
+enum class EnumName : int {__VA_ARGS__};
+
+#define HDU_V2_TYPE_ENUM(Type) TYPE_ENUM<Type>
+
+#define HDU_V2_TYPE_FIXED_STRING(Length) \
+    TYPE_FIXED_STRING<Length>
+
 #define HDU_V2_DATAUNIT(UnitName,...) \
     namespace UnitName { \
         using namespace hatn::dataunit; \
