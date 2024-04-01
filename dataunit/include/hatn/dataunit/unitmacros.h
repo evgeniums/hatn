@@ -145,10 +145,10 @@ enum class EnumName : int {__VA_ARGS__};
         using shared_type=unit_t<decltype(shared_unit_c)::type>;\
         using managed=managed_unit<type>;\
         using shared_managed=shared_managed_unit<shared_type>;\
+        /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
         struct fields : public fields_t{};\
-        using traits=unit_traits<type,managed,fields>;\
-        using shared_traits=unit_traits<shared_type,shared_managed,fields>;\
-        /* TYPE is explicitly derived instead of just "using" type in order to decrease object code size */ \
+        struct traits : public unit_traits<type,managed,fields>{};\
+        struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
         struct TYPE : public subunit<traits,shared_traits>{}; \
 }
 
