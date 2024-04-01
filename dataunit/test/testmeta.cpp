@@ -37,7 +37,7 @@ namespace unit1 {
     {
         using hana_tag=FieldTag;
 
-        using traits=field_traits<field_generator,
+        using traits=meta::field_traits<meta::field_generator,
                                   field0_strings,
                                   hana::int_<field0_id>,
                                   hana::int_<HATN_COUNTER_GET(c)>,
@@ -63,11 +63,21 @@ HDU_V2_DATAUNIT(du1,
     HDU_V2_REPEATED_FIELD_NORMAL_WITH_DESCRIPTION(f40,TYPE_UINT16,40,"Repeated field 40",false,2312)
     HDU_V2_REPEATED_FIELD_PBPACKED_WITH_DESCRIPTION(f50,TYPE_UINT16,50,"Repeated protobuf packed field 50",true,1122)
     HDU_V2_REPEATED_FIELD_PBORDINARY_WITH_DESCRIPTION(f60,TYPE_UINT16,60,"Repeated protobuf ordinary field 60",false,3344)
-    HDU_V2_DATAUNIT_FIELD_WITH_DESCRIPTION(f70,TYPE_DATAUNIT,70,"Dataunit field 70",true)
+    HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(f70,TYPE_DATAUNIT,70,"Dataunit field 70",true)
+    HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f80,TYPE_DATAUNIT,80,"Dataunit field 80",true)
 )
 
 HDU_V2_DATAUNIT(du2,
-    HDU_V2_DATAUNIT_FIELD_WITH_DESCRIPTION(f10,du1::TYPE,10,"Subunit field 10",true)
+    HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(f10,du1::TYPE,10,"Subunit field 10",true)
+    HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f11,du1::TYPE,11,"Repeated field 11",true)
+    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(f12,du1::TYPE,12,"External field 12",true)
+    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_WITH_DESCRIPTION(f13,du1::TYPE,13,"Embedded field 13",true)
+    HDU_V2_REPEATED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f14,du1::TYPE,14,"Repeated pb packed field 14",true)
+    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f15,du1::TYPE,15,"External pb packed field 15",true)
+    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f16,du1::TYPE,16,"Embedded pb packed field 16",true)
+    HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f17,du1::TYPE,17,"Repeated pb ordinary field 17",true)
+    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f18,du1::TYPE,18,"External pb ordinary field 18",true)
+    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f19,du1::TYPE,19,"Embedded pb ordinary field 19",true)
 )
 
 using f10=du1::field<0>;

@@ -37,6 +37,8 @@ namespace hana=boost::hana;
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+namespace meta {
+
 //---------------------------------------------------------------
 
 struct field_id_tag{};
@@ -142,6 +144,61 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
     using shared_type=type;
 };
 
+template <RepeatedMode Mode=RepeatedMode::Normal, RepeatedContentType ContentType=RepeatedContentType::Normal>
+struct repeated_config
+{
+    constexpr static auto mode=Mode;
+    constexpr static auto content=ContentType;
+};
+
+template <RepeatedMode Mode, RepeatedContentType ContentType>
+struct repeated_traits
+{
+    using selector=SelectRepeatedType<Mode>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using type=typename selector::template type<FieldName,Type,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
+};
+
+template <RepeatedMode Mode>
+struct repeated_traits<Mode,RepeatedContentType::Dataunit>
+{
+    using selector=SelectRepeatedType<Mode>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using type=typename selector::template type<FieldName,Type,Id,EmbeddedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using shared_type=typename selector::template type<FieldName,Type,Id,SharedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+};
+
+template <RepeatedMode Mode>
+struct repeated_traits<Mode,RepeatedContentType::ExternalDataunit>
+{
+    using selector=SelectRepeatedType<Mode>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using type=typename selector::template type<FieldName,Type,Id,SharedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
+};
+
+template <RepeatedMode Mode>
+struct repeated_traits<Mode,RepeatedContentType::EmbeddedDataunit>
+{
+    using selector=SelectRepeatedType<Mode>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using type=typename selector::template type<FieldName,Type,Id,EmbeddedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+
+    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
+    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
+};
+
 template <typename StringsT,
          typename Id,
          typename TypeId,
@@ -155,11 +212,10 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            >
                        >
 {
-    using selector=SelectRepeatedType<RepeatedType::value>;
-    using type=typename selector::template type<StringsT,TypeId,Id::value,RepeatedTraits<TypeId>,DefaultTraits,Required::value>;
+    using traits=repeated_traits<RepeatedType::mode,RepeatedType::content>;
 
-    //! @todo fix for dataunits
-    using shared_type=type;
+    using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
+    using shared_type=typename traits::template shared_type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
 };
 
 template <typename StringsT,
@@ -293,6 +349,7 @@ struct subunit : public types::TYPE_DATAUNIT
 };
 
 //---------------------------------------------------------------
+} // namespace meta
 
 HATN_DATAUNIT_NAMESPACE_END
 

@@ -1120,6 +1120,15 @@ struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
     using type=RepeatedFieldProtoBufOrdinary<FieldName,Type,Id,Tag,DefaultAlias,Required>;
 };
 
+enum class RepeatedContentType : int
+{
+    Normal,
+    Dataunit,
+    ExternalDataunit,
+    EmbeddedDataunit
+};
+
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITREPEATEDFIELDS_H

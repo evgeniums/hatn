@@ -74,29 +74,66 @@ struct default_##FieldName\
     HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default)\
     HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_##FieldName,hana::false_,hana::false_)
 
-#define HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Mode,Required,Default) \
+#define HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,RepeatedConfig,Required,Default) \
     HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default)\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_##FieldName,Required,Mode)
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_##FieldName,Required,RepeatedConfig)
 
 #define HDU_V2_REPEATED_FIELD_NORMAL_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    using mode_##FieldName=std::integral_constant<RepeatedMode,RepeatedMode::Normal>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,mode_##FieldName,hana::bool_<Required>,Default)
+    using cfg_##FieldName=repeated_config<RepeatedMode::Normal>;\
+    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
 
 #define HDU_V2_REPEATED_FIELD_PBPACKED_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    using mode_##FieldName=std::integral_constant<RepeatedMode,RepeatedMode::ProtobufPacked>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,mode_##FieldName,hana::bool_<Required>,Default)
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufPacked>;\
+    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
 
 #define HDU_V2_REPEATED_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    using mode_##FieldName=std::integral_constant<RepeatedMode,RepeatedMode::ProtobufOrdinary>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,mode_##FieldName,hana::bool_<Required>,Default)
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary>;\
+    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
 
-#define HDU_V2_DATAUNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+#define HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
     HDU_V2_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required)
+
+#define HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+    using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::Dataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::ExternalDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::EmbeddedDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufPacked,RepeatedContentType::Dataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufPacked,RepeatedContentType::ExternalDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufPacked,RepeatedContentType::EmbeddedDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::Dataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::ExternalDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+
+#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::EmbeddedDataunit>;\
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
 
 #define HDU_V2_DATAUNIT(UnitName,...) \
     namespace UnitName { \
         using namespace hatn::dataunit; \
         using namespace hatn::dataunit::types; \
+        using namespace hatn::dataunit::meta; \
         struct conf{constexpr static const char* name=#UnitName;};\
         struct c{};\
         HATN_COUNTER_MAKE(c);\
