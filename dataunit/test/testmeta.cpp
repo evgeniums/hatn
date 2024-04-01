@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     BOOST_CHECK(vduP3==nullptr);
     BOOST_CHECK(vduP4==nullptr);
 
-    du2::type vdu3="";
+    du2::type vdu3;
     du2::shared_type vdu4;
 }
 
