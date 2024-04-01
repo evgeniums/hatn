@@ -141,13 +141,42 @@ enum class EnumName : int {__VA_ARGS__};
         auto unit_c=unit<conf>::type_c(field_defs);\
         auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
         using fields=field_id<HATN_COUNTER_GET(c)>;\
+        constexpr fields fields_instance{};\
         using type=unit_t<decltype(unit_c)::type>;\
         using shared_type=unit_t<decltype(shared_unit_c)::type>;\
         using managed=managed_unit<type>;\
         using shared_managed=shared_managed_unit<shared_type>;\
-        using traits=unit_traits<type,managed,fields>;\
-        using shared_traits=unit_traits<shared_type,shared_managed,fields>;\
-        using TYPE=subunit<traits,shared_traits>;\
+        struct traits\
+        {\
+                constexpr static const auto& fields=fields_instance;\
+                using type=UnitName::type;\
+                using managed=UnitName::managed;\
+        };\
+        struct shared_traits\
+        {\
+            constexpr static const auto& fields=fields_instance;\
+            using type=UnitName::shared_type;\
+            using managed=UnitName::managed;\
+        };\
+        struct TYPE : public TYPE_DATAUNIT\
+        {\
+            using type=traits::type;\
+            using shared_type=HATN_COMMON_NAMESPACE::SharedPtr<shared_traits::managed>;\
+            using base_shared_type=shared_traits::type;\
+            using Hatn=std::true_type;\
+            constexpr static const bool isSizeIterateNeeded=true;\
+            template <typename ...Args>\
+            static shared_type createManagedObject(AllocatorFactory* factory, Unit* unitBase)\
+            {\
+                if (factory==nullptr) factory=unitBase->factory();\
+                auto m=factory->createObject<typename shared_traits::managed>(factory);\
+                return m;\
+            }\
+        };\
+        /*using TYPE=subunit;*/\
+        /*using traits=unit_traits<type,managed,fields>;*/\
+        /*using shared_traits=unit_traits<shared_type,shared_managed,fields>;*/\
+        /*using TYPE=subunit<traits,shared_traits>;*/\
 }
 
 #endif // HATNDATAUNITMACROS_H

@@ -450,6 +450,10 @@ class unit_t : public BaseT
 
 //---------------------------------------------------------------
 
+/**
+ * @note The code below is moved to macros becuase otherwise size of object files grows abnormally.
+ */
+
 template <typename FieldsT>
 constexpr FieldsT fields_instance{};
 
