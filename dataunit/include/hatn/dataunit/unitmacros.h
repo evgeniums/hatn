@@ -28,8 +28,6 @@
     template <>\
     struct field<HATN_COUNTER_GET(c)>\
     {\
-        using hana_tag=field_tag;\
-        using id=field_##FieldName;\
         struct strings\
         {\
                 constexpr static const char* name=#FieldName;\
@@ -47,7 +45,12 @@
         using type=typename traits::type;\
         using shared_type=typename traits::shared_type;\
     };\
-    constexpr field<HATN_COUNTER_GET(c)> FieldName{}; \
+    constexpr typename field<HATN_COUNTER_GET(c)>::traits FieldName{};\
+    constexpr typename field<HATN_COUNTER_GET(c)>::traits inst_##FieldName{};\
+    template <> struct field_id<HATN_COUNTER_GET(c)+1> : public field_id<HATN_COUNTER_GET(c)>\
+    {\
+        constexpr static const auto& FieldName=inst_##FieldName;\
+    };\
     HATN_COUNTER_INC(c);
 
 #define HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default) \
@@ -98,16 +101,19 @@ struct default_##FieldName\
         struct c{};\
         HATN_COUNTER_MAKE(c);\
         template <int N> struct field{};\
+        template <int N> struct field_id{};\
+        template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
         __VA_ARGS__ \
-        auto fields=make_fields_tuple<field,HATN_COUNTER_GET(c)>();\
-        auto unit_c=unit<conf>::type_c(fields);\
-        auto shared_unit_c=unit<conf>::shared_type_c(fields);\
+        auto field_defs=make_fields_tuple<field,HATN_COUNTER_GET(c)>();\
+        auto unit_c=unit<conf>::type_c(field_defs);\
+        auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
+        using fields=field_id<HATN_COUNTER_GET(c)>;\
         using type=decltype(unit_c)::type;\
         using shared_type=decltype(shared_unit_c)::type;\
         using managed=managed_unit<type>;\
         using shared_managed=shared_managed_unit<shared_type>;\
-        using traits=unit_traits<type,managed,decltype(fields)>;\
-        using shared_traits=unit_traits<shared_type,shared_managed,decltype(fields)>;\
+        using traits=unit_traits<type,managed,fields>;\
+        using shared_traits=unit_traits<shared_type,shared_managed,fields>;\
         using TYPE=subunit<traits,shared_traits>;\
 }
 

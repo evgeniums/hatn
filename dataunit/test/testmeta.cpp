@@ -35,7 +35,7 @@ namespace unit1 {
     template <>
     struct field<HATN_COUNTER_GET(c)>
     {
-        using hana_tag=field_tag;
+        using hana_tag=FieldTag;
 
         using traits=field_traits<field_generator,
                                   field0_strings,
@@ -87,7 +87,8 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     f20::type f20(nullptr);
     f30::type f30(nullptr);
 
-    auto fields=du1::fields;
+    const auto& fields=du1::traits::fields;
+    std::ignore=fields.f10;
 
     du1::type* vdu1=nullptr;
     du1::shared_type* vdu2=nullptr;

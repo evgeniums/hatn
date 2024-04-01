@@ -39,8 +39,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-struct field_tag{};
-struct field_traits_tag{};
+struct field_id_tag{};
 
 //---------------------------------------------------------------
 
@@ -55,7 +54,7 @@ template <template <typename ...> class GeneratorT,
          >
 struct field_traits
 {
-    using hana_tag=field_traits_tag;
+    using hana_tag=FieldTag;
 
     using type_id=TypeId;
     using default_traits=DefaultTraits;
@@ -65,15 +64,27 @@ struct field_traits
     using type=typename generator::type;
     using shared_type=typename generator::shared_type;
 
-    constexpr static const char* name() {return StringsT::name;}
+    constexpr static const int ID=Id::value;
+    constexpr static const int index=Index::value;
 
-    constexpr static const char* description() {return StringsT::description;}
+    constexpr static const char* name() noexcept {return StringsT::name;}
 
-    constexpr static int index() noexcept {return Index::value;}
+    constexpr static const char* description() noexcept {return StringsT::description;}
 
     constexpr static int id() noexcept {return Id::value;}
 
     constexpr static bool required() noexcept {return Required::value;}
+
+    template <typename T>
+    bool operator ==(const T& other) const noexcept
+    {
+        return std::is_same<TypeId,typename T::Type>::value && id()==other.id();
+    }
+
+    bool operator !=(const field_traits& other) const noexcept
+    {
+        return !(*this==other);
+    }
 };
 
 //---------------------------------------------------------------
@@ -250,10 +261,13 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
 
 //---------------------------------------------------------------
 
+template <typename FieldsT>
+constexpr FieldsT fields_instance{};
+
 template <typename UnitT, typename ManagedT, typename FieldsT>
 struct unit_traits
 {
-    constexpr static FieldsT fields{};
+    constexpr static const auto& fields=fields_instance<FieldsT>;
 
     using type=UnitT;
     using managed=ManagedT;
