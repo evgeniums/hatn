@@ -4,6 +4,8 @@
 namespace hana=boost::hana;
 
 #include <hatn/dataunit/unitmacros.h>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
 
 using namespace hatn::dataunit;
 using namespace hatn::dataunit::types;
@@ -75,9 +77,6 @@ HDU_V2_DATAUNIT(du2,
     HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f11,du1::TYPE,11,"Repeated field 11",true)
     HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(f12,du1::TYPE,12,"External field 12",true)
     HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_WITH_DESCRIPTION(f13,du1::TYPE,13,"Embedded field 13",true)
-    HDU_V2_REPEATED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f14,du1::TYPE,14,"Repeated pb packed field 14",true)
-    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f15,du1::TYPE,15,"External pb packed field 15",true)
-    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBPACKED_WITH_DESCRIPTION(f16,du1::TYPE,16,"Embedded pb packed field 16",true)
     HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f17,du1::TYPE,17,"Repeated pb ordinary field 17",true)
     HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f18,du1::TYPE,18,"External pb ordinary field 18",true)
     HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f19,du1::TYPE,19,"Embedded pb ordinary field 19",true)
@@ -100,18 +99,24 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     f20::type f20(nullptr);
     f30::type f30(nullptr);
 
-    const auto& fields=du1::traits::fields;
-    std::ignore=fields.f10;
+    // const auto& fields=du1::traits::fields;
+    // std::ignore=fields.f10;
 
-    du1::type* vdu1=nullptr;
-    du1::shared_type* vdu2=nullptr;
-    BOOST_CHECK(vdu1==nullptr);
-    BOOST_CHECK(vdu2==nullptr);
+    du1::type* vduP1=nullptr;
+    du1::shared_type* vduP2=nullptr;
+    BOOST_CHECK(vduP1==nullptr);
+    BOOST_CHECK(vduP2==nullptr);
 
-    du2::type* vdu3=nullptr;
-    du2::shared_type* vdu4=nullptr;
-    BOOST_CHECK(vdu3==nullptr);
-    BOOST_CHECK(vdu4==nullptr);
+    du1::type vdu1;
+    du1::shared_type vdu2;
+
+    du2::type* vduP3=nullptr;
+    du2::shared_type* vduP4=nullptr;
+    BOOST_CHECK(vduP3==nullptr);
+    BOOST_CHECK(vduP4==nullptr);
+
+    du2::type vdu3;
+    du2::shared_type vdu4;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

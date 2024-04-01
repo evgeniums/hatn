@@ -45,6 +45,20 @@ struct field_id_tag{};
 
 //---------------------------------------------------------------
 
+template <typename T>
+struct default_field_traits
+{
+    template <typename Type>
+    using type=T;
+};
+
+template <>
+struct default_field_traits<hana::false_>
+{
+    template <typename Type>
+    using type=DefaultValue<Type>;
+};
+
 template <template <typename ...> class GeneratorT,
          typename StringsT,
          typename Id,
@@ -58,11 +72,10 @@ struct field_traits
 {
     using hana_tag=FieldTag;
 
-    using type_id=TypeId;
-    using default_traits=DefaultTraits;
+    using default_traits=typename default_field_traits<DefaultTraits>::template type<TypeId>;
+    using generator=GeneratorT<StringsT,Id,TypeId,default_traits,Required,RepeatedType>;
 
-    using generator=GeneratorT<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType>;
-
+    using Type=typename generator::type_id;
     using type=typename generator::type;
     using shared_type=typename generator::shared_type;
 
@@ -80,7 +93,7 @@ struct field_traits
     template <typename T>
     bool operator ==(const T& other) const noexcept
     {
-        return std::is_same<TypeId,typename T::Type>::value && id()==other.id();
+        return std::is_same<Type,typename T::Type>::value && id()==other.id();
     }
 
     bool operator !=(const field_traits& other) const noexcept
@@ -90,59 +103,6 @@ struct field_traits
 };
 
 //---------------------------------------------------------------
-
-template <typename StringsT,
-         typename Id,
-         typename TypeId,
-         typename DefaultTraits,
-         typename Required,
-         typename RepeatedType,
-         typename = hana::when<true>
-         >
-struct field_generator
-{
-    using type=OptionalField<StringsT,TypeId,Id::value>;
-    using shared_type=type;
-};
-
-template <typename StringsT,
-         typename Id,
-         typename TypeId,
-         typename DefaultTraits,
-         typename Required,
-         typename RepeatedType
-         >
-struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
-                       hana::when<
-                           Required::value
-                            &&
-                           std::is_same<RepeatedType,hana::false_>::value
-                           >
-                       >
-{
-    using type=RequiredField<StringsT,TypeId,Id::value>;
-    using shared_type=type;
-};
-
-template <typename StringsT,
-         typename Id,
-         typename TypeId,
-         typename DefaultTraits,
-         typename Required,
-         typename RepeatedType
-         >
-struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
-                       hana::when<
-                               hana::is_a<DefaultValueTag,DefaultTraits>
-                               &&
-                               std::is_same<RepeatedType,hana::false_>::value
-                           >
-                       >
-{
-    //! @todo implement default string
-    using type=DefaultField<StringsT,TypeId,Id::value,DefaultTraits>;
-    using shared_type=type;
-};
 
 template <RepeatedMode Mode=RepeatedMode::Normal, RepeatedContentType ContentType=RepeatedContentType::Normal>
 struct repeated_config
@@ -164,15 +124,15 @@ struct repeated_traits
 };
 
 template <RepeatedMode Mode>
-struct repeated_traits<Mode,RepeatedContentType::Dataunit>
+struct repeated_traits<Mode,RepeatedContentType::AutoDataunit>
 {
     using selector=SelectRepeatedType<Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,Type,Id,EmbeddedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+    using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using shared_type=typename selector::template type<FieldName,Type,Id,SharedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+    using shared_type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 };
 
 template <RepeatedMode Mode>
@@ -181,7 +141,7 @@ struct repeated_traits<Mode,RepeatedContentType::ExternalDataunit>
     using selector=SelectRepeatedType<Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,Type,Id,SharedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+    using type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
@@ -193,12 +153,84 @@ struct repeated_traits<Mode,RepeatedContentType::EmbeddedDataunit>
     using selector=SelectRepeatedType<Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,Type,Id,EmbeddedUnitFieldTmpl<Type>,DefaultAlias,Required>;
+    using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
 };
 
+//---------------------------------------------------------------
+
+/**
+ * @brief Generator of field type.
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType,
+         typename = hana::when<true>
+         >
+struct field_generator
+{
+    using type=OptionalField<StringsT,TypeId,Id::value>;
+    using shared_type=type;
+    using type_id=TypeId;
+};
+
+/**
+ * @brief Generator of field type for required fields.
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType
+         >
+struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
+                       hana::when<
+                           Required::value
+                            &&
+                           std::is_same<RepeatedType,hana::false_>::value
+                            &&
+                           !TypeId::isUnitType::value
+                           >
+                       >
+{
+    using type=RequiredField<StringsT,TypeId,Id::value>;
+    using shared_type=type;
+    using type_id=TypeId;
+};
+
+/**
+ * @brief Generator of field type for default fields.
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType
+         >
+struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
+                       hana::when<
+                               DefaultTraits::HasDefV::value
+                               &&
+                               std::is_same<RepeatedType,hana::false_>::value
+                           >
+                       >
+{
+    //! @todo implement default string
+    using type=DefaultField<StringsT,TypeId,Id::value,DefaultTraits>;
+    using shared_type=type;
+    using type_id=TypeId;
+};
+
+/**
+ * @brief Generator of field type for repeated fields except for TYPE_DATAUNIT.
+ */
 template <typename StringsT,
          typename Id,
          typename TypeId,
@@ -209,15 +241,21 @@ template <typename StringsT,
 struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
                            !std::is_same<RepeatedType,hana::false_>::value
+                            &&
+                           !std::is_same<TypeId,TYPE_DATAUNIT>::value
                            >
                        >
 {
     using traits=repeated_traits<RepeatedType::mode,RepeatedType::content>;
 
+    using type_id=RepeatedTraits<TypeId>;
     using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
     using shared_type=typename traits::template shared_type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
 };
 
+/**
+ * @brief Generator of field type for TYPE_DATAUNIT repeated fields.
+ */
 template <typename StringsT,
          typename Id,
          typename TypeId,
@@ -227,14 +265,67 @@ template <typename StringsT,
          >
 struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
-                            TypeId::isUnitType
-                                  &&
-                             std::is_same<RepeatedType,hana::false_>::value
+                           !std::is_same<RepeatedType,hana::false_>::value
+                            &&
+                           std::is_same<TypeId,TYPE_DATAUNIT>::value
                            >
                        >
 {
+    using traits=repeated_traits<RepeatedType::mode,RepeatedContentType::ExternalDataunit>;
+
+    using type_id=RepeatedTraits<TypeId>;
+    using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
+    using shared_type=typename traits::template shared_type<StringsT,TypeId,Id::value,DefaultValue<TypeId>,Required::value>;
+};
+
+/**
+ * @brief Generator of field type for dataunit fields except for TYPE_DATAUNIT.
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType
+         >
+struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
+                       hana::when<
+                                  TypeId::isUnitType::value
+                                  &&
+                                  !std::is_same<TypeId,TYPE_DATAUNIT>::value
+                                  &&
+                                  std::is_same<RepeatedType,hana::false_>::value
+                           >
+                       >
+{
+    using type_id=TypeId;
     using type=EmbeddedUnitField<StringsT,TypeId,Id::value,Required::value>;
     using shared_type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
+};
+
+/**
+ * @brief Generator of field type for TYPE_DATAUNIT fields.
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType
+         >
+struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
+                       hana::when<
+                           TypeId::isUnitType::value
+                           &&
+                           std::is_same<TypeId,TYPE_DATAUNIT>::value
+                           &&
+                           std::is_same<RepeatedType,hana::false_>::value
+                           >
+                       >
+{
+    using type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
+    using shared_type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
+    using type_id=TypeId;
 };
 
 //---------------------------------------------------------------
@@ -313,6 +404,48 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
 {
     public:
         using ManagedUnit<SharedUnitT>::ManagedUnit;
+};
+
+//---------------------------------------------------------------
+
+template <typename BaseT>
+class unit_t : public BaseT
+{
+        public:
+
+            unit_t(AllocatorFactory* factory=AllocatorFactory::getDefault());
+
+            virtual const Field* fieldById(int id) const override;
+            virtual Field* fieldById(int id) override;
+            virtual bool iterateFields(const Unit::FieldVisitor& visitor) override;
+            virtual bool iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const override;
+            virtual size_t fieldCount() const noexcept override;
+            virtual const char* name() const noexcept override;
+            inline const unit_t& value() const noexcept
+            {
+                return *this;
+            }
+            inline unit_t* mutableValue() noexcept
+            {
+                return this;
+            }
+            inline unit_t* castToUnit(Unit* unit) const noexcept
+            {
+                return common::dynamicCastWithSample(unit,this);
+            }
+            inline const unit_t* castToUnit(const Unit* unit) const noexcept
+            {
+                return common::dynamicCastWithSample(unit,this);
+            }
+            virtual int serialize(WireData& wired,bool topLevel=true) const override;
+#if 0
+            //! @todo Maybe implement virtual serialization
+            virtual int serialize(WireBufSolid& wired,bool topLevel=true) const override;
+            virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const override;
+            virtual int serialize(WireBufChained& wired,bool topLevel=true) const override;
+#endif
+            virtual bool parse(WireData& wired,bool topLevel=true) override;
+            virtual bool parse(WireBufSolid& wired,bool topLevel=true) override;
 };
 
 //---------------------------------------------------------------

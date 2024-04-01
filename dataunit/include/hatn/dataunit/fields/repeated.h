@@ -42,6 +42,8 @@ template <typename Type> struct RepeatedTraits
    using valueType=typename Type::type;
    constexpr static const bool isSizeIterateNeeded=Type::isSizeIterateNeeded;
    constexpr static const ValueType typeId=Type::typeId;
+   using isUnitType=typename Type::isUnitType;
+   using isPackedProtoBufCompatible=typename Type::isPackedProtoBufCompatible;
 
    template <typename T,typename=void> struct Ctor
    {};
@@ -1123,7 +1125,7 @@ struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
 enum class RepeatedContentType : int
 {
     Normal,
-    Dataunit,
+    AutoDataunit,
     ExternalDataunit,
     EmbeddedDataunit
 };

@@ -54,6 +54,7 @@ SET (HEADERS
     include/hatn/dataunit/visitors.h
 
     include/hatn/dataunit/unitmeta.h
+    include/hatn/dataunit/detail/unitmeta.ipp
     include/hatn/dataunit/unitmacros.h
 )
 

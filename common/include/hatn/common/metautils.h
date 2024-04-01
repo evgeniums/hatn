@@ -352,7 +352,15 @@ HATN_COMMON_NAMESPACE_BEGIN
     #define HATN_CONCAT(x,y,z) _HATN_CONCAT(x,y,z)
 
     template <typename DerivedT, typename BaseT>
-    DerivedT* dynamicCastWithSample(const BaseT* target,const DerivedT* sample) noexcept
+    const DerivedT* dynamicCastWithSample(const BaseT* target,const DerivedT* sample) noexcept
+    {
+        auto offset=reinterpret_cast<uintptr_t>(static_cast<DerivedT*>(const_cast<DerivedT*>(sample)))-reinterpret_cast<uintptr_t>(sample);
+        auto casted=reinterpret_cast<const DerivedT*>(reinterpret_cast<uintptr_t>(target)-offset);
+        return casted;
+    }
+
+    template <typename DerivedT, typename BaseT>
+    DerivedT* dynamicCastWithSample(BaseT* target,const DerivedT* sample) noexcept
     {
         auto offset=reinterpret_cast<uintptr_t>(static_cast<DerivedT*>(const_cast<DerivedT*>(sample)))-reinterpret_cast<uintptr_t>(sample);
         auto casted=reinterpret_cast<DerivedT*>(reinterpret_cast<uintptr_t>(target)-offset);

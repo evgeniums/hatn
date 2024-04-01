@@ -47,6 +47,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         using isBytesType=std::false_type;
         using isStringType=std::false_type;
         using isRepeatedType=std::false_type;
+        using isPackedProtoBufCompatible=typename Type::isPackedProtoBufCompatible;
 
         /**
          * @brief Ctor
