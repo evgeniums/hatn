@@ -424,13 +424,13 @@ struct SharedUnitFieldTmpl : public FieldTmplUnit<Type>
 template <typename FieldName,typename Type,int Id, bool Required=false>
 struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
 {
-    using FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
+    using FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
 };
 
 template <typename FieldName,typename Type,int Id, bool Required=false>
 struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
 {
-    using FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
+    using FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

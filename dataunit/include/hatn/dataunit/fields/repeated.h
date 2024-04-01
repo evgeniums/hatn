@@ -1092,6 +1092,34 @@ template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultA
         Id,FieldName,Tag,Required>::FieldConf;
 };
 
+enum class RepeatedMode : int
+{
+    Normal,
+    ProtobufPacked,
+    ProtobufOrdinary
+};
+
+template <RepeatedMode Mode>
+struct SelectRepeatedType
+{
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedField<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+};
+
+template <>
+struct SelectRepeatedType<RepeatedMode::ProtobufPacked>
+{
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufPacked<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+};
+
+template <>
+struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
+{
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufOrdinary<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+};
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITREPEATEDFIELDS_H
