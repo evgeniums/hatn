@@ -202,10 +202,14 @@ struct FieldConf : public T
     }    
 };
 
+struct DefaultValueTag{};
+
 /**  Template to set default values */
 template <typename T>
 struct DefaultValue
 {
+    using hana_tag=DefaultValueTag;
+
     using HasDefV=std::false_type;
     static typename T::type value() {return typename T::type(static_cast<typename T::type>(0));}
 };

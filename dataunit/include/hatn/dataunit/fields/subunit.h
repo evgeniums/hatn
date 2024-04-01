@@ -421,14 +421,14 @@ struct SharedUnitFieldTmpl : public FieldTmplUnit<Type>
     using FieldTmplUnit<Type>::FieldTmplUnit;
 };
 
-template <typename FieldName,typename Type,int Id>
-struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
+template <typename FieldName,typename Type,int Id, bool Required=false>
+struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
 {
     using FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
 };
 
-template <typename FieldName,typename Type,int Id>
-struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>
+template <typename FieldName,typename Type,int Id, bool Required=false>
+struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
 {
     using FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,false>::FieldConf;
 };

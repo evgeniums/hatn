@@ -1062,34 +1062,34 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
    }
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
     struct RepeatedField : public FieldConf<
             RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
-            Id,FieldName,Tag,false>
+            Id,FieldName,Tag,Required>
 {
     using FieldConf<
         RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
-        Id,FieldName,Tag,false>::FieldConf;
+        Id,FieldName,Tag,Required>::FieldConf;
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
     struct RepeatedFieldProtoBufPacked : public FieldConf<
             RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
-            Id,FieldName,Tag,false>
+            Id,FieldName,Tag,Required>
 {
     using FieldConf<
         RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
-        Id,FieldName,Tag,false>::FieldConf;
+        Id,FieldName,Tag,Required>::FieldConf;
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
     struct RepeatedFieldProtoBufOrdinary : public FieldConf<
             RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
-            Id,FieldName,Tag,false>
+            Id,FieldName,Tag,Required>
 {
     using FieldConf<
         RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
-        Id,FieldName,Tag,false>::FieldConf;
+        Id,FieldName,Tag,Required>::FieldConf;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

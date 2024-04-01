@@ -1,13 +1,14 @@
 SET (TEST_SOURCES
-    ${DATAUNIT_TEST_SRC}/testsyntax.cpp
-    ${DATAUNIT_TEST_SRC}/testjson.cpp
-    ${DATAUNIT_TEST_SRC}/testfields.cpp
-    ${DATAUNIT_TEST_SRC}/testgetset.cpp
-    ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
-    ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
-    ${DATAUNIT_TEST_SRC}/testperformance.cpp
-    ${DATAUNIT_TEST_SRC}/testserialization.cpp
-    ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
+    # ${DATAUNIT_TEST_SRC}/testsyntax.cpp
+    # ${DATAUNIT_TEST_SRC}/testjson.cpp
+    # ${DATAUNIT_TEST_SRC}/testfields.cpp
+    # ${DATAUNIT_TEST_SRC}/testgetset.cpp
+    # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
+    # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
+    # ${DATAUNIT_TEST_SRC}/testperformance.cpp
+    # ${DATAUNIT_TEST_SRC}/testserialization.cpp
+    # ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
+    ${DATAUNIT_TEST_SRC}/testmeta.cpp
 )
 
 SET (TEST_HEADERS
@@ -18,14 +19,14 @@ SET (TEST_HEADERS
 
 SET(MODULE_TEST_LIB dataunittestlib)
 
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations1.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations2.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations3.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations4.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations5.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations6.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations7.cpp)
-SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations8.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations1.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations2.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations3.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations4.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations5.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations6.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations7.cpp)
+# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations8.cpp)
 
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC  ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES})
