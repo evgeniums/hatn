@@ -186,4 +186,17 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     du7::type emptyUnitDerived;
 }
 
+/**
+ * @todo More convenient v2 macros with variadic arguments.
+ * @todo Replace all macros with v2 and test.
+ * @todo Default values for strings.
+ * @todo Helpers for strings.
+ * @todo Error processing.
+ * @todo Clean up metautils.
+ * @todo Add visitors for some operations on units.
+ * @todo Refactor json methods with non virtual methods.
+ * @todo Static polymorphysm in subunit and repeated fields.
+ * @todo Test Error performance.
+ * /
+
 BOOST_AUTO_TEST_SUITE_END()
