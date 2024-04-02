@@ -186,11 +186,24 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     du7::type emptyUnitDerived;
 }
 
+#define _HDU__V2_OPTIONAL(FieldName,Type,Id)
+#define _HDU__V2_REQUIRED(FieldName,Type,Id,true)
+#define _HDU__V2_DEFAULT(FieldName,Type,Id,false,Default)
+
+#define _HDU__V2_REPEATED_OPTIONAL(FieldName,Type,Id)
+#define _HDU__V2_REPEATED_REQUIRED(FieldName,Type,Id,true)
+#define _HDU__V2_REPEATED_DEFAULT(FieldName,Type,Id,false,Default)
+
+#define _HDU__V2_REPEATED_PROTO_OPTIONAL(FieldName,Type,Id,proto)
+#define _HDU__V2_REPEATED_PROTO_REQUIRED(FieldName,Type,Id,proto,Required)
+#define _HDU__V2_REPEATED_PROTO_DEFAULT(FieldName,Type,Id,proto,false,DefaultOrUnitMode)
+
 /**
  * @todo More convenient v2 macros with variadic arguments.
  * @todo Replace all macros with v2 and test.
  * @todo Default values for strings.
  * @todo Helpers for strings.
+ * @todo Data unit tags.
  * @todo Error processing.
  * @todo Clean up metautils.
  * @todo Add visitors for some operations on units.
