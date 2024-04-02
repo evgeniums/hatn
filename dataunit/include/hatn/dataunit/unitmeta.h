@@ -481,6 +481,30 @@ struct subunit : public types::TYPE_DATAUNIT
         }
 };
 
+//---------------------------------------------------------------
+
+struct concat_fields_t
+{
+    template <typename ...Args>
+    auto operator() (Args&& ...args) const
+    {
+        return hana::concat(std::forward<Args>(args)...);
+    }
+
+    template <typename Arg>
+    auto operator() (Arg&& arg) const
+    {
+        return hana::concat(hana::make_tuple(),std::forward<Arg>(arg));
+    }
+
+    auto operator() () const
+    {
+        return hana::make_tuple();
+    }
+};
+constexpr concat_fields_t concat_fields{};
+
+//---------------------------------------------------------------
 //! @todo implement checks of dataunit fields
 //---------------------------------------------------------------
 } // namespace meta

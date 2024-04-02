@@ -58,7 +58,7 @@ namespace unit1 {
 
 using field0=unit1::field<0>;
 
-HDU_V2_DATAUNIT(du1,
+HDU_V2_UNIT(du1,
     HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f10,TYPE_INT32,10,"Optional field 10")
     HDU_V2_REQUIRED_FIELD_WITH_DESCRIPTION(f20,TYPE_INT64,20,"Required field 20")
     HDU_V2_DEFAULT_FIELD_WITH_DESCRIPTION(f30,TYPE_DOUBLE,30,"Required field 30",10.30)
@@ -72,7 +72,7 @@ HDU_V2_DATAUNIT(du1,
     HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f100,HDU_V2_TYPE_FIXED_STRING(64),100,"Fixed string field 100")
 )
 
-HDU_V2_DATAUNIT(du2,
+HDU_V2_UNIT(du2,
     HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(f10,du1::TYPE,10,"Subunit field 10",true)
     HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f11,du1::TYPE,11,"Repeated field 11",true)
     HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(f12,du1::TYPE,12,"External field 12",true)
@@ -80,6 +80,24 @@ HDU_V2_DATAUNIT(du2,
     HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f17,du1::TYPE,17,"Repeated pb ordinary field 17",true)
     HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f18,du1::TYPE,18,"External pb ordinary field 18",true)
     HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f19,du1::TYPE,19,"Embedded pb ordinary field 19",true)
+)
+
+HDU_V2_UNIT(du3,
+    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f10,TYPE_INT32,10,"Optional field 10")
+)
+
+HDU_V2_UNIT(du4,
+    HDU_V2_REQUIRED_FIELD_WITH_DESCRIPTION(f20,TYPE_INT64,20,"Required field 20")
+)
+
+HDU_V2_UNIT_WITH(du5,
+    (HDU_V2_BASE(du3), HDU_V2_BASE(du4)),
+    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f200,TYPE_INT32,200,"Optional field 200")
+)
+
+HDU_V2_UNIT_WITH(du6,
+    (HDU_V2_BASE(du5)),
+    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f300,TYPE_INT32,300,"Optional field 300")
 )
 
 using f10=du1::field<0>;
@@ -117,6 +135,12 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 
     du2::type vdu3;
     du2::shared_type vdu4;
+
+    du5::type vdu5;
+    auto& vf10=vdu5.field(du3::f10);
+    std::ignore=vf10;
+
+    du6::type vdu6;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -125,31 +125,48 @@ enum class EnumName : int {__VA_ARGS__};
 #define HDU_V2_TYPE_FIXED_STRING(Length) \
     TYPE_FIXED_STRING<Length>
 
-#define HDU_V2_DATAUNIT(UnitName,...) \
+#define HDU_V2_UNIT_BEGIN(UnitName) \
     namespace UnitName { \
-        using namespace hatn::dataunit; \
-        using namespace hatn::dataunit::types; \
-        using namespace hatn::dataunit::meta; \
-        struct conf{constexpr static const char* name=#UnitName;};\
-        struct c{};\
-        HATN_COUNTER_MAKE(c);\
-        template <int N> struct field{};\
-        template <int N> struct field_id{};\
-        template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
-        __VA_ARGS__ \
-        auto field_defs=make_fields_tuple<field,HATN_COUNTER_GET(c)>();\
-        auto unit_c=unit<conf>::type_c(field_defs);\
-        auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
-        using fields_t=field_id<HATN_COUNTER_GET(c)>;\
-        using type=unit_t<decltype(unit_c)::type>;\
-        using shared_type=unit_t<decltype(shared_unit_c)::type>;\
-        using managed=managed_unit<type>;\
-        using shared_managed=shared_managed_unit<shared_type>;\
-        /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
-        struct fields : public fields_t{};\
-        struct traits : public unit_traits<type,managed,fields>{};\
-        struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
-        struct TYPE : public subunit<traits,shared_traits>{}; \
-}
+    auto base_fields=boost::hana::make_tuple();
+
+#define HDU_V2_UNIT_BODY(UnitName,...) \
+    using namespace HATN_DATAUNIT_NAMESPACE; \
+    using namespace HATN_DATAUNIT_NAMESPACE::types; \
+    using namespace HATN_DATAUNIT_META_NAMESPACE; \
+    struct conf{constexpr static const char* name=#UnitName;};\
+    struct c{};\
+    HATN_COUNTER_MAKE(c);\
+    template <int N> struct field{};\
+    template <int N> struct field_id{};\
+    template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
+    __VA_ARGS__ \
+    auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());\
+    auto unit_c=unit<conf>::type_c(field_defs);\
+    auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
+    using fields_t=field_id<HATN_COUNTER_GET(c)>;\
+    using type=unit_t<decltype(unit_c)::type>;\
+    using shared_type=unit_t<decltype(shared_unit_c)::type>;\
+    using managed=managed_unit<type>;\
+    using shared_managed=shared_managed_unit<shared_type>;\
+    /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
+    struct fields : public fields_t{};\
+    struct traits : public unit_traits<type,managed,fields>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
+    struct TYPE : public subunit<traits,shared_traits>{}; \
+    }
+
+#define HDU_V2_UNIT(UnitName,...) \
+    HDU_V2_UNIT_BEGIN(UnitName) \
+    HDU_V2_UNIT_BODY(UnitName,__VA_ARGS__)
+
+#define HDU_V2_BASE(UnitName) UnitName::field_defs
+
+#define HDU_V2_UNIT_WITH_BEGIN(UnitName, Base) \
+    namespace UnitName { \
+    auto base_fields=HATN_DATAUNIT_META_NAMESPACE::concat_fields Base;
+
+#define HDU_V2_UNIT_WITH(UnitName, Base, ...) \
+    HDU_V2_UNIT_WITH_BEGIN(UnitName, Base) \
+    HDU_V2_UNIT_BODY(UnitName,__VA_ARGS__)
 
 #endif // HATNDATAUNITMACROS_H

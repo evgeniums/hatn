@@ -56,7 +56,7 @@ HATN_COMMON_NAMESPACE_BEGIN
      template<int n> struct _ICount : public _ICount<n-1> {}; \
      template<> struct _ICount<0> {};
 #else
-    #define HATN_COUNTER_PREPARE(Id) template <int> struct c_foo_##Id{}; struct cc_##Id{}; constexpr fameta::counter<cc_##Id,0> c_##Id{};
+    #define HATN_COUNTER_PREPARE(Id) template <int> struct c_foo_##Id{}; struct cc_##Id{}; constexpr static fameta::counter<cc_##Id,0> c_##Id{};
     #define HATN_COUNTER_INC(Id) template <> struct c_foo_##Id<c_##Id.next<__COUNTER__>()>{};
     #define HATN_COUNTER_MAKE(Id) HATN_COUNTER_PREPARE(Id) \
                                   HATN_COUNTER_INC(Id)
