@@ -203,4 +203,20 @@ enum class EnumName : int {__VA_ARGS__};
     HDU_V2_UNIT_WITH_BEGIN(UnitName, Base) \
     HDU_V2_UNIT_BODY(UnitName,__VA_ARGS__)
 
+#define HDU_V2_UNIT_EMPTY(UnitName) \
+    namespace UnitName { \
+    using namespace hatn::dataunit; \
+    using namespace hatn::dataunit::types; \
+    struct conf{constexpr static const char* name=#UnitName;};\
+    auto field_defs=boost::hana::make_tuple();\
+    using type=EmptyUnit<conf>;\
+    using shared_type=type;\
+    using managed=EmptyManagedUnit<conf>;\
+    using shared_managed=managed;\
+    struct fields{};\
+    struct traits : public unit_traits<type,managed,fields>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
+    struct TYPE : public subunit<traits,shared_traits>{}; \
+    }
+
 #endif // HATNDATAUNITMACROS_H

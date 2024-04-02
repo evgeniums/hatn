@@ -98,6 +98,13 @@ HDU_V2_UNIT_WITH(du6,
     HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f300,TYPE_INT32,300,"Optional field 300")
 )
 
+HDU_V2_UNIT_EMPTY(due)
+
+HDU_V2_UNIT_WITH(du7,
+                 (HDU_V2_BASE(due)),
+                 HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f300,TYPE_INT32,300,"Optional field 300")
+                 )
+
 using f10=du1::field<0>;
 using f20=du1::field<1>;
 using f30=du1::field<2>;
@@ -173,6 +180,10 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 #else
     static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
 #endif
+
+    due::type emptyUnit;
+
+    du7::type emptyUnitDerived;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
