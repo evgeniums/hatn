@@ -141,6 +141,13 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     std::ignore=vf10;
 
     du6::type vdu6;
+
+    static_assert(decltype(meta::is_unit_type<TYPE_DATAUNIT>())::value,"");
+    static_assert(!decltype(meta::is_unit_type<uint32_t>())::value,"");
+    static_assert(decltype(meta::is_unit_type<du1::TYPE>())::value,"");
+    static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value,"");
+    static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value,"");
+    static_assert(!decltype(meta::is_basic_type<uint32_t>())::value,"");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

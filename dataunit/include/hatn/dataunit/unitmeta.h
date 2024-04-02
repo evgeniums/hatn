@@ -505,6 +505,32 @@ struct concat_fields_t
 constexpr concat_fields_t concat_fields{};
 
 //---------------------------------------------------------------
+
+template <typename Type>
+constexpr auto is_unit_type()
+{
+    auto check=[](auto x) -> decltype(hana::bool_c<decltype(x)::type::isUnitType::value>)
+    {
+        return hana::bool_c<decltype(x)::type::isUnitType::value>;
+    };
+
+    auto ok=hana::sfinae(check)(hana::type_c<Type>);
+    return hana::equal(ok,hana::just(hana::true_c));
+}
+
+template <typename Type>
+constexpr auto is_basic_type()
+{
+    auto check=[](auto x) -> decltype(hana::bool_c<decltype(x)::type::BasicType::value>)
+    {
+        return hana::bool_c<decltype(x)::type::BasicType::value>;
+    };
+
+    auto ok=hana::sfinae(check)(hana::type_c<Type>);
+    return hana::equal(ok,hana::just(hana::true_c));
+}
+
+//---------------------------------------------------------------
 //! @todo implement checks of dataunit fields
 //---------------------------------------------------------------
 } // namespace meta
