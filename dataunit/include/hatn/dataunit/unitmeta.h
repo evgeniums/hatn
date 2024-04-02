@@ -22,6 +22,7 @@
 #define HATNDATAUNITMETA_H
 
 #include <utility>
+
 #include <boost/hana.hpp>
 namespace hana=boost::hana;
 
@@ -35,9 +36,25 @@ namespace hana=boost::hana;
 #include <hatn/dataunit/fields/repeated.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
+//! @todo move it to configuration script
+#ifndef _MSC_VER
+#ifndef HATN_STRING_LITERAL
+#define HATN_STRING_LITERAL
+#endif
+#endif
+
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace meta {
+
+#ifdef HATN_STRING_LITERAL
+
+template <typename CharT, CharT ...s>
+constexpr auto operator"" _s() {
+    return hana::string_c<s...>;
+}
+
+#endif
 
 //---------------------------------------------------------------
 
@@ -353,6 +370,66 @@ constexpr make_fields_tuple_t<FieldT,N> make_fields_tuple{};
 
 //---------------------------------------------------------------
 
+struct check_ids_unique_t
+{
+    template <typename T>
+    auto operator()(T fields) const
+    {
+        auto extract_id=[](auto x)
+        {
+            using type=typename decltype(x)::type;
+            return type::id;
+        };
+
+        return hana::compose(
+            hana::partial(hana::equal,hana::size(fields)),
+            hana::size,
+            hana::to_tuple,
+            hana::to_set,
+            hana::reverse_partial(hana::transform,extract_id)
+        )(fields);
+    }
+};
+constexpr check_ids_unique_t check_ids_unique{};
+
+struct check_names_unique_t
+{
+#ifdef HATN_STRING_LITERAL
+
+    template <typename T>
+    auto operator()(T fields) const
+    {
+        auto extract_name=[](auto x)
+        {
+            using type=typename decltype(x)::type;
+            return type::name;
+        };
+
+        return hana::compose(
+            hana::partial(hana::equal,hana::size(fields)),
+            hana::size,
+            hana::to_tuple,
+            hana::to_set,
+            hana::reverse_partial(hana::transform,extract_name)
+            )(fields);
+    }
+
+#else
+
+    template <typename T>
+    auto operator()(T) const
+    {
+        //! @note Not supported with MSVC.
+        return hana::true_c;
+    }
+
+#endif
+
+};
+constexpr check_names_unique_t check_names_unique{};
+
+//---------------------------------------------------------------
+
 template <typename ConfT>
 struct unit
 {
@@ -530,8 +607,6 @@ constexpr auto is_basic_type()
     return hana::equal(ok,hana::just(hana::true_c));
 }
 
-//---------------------------------------------------------------
-//! @todo implement checks of dataunit fields
 //---------------------------------------------------------------
 } // namespace meta
 

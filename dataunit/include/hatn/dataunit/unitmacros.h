@@ -32,6 +32,12 @@
 #define HDU_V2_CHECK_ID(FieldName,Id) \
     static_assert(std::is_integral<decltype(Id)>::value && Id>0,"ID must be positive integer for "#FieldName);
 
+#ifdef HATN_STRING_LITERAL
+#define HDU_V2_FIELD_NAME(FieldName) constexpr static auto name=#FieldName""_s;
+#else
+#define HDU_V2_FIELD_NAME(FieldName) constexpr static auto name=#FieldName;
+#endif
+
 #define HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_traits,required,repeated_traits) \
     HDU_V2_CHECK_ID(FieldName,Id) \
     struct field_##FieldName{};\
@@ -54,6 +60,8 @@
                        >;\
         using type=typename traits::type;\
         using shared_type=typename traits::shared_type;\
+        HDU_V2_FIELD_NAME(FieldName)\
+        constexpr static auto id=hana::int_c<Id>;\
     };\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits FieldName{};\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits inst_##FieldName{};\
@@ -165,6 +173,8 @@ enum class EnumName : int {__VA_ARGS__};
     template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
     __VA_ARGS__ \
     auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());\
+    static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
+    static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
     auto unit_c=unit<conf>::type_c(field_defs);\
     auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
     using fields_t=field_id<HATN_COUNTER_GET(c)>;\

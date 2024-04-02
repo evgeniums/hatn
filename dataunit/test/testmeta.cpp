@@ -1,14 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
-#include <boost/hana.hpp>
-namespace hana=boost::hana;
-
 #include <hatn/dataunit/unitmacros.h>
 #include <hatn/dataunit/detail/unitmeta.ipp>
 #include <hatn/dataunit/detail/unittraits.ipp>
 
 using namespace hatn::dataunit;
 using namespace hatn::dataunit::types;
+using namespace hatn::dataunit::meta;
 
 namespace unit1 {
 
@@ -104,6 +102,20 @@ using f10=du1::field<0>;
 using f20=du1::field<1>;
 using f30=du1::field<2>;
 
+namespace {
+template <int Id>
+struct WithId
+{
+    constexpr static auto id=hana::int_c<Id>;
+};
+
+template <typename T>
+struct WithName
+{
+    constexpr static auto name=T{};
+};
+}
+
 BOOST_AUTO_TEST_SUITE(TestMeta)
 
 BOOST_AUTO_TEST_CASE(SimpleField)
@@ -148,6 +160,19 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value,"");
     static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value,"");
     static_assert(!decltype(meta::is_basic_type<uint32_t>())::value,"");
+
+    static_assert(decltype(meta::check_ids_unique(du1::field_defs))::value,"");
+    constexpr auto f2=hana::append(du1::field_defs,hana::type_c<WithId<30>>);
+    static_assert(!decltype(meta::check_ids_unique(f2))::value,"");
+
+#ifdef HATN_STRING_LITERAL
+    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
+    constexpr auto f20n="f20"_s;
+    constexpr auto f3=hana::append(du1::field_defs,hana::type_c<WithName<decltype(f20n)>>);
+    static_assert(!decltype(check_names_unique(f3))::value,"");
+#else
+    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()
