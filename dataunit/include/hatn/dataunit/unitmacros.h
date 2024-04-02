@@ -24,12 +24,16 @@
 #include <hatn/dataunit/unitmeta.h>
 
 #define HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-static_assert(decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
+    static_assert(decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
 
 #define HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-static_assert(decltype(meta::is_unit_type<Type>())::value,"Only dataunit types can be used in this expression for "#FieldName);
+    static_assert(decltype(meta::is_unit_type<Type>())::value,"Only dataunit types can be used in this expression for "#FieldName);
+
+#define HDU_V2_CHECK_ID(FieldName,Id) \
+    static_assert(std::is_integral<decltype(Id)>::value && Id>0,"ID must be positive integer for "#FieldName);
 
 #define HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_traits,required,repeated_traits) \
+    HDU_V2_CHECK_ID(FieldName,Id) \
     struct field_##FieldName{};\
     template <>\
     struct field<HATN_COUNTER_GET(c)>\
