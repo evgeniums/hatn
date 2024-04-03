@@ -59,22 +59,46 @@ constexpr auto operator"" _s() {
 //---------------------------------------------------------------
 
 struct field_id_tag{};
+struct auto_tag{};
+
+struct auto_t
+{
+    using hana_tag=auto_tag;
+};
+constexpr auto_t Auto{};
 
 //---------------------------------------------------------------
 
-template <typename T>
-struct default_field_traits
+template <typename T, typename ValueT, typename=hana::when<true>>
+struct default_type : public auto_t{};
+
+template <typename T, typename ValueT>
+struct default_type<T, ValueT, hana::when<
+            !hana::is_a<auto_tag,typename ValueT::type>
+            &&
+            std::is_constructible<typename T::type, typename ValueT::type>::value
+        >>
+{
+    using hana_tag=DefaultValueTag; \
+    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
+    using HasDefV=std::true_type;
+};
+
+template <typename T, typename = hana::when<true>>
+struct default_field
 {
     template <typename Type>
     using type=T;
 };
 
-template <>
-struct default_field_traits<hana::false_>
+template <typename T>
+struct default_field<T, hana::when<hana::is_a<auto_tag,T>>>
 {
     template <typename Type>
     using type=DefaultValue<Type>;
 };
+
+//---------------------------------------------------------------
 
 template <template <typename ...> class GeneratorT,
          typename StringsT,
@@ -89,7 +113,7 @@ struct field_traits
 {
     using hana_tag=FieldTag;
 
-    using default_traits=typename default_field_traits<DefaultTraits>::template type<TypeId>;
+    using default_traits=typename default_field<DefaultTraits>::template type<TypeId>;
     using generator=GeneratorT<StringsT,Id,TypeId,default_traits,Required,RepeatedType>;
 
     using Type=typename generator::type_id;
@@ -100,8 +124,6 @@ struct field_traits
     constexpr static const int index=Index::value;
 
     constexpr static const char* name() noexcept {return StringsT::name;}
-
-    constexpr static const char* description() noexcept {return StringsT::description;}
 
     constexpr static int id() noexcept {return Id::value;}
 
@@ -121,14 +143,18 @@ struct field_traits
 
 //---------------------------------------------------------------
 
-template <RepeatedMode Mode=RepeatedMode::Normal, RepeatedContentType ContentType=RepeatedContentType::Normal>
+struct repeated_tag{};
+
+template <RepeatedMode Mode=RepeatedMode::Auto, RepeatedContentType ContentType=RepeatedContentType::Auto>
 struct repeated_config
 {
+    using hana_tag=repeated_tag;
+
     constexpr static auto mode=Mode;
     constexpr static auto content=ContentType;
 };
 
-template <RepeatedMode Mode, RepeatedContentType ContentType>
+template <typename TypeId, RepeatedMode Mode, RepeatedContentType ContentType, typename = hana::when<true>>
 struct repeated_traits
 {
     using selector=SelectRepeatedType<Mode>;
@@ -140,8 +166,8 @@ struct repeated_traits
     using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
 };
 
-template <RepeatedMode Mode>
-struct repeated_traits<Mode,RepeatedContentType::AutoDataunit>
+template <typename TypeId, RepeatedMode Mode>
+struct repeated_traits<TypeId,Mode,RepeatedContentType::Auto, hana::when<TypeId::isUnitType::value>>
 {
     using selector=SelectRepeatedType<Mode>;
 
@@ -152,8 +178,8 @@ struct repeated_traits<Mode,RepeatedContentType::AutoDataunit>
     using shared_type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 };
 
-template <RepeatedMode Mode>
-struct repeated_traits<Mode,RepeatedContentType::ExternalDataunit>
+template <typename TypeId, RepeatedMode Mode>
+struct repeated_traits<TypeId,Mode,RepeatedContentType::External, hana::when<TypeId::isUnitType::value>>
 {
     using selector=SelectRepeatedType<Mode>;
 
@@ -164,8 +190,8 @@ struct repeated_traits<Mode,RepeatedContentType::ExternalDataunit>
     using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
 };
 
-template <RepeatedMode Mode>
-struct repeated_traits<Mode,RepeatedContentType::EmbeddedDataunit>
+template <typename TypeId, RepeatedMode Mode>
+struct repeated_traits<TypeId,Mode,RepeatedContentType::Embedded, hana::when<TypeId::isUnitType::value>>
 {
     using selector=SelectRepeatedType<Mode>;
 
@@ -210,7 +236,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
                            Required::value
                             &&
-                           std::is_same<RepeatedType,hana::false_>::value
+                            !hana::is_a<repeated_tag,RepeatedType>
                             &&
                            !TypeId::isUnitType::value
                            >
@@ -235,7 +261,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
                                DefaultTraits::HasDefV::value
                                &&
-                               std::is_same<RepeatedType,hana::false_>::value
+                               !hana::is_a<repeated_tag,RepeatedType>
                            >
                        >
 {
@@ -257,13 +283,16 @@ template <typename StringsT,
          >
 struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
-                           !std::is_same<RepeatedType,hana::false_>::value
+                           hana::is_a<repeated_tag,RepeatedType>
                             &&
                            !std::is_same<TypeId,TYPE_DATAUNIT>::value
                            >
                        >
 {
-    using traits=repeated_traits<RepeatedType::mode,RepeatedType::content>;
+    static_assert(!TypeId::isUnitType::value || RepeatedType::mode!=RepeatedMode::ProtobufPacked,
+                  "Protobuf packed mode can not be used for data unit fields");
+
+    using traits=repeated_traits<TypeId,RepeatedType::mode,RepeatedType::content>;
 
     using type_id=RepeatedTraits<TypeId>;
     using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
@@ -282,13 +311,16 @@ template <typename StringsT,
          >
 struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        hana::when<
-                           !std::is_same<RepeatedType,hana::false_>::value
+                           hana::is_a<repeated_tag,RepeatedType>
                             &&
                            std::is_same<TypeId,TYPE_DATAUNIT>::value
                            >
                        >
 {
-    using traits=repeated_traits<RepeatedType::mode,RepeatedContentType::ExternalDataunit>;
+    static_assert(RepeatedType::content != RepeatedContentType::Embedded, "TYPE_DATAUNIT can not be Embedded, only either Auto or External");
+    static_assert(RepeatedType::mode != RepeatedMode::ProtobufPacked,"Protobuf packed mode can not be used for data unit fields");
+
+    using traits=repeated_traits<TypeId,RepeatedType::mode,RepeatedContentType::External>;
 
     using type_id=RepeatedTraits<TypeId>;
     using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
@@ -311,7 +343,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                                   &&
                                   !std::is_same<TypeId,TYPE_DATAUNIT>::value
                                   &&
-                                  std::is_same<RepeatedType,hana::false_>::value
+                                  !hana::is_a<repeated_tag,RepeatedType>
                            >
                        >
 {
@@ -336,7 +368,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            &&
                            std::is_same<TypeId,TYPE_DATAUNIT>::value
                            &&
-                           std::is_same<RepeatedType,hana::false_>::value
+                           !hana::is_a<repeated_tag,RepeatedType>
                            >
                        >
 {
@@ -606,6 +638,40 @@ constexpr auto is_basic_type()
     auto ok=hana::sfinae(check)(hana::type_c<Type>);
     return hana::equal(ok,hana::just(hana::true_c));
 }
+
+//---------------------------------------------------------------
+#if 0
+#define HDU_V2_TAG(TagName,Value) \
+    struct field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)>\
+    {\
+        constexpr static const char* name=#TagName;\
+        constexpr static const auto value=Value;\
+    };\
+    constexpr field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)> tags_##FieldName##TagName;
+
+#define HDU_V2_TAGS(...) \
+    hana::type_c<decltype(hana::make_tuple(__VA_ARGS__))>
+
+#define HDU_V2_FIELD_TAGS(FieldName,...) \
+    struct t_c_##FieldName{};\
+    HATN_COUNTER_MAKE(t_c_##FieldName);\
+    template <int> struct field_tags_##FieldName{};\
+    __VA_ARGS__ \
+    auto tags_##FieldName=lift_all_tags<field_tags_##FieldName,HATN_COUNTER_GET(t_c_##FieldName)>();
+    template <>\
+    struct field_tags<HATN_COUNTER_GET(t_c)>\
+    {\
+        constexpr static const auto& field=FieldName;\
+        constexpr static const auto& value=tags_##FieldName;\
+    };\
+
+#define HDU_V2_UNIT_TAGS(UnitName,...) \
+    struct t_c{};\
+    HATN_COUNTER_MAKE(t_c);\
+    template <int> struct field_tags{};\
+    __VA_ARGS__ \
+    auto tags=make_tags(field_tags);
+#endif
 
 //---------------------------------------------------------------
 } // namespace meta

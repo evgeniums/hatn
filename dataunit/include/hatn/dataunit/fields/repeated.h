@@ -1096,7 +1096,7 @@ template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultA
 
 enum class RepeatedMode : int
 {
-    Normal,
+    Auto,
     ProtobufPacked,
     ProtobufOrdinary
 };
@@ -1124,10 +1124,9 @@ struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
 
 enum class RepeatedContentType : int
 {
-    Normal,
-    AutoDataunit,
-    ExternalDataunit,
-    EmbeddedDataunit
+    Auto,
+    External,
+    Embedded
 };
 
 

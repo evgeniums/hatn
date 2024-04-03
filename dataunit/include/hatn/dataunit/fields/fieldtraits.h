@@ -183,12 +183,6 @@ struct FieldConf : public T
         return FieldName::name;
     }
 
-    //! Get field description.
-    virtual const char* description() const noexcept override
-    {
-        return FieldName::description;
-    }
-
     //! Get field name size
     virtual size_t nameSize() const noexcept override
     {

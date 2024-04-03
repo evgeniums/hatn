@@ -23,23 +23,42 @@
 
 #include <hatn/dataunit/unitmeta.h>
 
-#define HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    static_assert(decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
+//---------------------------------------------------------------
+
+#ifdef HATN_STRING_LITERAL
+#define HDU_V2_FIELD_NAME_STR(FieldName) constexpr static auto name=#FieldName""_s;
+#else
+#define HDU_V2_FIELD_NAME_STR(FieldName) constexpr static auto name=#FieldName;
+#endif
+
+//---------------------------------------------------------------
+
+#define HDU_V2_IS_BASIC_TYPE(FieldName,Type,Repeated) \
+static_assert(decltype(meta::is_basic_type<Type>())::value || hana::is_a<repeated_tag,decltype(Repeated)> ,"Invalid field type for "#FieldName);
 
 #define HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
     static_assert(decltype(meta::is_unit_type<Type>())::value,"Only dataunit types can be used in this expression for "#FieldName);
 
+#define HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
+static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
+
 #define HDU_V2_CHECK_ID(FieldName,Id) \
     static_assert(std::is_integral<decltype(Id)>::value && Id>0,"ID must be positive integer for "#FieldName);
 
-#ifdef HATN_STRING_LITERAL
-#define HDU_V2_FIELD_NAME(FieldName) constexpr static auto name=#FieldName""_s;
-#else
-#define HDU_V2_FIELD_NAME(FieldName) constexpr static auto name=#FieldName;
-#endif
+//---------------------------------------------------------------
 
-#define HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_traits,required,repeated_traits) \
+#define HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
+    struct default_##FieldName\
+    {\
+            constexpr static auto value=Default;\
+            using type=decltype(value);\
+    };
+
+//---------------------------------------------------------------
+
+#define HDU_V2_FIELD_DEF(FieldName,Type,Id,Default,required,repeated_traits) \
     HDU_V2_CHECK_ID(FieldName,Id) \
+    HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
     struct field_##FieldName{};\
     template <>\
     struct field<HATN_COUNTER_GET(c)>\
@@ -47,20 +66,19 @@
         struct strings\
         {\
                 constexpr static const char* name=#FieldName;\
-                constexpr static const char* description=#Description;\
         };\
         using traits=field_traits<field_generator,\
                        strings,\
                        hana::int_<Id>,\
                        hana::int_<HATN_COUNTER_GET(c)>,\
                        Type,\
-                       default_traits,\
+                       default_type<Type,default_##FieldName>,\
                        required,\
-                       repeated_traits\
+                       decltype(repeated_traits)\
                        >;\
         using type=typename traits::type;\
         using shared_type=typename traits::shared_type;\
-        HDU_V2_FIELD_NAME(FieldName)\
+        HDU_V2_FIELD_NAME_STR(FieldName)\
         constexpr static auto id=hana::int_c<Id>;\
     };\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits FieldName{};\
@@ -71,83 +89,92 @@
     };\
     HATN_COUNTER_INC(c);
 
-#define HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default) \
-struct default_##FieldName\
-{\
-        using hana_tag=DefaultValueTag; \
-        static typename Type::type value(){return static_cast<typename Type::type>(Default);} \
-        using HasDefV=std::true_type; \
-};
+//---------------------------------------------------------------
 
-#define HDU_V2_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,hana::false_)
+#define HDU_V2_EXPAND(x) x
+#define HDU_V2_GET_ARG6(arg1, arg2, arg3, arg4, arg5, arg6, ...) arg6
+#define HDU_V2_GET_ARG8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, ...) arg8
 
-#define HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    HDU_V2_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,false)
+//---------------------------------------------------------------
 
-#define HDU_V2_REQUIRED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    HDU_V2_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,true)
+#define HDU_V2_FIELD_DEF_OPTIONAL(FieldName,Type,Id,Repeated) \
+    HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Auto,hana::bool_<false>,Repeated)
 
-#define HDU_V2_DEFAULT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Default) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default)\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_##FieldName,hana::false_,hana::false_)
+#define HDU_V2_OPTIONAL_FIELD(FieldName,Type,Id) HDU_V2_FIELD_DEF_OPTIONAL(FieldName,Type,Id,Auto)
 
-#define HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,RepeatedConfig,Required,Default) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    HDU_V2_DEFAULT_TRAITS(FieldName,Type,Default)\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,default_##FieldName,Required,RepeatedConfig)
+#define HDU_V2_FIELD_DEF_REQUIRED(FieldName,Type,Id,Required,Repeated) \
+    HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Auto,hana::bool_<Required>,Repeated)
 
-#define HDU_V2_REPEATED_FIELD_NORMAL_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::Normal>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
+#define HDU_V2_REQUIRED_FIELD(FieldName,Type,Id) HDU_V2_FIELD_DEF_REQUIRED(FieldName,Type,Id,true,Auto)
 
-#define HDU_V2_REPEATED_FIELD_PBPACKED_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufPacked>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
+#define HDU_V2_FIELD_DEF_DEFAULT(FieldName,Type,Id,Required,Default,Repeated) \
+    HDU_V2_IS_BASIC_TYPE(FieldName,Type,Repeated) \
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,Default,hana::bool_<Required>,Repeated)
 
-#define HDU_V2_REPEATED_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required,Default) \
-    HDU_V2_IS_BASIC_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary>;\
-    HDU_V2_REPEATED_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,cfg_##FieldName,hana::bool_<Required>,Default)
+#define HDU_V2_DEFAULT_FIELD(FieldName,Type,Id,Default) HDU_V2_FIELD_DEF_DEFAULT(FieldName,Type,Id,false,Default,Auto)
 
-#define HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+#define HDU_V2_VARG_SELECT_FIELD(...) \
+    HDU_V2_EXPAND(HDU_V2_GET_ARG6(__VA_ARGS__, \
+                                    HDU_V2_FIELD_DEF_DEFAULT, \
+                                    HDU_V2_FIELD_DEF_REQUIRED, \
+                                    HDU_V2_FIELD_DEF_OPTIONAL \
+                                  ))
+
+#define HDU_V2_FIELD(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_FIELD(__VA_ARGS__)(__VA_ARGS__,Auto))
+
+//---------------------------------------------------------------
+
+#define HDU_V2_FIELD_DEF_REPEATED(Mode,ContentType,FieldName,...) \
+    constexpr repeated_config<Mode,ContentType> cfg_##FieldName{};\
+    HDU_V2_EXPAND(HDU_V2_VARG_SELECT_FIELD(FieldName,__VA_ARGS__)(FieldName,__VA_ARGS__,cfg_##FieldName))
+
+#define HDU_V2_REPEATED_FIELD_DEF3(FieldName,Type,Id) \
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id)
+
+#define HDU_V2_REPEATED_FIELD_DEF4(FieldName,Type,Id,Required) \
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id,Required)
+
+#define HDU_V2_REPEATED_FIELD_DEF5(FieldName,Type,Id,Required,Default) \
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id,Required,Default)
+
+#define HDU_V2_REPEATED_FIELD_DEF6(FieldName,Type,Id,Required,Default,Mode)\
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode:: Mode,RepeatedContentType::Auto,FieldName,Type,Id,Required,Default)
+
+#define HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Default,Mode,ContentType)\
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode:: Mode,RepeatedContentType:: ContentType,FieldName,Type,Id,Required,Default)
+
+#define HDU_V2_VARG_SELECT_REPEATED_FIELD(...) \
+    HDU_V2_EXPAND(HDU_V2_GET_ARG8(__VA_ARGS__, \
+                                  HDU_V2_REPEATED_FIELD_DEF7, \
+                                  HDU_V2_REPEATED_FIELD_DEF6, \
+                                  HDU_V2_REPEATED_FIELD_DEF5, \
+                                  HDU_V2_REPEATED_FIELD_DEF4, \
+                                  HDU_V2_REPEATED_FIELD_DEF3  \
+                                  ))
+
+#define HDU_V2_REPEATED_FIELD(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_REPEATED_FIELD(__VA_ARGS__)(__VA_ARGS__))
+
+
+#define HDU_V2_REPEATED_FIELD_NORMAL(FieldName,Type,Id,Required,Default) \
+    HDU_V2_IS_BASIC_TYPE(FieldName,Type,Auto) \
+    HDU_V2_REPEATED_FIELD_DEF5(FieldName,Type,Id,Required,Default)
+
+#define HDU_V2_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required) \
     HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    HDU_V2_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required)
+    HDU_V2_REPEATED_FIELD_DEF4(FieldName,Type,Id,Required)
 
-#define HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required) \
     HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::AutoDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+    HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Auto,Auto,External)
 
-#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
+#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required) \
     HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::ExternalDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+    HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Auto,Auto,Embedded)
 
-#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::Normal,RepeatedContentType::EmbeddedDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
 
-#define HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::AutoDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
-
-#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::ExternalDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
-
-#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(FieldName,Type,Id,Description,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    using cfg_##FieldName=repeated_config<RepeatedMode::ProtobufOrdinary,RepeatedContentType::EmbeddedDataunit>;\
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Description,hana::false_,hana::bool_<Required>,cfg_##FieldName)
+//---------------------------------------------------------------
 
 #define HDU_V2_ENUM(EnumName,...) \
 enum class EnumName : int {__VA_ARGS__};
@@ -156,6 +183,8 @@ enum class EnumName : int {__VA_ARGS__};
 
 #define HDU_V2_TYPE_FIXED_STRING(Length) \
     TYPE_FIXED_STRING<Length>
+
+//---------------------------------------------------------------
 
 #define HDU_V2_UNIT_BEGIN(UnitName) \
     namespace UnitName { \

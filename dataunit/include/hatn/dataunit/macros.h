@@ -301,7 +301,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
             using shared=FieldShared;\
             using Type=Type_;\
             constexpr static const char* name() {return FieldType::fieldName();}\
-            constexpr static const char* description() {return FieldType::fieldDescription();}\
             constexpr static int id() noexcept {return Id;};\
             constexpr static const int ID=Id;\
             constexpr static const int index=HATN_COUNTER_GET(Fields)-1;\

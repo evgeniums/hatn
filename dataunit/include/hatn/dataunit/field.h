@@ -120,9 +120,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         //! Get field name size
         virtual size_t nameSize() const noexcept {return 0;}
 
-        //! Get field description.
-        virtual const char* description() const noexcept {return "";}
-
         //! Get field size
         virtual size_t size() const  noexcept =0;
         //! Clear field

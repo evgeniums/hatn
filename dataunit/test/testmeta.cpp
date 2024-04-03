@@ -21,11 +21,9 @@ namespace unit1 {
     struct field0{};
     constexpr int field0_id=10;
     constexpr const char* field0_name="field0";
-    constexpr const char* field0_description="description0";
     struct field0_strings
     {
         constexpr static const char* name=field0_name;
-        constexpr static const char* description=field0_description;
     };
 
     using field0_default_traits=hana::false_;
@@ -57,53 +55,67 @@ namespace unit1 {
 using field0=unit1::field<0>;
 
 HDU_V2_UNIT(du1,
-    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f10,TYPE_INT32,10,"Optional field 10")
-    HDU_V2_REQUIRED_FIELD_WITH_DESCRIPTION(f20,TYPE_INT64,20,"Required field 20")
-    HDU_V2_DEFAULT_FIELD_WITH_DESCRIPTION(f30,TYPE_DOUBLE,30,"Required field 30",10.30)
-    HDU_V2_REPEATED_FIELD_NORMAL_WITH_DESCRIPTION(f40,TYPE_UINT16,40,"Repeated field 40",false,2312)
-    HDU_V2_REPEATED_FIELD_PBPACKED_WITH_DESCRIPTION(f50,TYPE_UINT16,50,"Repeated protobuf packed field 50",true,1122)
-    HDU_V2_REPEATED_FIELD_PBORDINARY_WITH_DESCRIPTION(f60,TYPE_UINT16,60,"Repeated protobuf ordinary field 60",false,3344)
-    HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(f70,TYPE_DATAUNIT,70,"Dataunit field 70",true)
-    HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f80,TYPE_DATAUNIT,80,"Dataunit field 80",true)
+    HDU_V2_OPTIONAL_FIELD(f10,TYPE_INT32,10)
+    HDU_V2_REQUIRED_FIELD(f20,TYPE_INT64,20)
+    HDU_V2_DEFAULT_FIELD(f30,TYPE_DOUBLE,30,10.30)
+    HDU_V2_REPEATED_FIELD_NORMAL(f40,TYPE_UINT16,40,false,2312)
+    HDU_V2_REQUIRED_FIELD(f70,TYPE_DATAUNIT,70)
+    HDU_V2_REPEATED_UNIT_FIELD(f80,TYPE_DATAUNIT,80,true)
     HDU_V2_ENUM(e1,One,Two,Three)
-    HDU_V2_DEFAULT_FIELD_WITH_DESCRIPTION(f90,HDU_V2_TYPE_ENUM(e1),90,"Enum field 90",e1::One)
-    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f100,HDU_V2_TYPE_FIXED_STRING(64),100,"Fixed string field 100")
+    HDU_V2_DEFAULT_FIELD(f90,HDU_V2_TYPE_ENUM(e1),90,e1::One)
+    HDU_V2_OPTIONAL_FIELD(f100,HDU_V2_TYPE_FIXED_STRING(64),100)
 )
 
 HDU_V2_UNIT(du2,
-    HDU_V2_UNIT_FIELD_WITH_DESCRIPTION(f10,du1::TYPE,10,"Subunit field 10",true)
-    HDU_V2_REPEATED_UNIT_FIELD_WITH_DESCRIPTION(f11,du1::TYPE,11,"Repeated field 11",true)
-    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_WITH_DESCRIPTION(f12,du1::TYPE,12,"External field 12",true)
-    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_WITH_DESCRIPTION(f13,du1::TYPE,13,"Embedded field 13",true)
-    HDU_V2_REPEATED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f17,du1::TYPE,17,"Repeated pb ordinary field 17",true)
-    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f18,du1::TYPE,18,"External pb ordinary field 18",true)
-    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD_PBORDINARY_WITH_DESCRIPTION(f19,du1::TYPE,19,"Embedded pb ordinary field 19",true)
+    HDU_V2_REQUIRED_FIELD(f10,du1::TYPE,10)
+    HDU_V2_REPEATED_UNIT_FIELD(f11,du1::TYPE,11,true)
+    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(f12,du1::TYPE,12,true)
+    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(f13,du1::TYPE,13,false)
 )
 
 HDU_V2_UNIT(du3,
-    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f10,TYPE_INT32,10,"Optional field 10")
+    HDU_V2_OPTIONAL_FIELD(f10,TYPE_INT32,10)
 )
 
 HDU_V2_UNIT(du4,
-    HDU_V2_REQUIRED_FIELD_WITH_DESCRIPTION(f20,TYPE_INT64,20,"Required field 20")
+    HDU_V2_REQUIRED_FIELD(f20,TYPE_INT64,20)
 )
 
 HDU_V2_UNIT_WITH(du5,
     (HDU_V2_BASE(du3), HDU_V2_BASE(du4)),
-    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f200,TYPE_INT32,200,"Optional field 200")
+    HDU_V2_OPTIONAL_FIELD(f200,TYPE_INT32,200)
 )
 
 HDU_V2_UNIT_WITH(du6,
     (HDU_V2_BASE(du5)),
-    HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f300,TYPE_INT32,300,"Optional field 300")
+    HDU_V2_OPTIONAL_FIELD(f300,TYPE_INT32,300)
 )
 
 HDU_V2_UNIT_EMPTY(due)
 
+HDU_V2_UNIT(du_min,
+    HDU_V2_REQUIRED_FIELD(f1,TYPE_BOOL,1)
+)
+
 HDU_V2_UNIT_WITH(du7,
-                 (HDU_V2_BASE(due)),
-                 HDU_V2_OPTIONAL_FIELD_WITH_DESCRIPTION(f300,TYPE_INT32,300,"Optional field 300")
-                 )
+    (HDU_V2_BASE(due)),
+    HDU_V2_FIELD(f300,TYPE_INT32,300)
+    HDU_V2_FIELD(f400,TYPE_UINT32,400,true)
+    HDU_V2_FIELD(f500,TYPE_UINT64,500,false,5577)
+    HDU_V2_REPEATED_FIELD(f600,TYPE_INT32,600)
+    HDU_V2_REPEATED_FIELD(f700,TYPE_UINT32,700,true)
+    HDU_V2_REPEATED_FIELD(f800,TYPE_UINT64,800,false,8899)
+    HDU_V2_REPEATED_FIELD(f810,TYPE_UINT64,810,false,Auto,ProtobufPacked)
+    HDU_V2_REPEATED_FIELD(f820,TYPE_UINT64,820,false,Auto,ProtobufOrdinary)
+    HDU_V2_REPEATED_FIELD(f900,du_min::TYPE,900)
+    HDU_V2_REPEATED_FIELD(f1000,du_min::TYPE,1000,true)
+    HDU_V2_REPEATED_FIELD(f1100,du_min::TYPE,1100)
+    HDU_V2_REPEATED_FIELD(f1200,du_min::TYPE,1200,false,Auto,Auto,External)
+    HDU_V2_REPEATED_FIELD(f1300,du_min::TYPE,1300,true,Auto,Auto,Embedded)
+
+    // HDU_V2_REPEATED_FIELD(f17,du_min::TYPE,17,true,Auto,ProtobufPacked)
+    HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufOrdinary,External)
+)
 
 using f10=du1::field<0>;
 using f20=du1::field<1>;
@@ -136,8 +148,8 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     f20::type f20(nullptr);
     f30::type f30(nullptr);
 
-    // const auto& fields=du1::traits::fields;
-    // std::ignore=fields.f10;
+    const auto& fields=du1::traits::fields;
+    std::ignore=fields.f10;
 
     du1::type* vduP1=nullptr;
     du1::shared_type* vduP2=nullptr;
@@ -161,24 +173,24 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 
     du6::type vdu6;
 
-    static_assert(decltype(meta::is_unit_type<TYPE_DATAUNIT>())::value,"");
-    static_assert(!decltype(meta::is_unit_type<uint32_t>())::value,"");
-    static_assert(decltype(meta::is_unit_type<du1::TYPE>())::value,"");
-    static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value,"");
-    static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value,"");
-    static_assert(!decltype(meta::is_basic_type<uint32_t>())::value,"");
+    static_assert(decltype(meta::is_unit_type<TYPE_DATAUNIT>())::value);
+    static_assert(!decltype(meta::is_unit_type<uint32_t>())::value);
+    static_assert(decltype(meta::is_unit_type<du1::TYPE>())::value);
+    static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value);
+    static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value);
+    static_assert(!decltype(meta::is_basic_type<uint32_t>())::value);
 
-    static_assert(decltype(meta::check_ids_unique(du1::field_defs))::value,"");
+    static_assert(decltype(meta::check_ids_unique(du1::field_defs))::value);
     constexpr auto f2=hana::append(du1::field_defs,hana::type_c<WithId<30>>);
-    static_assert(!decltype(meta::check_ids_unique(f2))::value,"");
+    static_assert(!decltype(meta::check_ids_unique(f2))::value);
 
 #ifdef HATN_STRING_LITERAL
-    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
+    static_assert(decltype(check_names_unique(du1::field_defs))::value);
     constexpr auto f20n="f20"_s;
     constexpr auto f3=hana::append(du1::field_defs,hana::type_c<WithName<decltype(f20n)>>);
-    static_assert(!decltype(check_names_unique(f3))::value,"");
+    static_assert(!decltype(check_names_unique(f3))::value);
 #else
-    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
+    static_assert(decltype(check_names_unique(du1::field_defs))::value);
 #endif
 
     due::type emptyUnit;
@@ -186,20 +198,7 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     du7::type emptyUnitDerived;
 }
 
-#define _HDU__V2_OPTIONAL(FieldName,Type,Id)
-#define _HDU__V2_REQUIRED(FieldName,Type,Id,true)
-#define _HDU__V2_DEFAULT(FieldName,Type,Id,false,Default)
-
-#define _HDU__V2_REPEATED_OPTIONAL(FieldName,Type,Id)
-#define _HDU__V2_REPEATED_REQUIRED(FieldName,Type,Id,true)
-#define _HDU__V2_REPEATED_DEFAULT(FieldName,Type,Id,false,Default)
-
-#define _HDU__V2_REPEATED_PROTO_OPTIONAL(FieldName,Type,Id,proto)
-#define _HDU__V2_REPEATED_PROTO_REQUIRED(FieldName,Type,Id,proto,Required)
-#define _HDU__V2_REPEATED_PROTO_DEFAULT(FieldName,Type,Id,proto,false,DefaultOrUnitMode)
-
 /**
- * @todo More convenient v2 macros with variadic arguments.
  * @todo Replace all macros with v2 and test.
  * @todo Default values for strings.
  * @todo Helpers for strings.
@@ -210,6 +209,7 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
  * @todo Refactor json methods with non virtual methods.
  * @todo Static polymorphysm in subunit and repeated fields.
  * @todo Test Error performance.
- * /
+ * @todo Report that default value not supported for bytes and units.
+ */
 
 BOOST_AUTO_TEST_SUITE_END()
