@@ -405,7 +405,10 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         }
         else
         {
-            auto& sizeBufChained=wired.chain().at(sizeBufChainedIdx).buf;
+            const auto& chain=wired.chain();
+            auto& item=chain.at(sizeBufChainedIdx);
+            // auto& sizeBufChained=wired.chain().at(sizeBufChainedIdx).buf;
+            auto& sizeBufChained=item.buf;
             sizePtr=sizeBufChained.data();
         }
         memset(sizePtr,0,reserveSizeLength);

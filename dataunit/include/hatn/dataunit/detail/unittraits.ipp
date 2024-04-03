@@ -76,7 +76,7 @@ UnitImpl<Fields...>::fieldParsers()
         auto index=hana::first(state);
         auto map=hana::second(state);
 
-        auto handler=[index](unitT& unit, BufferT& buf, AllocatorFactory* factory)
+        auto handler=[](unitT& unit, BufferT& buf, AllocatorFactory* factory)
         {
             auto& field=unit.template getInterface<decltype(index)::value>();
             return field.deserialize(buf,factory);

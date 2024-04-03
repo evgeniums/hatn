@@ -108,7 +108,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         //! Deserialize DataUnit from wire
         template <typename UnitT, typename BufferT>
-        static bool deserialize(UnitT* value, BufferT& wired, AllocatorFactory* factory, bool /*repeated*/=false)
+        static bool deserialize(UnitT* value, BufferT& wired, AllocatorFactory*, bool /*repeated*/=false)
         {
             return UnitSer::deserialize(value,wired);
         }

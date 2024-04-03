@@ -605,7 +605,7 @@ class EmptyUnit : public Unit
             return true;
         }
 
-        virtual bool parse(WireBufSolid& wired,bool topLevel=true) override
+        virtual bool parse(WireBufSolid&,bool =true) override
         {
             return true;
         }

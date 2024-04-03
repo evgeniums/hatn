@@ -191,6 +191,7 @@ enum class EnumName : int {__VA_ARGS__};
     auto base_fields=boost::hana::make_tuple();
 
 #define HDU_V2_UNIT_BODY(UnitName,...) \
+    HATN_IGNORE_UNUSED_CONST_VARIABLE_BEGIN \
     using namespace HATN_DATAUNIT_NAMESPACE; \
     using namespace HATN_DATAUNIT_NAMESPACE::types; \
     using namespace HATN_DATAUNIT_META_NAMESPACE; \
@@ -216,7 +217,8 @@ enum class EnumName : int {__VA_ARGS__};
     struct traits : public unit_traits<type,managed,fields>{};\
     struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
-    }
+    }\
+    HATN_IGNORE_UNUSED_CONST_VARIABLE_END
 
 #define HDU_V2_UNIT(UnitName,...) \
     HDU_V2_UNIT_BEGIN(UnitName) \

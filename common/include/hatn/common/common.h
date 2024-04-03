@@ -68,6 +68,13 @@
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
         _Pragma("GCC diagnostic pop")
 
+    #define HATN_IGNORE_STRING_LITERAL_BEGIN \
+    _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Wgnu-string-literal-operator-template\"")
+
+    #define HATN_IGNORE_STRING_LITERAL_END \
+        _Pragma("GCC diagnostic pop")
+
 #else
 
     #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN
@@ -76,6 +83,8 @@
     #define HATN_IGNORE_UNUSED_VARIABLE_END
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_BEGIN
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END
+    #define HATN_IGNORE_STRING_LITERAL_BEGIN
+    #define HATN_IGNORE_STRING_LITERAL_END
 
 #endif
 

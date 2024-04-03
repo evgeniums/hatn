@@ -41,9 +41,9 @@ public:
 
     virtual ~WireData();
     WireData(const WireData&)=default;
-    WireData& operator=(const WireData&)=default;
+    // WireData& operator=(const WireData&)=default;
     WireData(WireData&&)=default;
-    WireData& operator=(WireData&&)=default;
+    // WireData& operator=(WireData&&)=default;
 
     virtual common::DataBuf nextBuffer() const noexcept=0;
     virtual common::ByteArray* mainContainer() const noexcept=0;

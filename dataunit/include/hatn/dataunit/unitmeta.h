@@ -49,10 +49,14 @@ namespace meta {
 
 #ifdef HATN_STRING_LITERAL
 
+HATN_IGNORE_STRING_LITERAL_BEGIN
+
 template <typename CharT, CharT ...s>
 constexpr auto operator"" _s() {
     return hana::string_c<s...>;
 }
+
+HATN_IGNORE_STRING_LITERAL_END
 
 #endif
 
