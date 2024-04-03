@@ -173,24 +173,24 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 
     du6::type vdu6;
 
-    static_assert(decltype(meta::is_unit_type<TYPE_DATAUNIT>())::value);
-    static_assert(!decltype(meta::is_unit_type<uint32_t>())::value);
-    static_assert(decltype(meta::is_unit_type<du1::TYPE>())::value);
-    static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value);
-    static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value);
-    static_assert(!decltype(meta::is_basic_type<uint32_t>())::value);
+    static_assert(decltype(meta::is_unit_type<TYPE_DATAUNIT>())::value,"");
+    static_assert(!decltype(meta::is_unit_type<uint32_t>())::value,"");
+    static_assert(decltype(meta::is_unit_type<du1::TYPE>())::value,"");
+    static_assert(!decltype(meta::is_unit_type<TYPE_BYTES>())::value,"");
+    static_assert(decltype(meta::is_basic_type<TYPE_BYTES>())::value,"");
+    static_assert(!decltype(meta::is_basic_type<uint32_t>())::value,"");
 
-    static_assert(decltype(meta::check_ids_unique(du1::field_defs))::value);
+    static_assert(decltype(meta::check_ids_unique(du1::field_defs))::value,"");
     constexpr auto f2=hana::append(du1::field_defs,hana::type_c<WithId<30>>);
-    static_assert(!decltype(meta::check_ids_unique(f2))::value);
+    static_assert(!decltype(meta::check_ids_unique(f2))::value,"");
 
 #ifdef HATN_STRING_LITERAL
-    static_assert(decltype(check_names_unique(du1::field_defs))::value);
+    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
     constexpr auto f20n="f20"_s;
     constexpr auto f3=hana::append(du1::field_defs,hana::type_c<WithName<decltype(f20n)>>);
-    static_assert(!decltype(check_names_unique(f3))::value);
+    static_assert(!decltype(check_names_unique(f3))::value,"");
 #else
-    static_assert(decltype(check_names_unique(du1::field_defs))::value);
+    static_assert(decltype(check_names_unique(du1::field_defs))::value,"");
 #endif
 
     due::type emptyUnit;
