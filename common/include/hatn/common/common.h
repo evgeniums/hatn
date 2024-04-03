@@ -45,6 +45,8 @@
 #  endif
 #endif
 
+
+//! @todo Move it to separate header.
 #ifdef __GNUC__
 
     #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN \
@@ -68,12 +70,21 @@
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
         _Pragma("GCC diagnostic pop")
 
+    #if defined(__clang__)
+
     #define HATN_IGNORE_STRING_LITERAL_BEGIN \
     _Pragma("GCC diagnostic push") \
         _Pragma("GCC diagnostic ignored \"-Wgnu-string-literal-operator-template\"")
 
     #define HATN_IGNORE_STRING_LITERAL_END \
         _Pragma("GCC diagnostic pop")
+
+    #else
+
+    #define HATN_IGNORE_STRING_LITERAL_BEGIN
+    #define HATN_IGNORE_STRING_LITERAL_END
+
+    #endif
 
 #else
 

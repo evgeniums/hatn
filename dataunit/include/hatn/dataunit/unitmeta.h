@@ -36,7 +36,7 @@ namespace hana=boost::hana;
 #include <hatn/dataunit/fields/repeated.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
-//! @todo move it to configuration script
+//! @todo Move it to configuration script. Test with msvc c++20, maybe it is already supported there.
 #ifndef _MSC_VER
 #ifndef HATN_STRING_LITERAL
 #define HATN_STRING_LITERAL
