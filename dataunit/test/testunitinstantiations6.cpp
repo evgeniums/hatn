@@ -1,20 +1,14 @@
-#include <hatn/dataunit/types.h>
-using namespace HATN_DATAUNIT_NAMESPACE::types;
 
-#define HATN_WITH_STATIC_ALLOCATOR_SRC
-#include "testunitdeclarations.h"
-#undef HATN_WITH_STATIC_ALLOCATOR_SRC
+#include <hatn/dataunit/unitmacros.h>
+#include <hatn/common/pmr/withstaticallocator.ipp>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
 
-#include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include "simpleunitdeclaration.h"
+#include "testunitlib.h"
+#include "testunitdeclarations6.h"
 
-#if 1
-
-HDU_INSTANTIATE_DATAUNIT(wire_bytes_repeated)
-HDU_INSTANTIATE_DATAUNIT(wire_bytes_repeated_proto)
-HDU_INSTANTIATE_DATAUNIT(wire_string_repeated)
-HDU_INSTANTIATE_DATAUNIT(wire_string_repeated_proto)
-HDU_INSTANTIATE_DATAUNIT(wire_fixed_string_repeated)
-HDU_INSTANTIATE_DATAUNIT(wire_fixed_string_repeated_proto)
-
-#endif
+HDU_V2_INSTANTIATE(subunit_names_and_descr,TEST_UNIT_EXPORT)
+HDU_V2_INSTANTIATE(embedded_unit,TEST_UNIT_EXPORT)
+HDU_V2_INSTANTIATE(shared_unit,TEST_UNIT_EXPORT)
+HDU_V2_INSTANTIATE(with_unit,TEST_UNIT_EXPORT)

@@ -298,7 +298,10 @@ HDU_V2_UNIT(wire_unit_repeated_protobuf1,
   HDU_V2_REPEATED_FIELD(f0,all_types::TYPE,1)
 )
 
+#if 1
+//! @todo Fix linking
 HDU_V2_UNIT(tree,
   HDU_V2_DEFAULT_FIELD(f0,TYPE_INT32,1,5)
   HDU_V2_REPEATED_FIELD(children,TYPE_DATAUNIT,2,false,Auto,Auto,External)
 )
+#endif

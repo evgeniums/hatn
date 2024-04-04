@@ -525,7 +525,7 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
 
 //---------------------------------------------------------------
 
-template <typename BaseT>
+template <typename BaseT, typename UniqueType=void>
 class unit_t : public BaseT
 {
         public:

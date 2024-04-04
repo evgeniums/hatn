@@ -8,6 +8,7 @@
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/withstaticallocator.ipp>
 
+#include <hatn/dataunit/unitmacros.h>
 #include "simpleunitdeclaration.h"
 
 namespace du=HATN_DATAUNIT_NAMESPACE;

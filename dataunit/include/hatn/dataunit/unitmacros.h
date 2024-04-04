@@ -186,10 +186,6 @@ enum class EnumName : int {__VA_ARGS__};
 
 //---------------------------------------------------------------
 
-#ifndef HDU_V2_UNIT_SPEC
-#define HDU_V2_UNIT_SPEC(UnitName)
-#endif
-
 #define HDU_V2_UNIT_BEGIN(UnitName) \
     namespace UnitName { \
     constexpr auto base_fields=boost::hana::make_tuple();
@@ -206,16 +202,16 @@ enum class EnumName : int {__VA_ARGS__};
     template <int N> struct field_id{};\
     template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
     __VA_ARGS__ \
-    constexpr auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());\
+    namespace {auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());}\
     static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
     static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
-    constexpr auto unit_c=unit<conf>::type_c(field_defs);\
-    constexpr auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
+    namespace {auto unit_c=unit<conf>::type_c(field_defs);}\
+    namespace {auto shared_unit_c=unit<conf>::shared_type_c(field_defs);}\
     using fields_t=field_id<HATN_COUNTER_GET(c)>;\
     using unit_base_t=decltype(unit_c)::type;\
-    HDU_V2_UNIT_SPEC(UnitName) \
+    using unit_shared_base_t=decltype(shared_unit_c)::type;\
     using type=unit_t<unit_base_t>;\
-    using shared_type=unit_t<decltype(shared_unit_c)::type>;\
+    using shared_type=unit_t<unit_shared_base_t,hana::true_>;\
     using managed=managed_unit<type>;\
     using shared_managed=shared_managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
@@ -257,9 +253,40 @@ enum class EnumName : int {__VA_ARGS__};
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }
 
-#define HDU_V2_EXPORT(Export,UnitName) \
-    HATN_DATAUNIT_META_NAMESPACE_BEGIN\
-    template class Export unit_t<UnitName::unit_base_t>;\
-    HATN_DATAUNIT_META_NAMESPACE_END
+//---------------------------------------------------------------
+
+#define HDU_V2_INSTANTIATE1(UnitName) \
+    template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
+    template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t,boost::hana::true_>;\
+    template class HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
+    template class HATN_DATAUNIT_META_NAMESPACE::shared_managed_unit<UnitName::shared_type>;\
+    template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
+    template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
+
+#ifdef _MSC_VER
+
+    #define HDU_V2_EXPORT(UnitName,Export) \
+        template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
+        template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t,boost::hana::true_>;\
+        template class Export HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
+        template class Export HATN_DATAUNIT_META_NAMESPACE::shared_managed_unit<UnitName::shared_type>;\
+        template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
+        template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
+
+#else
+
+    #define HDU_V2_EXPORT(UnitName,Export) HDU_V2_INSTANTIATE1(UnitName)
+
+#endif
+
+#define HDU_V2_GET_ARG3(arg1, arg2, arg3, ...) arg3
+
+#define HDU_V2_VARG_SELECT_INST(...) \
+    HDU_V2_EXPAND(HDU_V2_GET_ARG3(__VA_ARGS__, \
+                              HDU_V2_EXPORT, \
+                              HDU_V2_INSTANTIATE1\
+                              ))
+
+#define HDU_V2_INSTANTIATE(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_INST(__VA_ARGS__)(__VA_ARGS__))
 
 #endif // HATNDATAUNITMACROS_H

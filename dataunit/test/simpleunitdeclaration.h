@@ -1,24 +1,3 @@
-#pragma once
-
-#ifdef WIN32
-#    ifndef TEST_UNIT_EXPORT
-#        ifdef BUILD_TEST_UNIT
-#            define TEST_UNIT_EXPORT __declspec(dllexport)
-#        else
-#            define TEST_UNIT_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define TEST_UNIT_EXPORT
-#endif
-
-#include <hatn/dataunit/unitmacros.h>
-
-#ifdef _WIN32
-#define HDU_V2_UNIT_EXPORT TEST_UNIT_EXPORT
-#include <hatn/dataunit/unitdll.h>
-#endif
-
 HDU_V2_UNIT(simple_int8,
   HDU_V2_FIELD(type_int8,TYPE_INT8,2)
 )
@@ -46,6 +25,18 @@ HDU_V2_UNIT(simple_subunit,
     HDU_V2_FIELD(f0,simple_int8::TYPE,1)
 )
 
-// HDU_V2_UNIT(embedded_unit,
-//     HDU_V2_FIELD(f0,all_types::TYPE,1)
-// )
+HDU_V2_UNIT(names_and_descr,
+    HDU_V2_FIELD(optional_field,TYPE_INT8,1)
+    HDU_V2_FIELD(optional_field_descr,TYPE_INT8,2)
+
+    HDU_V2_REQUIRED_FIELD(required_field,TYPE_INT8,3)
+    HDU_V2_REQUIRED_FIELD(required_field_descr,TYPE_INT8,4)
+
+    HDU_V2_DEFAULT_FIELD(default_field,TYPE_INT8,5,1)
+    HDU_V2_DEFAULT_FIELD(default_field_descr,TYPE_INT8,6,1)
+
+    HDU_V2_REPEATED_FIELD(repeated_field,TYPE_INT8,7)
+    HDU_V2_REPEATED_FIELD(repeated_field_descr,TYPE_INT8,8)
+)
+
+HDU_V2_UNIT_EMPTY(empty_unit)

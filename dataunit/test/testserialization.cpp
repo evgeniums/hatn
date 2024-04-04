@@ -1,9 +1,5 @@
 #include <boost/test/unit_test.hpp>
 
-#include <hatn/thirdparty/fameta/counter.hpp>
-
-#define HDU_V2_UNIT_EXPORT
-
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>

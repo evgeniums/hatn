@@ -30,81 +30,81 @@ namespace meta {
 
 //---------------------------------------------------------------
 
-template <typename BaseT>
-unit_t<BaseT>::unit_t(AllocatorFactory* factory):BaseT(factory)
+template <typename BaseT, typename UniqueType>
+unit_t<BaseT,UniqueType>::unit_t(AllocatorFactory* factory):BaseT(factory)
 {}
 
-template <typename BaseT>
-const Field* unit_t<BaseT>::fieldById(int id) const
+template <typename BaseT, typename UniqueType>
+const Field* unit_t<BaseT,UniqueType>::fieldById(int id) const
 {
     return this->doFieldById(id);
 }
 
-template <typename BaseT>
-Field* unit_t<BaseT>::fieldById(int id)
+template <typename BaseT, typename UniqueType>
+Field* unit_t<BaseT,UniqueType>::fieldById(int id)
 {
     return this->doFieldById(id);
 }
 
-template <typename BaseT>
-bool unit_t<BaseT>::iterateFields(const Unit::FieldVisitor& visitor)
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::iterateFields(const Unit::FieldVisitor& visitor)
 {
     return this->iterate(visitor);
 }
 
-template <typename BaseT>
-bool unit_t<BaseT>::iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const
 {
     return this->iterateConst(visitor);
 }
 
-template <typename BaseT>
-size_t unit_t<BaseT>::fieldCount() const noexcept
+template <typename BaseT, typename UniqueType>
+size_t unit_t<BaseT,UniqueType>::fieldCount() const noexcept
 {
     return this->doFieldCount();
 }
 
-template <typename BaseT>
-const char* unit_t<BaseT>::name() const noexcept
+template <typename BaseT, typename UniqueType>
+const char* unit_t<BaseT,UniqueType>::name() const noexcept
 {
     return this->unitName();
 }
 
-template <typename BaseT>
-int unit_t<BaseT>::serialize(WireData& wired,bool topLevel) const
+template <typename BaseT, typename UniqueType>
+int unit_t<BaseT,UniqueType>::serialize(WireData& wired,bool topLevel) const
 {
     return io::serialize(*this,wired,topLevel);
 }
 
 #if 0
 //! @todo Maybe implement virtual serializrion
-template <typename BaseT>
-int unit_t<BaseT>::serialize(WireBufSolid& wired,bool topLevel) const
+template <typename BaseT, typename UniqueType>
+int unit_t<BaseT,UniqueType>::serialize(WireBufSolid& wired,bool topLevel) const
 {
     return io::serialize(*this,wired,topLevel);
 }
 
-template <typename BaseT>
-int unit_t<BaseT>::serialize(WireBufSolidShared& wired,bool topLevel) const
+template <typename BaseT, typename UniqueType>
+int unit_t<BaseT,UniqueType>::serialize(WireBufSolidShared& wired,bool topLevel) const
 {
     return io::serialize(*this,wired,topLevel);
 }
 
-template <typename BaseT>
-int unit_t<BaseT>::serialize(WireBufChained& wired,bool topLevel) const
+template <typename BaseT, typename UniqueType>
+int unit_t<BaseT,UniqueType>::serialize(WireBufChained& wired,bool topLevel) const
 {
     return io::serialize(*this,wired,topLevel);
 }
 #endif
 
-template <typename BaseT>
-bool unit_t<BaseT>::parse(WireData& wired,bool topLevel)
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::parse(WireData& wired,bool topLevel)
 {
     return io::deserialize(*this,wired,topLevel);
 }
 
-template <typename BaseT>
-bool unit_t<BaseT>::parse(WireBufSolid& wired,bool topLevel)
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::parse(WireBufSolid& wired,bool topLevel)
 {
     return io::deserialize(*this,wired,topLevel);
 }
