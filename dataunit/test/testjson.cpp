@@ -19,9 +19,16 @@
 
 #include <hatn/test/multithreadfixture.h>
 
-// using namespace HATN_DATAUNIT_NAMESPACE::types;
+#include <hatn/dataunit/unitmacros.h>
 
-#include "testunitdeclarations.h"
+#include "simpleunitdeclaration.h"
+#include "testunitdeclarations2.h"
+#include "testunitdeclarations3.h"
+#include "testunitdeclarations4.h"
+#include "testunitdeclarations5.h"
+#include "testunitdeclarations6.h"
+#include "testunitdeclarations7.h"
+#include "testunitdeclarations8.h"
 
 //#define HATN_TEST_LOG_CONSOLE
 

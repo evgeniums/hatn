@@ -223,6 +223,8 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
  * @todo Refactor json methods with non virtual methods.
  * @todo Static polymorphysm in subunit and repeated fields.
  * @todo Test Error performance.
+ * @todo Edit WithStaticAllocator.
+ * @todo Remove legacy headers from dataunit.
  */
 
 BOOST_AUTO_TEST_SUITE_END()

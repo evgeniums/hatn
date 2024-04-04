@@ -1,14 +1,14 @@
 SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testsyntax.cpp
-    # ${DATAUNIT_TEST_SRC}/testjson.cpp
-    # ${DATAUNIT_TEST_SRC}/testfields.cpp
-    # ${DATAUNIT_TEST_SRC}/testgetset.cpp
-    # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
-    # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
-    # ${DATAUNIT_TEST_SRC}/testperformance.cpp
-    # ${DATAUNIT_TEST_SRC}/testserialization.cpp
+    ${DATAUNIT_TEST_SRC}/testjson.cpp
+    ${DATAUNIT_TEST_SRC}/testfields.cpp
+    ${DATAUNIT_TEST_SRC}/testgetset.cpp
+    ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
+    ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
+    ${DATAUNIT_TEST_SRC}/testperformance.cpp
+    ${DATAUNIT_TEST_SRC}/testserialization.cpp
     ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
-    # ${DATAUNIT_TEST_SRC}/testmeta.cpp
+    ${DATAUNIT_TEST_SRC}/testmeta.cpp
 )
 
 SET (TEST_HEADERS
@@ -66,7 +66,6 @@ ENDIF()
 IF (MINGW AND BUILD_DEBUG)
     # Fix string table overflow when compiling in debug mode
     SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
-    # SET_SOURCE_FILES_PROPERTIES(${SOURCES} PROPERTIES COMPILE_FLAGS -Os)
     SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
 ENDIF ()
 
