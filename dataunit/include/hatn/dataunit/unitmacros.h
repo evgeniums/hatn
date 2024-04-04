@@ -203,11 +203,11 @@ enum class EnumName : int {__VA_ARGS__};
     template <int N> struct field_id{};\
     template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
     __VA_ARGS__ \
-    namespace {auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());}\
+    namespace {HATN_MAYBE_CONSTEXPR auto field_defs=concat_fields(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());}\
     static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
     static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
-    namespace {auto unit_c=unit<conf>::type_c(field_defs);}\
-    namespace {auto shared_unit_c=unit<conf>::shared_type_c(field_defs);}\
+    namespace {HATN_MAYBE_CONSTEXPR auto unit_c=unit<conf>::type_c(field_defs);}\
+    namespace {HATN_MAYBE_CONSTEXPR auto shared_unit_c=unit<conf>::shared_type_c(field_defs);}\
     using fields_t=field_id<HATN_COUNTER_GET(c)>;\
     using unit_base_t=decltype(unit_c)::type;\
     using unit_shared_base_t=decltype(shared_unit_c)::type;\

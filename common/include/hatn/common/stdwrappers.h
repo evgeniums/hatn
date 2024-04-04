@@ -22,6 +22,9 @@
 
 #if __cplusplus < 201703L
     #include <boost/utility/string_view.hpp>
+    #define HATN_MAYBE_CONSTEXPR
+#else
+    #define HATN_MAYBE_CONSTEXPR constexpr
 #endif
 
 #if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
