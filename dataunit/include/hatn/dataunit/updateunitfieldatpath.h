@@ -24,8 +24,9 @@
 #include <hatn/validator/get_member.hpp>
 
 #include <hatn/dataunit/dataunit.h>
-
 #include <hatn/dataunit/field.h>
+#include <hatn/dataunit/fields/bytes.h>
+#include <hatn/dataunit/fields/repeated.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

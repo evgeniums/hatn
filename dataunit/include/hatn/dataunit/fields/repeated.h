@@ -30,6 +30,7 @@
 #include <hatn/common/containerutils.h>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
+#include <hatn/dataunit/fields/subunit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

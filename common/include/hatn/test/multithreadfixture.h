@@ -26,31 +26,13 @@
 #include <hatn/common/memorypool/poolcachegen.h>
 #include <hatn/common/threadwithqueue.h>
 
-#ifndef HATN_COMMON_TEST_EXPORT
-
-#  if defined(_WIN32)
-#        ifdef EXPORT_HATN_COMMON_TEST
-#            define HATN_COMMON_TEST_EXPORT __declspec(dllexport)
-#        else
-#            ifdef IMPORT_HATN_COMMON_TEST
-#               define HATN_COMMON_EXPORT __declspec(dllimport)
-#            else
-#               define HATN_COMMON_TEST_EXPORT
-#            endif
-#        endif
-#  else
-#    HATN_COMMON_TEST_EXPORT
-#  endif
-
-#endif
-
 namespace hatn {
 namespace test {
 
 class MultiThreadFixture_p;
 
 //! Test fixture for multithreaded tests
-class HATN_COMMON_TEST_EXPORT MultiThreadFixture
+class MultiThreadFixture
 {
     public:
 
