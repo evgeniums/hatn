@@ -18,19 +18,12 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
-#include <hatn/dataunit/detail/syntax.ipp>
+
+#include <hatn/dataunit/unitmacros.h>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
 
 #include <hatn/test/multithreadfixture.h>
-
-#define HDU_DATAUNIT_EXPORT
-#include <hatn/common/pmr/withstaticallocator.h>
-#define HATN_WITH_STATIC_ALLOCATOR_SRC
-#ifdef HATN_WITH_STATIC_ALLOCATOR_SRC
-#include <hatn/common/pmr/withstaticallocator.ipp>
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-#else
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_H
-#endif
 
 struct Env : public ::hatn::test::MultiThreadFixture
 {
@@ -48,26 +41,23 @@ struct Env : public ::hatn::test::MultiThreadFixture
 
 namespace internal {
 
-HDU_DATAUNIT(all_types,
-             HDU_FIELD(type_bool,TYPE_BOOL,1)
-             HDU_FIELD(type_int8,TYPE_INT8,2)
-             HDU_FIELD(type_int16,TYPE_INT16,3)
-             HDU_FIELD(type_int32,TYPE_INT32,4)
-             HDU_FIELD(type_int64,TYPE_INT64,5)
-             HDU_FIELD(type_uint8,TYPE_UINT8,6)
-             HDU_FIELD(type_uint16,TYPE_UINT16,7)
-             HDU_FIELD(type_uint32,TYPE_UINT32,8)
-             HDU_FIELD(type_uint64,TYPE_UINT64,9)
-             HDU_FIELD(type_float,TYPE_FLOAT,10,"Field with description")
-             HDU_FIELD(type_double,TYPE_DOUBLE,11)
-             HDU_FIELD(type_string,TYPE_STRING,12)
-             HDU_FIELD(type_bytes,TYPE_BYTES,13)
-             HDU_FIELD(type_fixed_string,HDU_TYPE_FIXED_STRING(8),20)
-             HDU_FIELD_REQUIRED(type_int8_required,TYPE_INT8,25)
-             HDU_ENUM(MyEnum,One=1,Two=2)
-             )
-HDU_INSTANTIATE_DATAUNIT(all_types)
-
+HDU_V2_UNIT(all_types,
+         HDU_V2_FIELD(type_bool,TYPE_BOOL,1)
+         HDU_V2_FIELD(type_int8,TYPE_INT8,2)
+         HDU_V2_FIELD(type_int16,TYPE_INT16,3)
+         HDU_V2_FIELD(type_int32,TYPE_INT32,4)
+         HDU_V2_FIELD(type_int64,TYPE_INT64,5)
+         HDU_V2_FIELD(type_uint8,TYPE_UINT8,6)
+         HDU_V2_FIELD(type_uint16,TYPE_UINT16,7)
+         HDU_V2_FIELD(type_uint32,TYPE_UINT32,8)
+         HDU_V2_FIELD(type_uint64,TYPE_UINT64,9)
+         HDU_V2_FIELD(type_float,TYPE_FLOAT,10)
+         HDU_V2_FIELD(type_double,TYPE_DOUBLE,11)
+         HDU_V2_FIELD(type_string,TYPE_STRING,12)
+         HDU_V2_FIELD(type_bytes,TYPE_BYTES,13)
+         HDU_V2_FIELD(type_fixed_string,HDU_V2_TYPE_FIXED_STRING(8),20)
+         HDU_V2_FIELD(type_int8_required,TYPE_INT8,25,true)
+    )
 }
 
 namespace {

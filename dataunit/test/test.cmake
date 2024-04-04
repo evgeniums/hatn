@@ -1,26 +1,27 @@
 SET (TEST_SOURCES
-    # ${DATAUNIT_TEST_SRC}/testsyntax.cpp
+    ${DATAUNIT_TEST_SRC}/testsyntax.cpp
     # ${DATAUNIT_TEST_SRC}/testjson.cpp
     # ${DATAUNIT_TEST_SRC}/testfields.cpp
     # ${DATAUNIT_TEST_SRC}/testgetset.cpp
     # ${DATAUNIT_TEST_SRC}/testfieldpath.cpp
     # ${DATAUNIT_TEST_SRC}/testprevalidate.cpp
-    # ${DATAUNIT_TEST_SRC}/testperformance.cpp
-    # ${DATAUNIT_TEST_SRC}/testserialization.cpp
-    # ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
+    #${DATAUNIT_TEST_SRC}/testperformance.cpp
+    ${DATAUNIT_TEST_SRC}/testserialization.cpp
+    ${DATAUNIT_TEST_SRC}/testwirebuf.cpp
     ${DATAUNIT_TEST_SRC}/testmeta.cpp
 )
 
 SET (TEST_HEADERS
     ${HEADERS}
     ${DATAUNIT_TEST_SRC}/testunitdeclarations.h
+    ${DATAUNIT_TEST_SRC}/simpleunitdeclaration.h
     ${DATAUNIT_TEST_SRC}/testfieldpath.h
 )
 
 SET(MODULE_TEST_LIB dataunittestlib)
 
-# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations1.cpp)
-# SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations2.cpp)
+SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations1.cpp)
+SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations2.cpp)
 # SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations3.cpp)
 # SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations4.cpp)
 # SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations5.cpp)
@@ -28,9 +29,9 @@ SET(MODULE_TEST_LIB dataunittestlib)
 # SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations7.cpp)
 # SET(TEST_LIB_SOURCES ${TEST_LIB_SOURCES} ${DATAUNIT_TEST_SRC}/testunitinstantiations8.cpp)
 
-
-ADD_LIBRARY(${MODULE_TEST_LIB} STATIC  ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES})
+ADD_LIBRARY(${MODULE_TEST_LIB} SHARED ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES})
 TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${TEST_BINARY_DIR})
+TARGET_COMPILE_DEFINITIONS(${MODULE_TEST_LIB} PRIVATE -DBUILD_TEST_UNIT)
 ADD_HATN_MODULES(${MODULE_TEST_LIB} PRIVATE dataunit)
 
 IF (MSVC)
@@ -48,10 +49,10 @@ IF (MINGW AND BUILD_DEBUG)
     # Fix string table overflow when compiling in debug mode
     SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
     # SET_SOURCE_FILES_PROPERTIES(${SOURCES} PROPERTIES COMPILE_FLAGS -Os)
-    SET_SOURCE_FILES_PROPERTIES(${DATAUNIT_TEST_SRC}/testunitinstantiations.cpp PROPERTIES COMPILE_FLAGS -Os)
+    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
 ENDIF ()
 
-SET(HATN_TEST_THREAD_SOURCES "")
+# SET(HATN_TEST_THREAD_SOURCES "")
 
 ADD_HATN_CTESTS(dataunit ${TEST_SOURCES})
 

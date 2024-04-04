@@ -390,7 +390,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
 template <template <int> class FieldT, int N>
 struct make_fields_tuple_t
 {
-    auto operator()() const
+    constexpr auto operator()() const
     {
         constexpr std::make_integer_sequence<int,N> indices{};
         auto to_field_c=[](auto x)
@@ -579,6 +579,10 @@ struct unit_traits
     using managed=ManagedT;
 };
 
+// #ifndef HDU_SUBUNIT_EXPORT
+// #define HDU_SUBUNIT_EXPORT
+// #endif
+
 template <typename traits, typename shared_traits>
 struct subunit : public types::TYPE_DATAUNIT
 {
@@ -603,18 +607,18 @@ struct subunit : public types::TYPE_DATAUNIT
 struct concat_fields_t
 {
     template <typename ...Args>
-    auto operator() (Args&& ...args) const
+    constexpr auto operator() (Args&& ...args) const
     {
         return hana::concat(std::forward<Args>(args)...);
     }
 
     template <typename Arg>
-    auto operator() (Arg&& arg) const
+    constexpr auto operator() (Arg&& arg) const
     {
         return hana::concat(hana::make_tuple(),std::forward<Arg>(arg));
     }
 
-    auto operator() () const
+    constexpr auto operator() () const
     {
         return hana::make_tuple();
     }

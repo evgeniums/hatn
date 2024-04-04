@@ -186,9 +186,13 @@ enum class EnumName : int {__VA_ARGS__};
 
 //---------------------------------------------------------------
 
+#ifndef HDU_V2_UNIT_SPEC
+#define HDU_V2_UNIT_SPEC(UnitName)
+#endif
+
 #define HDU_V2_UNIT_BEGIN(UnitName) \
     namespace UnitName { \
-    auto base_fields=boost::hana::make_tuple();
+    constexpr auto base_fields=boost::hana::make_tuple();
 
 #define HDU_V2_UNIT_BODY(UnitName,...) \
     HATN_IGNORE_UNUSED_CONST_VARIABLE_BEGIN \
@@ -202,13 +206,15 @@ enum class EnumName : int {__VA_ARGS__};
     template <int N> struct field_id{};\
     template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
     __VA_ARGS__ \
-    auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());\
+    constexpr auto field_defs=boost::hana::concat(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());\
     static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
     static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
-    auto unit_c=unit<conf>::type_c(field_defs);\
-    auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
+    constexpr auto unit_c=unit<conf>::type_c(field_defs);\
+    constexpr auto shared_unit_c=unit<conf>::shared_type_c(field_defs);\
     using fields_t=field_id<HATN_COUNTER_GET(c)>;\
-    using type=unit_t<decltype(unit_c)::type>;\
+    using unit_base_t=decltype(unit_c)::type;\
+    HDU_V2_UNIT_SPEC(UnitName) \
+    using type=unit_t<unit_base_t>;\
     using shared_type=unit_t<decltype(shared_unit_c)::type>;\
     using managed=managed_unit<type>;\
     using shared_managed=shared_managed_unit<shared_type>;\
@@ -228,7 +234,7 @@ enum class EnumName : int {__VA_ARGS__};
 
 #define HDU_V2_UNIT_WITH_BEGIN(UnitName, Base) \
     namespace UnitName { \
-    auto base_fields=HATN_DATAUNIT_META_NAMESPACE::concat_fields Base;
+    constexpr auto base_fields=HATN_DATAUNIT_META_NAMESPACE::concat_fields Base;
 
 #define HDU_V2_UNIT_WITH(UnitName, Base, ...) \
     HDU_V2_UNIT_WITH_BEGIN(UnitName, Base) \
@@ -238,8 +244,9 @@ enum class EnumName : int {__VA_ARGS__};
     namespace UnitName { \
     using namespace hatn::dataunit; \
     using namespace hatn::dataunit::types; \
+    using namespace hatn::dataunit::meta; \
     struct conf{constexpr static const char* name=#UnitName;};\
-    auto field_defs=boost::hana::make_tuple();\
+    constexpr auto field_defs=boost::hana::make_tuple();\
     using type=EmptyUnit<conf>;\
     using shared_type=type;\
     using managed=EmptyManagedUnit<conf>;\
@@ -249,5 +256,10 @@ enum class EnumName : int {__VA_ARGS__};
     struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }
+
+#define HDU_V2_EXPORT(Export,UnitName) \
+    HATN_DATAUNIT_META_NAMESPACE_BEGIN\
+    template class Export unit_t<UnitName::unit_base_t>;\
+    HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNDATAUNITMACROS_H

@@ -3,10 +3,12 @@
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
 
-namespace {
+#include <hatn/common/flatmap.h>
 
+#include <hatn/common/pmr/withstaticallocator.h>
+#include <hatn/common/pmr/withstaticallocator.ipp>
 
-} // anonymous namespace
+#include "simpleunitdeclaration.h"
 
 namespace du=HATN_DATAUNIT_NAMESPACE;
 namespace common=HATN_COMMON_NAMESPACE;
@@ -116,6 +118,13 @@ BOOST_AUTO_TEST_CASE(WireBufBasicOp)
     b.clear();
     du::copyToContainer(vChained,&b);
     BOOST_CHECK(solidB==b);
+}
+
+BOOST_AUTO_TEST_CASE(MsvcImportUnit)
+{
+    simple_int8::type du1;
+    all_types::type du2;
+    simple_int8::type du3;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -2,71 +2,51 @@
 
 #include <hatn/thirdparty/fameta/counter.hpp>
 
-#define HDU_DATAUNIT_EXPORT
+#define HDU_V2_UNIT_EXPORT
 
-#include <hatn/common/pmr/withstaticallocator.h>
-#define HATN_WITH_STATIC_ALLOCATOR_SRC
-#ifdef HATN_WITH_STATIC_ALLOCATOR_SRC
-#include <hatn/common/pmr/withstaticallocator.ipp>
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-#else
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_H
-#endif
-
-#include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
-#include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/detail/wirebuf.ipp>
 
+#include <hatn/dataunit/unitmacros.h>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
+
 namespace {
 
-HDU_DATAUNIT_EMPTY(du0)
-HDU_INSTANTIATE_DATAUNIT(du0)
+HDU_V2_UNIT_EMPTY(du0)
 
-HDU_DATAUNIT(du1,
-  HDU_FIELD(field2,TYPE_INT32,2)
+HDU_V2_UNIT(du1,
+  HDU_V2_FIELD(field2,TYPE_INT32,2)
 )
-HDU_INSTANTIATE_DATAUNIT(du1)
 
-HDU_DATAUNIT(du2,
-    HDU_FIELD_REQUIRED(field3,TYPE_INT32,10)
+HDU_V2_UNIT(du2,
+    HDU_V2_REQUIRED_FIELD(field3,TYPE_INT32,10)
 )
-HDU_INSTANTIATE_DATAUNIT(du2)
 
-HDU_DATAUNIT(du3,
-    HDU_FIELD_REQUIRED(field4,TYPE_STRING,30)
+HDU_V2_UNIT(du3,
+    HDU_V2_REQUIRED_FIELD(field4,TYPE_STRING,30)
 )
-HDU_INSTANTIATE_DATAUNIT(du3)
 
-HDU_DATAUNIT(du4,
-    HDU_FIELD_DATAUNIT(f2,du2::TYPE,2)
-    HDU_FIELD_DATAUNIT(f3,du3::TYPE,3)
+HDU_V2_UNIT(du4,
+    HDU_V2_FIELD(f2,du2::TYPE,2)
+    HDU_V2_FIELD(f3,du3::TYPE,3)
 )
-HDU_INSTANTIATE_DATAUNIT(du4)
 
-HDU_DATAUNIT(du5,
-    HDU_FIELD_REPEATED(field5,TYPE_STRING,50)
+HDU_V2_UNIT(du5,
+    HDU_V2_REPEATED_FIELD(field5,TYPE_STRING,50)
 )
-HDU_INSTANTIATE_DATAUNIT(du5)
 
-HDU_DATAUNIT(du6,
-    HDU_FIELD_REQUIRED(field1,TYPE_INT32,1)
+HDU_V2_UNIT(du6,
+    HDU_V2_REQUIRED_FIELD(field1,TYPE_INT32,1)
 )
-HDU_INSTANTIATE_DATAUNIT(du6)
 
-HDU_DATAUNIT(du7,
-    HDU_FIELD_DATAUNIT(f2,du6::TYPE,2)
+HDU_V2_UNIT(du7,
+    HDU_V2_FIELD(f2,du6::TYPE,2)
 )
-HDU_INSTANTIATE_DATAUNIT(du7)
 
 } // anonymous namespace
-
-// HATN_COUNTER_MAKE(Extra)
-// HATN_COUNTER_INC(Extra)
-// constexpr auto abc=HATN_COUNTER_GET(Extra);
 
 namespace du=HATN_DATAUNIT_NAMESPACE;
 
@@ -138,7 +118,7 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
     type obj1;
     auto& f1=obj1.field(du3::field4);
     f1.set("Hello world!");
-    BOOST_CHECK_EQUAL("Hello world!",f1.c_str());
+    BOOST_CHECK_EQUAL("Hello world!",f1.value());
     auto size=du::io::size(obj1);
     BOOST_CHECK_EQUAL(20,size);
 

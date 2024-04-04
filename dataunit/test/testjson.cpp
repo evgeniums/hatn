@@ -4,23 +4,22 @@
 #include <vector>
 #include <iostream>
 
-#define HDU_DATAUNIT_EXPORT
-
 #include <hatn/common/thread.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/makeshared.h>
 
 #include <hatn/common/logger.h>
-#include <hatn/common/elapsedtimer.h>
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
 #include <hatn/thirdparty/base64/base64.h>
 
-#include <hatn/dataunit/syntax.h>
+#include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/types.h>
+
 #include <hatn/test/multithreadfixture.h>
 
-using namespace HATN_DATAUNIT_NAMESPACE::types;
+// using namespace HATN_DATAUNIT_NAMESPACE::types;
 
 #include "testunitdeclarations.h"
 

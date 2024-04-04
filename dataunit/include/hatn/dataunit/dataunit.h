@@ -41,9 +41,12 @@
 #define HATN_DATAUNIT_NAMESPACE_END }}
 
 #define HATN_DATAUNIT_NAMESPACE hatn::dataunit
-#define HATN_DATAUNIT_META_NAMESPACE hatn::dataunit::meta
 #define HATN_DATAUNIT_NS dataunit
 #define HATN_DATAUNIT_USING using namespace hatn::dataunit;
+
+#define HATN_DATAUNIT_META_NAMESPACE_BEGIN namespace hatn { namespace dataunit { namespace meta {
+#define HATN_DATAUNIT_META_NAMESPACE hatn::dataunit::meta
+#define HATN_DATAUNIT_META_NAMESPACE_END }}}
 
 DECLARE_LOG_MODULE_EXPORT(dataunit,HATN_DATAUNIT_EXPORT)
 

@@ -1,40 +1,30 @@
-#include <hatn/dataunit/types.h>
-using namespace HATN_DATAUNIT_NAMESPACE::types;
+#include "simpleunitdeclaration.h"
 
-#define HATN_WITH_STATIC_ALLOCATOR_SRC
-#include "testunitdeclarations.h"
-#undef HATN_WITH_STATIC_ALLOCATOR_SRC
+#include <hatn/dataunit/unitmacros.h>
 
-#include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/common/pmr/withstaticallocator.ipp>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
 
-HDU_INSTANTIATE_DATAUNIT(names_and_descr)
-HDU_INSTANTIATE_DATAUNIT(subunit_names_and_descr)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,names_and_descr)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,subunit_names_and_descr)
 
-HDU_INSTANTIATE_DATAUNIT(simple_int8)
-HDU_INSTANTIATE_DATAUNIT(all_types)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,simple_int8)
+// HDU_V2_SPECIALIZATION(all_types)
 
-#if 1
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,all_types_copy)
 
-#if 0
-HDU_INSTANTIATE_DATAUNIT(many_fields)
-#endif
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,ext0)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,ext1)
 
-HDU_INSTANTIATE_DATAUNIT(all_types_copy)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,repeated)
 
-HDU_INSTANTIATE_DATAUNIT_EXT(all_types,ext0)
-HDU_INSTANTIATE_DATAUNIT_EXT(all_types,ext1)
-
-HDU_INSTANTIATE_DATAUNIT(repeated)
-
-HDU_INSTANTIATE_DATAUNIT(with_unit)
-HDU_INSTANTIATE_DATAUNIT(with_unit2)
-HDU_INSTANTIATE_DATAUNIT(with_unit3)
-HDU_INSTANTIATE_DATAUNIT(with_unit4)
-HDU_INSTANTIATE_DATAUNIT(wire_unit_repeated)
-HDU_INSTANTIATE_DATAUNIT(wire_embedded_repeated)
-HDU_INSTANTIATE_DATAUNIT(embedded_unit)
-HDU_INSTANTIATE_DATAUNIT(shared_unit)
-HDU_INSTANTIATE_DATAUNIT(tree)
-
-#endif
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,with_unit)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,with_unit2)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,with_unit3)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,with_unit4)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,wire_unit_repeated)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,wire_embedded_repeated)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,embedded_unit)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,shared_unit)
+// HDU_V2_EXPORT(TEST_UNIT_EXPORT,tree)

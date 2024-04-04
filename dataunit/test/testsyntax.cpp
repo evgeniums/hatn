@@ -280,42 +280,28 @@ BOOST_AUTO_TEST_CASE(TestNames)
     const auto& fields=traits::fields;
 
     BOOST_CHECK_EQUAL(std::string(fields.optional_field.name()),std::string("optional_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.optional_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.optional_field_descr.name()),std::string("optional_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.optional_field_descr.description()),std::string("Optional field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.required_field.name()),std::string("required_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.required_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.required_field_descr.name()),std::string("required_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.required_field_descr.description()),std::string("Required field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.default_field.name()),std::string("default_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.default_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.default_field_descr.name()),std::string("default_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.default_field_descr.description()),std::string("Default field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.repeated_field.name()),std::string("repeated_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.repeated_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.repeated_field_descr.name()),std::string("repeated_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.repeated_field_descr.description()),std::string("Repeated field with description"));
 
     using traitsSubunit=subunit_names_and_descr::traits;
     const auto& fieldsSubunit=traitsSubunit::fields;
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field.name()),std::string("dataunit_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field_descr.name()),std::string("dataunit_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field_descr.description()),std::string("Dataunit field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field.name()),std::string("external_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field_descr.name()),std::string("external_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field_descr.description()),std::string("External field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field.name()),std::string("embedded_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field_descr.name()),std::string("embedded_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field_descr.description()),std::string("Embedded field with description"));
 }
 
 BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
@@ -346,11 +332,12 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesCopyOp);
     }
 
-    using extTraits=all_types::ext1::traits;
+    using extTraits=ext1::traits;
     const auto extFields=extTraits::fields;
+    const auto ext0Fields=ext0::traits::fields;
 
     extTraits::type extTypes;
-    auto& f1=extTypes.field(extFields.type_bool);
+    auto& f1=extTypes.field(fields.type_bool);
     BOOST_CHECK(!f1.isSet());
     BOOST_CHECK(!f1.get());
     f1.set(true);
@@ -366,13 +353,13 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
     BOOST_CHECK(f2.isSet());
     BOOST_CHECK(f2.get());
 
-    auto& fExt0Field=extTypes.field(extFields.ext0_int32);
+    auto& fExt0Field=extTypes.field(ext0Fields.ext0_int32);
     std::ignore=fExt0Field;
 
     empty_unit::traits::type empt;
     std::ignore=empt;
 
-    using extTraits2=empty_unit::ext2::traits;
+    using extTraits2=ext2::traits;
     const auto& extFields2=extTraits2::fields;
 
     extTraits2::type ext2;
@@ -1430,6 +1417,8 @@ BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(ptr,unit1.get());
 }
 
+#if 1
+//! @todo Fix tree test
 BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
 {
     auto factory=hatn::dataunit::AllocatorFactory::getDefault();
@@ -1477,6 +1466,7 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(levelCount,22);
     BOOST_CHECK_EQUAL(contentCount,5*count+10+20+30);
 }
+#endif
 
 BOOST_FIXTURE_TEST_CASE(TestFreeFactory,::hatn::test::MultiThreadFixture)
 {
