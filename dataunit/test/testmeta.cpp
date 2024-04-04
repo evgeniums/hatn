@@ -216,7 +216,6 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 
 /**
  * @todo Replace all macros with v2 and test.
- * @todo Helpers for strings.
  * @todo Data unit tags.
  * @todo Error processing.
  * @todo Clean up metautils.

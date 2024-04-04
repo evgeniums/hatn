@@ -243,6 +243,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         inline const auto& value() const noexcept
         {
+            //! @todo Validator must be able to work with temporary objects.
             // validator needs lvalue reference to view rather than a temporary object, so we keep it in this object
             m_view=decltype(m_view)(dataPtr(),dataSize());
             return m_view;
