@@ -299,9 +299,12 @@ class FieldTmplBytes : public Field, public BytesType
             this->m_value.setSharedByteArray(std::move(val));
         }
 
-        inline typename Type::type::onstackType* buf() noexcept
+        inline typename Type::type::onstackType* buf(bool forSet=true) noexcept
         {
-            markSet();
+            if (forSet)
+            {
+                markSet();
+            }
             return this->m_value.buf();
         }
 

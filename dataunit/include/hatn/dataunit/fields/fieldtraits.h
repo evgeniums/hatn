@@ -215,11 +215,12 @@ struct FieldDefault
 template <typename Base,typename Type,typename DefaultV>
 struct FieldDefault<Base,Type,
             DefaultV,
-            std::enable_if_t<Type::isBytesType::value || Type::isUnitType::value>
+                    std::enable_if_t<(Type::isBytesType::value && !Type::isStringType::value) || Type::isUnitType::value>
         >  : public Base
 {
     using Base::Base;
 };
+
 /**  Base class with constructor with default value */
 template <typename Base,typename Type,typename DefaultV>
 struct FieldDefault<Base,Type,
@@ -269,6 +270,62 @@ struct FieldDefault<Base,Type,
     void fieldReset()
     {
         fieldClear();
+    }
+};
+
+/**  Base class with constructor with default value */
+template <typename Base,typename Type,typename DefaultV>
+struct FieldDefault<Base,Type,
+                    DefaultV,
+                    std::enable_if_t<Type::isStringType::value>
+                    > : public Base
+{
+    using vtype=decltype(DefaultV::value());
+
+    FieldDefault(Unit* unit) : Base(unit)
+    {
+        fillDefault();
+    }
+
+    void fillDefault()
+    {
+        if (DefaultV::HasDefV::value && DefaultV::value()!="")
+        {
+            this->buf(false)->load(DefaultV::value());
+            this->set(DefaultV::value());
+        }
+    }
+
+    virtual vtype defaultValue() const override
+    {
+        return fieldDefaultValue();
+    }
+
+    virtual bool hasDefaultValue() const noexcept override
+    {
+        return fieldHasDefaultValue();
+    }
+
+    bool fieldHasDefaultValue() const noexcept
+    {
+        return DefaultV::HasDefV::value;
+    }
+
+    vtype fieldDefaultValue() const
+    {
+        return DefaultV::value();
+    }
+
+    void fieldReset()
+    {
+        this->m_value.reset();
+        this->markSet(false);
+        fillDefault();
+    }
+
+    virtual void reset() override
+    {
+        fieldReset();
     }
 };
 

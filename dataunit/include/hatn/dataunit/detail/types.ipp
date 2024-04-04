@@ -268,12 +268,14 @@ struct HATN_DATAUNIT_EXPORT TYPE_BYTES : public BaseType<detail::BytesType,std::
     using isPackedProtoBufCompatible=std::false_type;
     constexpr static const bool isSizeIterateNeeded=true;
 };
+
 //! Definition of string type
 struct HATN_DATAUNIT_EXPORT TYPE_STRING : public TYPE_BYTES
 {
     using isStringType=std::true_type;
     constexpr static const ValueType typeId=ValueType::String;
 };
+
 //! Definition of fixed string type
 template <int length> struct HATN_DATAUNIT_EXPORT TYPE_FIXED_STRING
         : public BaseType<

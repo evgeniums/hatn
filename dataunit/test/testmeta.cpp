@@ -102,6 +102,7 @@ HDU_V2_UNIT_WITH(du7,
     HDU_V2_FIELD(f300,TYPE_INT32,300)
     HDU_V2_FIELD(f400,TYPE_UINT32,400,true)
     HDU_V2_FIELD(f500,TYPE_UINT64,500,false,5577)
+    HDU_V2_FIELD(f510,TYPE_BYTES,510,false,Auto)
     HDU_V2_REPEATED_FIELD(f600,TYPE_INT32,600)
     HDU_V2_REPEATED_FIELD(f700,TYPE_UINT32,700,true)
     HDU_V2_REPEATED_FIELD(f800,TYPE_UINT64,800,false,8899)
@@ -115,6 +116,19 @@ HDU_V2_UNIT_WITH(du7,
 
     // HDU_V2_REPEATED_FIELD(f17,du_min::TYPE,17,true,Auto,ProtobufPacked)
     HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufOrdinary,External)
+)
+
+HDU_V2_UNIT(du8,
+    HDU_V2_FIELD(f1,TYPE_BYTES,1)
+    HDU_V2_FIELD(f2,TYPE_BYTES,2,true)
+
+    HDU_V2_FIELD(f3,TYPE_STRING,3)
+    HDU_V2_FIELD(f4,TYPE_STRING,4,true)
+    HDU_V2_FIELD(f5,TYPE_STRING,5,false,"Hello world!")
+
+    HDU_V2_FIELD(f6,HDU_V2_TYPE_FIXED_STRING(64),6)
+    HDU_V2_FIELD(f7,HDU_V2_TYPE_FIXED_STRING(64),7,true)
+    HDU_V2_FIELD(f8,HDU_V2_TYPE_FIXED_STRING(64),8,false,"Hi!")
 )
 
 using f10=du1::field<0>;
@@ -196,11 +210,12 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     due::type emptyUnit;
 
     du7::type emptyUnitDerived;
+
+    du8::type bytes;
 }
 
 /**
  * @todo Replace all macros with v2 and test.
- * @todo Default values for strings.
  * @todo Helpers for strings.
  * @todo Data unit tags.
  * @todo Error processing.
@@ -209,7 +224,6 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
  * @todo Refactor json methods with non virtual methods.
  * @todo Static polymorphysm in subunit and repeated fields.
  * @todo Test Error performance.
- * @todo Report that default value not supported for bytes and units.
  */
 
 BOOST_AUTO_TEST_SUITE_END()

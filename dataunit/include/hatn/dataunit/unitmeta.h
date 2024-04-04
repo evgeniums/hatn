@@ -74,7 +74,11 @@ constexpr auto_t Auto{};
 //---------------------------------------------------------------
 
 template <typename T, typename ValueT, typename=hana::when<true>>
-struct default_type : public auto_t{};
+struct default_type : public auto_t
+{
+    static_assert(!T::isUnitType::value || hana::is_a<auto_tag,typename ValueT::type>,"Default value can not be used for data unit field");
+    static_assert(!T::isBytesType::value || T::isStringType::value || hana::is_a<auto_tag,typename ValueT::type>,"Default value can not be used for bytes field");
+};
 
 template <typename T, typename ValueT>
 struct default_type<T, ValueT, hana::when<
