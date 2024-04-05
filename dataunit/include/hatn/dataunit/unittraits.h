@@ -599,6 +599,16 @@ class EmptyUnit : public Unit
             return true;
         }
 
+        virtual bool iterateFields(const Unit::FieldVisitor&) override
+        {
+            return true;
+        }
+
+        virtual bool iterateFieldsConst(const Unit::FieldVisitorConst&) const override
+        {
+            return true;
+        }
+
 #if 0
         virtual int serialize(WireBufSolid& wired,bool topLevel=true) const
         {

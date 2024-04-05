@@ -256,13 +256,13 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
                       "    \"type_float\": 253245.7656,\n"
                       "    \"type_double\": 253245.7656,\n"
                       "    \"type_string\": \"Hello world\",\n"
-                      "    \"type_int8_required\": 89\n"                      "}"
+                      "    \"type_int8_required\": 89\n"
+                      "}"
                       );
 
     BOOST_CHECK(allTypesCopy.loadFromJSON(json));
     jsonCheck=allTypesCopy.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-
 
     auto& bytes=allTypes.field(fields.type_bytes);
     bytes.set("Hello world");
