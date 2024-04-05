@@ -101,12 +101,10 @@ struct UnitHasField
                         )(hana::type_c<FieldT>);
 };
 
-/**  Base DataUnit template */
+/**  @brief Base template for unit types. */
 template <typename ...Fields>
     class UnitImpl : public hatn::common::VInterfacesPack<Fields...>
 {
-    constexpr static const unsigned short int MaxI = sizeof...(Fields)-1;
-
     public:
 
         /**  Ctor */
