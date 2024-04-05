@@ -100,8 +100,8 @@ BOOST_AUTO_TEST_CASE(TestHasField)
 
     static_assert(type::hasField(simple_int8::field2), "Must have field as is");
     static_assert(!type::hasField(simple_int16::field2), "Must not have field");
-    static_assert(type::hasField(simple_int8_int16::field2), "Must have field of the same type and name and ID from other unit");
-    static_assert(type::hasField(simple_int16_int8::field3), "Must have field of the same type and ID from other unit");
+    static_assert(!type::hasField(simple_int8_int16::field2), "Must not have field of the same type and name and ID from other unit");
+    static_assert(!type::hasField(simple_int16_int8::field3), "Must not have field of the same type and ID from other unit");
 
     static_assert(!type::hasField(10), "Must not have illegal field");
     BOOST_CHECK(true);

@@ -31,11 +31,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 template <typename ...Fields>
 UnitImpl<Fields...>::UnitImpl(Unit* self)
-    : ::hatn::common::VInterfacesPack<Fields...>(
-                    Fields(std::forward<Unit*>(self))...
-            )
-{
-}
+    : m_fields(Fields{self}...)
+{}
 
 //---------------------------------------------------------------
 
@@ -51,8 +48,7 @@ const common::FlatMap<int,uintptr_t>& UnitImpl<Fields...>::fieldsMap()
         return m1;
     };
 
-    static const common::FlatMap<int,uintptr_t> map=hana::fold(sample.m_interfaces,common::FlatMap<int,uintptr_t>{},f);
-
+    static const common::FlatMap<int,uintptr_t> map=hana::fold(sample.m_fields,common::FlatMap<int,uintptr_t>{},f);
     return map;
 }
 

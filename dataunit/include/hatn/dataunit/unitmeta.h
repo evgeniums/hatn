@@ -482,25 +482,58 @@ constexpr check_names_unique_t check_names_unique{};
 
 //---------------------------------------------------------------
 
+struct make_index_map_t
+{
+    template <typename TypesC>
+    constexpr auto operator()(TypesC typesC) const
+    {
+        constexpr auto indexes=hana::make_range(hana::int_c<0>,hana::size(typesC));
+        constexpr auto pairs=hana::zip_with(hana::make_pair,typesC,hana::unpack(indexes,hana::make_tuple));
+        return hana::unpack(pairs,hana::make_map);
+    }
+};
+constexpr make_index_map_t make_index_map{};
+
+//---------------------------------------------------------------
+
+template <typename MapT>
+constexpr MapT fields_map_inst{};
+
+template <typename ConfT, typename MapT>
+struct unit_conf : public ConfT
+{
+    constexpr static auto& fields_map=fields_map_inst<MapT>;
+};
+
 template <typename ConfT>
 struct unit
 {
-    template <typename ...Fields>
-    using unit_t=DataUnit<ConfT,Fields...>;
+    template <typename FieldsT, typename FieldFn>
+    constexpr static auto make(FieldsT fields, FieldFn to_field_c)
+    {
+        auto to_field_traits_c=[](auto x)
+        {
+            using field_c=typename decltype(x)::type;
+            using field_type=typename field_c::traits;
+            return hana::type_c<field_type>;
+        };
+
+        auto fields_c=hana::transform(fields,to_field_c);
+        auto field_traits_c=hana::transform(fields,to_field_traits_c);
+        constexpr auto unit_c=hana::unpack(hana::prepend(fields_c,hana::type_c<unit_conf<ConfT,decltype(make_index_map(field_traits_c))>>),hana::template_<DataUnit>);
+        return unit_c;
+    }
 
     template <typename FieldsT>
     constexpr static auto type_c(FieldsT fields)
-    {
+    {        
         auto to_field_c=[](auto x)
         {
             using field_c=typename decltype(x)::type;
             using field_type=typename field_c::type;
             return hana::type_c<field_type>;
         };
-
-        auto fields_c=hana::transform(fields,to_field_c);
-        auto unit_c=hana::unpack(fields_c,hana::template_<unit_t>);
-        return unit_c;
+        return make(fields,to_field_c);
     }
 
     template <typename FieldsT>
@@ -512,10 +545,7 @@ struct unit
             using field_type=typename field_c::shared_type;
             return hana::type_c<field_type>;
         };
-
-        auto fields_c=hana::transform(fields,to_field_c);
-        auto unit_c=hana::unpack(fields_c,hana::template_<unit_t>);
-        return unit_c;
+        return make(fields,to_field_c);
     }
 };
 
