@@ -480,17 +480,6 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         {
             return Conf::name;
         }
-
-    protected:
-
-        /**  Get field const pointer by ID */
-        const Field* doFieldById(int id) const;
-
-        /**  Get field pointer by ID */
-        Field* doFieldById(int id);
-
-        /**  Get field count */
-        size_t doFieldCount() const noexcept;
 };
 
 /**  DataUnit template */
@@ -790,12 +779,13 @@ UnitImpl<Fields...>::fieldParsers()
 
     auto f=[](auto&& state, auto fieldTypeC) {
 
-        using type=typename decltype(fieldTypeC)::type;
+        using fieldT=decltype(fieldTypeC);
+        using type=typename fieldT::type;
 
         auto index=hana::first(state);
         auto map=hana::second(state);
 
-        auto handler=[](unitT& unit, BufferT& buf, AllocatorFactory* factory)
+        auto handler=[&fieldTypeC](unitT& unit, BufferT& buf, AllocatorFactory* factory)
         {
             auto& field=unit.template getInterface<decltype(index)::value>();
             return field.deserialize(buf,factory);

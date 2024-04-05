@@ -37,13 +37,13 @@ unit_t<BaseT,UniqueType>::unit_t(AllocatorFactory* factory):BaseT(factory)
 template <typename BaseT, typename UniqueType>
 const Field* unit_t<BaseT,UniqueType>::fieldById(int id) const
 {
-    return this->doFieldById(id);
+    return this->findField(this,id);
 }
 
 template <typename BaseT, typename UniqueType>
 Field* unit_t<BaseT,UniqueType>::fieldById(int id)
 {
-    return this->doFieldById(id);
+    return this->findField(this,id);
 }
 
 template <typename BaseT, typename UniqueType>
@@ -61,7 +61,7 @@ bool unit_t<BaseT,UniqueType>::iterateFieldsConst(const Unit::FieldVisitorConst&
 template <typename BaseT, typename UniqueType>
 size_t unit_t<BaseT,UniqueType>::fieldCount() const noexcept
 {
-    return this->doFieldCount();
+    return this->count();
 }
 
 template <typename BaseT, typename UniqueType>

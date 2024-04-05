@@ -66,27 +66,6 @@ UnitConcat<Conf,Fields...>::UnitConcat(
         UnitImpl<Fields...>(this)
 {}
 
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-const Field* UnitConcat<Conf,Fields...>::doFieldById(int id) const
-{
-    return baseType::findField(this,id);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-Field* UnitConcat<Conf,Fields...>::doFieldById(int id)
-{
-    return baseType::findField(this,id);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-size_t UnitConcat<Conf,Fields...>::doFieldCount() const noexcept
-{
-    return this->count();
-}
-
 /********************** EmptyUnit **************************/
 
 /********************** ManagedUnit **************************/
