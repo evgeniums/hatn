@@ -73,6 +73,14 @@ constexpr auto_t Auto{};
 
 //---------------------------------------------------------------
 
+template <typename T, typename ValueT>
+struct default_t
+{
+    using hana_tag=DefaultValueTag; \
+    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
+    using HasDefV=std::true_type;
+};
+
 template <typename T, typename ValueT, typename=hana::when<true>>
 struct default_type : public auto_t
 {
@@ -86,11 +94,15 @@ struct default_type<T, ValueT, hana::when<
             &&
             std::is_constructible<typename T::type, typename ValueT::type>::value
         >>
-{
-    using hana_tag=DefaultValueTag; \
-    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
-    using HasDefV=std::true_type;
-};
+    : public default_t<T,ValueT>{};
+
+template <typename T, typename ValueT>
+struct default_type<T, ValueT, hana::when<
+                                   T::isEnum::value
+                                          &&
+                                          std::is_constructible<typename T::Enum, typename ValueT::type>::value
+                                   >>
+    : public default_t<T,ValueT>{};
 
 template <typename T, typename = hana::when<true>>
 struct default_field
@@ -459,7 +471,7 @@ struct check_names_unique_t
     template <typename T>
     auto operator()(T) const
     {
-        //! @note Not supported with MSVC.
+        //! @note Not supported.
         return hana::true_c;
     }
 
@@ -568,20 +580,16 @@ class unit_t : public BaseT
 //---------------------------------------------------------------
 
 template <typename FieldsT>
-constexpr FieldsT fields_instance{};
+constexpr FieldsT field_ids_instance{};
 
 template <typename UnitT, typename ManagedT, typename FieldsT>
 struct unit_traits
 {
-    constexpr static const auto& fields=fields_instance<FieldsT>;
+    constexpr static const auto& fields=field_ids_instance<FieldsT>;
 
     using type=UnitT;
     using managed=ManagedT;
 };
-
-// #ifndef HDU_SUBUNIT_EXPORT
-// #define HDU_SUBUNIT_EXPORT
-// #endif
 
 template <typename traits, typename shared_traits>
 struct subunit : public types::TYPE_DATAUNIT

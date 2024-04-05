@@ -132,13 +132,27 @@ template <typename ...Fields>
             return fieldPos<std::decay_t<T>>();
         }
 
+        /**  Get field reference by index */
+        template <int Index>
+        auto field() noexcept -> decltype(auto)
+        {
+            return this->template getInterface<Index>();
+        }
+
+        /**  Get const field reference by index */
+        template <int Index>
+        auto field() const noexcept -> decltype(auto)
+        {
+            return this->template getInterface<Index>();
+        }
+
         /**  Get field by type. */
         template <typename T>
         auto field() const noexcept -> decltype(auto)
         {
             using type=std::decay_t<T>;
             static_assert(UnitHasField<type,Fields...>::value,"Invalid field");
-            return static_cast<const typename std::tuple_element<type::index, std::tuple<Fields...>>::type&>(this->template getInterface<type::index>());
+            return this->template getInterface<type::index>();
         }
 
         /**  Get field by type. */
@@ -205,20 +219,6 @@ template <typename ...Fields>
         void clearField(T&& fieldName) noexcept
         {
             field(std::forward<T>(fieldName)).clear();
-        }
-
-        /**  Get field reference by index */
-        template <int Index>
-        auto field() noexcept -> decltype(auto)
-        {
-            return this->template getInterface<Index>();
-        }
-
-        /**  Get const field reference by index */
-        template <int Index>
-        auto field() const noexcept -> decltype(auto)
-        {
-            return static_cast<const typename std::tuple_element<Index, std::tuple<Fields...>>::type&>(this->template getInterface<Index>());
         }
 
         /**  Get field count */

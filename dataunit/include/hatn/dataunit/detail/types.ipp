@@ -325,10 +325,11 @@ struct HATN_DATAUNIT_EXPORT TYPE_DATAUNIT : public BaseType<Unit,std::false_type
 };
 
 //! Definition of enum type
-template <typename _type> struct TYPE_ENUM : public BaseType<int32_t,std::true_type,ValueType::Int8>
+template <typename EnumT>
+struct TYPE_ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
 {
     using isEnum=std::true_type;
-    using Enum=_type;
+    using Enum=EnumT;
 };
 
 }

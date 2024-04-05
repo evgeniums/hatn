@@ -50,13 +50,13 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 #define HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
     struct default_##FieldName\
     {\
-            constexpr static auto value=Default;\
-            using type=decltype(value);\
+        constexpr static auto value=Default;\
+        using type=std::decay_t<decltype(value)>;\
     };
 
 //---------------------------------------------------------------
 
-#define HDU_V2_FIELD_DEF(FieldName,Type,Id,Default,required,repeated_traits) \
+#define HDU_V2_FIELD_DEF(FieldName,Type,Id,required,Default,repeated_traits) \
     HDU_V2_CHECK_ID(FieldName,Id) \
     HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
     struct field_##FieldName{};\
@@ -99,19 +99,19 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 
 #define HDU_V2_FIELD_DEF_OPTIONAL(FieldName,Type,Id,Repeated) \
     HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Auto,hana::bool_<false>,Repeated)
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,hana::bool_<false>,Auto,Repeated)
 
 #define HDU_V2_OPTIONAL_FIELD(FieldName,Type,Id) HDU_V2_FIELD_DEF_OPTIONAL(FieldName,Type,Id,Auto)
 
 #define HDU_V2_FIELD_DEF_REQUIRED(FieldName,Type,Id,Required,Repeated) \
     HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Auto,hana::bool_<Required>,Repeated)
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,hana::bool_<Required>,Auto,Repeated)
 
 #define HDU_V2_REQUIRED_FIELD(FieldName,Type,Id) HDU_V2_FIELD_DEF_REQUIRED(FieldName,Type,Id,true,Auto)
 
 #define HDU_V2_FIELD_DEF_DEFAULT(FieldName,Type,Id,Required,Default,Repeated) \
     HDU_V2_IS_BASIC_TYPE(FieldName,Type,Repeated) \
-    HDU_V2_FIELD_DEF(FieldName,Type,Id,Default,hana::bool_<Required>,Repeated)
+    HDU_V2_FIELD_DEF(FieldName,Type,Id,hana::bool_<Required>,Default,Repeated)
 
 #define HDU_V2_DEFAULT_FIELD(FieldName,Type,Id,Default) HDU_V2_FIELD_DEF_DEFAULT(FieldName,Type,Id,false,Default,Auto)
 
@@ -208,7 +208,6 @@ enum class EnumName : int {__VA_ARGS__};
     static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
     namespace {HATN_MAYBE_CONSTEXPR auto unit_c=unit<conf>::type_c(field_defs);}\
     namespace {HATN_MAYBE_CONSTEXPR auto shared_unit_c=unit<conf>::shared_type_c(field_defs);}\
-    using fields_t=field_id<HATN_COUNTER_GET(c)>;\
     using unit_base_t=decltype(unit_c)::type;\
     using unit_shared_base_t=decltype(shared_unit_c)::type;\
     using type=unit_t<unit_base_t>;\
@@ -216,9 +215,10 @@ enum class EnumName : int {__VA_ARGS__};
     using managed=managed_unit<type>;\
     using shared_managed=shared_managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
-    struct fields : public fields_t{};\
-    struct traits : public unit_traits<type,managed,fields>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
+    struct field_ids_t : public field_id<HATN_COUNTER_GET(c)>{};\
+    constexpr const auto& fields=field_ids_instance<field_ids_t>;\
+    struct traits : public unit_traits<type,managed,field_ids_t>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,field_ids_t>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
