@@ -47,6 +47,18 @@ Field* unit_t<BaseT,UniqueType>::fieldById(int id)
 }
 
 template <typename BaseT, typename UniqueType>
+const Field* unit_t<BaseT,UniqueType>::fieldByName(common::lib::string_view name) const
+{
+    return this->findField(this,name);
+}
+
+template <typename BaseT, typename UniqueType>
+Field* unit_t<BaseT,UniqueType>::fieldByName(common::lib::string_view name)
+{
+    return this->findField(this,name);
+}
+
+template <typename BaseT, typename UniqueType>
 bool unit_t<BaseT,UniqueType>::iterateFields(const Unit::FieldVisitor& visitor)
 {
     return this->iterate(visitor);
@@ -68,6 +80,24 @@ template <typename BaseT, typename UniqueType>
 const char* unit_t<BaseT,UniqueType>::name() const noexcept
 {
     return this->unitName();
+}
+
+template <typename BaseT, typename UniqueType>
+size_t unit_t<BaseT,UniqueType>::size() const
+{
+    return io::size(*this);
+}
+
+template <typename BaseT, typename UniqueType>
+void unit_t<BaseT,UniqueType>::clear()
+{
+    io::clear(*this);
+}
+
+template <typename BaseT, typename UniqueType>
+void unit_t<BaseT,UniqueType>::reset(bool onlyNonClean)
+{
+    io::reset(*this,onlyNonClean);
 }
 
 template <typename BaseT, typename UniqueType>

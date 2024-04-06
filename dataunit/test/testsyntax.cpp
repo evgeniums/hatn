@@ -280,7 +280,8 @@ template <typename t_int8,typename traits,typename t> void typeCheckIsSet(const 
     const auto& f9_=allTypes.field(fields.type_double);
     BOOST_CHECK_CLOSE(f9_.get(),val_double,0.0001);
     BOOST_CHECK(f9_.isSet());
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_AUTO_TEST_CASE(TestNames)
 {
@@ -438,7 +439,7 @@ BOOST_AUTO_TEST_CASE(TestDefaultFields)
     BOOST_CHECK_EQUAL(f2.get(),1000);
     f2.set(5000);
     BOOST_CHECK_EQUAL(f2.get(),5000);
-    f2.clear();
+    f2.reset();
     BOOST_CHECK_EQUAL(f2.get(),1000);
 
     auto& f3=unit.field(fields.type_enum);
@@ -466,7 +467,8 @@ template <typename C, typename F, typename T> void wireSingleVar(const T& val)
     C unit2;
     unit2.parse(wired);
     BOOST_CHECK_EQUAL(unit2.template field<F>().get(),val);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckSingleNumbers,::hatn::test::MultiThreadFixture)
 {
@@ -605,7 +607,8 @@ void checkByteArray(bool inlineBuffers=false)
             }
         }
         BOOST_CHECK(passed);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckByteArray,::hatn::test::MultiThreadFixture)
@@ -651,7 +654,7 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedUint32,::hatn::test::MultiThre
     BOOST_CHECK_EQUAL(field1.value(2),field1_1.value(2));
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }
@@ -695,7 +698,7 @@ void serializeCheckRepeatedDouble()
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
     BOOST_CHECK_EQUAL(field1.value(4),field1_1.value(4));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }
@@ -929,7 +932,8 @@ void serializeCheckRepeatedFixedString(bool shared=false, bool inlineBuffers=fal
             }
         }
         BOOST_CHECK(passed);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 template <typename WiredT>
 void checkRepeatedBytes(bool inlineBuffers=false)
@@ -1019,7 +1023,8 @@ template <typename traits, typename WiredT> void checkSerializeRepeatedSimpleUni
     const auto& field2=unit2.field(fields.f0);
     BOOST_CHECK(field2.isSet());
     BOOST_CHECK_EQUAL(field2.count(),1);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedSimpleUnit,Env)
 {
@@ -1230,7 +1235,8 @@ void checkSerializeSubUnit()
 
     const auto& obj3_2=field3_2.value();
     checkUnitFields(obj3_2,0);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeSubunit,Env)
 {
@@ -1398,7 +1404,8 @@ template <typename traits> void checkSerializeRepeatedUnit()
     {
         const auto& obj=field2.value(i);
         checkUnitFields(obj.value(),i);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedUnit,Env)

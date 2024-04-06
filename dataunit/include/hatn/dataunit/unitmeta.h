@@ -76,9 +76,9 @@ constexpr auto_t Auto{};
 template <typename T, typename ValueT>
 struct default_t
 {
-    using hana_tag=DefaultValueTag; \
-    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
+    using hana_tag=DefaultValueTag;
     using HasDefV=std::true_type;
+    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
 };
 
 template <typename T, typename ValueT, typename=hana::when<true>>
@@ -104,6 +104,22 @@ struct default_type<T, ValueT, hana::when<
                                    >>
     : public default_t<T,ValueT>{};
 
+template <typename T, typename ValueT>
+struct default_type<T, ValueT, hana::when<
+                                   T::isStringType::value
+                                   &&
+                                    std::is_constructible<std::string, typename ValueT::type>::value
+                                   >>
+{
+    using hana_tag=DefaultValueTag;
+    using HasDefV=std::true_type;
+
+    static typename ValueT::type value()
+    {
+        return ValueT::value;
+    }
+};
+
 template <typename T, typename = hana::when<true>>
 struct default_field
 {
@@ -123,7 +139,6 @@ struct default_field<T, hana::when<hana::is_a<auto_tag,T>>>
 template <template <typename ...> class GeneratorT,
          typename StringsT,
          typename Id,
-         typename Index,
          typename TypeId,
          typename DefaultTraits,
          typename Required,
@@ -141,7 +156,6 @@ struct field_traits
     using shared_type=typename generator::shared_type;
 
     constexpr static const int ID=Id::value;
-    constexpr static const int index=Index::value;
 
     constexpr static const char* name() noexcept {return StringsT::name;}
 
@@ -404,15 +418,12 @@ struct make_fields_tuple_t
 {
     constexpr auto operator()() const
     {
-        constexpr std::make_integer_sequence<int,N> indices{};
         auto to_field_c=[](auto x)
         {
             return hana::type_c<FieldT<decltype(x)::value>>;
         };
 
-        return hana::transform(hana::unpack(indices,
-                                            [](auto ...i){return hana::make_tuple(std::forward<decltype(i)>(i)...);}
-                                            ),
+        return hana::transform(hana::unpack(hana::make_range(hana::int_c<0>,hana::int_c<N>),hana::make_tuple),
                                to_field_c
                                );
     }
@@ -576,6 +587,9 @@ class unit_t : public BaseT
 
             virtual const Field* fieldById(int id) const override;
             virtual Field* fieldById(int id) override;
+            virtual const Field* fieldByName(common::lib::string_view name) const override;
+            virtual Field* fieldByName(common::lib::string_view name) override;
+
             virtual bool iterateFields(const Unit::FieldVisitor& visitor) override;
             virtual bool iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const override;
             virtual size_t fieldCount() const noexcept override;
@@ -605,6 +619,10 @@ class unit_t : public BaseT
 #endif
             virtual bool parse(WireData& wired,bool topLevel=true) override;
             virtual bool parse(WireBufSolid& wired,bool topLevel=true) override;
+
+            virtual void clear() override;
+            virtual void reset(bool onlyNonClean=false) override;
+            virtual size_t size() const override;
 };
 
 //---------------------------------------------------------------
@@ -688,40 +706,6 @@ constexpr auto is_basic_type()
     auto ok=hana::sfinae(check)(hana::type_c<Type>);
     return hana::equal(ok,hana::just(hana::true_c));
 }
-
-//---------------------------------------------------------------
-#if 0
-#define HDU_V2_TAG(TagName,Value) \
-    struct field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)>\
-    {\
-        constexpr static const char* name=#TagName;\
-        constexpr static const auto value=Value;\
-    };\
-    constexpr field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)> tags_##FieldName##TagName;
-
-#define HDU_V2_TAGS(...) \
-    hana::type_c<decltype(hana::make_tuple(__VA_ARGS__))>
-
-#define HDU_V2_FIELD_TAGS(FieldName,...) \
-    struct t_c_##FieldName{};\
-    HATN_COUNTER_MAKE(t_c_##FieldName);\
-    template <int> struct field_tags_##FieldName{};\
-    __VA_ARGS__ \
-    auto tags_##FieldName=lift_all_tags<field_tags_##FieldName,HATN_COUNTER_GET(t_c_##FieldName)>();
-    template <>\
-    struct field_tags<HATN_COUNTER_GET(t_c)>\
-    {\
-        constexpr static const auto& field=FieldName;\
-        constexpr static const auto& value=tags_##FieldName;\
-    };\
-
-#define HDU_V2_UNIT_TAGS(UnitName,...) \
-    struct t_c{};\
-    HATN_COUNTER_MAKE(t_c);\
-    template <int> struct field_tags{};\
-    __VA_ARGS__ \
-    auto tags=make_tags(field_tags);
-#endif
 
 //---------------------------------------------------------------
 } // namespace meta

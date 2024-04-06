@@ -26,6 +26,7 @@
 #include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/validator/utils/foreach_if.hpp>
 
@@ -90,6 +91,9 @@ class UnitImpl
         static const Field* findField(const UnitImpl* unit,int id);
         static Field* findField(UnitImpl* unit,int id);
 
+        static const Field* findField(const UnitImpl* unit,common::lib::string_view name);
+        static Field* findField(UnitImpl* unit,common::lib::string_view name);
+
         template <typename BufferT>
         struct FieldParser
         {
@@ -141,6 +145,7 @@ class UnitImpl
     private:
 
         static const common::FlatMap<int,uintptr_t>& fieldsMap();
+        static const common::FlatMap<common::lib::string_view,uintptr_t>& fieldsNameMap();
 
         template <typename BufferT>
         static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();
@@ -279,6 +284,13 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         void clearField(T&& fieldName) noexcept
         {
             field(std::forward<T>(fieldName)).clear();
+        }
+
+        /** Reset field. */
+        template <typename T>
+        void resetField(T&& fieldName) noexcept
+        {
+            field(std::forward<T>(fieldName)).reset();
         }
 
         /**
@@ -578,6 +590,25 @@ class EmptyUnit : public Unit
             return true;
         }
 
+        virtual const Field* fieldById(int) const override
+        {
+            return nullptr;
+        }
+
+        virtual Field* fieldById(int) override
+        {
+            return nullptr;
+        }
+
+        virtual const Field* fieldByName(common::lib::string_view) const override
+        {
+            return nullptr;
+        }
+        virtual Field* fieldByName(common::lib::string_view) override
+        {
+            return nullptr;
+        }
+
 #if 0
         virtual int serialize(WireBufSolid& wired,bool topLevel=true) const
         {
@@ -681,6 +712,30 @@ const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
 {
     const auto& m=fieldsMap();
     const auto it=m.find(id);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<const Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+template <typename ...Fields>
+Field* UnitImpl<Fields...>::findField(UnitImpl* unit,common::lib::string_view name)
+{
+    const auto& m=fieldsNameMap();
+    const auto it=m.find(name);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+template <typename ...Fields>
+const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,common::lib::string_view name)
+{
+    const auto& m=fieldsNameMap();
+    const auto it=m.find(name);
     if (it!=m.end())
     {
         return reinterpret_cast<const Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);

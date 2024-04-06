@@ -190,7 +190,8 @@ template <typename t_int8,typename traits,typename t> void typeChecks(t& allType
     const auto& f9_=allTypes.field(fields.type_double);
     BOOST_CHECK_CLOSE(f9_.get(),val_double,0.0001);
     BOOST_CHECK(f9_.isSet());
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
 {
@@ -474,7 +475,8 @@ template <typename traits> void checkRepeatedUnit()
     BOOST_REQUIRE(unit2.loadFromJSON(json));
     auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSubsUnit,Env)
 {
@@ -562,7 +564,8 @@ template <typename traits> void checkRepeatedDouble()
     BOOST_REQUIRE(unit2.loadFromJSON(json));
     auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestRepeatedDouble,Env)
 {
@@ -631,7 +634,8 @@ template <typename traits> void checkRepeatedBytes(bool shared=false)
         BOOST_REQUIRE(unit2.loadFromJSON(json));
         auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
         BOOST_CHECK_EQUAL(json,jsonCheck);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 template <typename traits> void checkRepeatedString(bool fixed)
 {
@@ -664,7 +668,8 @@ template <typename traits> void checkRepeatedString(bool fixed)
         BOOST_REQUIRE(unit2.loadFromJSON(json));
         auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
         BOOST_CHECK_EQUAL(json,jsonCheck);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestRepeatedBytes,Env)

@@ -183,12 +183,6 @@ struct FieldConf : public T
         return FieldName::name;
     }
 
-    //! Get field name size
-    virtual size_t nameSize() const noexcept override
-    {
-        return ::hatn::common::CStrLength(FieldName::name);
-    }
-
     //! Check if field is required
     virtual bool isRequired() const noexcept override
     {
@@ -233,7 +227,7 @@ struct FieldDefault<Base,Type,
     FieldDefault(Unit* unit) : Base(unit,DefaultV::value())
     {}
 
-    virtual vtype defaultValue() const override
+    vtype defaultValue() const
     {
         return fieldDefaultValue();
     }
@@ -259,17 +253,23 @@ struct FieldDefault<Base,Type,
         fieldClear();
     }
 
+    //! Reset field
+    virtual void reset() override
+    {
+        fieldReset();
+    }
+
     //! Clear field
     void fieldClear()
     {
-        this->m_value=fieldDefaultValue();
-        this->markSet(false);
+        this->m_value=DummyConst<vtype>::f();
     }
 
     //! Reset field
     void fieldReset()
     {
-        fieldClear();
+        this->m_value=fieldDefaultValue();
+        this->markSet(false);
     }
 };
 
@@ -289,14 +289,13 @@ struct FieldDefault<Base,Type,
 
     void fillDefault()
     {
-        if (DefaultV::HasDefV::value && DefaultV::value()!="")
+        if (DefaultV::HasDefV::value)
         {
             this->buf(false)->load(DefaultV::value());
-            this->set(DefaultV::value());
         }
     }
 
-    virtual vtype defaultValue() const override
+    auto defaultValue() const
     {
         return fieldDefaultValue();
     }
@@ -311,7 +310,7 @@ struct FieldDefault<Base,Type,
         return DefaultV::HasDefV::value;
     }
 
-    vtype fieldDefaultValue() const
+    auto fieldDefaultValue() const
     {
         return DefaultV::value();
     }

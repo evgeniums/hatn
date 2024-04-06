@@ -21,6 +21,10 @@
 #ifndef HATNSUBUNIT_H
 #define HATNSUBUNIT_H
 
+#include <boost/hana.hpp>
+
+#include <hatn/common/utils.h>
+
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/visitors.h>
 
@@ -41,7 +45,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         using selfType=FieldTmplUnitEmbedded<Type,Shared>;
         using baseFieldType=selfType;
-        using isEmbeddedUnitType=std::true_type;
+        using isEmbeddedUnitType=boost::hana::bool_<!Shared>;
         using isUnitType=std::true_type;
 
         using isBytesType=std::false_type;
@@ -116,14 +120,14 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory* factory)
         {
-            this->fieldClear();
+            this->fieldReset(true);
             if (factory==nullptr)
             {
                 factory=this->unit()->factory();
             }
 
             auto* value=mutableValue();
-            value->setParseToSharedArrays(m_parseToSharedArrays,factory);
+            io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
             this->markSet(this->deserialize(mutableValue(),wired,factory));
             return this->isSet();
         }
@@ -197,18 +201,68 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             fieldClear();
         }
 
+        //! Reset field
+        virtual void reset() override
+        {
+            fieldReset();
+        }
+
         /**
          * @brief Get pointer to mutable value
          * @return Pointer to value
          *
          * After calling this method the value will be regarded as set.
-         *
-         * @todo Use static polymorphism.
          */
-        virtual typename baseFieldType::base* mutableValue()
+        typename baseFieldType::base* mutableValue()
         {
+            auto self=this;
+            hana::eval_if(
+                isEmbeddedUnitType{},
+                [&](auto)
+                {},
+                [&](auto _)
+                {
+                    auto s=_(self);
+                    if (s->m_value.isNull())
+                    {
+                        s->m_value=s->createValue();
+                    }
+                    if (s->m_value.isNull())
+                    {
+                        throw std::runtime_error("Failed to create value for dataunit field!");
+                    }
+                }
+            );
             this->markSet(true);
             return this->m_value.mutableValue();
+        }
+
+        auto createValue(AllocatorFactory* factory=nullptr) const
+        {
+            auto self=this;
+            return hana::eval_if(
+                isEmbeddedUnitType{},
+                [&](auto)
+                {
+                    return 0;
+                },
+                [&](auto _)
+                {
+                    auto f=_(factory);
+                    auto s=_(self);
+                    if (f==nullptr)
+                    {
+                        f=s->unit()->factory();
+                    }
+                    auto val=Type::createManagedObject(f,s->unit());
+                    if (val.isNull())
+                    {
+                        HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");
+                        Assert(!val.isNull(),"Shared dataunit field is not set!");
+                    }
+                    return val;
+                }
+            );
         }
 
         //! Get const reference to value
@@ -272,20 +326,24 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          * @param enable Enabled on/off
          * @param factory Allocator factory to use for dynamic allocation
          *
-         * When enabled then shared byte arrays will be auto allocated in managed shared buffers
+         * When enabled then shared byte arrays will be auto allocated in managed shared buffers.
+         *
+         * @todo Use non polymorphic variant.
          */
-        virtual void setParseToSharedArrays(bool enable,AllocatorFactory* =nullptr) override
+        virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
         {
-            m_parseToSharedArrays=enable;
+            fieldSetParseToSharedArrays(enable,factory);
         }
 
         /**
          * @brief Check if shared byte arrays must be used for parsing
          * @return Boolean flag
+         *
+         * @todo Use non polymorphic variant.
          */
         virtual bool isParseToSharedArrays() const noexcept override
         {
-            return m_parseToSharedArrays;
+            return fieldIsParseToSharedArrays();
         }
 
         //! Check if field is required
@@ -297,6 +355,16 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         virtual bool canChainBlocks() const noexcept override
         {
             return CanChainBlocks;
+        }
+
+        void fieldSetParseToSharedArrays(bool enable,AllocatorFactory* =nullptr)
+        {
+            m_parseToSharedArrays=enable;
+        }
+
+        bool fieldIsParseToSharedArrays() const noexcept
+        {
+            return m_parseToSharedArrays;
         }
 
         //! Can chain blocks
@@ -315,14 +383,26 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         void fieldClear()
         {
-            this->m_value.reset();
-            this->markSet(false);
+            io::clear(*(this->mutableValue()));
         }
 
         //! Reset field
-        void fieldReset()
+        void fieldReset(bool onlyNonClean=false)
         {
-            fieldClear();
+            auto self=this;
+            boost::hana::eval_if(
+                boost::hana::is_a<common::shared_pointer_tag,decltype(this->m_value)>,
+                [&](auto _)
+                {
+                    _(self)->m_value.reset();
+                    _(self)->markSet(false);
+                },
+                [&](auto _)
+                {
+                    io::reset(_(self)->m_value,_(onlyNonClean));
+                }
+            );
+            this->markSet(false);
         }
 
     protected:
@@ -346,80 +426,24 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         bool m_parseToSharedArrays;
 };
 
-//! Field template for embedded DataUnit type
-template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type,true>
-{
-    public:
-
-        using baseFieldType=FieldTmplUnitEmbedded<Type,true>;
-        using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
-        using isEmbeddedUnitType=std::false_type;
-
-#if 1
-        /**
-         * @brief Get pointer to mutable value
-         * @return Pointer to value
-         *
-         * After calling this method the value will be regarded as set.
-         *
-         * @todo Make static dispatching.
-         */
-        virtual typename baseFieldType::base* mutableValue() override
-        {
-            this->markSet(true);
-            if (this->m_value.isNull())
-            {
-                this->m_value=this->createValue();
-            }
-            if (this->m_value.isNull())
-            {
-                throw std::runtime_error("Failed to create value for dataunit field!");
-            }
-            return this->m_value.mutableValue();
-        }
-#endif
-
-        //! Create value
-        typename baseFieldType::type createValue(AllocatorFactory* factory=nullptr) const
-        {
-            if (factory==nullptr)
-            {
-                factory=this->unit()->factory();
-            }
-            auto val=Type::createManagedObject(factory,this->unit());
-            if (val.isNull())
-            {
-                HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");
-                Assert(!val.isNull(),"Shared dataunit field is not set!");
-            }
-            return val;
-        }
-
-        //! Clear field
-        virtual void clear() override
-        {
-            this->fieldClear();
-        }
-};
-
 template <>
-struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnit<TYPE_DATAUNIT>
+struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnitEmbedded<TYPE_DATAUNIT,true>
 {
-    using FieldTmplUnit<TYPE_DATAUNIT>::FieldTmplUnit;
+    using FieldTmplUnitEmbedded<TYPE_DATAUNIT,true>::FieldTmplUnitEmbedded;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
+struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type,false>
 {
-    using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
+    using FieldTmplUnitEmbedded<Type,false>::FieldTmplUnitEmbedded;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-struct SharedUnitFieldTmpl : public FieldTmplUnit<Type>
+struct SharedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type,true>
 {
-    using FieldTmplUnit<Type>::FieldTmplUnit;
+    using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
 };
 
 template <typename FieldName,typename Type,int Id, bool Required=false>

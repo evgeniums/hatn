@@ -86,29 +86,11 @@ class HATN_DATAUNIT_EXPORT Unit
 
         //! Get field by ID
         virtual const Field* fieldById(int id) const;
-
-        //! Get field by ID
         virtual Field* fieldById(int id);
 
         //! Get field by name
-        /**
-         * @brief Find field by name
-         * @param name name
-         * @param size Name length or 0 if the name is null-terminated
-         * @return Found field
-         *
-         * This operation is slow as the searching is done iteratively field by field.
-         * For fast repetitive lookups use fillFieldNamesTable() and then make lookups
-         * in that table.
-         *
-         */
-        Field* fieldByName(const char* name,size_t size=0);
-
-        //! Get field by name with const signature
-        const Field* fieldByName(const char* name,size_t size=0) const;
-
-        //! Fill field names table as [name]=>[field]
-        void fillFieldNamesTable(common::pmr::map<FieldNamesKey,Field*>& table);
+        virtual const Field* fieldByName(common::lib::string_view name) const;
+        virtual Field* fieldByName(common::lib::string_view name);
 
         //! Parse DataUnit from plain data buffer
         //! @todo Use Error with NativeError.
@@ -230,13 +212,6 @@ class HATN_DATAUNIT_EXPORT Unit
             return true;
         }
 
-        //! Get estimated size of wired data unit
-        /**
-         * @brief Actual packed size can be less than estimated but will never exceed it
-         * @return Estimated size of the packed unit
-         */
-        size_t size() const;
-
         //! Keep serialized data unit.
         inline void keepWireData(
             common::SharedPtr<WireData> wired
@@ -276,16 +251,17 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual const char* name() const noexcept;
 
         //! Clear unit
-        void clear();
+        virtual void clear();
 
         //! Reset unit
-        void reset();
+        virtual void reset(bool onlyNonClean=false);
 
-        //! Is DataUnit empty
-        inline bool isEmpty() const noexcept
-        {
-            return m_clean;
-        }
+        //! Get estimated size of wired data unit
+        /**
+         * @brief Actual packed size can be less than estimated but will never exceed it
+         * @return Estimated size of the packed unit
+         */
+        virtual size_t size() const;
 
         /** Get reference to self **/
         inline const Unit& value() const noexcept
@@ -435,6 +411,11 @@ class HATN_DATAUNIT_EXPORT Unit
             return m_clean;
         }
 
+        bool setClean(bool val) noexcept
+        {
+            return m_clean=val;
+        }
+
     private:
 
         template <typename T>
@@ -442,11 +423,6 @@ class HATN_DATAUNIT_EXPORT Unit
           bool prettyFormat=false,
           int maxDecimalPlaces=0
         ) const;
-
-        bool setClean(bool val) noexcept
-        {
-            return m_clean=val;
-        }
 
         common::SharedPtr<WireData> m_wireDataKeeper;
         bool m_clean;

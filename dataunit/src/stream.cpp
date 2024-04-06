@@ -187,7 +187,8 @@ void StreamBase::packVarInt32(
     else
     {
         target[0] &= 0x7F;
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

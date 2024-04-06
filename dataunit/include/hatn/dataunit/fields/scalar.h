@@ -184,17 +184,22 @@ class Scalar : public Field
             m_value=val;
         }
 
-
         //! Get default value
-        virtual type defaultValue() const
+        type defaultValue() const
         {
-            return DummyConst<type>::f();
+            return fieldDefaultValue();
         }
 
         //! Clear field
         virtual void clear() override
         {
             fieldClear();
+        }
+
+        //! Reset field
+        virtual void reset() override
+        {
+            fieldReset();
         }
 
         //! Get default value
@@ -207,13 +212,13 @@ class Scalar : public Field
         void fieldClear()
         {
             m_value=fieldDefaultValue();
-            this->markSet(false);
         }
 
         //! Reset field
         void fieldReset()
         {
             fieldClear();
+            this->markSet(false);
         }
 
         //! Get field size

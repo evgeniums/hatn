@@ -39,6 +39,18 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+namespace meta {
+struct true_predicate_t
+{
+    template <typename T>
+    constexpr bool operator()(T&&) const
+    {
+        return true;
+    }
+};
+constexpr true_predicate_t true_predicate{};
+}
+
 struct HATN_DATAUNIT_EXPORT visitors
 {
 
@@ -162,12 +174,18 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static void clear(UnitT& obj)
     {
-        if (!obj.isClean())
-        {
-            obj.iterate([](auto& field){field.fieldClear(); return true;});
-        }
-        obj.resetWireDataKeeper();
-        obj.setClean(true);
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                _(obj).clear();
+            },
+            [&](auto _)
+            {
+                _(obj).iterate([](auto& field){field.fieldClear(); return true;});
+                _(obj).resetWireDataKeeper();
+            }
+        );
     }
 
     /**
@@ -175,14 +193,24 @@ struct HATN_DATAUNIT_EXPORT visitors
      * @param obj Data unit object.
      */
     template <typename UnitT>
-    static void reset(UnitT& obj)
+    static void reset(UnitT& obj, bool onlyNonClean=false)
     {
-        if (!obj.isClean())
-        {
-            obj.iterate([](auto& field){field.fieldReset(); return true;});
-        }
-        obj.resetWireDataKeeper();
-        obj.setClean(true);
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                return _(obj).reset(_(onlyNonClean));
+            },
+            [&](auto _)
+            {
+                if (!_(onlyNonClean) || !_(obj).isClean())
+                {
+                    _(obj).iterate([](auto& field){field.fieldReset(); return true;});
+                }
+                _(obj).resetWireDataKeeper();
+                _(obj).setClean(true);
+            }
+        );
     }
 
     /**
@@ -227,21 +255,49 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static size_t size(const UnitT& obj)
     {
-        auto predicate=[](auto&&)
-        {
-            return true;
-        };
-        size_t acc=0;
-        auto handler=[&acc](auto&& field, auto&&)
-        {
-            // add tag size
-            acc+=sizeof(uint32_t);
-            // add field size
-            acc+=field.fieldSize();
-            return true;
-        };
-        obj.each(predicate,true,handler);
-        return acc;
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                return _(obj).size();
+            },
+            [&](auto _)
+            {
+                size_t acc=0;
+                auto handler=[&acc](auto&& field, auto&&)
+                {
+                    // add tag size
+                    acc+=sizeof(uint32_t);
+                    // add field size
+                    acc+=field.fieldSize();
+                    return true;
+                };
+                _(obj).each(meta::true_predicate,true,handler);
+                return acc;
+            }
+        );
+
+    }
+
+    template <typename UnitT>
+    static void setParseToSharedArrays(UnitT& obj, bool enable, AllocatorFactory *factory)
+    {
+        hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                _(obj).setParseToSharedArrays(_(enable),_(factory));
+            },
+            [&](auto _)
+            {
+                auto handler=[&](auto&& field, auto&&)
+                {
+                    field.setParseToSharedArrays(_(enable),_(factory));
+                    return true;
+                };
+                _(obj).each(meta::true_predicate,true,handler);
+            }
+        );
     }
 
     /**
@@ -278,7 +334,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     return deserialize(obj,singleW,topLevel);
                 }
 
-                clear(obj);
+                reset(obj,true);
                 obj.setClean(false);
 
                 uint32_t tag=0;
@@ -286,7 +342,7 @@ struct HATN_DATAUNIT_EXPORT visitors
 
                 auto cleanup=[&obj,&wired,topLevel]()
                 {
-                    clear(obj);
+                    reset(obj);
                     if (topLevel)
                     {
                         wired.resetState();

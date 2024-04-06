@@ -46,15 +46,15 @@ bool Field::isRepeatedUnpackedProtoBuf() const noexcept
 }
 
 //---------------------------------------------------------------
-void Field::setParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory*)
+void Field::setParseToSharedArrays(bool enable,AllocatorFactory* factory)
 {
-    std::ignore=enable;
+    fieldSetParseToSharedArrays(enable,factory);
 }
 
 //---------------------------------------------------------------
 bool Field::isParseToSharedArrays() const noexcept
 {
-    return false;
+    return fieldIsParseToSharedArrays();
 }
 
 //---------------------------------------------------------------

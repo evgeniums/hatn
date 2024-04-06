@@ -50,6 +50,8 @@ string to_string(T&& value,
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+struct shared_pointer_tag{};
+
 //! Common utils
 struct HATN_COMMON_EXPORT Utils final
 {

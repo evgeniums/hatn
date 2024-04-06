@@ -48,9 +48,10 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 //---------------------------------------------------------------
 
 #define HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
+    constexpr static auto dv_##FieldName=Default;\
     struct default_##FieldName\
     {\
-        constexpr static auto value=Default;\
+        constexpr static auto& value=dv_##FieldName;\
         using type=std::decay_t<decltype(value)>;\
     };
 
@@ -70,7 +71,6 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
         using traits=field_traits<field_generator,\
                        strings,\
                        hana::int_<Id>,\
-                       hana::int_<HATN_COUNTER_GET(c)>,\
                        Type,\
                        default_type<Type,default_##FieldName>,\
                        required,\
@@ -251,9 +251,10 @@ enum class EnumName : int {__VA_ARGS__};
     using shared_type=type;\
     using managed=EmptyManagedUnit<conf>;\
     using shared_managed=managed;\
-    struct fields{};\
-    struct traits : public unit_traits<type,managed,fields>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
+    struct fields_t{};\
+    constexpr fields_t fields{};\
+    struct traits : public unit_traits<type,managed,fields_t>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,fields_t>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \

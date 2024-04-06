@@ -259,7 +259,6 @@ class FieldTmplBytes : public Field, public BytesType
         void fieldClear()
         {
             this->m_value.clear();
-            this->markSet(false);
         }
 
         //! Reset field
@@ -322,6 +321,20 @@ class FieldTmplBytes : public Field, public BytesType
          */
         virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
         {
+            fieldSetParseToSharedArrays(enable,factory);
+        }
+
+        /**
+         * @brief Check if shared byte arrays must be used for parsing
+         * @return Boolean flag
+         */
+        virtual bool isParseToSharedArrays() const noexcept override
+        {
+            return fieldIsParseToSharedArrays();
+        }
+
+        void fieldSetParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* factory)
+        {
             if (enable)
             {
                 if (factory==nullptr)
@@ -340,14 +353,11 @@ class FieldTmplBytes : public Field, public BytesType
             }
         }
 
-        /**
-         * @brief Check if shared byte arrays must be used for parsing
-         * @return Boolean flag
-         */
-        virtual bool isParseToSharedArrays() const noexcept override
+        bool fieldIsParseToSharedArrays() const noexcept
         {
             return !byteArrayShared().isNull();
         }
+
 
         //! Format as JSON element
         inline static bool formatJSON(const typename Type::type& value,json::Writer* writer)
@@ -438,7 +448,7 @@ struct FieldTmpl<TYPE_BYTES> : public FieldTmplBytes<TYPE_BYTES>
 {
     using FieldTmplBytes<TYPE_BYTES>::FieldTmplBytes;
 };
-//! @todo Support default values for strings?
+
 template<>
 struct FieldTmpl<TYPE_STRING> : public FieldTmplBytes<TYPE_STRING>
 {

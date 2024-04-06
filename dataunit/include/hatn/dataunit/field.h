@@ -117,8 +117,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         virtual int getID() const noexcept =0;
         //! Get field name
         virtual const char* name() const noexcept {return nullptr;}
-        //! Get field name size
-        virtual size_t nameSize() const noexcept {return 0;}
 
         //! Get field size
         virtual size_t size() const  noexcept =0;
@@ -148,6 +146,14 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
          * @return Boolean flag
          */
         virtual bool isParseToSharedArrays() const noexcept;
+
+        void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
+        {}
+
+        bool fieldIsParseToSharedArrays() const noexcept
+        {
+            return false;
+        }
 
         virtual void pushJsonParseHandler(Unit*)=0;
 
