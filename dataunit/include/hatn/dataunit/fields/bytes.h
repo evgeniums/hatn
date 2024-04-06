@@ -448,7 +448,7 @@ struct FieldTmpl<TYPE_BYTES> : public FieldTmplBytes<TYPE_BYTES>
 {
     using FieldTmplBytes<TYPE_BYTES>::FieldTmplBytes;
 };
-//! @todo Support default values for strings?
+
 template<>
 struct FieldTmpl<TYPE_STRING> : public FieldTmplBytes<TYPE_STRING>
 {
