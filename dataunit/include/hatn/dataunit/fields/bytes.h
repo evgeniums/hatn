@@ -259,7 +259,6 @@ class FieldTmplBytes : public Field, public BytesType
         void fieldClear()
         {
             this->m_value.clear();
-            this->markSet(false);
         }
 
         //! Reset field

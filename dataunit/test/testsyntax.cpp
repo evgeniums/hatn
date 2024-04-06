@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(TestDefaultFields)
     BOOST_CHECK_EQUAL(f2.get(),1000);
     f2.set(5000);
     BOOST_CHECK_EQUAL(f2.get(),5000);
-    f2.clear();
+    f2.reset();
     BOOST_CHECK_EQUAL(f2.get(),1000);
 
     auto& f3=unit.field(fields.type_enum);
@@ -651,7 +651,7 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedUint32,::hatn::test::MultiThre
     BOOST_CHECK_EQUAL(field1.value(2),field1_1.value(2));
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }
@@ -695,7 +695,7 @@ void serializeCheckRepeatedDouble()
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
     BOOST_CHECK_EQUAL(field1.value(4),field1_1.value(4));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }

@@ -48,9 +48,10 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 //---------------------------------------------------------------
 
 #define HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
+    constexpr static auto dv_##FieldName=Default;\
     struct default_##FieldName\
     {\
-        constexpr static auto value=Default;\
+        constexpr static auto& value=dv_##FieldName;\
         using type=std::decay_t<decltype(value)>;\
     };
 

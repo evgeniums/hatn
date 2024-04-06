@@ -281,6 +281,13 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
             field(std::forward<T>(fieldName)).clear();
         }
 
+        /** Reset field. */
+        template <typename T>
+        void resetField(T&& fieldName) noexcept
+        {
+            field(std::forward<T>(fieldName)).reset();
+        }
+
         /**
           @brief Get data from the field at given path.
           @param path Path to the field in format _[level1][level2]...[levelN].

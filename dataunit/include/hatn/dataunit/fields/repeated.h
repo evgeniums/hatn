@@ -431,6 +431,18 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Get value by index */
+    inline type& at(size_t index)
+    {
+        return vector[index];
+    }
+
+    /**  Get const value by index */
+    inline const type& at(size_t index) const
+    {
+        return vector[index];
+    }
+
+    /**  Get value by index */
     inline type& field(size_t index)
     {
       return vector[index];
@@ -584,7 +596,6 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /**  Clear field */
     void fieldClear()
     {
-        this->markSet(false);
         clearArray();
     }
 
@@ -592,12 +603,19 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     void fieldReset()
     {
         fieldClear();
+        this->markSet(false);
     }
 
     /**  Clear array */
     virtual void clear() override
     {
         fieldClear();
+    }
+
+    /**  Reset field */
+    virtual void reset() override
+    {
+        fieldReset();
     }
 
     template <typename BufferT>

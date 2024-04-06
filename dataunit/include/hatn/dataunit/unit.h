@@ -276,7 +276,7 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual const char* name() const noexcept;
 
         //! Clear unit
-        void clear();
+        void clear(bool onlyNonClean=false);
 
         //! Reset unit
         void reset();

@@ -182,7 +182,7 @@ struct HATN_DATAUNIT_EXPORT visitors
             obj.iterate([](auto& field){field.fieldReset(); return true;});
         }
         obj.resetWireDataKeeper();
-        obj.setClean(true);
+        obj.setReset(true);
     }
 
     /**

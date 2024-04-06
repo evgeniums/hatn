@@ -70,9 +70,9 @@ Unit::~Unit()=default;
 
 //---------------------------------------------------------------
 //! @todo Make it in visitors
-void Unit::clear()
+void Unit::clear(bool onlyNonClean)
 {
-    if (!m_clean)
+    if (!onlyNonClean || !m_clean)
     {
         iterateFields([](Field& field){field.clear(); return true;});
     }
@@ -83,12 +83,8 @@ void Unit::clear()
 //---------------------------------------------------------------
 void Unit::reset()
 {
-    if (!m_clean)
-    {
-        iterateFields([](Field& field){field.reset(); return true;});
-    }
+    iterateFields([](Field& field){field.reset(); return true;});
     resetWireDataKeeper();
-    m_clean=true;
 }
 
 //---------------------------------------------------------------

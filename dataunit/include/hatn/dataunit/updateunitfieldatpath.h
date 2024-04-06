@@ -70,12 +70,14 @@ struct UnitFieldUpdater
     template <typename UnitT, typename PathT>
     static void unset(UnitT&& unit, PathT&& path)
     {
-        fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path)).clear();
+        fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path)).fieldReset();
     }
 
     template <typename UnitT, typename PathT>
     static void clear(UnitT&& unit, PathT&& path)
     {
+        fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path)).fieldClear();
+#if 0
         auto& field=fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path));
         using fieldT=std::decay_t<decltype(field)>;
 
@@ -109,6 +111,7 @@ struct UnitFieldUpdater
                 )(std::forward<decltype(field)>(field));
             }
         )(field);
+#endif
     }
 
     template <typename UnitT, typename PathT>

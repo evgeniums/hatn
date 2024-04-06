@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(TestIsSet)
     BOOST_CHECK(!obj.isSet(simple_int8::field3));
     BOOST_CHECK_EQUAL(obj.fieldValue(simple_int8::field2),10);
 
-    obj.clearField(simple_int8::field2);
+    obj.resetField(simple_int8::field2);
     BOOST_CHECK(!obj.isSet(simple_int8::field2));
     BOOST_CHECK(!obj.isSet(simple_int8::field3));
 }
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(TestStringInterface)
     BOOST_CHECK(obj.isSet(fields.field1));
     BOOST_CHECK_EQUAL(std::string(obj.field(fields.field1).c_str()),std::string("Hello world"));
 
-    obj.clearField(fields.field1);
+    obj.resetField(fields.field1);
     BOOST_CHECK(!obj.isSet(fields.field1));
 }
 

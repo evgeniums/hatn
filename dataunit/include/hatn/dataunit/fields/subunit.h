@@ -116,7 +116,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         template <typename BufferT>
         bool deserialize(BufferT& wired, AllocatorFactory* factory)
         {
-            this->fieldClear();
+            this->fieldClear(true);
             if (factory==nullptr)
             {
                 factory=this->unit()->factory();
@@ -195,6 +195,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         virtual void clear() override
         {
             fieldClear();
+        }
+
+        //! Reset field
+        virtual void reset() override
+        {
+            fieldReset();
         }
 
         /**
@@ -313,16 +319,24 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         virtual const Unit* subunit() const override {return &value();}
         virtual Unit* subunit() override {return mutableValue();}
 
-        void fieldClear()
+        void fieldClear(bool onlyNonClean=false)
         {
-            this->m_value.reset();
-            this->markSet(false);
+            //! @todo Use visitor
+            if (!this->m_value.isNull())
+            {
+                if (!onlyNonClean || !this->value().isClean())
+                {
+                    this->mutableValue()->clear(onlyNonClean);
+                }
+            }
         }
 
         //! Reset field
         void fieldReset()
         {
-            fieldClear();
+            //! @todo Use visitor
+            this->m_value.reset();
+            this->markSet(false);
         }
 
     protected:
@@ -355,7 +369,6 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
         using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
         using isEmbeddedUnitType=std::false_type;
 
-#if 1
         /**
          * @brief Get pointer to mutable value
          * @return Pointer to value
@@ -377,7 +390,6 @@ template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type
             }
             return this->m_value.mutableValue();
         }
-#endif
 
         //! Create value
         typename baseFieldType::type createValue(AllocatorFactory* factory=nullptr) const

@@ -76,9 +76,9 @@ constexpr auto_t Auto{};
 template <typename T, typename ValueT>
 struct default_t
 {
-    using hana_tag=DefaultValueTag; \
-    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
+    using hana_tag=DefaultValueTag;
     using HasDefV=std::true_type;
+    static typename T::type value(){return static_cast<typename T::type>(ValueT::value);}
 };
 
 template <typename T, typename ValueT, typename=hana::when<true>>
@@ -103,6 +103,22 @@ struct default_type<T, ValueT, hana::when<
                                           std::is_constructible<typename T::Enum, typename ValueT::type>::value
                                    >>
     : public default_t<T,ValueT>{};
+
+template <typename T, typename ValueT>
+struct default_type<T, ValueT, hana::when<
+                                   T::isStringType::value
+                                   &&
+                                    std::is_constructible<std::string, typename ValueT::type>::value
+                                   >>
+{
+    using hana_tag=DefaultValueTag;
+    using HasDefV=std::true_type;
+
+    static typename ValueT::type value()
+    {
+        return ValueT::value;
+    }
+};
 
 template <typename T, typename = hana::when<true>>
 struct default_field
