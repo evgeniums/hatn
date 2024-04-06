@@ -21,7 +21,6 @@
 #ifndef HATNDATAUNITALLOCATORACTORY_H
 #define HATNDATAUNITALLOCATORACTORY_H
 
-#include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/dataunit/dataunit.h>
@@ -29,8 +28,6 @@
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 using AllocatorFactory=common::pmr::AllocatorFactory;
-
-HATN_WITH_STATIC_ALLOCATOR_DECL
 
 HATN_DATAUNIT_NAMESPACE_END
 

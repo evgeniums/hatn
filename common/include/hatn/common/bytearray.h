@@ -855,13 +855,14 @@ class HATN_COMMON_EXPORT ByteArray
         }
 };
 
-HATN_WITH_STATIC_ALLOCATOR_DECLARE(ByteArrayManaged,HATN_COMMON_EXPORT)
+class ByteArrayManaged;
+template class HATN_COMMON_EXPORT WithStaticAllocator<ByteArrayManaged>;
 
 /**
  * @brief Managed version of ByteArray
  */
 class HATN_COMMON_EXPORT ByteArrayManaged : public ManagedWrapper<ByteArray>,
-                                                public WithStaticAllocator<ByteArrayManaged>
+                                            public WithStaticAllocator<ByteArrayManaged>
 {
     using ManagedWrapper<ByteArray>::ManagedWrapper;
 };
