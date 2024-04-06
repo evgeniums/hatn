@@ -215,7 +215,7 @@ enum class EnumName : int {__VA_ARGS__};
     using shared_managed=shared_managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
     struct field_ids_t : public field_id<HATN_COUNTER_GET(c)>{};\
-    constexpr const auto& fields=field_ids_instance<field_ids_t>;\
+    constexpr field_ids_t fields{};\
     struct traits : public unit_traits<type,managed,field_ids_t>{};\
     struct shared_traits : public unit_traits<shared_type,shared_managed,field_ids_t>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
@@ -250,9 +250,10 @@ enum class EnumName : int {__VA_ARGS__};
     using shared_type=type;\
     using managed=EmptyManagedUnit<conf>;\
     using shared_managed=managed;\
-    struct fields{};\
-    struct traits : public unit_traits<type,managed,fields>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,fields>{};\
+    struct fields_t{};\
+    constexpr fields_t fields{};\
+    struct traits : public unit_traits<type,managed,fields_t>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,fields_t>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
