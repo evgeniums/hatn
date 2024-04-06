@@ -381,24 +381,23 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         void fieldClear()
         {
-            //! @todo Use visitor
-            this->mutableValue()->clear();
+            io::clear(*(this->mutableValue()));
         }
 
         //! Reset field
         void fieldReset(bool onlyNonClean=false)
         {
-            //! @todo Use visitor
             auto self=this;
             boost::hana::eval_if(
                 boost::hana::is_a<common::shared_pointer_tag,decltype(this->m_value)>,
                 [&](auto _)
                 {
                     _(self)->m_value.reset();
+                    _(self)->markSet(false);
                 },
                 [&](auto _)
                 {
-                    _(self)->m_value.reset(_(onlyNonClean));
+                    io::reset(_(self)->m_value,_(onlyNonClean));
                 }
             );
             this->markSet(false);
@@ -424,63 +423,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         bool m_parseToSharedArrays;
 };
-
-#if 0
-//! Field template for embedded DataUnit type
-template <typename Type> class FieldTmplUnit : public FieldTmplUnitEmbedded<Type,true>
-{
-    public:
-
-        using baseFieldType=FieldTmplUnitEmbedded<Type,true>;
-        using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
-        using isEmbeddedUnitType=std::false_type;
-
-        /**
-         * @brief Get pointer to mutable value
-         * @return Pointer to value
-         *
-         * After calling this method the value will be regarded as set.
-         *
-         * @todo Make static dispatching.
-         */
-        virtual typename baseFieldType::base* mutableValue() override
-        {
-            this->markSet(true);
-            if (this->m_value.isNull())
-            {
-                this->m_value=this->createValue();
-            }
-            if (this->m_value.isNull())
-            {
-                throw std::runtime_error("Failed to create value for dataunit field!");
-            }
-            return this->m_value.mutableValue();
-        }
-
-        //! Create value
-        typename baseFieldType::type createValue(AllocatorFactory* factory=nullptr) const
-        {
-            if (factory==nullptr)
-            {
-                factory=this->unit()->factory();
-            }
-            auto val=Type::createManagedObject(factory,this->unit());
-            if (val.isNull())
-            {
-                HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");
-                Assert(!val.isNull(),"Shared dataunit field is not set!");
-            }
-            return val;
-        }
-
-        //! Clear field
-        virtual void clear() override
-        {
-            this->fieldClear();
-        }
-};
-#endif
-
 
 template <>
 struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnitEmbedded<TYPE_DATAUNIT,true>

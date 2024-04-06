@@ -162,8 +162,18 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static void clear(UnitT& obj)
     {
-        obj.iterate([](auto& field){field.fieldClear(); return true;});
-        obj.resetWireDataKeeper();
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                return _(obj).clear();
+            },
+            [&](auto _)
+            {
+                _(obj).iterate([](auto& field){field.fieldClear(); return true;});
+                _(obj).resetWireDataKeeper();
+            }
+        );
     }
 
     /**
@@ -173,12 +183,22 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static void reset(UnitT& obj, bool onlyNonClean=false)
     {
-        if (!onlyNonClean || !obj.isClean())
-        {
-            obj.iterate([](auto& field){field.fieldReset(); return true;});
-        }
-        obj.resetWireDataKeeper();
-        obj.setClean(true);
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                return _(obj).reset(_(onlyNonClean));
+            },
+            [&](auto _)
+            {
+                if (!_(onlyNonClean) || !_(obj).isClean())
+                {
+                    _(obj).iterate([](auto& field){field.fieldReset(); return true;});
+                }
+                _(obj).resetWireDataKeeper();
+                _(obj).setClean(true);
+            }
+        );
     }
 
     /**
