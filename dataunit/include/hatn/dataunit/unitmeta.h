@@ -587,6 +587,9 @@ class unit_t : public BaseT
 
             virtual const Field* fieldById(int id) const override;
             virtual Field* fieldById(int id) override;
+            virtual const Field* fieldByName(common::lib::string_view name) const override;
+            virtual Field* fieldByName(common::lib::string_view name) override;
+
             virtual bool iterateFields(const Unit::FieldVisitor& visitor) override;
             virtual bool iterateFieldsConst(const Unit::FieldVisitorConst& visitor) const override;
             virtual size_t fieldCount() const noexcept override;

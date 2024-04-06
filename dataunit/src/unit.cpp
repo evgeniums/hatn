@@ -102,18 +102,31 @@ size_t Unit::size() const
 }
 
 //---------------------------------------------------------------
-const Field* Unit::fieldByName(const char* name,size_t size) const
+const Field* Unit::fieldById(int id) const
 {
+    // must be overriden
+    std::ignore=id;
+    return nullptr;
+}
+
+//---------------------------------------------------------------
+Field* Unit::fieldById(int id)
+{
+    // must be overriden
+    std::ignore=id;
+    return nullptr;
+}
+
+//---------------------------------------------------------------
+const Field* Unit::fieldByName(common::lib::string_view name) const
+{
+    // in normal units this default implementation is not used because there is overriden method
     const Field* foundField=nullptr;
     iterateFieldsConst(
-                [&foundField,name,size](const Field& field)
+                [&foundField,name](const Field& field)
                 {
-                    auto sz=size;
-                    if (sz==0)
-                    {
-                        sz=strlen(name);
-                    }
-                    if (field.nameSize()==sz && memcmp(field.name(),name,sz)==0)
+                    common::lib::string_view fieldName(field.name());
+                    if (fieldName==name)
                     {
                         foundField=&field;
                         return false;
@@ -125,38 +138,15 @@ const Field* Unit::fieldByName(const char* name,size_t size) const
 }
 
 //---------------------------------------------------------------
-Field* Unit::fieldByName(const char* name,size_t size)
+Field* Unit::fieldByName(common::lib::string_view name)
 {
-    Field* foundField=nullptr;
-    iterateFields(
-                [&foundField,name,size](Field& field)
-                {
-                    auto sz=size;
-                    if (sz==0)
-                    {
-                        sz=strlen(name);
-                    }
-                    if (field.nameSize()==sz && memcmp(field.name(),name,sz)==0)
-                    {
-                        foundField=&field;
-                        return false;
-                    }
-                    return true;
-                }
-           );
-    return foundField;
-}
-
-//---------------------------------------------------------------
-void Unit::fillFieldNamesTable(common::pmr::map<FieldNamesKey, Field *> &table)
-{
-    iterateFields(
-                [&table](Field& field)
-                {
-                    table[{field.name(),field.nameSize()}]=&field;
-                    return true;
-                }
-           );
+    auto self=const_cast<const Unit*>(this);
+    auto foundField=self->fieldByName(name);
+    if (foundField!=nullptr)
+    {
+        return const_cast<Field*>(foundField);
+    }
+    return nullptr;
 }
 
 //---------------------------------------------------------------
@@ -440,20 +430,6 @@ size_t Unit::fieldCount() const noexcept
 const char* Unit::name() const noexcept
 {
     return "unknown";
-}
-
-//---------------------------------------------------------------
-const Field* Unit::fieldById(int id) const
-{
-    std::ignore=id;
-    return nullptr;
-}
-
-//---------------------------------------------------------------
-Field* Unit::fieldById(int id)
-{
-    std::ignore=id;
-    return nullptr;
 }
 
 //---------------------------------------------------------------

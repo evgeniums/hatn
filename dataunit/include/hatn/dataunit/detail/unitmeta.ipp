@@ -47,6 +47,18 @@ Field* unit_t<BaseT,UniqueType>::fieldById(int id)
 }
 
 template <typename BaseT, typename UniqueType>
+const Field* unit_t<BaseT,UniqueType>::fieldByName(common::lib::string_view name) const
+{
+    return this->findField(this,name);
+}
+
+template <typename BaseT, typename UniqueType>
+Field* unit_t<BaseT,UniqueType>::fieldByName(common::lib::string_view name)
+{
+    return this->findField(this,name);
+}
+
+template <typename BaseT, typename UniqueType>
 bool unit_t<BaseT,UniqueType>::iterateFields(const Unit::FieldVisitor& visitor)
 {
     return this->iterate(visitor);

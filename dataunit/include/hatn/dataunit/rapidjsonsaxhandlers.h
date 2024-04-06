@@ -93,7 +93,6 @@ struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, p
 {
     Unit* m_unit;
     int m_initialScopes;
-    common::pmr::map<FieldNamesKey,Field*> m_fields;
 
     UnitReader(
             Unit* topUnit,
@@ -102,8 +101,7 @@ struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, p
             int offset
         ) : ReaderBaseHandler<UnitReader>(topUnit,scopes+offset),
             m_unit(currentUnit),
-            m_initialScopes(scopes),
-            m_fields(currentUnit->factory()->objectAllocator<std::pair<FieldNamesKey,Field*>>())
+            m_initialScopes(scopes)
     {}
 
     bool StartObject()
@@ -122,16 +120,14 @@ struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, p
             return true;
         }
 
-        if (m_fields.empty())
+        auto field=m_unit->fieldByName({str,length});
+        if (field!=nullptr)
         {
-            io::fillFieldNamesTable(*m_unit,m_fields);
-        }
-        auto it=m_fields.find({str,length});
-        if (it!=m_fields.end())
-        {
-            auto& field=it->second;
-            // unknown fields are valid, just skip them
             field->pushJsonParseHandler(this->m_topUnit);
+        }
+        else
+        {
+            // unknown fields are valid, just skip them
         }
         return true;
     }

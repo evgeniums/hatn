@@ -52,6 +52,24 @@ const common::FlatMap<int,uintptr_t>& UnitImpl<Fields...>::fieldsMap()
     return map;
 }
 
+//---------------------------------------------------------------
+
+template <typename ...Fields>
+const common::FlatMap<common::lib::string_view,uintptr_t>& UnitImpl<Fields...>::fieldsNameMap()
+{
+    static Unit sampleUnit{};
+    static const UnitImpl<Fields...> sample(&sampleUnit);
+
+    auto f = [](common::FlatMap<common::lib::string_view,uintptr_t> m, const auto& field) {
+        auto m1=std::move(m);
+        m1[field.fieldName()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(&sample);
+        return m1;
+    };
+
+    static const common::FlatMap<common::lib::string_view,uintptr_t> map=hana::fold(sample.m_fields,common::FlatMap<common::lib::string_view,uintptr_t>{},f);
+    return map;
+}
+
 /********************** UnitConcat **************************/
 
 //---------------------------------------------------------------

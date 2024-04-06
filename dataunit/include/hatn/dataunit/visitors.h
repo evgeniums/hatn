@@ -280,28 +280,6 @@ struct HATN_DATAUNIT_EXPORT visitors
     }
 
     template <typename UnitT>
-    static void fillFieldNamesTable(UnitT& obj, common::pmr::map<FieldNamesKey, Field *> &table)
-    {
-        hana::eval_if(
-            std::is_same<Unit,UnitT>{},
-            [&](auto _)
-            {
-                _(obj).fillFieldNamesTable(_(table));
-            },
-            [&](auto _)
-            {
-                auto& t=_(table);
-                auto handler=[&t](auto&& field, auto&&)
-                {
-                    t[{field.fieldName(),field.fieldNameSize()}]=&field;
-                    return true;
-                };
-                _(obj).each(meta::true_predicate,true,handler);
-            }
-        );
-    }
-
-    template <typename UnitT>
     static void setParseToSharedArrays(UnitT& obj, bool enable, AllocatorFactory *factory)
     {
         hana::eval_if(

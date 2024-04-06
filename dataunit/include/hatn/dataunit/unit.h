@@ -86,30 +86,11 @@ class HATN_DATAUNIT_EXPORT Unit
 
         //! Get field by ID
         virtual const Field* fieldById(int id) const;
-
-        //! Get field by ID
         virtual Field* fieldById(int id);
 
         //! Get field by name
-        /**
-         * @brief Find field by name
-         * @param name name
-         * @param size Name length or 0 if the name is null-terminated
-         * @return Found field
-         *
-         * This operation is slow as the searching is done iteratively field by field.
-         * For fast repetitive lookups use fillFieldNamesTable() and then make lookups
-         * in that table.
-         *
-         * @todo Optimize it using static names table like parsing handlers.
-         */
-        Field* fieldByName(const char* name,size_t size=0);
-
-        //! Get field by name with const signature.
-        const Field* fieldByName(const char* name,size_t size=0) const;
-
-        //! Fill field names table as [name]=>[field]
-        void fillFieldNamesTable(common::pmr::map<FieldNamesKey,Field*>& table);
+        virtual const Field* fieldByName(common::lib::string_view name) const;
+        virtual Field* fieldByName(common::lib::string_view name);
 
         //! Parse DataUnit from plain data buffer
         //! @todo Use Error with NativeError.
