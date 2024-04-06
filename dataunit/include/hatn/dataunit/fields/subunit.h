@@ -21,6 +21,8 @@
 #ifndef HATNSUBUNIT_H
 #define HATNSUBUNIT_H
 
+#include <boost/hana.hpp>
+
 #include <hatn/common/utils.h>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
@@ -43,7 +45,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         using selfType=FieldTmplUnitEmbedded<Type,Shared>;
         using baseFieldType=selfType;
-        using isEmbeddedUnitType=std::bool_constant<!Shared>;
+        using isEmbeddedUnitType=boost::hana::bool_<!Shared>;
         using isUnitType=std::true_type;
 
         using isBytesType=std::false_type;
@@ -125,7 +127,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             }
 
             auto* value=mutableValue();
-            value->setParseToSharedArrays(m_parseToSharedArrays,factory);
+            io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
             this->markSet(this->deserialize(mutableValue(),wired,factory));
             return this->isSet();
         }

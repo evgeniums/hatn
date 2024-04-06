@@ -69,7 +69,6 @@ Unit::Unit(AllocatorFactory *factory)
 Unit::~Unit()=default;
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 void Unit::clear()
 {
     iterateFields([](Field& field){field.clear(); return true;});
@@ -88,7 +87,6 @@ void Unit::reset(bool onlyNonClean)
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 size_t Unit::size() const
 {
     size_t acc=0;
@@ -104,7 +102,6 @@ size_t Unit::size() const
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 const Field* Unit::fieldByName(const char* name,size_t size) const
 {
     const Field* foundField=nullptr;
@@ -128,7 +125,6 @@ const Field* Unit::fieldByName(const char* name,size_t size) const
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 Field* Unit::fieldByName(const char* name,size_t size)
 {
     Field* foundField=nullptr;
@@ -152,7 +148,6 @@ Field* Unit::fieldByName(const char* name,size_t size)
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 void Unit::fillFieldNamesTable(common::pmr::map<FieldNamesKey, Field *> &table)
 {
     iterateFields(
@@ -211,7 +206,6 @@ int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 void Unit::setParseToSharedArrays(bool enable, AllocatorFactory *factory)
 {
     if (factory==nullptr)

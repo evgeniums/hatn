@@ -222,11 +222,9 @@ BOOST_AUTO_TEST_SUITE_END()
  * @todo Data unit tags.
  * @todo Error processing.
  * @todo Clean up metautils.
- * @todo Add visitors for some operations on units.
  * @todo Refactor json methods with non virtual methods.
- * @todo Static polymorphysm in subunit and repeated fields.
+ * @todo Static table of field names.
  * @todo Test Error performance.
  * @todo Edit WithStaticAllocator.
  * @todo Remove legacy headers from dataunit.
- * @todo Test default string fields.
  */

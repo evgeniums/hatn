@@ -34,6 +34,7 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/dataunit/dataunit.h>
 
 #include <hatn/dataunit/unit.h>
+#include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/rapidjsonstream.h>
 #include <hatn/dataunit/detail/types.ipp>
 
@@ -123,7 +124,7 @@ struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, p
 
         if (m_fields.empty())
         {
-            m_unit->fillFieldNamesTable(m_fields);
+            io::fillFieldNamesTable(*m_unit,m_fields);
         }
         auto it=m_fields.find({str,length});
         if (it!=m_fields.end())

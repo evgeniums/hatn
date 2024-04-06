@@ -616,6 +616,10 @@ class unit_t : public BaseT
 #endif
             virtual bool parse(WireData& wired,bool topLevel=true) override;
             virtual bool parse(WireBufSolid& wired,bool topLevel=true) override;
+
+            virtual void clear() override;
+            virtual void reset(bool onlyNonClean=false) override;
+            virtual size_t size() const override;
 };
 
 //---------------------------------------------------------------

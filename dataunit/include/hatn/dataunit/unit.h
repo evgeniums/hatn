@@ -101,10 +101,11 @@ class HATN_DATAUNIT_EXPORT Unit
          * For fast repetitive lookups use fillFieldNamesTable() and then make lookups
          * in that table.
          *
+         * @todo Optimize it using static names table like parsing handlers.
          */
         Field* fieldByName(const char* name,size_t size=0);
 
-        //! Get field by name with const signature
+        //! Get field by name with const signature.
         const Field* fieldByName(const char* name,size_t size=0) const;
 
         //! Fill field names table as [name]=>[field]
@@ -230,13 +231,6 @@ class HATN_DATAUNIT_EXPORT Unit
             return true;
         }
 
-        //! Get estimated size of wired data unit
-        /**
-         * @brief Actual packed size can be less than estimated but will never exceed it
-         * @return Estimated size of the packed unit
-         */
-        size_t size() const;
-
         //! Keep serialized data unit.
         inline void keepWireData(
             common::SharedPtr<WireData> wired
@@ -276,10 +270,17 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual const char* name() const noexcept;
 
         //! Clear unit
-        void clear();
+        virtual void clear();
 
         //! Reset unit
-        void reset(bool onlyNonClean=false);
+        virtual void reset(bool onlyNonClean=false);
+
+        //! Get estimated size of wired data unit
+        /**
+         * @brief Actual packed size can be less than estimated but will never exceed it
+         * @return Estimated size of the packed unit
+         */
+        virtual size_t size() const;
 
         /** Get reference to self **/
         inline const Unit& value() const noexcept

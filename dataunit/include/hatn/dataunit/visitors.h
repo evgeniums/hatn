@@ -39,6 +39,18 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+namespace meta {
+struct true_predicate_t
+{
+    template <typename T>
+    constexpr bool operator()(T&&) const
+    {
+        return true;
+    }
+};
+constexpr true_predicate_t true_predicate{};
+}
+
 struct HATN_DATAUNIT_EXPORT visitors
 {
 
@@ -166,7 +178,7 @@ struct HATN_DATAUNIT_EXPORT visitors
             std::is_same<Unit,UnitT>{},
             [&](auto _)
             {
-                return _(obj).clear();
+                _(obj).clear();
             },
             [&](auto _)
             {
@@ -243,21 +255,71 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static size_t size(const UnitT& obj)
     {
-        auto predicate=[](auto&&)
-        {
-            return true;
-        };
-        size_t acc=0;
-        auto handler=[&acc](auto&& field, auto&&)
-        {
-            // add tag size
-            acc+=sizeof(uint32_t);
-            // add field size
-            acc+=field.fieldSize();
-            return true;
-        };
-        obj.each(predicate,true,handler);
-        return acc;
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                return _(obj).size();
+            },
+            [&](auto _)
+            {
+                size_t acc=0;
+                auto handler=[&acc](auto&& field, auto&&)
+                {
+                    // add tag size
+                    acc+=sizeof(uint32_t);
+                    // add field size
+                    acc+=field.fieldSize();
+                    return true;
+                };
+                _(obj).each(meta::true_predicate,true,handler);
+                return acc;
+            }
+        );
+
+    }
+
+    template <typename UnitT>
+    static void fillFieldNamesTable(UnitT& obj, common::pmr::map<FieldNamesKey, Field *> &table)
+    {
+        hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                _(obj).fillFieldNamesTable(_(table));
+            },
+            [&](auto _)
+            {
+                auto& t=_(table);
+                auto handler=[&t](auto&& field, auto&&)
+                {
+                    t[{field.fieldName(),field.fieldNameSize()}]=&field;
+                    return true;
+                };
+                _(obj).each(meta::true_predicate,true,handler);
+            }
+        );
+    }
+
+    template <typename UnitT>
+    static void setParseToSharedArrays(UnitT& obj, bool enable, AllocatorFactory *factory)
+    {
+        hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
+            {
+                _(obj).setParseToSharedArrays(_(enable),_(factory));
+            },
+            [&](auto _)
+            {
+                auto handler=[&](auto&& field, auto&&)
+                {
+                    field.setParseToSharedArrays(_(enable),_(factory));
+                    return true;
+                };
+                _(obj).each(meta::true_predicate,true,handler);
+            }
+        );
     }
 
     /**

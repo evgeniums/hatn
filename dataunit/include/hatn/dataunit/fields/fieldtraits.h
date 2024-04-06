@@ -184,9 +184,15 @@ struct FieldConf : public T
     }
 
     //! Get field name size
-    virtual size_t nameSize() const noexcept override
+    size_t fieldNameSize() const noexcept
     {
         return ::hatn::common::CStrLength(FieldName::name);
+    }
+
+    //! Get field name size
+    virtual size_t nameSize() const noexcept override
+    {
+        return fieldNameSize();
     }
 
     //! Check if field is required
