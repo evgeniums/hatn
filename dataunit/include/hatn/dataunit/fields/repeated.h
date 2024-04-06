@@ -27,6 +27,8 @@
 #include <vector>
 #include <array>
 
+#include <boost/hana.hpp>
+
 #include <hatn/common/containerutils.h>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
@@ -104,7 +106,7 @@ template <typename Type> struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
                Unit* parentUnit
            )
    {
-       return ::hatn::common::ConstructWithArgsOrDefault<valueType,Unit*>::f(std::forward<Unit*>(parentUnit));
+       return common::ConstructWithArgsOrDefault<valueType,Unit*>::f(std::forward<Unit*>(parentUnit));
    }
 };
 
@@ -311,57 +313,17 @@ template <typename Type> struct RepeatedGetterSetter<Type,
     }
 };
 
-/**
- * Template for repeated fields with default values
- */
-template <typename Base, typename Type,typename DefaultV>
-    struct RepeatedDefault : public Base
-{
-    using Base::Base;
-
-    /**  Create and add value */
-    typename Base::type& createAndAddValue() override
-    {
-        this->markSet();
-        auto val=RepeatedTraits<Type>::template createValue<DefaultV>(this->m_parentUnit);
-        if (this->fieldIsParseToSharedArrays())
-        {
-            Base::fieldType::prepareSharedStorage(val,this->m_parentUnit->factory());
-        }
-        this->vector.push_back(std::move(val));
-        return this->vector.back();
-    }
-
-    /**  Add number of values */
-    virtual void addValues(size_t n) override
-    {
-        if (Base::isSizeIterateNeeded || DefaultV::HasDefV::value)
-        {
-            this->vector.reserve(this->vector.size()+n);
-            for (size_t i=0;i<n;i++)
-            {
-                this->createAndAddValue();
-            }
-        }
-        else
-        {
-            this->vector.resize(this->vector.size()+n);
-            this->markSet();
-        }
-    }
-    };
-
 struct RepeatedType{};
 
 /**  Template class for repeated dataunit field */
-template <typename Type, int Id>
+template <typename Type, int Id, typename DefaultTraits>
 struct RepeatedFieldTmpl : public Field, public RepeatedType
 {
     using type=typename RepeatedTraits<Type>::valueType;
     using fieldType=typename RepeatedTraits<Type>::fieldType;
     using vectorType=::hatn::common::pmr::vector<type>;
     using isRepeatedType=std::true_type;
-    using selfType=RepeatedFieldTmpl<Type,Id>;
+    using selfType=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
 
     constexpr static const bool isSizeIterateNeeded=RepeatedTraits<Type>::isSizeIterateNeeded;
     constexpr static int fieldId()
@@ -524,15 +486,36 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
        return vector.size();
     }
 
-    /**  Create and add value
-       @todo Implement variant for static polymorphism.
-    */
-    virtual type& createAndAddValue() =0;
+    /**  Create and add value */
+    type& createAndAddValue()
+    {
+        this->markSet();
+        auto val=RepeatedTraits<Type>::template createValue<DefaultTraits>(m_parentUnit);
+        if (fieldIsParseToSharedArrays())
+        {
+            fieldType::prepareSharedStorage(val,m_parentUnit->factory());
+        }
+        vector.push_back(std::move(val));
+        return vector.back();
+    }
 
-    /**  Add number of values
-     *   @todo Implement variant for static polymorphism.
-    */
-    virtual void addValues(size_t n)=0;
+    /**  Add number of values */
+    void addValues(size_t n)
+    {
+        if (isSizeIterateNeeded || DefaultTraits::HasDefV::value)
+        {
+            vector.reserve(vector.size()+n);
+            for (size_t i=0;i<n;i++)
+            {
+                createAndAddValue();
+            }
+        }
+        else
+        {
+            vector.resize(vector.size()+n);
+            markSet();
+        }
+    }
 
     /**  Get number of repeated fields */
     inline size_t count() const noexcept
@@ -842,14 +825,15 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 };
 
 /**  Template class for repeated dataunit field compatible with packed repeated fields of Google Protocol Buffers*/
-template <typename Type, int Id>
-struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
+template <typename Type, int Id, typename DefaultTraits>
+struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,DefaultTraits>
 {
-   using type=typename RepeatedFieldTmpl<Type,Id>::type;
-   using fieldType=typename RepeatedFieldTmpl<Type,Id>::fieldType;
+   using base=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
+   using type=typename base::type;
+   using fieldType=typename base::fieldType;
    static_assert(Type::isPackedProtoBufCompatible::value,"You can't use this type in fields compatible with repeated packed type of Google Protol Buffers");
 
-   using RepeatedFieldTmpl<Type,Id>::RepeatedFieldTmpl;
+   using RepeatedFieldTmpl<Type,Id,DefaultTraits>::RepeatedFieldTmpl;
 
    template <typename BufferT>
    bool deserialize(BufferT& wired, AllocatorFactory* factory)
@@ -976,13 +960,14 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id>
 };
 
 /**  Template class for repeated dataunit field compatible with unpacked repeated fields of Google Protocol Buffers for ordinary types*/
-template <typename Type, int Id>
-struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
+template <typename Type, int Id, typename DefaultTraits>
+struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,DefaultTraits>
 {
+   using base=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
    using type=typename RepeatedTraits<Type>::valueType;
    using fieldType=typename RepeatedTraits<Type>::fieldType;
 
-   using RepeatedFieldTmpl<Type,Id>::RepeatedFieldTmpl;
+   using RepeatedFieldTmpl<Type,Id,DefaultTraits>::RepeatedFieldTmpl;
 
    constexpr static WireType fieldWireType() noexcept
    {
@@ -1002,7 +987,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
 
    size_t fieldSize() const noexcept
    {
-       if (RepeatedFieldTmpl<Type,Id>::isSizeIterateNeeded)
+       if (base::isSizeIterateNeeded)
        {
            size_t result=0;
            for (auto&& it:this->vector)
@@ -1064,7 +1049,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
 
            /* append tag to sream */
            constexpr uint32_t tag=(id<<3)|static_cast<int>(tagWireType);
-           if (RepeatedFieldTmpl<Type,Id>::CanChainBlocks && !wired.isSingleBuffer())
+           if (base::CanChainBlocks && !wired.isSingleBuffer())
            {
                wired.appendUint32(tag);
            }
@@ -1091,33 +1076,33 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id>
    }
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
     struct RepeatedField : public FieldConf<
-            RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
+            RepeatedFieldTmpl<Type,Id,DefaultTraits>,
             Id,FieldName,Tag,Required>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldTmpl<Type,Id>,Type,DefaultAlias>,
+        RepeatedFieldTmpl<Type,Id,DefaultTraits>,
         Id,FieldName,Tag,Required>::FieldConf;
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
     struct RepeatedFieldProtoBufPacked : public FieldConf<
-            RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
+            RepeatedFieldProtoBufPackedTmpl<Type,Id,DefaultTraits>,
             Id,FieldName,Tag,Required>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldProtoBufPackedTmpl<Type,Id>,Type,DefaultAlias>,
+        RepeatedFieldProtoBufPackedTmpl<Type,Id,DefaultTraits>,
         Id,FieldName,Tag,Required>::FieldConf;
 };
 
-template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
+template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
     struct RepeatedFieldProtoBufOrdinary : public FieldConf<
-            RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
+            RepeatedFieldProtoBufOrdinaryTmpl<Type,Id,DefaultTraits>,
             Id,FieldName,Tag,Required>
 {
     using FieldConf<
-        RepeatedDefault<RepeatedFieldProtoBufOrdinaryTmpl<Type,Id>,Type,DefaultAlias>,
+        RepeatedFieldProtoBufOrdinaryTmpl<Type,Id,DefaultTraits>,
         Id,FieldName,Tag,Required>::FieldConf;
 };
 
@@ -1131,22 +1116,22 @@ enum class RepeatedMode : int
 template <RepeatedMode Mode>
 struct SelectRepeatedType
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedField<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedField<FieldName,Type,Id,Tag,DefaultTraits,Required>;
 };
 
 template <>
 struct SelectRepeatedType<RepeatedMode::ProtobufPacked>
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedFieldProtoBufPacked<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufPacked<FieldName,Type,Id,Tag,DefaultTraits,Required>;
 };
 
 template <>
 struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultAlias=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedFieldProtoBufOrdinary<FieldName,Type,Id,Tag,DefaultAlias,Required>;
+    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufOrdinary<FieldName,Type,Id,Tag,DefaultTraits,Required>;
 };
 
 enum class RepeatedContentType : int
@@ -1155,7 +1140,6 @@ enum class RepeatedContentType : int
     External,
     Embedded
 };
-
 
 HATN_DATAUNIT_NAMESPACE_END
 
