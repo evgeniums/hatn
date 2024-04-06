@@ -324,7 +324,7 @@ template <typename Base, typename Type,typename DefaultV>
     {
         this->markSet();
         auto val=RepeatedTraits<Type>::template createValue<DefaultV>(this->m_parentUnit);
-        if (this->isParseToSharedArrays())
+        if (this->fieldIsParseToSharedArrays())
         {
             Base::fieldType::prepareSharedStorage(val,this->m_parentUnit->factory());
         }
@@ -459,8 +459,6 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     {
       return vector;
     }
-
-    //! @todo add access helpers for string types
 
     /**  Set value by index */
     template <typename T>
@@ -712,9 +710,9 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     *
     * When enabled then shared byte arrays will be auto allocated in managed shared buffers
     */
-    virtual void setParseToSharedArrays(bool enable,AllocatorFactory* =nullptr) override
+    virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
     {
-       m_parseToSharedArrays=enable;
+        fieldSetParseToSharedArrays(enable,factory);
     }
 
     /**
@@ -723,7 +721,17 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     */
     virtual bool isParseToSharedArrays() const noexcept override
     {
-       return m_parseToSharedArrays;
+       return fieldIsParseToSharedArrays();
+    }
+
+    void fieldSetParseToSharedArrays(bool enable,AllocatorFactory* =nullptr)
+    {
+        m_parseToSharedArrays=enable;
+    }
+
+    bool fieldIsParseToSharedArrays() const noexcept
+    {
+        return m_parseToSharedArrays;
     }
 
     /** Format as JSON element

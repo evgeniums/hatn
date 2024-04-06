@@ -321,6 +321,20 @@ class FieldTmplBytes : public Field, public BytesType
          */
         virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
         {
+            fieldSetParseToSharedArrays(enable,factory);
+        }
+
+        /**
+         * @brief Check if shared byte arrays must be used for parsing
+         * @return Boolean flag
+         */
+        virtual bool isParseToSharedArrays() const noexcept override
+        {
+            return fieldIsParseToSharedArrays();
+        }
+
+        void fieldSetParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* factory)
+        {
             if (enable)
             {
                 if (factory==nullptr)
@@ -339,14 +353,11 @@ class FieldTmplBytes : public Field, public BytesType
             }
         }
 
-        /**
-         * @brief Check if shared byte arrays must be used for parsing
-         * @return Boolean flag
-         */
-        virtual bool isParseToSharedArrays() const noexcept override
+        bool fieldIsParseToSharedArrays() const noexcept
         {
             return !byteArrayShared().isNull();
         }
+
 
         //! Format as JSON element
         inline static bool formatJSON(const typename Type::type& value,json::Writer* writer)

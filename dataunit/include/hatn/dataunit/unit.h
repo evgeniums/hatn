@@ -276,16 +276,10 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual const char* name() const noexcept;
 
         //! Clear unit
-        void clear(bool onlyNonClean=false);
+        void clear();
 
         //! Reset unit
-        void reset();
-
-        //! Is DataUnit empty
-        inline bool isEmpty() const noexcept
-        {
-            return m_clean;
-        }
+        void reset(bool onlyNonClean=false);
 
         /** Get reference to self **/
         inline const Unit& value() const noexcept

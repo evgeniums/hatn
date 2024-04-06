@@ -70,21 +70,21 @@ Unit::~Unit()=default;
 
 //---------------------------------------------------------------
 //! @todo Make it in visitors
-void Unit::clear(bool onlyNonClean)
+void Unit::clear()
 {
-    if (!onlyNonClean || !m_clean)
-    {
-        iterateFields([](Field& field){field.clear(); return true;});
-    }
+    iterateFields([](Field& field){field.clear(); return true;});
     resetWireDataKeeper();
-    m_clean=true;
 }
 
 //---------------------------------------------------------------
-void Unit::reset()
+void Unit::reset(bool onlyNonClean)
 {
-    iterateFields([](Field& field){field.reset(); return true;});
+    if (!onlyNonClean || !m_clean)
+    {
+        iterateFields([](Field& field){field.reset(); return true;});
+    }
     resetWireDataKeeper();
+    m_clean=true;
 }
 
 //---------------------------------------------------------------

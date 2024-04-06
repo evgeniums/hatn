@@ -149,6 +149,14 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
          */
         virtual bool isParseToSharedArrays() const noexcept;
 
+        void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
+        {}
+
+        bool fieldIsParseToSharedArrays() const noexcept
+        {
+            return false;
+        }
+
         virtual void pushJsonParseHandler(Unit*)=0;
 
         virtual bool toJSON(json::Writer* writer) const=0;

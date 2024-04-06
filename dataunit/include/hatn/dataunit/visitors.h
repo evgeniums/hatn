@@ -162,12 +162,8 @@ struct HATN_DATAUNIT_EXPORT visitors
     template <typename UnitT>
     static void clear(UnitT& obj)
     {
-        if (!obj.isClean())
-        {
-            obj.iterate([](auto& field){field.fieldClear(); return true;});
-        }
+        obj.iterate([](auto& field){field.fieldClear(); return true;});
         obj.resetWireDataKeeper();
-        obj.setClean(true);
     }
 
     /**
@@ -175,14 +171,14 @@ struct HATN_DATAUNIT_EXPORT visitors
      * @param obj Data unit object.
      */
     template <typename UnitT>
-    static void reset(UnitT& obj)
+    static void reset(UnitT& obj, bool onlyNonClean=false)
     {
-        if (!obj.isClean())
+        if (!onlyNonClean || !obj.isClean())
         {
             obj.iterate([](auto& field){field.fieldReset(); return true;});
         }
         obj.resetWireDataKeeper();
-        obj.setReset(true);
+        obj.setClean(true);
     }
 
     /**
@@ -278,7 +274,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     return deserialize(obj,singleW,topLevel);
                 }
 
-                clear(obj);
+                reset(obj,true);
                 obj.setClean(false);
 
                 uint32_t tag=0;
@@ -286,7 +282,7 @@ struct HATN_DATAUNIT_EXPORT visitors
 
                 auto cleanup=[&obj,&wired,topLevel]()
                 {
-                    clear(obj);
+                    reset(obj);
                     if (topLevel)
                     {
                         wired.resetState();
