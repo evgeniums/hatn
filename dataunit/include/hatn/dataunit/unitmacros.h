@@ -70,7 +70,6 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
         using traits=field_traits<field_generator,\
                        strings,\
                        hana::int_<Id>,\
-                       hana::int_<HATN_COUNTER_GET(c)>,\
                        Type,\
                        default_type<Type,default_##FieldName>,\
                        required,\

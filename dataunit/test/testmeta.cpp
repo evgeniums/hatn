@@ -39,7 +39,6 @@ namespace unit1 {
         using traits=meta::field_traits<meta::field_generator,
                                   field0_strings,
                                   hana::int_<field0_id>,
-                                  hana::int_<HATN_COUNTER_GET(c)>,
                                   field0_type,
                                   field0_default_traits,
                                   field0_required,

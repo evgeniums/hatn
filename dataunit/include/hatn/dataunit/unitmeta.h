@@ -123,7 +123,6 @@ struct default_field<T, hana::when<hana::is_a<auto_tag,T>>>
 template <template <typename ...> class GeneratorT,
          typename StringsT,
          typename Id,
-         typename Index,
          typename TypeId,
          typename DefaultTraits,
          typename Required,
@@ -141,7 +140,6 @@ struct field_traits
     using shared_type=typename generator::shared_type;
 
     constexpr static const int ID=Id::value;
-    constexpr static const int index=Index::value;
 
     constexpr static const char* name() noexcept {return StringsT::name;}
 
