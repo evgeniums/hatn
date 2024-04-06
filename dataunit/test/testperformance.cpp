@@ -106,7 +106,7 @@ template <typename T> void fillForPerformance(T& allTypes, int n)
 
 }
 
-BOOST_AUTO_TEST_SUITE(DataunitPerformance)
+BOOST_AUTO_TEST_SUITE(HduPerformance)
 
 BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
 {
@@ -241,6 +241,12 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     elapsedMs=elapsed.elapsed().totalMilliseconds;
     elapsedStr=elapsed.toString(true);
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+}
+
+BOOST_AUTO_TEST_CASE(TestPerformanceNoWarn)
+{
+    // to avoid warning about empty test tree
+    BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
