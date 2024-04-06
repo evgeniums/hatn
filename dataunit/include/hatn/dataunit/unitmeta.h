@@ -402,15 +402,12 @@ struct make_fields_tuple_t
 {
     constexpr auto operator()() const
     {
-        constexpr std::make_integer_sequence<int,N> indices{};
         auto to_field_c=[](auto x)
         {
             return hana::type_c<FieldT<decltype(x)::value>>;
         };
 
-        return hana::transform(hana::unpack(indices,
-                                            [](auto ...i){return hana::make_tuple(std::forward<decltype(i)>(i)...);}
-                                            ),
+        return hana::transform(hana::unpack(hana::make_range(hana::int_c<0>,hana::int_c<N>),hana::make_tuple),
                                to_field_c
                                );
     }
@@ -686,40 +683,6 @@ constexpr auto is_basic_type()
     auto ok=hana::sfinae(check)(hana::type_c<Type>);
     return hana::equal(ok,hana::just(hana::true_c));
 }
-
-//---------------------------------------------------------------
-#if 0
-#define HDU_V2_TAG(TagName,Value) \
-    struct field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)>\
-    {\
-        constexpr static const char* name=#TagName;\
-        constexpr static const auto value=Value;\
-    };\
-    constexpr field_tags_##FieldName<HATN_COUNTER_GET(t_c_##FieldName)> tags_##FieldName##TagName;
-
-#define HDU_V2_TAGS(...) \
-    hana::type_c<decltype(hana::make_tuple(__VA_ARGS__))>
-
-#define HDU_V2_FIELD_TAGS(FieldName,...) \
-    struct t_c_##FieldName{};\
-    HATN_COUNTER_MAKE(t_c_##FieldName);\
-    template <int> struct field_tags_##FieldName{};\
-    __VA_ARGS__ \
-    auto tags_##FieldName=lift_all_tags<field_tags_##FieldName,HATN_COUNTER_GET(t_c_##FieldName)>();
-    template <>\
-    struct field_tags<HATN_COUNTER_GET(t_c)>\
-    {\
-        constexpr static const auto& field=FieldName;\
-        constexpr static const auto& value=tags_##FieldName;\
-    };\
-
-#define HDU_V2_UNIT_TAGS(UnitName,...) \
-    struct t_c{};\
-    HATN_COUNTER_MAKE(t_c);\
-    template <int> struct field_tags{};\
-    __VA_ARGS__ \
-    auto tags=make_tags(field_tags);
-#endif
 
 //---------------------------------------------------------------
 } // namespace meta
