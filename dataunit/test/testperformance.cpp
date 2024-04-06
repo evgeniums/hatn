@@ -104,14 +104,22 @@ template <typename T> void fillForPerformance(T& allTypes, int n)
     f9.set(val_double);
 }
 
+HATN_COMMON_NAMESPACE::Result<size_t> checkIntResult(const std::string& msg, int i)
+{
+    if (i%10)
+    return msg.size();
+
+    return msg.size()+10;
+}
+
 }
 
 BOOST_AUTO_TEST_SUITE(HduPerformance)
 
 BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
 {
-    int runs=50000000;
-    hatn::common::ElapsedTimer elapsed;
+    int runs=10000000;
+    HATN_COMMON_NAMESPACE::ElapsedTimer elapsed;
     uint64_t elapsedMs=0;
 
     auto perSecond=[&runs,&elapsedMs]()
@@ -125,6 +133,33 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
         return static_cast<int>(round(1000*(runs/ms)));
     };
 
+    std::cerr<<"Cycle result int"<<std::endl;
+
+    std::string msg("Hello world!");
+    size_t errcnt=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        errcnt+=checkIntResult(msg,i).value();
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    auto elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_GT(errcnt, runs);
+
+    std::cerr<<"Cycle errors on stack"<<std::endl;
+    errcnt=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        HATN_COMMON_NAMESPACE::Error ec;
+        errcnt+=ec.message().size();
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(int(runs)*2,errcnt);
+
     std::cerr<<"Cycle creating DataUnit on stack"<<std::endl;
 
     elapsed.reset();
@@ -135,7 +170,7 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
         f1.set(true);
     }
     elapsedMs=elapsed.elapsed().totalMilliseconds;
-    auto elapsedStr=elapsed.toString(true);
+    elapsedStr=elapsed.toString(true);
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 
     std::cerr<<"Cycle new/delete unit"<<std::endl;
@@ -220,6 +255,7 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     elapsed.reset();
     for (int i=0;i<runs;++i)
     {
+        unit2_1.setClean(true);
         resultCount+=static_cast<int>(hatn::dataunit::io::deserialize(unit2_1,solid1));
     }
     elapsedMs=elapsed.elapsed().totalMilliseconds;
@@ -236,11 +272,43 @@ BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
     elapsed.reset();
     for (int i=0;i<runs;++i)
     {
+        unit2_1.setClean(true);
         unit2.parse(wired1);
     }
     elapsedMs=elapsed.elapsed().totalMilliseconds;
     elapsedStr=elapsed.toString(true);
     std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+
+    std::cerr<<"Cycle create on stack and deserialize"<<std::endl;
+
+    resultCount=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        typename internal::all_types::type unit2_1;
+        resultCount+=static_cast<int>(hatn::dataunit::io::deserialize(unit2_1,solid1));
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
+
+    std::cerr<<"New/delete and deserialize"<<std::endl;
+
+    resultCount=0;
+    elapsed.reset();
+    for (int i=0;i<runs;++i)
+    {
+        auto unit1=new typename internal::all_types::type();
+        resultCount+=static_cast<int>(hatn::dataunit::io::deserialize(*unit1,solid1));
+        delete unit1;
+    }
+    elapsedMs=elapsed.elapsed().totalMilliseconds;
+    elapsedStr=elapsed.toString(true);
+    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
+    BOOST_CHECK_EQUAL(runs,resultCount);
+
+    //! @todo Test create in pool and deserialize.
 }
 
 BOOST_AUTO_TEST_CASE(TestPerformanceNoWarn)

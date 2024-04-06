@@ -223,7 +223,5 @@ BOOST_AUTO_TEST_SUITE_END()
  * @todo Error processing.
  * @todo Clean up metautils.
  * @todo Refactor json methods with non virtual methods.
- * @todo Static table of field names.
- * @todo Test Error performance.
  * @todo Remove legacy headers from dataunit.
  */

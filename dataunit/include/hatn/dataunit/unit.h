@@ -411,6 +411,11 @@ class HATN_DATAUNIT_EXPORT Unit
             return m_clean;
         }
 
+        bool setClean(bool val) noexcept
+        {
+            return m_clean=val;
+        }
+
     private:
 
         template <typename T>
@@ -418,11 +423,6 @@ class HATN_DATAUNIT_EXPORT Unit
           bool prettyFormat=false,
           int maxDecimalPlaces=0
         ) const;
-
-        bool setClean(bool val) noexcept
-        {
-            return m_clean=val;
-        }
 
         common::SharedPtr<WireData> m_wireDataKeeper;
         bool m_clean;
