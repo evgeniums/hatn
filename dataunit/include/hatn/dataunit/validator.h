@@ -126,7 +126,8 @@ inline bool ValidatorTraits<FieldGetSet::Operation::BufResize>::validate(Validat
 inline bool ValidatorTraits<FieldGetSet::Operation::Unset>::validate(Validator* validator,const Field* field,const ValidateCb& validateCb,int)
 {
     return validator->validateUnset(field,validateCb);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

@@ -225,7 +225,5 @@ BOOST_AUTO_TEST_SUITE_END()
  * @todo Refactor json methods with non virtual methods.
  * @todo Static table of field names.
  * @todo Test Error performance.
- * @todo Edit WithStaticAllocator.
  * @todo Remove legacy headers from dataunit.
- * @todo Fix fake dataunit namespace endings.
  */
