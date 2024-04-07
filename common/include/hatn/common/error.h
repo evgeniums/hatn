@@ -187,11 +187,24 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         //! Get boost error category.
         inline const boost::system::error_category* boostCategory() const
         {
-            if (lib::variantIndex(m_extended)==1)
+            switch (lib::variantIndex(m_extended))
             {
-                auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
-                return boostCat;
+                case(0):
+                {
+                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
+                    return boostCat;
+                }
+
+                case(2):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    if (nativeError)
+                    {
+                        return nativeBoostCategory(nativeError);
+                    }
+                }
             }
+
             return nullptr;
         }
 
@@ -245,10 +258,13 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 
         const ApiError* apiError() const noexcept;
 
+        void stackWith(Error&& next);
+
     private:
 
         bool compareNative(const Error& other) const noexcept;
         const std::error_category* nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
+        const boost::system::error_category* nativeBoostCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
         std::string nativeMessage(const std::shared_ptr<NativeError>& nativeError) const;
 
         int32_t m_code;

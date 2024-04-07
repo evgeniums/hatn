@@ -43,7 +43,8 @@ class HATN_COMMON_EXPORT NativeError
                 const std::error_category* category=nullptr
             ) : m_nativeMessage(std::move(nativeMessage)),
                 m_nativeCode(nativeCode),
-                m_category(category)
+                m_category(category),
+                m_boostCategory(nullptr)
         {}
 
         //! Ctor
@@ -51,20 +52,23 @@ class HATN_COMMON_EXPORT NativeError
                 int nativeCode,
                 const std::error_category* category=nullptr
             ) : m_nativeCode(nativeCode),
-                m_category(category)
+                m_category(category),
+                m_boostCategory(nullptr)
         {}
 
         //! Ctor
         NativeError(
                 const std::error_category* category
             ) : m_nativeCode(-1),
-                m_category(category)
+                m_category(category),
+                m_boostCategory(nullptr)
         {}
 
         //! Ctor
         NativeError(
         ) : m_nativeCode(-1),
-            m_category(nullptr)
+            m_category(nullptr),
+            m_boostCategory(nullptr)
         {}
 
         virtual ~NativeError();
@@ -112,6 +116,16 @@ class HATN_COMMON_EXPORT NativeError
             m_category=cat;
         }
 
+        const boost::system::error_category* boostCategory() const noexcept
+        {
+            return m_boostCategory;
+        }
+
+        void setBoostCategory(const boost::system::error_category* cat) noexcept
+        {
+            m_boostCategory=cat;
+        }
+
         //! Compare with other error.
         inline bool isEqual(const NativeError& other) const noexcept
         {
@@ -136,7 +150,7 @@ class HATN_COMMON_EXPORT NativeError
             return !isEqual(other);
         }
 
-        void setPrevError(Error error)
+        void setPrevError(Error&& error)
         {
             m_prevError=std::move(error);
         }
@@ -173,6 +187,7 @@ class HATN_COMMON_EXPORT NativeError
         std::string m_nativeMessage;
         int m_nativeCode;
         const std::error_category* m_category;
+        const boost::system::error_category* m_boostCategory;
 
         lib::optional<Error> m_prevError;
         lib::optional<ApiError> m_apiError;
