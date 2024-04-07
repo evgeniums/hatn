@@ -107,7 +107,6 @@ int unit_t<BaseT,UniqueType>::serialize(WireData& wired,bool topLevel) const
 }
 
 #if 0
-//! @todo Maybe implement virtual serializrion
 template <typename BaseT, typename UniqueType>
 int unit_t<BaseT,UniqueType>::serialize(WireBufSolid& wired,bool topLevel) const
 {

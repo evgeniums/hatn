@@ -220,8 +220,8 @@ BOOST_AUTO_TEST_SUITE_END()
 
 /**
  * @todo Data unit tags.
- * @todo Error processing.
  * @todo Clean up metautils.
- * @todo Refactor json methods with non virtual methods.
+ * @todo Refactor json methods with non virtual methods, add mehod with filling error.
  * @todo Remove legacy headers from dataunit.
+ * @todo Test parsing and serialization errors.
  */

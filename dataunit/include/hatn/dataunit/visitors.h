@@ -27,8 +27,10 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/result.h>
+#include <hatn/common/runonscopeexit.h>
 
 #include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/wirebuf.h>
 #include <hatn/dataunit/wirebufsolid.h>
@@ -53,30 +55,15 @@ constexpr true_predicate_t true_predicate{};
 
 struct HATN_DATAUNIT_EXPORT visitors
 {
-
-    //! @todo Change error processing.
-    template <typename ...Args>
-    static void reportDebug(const char* context,const char* msg, Args&&... args) noexcept
-    {
-        HATN_DEBUG_CONTEXT(dataunit,context,1,HATN_FORMAT(msg,std::forward<Args>(args)...));
-    }
-    template <typename ...Args>
-    static void reportWarn(const char* context,const char* msg, Args&&... args) noexcept
-    {
-        HATN_WARN_CONTEXT(dataunit,context,HATN_FORMAT(msg,std::forward<Args>(args)...));
-    }
-
     /**
      * @brief Serialize data unit without invokation of virtual methods.
      * @param obj Object to serialize.
      * @param wired Buffer to put data to.
      * @param top Is it top level object or subunit.
      * @return Serialized size or -1 in case of error.
-     *
-     * @todo Use descriptive error or maybe just throw on missing required fields?
      */
     template <typename UnitT, typename BufferT>
-    int static serialize(const UnitT& obj, BufferT& wired, bool top=true)
+    static int serialize(const UnitT& obj, BufferT& wired, bool top=true)
     {
         return hana::eval_if(
             std::is_same<Unit,UnitT>{},
@@ -124,6 +111,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     {
                         if (fieldT::fieldRequired())
                         {
+                            rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.fieldId(),"required field {} is not set",field.fieldName());
                             return false;
                         }
                         return true;
@@ -147,6 +135,7 @@ struct HATN_DATAUNIT_EXPORT visitors
 
                     if (!field.serialize(buf))
                     {
+                        rawError(RawErrorCode::FIELD_SERIALIZING_FAILED,field.fieldId(),"failed to serialize field {}",field.fieldName());
                         return false;
                     }
 
@@ -219,33 +208,31 @@ struct HATN_DATAUNIT_EXPORT visitors
      * @return Name of failed field or nullptr.
      */
     template <typename UnitT>
-    static const char* checkRequiredFields(UnitT& obj)
+    static auto checkRequiredFields(UnitT& obj)
     {
         const char* failedFieldName=nullptr;
-        if (!obj.iterate(
-                    [&failedFieldName](const auto& field)
-                    {
-                        using fieldType=std::decay_t<decltype(field)>;
+        int failedFieldId=-1;
+        obj.iterate(
+            [&failedFieldName,&failedFieldId](const auto& field)
+            {
+                using fieldType=std::decay_t<decltype(field)>;
 
-                        if (!fieldType::fieldRequired())
-                        {
-                            return true;
-                        }
+                if (!fieldType::fieldRequired())
+                {
+                    return true;
+                }
 
-                        bool ok=field.isSet();
-                        if (!ok)
-                        {
-                            failedFieldName=fieldType::fieldName();
-                        }
-                        return ok;
-                    }
-                )
-            )
-        {
-            return failedFieldName;
-        }
+                bool ok=field.isSet();
+                if (!ok)
+                {
+                    failedFieldName=fieldType::fieldName();
+                    failedFieldId=fieldType::fieldId();
+                }
+                return ok;
+            }
+        );
 
-        return nullptr;
+        return std::make_pair(failedFieldId,failedFieldName);
     }
 
     /**
@@ -303,11 +290,9 @@ struct HATN_DATAUNIT_EXPORT visitors
     /**
      * @brief Deserialize data unit without invokation of virtual methods.
      * @param unit Object to deserialize to.
-     * @param obj Buffer containing data.
+     * @param buf Buffer containing data.
      * @param top Is it top level object or subunit.
-     * @return Serialized size or -1 in case of error.
-     *
-     * @todo Use descriptive errors.
+     * @return Operation status, true if success.
      */
     template <typename UnitT, typename BufferT>
     static bool deserialize(UnitT& unit, BufferT& buf, bool top=true)
@@ -362,13 +347,13 @@ struct HATN_DATAUNIT_EXPORT visitors
                     auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),buf->size()-wired.currentOffset(),tag);
                     if (consumed<0)
                     {
-                        reportDebug("parse","Failed to parse DataUnit message {}: broken tag at offset ",obj.name(),wired.currentOffset());
+                        rawError(RawErrorCode::END_OF_STREAM,"broken tag at offset ",wired.currentOffset());
                         cleanup();
                         return false;
                     }
                     if (tag==0)
                     {
-                        reportDebug("parse","Failed to parse DataUnit message {}: null tag at offset ",obj.name(),wired.currentOffset());
+                        rawError(RawErrorCode::INVALID_TAG,"null tag at offset {}",wired.currentOffset());
                         cleanup();
                         return false;
                     }
@@ -385,13 +370,13 @@ struct HATN_DATAUNIT_EXPORT visitors
                         auto fieldWireType=static_cast<int>(parser->wireType);
                         if (fieldWireType!=fieldType)
                         {
-                            reportDebug("parse","Failed to parse DataUnit message {}: for field {} invalid wire type {}",obj.name(),parser->fieldName,fieldType);
+                            rawError(RawErrorCode::FIELD_TYPE_MISMATCH,parser->fieldId,"invalid wire type {} for field {}",fieldType,parser->fieldName);
                             cleanup();
                             return false;
                         }
                         if (!parser->fn(obj,wired,obj.factory()))
                         {
-                            reportDebug("parse","Failed to parse DataUnit message {}: for field {} at offset {}",obj.name(),parser->fieldName,wired.currentOffset());
+                            rawError(RawErrorCode::FIELD_PARSING_FAILED,parser->fieldId,"failed to parse field {} at offset {}",parser->fieldName,wired.currentOffset());
                             cleanup();
                             return false;
                         }
@@ -415,11 +400,11 @@ struct HATN_DATAUNIT_EXPORT visitors
                             {
                                 if (overflow)
                                 {
-                                    reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",obj.name());
+                                    rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer at size {}",buf->size());
                                 }
                                 else
                                 {
-                                    reportDebug("parse","Failed to parse DataUnit message {}: unterminated VarInt for field {} at offset ",obj.name(),fieldId,wired.currentOffset());
+                                    rawError(RawErrorCode::UNTERMINATED_VARINT,fieldId,"unterminated VarInt for possible field ID {} at offset {}",fieldId,wired.currentOffset());
                                 }
                                 cleanup();
                                 return false;
@@ -431,14 +416,14 @@ struct HATN_DATAUNIT_EXPORT visitors
                                 if (shift>28)
                                 {
                                     // length can't be more than 32 bit word
-                                    reportDebug("parse","Failed to parse DataUnit message {}: invalid block length for field {} at offset ",obj.name(),fieldId,wired.currentOffset());
+                                    rawError(RawErrorCode::INVALID_BLOCK_LENGTH,fieldId,"invalid block length for field {} at offset {}",fieldId,wired.currentOffset());
                                     cleanup();
                                     return false;
                                 }
                                 wired.incCurrentOffset(value);
                                 if (buf->size()<wired.currentOffset())
                                 {
-                                    reportDebug("parse","Failed to parse DataUnit message {}: block length overflow for field {} at offset ",obj.name(),fieldId,wired.currentOffset());
+                                    rawError(RawErrorCode::END_OF_STREAM,fieldId,"block length overflow for field {} at offset {}",fieldId,wired.currentOffset());
                                     cleanup();
                                     return false;
                                 }
@@ -451,8 +436,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                             wired.incCurrentOffset(4);
                             if (buf->size()<wired.currentOffset())
                             {
-                                reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",obj.name());
-
+                                rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer at size {}",buf->size());
                                 cleanup();
                                 return false;
                             }
@@ -464,8 +448,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                             wired.incCurrentOffset(8);
                             if (buf->size()<wired.currentOffset())
                             {
-                                reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",obj.name());
-
+                                rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer at size {}",buf->size());
                                 cleanup();
                                 return false;
                             }
@@ -474,7 +457,7 @@ struct HATN_DATAUNIT_EXPORT visitors
 
                         default:
                         {
-                            reportDebug("parse","Failed to parse DataUnit message {}: unknown field type {} at offset {}",obj.name(),fieldType,wired.currentOffset());
+                            rawError(RawErrorCode::UNKNOWN_FIELD_TYPE,"unknown field type {} at offset {}",fieldType,wired.currentOffset());
                             cleanup();
                             return false;
                         }
@@ -485,10 +468,10 @@ struct HATN_DATAUNIT_EXPORT visitors
                 }
 
                 // check if all required fields are set
-                const char* failedFieldName=checkRequiredFields(obj);
-                if (failedFieldName!=nullptr)
+                auto failedField=checkRequiredFields(obj);
+                if (failedField.second!=nullptr)
                 {
-                    reportDebug("parse","Failed to parse DataUnit message {}: required field {} is not set",obj.name(),failedFieldName);
+                    rawError(RawErrorCode::REQUIRED_FIELD_MISSING,failedField.first,"required field {} is not set",failedField.second);
                     cleanup();
                     return false;
                 }
@@ -500,6 +483,47 @@ struct HATN_DATAUNIT_EXPORT visitors
                 return true;
             }
         );
+    }
+
+    /**
+     * @brief Serialize data unit without invokation of virtual methods.
+     * @param obj Object to serialize.
+     * @param buf Buffer to put data to.
+     * @param error Error object to fill if serialization failed.
+     * @return Serialized size or -1 in case of error.
+     */
+    template <typename UnitT, typename BufferT>
+    static int serialize(const UnitT& obj, BufferT& buf, Error& ec)
+    {
+        HATN_SCOPE_GUARD(
+            [&ec](){
+                fillError(UnitError::SERIALIZE_ERROR,ec);
+                RawError::setEnabledTL(false);
+            }
+        )
+
+        RawError::setEnabledTL(true);
+        return serialize(obj,buf);
+    }
+
+    /**
+     * @brief Deserialize data unit without invokation of virtual methods.
+     * @param obj Object to deserialize to.
+     * @param buf Buffer containing data.
+     * @param error Error object to fill if deserialization failed.
+     * @return Operation status, true if success.
+     */
+    template <typename UnitT, typename BufferT>
+    static bool deserialize(UnitT& obj, BufferT& buf, Error& ec)
+    {
+        HATN_SCOPE_GUARD(
+            [&ec](){
+                fillError(UnitError::PARSE_ERROR,ec);
+                RawError::setEnabledTL(false);
+            }
+        )
+        RawError::setEnabledTL(true);
+        return deserialize(obj,buf);
     }
 };
 

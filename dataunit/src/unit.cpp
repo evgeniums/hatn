@@ -34,6 +34,7 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/common/logger.h>
 
 #include <hatn/dataunit/wiredata.h>
+#include <hatn/dataunit/datauniterror.h>
 
 #include <hatn/dataunit/rapidjsonstream.h>
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
@@ -43,17 +44,6 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/dataunit/unit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace {
-template <typename ...Args> inline void reportDebug(const char* context,const char* msg, Args&&... args) noexcept
-{
-    HATN_DEBUG_CONTEXT(dataunit,context,1,HATN_FORMAT(msg,std::forward<Args>(args)...));
-}
-template <typename ...Args> inline void reportWarn(const char* context,const char* msg, Args&&... args) noexcept
-{
-    HATN_WARN_CONTEXT(dataunit,context,HATN_FORMAT(msg,std::forward<Args>(args)...));
-}
-}
 
 /********************** Unit **************************/
 
@@ -281,7 +271,6 @@ bool Unit::toJSONImpl(
 }
 
 //---------------------------------------------------------------
-//! @todo Make it in visitors
 bool Unit::toJSON(
         json::Writer* writer
     ) const
@@ -296,9 +285,7 @@ bool Unit::toJSON(
                         {
                             if (field.isRequired())
                             {
-                                reportWarn("json-serialize","Failed to serialize to JSON DataUnit message {}: required field {} is not set",
-                                                             name(),field.name()
-                                                             );
+                                rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.getID(),"failed to serialize message to JSON: required field {} is not set",field.name());
                                 return false;
                             }
                             return true;
@@ -309,8 +296,7 @@ bool Unit::toJSON(
                         // pack field
                         if (!field.toJSON(writer))
                         {
-                            reportWarn("json-serialize","Failed to serialize to JSON DataUnit message {}: broken on field {}",
-                                        name(),field.name());
+                            rawError(RawErrorCode::JSON_FIELD_SERIALIZE_ERROR,field.getID(),"failed to serialize field {} to JSON",field.name());
                             return false;
                         }
 
@@ -387,7 +373,7 @@ bool Unit::loadFromJSON(const common::lib::string_view &str)
     m_jsonParseHandlers.clear();
     if (reader.HasParseError())
     {
-        reportDebug("json-parse","Failed to load from JSON: {} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
+        rawError(RawErrorCode::JSON_PARSE_ERROR,"failed to parse JSON: {} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
         clear();
     }
     return !reader.HasParseError();

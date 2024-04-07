@@ -111,7 +111,7 @@ bool FixedSer<T>::deserialize(T& value, BufferT& wired)
     wired.incCurrentOffset(valueSize);
     if (wired.currentOffset()>buf->size())
     {
-        HATN_WARN(dataunit,"Unexpected end of buffer")
+        rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer at size {}",buf->size());
         return false;
     }
 
@@ -291,7 +291,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if size is more than allowed
     if (maxSize>0&&static_cast<int>(dataSize)>static_cast<int>(maxSize))
     {
-        HATN_WARN(dataunit,"Overflow in size of bytes buffer")
+        rawError(RawErrorCode::SUSPECT_OVERFLOW,"overflow in size of bytes buffer");
         return false;
     }
 
@@ -306,7 +306,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if buffer contains required amount of data
     if (buf->size()<wired.currentOffset())
     {
-        HATN_WARN(dataunit,"Size of bytes buffer is less than requested size")
+        rawError(RawErrorCode::END_OF_STREAM,"size of bytes buffer is less than requested size");
         return false;
     }
 
@@ -406,7 +406,6 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         {
             const auto& chain=wired.chain();
             auto& item=chain.at(sizeBufChainedIdx);
-            // auto& sizeBufChained=wired.chain().at(sizeBufChainedIdx).buf;
             auto& sizeBufChained=item.buf;
             sizePtr=sizeBufChained.data();
         }
@@ -452,15 +451,15 @@ bool UnitSer::deserialize(UnitT* value, BufferT& wired)
     // check if buffer contains required amount of data
     if (buf->size()<(wired.currentOffset()+dataSize))
     {
-        HATN_WARN(dataunit,"Size of bytes buffer is less than requested size")
+        rawError(RawErrorCode::END_OF_STREAM,"size of bytes buffer is less than requested size");
         return false;
     }
 
-    // temporarily set WireData size to SubUnit size with current offset
+    // temporarily set WireData size to subunit size with current offset
     auto keepSize=wired.size();
     wired.setSize(wired.currentOffset()+dataSize);
 
-    // parse SubUnit
+    // parse subunit
     auto ok=io::deserialize(*value,wired,false);
 
     // restore size

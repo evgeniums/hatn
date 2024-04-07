@@ -16,6 +16,7 @@
   *
   */
 
+#include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/stream.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -94,16 +95,14 @@ int StreamBase::unpackVarInt32(
     // check for overflow
     if (overflow)
     {
-        //! @todo collect errors
-        // HATN_WARN(dataunit,"Unexpected end of buffer");
+        rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer");
         return -1;
     }
 
     // check if more bytes left
     if (moreBytesLeft)
     {
-        //! @todo collect errors
-        // HATN_WARN(dataunit,"Unterminated VarInt");
+        rawError(RawErrorCode::UNTERMINATED_VARINT,"unterminated VarInt");
         return -1;
     }
 
@@ -129,16 +128,14 @@ int StreamBase::unpackVarInt64(
     // check for overflow
     if (overflow)
     {
-        //! @todo handle errors
-        // HATN_WARN(dataunit,"Unexpected end of buffer");
+        rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer");
         return -1;
     }
 
     // check if more bytes left
     if (moreBytesLeft)
     {
-        //! @todo handle errors
-        // HATN_WARN(dataunit,"Unterminated VarInt");
+        rawError(RawErrorCode::UNTERMINATED_VARINT,"unterminated VarInt");
         return -1;
     }
 

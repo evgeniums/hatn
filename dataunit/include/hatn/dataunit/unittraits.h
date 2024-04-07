@@ -100,6 +100,7 @@ class UnitImpl
             std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)> fn;
             WireType wireType;
             const char* fieldName;
+            int fieldId;
         };
 
         template <typename BufferT>
@@ -537,6 +538,7 @@ class EmptyUnit : public Unit
             std::function<bool(EmptyUnit&, BufferT&, AllocatorFactory*)> fn;
             WireType wireType;
             const char* fieldName;
+            int fieldId;
         };
 
         template <typename BufferT>
@@ -807,7 +809,8 @@ UnitImpl<Fields...>::fieldParsers()
         auto item=itemT{
             handler,
             type::fieldWireType(),
-            type::fieldName()
+            type::fieldName(),
+            type::fieldId()
         };
         map[type::fieldId()]=item;
 

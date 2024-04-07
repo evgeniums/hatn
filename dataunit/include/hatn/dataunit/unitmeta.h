@@ -299,7 +299,6 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            >
                        >
 {
-    //! @todo implement default string
     using type=DefaultField<StringsT,TypeId,Id::value,DefaultTraits>;
     using shared_type=type;
     using type_id=TypeId;
@@ -612,7 +611,7 @@ class unit_t : public BaseT
             }
             virtual int serialize(WireData& wired,bool topLevel=true) const override;
 #if 0
-            //! @todo Maybe implement virtual serialization
+            // Maybe implement virtual serialization
             virtual int serialize(WireBufSolid& wired,bool topLevel=true) const override;
             virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const override;
             virtual int serialize(WireBufChained& wired,bool topLevel=true) const override;

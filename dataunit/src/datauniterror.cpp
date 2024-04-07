@@ -22,14 +22,34 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-/********************** Error **************************/
+/********************** RawError **************************/
 
 //---------------------------------------------------------------
 
-RawError& RawError::threadLocal()
+RawError& RawError::threadLocal() noexcept
 {
     static thread_local RawError inst;
     return inst;
+}
+
+bool& RawError::enablingTL() noexcept
+{
+    static thread_local bool enabled;
+    return enabled;
+}
+
+bool RawError::isEnabledTL() noexcept
+{
+    return enablingTL();
+}
+
+void RawError::setEnabledTL(bool val) noexcept
+{
+    enablingTL()=val;
+    if (!val)
+    {
+        threadLocal().reset();
+    }
 }
 
 /********************** UnitNativeError **************************/

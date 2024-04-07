@@ -51,7 +51,13 @@ struct HATN_DATAUNIT_EXPORT RawError
         return code!=RawErrorCode::OK;
     }
 
-    static RawError& threadLocal();
+    static RawError& threadLocal() noexcept;
+    static bool isEnabledTL() noexcept;
+    static void setEnabledTL(bool) noexcept;
+
+    private:
+
+        static bool& enablingTL() noexcept;
 };
 
 //--------------------------------------------------------------
@@ -100,6 +106,42 @@ inline void fillError(UnitError code, Error& ec)
     {
         auto native=std::make_shared<UnitNativeError>(RawError::threadLocal());
         ec.setNative(static_cast<int>(code),std::move(native));
+    }
+}
+
+//---------------------------------------------------------------
+
+template <typename ...Args>
+void prepareRawError(RawErrorCode code, const char* msg, Args&&... args)
+{
+    if (RawError::threadLocal().message.empty())
+    {
+        RawError::threadLocal().message=fmt::format(msg,std::forward<Args>(args)...);
+    }
+    else
+    {
+        auto newMessage=fmt::format(msg,std::forward<Args>(args)...);
+        RawError::threadLocal().message=fmt::format("{}: {}",newMessage, RawError::threadLocal().message);
+    }
+    RawError::threadLocal().code=code;
+}
+
+template <typename ...Args>
+void rawError(RawErrorCode code, int field, const char* msg, Args&&... args)
+{
+    if (RawError::isEnabledTL())
+    {
+        prepareRawError(code,msg,std::forward<Args>(args)...);
+        RawError::threadLocal().field=field;
+    }
+}
+
+template <typename ...Args>
+void rawError(RawErrorCode code, const char* msg, Args&&... args)
+{
+    if (RawError::isEnabledTL())
+    {
+        prepareRawError(code,msg,std::forward<Args>(args)...);
     }
 }
 
