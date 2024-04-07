@@ -22,16 +22,17 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/format.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/errorcategory.h>
 #include <hatn/common/apierror.h>
+#include <hatn/common/error.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-class Error;
 class ByteArray;
 
 //! Base class for native errors.
-class HATN_COMMON_EXPORT NativeError : public ApiError
+class HATN_COMMON_EXPORT NativeError
 {
     public:
 
@@ -39,10 +40,8 @@ class HATN_COMMON_EXPORT NativeError : public ApiError
         NativeError(
                 std::string nativeMessage,
                 int nativeCode=-1,
-                bool apiError=false,
                 const std::error_category* category=nullptr
-            ) : ApiError(apiError),
-                m_nativeMessage(std::move(nativeMessage)),
+            ) : m_nativeMessage(std::move(nativeMessage)),
                 m_nativeCode(nativeCode),
                 m_category(category)
         {}
@@ -50,27 +49,21 @@ class HATN_COMMON_EXPORT NativeError : public ApiError
         //! Ctor
         NativeError(
                 int nativeCode,
-                bool apiError=false,
                 const std::error_category* category=nullptr
-            ) : ApiError(apiError),
-                m_nativeCode(nativeCode),
+            ) : m_nativeCode(nativeCode),
                 m_category(category)
         {}
 
         //! Ctor
         NativeError(
-                const std::error_category* category,
-                bool apiError=false
-            ) : ApiError(apiError),
-                m_nativeCode(-1),
+                const std::error_category* category
+            ) : m_nativeCode(-1),
                 m_category(category)
         {}
 
         //! Ctor
         NativeError(
-            bool apiError=false
-            ) : ApiError(apiError),
-            m_nativeCode(-1),
+        ) : m_nativeCode(-1),
             m_category(nullptr)
         {}
 
@@ -84,6 +77,22 @@ class HATN_COMMON_EXPORT NativeError : public ApiError
         virtual std::string nativeMessage() const
         {
             return m_nativeMessage;
+        }
+
+        //! Get error message.
+        std::string message() const
+        {
+            auto msg=nativeMessage();
+            if (m_prevError)
+            {
+                auto prevMsg=m_prevError->message();
+                if (msg.empty())
+                {
+                    return prevMsg;
+                }
+                msg=fmt::format("{}: {}", msg, prevMsg);
+            }
+            return msg;
         }
 
         //! Get native error code.
@@ -127,23 +136,36 @@ class HATN_COMMON_EXPORT NativeError : public ApiError
             return !isEqual(other);
         }
 
-        virtual int apiCode() const noexcept override
+        void setPrevError(Error error)
         {
-            return nativeCode();
+            m_prevError=std::move(error);
         }
 
-        virtual std::string apiMessage() const override
+        void setApiError(ApiError error)
         {
-            return nativeMessage();
+            m_apiError=std::move(error);
         }
 
-        virtual std::string apiFamily() const override
+        const Error* prevError() const noexcept
         {
-            if (category()!=nullptr)
+            if (m_prevError)
             {
-                return category()->name();
+                return &(m_prevError.value());
             }
-            return std::string();
+            return nullptr;
+        }
+
+        const ApiError* apiError() const noexcept
+        {
+            if (m_apiError)
+            {
+                return &(m_apiError.value());
+            }
+            if (m_prevError)
+            {
+                return m_prevError->apiError();
+            }
+            return nullptr;
         }
 
     private:
@@ -151,6 +173,9 @@ class HATN_COMMON_EXPORT NativeError : public ApiError
         std::string m_nativeMessage;
         int m_nativeCode;
         const std::error_category* m_category;
+
+        lib::optional<Error> m_prevError;
+        lib::optional<ApiError> m_apiError;
 };
 
 //---------------------------------------------------------------

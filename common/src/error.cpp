@@ -29,11 +29,86 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 ApiError::~ApiError()=default;
 
+//---------------------------------------------------------------
+
+int ApiError::apiCode() const noexcept
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->value();
+    }
+    return 0;
+}
+
+//---------------------------------------------------------------
+
+std::string ApiError::apiMessage() const
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->message();
+    }
+    return std::string();
+}
+
+//---------------------------------------------------------------
+
+std::string ApiError::apiFamily() const
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->category()->name();
+    }
+    return std::string();
+}
+
 /********************** NativeError **************************/
 
 NativeError::~NativeError()=default;
 
-/********************** ErrorStack **************************/
+/********************** Error **************************/
+
+//---------------------------------------------------------------
+
+const ApiError* Error::apiError() const noexcept
+{
+    auto err=native();
+    if (err==nullptr)
+    {
+        return nullptr;
+    }
+    return err->apiError();
+}
+
+//---------------------------------------------------------------
+
+bool Error::compareNative(const Error& other) const noexcept
+{
+    return *other.native()==*this->native();
+}
+
+//---------------------------------------------------------------
+
+const std::error_category* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    return nativeError->category();
+}
+
+//---------------------------------------------------------------
+
+std::string Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError) const
+{
+    auto msg=nativeError->message();
+    if (nativeError->category()!=nullptr)
+    {
+        if (!msg.empty())
+        {
+            return fmt::format("{}: {}", nativeError->category()->message(m_code), msg);
+        }
+        return nativeError->category()->message(m_code);
+    }
+    return msg;
+}
 
 /********************** CommonErrorCategory **************************/
 

@@ -25,6 +25,8 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+class Error;
+
 //! API error is used to hold information to be sent back as a result of some request or API command.
 class HATN_COMMON_EXPORT ApiError
 {
@@ -32,7 +34,7 @@ class HATN_COMMON_EXPORT ApiError
 
         virtual ~ApiError();
 
-        ApiError(bool enable=false) : m_selfApiError(enable)
+        ApiError(const Error* error=nullptr):m_error(error)
         {}
 
         ApiError(const ApiError&)=default;
@@ -40,43 +42,18 @@ class HATN_COMMON_EXPORT ApiError
         ApiError& operator=(const ApiError&)=default;
         ApiError& operator=(ApiError&&)=default;
 
-        void enableApiError(bool enable)
+        void setError(const Error* error)
         {
-            m_selfApiError=enable;
+            m_error=error;
         }
 
-        bool isApiErrorEnabled() const noexcept
-        {
-            return m_selfApiError;
-        }
-
-        virtual const ApiError* apiError() const noexcept
-        {
-            if (m_selfApiError)
-            {
-                return this;
-            }
-            return nullptr;
-        }
+        virtual int apiCode() const noexcept;
+        virtual std::string apiMessage() const;
+        virtual std::string apiFamily() const;
 
         virtual const void* apiData() const noexcept
         {
             return nullptr;
-        }
-
-        virtual int apiCode() const noexcept
-        {
-            return 0;
-        }
-
-        virtual std::string apiMessage() const
-        {
-            return std::string();
-        }
-
-        virtual std::string apiFamily() const
-        {
-            return std::string();
         }
 
         virtual ConstDataBuf apiWireData() const
@@ -86,7 +63,7 @@ class HATN_COMMON_EXPORT ApiError
 
     private:
 
-        bool m_selfApiError;
+        const Error* m_error;
 };
 
 //---------------------------------------------------------------
