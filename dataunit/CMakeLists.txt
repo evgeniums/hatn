@@ -57,6 +57,7 @@ SET (HEADERS
     include/hatn/dataunit/detail/unitmeta.ipp
     include/hatn/dataunit/unitmacros.h
     include/hatn/dataunit/datauniterror.h
+    include/hatn/dataunit/datauniterrorcodes.h
 )
 
 SET (SOURCES
