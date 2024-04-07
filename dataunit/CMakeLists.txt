@@ -56,6 +56,7 @@ SET (HEADERS
     include/hatn/dataunit/unitmeta.h
     include/hatn/dataunit/detail/unitmeta.ipp
     include/hatn/dataunit/unitmacros.h
+    include/hatn/dataunit/datauniterror.h
 )
 
 SET (SOURCES
@@ -65,6 +66,7 @@ SET (SOURCES
     src/unit.cpp
     src/field.cpp
     src/unitstrings.cpp
+    src/datauniterror.cpp
 )
 
 BUILD_HATN_MODULE()
