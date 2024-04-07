@@ -23,15 +23,15 @@
 #include <hatn/common/common.h>
 #include <hatn/common/format.h>
 #include <hatn/common/errorcategory.h>
+#include <hatn/common/apierror.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 class Error;
 class ByteArray;
-class ApiError;
 
 //! Base class for native errors.
-class HATN_COMMON_EXPORT NativeError
+class HATN_COMMON_EXPORT NativeError : public ApiError
 {
     public:
 
@@ -39,8 +39,10 @@ class HATN_COMMON_EXPORT NativeError
         NativeError(
                 std::string nativeMessage,
                 int nativeCode=-1,
+                bool apiError=false,
                 const std::error_category* category=nullptr
-            ) : m_nativeMessage(std::move(nativeMessage)),
+            ) : ApiError(apiError),
+                m_nativeMessage(std::move(nativeMessage)),
                 m_nativeCode(nativeCode),
                 m_category(category)
         {}
@@ -48,16 +50,28 @@ class HATN_COMMON_EXPORT NativeError
         //! Ctor
         NativeError(
                 int nativeCode,
+                bool apiError=false,
                 const std::error_category* category=nullptr
-            ) : m_nativeCode(nativeCode),
+            ) : ApiError(apiError),
+                m_nativeCode(nativeCode),
                 m_category(category)
         {}
 
         //! Ctor
         NativeError(
-                const std::error_category* category
-            ) : m_nativeCode(-1),
+                const std::error_category* category,
+                bool apiError=false
+            ) : ApiError(apiError),
+                m_nativeCode(-1),
                 m_category(category)
+        {}
+
+        //! Ctor
+        NativeError(
+            bool apiError=false
+            ) : ApiError(apiError),
+            m_nativeCode(-1),
+            m_category(nullptr)
         {}
 
         virtual ~NativeError();
@@ -113,9 +127,23 @@ class HATN_COMMON_EXPORT NativeError
             return !isEqual(other);
         }
 
-        virtual const ApiError* apiError() const noexcept
+        virtual int apiCode() const noexcept override
         {
-            return nullptr;
+            return nativeCode();
+        }
+
+        virtual std::string apiMessage() const override
+        {
+            return nativeMessage();
+        }
+
+        virtual std::string apiFamily() const override
+        {
+            if (category()!=nullptr)
+            {
+                return category()->name();
+            }
+            return std::string();
         }
 
     private:

@@ -92,13 +92,20 @@ template <typename DataPointerT> struct DataBufWrapper
     {
         return m_size;
     }
+
     inline DataPointerT data() const noexcept
     {
         return m_buf;
     }
+
     inline bool isEmpty() const noexcept
     {
         return m_size==0;
+    }
+
+    inline bool isNull() const noexcept
+    {
+        return m_buf==nullptr;
     }
 
     inline void resize(size_t size)

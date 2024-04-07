@@ -18,25 +18,45 @@
 #ifndef HATNAPIERROR_H
 #define HATNAPIERROR_H
 
-#include <hatn/common/format.h>
+#include <string>
 
-#include <hatn/common/error.h>
-#include <hatn/common/nativeerror.h>
-#include <hatn/common/spanbuffer.h>
-#include <hatn/common/result.h>
+#include <hatn/common/common.h>
+#include <hatn/common/databuf.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! API error is used to hold information to be sent back or shown as a result of some request or API command.
-class HATN_COMMON_EXPORT ApiError : public NativeError
+//! API error is used to hold information to be sent back as a result of some request or API command.
+class HATN_COMMON_EXPORT ApiError
 {
     public:
 
-        using NativeError::NativeError;
+        virtual ~ApiError();
 
-        virtual const ApiError* apiError() const noexcept override
+        ApiError(bool enable=false) : m_selfApiError(enable)
+        {}
+
+        ApiError(const ApiError&)=default;
+        ApiError(ApiError&&)=default;
+        ApiError& operator=(const ApiError&)=default;
+        ApiError& operator=(ApiError&&)=default;
+
+        void enableApiError(bool enable)
         {
-            return this;
+            m_selfApiError=enable;
+        }
+
+        bool isApiErrorEnabled() const noexcept
+        {
+            return m_selfApiError;
+        }
+
+        virtual const ApiError* apiError() const noexcept
+        {
+            if (m_selfApiError)
+            {
+                return this;
+            }
+            return nullptr;
         }
 
         virtual const void* apiData() const noexcept
@@ -46,27 +66,27 @@ class HATN_COMMON_EXPORT ApiError : public NativeError
 
         virtual int apiCode() const noexcept
         {
-            return nativeCode();
+            return 0;
         }
 
         virtual std::string apiMessage() const
         {
-            return nativeMessage();
+            return std::string();
         }
 
         virtual std::string apiFamily() const
         {
-            if (category()!=nullptr)
-            {
-                return category()->name();
-            }
             return std::string();
         }
 
-        virtual Result<SpanBuffer> apiWireData() const
+        virtual ConstDataBuf apiWireData() const
         {
-            return Error{CommonError::UNSUPPORTED};
+            return ConstDataBuf{};
         }
+
+    private:
+
+        bool m_selfApiError;
 };
 
 //---------------------------------------------------------------
