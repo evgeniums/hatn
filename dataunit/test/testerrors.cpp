@@ -42,10 +42,11 @@ BOOST_FIXTURE_TEST_CASE(ThreadLocalError,MultiThreadFixture)
         BOOST_CHECK_EQUAL(RawError::threadLocal().field,11);
         BOOST_CHECK_EQUAL(RawError::threadLocal().message, "some message");
 
-        return 0;
+        return RawError::threadLocal().code;
     };
 
-    BOOST_TEST_CONTEXT("Before task2"){thread->execFuture<int>(task1);}
+    auto c1=thread->execSync<int>(task1);
+    BOOST_CHECK_EQUAL(c1,10);
 
     BOOST_CHECK_EQUAL(RawError::threadLocal().code,0);
     BOOST_CHECK_EQUAL(RawError::threadLocal().field,-1);
@@ -66,16 +67,18 @@ BOOST_FIXTURE_TEST_CASE(ThreadLocalError,MultiThreadFixture)
         BOOST_CHECK_EQUAL(RawError::threadLocal().message, "some message");
 
         RawError::threadLocal().reset();
-        return 0;
+        return RawError::threadLocal().code;;
     };
 
-    thread->execFuture<int>(task2);
+    auto c2=thread->execSync<int>(task2);
+    BOOST_CHECK_EQUAL(c2,0);
 
     BOOST_CHECK_EQUAL(RawError::threadLocal().code,110);
     BOOST_CHECK_EQUAL(RawError::threadLocal().field,111);
     BOOST_CHECK_EQUAL(RawError::threadLocal().message, "main thread message");
 
-    BOOST_TEST_CONTEXT("After task2"){thread->execFuture<int>(task1);}
+    auto c3=thread->execSync<int>(task1);
+    BOOST_CHECK_EQUAL(c3,10);
 
     BOOST_CHECK_EQUAL(RawError::threadLocal().code,110);
     BOOST_CHECK_EQUAL(RawError::threadLocal().field,111);
