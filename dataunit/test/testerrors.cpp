@@ -4,6 +4,8 @@
 
 #define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING && !TestRelaxMissingFieldSerializing
 
+#include <hatn/common/utils.h>
+
 #include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/unitmacros.h>
 #include <hatn/dataunit/detail/unitmeta.ipp>
@@ -29,6 +31,14 @@ HDU_V2_UNIT(u1,
 HDU_V2_UNIT(u2,
     HDU_V2_FIELD(f3,TYPE_INT32,3)
     HDU_V2_FIELD(f4,u1::TYPE,4,true)
+)
+
+HDU_V2_UNIT(u3,
+    HDU_V2_FIELD(f1,TYPE_INT32,1)
+    HDU_V2_FIELD(f2,TYPE_INT32,2)
+    HDU_V2_FIELD(f3,TYPE_INT32,3)
+    HDU_V2_FIELD(f4,TYPE_INT32,4)
+    HDU_V2_REPEATED_FIELD(f5,TYPE_INT32,5,false,100)
 )
 
 }
@@ -205,6 +215,128 @@ BOOST_AUTO_TEST_CASE(RequiredField)
     BOOST_CHECK_EQUAL(unitEc7->nativeCode(),int(RawErrorCode::REQUIRED_FIELD_MISSING));
     BOOST_CHECK_EQUAL(unitEc7->fieldId(),4);
     BOOST_CHECK_EQUAL(unitEc7->message(),"failed to parse field f4 at offset 6: required field f2 is not set");
+}
+
+BOOST_AUTO_TEST_CASE(UnitBufErrors)
+{
+    u3::type v1;
+    WireBufSolid buf1;
+    v1.field(u3::f1).set(101);
+    v1.field(u3::f2).set(102);
+    v1.field(u3::f3).set(103);
+    v1.field(u3::f4).set(104);
+    v1.field(u3::f5).addValues(7);
+
+    auto fillBuf=[&v1,&buf1]()
+    {
+        Error ec1;
+        BOOST_CHECK_EQUAL(io::serialize(v1,buf1,ec1),28);
+        BOOST_CHECK(!ec1);
+    };
+
+    Error ec;
+
+    ec.reset();
+    fillBuf();
+    u3::type vOK;
+    BOOST_CHECK(io::deserialize(vOK,buf1,ec));
+    BOOST_CHECK(!ec);
+
+    ec.reset();
+    fillBuf();
+    buf1.mainContainer()->resize(buf1.mainContainer()->size()-1);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),27);
+    u3::type v2;
+    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
+    BOOST_CHECK(ec);
+    BOOST_TEST_MESSAGE(ec.message());
+    BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 26: unexpected end of buffer");
+    auto nativeEc=ec.native();
+    BOOST_REQUIRE(nativeEc!=nullptr);
+    auto unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
+    BOOST_REQUIRE(unitEc!=nullptr);
+    BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
+    BOOST_CHECK_EQUAL(unitEc->fieldId(),5);
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 26: unexpected end of buffer");
+
+    ec.reset();
+    fillBuf();
+    buf1.mainContainer()->resize(buf1.mainContainer()->size()-10);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),18);
+    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
+    BOOST_CHECK(ec);
+    BOOST_TEST_MESSAGE(ec.message());
+    BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 18: unexpected end of buffer");
+    nativeEc=ec.native();
+    BOOST_REQUIRE(nativeEc!=nullptr);
+    unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
+    BOOST_REQUIRE(unitEc!=nullptr);
+    BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
+    BOOST_CHECK_EQUAL(unitEc->fieldId(),5);
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 18: unexpected end of buffer");
+
+    ec.reset();
+    fillBuf();
+    buf1.mainContainer()->resize(buf1.mainContainer()->size()-21);
+    buf1.incSize(-21);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),7);
+    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
+    BOOST_CHECK(ec);
+    BOOST_TEST_MESSAGE(ec.message());
+    BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f3 at offset 7: unexpected end of buffer");
+    nativeEc=ec.native();
+    BOOST_REQUIRE(nativeEc!=nullptr);
+    unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
+    BOOST_REQUIRE(unitEc!=nullptr);
+    BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
+    BOOST_CHECK_EQUAL(unitEc->fieldId(),3);
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f3 at offset 7: unexpected end of buffer");
+
+    ec.reset();
+    fillBuf();
+    auto i=buf1.mainContainer()->size();
+    buf1.mainContainer()->resize(i+10);
+    buf1.incSize(10);
+    for (;i<buf1.mainContainer()->size();i++)
+    {
+        (*buf1.mainContainer())[i]=static_cast<char>(HATN_COMMON_NAMESPACE::Utils::uniformRand(1,255));
+    }
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),38);
+    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
+    BOOST_CHECK(ec);
+
+    // fuzzy buffer content - mailform 25% of bytes
+    BOOST_TEST_MESSAGE("Fuzzing buffer contents for parsing");
+    int total=1500;
+    int good=0;
+    for (size_t i=0;i<total;i++)
+    {
+        ec.reset();
+        fillBuf();
+        for (size_t j=0;j<buf1.mainContainer()->size();j++)
+        {
+            if (HATN_COMMON_NAMESPACE::Utils::uniformRand(0,16)%4==0)
+            {
+                (*buf1.mainContainer())[j]=static_cast<char>(HATN_COMMON_NAMESPACE::Utils::uniformRand(0,0xFF));
+            }
+        }
+        if (io::deserialize(v2,buf1,ec))
+        {
+            good++;
+        }
+        if (i%100==0)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("processed {} of {}",i,total));
+        }
+    }
+    BOOST_TEST_MESSAGE(fmt::format("fuzzing finished: parsed good {} of {}",good,total));
+
+    /**
+     * @todo Fuzzy subunits, bytes and strings.
+    */
 }
 
 BOOST_AUTO_TEST_SUITE_END()

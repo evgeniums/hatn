@@ -38,7 +38,7 @@ bool unpackVarIntByteImpl
     ) noexcept
 {
     T b=0;
-    if (static_cast<int>(availableSize)<processedSize)
+    if (static_cast<int>(availableSize)<=processedSize)
     {
         overflow=true;
         return false;

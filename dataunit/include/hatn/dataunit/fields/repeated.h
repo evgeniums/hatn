@@ -500,9 +500,9 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Add number of values */
-    void addValues(size_t n)
+    void addValues(size_t n, bool onlySizeIterate=false)
     {
-        if (isSizeIterateNeeded || DefaultTraits::HasDefV::value)
+        if (isSizeIterateNeeded || (DefaultTraits::HasDefV::value && !onlySizeIterate))
         {
             vector.reserve(vector.size()+n);
             for (size_t i=0;i<n;i++)
@@ -620,7 +620,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         wired.incCurrentOffset(consumed);
 
         /* add required number of elements */
-        addValues(counter);
+        addValues(counter,true);
 
         /* fill each field */
         for (uint32_t i=0;i<counter;i++)
