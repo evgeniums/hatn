@@ -68,7 +68,7 @@ class HATN_DATAUNIT_EXPORT UnitNativeError : public common::NativeError
 
         UnitNativeError(const RawError& rawError);
 
-        int unitField() const noexcept
+        int fieldId() const noexcept
         {
             return m_field;
         }
@@ -117,13 +117,13 @@ void prepareRawError(RawErrorCode code, const char* msg, Args&&... args)
     if (RawError::threadLocal().message.empty())
     {
         RawError::threadLocal().message=fmt::format(msg,std::forward<Args>(args)...);
+        RawError::threadLocal().code=code;
     }
     else
     {
         auto newMessage=fmt::format(msg,std::forward<Args>(args)...);
         RawError::threadLocal().message=fmt::format("{}: {}",newMessage, RawError::threadLocal().message);
     }
-    RawError::threadLocal().code=code;
 }
 
 template <typename ...Args>

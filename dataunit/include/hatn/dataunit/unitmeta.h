@@ -622,6 +622,7 @@ class unit_t : public BaseT
             virtual void clear() override;
             virtual void reset(bool onlyNonClean=false) override;
             virtual size_t size() const override;
+            virtual std::pair<int,const char*> checkRequiredFields() noexcept override;
 };
 
 //---------------------------------------------------------------

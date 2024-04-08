@@ -199,7 +199,8 @@ template <typename t_int8,typename traits,typename t> void typeChecks(t& allType
     BOOST_CHECK(f9_.isSet());
 }
 
-template <typename t_int8,typename traits,typename t> void typeCheckIsSet(const t& allTypes)
+template <typename t_int8,typename traits,typename t>
+void typeCheckIsSet(const t& allTypes)
 {
     const auto& fields=traits::fields;
 

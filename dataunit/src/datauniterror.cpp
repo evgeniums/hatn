@@ -46,10 +46,7 @@ bool RawError::isEnabledTL() noexcept
 void RawError::setEnabledTL(bool val) noexcept
 {
     enablingTL()=val;
-    if (!val)
-    {
-        threadLocal().reset();
-    }
+    threadLocal().reset();
 }
 
 /********************** UnitNativeError **************************/

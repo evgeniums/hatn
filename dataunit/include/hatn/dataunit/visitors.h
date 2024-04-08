@@ -39,6 +39,12 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+#ifndef HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
+    #define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
+#else
+    extern bool TestRelaxMissingFieldSerializing;
+#endif
+
 //---------------------------------------------------------------
 
 namespace meta {
@@ -109,7 +115,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     // skip optional fields which are not set
                     if (!field.fieldIsSet())
                     {
-                        if (fieldT::fieldRequired())
+                        if (fieldT::fieldRequired() HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING)
                         {
                             rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.fieldId(),"required field {} is not set",field.fieldName());
                             return false;
@@ -208,31 +214,41 @@ struct HATN_DATAUNIT_EXPORT visitors
      * @return Name of failed field or nullptr.
      */
     template <typename UnitT>
-    static auto checkRequiredFields(UnitT& obj)
+    static std::pair<int,const char*> checkRequiredFields(UnitT& obj) noexcept
     {
-        const char* failedFieldName=nullptr;
-        int failedFieldId=-1;
-        obj.iterate(
-            [&failedFieldName,&failedFieldId](const auto& field)
+        return hana::eval_if(
+            std::is_same<Unit,UnitT>{},
+            [&](auto _)
             {
-                using fieldType=std::decay_t<decltype(field)>;
+                return _(obj).checkRequiredFields();
+            },
+            [&](auto _)
+            {
+                const char* failedFieldName=nullptr;
+                int failedFieldId=-1;
+                _(obj).iterate(
+                    [&failedFieldName,&failedFieldId](const auto& field)
+                    {
+                        using fieldType=std::decay_t<decltype(field)>;
 
-                if (!fieldType::fieldRequired())
-                {
-                    return true;
-                }
+                        if (!fieldType::fieldRequired())
+                        {
+                            return true;
+                        }
 
-                bool ok=field.isSet();
-                if (!ok)
-                {
-                    failedFieldName=fieldType::fieldName();
-                    failedFieldId=fieldType::fieldId();
-                }
-                return ok;
+                        bool ok=field.isSet();
+                        if (!ok)
+                        {
+                            failedFieldName=fieldType::fieldName();
+                            failedFieldId=fieldType::fieldId();
+                        }
+                        return ok;
+                    }
+                    );
+
+                return std::make_pair(failedFieldId,failedFieldName);
             }
         );
-
-        return std::make_pair(failedFieldId,failedFieldName);
     }
 
     /**

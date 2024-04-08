@@ -138,6 +138,12 @@ bool unit_t<BaseT,UniqueType>::parse(WireBufSolid& wired,bool topLevel)
     return io::deserialize(*this,wired,topLevel);
 }
 
+template <typename BaseT, typename UniqueType>
+std::pair<int,const char*> unit_t<BaseT,UniqueType>::checkRequiredFields() noexcept
+{
+    return io::checkRequiredFields(*this);
+}
+
 //---------------------------------------------------------------
 } // namespace meta
 

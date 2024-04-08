@@ -49,9 +49,25 @@ class RunOnScopeExitT
         }
 
         RunOnScopeExitT(const RunOnScopeExitT&)=delete;
-        RunOnScopeExitT(RunOnScopeExitT&&) =delete;
         RunOnScopeExitT& operator=(const RunOnScopeExitT&)=delete;
-        RunOnScopeExitT& operator=(RunOnScopeExitT&&) =delete;
+
+        RunOnScopeExitT(RunOnScopeExitT&& other) noexcept :
+            m_handler(std::move(other.m_handler)),
+            m_enable(other.m_enable)
+        {
+            other.m_enable=false;
+        }
+
+        RunOnScopeExitT& operator=(RunOnScopeExitT&& other) noexcept
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+            m_handler=std::move(other.m_handler);
+            m_enable=other.m_enable;
+            other.m_enable=false;
+        }
 
         //! Enable handler
         inline void setEnable(bool enable) noexcept
@@ -84,6 +100,7 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_SCOPE_GUARD(fn) \
     auto _onExit=fn;\
-    decltype(_onExit) _scopeGuard{HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_onExit))};
+    auto _scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_onExit));\
+    std::ignore=_scopeGuard;
 
 #endif // HATNRUNONSCOPEEXIT_H

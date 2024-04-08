@@ -291,7 +291,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if size is more than allowed
     if (maxSize>0&&static_cast<int>(dataSize)>static_cast<int>(maxSize))
     {
-        rawError(RawErrorCode::SUSPECT_OVERFLOW,"overflow in size of bytes buffer");
+        rawError(RawErrorCode::SUSPECT_OVERFLOW,"overflow in requested size");
         return false;
     }
 
@@ -306,7 +306,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if buffer contains required amount of data
     if (buf->size()<wired.currentOffset())
     {
-        rawError(RawErrorCode::END_OF_STREAM,"size of bytes buffer is less than requested size");
+        rawError(RawErrorCode::END_OF_STREAM,"available data size is less than requested size");
         return false;
     }
 
@@ -441,17 +441,22 @@ bool UnitSer::deserialize(UnitT* value, BufferT& wired)
     }
     wired.incCurrentOffset(consumed);
 
-    // if zero size then finish
+    // if zero size then check required fields and finish
     if (dataSize==0)
     {
-        value->clear();
+        auto failedField=io::checkRequiredFields(*value);
+        if (failedField.second!=nullptr)
+        {
+            rawError(RawErrorCode::REQUIRED_FIELD_MISSING,failedField.first,"required field {} is not set",failedField.second);
+            return false;
+        }
         return true;
     }
 
     // check if buffer contains required amount of data
     if (buf->size()<(wired.currentOffset()+dataSize))
     {
-        rawError(RawErrorCode::END_OF_STREAM,"size of bytes buffer is less than requested size");
+        rawError(RawErrorCode::END_OF_STREAM,"available data size is less than requested size");
         return false;
     }
 

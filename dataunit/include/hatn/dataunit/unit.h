@@ -380,6 +380,11 @@ class HATN_DATAUNIT_EXPORT Unit
             return m_clean=val;
         }
 
+        virtual std::pair<int,const char*> checkRequiredFields() noexcept
+        {
+            return std::pair<int,const char*>{-1,nullptr};
+        }
+
     private:
 
         template <typename T>
