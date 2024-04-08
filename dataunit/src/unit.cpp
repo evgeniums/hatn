@@ -278,7 +278,7 @@ bool Unit::toJSON(
     if (writer->StartObject())
     {
         if (!iterateFieldsConst(
-                    [writer,this](const Field& field)
+                    [writer](const Field& field)
                     {
                         // skip optional fields which are not set
                         if (!field.isSet() && !field.hasDefaultValue())
