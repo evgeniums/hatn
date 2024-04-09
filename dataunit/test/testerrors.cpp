@@ -41,6 +41,33 @@ HDU_V2_UNIT(u3,
     HDU_V2_REPEATED_FIELD(f5,TYPE_INT32,5,false,100)
 )
 
+HDU_V2_UNIT(u4,
+    HDU_V2_FIELD(f10,TYPE_BOOL,10)
+    HDU_V2_FIELD(f11,TYPE_INT8,11)
+    HDU_V2_FIELD(f12,TYPE_INT16,12)
+    HDU_V2_FIELD(f13,TYPE_INT32,13)
+    HDU_V2_FIELD(f1,u3::TYPE,1)
+    HDU_V2_FIELD(f14,TYPE_INT64,14)
+    HDU_V2_FIELD(f15,TYPE_FIXED_INT32,15)
+    HDU_V2_FIELD(f16,TYPE_FIXED_INT64,16)
+    HDU_V2_FIELD(f26,HDU_V2_TYPE_FIXED_STRING(64),26)
+    HDU_V2_FIELD(f17,TYPE_UINT8,17)
+    HDU_V2_FIELD(f18,TYPE_UINT16,18)
+    HDU_V2_FIELD(f19,TYPE_UINT32,19)
+    HDU_V2_FIELD(f20,TYPE_UINT64,20)
+    HDU_V2_FIELD(f21,TYPE_FIXED_UINT32,21)
+    HDU_V2_FIELD(f22,TYPE_FIXED_UINT64,22)
+    HDU_V2_FIELD(f27,TYPE_BYTES,27)
+    HDU_V2_FIELD(f23,TYPE_FLOAT,23)
+    HDU_V2_FIELD(f24,TYPE_DOUBLE,24)
+    HDU_V2_FIELD(f25,TYPE_STRING,25)
+)
+
+uint32_t urand(uint32_t mn, uint32_t mx)
+{
+    return HATN_COMMON_NAMESPACE::Utils::uniformRand(mn,mx);
+}
+
 }
 
 BOOST_AUTO_TEST_SUITE(TestErrors)
@@ -302,14 +329,14 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     buf1.incSize(10);
     for (;i<buf1.mainContainer()->size();i++)
     {
-        (*buf1.mainContainer())[i]=static_cast<char>(HATN_COMMON_NAMESPACE::Utils::uniformRand(1,255));
+        (*buf1.mainContainer())[i]=static_cast<char>(urand(1,255));
     }
     BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),38);
     BOOST_CHECK(!io::deserialize(v2,buf1,ec));
     BOOST_CHECK(ec);
 
     // fuzzy buffer content - mailform 25% of bytes
-    BOOST_TEST_MESSAGE("Fuzzing buffer contents for parsing");
+    BOOST_TEST_MESSAGE("Fuzzing buffer contents before parsing");
     int total=1500;
     int good=0;
     for (size_t i=0;i<total;i++)
@@ -318,9 +345,9 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
         fillBuf();
         for (size_t j=0;j<buf1.mainContainer()->size();j++)
         {
-            if (HATN_COMMON_NAMESPACE::Utils::uniformRand(0,16)%4==0)
+            if (urand(0,16)%4==0)
             {
-                (*buf1.mainContainer())[j]=static_cast<char>(HATN_COMMON_NAMESPACE::Utils::uniformRand(0,0xFF));
+                (*buf1.mainContainer())[j]=static_cast<char>(urand(0,0xFF));
             }
         }
         if (io::deserialize(v2,buf1,ec))
@@ -333,10 +360,106 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
         }
     }
     BOOST_TEST_MESSAGE(fmt::format("fuzzing finished: parsed good {} of {}",good,total));
+}
 
-    /**
-     * @todo Fuzzy subunits, bytes and strings.
-    */
+BOOST_AUTO_TEST_CASE(FuzzUnit)
+{
+    int runs=1500;
+
+    u4::type obj;
+    auto fillObj=[&obj]()
+    {
+        obj.field(u4::f1).mutableValue()->field(u3::f1).set(urand(0,0xFFFFFFFF));
+        obj.field(u4::f1).mutableValue()->field(u3::f2).set(urand(0,0xFFFFFFFF));
+        obj.field(u4::f1).mutableValue()->field(u3::f3).set(urand(0,0xFFFFFFFF));
+        obj.field(u4::f1).mutableValue()->field(u3::f4).set(urand(0,0xFFFFFFFF));
+        for (uint32_t i=0;i<urand(0,8);i++)
+        {
+            obj.field(u4::f1).mutableValue()->field(u3::f5).addValue(urand(0,0xFFFFFFFF));
+        }
+
+        obj.field(u4::f10).set((urand(0,0xFFFFFFFF)&0x1) == 0x1);
+        obj.field(u4::f11).set(int8_t(urand(0,0xFF)));
+        obj.field(u4::f12).set(int16_t(urand(0,0xFFFF)));
+        obj.field(u4::f13).set(urand(0,0xFFFFFFFF));
+        auto f14=(int64_t(urand(0,0xFFFFFFFF))<<32) | urand(0,0xFFFFFFFF);
+        obj.field(u4::f14).set(f14);
+        obj.field(u4::f15).set(urand(0,0xFFFFFFFF));
+        auto f16=(int64_t(urand(0,0xFFFFFFFF))<<32) | urand(0,0xFFFFFFFF);
+        obj.field(u4::f16).set(f16);
+
+        obj.field(u4::f17).set(uint8_t(urand(0,0xFF)));
+        obj.field(u4::f18).set(uint16_t(urand(0,0xFFFF)));
+        obj.field(u4::f19).set(urand(0,0xFFFFFFFF));
+        auto f20=(uint64_t(urand(0,0xFFFFFFFF))<<32) | urand(0,0xFFFFFFFF);
+        obj.field(u4::f20).set(f20);
+        obj.field(u4::f21).set(urand(0,0xFFFFFFFF));
+        auto f22=(uint64_t(urand(0,0xFFFFFFFF))<<32) | urand(0,0xFFFFFFFF);
+        obj.field(u4::f22).set(f22);
+
+        obj.field(u4::f23).set(float(urand(0,0xFFFFFFFF)));
+        auto f24=(uint64_t(urand(0,0xFFFFFFFF))<<32) | urand(0,0xFFFFFFFF);
+        obj.field(u4::f24).set(double(f24));
+
+        obj.field(u4::f25).set(fmt::format("{:d}",f24));
+        obj.field(u4::f26).set(fmt::format("{:x}",f24));
+
+        obj.field(u4::f27).buf()->load(fmt::format("{:d}{:x}",f20,f24));
+    };
+
+    fillObj();
+    BOOST_TEST_MESSAGE(obj.toString(true));
+
+    u4::type tObj;
+
+    WireBufSolid buf1;
+    auto goodHandler=[&obj,&tObj,&fillObj,&buf1]
+    {
+        fillObj();
+
+        BOOST_REQUIRE_GT(io::serialize(obj,buf1),0);
+        BOOST_REQUIRE(io::deserialize(tObj,buf1));
+        BOOST_REQUIRE_EQUAL(obj.toString(),tObj.toString());
+    };
+
+    BOOST_TEST_MESSAGE("Test normal operation");
+    goodHandler();
+    for (int i=0;i<runs;i++)
+    {
+        goodHandler();
+        if (i%100==0)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("processed {} of {}",i+1,runs));
+        }
+    }
+
+    BOOST_TEST_MESSAGE("Test operation with mailformed buffer");
+    int good=0;
+    auto mailformedHandler=[&obj,&tObj,&fillObj,&buf1,&good]
+    {
+        fillObj();
+
+        BOOST_REQUIRE_GT(io::serialize(obj,buf1),0);
+
+        for (size_t i=0;i<urand(0,64);i++)
+        {
+            (*buf1.mainContainer())[static_cast<size_t>(urand(0,uint32_t(buf1.mainContainer()->size())-1))]=static_cast<char>(urand(0,0xFF));
+        }
+
+        if (io::deserialize(tObj,buf1))
+        {
+            good++;
+        }
+    };
+    for (int i=0;i<runs;i++)
+    {
+        mailformedHandler();
+        if (i%100==0)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("processed {} of {}",i+1,runs));
+        }
+    }
+    BOOST_TEST_MESSAGE(fmt::format("fuzzing finished: parsed good {} of {}",good,runs));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
