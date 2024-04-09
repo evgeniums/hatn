@@ -116,7 +116,6 @@ struct HATN_DATAUNIT_EXPORT visitors
                     using fieldT=std::decay_t<decltype(field)>;
 
                     // skip optional fields which are not set
-                    //! @todo add mode for skipping default fields
                     if (!field.fieldIsSet())
                     {
                         if (fieldT::fieldRequired() HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING)
