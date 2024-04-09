@@ -21,9 +21,6 @@
 #ifndef HATNDATAUNITSYNTAX_H
 #define HATNDATAUNITSYNTAX_H
 
-#include <vector>
-
-#include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/unitmacros.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -35,10 +32,10 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @example
  *
  * HDU_UNIT(first_unit, // <- only data unit name is followed by comma
- * HDU_FIELD(field1,TYPE_INT32,1) // <- no commas here
- * HDU_FIELD_REQUIRED(field2,TYPE_INT8,2)
- * HDU_FIELD(field3,TYPE_BYTES,3)
- * HDU_FIELD(field4,TYPE_INT64,4
+ *      HDU_FIELD(field1,TYPE_INT32,1) // <- no commas here
+ *      HDU_FIELD_REQUIRED(field2,TYPE_INT8,2)
+ *      HDU_FIELD(field3,TYPE_BYTES,3)
+ *      HDU_FIELD(field4,TYPE_INT64,4
  * )
  *
  *
@@ -52,7 +49,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  *
  * @example HDU_UNIT_WITH(unit3,(HDU_BASE(unit1),HDU_BASE(unit2)),...)
  */
-#define HDU_UNIT_WITH(UnitName,ExtensionName,...) HDU_V2_UNIT_WITH(UnitName,Base,__VA_ARGS__)
+#define HDU_UNIT_WITH(UnitName,Base,...) HDU_V2_UNIT_WITH(UnitName,Base,__VA_ARGS__)
 
 //! Wrapper of data unit name to use in inheritance macro HDU_UNIT_WITH
 /**
@@ -89,7 +86,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Type Field type, Type must be one of supported types.
  * @param Id Integer identificator that must be unique per unit.
  */
-#define HDU_REQUIRED_FEILD(FieldName,Type,Id) HDU_V2_REQUIRED_FIELD(FieldName,Type,Id)
+#define HDU_REQUIRED_FIELD(FieldName,Type,Id) HDU_V2_REQUIRED_FIELD(FieldName,Type,Id)
 
 //! Use this macro to declare a default field.
 /**
@@ -98,7 +95,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Id Integer identificator that must be unique per unit.
  * @param Default Default value for the field. Parameter can be omitted.
  */
-#define HDU_DEFAULT_FIELD(FieldName,Type,Id,Default) HDU_V2_DEFAULT_FIELDS(FieldName,Type,Id,Default)
+#define HDU_DEFAULT_FIELD(FieldName,Type,Id,Default) HDU_V2_DEFAULT_FIELD(FieldName,Type,Id,Default)
 
 //! Use this macro to declare a repeated field.
 /**
@@ -136,7 +133,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Required true if this is a required field.
  * @param Default Default value for the elements.
  */
-#define HDU_REPEATED_FIELD_BASIC(FieldName,Type,Id,Required,Default) HDU_V2_REPEATED_FIELD_BASIC(FieldName,Type,Id,Required,Default)
+#define HDU_REPEATED_BASIC_FIELD(FieldName,Type,Id,Required,Default) HDU_V2_REPEATED_BASIC_FIELD(FieldName,Type,Id,Required,Default)
 
 //! Use this macro to declare a repeated subunit field.
 /**
@@ -206,8 +203,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * */
 #define HDU_INSTANTIATE(...) HDU_V2_INSTANTIATE(__VA_ARGS__)
 
-//! Alias to HDU_INSTANTIATE(UnitName,Export)
-#define HDU_V2_EXPORT(UnitName,ExportAttr) HDU_V2_EXPORT(UnitName,ExportAttr)
+//! Alias to HDU_INSTANTIATE(UnitName,ExportAttr)
+#define HDU_EXPORT(UnitName,ExportAttr) HDU_V2_EXPORT(UnitName,ExportAttr)
 
 /**
  ********************** DataUnit declaration examples *********************************

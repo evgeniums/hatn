@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include <hatn/dataunit/unitmacros.h>
+#include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/unitmeta.ipp>
 #include <hatn/dataunit/detail/unittraits.ipp>
 

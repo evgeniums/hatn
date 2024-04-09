@@ -19,8 +19,6 @@ SET (TEST_HEADERS
     ${DATAUNIT_TEST_SRC}/testunitlib.h
     ${DATAUNIT_TEST_SRC}/simpleunitdeclaration.h
     ${DATAUNIT_TEST_SRC}/testfieldpath.h
-    ${DATAUNIT_TEST_SRC}/testunitdeclarations.h
-    ${DATAUNIT_TEST_SRC}/testunitdeclarations1.h
     ${DATAUNIT_TEST_SRC}/testunitdeclarations2.h
     ${DATAUNIT_TEST_SRC}/testunitdeclarations3.h
     ${DATAUNIT_TEST_SRC}/testunitdeclarations4.h

@@ -19,7 +19,7 @@
 
 #include <hatn/test/multithreadfixture.h>
 
-#include <hatn/dataunit/unitmacros.h>
+#include <hatn/dataunit/syntax.h>
 
 #include "simpleunitdeclaration.h"
 #include "testunitdeclarations2.h"
