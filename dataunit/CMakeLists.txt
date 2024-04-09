@@ -3,7 +3,6 @@ PROJECT(hatndataunit)
 SET (HEADERS
     include/hatn/dataunit/dataunit.h
     include/hatn/dataunit/syntax.h
-    include/hatn/dataunit/macros.h
     include/hatn/dataunit/types.h
     include/hatn/dataunit/allocatorfactory.h
     include/hatn/dataunit/wiredata.h

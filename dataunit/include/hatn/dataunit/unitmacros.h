@@ -156,8 +156,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 
 #define HDU_V2_REPEATED_FIELD(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_REPEATED_FIELD(__VA_ARGS__)(__VA_ARGS__))
 
-
-#define HDU_V2_REPEATED_FIELD_NORMAL(FieldName,Type,Id,Required,Default) \
+#define HDU_V2_REPEATED_FIELD_BASIC(FieldName,Type,Id,Required,Default) \
     HDU_V2_IS_BASIC_TYPE(FieldName,Type,Auto) \
     HDU_V2_REPEATED_FIELD_DEF5(FieldName,Type,Id,Required,Default)
 

@@ -58,7 +58,7 @@ HDU_V2_UNIT(du1,
     HDU_V2_OPTIONAL_FIELD(f10,TYPE_INT32,10)
     HDU_V2_REQUIRED_FIELD(f20,TYPE_INT64,20)
     HDU_V2_DEFAULT_FIELD(f30,TYPE_DOUBLE,30,10.30)
-    HDU_V2_REPEATED_FIELD_NORMAL(f40,TYPE_UINT16,40,false,2312)
+    HDU_V2_REPEATED_FIELD_BASIC(f40,TYPE_UINT16,40,false,2312)
     HDU_V2_REQUIRED_FIELD(f70,TYPE_DATAUNIT,70)
     HDU_V2_REPEATED_UNIT_FIELD(f80,TYPE_DATAUNIT,80,true)
     HDU_V2_ENUM(e1,One,Two,Three)
@@ -223,5 +223,4 @@ BOOST_AUTO_TEST_SUITE_END()
  * @todo Clean up metautils.
  * @todo Refactor json methods with non virtual methods, add mehod with filling error.
  * @todo Remove legacy headers from dataunit.
- * @todo Test parsing and serialization errors.
  */

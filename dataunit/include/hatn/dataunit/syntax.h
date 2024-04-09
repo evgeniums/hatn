@@ -24,212 +24,211 @@
 #include <vector>
 
 #include <hatn/dataunit/dataunit.h>
-#include <hatn/dataunit/macros.h>
+#include <hatn/dataunit/unitmacros.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-//! Use this macro to declare DataUnit with name UnitName
-#define HDU_DATAUNIT(UnitName,...) _HDU_DATAUNIT(UnitName,__VA_ARGS__)
-
-//! Use this macro to extend DataUnit with new fields
+//! Declare data unit with name UnitName.
+//!
 /**
-  * All successive extensions of the same DataUnit will be appended so that the last extension
-  * will consists of all preceding extensions and the DataUnit itself.
-  *
-  */
-#define HDU_EXTEND(UnitName,ExtensionName,...) _HDU_EXTEND(UnitName,ExtensionName,__VA_ARGS__)
-
-//! Use this macro to declare DataUnit with name UnitName without fields
-#define HDU_DATAUNIT_EMPTY(UnitName) _HDU_DATAUNIT_EMPTY(UnitName)
-
-//! Use this macro to declare an optional dataunit field with name FieldName
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD(...) _HDU_FIELD_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a required dataunit field
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REQUIRED(...) _HDU_FIELD_REQUIRED_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a required dataunit field
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_DEFAULT(...) _HDU_FIELD_DEFAULT_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a dataunit field that is of other unit
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
  *
- * The field can be used either as embedded field with traits::type or as shared field with traits::shared_fields_type
- */
-#define HDU_FIELD_DATAUNIT(...) _HDU_FIELD_DATAUNIT_DEF(__VA_ARGS__)
-
-//! Use this macro to declare an external linked dataunit field
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_EXTERNAL(...) _HDU_FIELD_EXTERNAL_DEF(__VA_ARGS__)
-
-//! Use this macro to declare an embedded dataunit field
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_EMBEDDED(...) _HDU_FIELD_EMBEDDED_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated dataunit field with strong type check
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED(...) _HDU_FIELD_REPEATED_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated dataunit field with default value with strong type check
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_DEFAULT(...) _HDU_FIELD_REPEATED_DEFAULT_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated DataUnit containig other units
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_DATAUNIT(...) _HDU_FIELD_REPEATED_DATAUNIT_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated dataunit field on shared data units
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_EXTERNAL(...) _HDU_FIELD_REPEATED_EXTERNAL_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated dataunit field on embedded data units
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_EMBEDDED(...) _HDU_FIELD_REPEATED_EMBEDDED_DEF(__VA_ARGS__)
-
-//! Use this macro to reserve field ID
-#define HDU_FIELD_RESERVE_ID(Id) _HDU_FIELD_RESERVE_ID(Id)
-
-//! Use this macro to reserve field name
-#define HDU_FIELD_RESERVE_NAME(FieldName) _HDU_FIELD_RESERVE_NAME(FieldName)
-
-//! Use this macro to declare an enum
-#define HDU_ENUM(EnumName,...) _HDU_ENUM(EnumName,__VA_ARGS__)
-
-//! Use this macro for enum type
-#define HDU_TYPE_ENUM(Type) _HDU_TYPE_ENUM(Type)
-
-//! Use this macro for fixed string type
-#define HDU_TYPE_FIXED_STRING(Length) _HDU_TYPE_FIXED_STRING(Length)
-
-//! Use this macro to declare a repeated dataunit field compatible with repeated unpacked type of Google Protocol Buffers for ordinary types
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_PROTOBUF_ORDINARY(...) _HDU_FIELD_REPEATED_PROTOBUF_ORDINARY_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated dataunit field compatible with repeated packed type of Google Protocol Buffers
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
- */
-#define HDU_FIELD_REPEATED_PROTOBUF_PACKED(...) _HDU_FIELD_REPEATED_PROTOBUF_PACKED_DEF(__VA_ARGS__)
-
-//! Use this macro to declare a repeated DataUnit containig other units compatible with repeated unpacked type of Google Protocol Buffers
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
+ * @example
  *
- * The field can be used either as embedded field with traits::type or as shared field with traits::shared_fields_type
+ * HDU_UNIT(first_unit, // <- only data unit name is followed by comma
+ * HDU_FIELD(field1,TYPE_INT32,1) // <- no commas here
+ * HDU_FIELD_REQUIRED(field2,TYPE_INT8,2)
+ * HDU_FIELD(field3,TYPE_BYTES,3)
+ * HDU_FIELD(field4,TYPE_INT64,4
+ * )
+ *
+ *
  */
-#define HDU_FIELD_REPEATED_DATAUNIT_PROTOBUF(...) _HDU_FIELD_REPEATED_DATAUNIT_PROTOBUF_DEF(__VA_ARGS__)
+#define HDU_UNIT(UnitName,...) HDU_V2_UNIT(UnitName,__VA_ARGS__)
 
-//! Use this macro to declare a repeated external dataunit field compatible with repeated unpacked type of Google Protocol Buffers
+//! Declare data unit that inherits field definitions from other data unit(s).
+/**
+ * @param UnitName Name of the unit.
+ * @param Base List of the base units this unit inherits from. Must be surrounded with parenthesis.
+ *
+ * @example HDU_UNIT_WITH(unit3,(HDU_BASE(unit1),HDU_BASE(unit2)),...)
+ */
+#define HDU_UNIT_WITH(UnitName,ExtensionName,...) HDU_V2_UNIT_WITH(UnitName,Base,__VA_ARGS__)
+
+//! Wrapper of data unit name to use in inheritance macro HDU_UNIT_WITH
+/**
+ * @param UnitName Name of the base unit.
+ *
+ * @example HDU_UNIT_WITH(unit3,(HDU_BASE(unit1),HDU_BASE(unit2)),...)
+ */
+#define HDU_BASE(UnitName) HDU_V2_BASE(UnitName)
+
+//! Use this macro to declare empty data unit.
+#define HDU_UNIT_EMPTY(UnitName) HDU_V2_UNIT_EMPTY(UnitName)
+
+//! Use this macro to declare unit field.
 /**
  * @param FieldName Name of the field.
  * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ * @param Default Default value for the field. Parameter can be omitted.
+ *
+ * Full form: HDU_FIELD(FieldName,Type,Id,Required,Default)
+ * Optional field: HDU_FIELD(FieldName,Type,Id)
+ * Required field: HDU_FIELD(FieldName,Type,Id,true)
+ *
+ * @example HDU_FIELD(f1,TYPE_UINT32,1)
+ * @example HDU_FIELD(f2,TYPE_UINT32,2,true)
+ * @example HDU_FIELD(f3,TYPE_UINT32,2,false,100)
  */
-#define HDU_FIELD_REPEATED_EXTERNAL_PROTOBUF(...) _HDU_FIELD_REPEATED_EXTERNAL_PROTOBUF_DEF(__VA_ARGS__)
+#define HDU_FIELD(...) HDU_V2_FIELD(__VA_ARGS__)
 
-//! Use this macro to declare a repeated embedded dataunit field compatible with repeated unpacked type of Google Protocol Buffers
+//! Use this macro to declare required field.
 /**
  * @param FieldName Name of the field.
  * @param Type Field type, Type must be one of supported types.
- * @param Id Identificator which is an integer that is unique per each field in the unit
- * @param Description Optional field description, can be ommited.
+ * @param Id Integer identificator that must be unique per unit.
  */
-#define HDU_FIELD_REPEATED_EMBEDDED_PROTOBUF(...) _HDU_FIELD_REPEATED_EMBEDDED_PROTOBUF_DEF(__VA_ARGS__)
+#define HDU_REQUIRED_FEILD(FieldName,Type,Id) HDU_V2_REQUIRED_FIELD(FieldName,Type,Id)
 
-//! Instantiate DataUnit class
-#define HDU_INSTANTIATE_DATAUNIT(UnitName) _HDU_INSTANTIATE_DATAUNIT(UnitName)
+//! Use this macro to declare a default field.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Default Default value for the field. Parameter can be omitted.
+ */
+#define HDU_DEFAULT_FIELD(FieldName,Type,Id,Default) HDU_V2_DEFAULT_FIELDS(FieldName,Type,Id,Default)
 
-//! Instantiate DataUnit extention class
-#define HDU_INSTANTIATE_DATAUNIT_EXT(UnitName,ExtentionName) _HDU_INSTANTIATE_DATAUNIT_EXT(UnitName,ExtentionName)
+//! Use this macro to declare a repeated field.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ * @param Default Default value for the elements. Parameter can be omitted.
+ * @param Mode Mode of packing. Parameter can be omitted.
+ *        Possible values: Auto - use auto mode of packing, ProtobufOrdinary - use protobuf ordinary mode, ProtobufPacked - use protobuf packed nmode.
+ * @param SubunitLinking How to link subunit if this is a subunit field. Parameter can be omitted.
+ *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will using referenced by sharep pointer.
+ *
+ * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode,SubunitLinking)
+ * Optional repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id)
+ * Required repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id,true)
+ * Repeated field with default element values: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default)
+ * Repeated field explicit mode: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode)
+ *
+ * @example HDU_REPEATED_FIELD(rf1,TYPE_INT32,1)
+ * @example HDU_REPEATED_FIELD(rf2,TYPE_INT32,2,true)
+ * @example HDU_REPEATED_FIELD(rf3,TYPE_INT32,3,false,333)
+ * @example HDU_REPEATED_FIELD(rf4,TYPE_INT32,4,true,Auto,ProtobufOrdinary)
+ * @example HDU_REPEATED_FIELD(rf5,other_unit::TYPE,5,false,Auto,Auto,Embedded)
+ *
+ *
+ */
+#define HDU_REPEATED_FIELD(...) HDU_V2_REPEATED_FIELD(__VA_ARGS__)
+
+//! Use this macro to declare a repeated field of basic type which is not subunit.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ * @param Default Default value for the elements.
+ */
+#define HDU_REPEATED_FIELD_BASIC(FieldName,Type,Id,Required,Default) HDU_V2_REPEATED_FIELD_BASIC(FieldName,Type,Id,Required,Default)
+
+//! Use this macro to declare a repeated subunit field.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ */
+#define HDU_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required)
+
+//! Use this macro to declare embedded repeated subunit field.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ */
+#define HDU_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required)
+
+//! Use this macro to declare external repeated subunit field.
+/**
+ * @param FieldName Name of the field.
+ * @param Type Field type, Type must be one of supported types.
+ * @param Id Integer identificator that must be unique per unit.
+ * @param Required true if this is a required field.
+ */
+#define HDU_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required)
+
+//! Use this macro to declare an enum.
+/**
+ * @param EnumName Name of enum.
+ * @param Values List of value names.
+ *
+ * Actual integer values will be implicitly bound to names.
+ *
+ * @example HDU_ENUM(e1,One,Two,Three)
+ */
+#define HDU_ENUM(EnumName,...) HDU_V2_ENUM(EnumName,__VA_ARGS__)
+
+//! Use this macro for field of enum type.
+/**
+ *
+ * @example HDU_FIELD(fe1,HDU_V2_TYPE_ENUM(e1),1,false,e1::One)
+ *
+ */
+#define HDU_TYPE_ENUM(Type) HDU_V2_TYPE_ENUM(Type)
+
+//! Use this macro for field of fixed string type.
+/**
+ * @param Length of fixed string. Can be one of: 8,16,20,32,40,64,128,256,512,1024
+ *
+ * @example HDU_FIELD(fe1,HDU_V2_TYPE_FIXED_STRING(64),1,false,"Hello world!")
+ */
+#define HDU_TYPE_FIXED_STRING(Length) HDU_V2_TYPE_FIXED_STRING(Length)
+
+
+//! Instantiate data unit definitions.
+/**
+ * @param UnitName Name of the unit.
+ * @param ExportAttr Export attribute for DLL exporting. Can be omitted.
+ *
+ * Call this macro in *.cpp file to compile dataunit instantiation that can be either used later within the same project or exported in the library.
+ *
+ * @example HDU_INSTANTIATE(unit1)
+ * @example HDU_INSTANTIATE(unit2, API_EXPORT)
+ *
+ * */
+#define HDU_INSTANTIATE(...) HDU_V2_INSTANTIATE(__VA_ARGS__)
+
+//! Alias to HDU_INSTANTIATE(UnitName,Export)
+#define HDU_V2_EXPORT(UnitName,ExportAttr) HDU_V2_EXPORT(UnitName,ExportAttr)
 
 /**
  ********************** DataUnit declaration examples *********************************
 
 using namespace hatn::dataunit;
+using namespace hatn::dataunit::types;
 
-HDU_DATAUNIT(first_unit, <- only data unit name is followed by comma
-  HDU_FIELD(field1,TYPE_INT32,1) <- no commas here
+HDU_UNIT(first_unit, // <- only data unit name is followed by comma
+  HDU_FIELD(field1,TYPE_INT32,1) // <- no commas here
   HDU_FIELD_REQUIRED(field2,TYPE_INT8,2)
   HDU_FIELD(field3,TYPE_BYTES,3)
   HDU_FIELD(field4,TYPE_INT64,4)
 )
 
-HDU_DATAUNIT(other_unit,
+HDU_UNIT(other_unit,
   HDU_FIELD(foo,TYPE_INT32,1)
   HDU_FIELD(bar,TYPE_INT32,2)
   HDU_FIELD_REPEATED(repeated_field,TYPE_INT32,3)
   HDU_FIELD(field4,TYPE_BOOL,4)
   HDU_FIELD(field5,TYPE_DATAUNIT,5)
-  HDU_FIELD_DATAUNIT(unit_field,first_unit::TYPE,6)
+  HDU_FIELD(unit_field,first_unit::TYPE,6)
 )
 
 HDU_DATAUNIT_EMPTY(empty_unit)
