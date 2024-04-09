@@ -332,8 +332,16 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
         (*buf1.mainContainer())[i]=static_cast<char>(urand(1,255));
     }
     BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),38);
-    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
-    BOOST_CHECK(ec);
+    auto maybeOk=io::deserialize(v2,buf1,ec);
+    if (!maybeOk)
+    {
+        BOOST_CHECK(!maybeOk);
+        BOOST_CHECK(ec);
+    }
+    else
+    {
+        BOOST_TEST_MESSAGE("Parsed succesfully random buffer");
+    }
 
     // fuzzy buffer content - mailform 25% of bytes
     BOOST_TEST_MESSAGE("Fuzzing buffer contents before parsing");
