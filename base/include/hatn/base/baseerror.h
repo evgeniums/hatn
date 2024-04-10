@@ -22,6 +22,7 @@
 #define HATNBASEERROR_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/nativeerror.h>
 #include <hatn/common/result.h>
 
 #include <hatn/base/base.h>

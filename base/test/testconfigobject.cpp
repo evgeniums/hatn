@@ -19,14 +19,15 @@
 
 #include "hatn_test_config.h"
 
-#define HDU_DATAUNIT_EXPORT
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_H
-
 #include <hatn/dataunit/valuetypes.h>
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 
+#include <hatn/base/baseerror.h>
 #include <hatn/base/configtree.h>
 #include <hatn/base/configobject.h>
 
@@ -37,16 +38,17 @@ HATN_TEST_USING
 
 namespace {
 
-HDU_DATAUNIT(config1,
+HDU_UNIT(config1,
     HDU_FIELD(field1,TYPE_INT32,1)
 )
-HDU_INSTANTIATE_DATAUNIT(config1)
 
 struct WithConfig1 : public ConfigObject<config1::type>
 {
 };
 
 } // anonymous namespace
+
+HDU_INSTANTIATE(config1)
 
 BOOST_AUTO_TEST_SUITE(TestConfigObject)
 
