@@ -45,7 +45,6 @@ static void setLogHandler()
         str=str.substr(14,str.length());
 
 #if 0
-//! @todo Check errors not via logging.
         if (*logCount==0)
         {
             BOOST_CHECK_EQUAL(str,"t[main] WARNING:dataunit:serialize :: Failed to serialize DataUnit message all_types: required field type_int8_required is not set");
@@ -1411,7 +1410,6 @@ template <typename traits> void checkSerializeRepeatedUnit()
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedUnit,Env)
 {
-    //! @todo add contexts
     checkSerializeRepeatedUnit<wire_unit_repeated::traits>();
     checkSerializeRepeatedUnit<wire_embedded_all_repeated::traits>();
     checkSerializeRepeatedUnit<wire_embedded_all_repeated_protobuf::traits>();
