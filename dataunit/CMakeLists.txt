@@ -69,4 +69,26 @@ SET (SOURCES
     src/datauniterror.cpp
 )
 
+# check if string literals are suuported by compiler
+CHECK_CXX_SOURCE_COMPILES("
+        template <typename CharT, CharT ...s>
+        constexpr auto operator\"\" _s() {
+            return \"OK\";
+        }
+
+        int main()
+        {
+            const char* c=\"check\"_s;
+            return 0;
+        }
+    "
+    STRING_LITERALS_SUPPORTED)
+
+IF (STRING_LITERALS_SUPPORTED)
+    MESSAGE(STATUS "Enabling string literals support")
+    SET (DATAUNIT_CONFIG_H_TEXT "${DATAUNIT_CONFIG_H_TEXT}\n#ifndef HATN_STRING_LITERAL \n    #define HATN_STRING_LITERAL\n#endif")
+ELSE()
+    MESSAGE(STATUS "Disabling string literals support")
+ENDIF()
+
 BUILD_HATN_MODULE()
