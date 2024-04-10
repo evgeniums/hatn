@@ -220,5 +220,4 @@ BOOST_AUTO_TEST_SUITE_END()
 
 /**
  * @todo Data unit tags.
- * @todo Clean up metautils.
  */
