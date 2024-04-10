@@ -25,6 +25,7 @@
 #include <hatn/common/logger.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/pmr/pmrtypes.h>
+#include <hatn/common/meta/constructwithargordefault.h>
 
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/unit.h>
@@ -36,7 +37,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 namespace types
 {
 
-template <typename Type, typename isBasic, ValueType valueType> struct BaseType
+template <typename Type, typename isBasic, ValueType valueType>
+struct BaseType
 {
     using type=Type;
     using BasicType=isBasic;

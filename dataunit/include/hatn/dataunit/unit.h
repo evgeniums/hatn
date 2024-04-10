@@ -313,6 +313,8 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param prettyFormat Add line endings and identations
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
+         *
+         * @todo Refactor json methods with non virtual methods, add mehod with filling error.
          */
         bool toJSON(std::vector<char>& buf,bool prettyFormat=false, int maxDecimalPlaces=0) const;
 

@@ -58,7 +58,6 @@ SET (HEADERS
     include/hatn/common/translate.h
     include/hatn/common/plugin.h
     include/hatn/common/memorylockeddata.h
-    include/hatn/common/metautils.h
     include/hatn/common/bytearray.h
     include/hatn/common/fixedbytearray.h
     include/hatn/common/thread.h
@@ -143,6 +142,16 @@ SET (HEADERS
 
     include/hatn/common/singleton.h
     include/hatn/common/runonscopeexit.h
+
+    include/hatn/common/meta/consttraits.h
+    include/hatn/common/meta/pointertraits.h
+    include/hatn/common/meta/movereference.h
+    include/hatn/common/meta/interfacespack.h
+    include/hatn/common/meta/cstrlength.h
+    include/hatn/common/meta/constructwithargordefault.h
+    include/hatn/common/meta/compilecounter.h
+    include/hatn/common/meta/enumint.h
+    include/hatn/common/meta/dynamiccastwithsample.h
 
     include/hatn/common/experimental/stats/stats.h
 )

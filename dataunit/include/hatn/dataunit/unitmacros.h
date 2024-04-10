@@ -21,6 +21,8 @@
 #ifndef HATNDATAUNITMACROS_H
 #define HATNDATAUNITMACROS_H
 
+#include <hatn/common/meta/compilecounter.h>
+
 #include <hatn/dataunit/unitmeta.h>
 
 //---------------------------------------------------------------

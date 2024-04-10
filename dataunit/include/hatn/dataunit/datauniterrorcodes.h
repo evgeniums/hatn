@@ -18,8 +18,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNBASEERRORCODES_H
-#define HATNBASEERRORCODES_H
+#ifndef HATNDATAUNITERRORCODES_H
+#define HATNDATAUNITERRORCODES_H
 
 #include <hatn/common/error.h>
 #include <hatn/dataunit/dataunit.h>
@@ -54,4 +54,4 @@ enum class RawErrorCode : int
 
 HATN_DATAUNIT_NAMESPACE_END
 
-#endif // HATNBASEERRORCODES_H
+#endif // HATNDATAUNITERRORCODES_H

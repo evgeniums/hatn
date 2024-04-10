@@ -23,6 +23,8 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+HATN_IGNORE_UNUSED_FUNCTION_BEGIN
+
 template <typename T>
 hatn::common::pmr::memory_resource* WithStaticAllocator<T>::m_resource=nullptr;
 
@@ -39,6 +41,8 @@ hatn::common::pmr::memory_resource* WithStaticAllocator<T>::getStaticResource() 
 {
     return m_resource;
 }
+
+HATN_IGNORE_UNUSED_FUNCTION_END
 
 HATN_COMMON_NAMESPACE_END
 

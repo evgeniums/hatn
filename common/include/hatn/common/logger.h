@@ -27,7 +27,7 @@
 #include <hatn/common/format.h>
 #include <hatn/common/elapsedtimer.h>
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/cstrlength.h>
 #include <hatn/common/locker.h>
 #include <hatn/common/fixedbytearray.h>
 #include <hatn/common/pmr/pmrtypes.h>

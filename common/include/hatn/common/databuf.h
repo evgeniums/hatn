@@ -21,7 +21,7 @@
 #include <system_error>
 
 #include <hatn/common/common.h>
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/consttraits.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -159,6 +159,6 @@ template <typename DataPointerT> struct DataBufWrapper
 using DataBuf=DataBufWrapper<char*>;
 using ConstDataBuf=DataBufWrapper<const char*>;
 
-//---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
+
 #endif // HATNDATABUF_H

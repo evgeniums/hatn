@@ -30,7 +30,7 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/intrusive/avl_set.hpp>
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/constructwithargordefault.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/sharedptr.h>

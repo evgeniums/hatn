@@ -22,11 +22,12 @@
 #define HATNDATAUNITMETA_H
 
 #include <utility>
+#include <type_traits>
 
 #include <boost/hana.hpp>
 namespace hana=boost::hana;
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/dynamiccastwithsample.h>
 
 #include <hatn/dataunit/dataunit.h>
 

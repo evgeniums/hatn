@@ -30,9 +30,13 @@ namespace meta {
 
 //---------------------------------------------------------------
 
+HATN_IGNORE_UNUSED_FUNCTION_BEGIN
+
 template <typename BaseT, typename UniqueType>
 unit_t<BaseT,UniqueType>::unit_t(AllocatorFactory* factory):BaseT(factory)
 {}
+
+HATN_IGNORE_UNUSED_FUNCTION_END
 
 template <typename BaseT, typename UniqueType>
 const Field* unit_t<BaseT,UniqueType>::fieldById(int id) const

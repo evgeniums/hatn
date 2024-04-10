@@ -24,10 +24,10 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/stdwrappers.h>
-#include <hatn/common/metautils.h>
 #include <hatn/common/managedobject.h>
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/bytearray.h>
+#include <hatn/common/meta/cstrlength.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 namespace detail
