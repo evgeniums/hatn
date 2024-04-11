@@ -51,6 +51,7 @@ SET (HEADERS
     include/hatn/dataunit/detail/wirebuf.ipp
 
     include/hatn/dataunit/visitors.h
+    include/hatn/dataunit/tags.h
 
     include/hatn/dataunit/unitmeta.h
     include/hatn/dataunit/detail/unitmeta.ipp

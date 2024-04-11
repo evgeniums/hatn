@@ -217,7 +217,3 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
 BOOST_AUTO_TEST_SUITE_END()
 
 #endif
-
-/**
- * @todo Data unit tags.
- */
