@@ -153,6 +153,8 @@ struct field_traits
 
     constexpr static const char* name() noexcept {return StringsT::name;}
 
+    operator std::string() const {return StringsT::name;}
+
     constexpr static int id() noexcept {return Id::value;}
 
     constexpr static bool required() noexcept {return Required::value;}
