@@ -30,7 +30,9 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-struct UnitType{};
+struct UnitType{
+    constexpr static const ValueType typeId=ValueType::Dataunit;
+};
 
 //! Field template for embedded DataUnit type
 template <typename Type, bool Shared=false>

@@ -36,28 +36,45 @@ namespace config_object_detail {
 template <typename T, typename=hana::when<true>>
 struct FieldTraits
 {
-    static Error set(const config_tree::MapT&, T&)
+    static Error set(const ConfigTree&,const ConfigTreePath&,  T&)
     {
-        // static_assert(false,"Invalid operation for this field type");
-        return OK;
+        return BaseError::INVALID_TYPE;
     }
 };
+
+template <typename T,typename ValueT>
+Error setValue(const ConfigTree& t, const ConfigTreePath& path, T& field)
+{
+    //! @todo construct error with path
+
+    auto p=path.copyAppend(field.name());
+    if (t.isSet(p,true))
+    {
+        auto val=t.get(p);
+        HATN_CHECK_RESULT(val)
+        auto scalar=val->template as<ValueT>();
+        HATN_CHECK_RESULT(scalar)
+        field.set(scalar.value());
+    }
+
+    return OK;
+}
 
 template <typename T>
 struct FieldTraits<T,hana::when<decltype(dataunit::types::IsScalar<T::typeId>)::value>>
 {
-    static Error set(const ConfigTree& t, T& field)
+    static Error set(const ConfigTree& t, const ConfigTreePath& path, T& field)
     {
-        if (t.isSet(field.name()))
-        {
-            auto val=t.get(field.name());
-            HATN_CHECK_RESULT(val)
-            auto scalar=val->template as<typename T::type>();
-            HATN_CHECK_RESULT(scalar)
-            field.set(scalar.value());
-        }
+        return setValue<T,typename T::type>(t,path,field);
+    }
+};
 
-        return OK;
+template <typename T>
+struct FieldTraits<T,hana::when<decltype(dataunit::types::IsString<T::typeId>)::value>>
+{
+    static Error set(const ConfigTree& t, const ConfigTreePath& path, T& field)
+    {
+        return setValue<T,std::string>(t,path,field);
     }
 };
 
@@ -68,26 +85,23 @@ struct FieldTraits<T,hana::when<decltype(dataunit::types::IsScalar<T::typeId>)::
 template <typename Traits>
 Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path)
 {
-    auto cfg=configTree.get(path);
-    if (cfg)
+    // skip section if not set
+    if (!configTree.isSet(path))
     {
-        //! @todo make native error with message
-        return cfg.error();
+        return OK;
     }
 
-    Error ec;
+    // set each field
     auto predicate=[](const Error& ec)
     {
         return !ec;
     };
-    auto handler=[&cfg](auto& field, auto&&)
+    auto handler=[&configTree,&path](auto& field, auto&&)
     {
-        return config_object_detail::FieldTraits<std::decay_t<decltype(field)>>::set(cfg.value(),field);
+        return config_object_detail::FieldTraits<std::decay_t<decltype(field)>>::set(configTree,path,field);
     };
-
     auto r=_CFG.each(predicate,handler);
-    ec=r;
-    return ec;
+    return r;
 }
 
 //---------------------------------------------------------------

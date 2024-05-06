@@ -37,7 +37,6 @@ enum class WireType : int
     Fixed32=5
 };
 
-
 enum class ValueType : int
 {
     Bool,
@@ -82,6 +81,11 @@ constexpr auto IsDouble=hana::bool_c<
 
 template <ValueType TypeId>
 constexpr auto IsScalar=hana::or_(IsInt<TypeId>,IsDouble<TypeId>,IsBool<TypeId>);
+
+template <ValueType TypeId>
+constexpr auto IsString=hana::bool_c<
+    TypeId==ValueType::String
+    >;
 
 }
 

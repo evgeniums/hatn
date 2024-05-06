@@ -69,6 +69,9 @@ struct HATN_BASE_EXPORT LogSettings : public LogParams
     }
 };
 
+template <typename KeyT, typename ValueT>
+static Error loadConfigMap(const ConfigTree& configTree, const ConfigTreePath& path, std::map<KeyT,ValueT>& map);
+
 } // namespace config_object
 
 template <typename Traits>
@@ -88,10 +91,12 @@ class ConfigObject
         template <typename ValidatorT>
         Result<config_object::Records> loadLogConfig(const ConfigTree& configTree, const ValidatorT& validator,  const ConfigTreePath& path, const config_object::LogSettings& logSettings=config_object::LogSettings());
 
-        template <typename KeyT, typename ValueT>
-        static Error loadConfigMap(const ConfigTree& configTree, const ConfigTreePath& path, std::map<KeyT,ValueT>& map);
-
         const Traits& config() const
+        {
+            return _CFG;
+        }
+
+        Traits& config()
         {
             return _CFG;
         }
