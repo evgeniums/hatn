@@ -30,11 +30,7 @@ SET (HEADERS
     include/hatn/dataunit/detail/fieldserialization.ipp
 
     include/hatn/dataunit/updatefilter.h
-    include/hatn/dataunit/validator.h
-    include/hatn/dataunit/fieldvalidators.h
-    include/hatn/dataunit/stringvalidators.h
     include/hatn/dataunit/updatenotifier.h
-    include/hatn/dataunit/unitvalidator.h
 
     include/hatn/dataunit/unitstrings.h
     include/hatn/dataunit/unitcontainer.h
