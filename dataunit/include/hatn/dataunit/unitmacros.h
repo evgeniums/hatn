@@ -82,6 +82,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
         using shared_type=typename traits::shared_type;\
         HDU_V2_FIELD_NAME_STR(FieldName)\
         constexpr static auto id=hana::int_c<Id>;\
+        operator std::string() const {return #FieldName;}\
     };\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits FieldName{};\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits inst_##FieldName{};\
