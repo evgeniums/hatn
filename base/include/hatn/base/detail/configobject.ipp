@@ -25,6 +25,8 @@
 #include <hatn/common/nativeerror.h>
 #include <hatn/common/translate.h>
 
+#include <hatn/validator/validate.hpp>
+
 #include <hatn/dataunit/valuetypes.h>
 #include <hatn/dataunit/unit.h>
 
@@ -123,6 +125,32 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
         auto err=std::make_shared<common::NativeError>(fmt::format(_TR("object {}: parameter {}"), _CFG.name(),failedField));
         err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_OBJECT_LOAD_ERROR,std::move(err));
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+template <typename ValidatorT>
+Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, const ValidatorT& validator)
+{
+    // load configuration
+    auto ec=loadConfig(configTree,path);
+    if (ec)
+    {
+        return ec;
+    }
+
+    // validate object
+    HATN_VALIDATOR_NAMESPACE::error_report err;
+    HATN_VALIDATOR_NAMESPACE::validate(_CFG,validator,err);
+    if (err)
+    {
+        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at {}: {}"), _CFG.name(), path.path(), err.message()));
+        return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
     }
 
     // done

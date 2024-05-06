@@ -84,12 +84,12 @@ class ConfigObject
         Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path);
 
         template <typename ValidatorT>
-        Error loadConfig(const ConfigTree& configTree, const ValidatorT& validator, const ConfigTreePath& path);
+        Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, const ValidatorT& validator);
 
         Result<config_object::Records> loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, const config_object::LogSettings& logSettings=config_object::LogSettings());
 
         template <typename ValidatorT>
-        Result<config_object::Records> loadLogConfig(const ConfigTree& configTree, const ValidatorT& validator,  const ConfigTreePath& path, const config_object::LogSettings& logSettings=config_object::LogSettings());
+        Result<config_object::Records> loadLogConfig(const ConfigTree& configTree,  const ConfigTreePath& path, const ValidatorT& validator, const config_object::LogSettings& logSettings=config_object::LogSettings());
 
         const Traits& config() const
         {
