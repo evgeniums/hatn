@@ -295,14 +295,14 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     BOOST_CHECK(ec);
     BOOST_TEST_MESSAGE(ec.message());
     BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
-    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 18: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 14: repeated count 7 exceeds available buffer size 4");
     nativeEc=ec.native();
     BOOST_REQUIRE(nativeEc!=nullptr);
     unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
     BOOST_REQUIRE(unitEc!=nullptr);
     BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
     BOOST_CHECK_EQUAL(unitEc->fieldId(),5);
-    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 18: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 14: repeated count 7 exceeds available buffer size 4");
 
     ec.reset();
     fillBuf();
