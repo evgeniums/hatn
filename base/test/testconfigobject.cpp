@@ -77,4 +77,20 @@ BOOST_AUTO_TEST_CASE(LoadConfigPlain)
     BOOST_CHECK_EQUAL("hello",o2.config().field(config2::field2).c_str());
 }
 
+BOOST_AUTO_TEST_CASE(LoadConfigErrors)
+{
+    ConfigTree t1;
+    t1.set("foo.config1.field1","hello");
+
+    WithConfig1 o1;
+    auto ec=o1.loadConfig(t1,"foo.config1");
+    BOOST_CHECK(ec);
+    BOOST_CHECK_EQUAL(ec.message(),"failed to load configuration object: object config1: parameter field1: invalid type");
+
+    WithConfig2 o2;
+    ec=o2.loadConfig(t1,"foo.config2");
+    BOOST_CHECK(!ec);
+    BOOST_CHECK_EQUAL(nullptr,o2.config().field(config2::field2).c_str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

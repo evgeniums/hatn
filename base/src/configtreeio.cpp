@@ -90,8 +90,8 @@ Error ConfigTreeIo::loadFromFile(
     if (ec)
     {
         auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to read file {}","base"), file.filename()));
-        return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
         err->setPrevError(std::move(ec));
+        return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
     }
     auto parseFormat=format.empty()?fileFormat(file.filename()):format;
     ec=parse(target,lib::toStringView(source),root,parseFormat);
