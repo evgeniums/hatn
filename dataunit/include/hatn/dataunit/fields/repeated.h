@@ -36,10 +36,8 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-    /**
-*  Helper for repeated fields
-*/
-    template <typename Type> struct RepeatedTraits
+template <typename Type>
+struct RepeatedTraits
 {
     using fieldType=FieldTmpl<Type>;
     using valueType=typename Type::type;
@@ -76,7 +74,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
         return Ctor<DefaultV>::f(parentUnit);
     }
 };
-template <typename Type> struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
+template <typename Type>
+struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
 {
     using fieldType=SharedUnitFieldTmpl<Type>;
     using valueType=typename Type::shared_type;
@@ -95,7 +94,8 @@ template <typename Type> struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
     }
 };
 
-template <typename Type> struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
+template <typename Type>
+struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
 {
     using fieldType=EmbeddedUnitFieldTmpl<Type>;
     using valueType=typename Type::type;
@@ -321,9 +321,11 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 {
     using type=typename RepeatedTraits<Type>::valueType;
     using fieldType=typename RepeatedTraits<Type>::fieldType;
-    using vectorType=::hatn::common::pmr::vector<type>;
+    using vectorType=HATN_COMMON_NAMESPACE::pmr::vector<type>;
     using isRepeatedType=std::true_type;
     using selfType=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
+
+    constexpr static const ValueType typeId=Type::typeId;
 
     constexpr static const bool isSizeIterateNeeded=RepeatedTraits<Type>::isSizeIterateNeeded;
     constexpr static int fieldId()
@@ -521,6 +523,12 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     inline size_t count() const noexcept
     {
         return vector.size();
+    }
+
+    /**  Check if array is empty */
+    inline bool empty() const noexcept
+    {
+        return vector.empty();
     }
 
     /**  Get number of repeated fields */

@@ -216,6 +216,59 @@ struct BytesTraits
         return arr;
     }
 
+    //! Set data from buffer
+    inline void set(const char* ptr,size_t size)
+    {
+        buf()->load(ptr,size);
+    }
+
+    //! Set data from null-terminated c-string
+    inline void set(const char* ptr)
+    {
+        buf()->load(ptr);
+    }
+
+    //! Set data from string
+    inline void set(
+        const std::string& str
+        )
+    {
+        buf()->load(str);
+    }
+
+    //! Set data from container
+    template <typename ContainerT>
+    inline void set(
+        const ContainerT& container
+        )
+    {
+        buf()->load(container);
+    }
+
+    //! Get C-string
+    inline const char* c_str() const noexcept
+    {
+        return buf()->c_str();
+    }
+
+    //! Get pointer to data
+    inline char* dataPtr() noexcept
+    {
+        return buf()->data();
+    }
+
+    //! Get pointer to data
+    inline char* dataPtr() const noexcept
+    {
+        return buf()->data();
+    }
+
+    //! Get data size
+    inline size_t dataSize() const noexcept
+    {
+        return buf()->size();
+    }
+
     private:
 
         sharedType shared;
