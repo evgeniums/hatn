@@ -81,7 +81,7 @@ class ConfigObject
 
         static_assert(std::is_base_of<dataunit::Unit,Traits>::value,"Config traits must be derived from dataunit::Unit");
 
-        Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path);
+        Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, bool checkRequired=true);
 
         template <typename ValidatorT>
         Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, const ValidatorT& validator);

@@ -29,6 +29,7 @@
 
 #include <hatn/dataunit/valuetypes.h>
 #include <hatn/dataunit/unit.h>
+#include <hatn/dataunit/visitors.h>
 
 #include <hatn/base/baseerrorcodes.h>
 #include <hatn/base/configtree.h>
@@ -134,12 +135,28 @@ struct FieldTraits<T,hana::when<T::isRepeatedType::value>>
 //---------------------------------------------------------------
 
 template <typename Traits>
-Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path)
+Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, bool checkRequired)
 {
+    auto requiredHandler=[this,&checkRequired,&path]()
+    {
+        // check required fields
+        if (checkRequired)
+        {
+            auto reqResult=HATN_DATAUNIT_NAMESPACE::visitors::checkRequiredFields(_CFG);
+            if (reqResult.first!=-1)
+            {
+                auto errMsg=fmt::format(_TR("required parameter {} not set","base"),reqResult.second);
+                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: {}"), _CFG.name(), path.path(), errMsg));
+                return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
+            }
+        }
+        return Error{};
+    };
+
     // skip section if not set
     if (!configTree.isSet(path))
     {
-        return OK;
+        return requiredHandler();
     }
 
     // set each field
@@ -160,13 +177,14 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
     auto ec=_CFG.each(predicate,handler);
     if (ec)
     {
-        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("object {}: parameter {}"), _CFG.name(),failedField));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: parameter {}","base"), _CFG.name(),path.path(),failedField));
         err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_OBJECT_LOAD_ERROR,std::move(err));
     }
 
+
     // done
-    return OK;
+    return requiredHandler();
 }
 
 //---------------------------------------------------------------
@@ -187,7 +205,7 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
     HATN_VALIDATOR_NAMESPACE::validate(_CFG,validator,err);
     if (err)
     {
-        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at {}: {}"), _CFG.name(), path.path(), err.message()));
+        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: {}","base"), _CFG.name(), path.path(), err.message()));
         return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
     }
 

@@ -63,6 +63,10 @@ HDU_UNIT(config5,
          HDU_FIELD(field3,HDU_TYPE_FIXED_STRING(16),3,false,"Hi!")
          )
 
+HDU_UNIT(config6,
+         HDU_FIELD(field6,TYPE_UINT32,6,true)
+         )
+
 struct WithConfig1 : public ConfigObject<config1::type>
 {
 };
@@ -80,6 +84,10 @@ struct WithConfig4 : public ConfigObject<config4::type>
 };
 
 struct WithConfig5 : public ConfigObject<config5::type>
+{
+};
+
+struct WithConfig6 : public ConfigObject<config6::type>
 {
 };
 
@@ -144,7 +152,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigErrors)
     WithConfig1 o1;
     auto ec=o1.loadConfig(t1,"foo.config1");
     BOOST_CHECK(ec);
-    BOOST_CHECK_EQUAL(ec.message(),"failed to load configuration object: object config1: parameter field1: invalid type");
+    BOOST_CHECK_EQUAL(ec.message(),"failed to load configuration object: config1 at path foo.config1: parameter field1: invalid type");
 
     WithConfig2 o2;
     ec=o2.loadConfig(t1,"foo.config2");
@@ -159,7 +167,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigValidate)
     WithConfig2 o1;
     auto ec=o1.loadConfig(t1,"foo.config2",v1);
     BOOST_CHECK(ec);
-    BOOST_CHECK_EQUAL(ec.message(),"failed to validate configuration object: config2 at foo.config2: field2 must be equal to hello");
+    BOOST_CHECK_EQUAL(ec.message(),"failed to validate configuration object: config2 at path foo.config2: field2 must be equal to hello");
 
     t1.set("foo.config2.field2","hello");
 
@@ -264,6 +272,23 @@ BOOST_AUTO_TEST_CASE(LoadConfigStringArrays)
     BOOST_CHECK(!ec);
     BOOST_CHECK(arr2.empty());
     BOOST_REQUIRE_EQUAL(arr2.count(),0);
+}
+
+BOOST_AUTO_TEST_CASE(LoadConfigRequired)
+{
+    ConfigTree t1;
+
+    WithConfig6 o1;
+    auto ec=o1.loadConfig(t1,"foo.config6");
+    BOOST_CHECK(ec);
+    BOOST_CHECK_EQUAL(ec.message(),"failed to validate configuration object: config6 at path foo.config6: required parameter field6 not set");
+
+    t1.set("foo.config6.field6",500);
+
+    WithConfig6 o2;
+    ec=o2.loadConfig(t1,"foo.config6");
+    BOOST_CHECK(!ec);
+    BOOST_CHECK_EQUAL(500,o2.config().fieldValue(config6::field6));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
