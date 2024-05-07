@@ -49,45 +49,83 @@ struct FieldTraits
     }
 };
 
-template <typename T,typename ValueT>
-Error setValue(const ConfigTree& t, const ConfigTreePath& path, T& field)
+template <typename T, typename=hana::when<true>>
+struct FieldValue
 {
-    auto p=path.copyAppend(field.name());
-    if (t.isSet(p,true))
-    {
-        auto val=t.get(p);
-        if (val)
-        {
-            return val.takeError();
-        }
-
-        auto v=val->template as<ValueT>();
-        if (v)
-        {
-            return v.takeError();
-        }
-
-        field.set(v.value());
-    }
-
-    return OK;
-}
+};
 
 template <typename T>
-struct FieldTraits<T,hana::when<decltype(dataunit::types::IsScalar<T::typeId>)::value>>
+struct FieldValue<T,hana::when<decltype(dataunit::types::IsScalar<T::typeId>)::value>>
 {
+    using type=typename T::type;
+};
+
+template <typename T>
+struct FieldValue<T,hana::when<decltype(dataunit::types::IsString<T::typeId>)::value>>
+{
+    using type=std::string;
+};
+
+template <typename T>
+struct FieldTraits<T,hana::when<!T::isRepeatedType::value>>
+{
+    using ValueT=typename FieldValue<T>::type;
+
     static Error set(const ConfigTree& t, const ConfigTreePath& path, T& field)
     {
-        return setValue<T,typename T::type>(t,path,field);
+        auto p=path.copyAppend(field.name());
+        if (t.isSet(p,true))
+        {
+            auto val=t.get(p);
+            if (val)
+            {
+                return val.takeError();
+            }
+
+            auto v=val->template as<ValueT>();
+            if (v)
+            {
+                return v.takeError();
+            }
+
+            field.set(v.value());
+        }
+
+        return OK;
     }
 };
 
 template <typename T>
-struct FieldTraits<T,hana::when<decltype(dataunit::types::IsString<T::typeId>)::value>>
+struct FieldTraits<T,hana::when<T::isRepeatedType::value>>
 {
+    using ValueT=typename FieldValue<T>::type;
+
     static Error set(const ConfigTree& t, const ConfigTreePath& path, T& field)
     {
-        return setValue<T,std::string>(t,path,field);
+        auto p=path.copyAppend(field.name());
+        if (t.isSet(p,true))
+        {
+            field.clearArray();
+
+            auto val=t.get(p);
+            if (val)
+            {
+                return val.takeError();
+            }
+
+            auto arr=val->template asArray<ValueT>();
+            if (arr)
+            {
+                return arr.takeError();
+            }
+
+            for (size_t i=0;i<arr->size();i++)
+            {
+                field.addValue(arr->at(i));
+            }
+        }
+
+        return OK;
     }
 };
 
