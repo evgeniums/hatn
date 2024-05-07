@@ -66,7 +66,15 @@ constexpr auto IsInt=hana::bool_c<
                                 TypeId==ValueType::Int8 ||
                                 TypeId==ValueType::Int16 ||
                                 TypeId==ValueType::Int32 ||
-                                TypeId==ValueType::Int64
+                                TypeId==ValueType::Int64 ||
+                                TypeId==ValueType::UInt8 ||
+                                TypeId==ValueType::UInt16 ||
+                                TypeId==ValueType::UInt32 ||
+                                TypeId==ValueType::UInt64 ||
+                                TypeId==ValueType::UInt8 ||
+                                TypeId==ValueType::UInt16 ||
+                                TypeId==ValueType::UInt32 ||
+                                TypeId==ValueType::UInt64
                                  >;
 
 template <ValueType TypeId>
