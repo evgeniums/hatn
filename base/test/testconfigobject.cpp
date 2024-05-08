@@ -291,4 +291,167 @@ BOOST_AUTO_TEST_CASE(LoadConfigRequired)
     BOOST_CHECK_EQUAL(500,o2.config().fieldValue(config6::field6));
 }
 
+BOOST_AUTO_TEST_CASE(LoadLogConfigPlain)
+{
+    ConfigTree t1;
+    t1.set("foo.config1.field1",100);
+    t1.set("foo.config1.field2","hello");
+    t1.set("foo.config1.field3","hi");
+
+    config_object::LogRecords records;
+    WithConfig5 o1;
+    auto r1=o1.loadLogConfig(t1,"foo.config1",records);
+    BOOST_CHECK(!r1);
+    BOOST_CHECK_EQUAL(100,o1.config().fieldValue(config5::field1));
+    BOOST_CHECK_EQUAL("hello",o1.config().field(config5::field2).c_str());
+    BOOST_CHECK_EQUAL("hi",o1.config().field(config5::field3).c_str());
+
+    BOOST_REQUIRE_EQUAL(records.size(),3);
+    BOOST_CHECK_EQUAL(records[0].name,"field1");
+    BOOST_CHECK_EQUAL(records[0].value,"100");
+    BOOST_CHECK_EQUAL(records[1].name,"field2");
+    BOOST_CHECK_EQUAL(records[1].value,"\"hello\"");
+    BOOST_CHECK_EQUAL(records[2].name,"field3");
+    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+
+    records.clear();
+    config_object::LogSettings settings1;
+    settings1.Mask="$$$$$";
+    settings1.MaskNames.insert("field2");
+    r1=o1.loadLogConfig(t1,"foo.config1",records,settings1);
+    BOOST_CHECK(!r1);
+    BOOST_CHECK_EQUAL(100,o1.config().fieldValue(config5::field1));
+    BOOST_CHECK_EQUAL("hello",o1.config().field(config5::field2).c_str());
+    BOOST_CHECK_EQUAL("hi",o1.config().field(config5::field3).c_str());
+
+    BOOST_REQUIRE_EQUAL(records.size(),3);
+    BOOST_CHECK_EQUAL(records[0].name,"field1");
+    BOOST_CHECK_EQUAL(records[0].value,"100");
+    BOOST_CHECK_EQUAL(records[1].name,"field2");
+    BOOST_CHECK_EQUAL(records[1].value,"\"$$$$$\"");
+    BOOST_CHECK_EQUAL(records[2].name,"field3");
+    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+}
+
+BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
+{
+    ConfigTree t1;
+
+    auto a1=t1.toArray<int64_t>("foo.config3.field3");
+    BOOST_CHECK(!a1);
+    a1->emplaceBack(100);
+    a1->emplaceBack(200);
+    a1->emplaceBack(300);
+    a1->emplaceBack(400);
+    a1->emplaceBack(500);
+
+    config_object::LogRecords records;
+    WithConfig3 o1;
+    const auto& arr=o1.config().field(config3::field3);
+    auto ec=o1.loadLogConfig(t1,"foo.config3",records);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(!arr.empty());
+    BOOST_REQUIRE_EQUAL(arr.count(),5);
+    BOOST_CHECK_EQUAL(arr.at(0),100);
+    BOOST_CHECK_EQUAL(arr.at(1),200);
+    BOOST_CHECK_EQUAL(arr.at(2),300);
+    BOOST_CHECK_EQUAL(arr.at(3),400);
+    BOOST_CHECK_EQUAL(arr.at(4),500);
+
+    BOOST_REQUIRE_EQUAL(records.size(),1);
+    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].value,"[100,200,300,400,500]");
+
+    records.clear();
+    config_object::LogSettings settings1;
+    settings1.MaxArrayElements=3;
+    ec=o1.loadLogConfig(t1,"foo.config3",records,settings1);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(!arr.empty());
+    BOOST_REQUIRE_EQUAL(arr.count(),5);
+    BOOST_CHECK_EQUAL(arr.at(0),100);
+    BOOST_CHECK_EQUAL(arr.at(1),200);
+    BOOST_CHECK_EQUAL(arr.at(2),300);
+    BOOST_CHECK_EQUAL(arr.at(3),400);
+    BOOST_CHECK_EQUAL(arr.at(4),500);
+
+    BOOST_REQUIRE_EQUAL(records.size(),1);
+    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].value,"[100,200,300,...]");
+}
+
+BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
+{
+    ConfigTree t1;
+
+    WithConfig4 o1;
+    const auto& arr=o1.config().field(config4::field3);
+    auto ec=o1.loadConfig(t1,"foo.config4");
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(arr.empty());
+
+    auto a1=t1.toArray<std::string>("foo.config4.field3");
+    BOOST_CHECK(!a1);
+    a1->emplaceBack("one");
+    a1->emplaceBack("two");
+    a1->emplaceBack("three");
+    a1->emplaceBack("four");
+    a1->emplaceBack("five");
+
+    config_object::LogRecords records;
+    ec=o1.loadLogConfig(t1,"foo.config4",records);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(!arr.empty());
+    BOOST_REQUIRE_EQUAL(arr.count(),5);
+    BOOST_CHECK_EQUAL(arr.at(0).c_str(),"one");
+    BOOST_CHECK_EQUAL(arr.at(1).c_str(),"two");
+    BOOST_CHECK_EQUAL(arr.at(2).c_str(),"three");
+    BOOST_CHECK_EQUAL(arr.at(3).c_str(),"four");
+    BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
+
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].value,"[\"one\",\"two\",\"three\",\"four\",\"five\"]");
+    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].value,"[]");
+
+    records.clear();
+    config_object::LogSettings settings1;
+    settings1.MaxArrayElements=3;
+    ec=o1.loadLogConfig(t1,"foo.config4",records,settings1);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(!arr.empty());
+    BOOST_REQUIRE_EQUAL(arr.count(),5);
+    BOOST_CHECK_EQUAL(arr.at(0).c_str(),"one");
+    BOOST_CHECK_EQUAL(arr.at(1).c_str(),"two");
+    BOOST_CHECK_EQUAL(arr.at(2).c_str(),"three");
+    BOOST_CHECK_EQUAL(arr.at(3).c_str(),"four");
+    BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
+
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].value,"[\"one\",\"two\",\"three\",...]");
+    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].value,"[]");
+
+    settings1.MaskNames.insert("field3");
+    records.clear();
+    settings1.MaxArrayElements=3;
+    ec=o1.loadLogConfig(t1,"foo.config4",records,settings1);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(!arr.empty());
+    BOOST_REQUIRE_EQUAL(arr.count(),5);
+    BOOST_CHECK_EQUAL(arr.at(0).c_str(),"one");
+    BOOST_CHECK_EQUAL(arr.at(1).c_str(),"two");
+    BOOST_CHECK_EQUAL(arr.at(2).c_str(),"three");
+    BOOST_CHECK_EQUAL(arr.at(3).c_str(),"four");
+    BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
+
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].value,"[\"********\",\"********\",\"********\",...]");
+    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].value,"[]");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

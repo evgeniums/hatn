@@ -39,12 +39,19 @@ class ConfigTree;
 
 namespace config_object {
 
-struct HATN_BASE_EXPORT Record
+struct HATN_BASE_EXPORT LogRecord
 {
-    ConfigTreePath path;
+    std::string name;
     std::string value;
+
+    LogRecord(std::string name,std::string value)
+        : name(std::move(name)),value(std::move(value))
+    {}
+
+    LogRecord()
+    {}
 };
-using Records=std::vector<Record>;
+using LogRecords=std::vector<LogRecord>;
 
 struct HATN_BASE_EXPORT LogParams
 {
@@ -55,22 +62,27 @@ struct HATN_BASE_EXPORT LogParams
 
 struct HATN_BASE_EXPORT LogSettings : public LogParams
 {
-    std::set<std::string> MaskPatterns;
+    std::set<std::string> MaskNames;
 
     LogSettings(const LogParams& params=LogParams())
         : LogParams(params),
-          MaskPatterns{{"password","secret","masked"}}
+          MaskNames{{"password","secret","masked"}}
     {}
 
     template <typename ...Args>
     LogSettings(Args&& ...patterns)
     {
-        common::ContainerUtils::insertElements(MaskPatterns,std::forward<Args>(patterns)...);
+        common::ContainerUtils::insertElements(MaskNames,std::forward<Args>(patterns)...);
+    }
+
+    void mask(const std::string name, std::string& value) const
+    {
+        if (MaskNames.find(name)!=MaskNames.end())
+        {
+            value=Mask;
+        }
     }
 };
-
-template <typename KeyT, typename ValueT>
-static Error loadConfigMap(const ConfigTree& configTree, const ConfigTreePath& path, std::map<KeyT,ValueT>& map);
 
 } // namespace config_object
 
@@ -86,10 +98,10 @@ class ConfigObject
         template <typename ValidatorT>
         Error loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, const ValidatorT& validator);
 
-        Result<config_object::Records> loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, const config_object::LogSettings& logSettings=config_object::LogSettings());
-
         template <typename ValidatorT>
-        Result<config_object::Records> loadLogConfig(const ConfigTree& configTree,  const ConfigTreePath& path, const ValidatorT& validator, const config_object::LogSettings& logSettings=config_object::LogSettings());
+        Error loadLogConfig(const ConfigTree& configTree,  const ConfigTreePath& path, config_object::LogRecords& records, const ValidatorT& validator, const config_object::LogSettings& logSettings=config_object::LogSettings());
+
+        Error loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, config_object::LogRecords& records, const config_object::LogSettings& logSettings=config_object::LogSettings());
 
         const Traits& config() const
         {
@@ -104,6 +116,13 @@ class ConfigObject
     protected:
 
         Traits _CFG;
+
+    private:
+
+        void fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records);
+
+        template <typename ValidatorT>
+        Error validate(const ConfigTreePath& path, const ValidatorT& validator);
 };
 
 HATN_BASE_NAMESPACE_END

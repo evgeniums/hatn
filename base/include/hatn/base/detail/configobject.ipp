@@ -24,12 +24,14 @@
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
 #include <hatn/common/translate.h>
+#include <hatn/common/runonscopeexit.h>
 
 #include <hatn/validator/validate.hpp>
 
 #include <hatn/dataunit/valuetypes.h>
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/visitors.h>
+#include <hatn/dataunit/unitmeta.h>
 
 #include <hatn/base/baseerrorcodes.h>
 #include <hatn/base/configtree.h>
@@ -201,6 +203,15 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
     }
 
     // validate object
+    return validate(path,validator);
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+template <typename ValidatorT>
+Error ConfigObject<Traits>::validate(const ConfigTreePath& path, const ValidatorT& validator)
+{
     HATN_VALIDATOR_NAMESPACE::error_report err;
     HATN_VALIDATOR_NAMESPACE::validate(_CFG,validator,err);
     if (err)
@@ -211,6 +222,151 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+Error ConfigObject<Traits>::loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, config_object::LogRecords& records, const config_object::LogSettings& logSettings)
+{
+    auto onExit=common::makeScopeGuard(
+        [this,&logSettings,&records]()
+        {
+            fillLogRecords(logSettings,records);
+        }
+    );
+    std::ignore=onExit;
+
+    // load configuration
+    auto ec=loadConfig(configTree,path);
+    if (ec)
+    {
+        return ec;
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+template <typename ValidatorT>
+Error ConfigObject<Traits>::loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, config_object::LogRecords& records, const ValidatorT& validator, const config_object::LogSettings& logSettings)
+{
+    auto onExit=common::makeScopeGuard(
+        [this,&logSettings,&records]()
+        {
+            fillLogRecords(logSettings,records);
+        }
+        );
+    std::ignore=onExit;
+
+    // load configuration
+    auto ec=loadConfig(configTree,path);
+    if (ec)
+    {
+        return ec;
+    }
+
+    // validate object
+    return validate(path,validator);
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records)
+{
+    auto handler=[&logSettings,&records](auto&& field, auto&&)
+    {
+        using T=typename std::decay_t<decltype(field)>;
+
+        auto value=hana::eval_if(
+            typename T::isRepeatedType{},
+            [&](auto _)
+            {
+                return hana::eval_if(
+                    dataunit::types::IsString<T::typeId>,
+                    [&](auto _)
+                    {
+                        const auto& vector=_(field).value();
+                        auto count=vector.size();
+                        if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
+                        {
+                            count=_(logSettings).MaxArrayElements;
+                        }
+
+                        auto out = fmt::memory_buffer();
+                        fmt::format_to(std::back_inserter(out),"[");
+                        for (size_t i=0;i<count;i++)
+                        {
+                            if (i!=0)
+                            {
+                                fmt::format_to(std::back_inserter(out),",");
+                            }
+
+                            std::string v{_(field).at(i).c_str()};
+                            _(logSettings).mask(_(field).name(),v);
+                            fmt::format_to(std::back_inserter(out),"\"{}\"",v);
+                        }
+
+                        if (count!=vector.size())
+                        {
+                            fmt::format_to(std::back_inserter(out),",...]");
+                        }
+                        else
+                        {
+                            fmt::format_to(std::back_inserter(out),"]");
+                        }
+                        return fmt::to_string(out);
+                    },
+                    [&](auto _)
+                    {
+                        const auto& vector=_(field).value();
+                        auto endOffset=0;
+                        if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
+                        {
+                            endOffset=vector.size()-_(logSettings).MaxArrayElements;
+                        }
+
+                        auto out = fmt::memory_buffer();
+                        fmt::format_to(std::back_inserter(out),"[{}",fmt::join(std::begin(vector),std::end(vector)-endOffset,","));
+                        if (endOffset!=0)
+                        {
+                            fmt::format_to(std::back_inserter(out),",...]");
+                        }
+                        else
+                        {
+                            fmt::format_to(std::back_inserter(out),"]");
+                        }
+                        return fmt::to_string(out);
+                    }
+                );
+            },
+            [&](auto _)
+            {
+                return hana::eval_if(
+                    dataunit::types::IsString<T::typeId>,
+                    [&](auto _)
+                    {
+                        std::string v{_(field).c_str()};
+                        _(logSettings).mask(_(field).name(),v);
+                        return fmt::format("\"{}\"",v);
+                    },
+                    [&](auto _)
+                    {
+                        return fmt::format("{}",_(field).value());
+                    }
+                );
+            }
+        );
+
+        records.emplace_back(field.name(),std::move(value));
+
+        return true;
+    };
+    _CFG.each(HATN_DATAUNIT_NAMESPACE::meta::true_predicate,handler);
 }
 
 //---------------------------------------------------------------
