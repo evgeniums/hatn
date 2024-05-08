@@ -324,7 +324,7 @@ void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logS
                     [&](auto _)
                     {
                         const auto& vector=_(field).value();
-                        auto endOffset=0;
+                        size_t endOffset{0};
                         if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
                         {
                             endOffset=vector.size()-_(logSettings).MaxArrayElements;

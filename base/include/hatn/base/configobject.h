@@ -39,7 +39,7 @@ class ConfigTree;
 
 namespace config_object {
 
-struct HATN_BASE_EXPORT LogRecord
+struct LogRecord
 {
     std::string name;
     std::string value;
@@ -53,14 +53,14 @@ struct HATN_BASE_EXPORT LogRecord
 };
 using LogRecords=std::vector<LogRecord>;
 
-struct HATN_BASE_EXPORT LogParams
+struct LogParams
 {
     bool CompactArrays=true;
     size_t MaxArrayElements=10;
     const char* Mask="********";
 };
 
-struct HATN_BASE_EXPORT LogSettings : public LogParams
+struct LogSettings : public LogParams
 {
     std::set<std::string> MaskNames;
 
