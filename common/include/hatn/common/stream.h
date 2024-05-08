@@ -587,11 +587,11 @@ template <typename ImplStreamT> struct StreamTmplVTraits<ImplStreamT,
 
 //! Base template for asynchronous streams
 template <typename ImplStreamT, typename BaseStreamT>
-class StreamTmplV : public WithImpl<ImplStreamT,BaseStreamT>
+class StreamTmplV : public WithImpl<ImplStreamT>, public BaseStreamT
 {
     public:
 
-        using  WithImpl<ImplStreamT,BaseStreamT>::WithImpl;
+        using  WithImpl<ImplStreamT>::WithImpl;
 
         virtual ~StreamTmplV()=default;
 

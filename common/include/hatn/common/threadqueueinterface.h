@@ -102,7 +102,7 @@ struct TaskWithContext final
  *
  * This is a workaround to avoid prolifiration of thread classes (with/without copy-constructible contexts).
  *
- * \attention Use it only by posting tasks with pointers to prepared tasks: first prepare() and then post(TaskTypetem*).
+ * @attention Use it only by posting tasks with pointers to prepared tasks: first prepare() and then post(TaskTypetem*).
  * Do not post it by value with postTask(TaskType).
  */
 template <typename T>

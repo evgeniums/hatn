@@ -48,7 +48,7 @@ typedef std::unordered_map<std::string,boost::any> ParametersMap;
 class Parameters_p;
 
 //! Container of generic parameters
-//! \todo Refactor it
+//! @todo Refactor it
 class HATN_COMMON_EXPORT Parameters
 {
     public:

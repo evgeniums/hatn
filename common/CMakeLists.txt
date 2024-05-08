@@ -13,6 +13,7 @@ ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)
 INCLUDE(thirdparty/md5/md5.cmake)
 INCLUDE(thirdparty/base64/base64.cmake)
+INCLUDE(thirdparty/fameta/fameta.cmake)
 
 IF (NOT HATNCOMMON_PYTHON_SCRIPTS_DIR)
     INCLUDE(hatn/Scripts)
@@ -36,6 +37,7 @@ SET (HEADERS
     include/hatn/common/nativeerror.h
     include/hatn/common/errorcategory.h
     include/hatn/common/errorstack.h
+    include/hatn/common/apierror.h
     include/hatn/common/result.h
 
     include/hatn/common/logger.h
@@ -56,7 +58,6 @@ SET (HEADERS
     include/hatn/common/translate.h
     include/hatn/common/plugin.h
     include/hatn/common/memorylockeddata.h
-    include/hatn/common/metautils.h
     include/hatn/common/bytearray.h
     include/hatn/common/fixedbytearray.h
     include/hatn/common/thread.h
@@ -141,6 +142,16 @@ SET (HEADERS
 
     include/hatn/common/singleton.h
     include/hatn/common/runonscopeexit.h
+
+    include/hatn/common/meta/consttraits.h
+    include/hatn/common/meta/pointertraits.h
+    include/hatn/common/meta/movereference.h
+    include/hatn/common/meta/interfacespack.h
+    include/hatn/common/meta/cstrlength.h
+    include/hatn/common/meta/constructwithargordefault.h
+    include/hatn/common/meta/compilecounter.h
+    include/hatn/common/meta/enumint.h
+    include/hatn/common/meta/dynamiccastwithsample.h
 
     include/hatn/common/experimental/stats/stats.h
 )

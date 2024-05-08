@@ -21,6 +21,7 @@
 #include <memory>
 
 #include <hatn/common/common.h>
+#include <hatn/common/utils.h>
 
 #include <hatn/common/pointers/std/managedobject.h>
 
@@ -62,6 +63,8 @@ template <typename T> struct DeleteHelper<T,std::enable_if_t<!std::is_base_of<Ma
 template <typename T> class SharedPtr
 {
     public:
+
+        using hana_tag=shared_pointer_tag;
 
         //! Ctor from object
         explicit SharedPtr(T* obj=nullptr):p(obj,&DeleteHelper<T>::del)

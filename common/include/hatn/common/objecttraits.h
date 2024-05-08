@@ -170,8 +170,8 @@ private:
 /**
  * @brief Base tempate class for classes that incapsulate implementer (impl) object
  */
-template <typename ImplT, typename BaseT>
-class WithImpl : public BaseT
+template <typename ImplT>
+class WithImpl
 {
     public:
 

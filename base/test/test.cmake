@@ -2,6 +2,7 @@ SET (TEST_SOURCES
     ${BASE_TEST_SRC}/testconfigtree.cpp
     ${BASE_TEST_SRC}/testconfigtreevalue.cpp
     ${BASE_TEST_SRC}/testconfigtreeio.cpp
+    ${BASE_TEST_SRC}/testconfigobject.cpp
 )
 
 SET (TEST_HEADERS

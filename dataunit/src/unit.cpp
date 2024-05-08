@@ -10,9 +10,9 @@
 /*
     
 */
-/** \file dataunit/unit.сpp
+/** @file dataunit/unit.сpp
   *
-  *      Base classes for data units and dataunit fields
+  * Defines Unit class.
   *
   */
 
@@ -33,24 +33,17 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/logger.h>
 
+#include <hatn/dataunit/wiredata.h>
+#include <hatn/dataunit/datauniterror.h>
+
 #include <hatn/dataunit/rapidjsonstream.h>
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
 #include <hatn/dataunit/stream.h>
+#include <hatn/dataunit/detail/wirebuf.ipp>
 #include <hatn/dataunit/unit.h>
-#include <hatn/dataunit/syntax.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace {
-template <typename ...Args> inline void reportDebug(const char* context,const char* msg, Args&&... args) noexcept
-{
-    HATN_DEBUG_CONTEXT(dataunit,context,1,HATN_FORMAT(msg,std::forward<Args>(args)...));
-}
-template <typename ...Args> inline void reportWarn(const char* context,const char* msg, Args&&... args) noexcept
-{
-    HATN_WARN_CONTEXT(dataunit,context,HATN_FORMAT(msg,std::forward<Args>(args)...));
-HATN_DATAUNIT_NAMESPACE_END
 
 /********************** Unit **************************/
 
@@ -68,22 +61,18 @@ Unit::~Unit()=default;
 //---------------------------------------------------------------
 void Unit::clear()
 {
-    if (!m_clean)
-    {
-        iterateFields([](Field& field){field.clear(); return true;});
-    }
-    resetWireData();
-    m_clean=true;
+    iterateFields([](Field& field){field.clear(); return true;});
+    resetWireDataKeeper();
 }
 
 //---------------------------------------------------------------
-void Unit::reset()
+void Unit::reset(bool onlyNonClean)
 {
-    if (!m_clean)
+    if (!onlyNonClean || !m_clean)
     {
         iterateFields([](Field& field){field.reset(); return true;});
     }
-    resetWireData();
+    resetWireDataKeeper();
     m_clean=true;
 }
 
@@ -103,18 +92,31 @@ size_t Unit::size() const
 }
 
 //---------------------------------------------------------------
-const Field* Unit::fieldByName(const char* name,size_t size) const
+const Field* Unit::fieldById(int id) const
 {
+    // must be overriden
+    std::ignore=id;
+    return nullptr;
+}
+
+//---------------------------------------------------------------
+Field* Unit::fieldById(int id)
+{
+    // must be overriden
+    std::ignore=id;
+    return nullptr;
+}
+
+//---------------------------------------------------------------
+const Field* Unit::fieldByName(common::lib::string_view name) const
+{
+    // in normal units this default implementation is not used because there is overriden method
     const Field* foundField=nullptr;
     iterateFieldsConst(
-                [&foundField,name,size](const Field& field)
+                [&foundField,name](const Field& field)
                 {
-                    auto sz=size;
-                    if (sz==0)
-                    {
-                        sz=strlen(name);
-                    }
-                    if (field.nameSize()==sz && memcmp(field.name(),name,sz)==0)
+                    common::lib::string_view fieldName(field.name());
+                    if (fieldName==name)
                     {
                         foundField=&field;
                         return false;
@@ -126,117 +128,46 @@ const Field* Unit::fieldByName(const char* name,size_t size) const
 }
 
 //---------------------------------------------------------------
-Field* Unit::fieldByName(const char* name,size_t size)
+Field* Unit::fieldByName(common::lib::string_view name)
 {
-    Field* foundField=nullptr;
-    iterateFields(
-                [&foundField,name,size](Field& field)
-                {
-                    auto sz=size;
-                    if (sz==0)
-                    {
-                        sz=strlen(name);
-                    }
-                    if (field.nameSize()==sz && memcmp(field.name(),name,sz)==0)
-                    {
-                        foundField=&field;
-                        return false;
-                    }
-                    return true;
-                }
-           );
-    return foundField;
+    auto self=const_cast<const Unit*>(this);
+    auto foundField=self->fieldByName(name);
+    if (foundField!=nullptr)
+    {
+        return const_cast<Field*>(foundField);
+    }
+    return nullptr;
 }
 
 //---------------------------------------------------------------
-void Unit::fillFieldNamesTable(common::pmr::map<FieldNamesKey, Field *> &table)
+int Unit::serialize(WireData&, bool) const
 {
-    iterateFields(
-                [&table](Field& field)
-                {
-                    table[{field.name(),field.nameSize()}]=&field;
-                    return true;
-                }
-           );
+    // must be implemented in derived class
+    return -1;
+}
+
+#if 0
+//---------------------------------------------------------------
+int Unit::serialize(WireBufSolid&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
 }
 
 //---------------------------------------------------------------
-int Unit::serialize(
-        WireData &wired,
-        bool topLevel
-    ) const
+int Unit::serialize(WireBufSolidShared&, bool) const
 {
-    if (topLevel)
-    {
-        wired.clear();
-    }
-
-    int result=-1;
-    if (!m_wireDataPack.isNull())
-    {
-        // use already serialized data
-        result=wired.append(m_wireDataPack->wireData());
-    }
-    else
-    {
-        auto prevSize=wired.size();
-        // serialize unit
-        if (iterateFieldsConst(
-                    [&wired,this](const Field& field)
-                    {
-                        // skip optional fields which are not set
-                        if (!field.isSet())
-                        {
-                            if (field.isRequired())
-                            {
-                                reportWarn("serialize",
-                                                    "Failed to serialize DataUnit message {}: required field {} is not set",
-                                                     name(),field.name()
-                                                  );
-                                return false;
-                            }
-                            return true;
-                        }
-
-                        // append tag to sream
-                        if (!field.isRepeatedUnpackedProtoBuf())
-                        {
-                            uint32_t tag=static_cast<uint32_t>((field.getID()<<3)|static_cast<uint32_t>(field.wireType()));
-                            auto* buf=wired.mainContainer();
-                            bool storeTagToMeta=
-                                    !wired.isSingleBuffer()
-                                    &&
-                                    field.canChainBlocks()
-                                ;
-                            if (storeTagToMeta)
-                            {
-                                wired.appendUint32(tag);
-                            }
-                            else
-                            {
-                                wired.incSize(Stream<uint32_t>::packVarInt(buf,tag));
-                            }
-                        }
-
-                        // pack field
-                        if (!field.store(wired))
-                        {
-                            reportWarn("serialize","Failed to serialize DataUnit message {}: broken on field {}",
-                                        name(),field.name());
-                            return false;
-                        }
-
-                        // ok
-                        return true;
-                    }
-               )
-            )
-        {
-            result=static_cast<int>(wired.size()-prevSize);
-        }
-    }
-    return result;
+    // must be implemented in derived class
+    return -1;
 }
+
+//---------------------------------------------------------------
+int Unit::serialize(WireBufChained&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
+}
+#endif
 
 //---------------------------------------------------------------
 int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
@@ -275,184 +206,25 @@ bool Unit::parse(const char *data, size_t size, bool inlineBuffer)
     return parse(wired);
 }
 
-//---------------------------------------------------------------
-bool Unit::parse(WireData &wired,bool topLevel)
+bool Unit::parse(WireData&,bool)
 {
-    if (!wired.isSingleBuffer())
-    {
-        WireDataSingle singleW(wired.toSingleWireData());
-        return parse(singleW,topLevel);
-    }
-
-    clear();
-    m_clean=false;
-
-    uint32_t tag=0;
-    common::ByteArray* buf=wired.mainContainer();
-
-    auto cleanup=[this,&wired,topLevel]()
-    {
-        this->clear();
-        if (topLevel)
-        {
-            wired.resetState();
-        }
-    };
-
-    // parse stream and load fields
-    for(;;)
-    {
-        // parse tag from the buffer
-        if (wired.currentOffset()>=wired.size())
-        {
-            break;
-        }
-        Assert(wired.currentOffset()<buf->size(),"Wire offet overflow");
-
-        auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),buf->size()-wired.currentOffset(),tag);
-        if (consumed<0)
-        {
-            reportDebug("parse","Failed to parse DataUnit message {}: broken tag at offset ",name(),wired.currentOffset());
-            cleanup();
-            return false;
-        }
-        wired.incCurrentOffset(consumed);
-
-        // calc field ID and type
-        int fieldType=static_cast<int>(tag&0x7u);
-        int fieldId=tag>>3;
-
-        // find and process field
-        auto* field=fieldById(fieldId);
-        if (field!=nullptr)
-        {
-            auto fieldWireType=static_cast<int>(field->wireType());
-            if (fieldWireType!=fieldType)
-            {
-                reportDebug("parse","Failed to parse DataUnit message {}: for field {} invalid wire type {}",name(),field->name(),fieldType);
-                cleanup();
-                return false;
-            }
-            if (!field->load(wired,m_factory))
-            {
-                reportDebug("parse","Failed to parse DataUnit message {}: for field {} at offset {}",name(),field->name(),wired.currentOffset());
-                cleanup();
-                return false;
-            }
-        }
-        else
-        {
-            consumed=0;
-            char* data=buf->data()+wired.currentOffset();
-            switch (fieldType)
-            {
-                case (static_cast<int>(WireType::WithLength)):
-                case (static_cast<int>(WireType::VarInt)):
-                {
-                    uint32_t shift=0;
-                    bool moreBytesLeft=false;
-                    uint32_t value=0;
-                    bool overflow=false;
-                    auto availableSize=buf->size()-wired.currentOffset();
-                    while (StreamBase::unpackVarIntByte(data,value,availableSize,consumed,overflow,moreBytesLeft,shift,56)){}
-                    if (moreBytesLeft||overflow)
-                    {
-                        if (overflow)
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-                        }
-                        else
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: unterminated VarInt for field {} at offset ",name(),fieldId,wired.currentOffset());
-                        }
-                        cleanup();
-                        return false;
-                    }
-                    wired.incCurrentOffset(consumed);
-
-                    if (fieldType==static_cast<int>(WireType::WithLength))
-                    {
-                        if (shift>28)
-                        {
-                            // length can't be more than 32 bit word
-                            reportDebug("parse","Failed to parse DataUnit message {}: invalid block length for field {} at offset ",name(),fieldId,wired.currentOffset());
-                            cleanup();
-                            return false;
-                        }
-                        wired.incCurrentOffset(value);
-                        if (buf->size()<wired.currentOffset())
-                        {
-                            reportDebug("parse","Failed to parse DataUnit message {}: block length overflow for field {} at offset ",name(),fieldId,wired.currentOffset());
-                            cleanup();
-                            return false;
-                        }
-                    }
-                }
-                break;
-
-                case (static_cast<int>(WireType::Fixed32)):
-                {
-                    wired.incCurrentOffset(4);
-                    if (buf->size()<wired.currentOffset())
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-
-                        cleanup();
-                        return false;
-                    }
-                }
-                break;
-
-                case (static_cast<int>(WireType::Fixed64)):
-                {
-                    wired.incCurrentOffset(8);
-                    if (buf->size()<wired.currentOffset())
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unexpected end of buffer",name());
-
-                        cleanup();
-                        return false;
-                    }
-                }
-                break;
-
-                default:
-                    {
-                        reportDebug("parse","Failed to parse DataUnit message {}: unknown field type {} at offset {}",name(),fieldType,wired.currentOffset());
-                        cleanup();
-                        return false;
-                    }
-                    break;
-
-            }
-        }
-    }
-
-    // check if all required fields are set
-    const char* failedFieldName=nullptr;
-    if (!iterateFieldsConst([&failedFieldName](const Field& field)
-                {
-                    bool ok=!field.isRequired()||field.isSet();
-                    if (!ok)
-                    {
-                        failedFieldName=field.name();
-                    }
-                    return ok;
-                }
-           )
-        )
-    {
-        reportDebug("parse","Failed to parse DataUnit message {}: required field {} is not set",name(),failedFieldName);
-        cleanup();
-        return false;
-    }
-
-    if (topLevel)
-    {
-        wired.resetState();
-    }
-    return true;
+    // must be implemented in derived class
+    return false;
 }
+
+bool Unit::parse(WireBufSolid&,bool)
+{
+    // must be implemented in derived class
+    return false;
+}
+
+#if 0
+bool Unit::parse(WireBufSolidShared&,bool)
+{
+    // must be implemented in derived class
+    return false;
+}
+#endif
 
 template <typename T> using JsonWriter=json::WriterTmpl<
 rapidjson::Writer<RapidJsonBufStream<T>>,RapidJsonBufStream<T>
@@ -506,16 +278,14 @@ bool Unit::toJSON(
     if (writer->StartObject())
     {
         if (!iterateFieldsConst(
-                    [writer,this](const Field& field)
+                    [writer](const Field& field)
                     {
                         // skip optional fields which are not set
                         if (!field.isSet() && !field.hasDefaultValue())
                         {
                             if (field.isRequired())
                             {
-                                reportWarn("json-serialize","Failed to serialize to JSON DataUnit message {}: required field {} is not set",
-                                                             name(),field.name()
-                                                             );
+                                rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.getID(),"failed to serialize message to JSON: required field {} is not set",field.name());
                                 return false;
                             }
                             return true;
@@ -526,8 +296,7 @@ bool Unit::toJSON(
                         // pack field
                         if (!field.toJSON(writer))
                         {
-                            reportWarn("json-serialize","Failed to serialize to JSON DataUnit message {}: broken on field {}",
-                                        name(),field.name());
+                            rawError(RawErrorCode::JSON_FIELD_SERIALIZE_ERROR,field.getID(),"failed to serialize field {} to JSON",field.name());
                             return false;
                         }
 
@@ -604,7 +373,7 @@ bool Unit::loadFromJSON(const common::lib::string_view &str)
     m_jsonParseHandlers.clear();
     if (reader.HasParseError())
     {
-        reportDebug("json-parse","Failed to load from JSON: {} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
+        rawError(RawErrorCode::JSON_PARSE_ERROR,"failed to parse JSON: {} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
         clear();
     }
     return !reader.HasParseError();
@@ -647,20 +416,6 @@ size_t Unit::fieldCount() const noexcept
 const char* Unit::name() const noexcept
 {
     return "unknown";
-}
-
-//---------------------------------------------------------------
-const Field* Unit::fieldById(int id) const
-{
-    std::ignore=id;
-    return nullptr;
-}
-
-//---------------------------------------------------------------
-Field* Unit::fieldById(int id)
-{
-    std::ignore=id;
-    return nullptr;
 }
 
 //---------------------------------------------------------------

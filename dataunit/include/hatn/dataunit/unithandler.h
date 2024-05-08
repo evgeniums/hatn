@@ -10,9 +10,11 @@
 /*
     
 */
-/** \file dataunit/unit.h
+/** @file dataunit/unit.h
   *
-  *      Base class for data unit handling
+  *      Base class for data unit handling.
+  *
+  *      @todo Not used currently.
   *
   */
 
@@ -24,7 +26,6 @@
 #include <functional>
 
 #include <hatn/dataunit/unitcontainer.h>
-
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -44,7 +45,7 @@ class UnitHandler
 
         /**
          * @brief Invoke handler
-         * @param lazyUnitParsing If true then unit was not parsed yet and its data is kept in wireDataPack()
+         * @param lazyUnitParsing If true then unit was not parsed yet and its data is kept in wireDataKeeper()
          *
          * @return Operation status
          */
@@ -106,7 +107,7 @@ class UnitHandlerTmpl : public UnitHandler
 
         /**
          * @brief Invoke handler
-         * @param lazyUnitParsing If true then unit was not parsed yet and its data is kept in wireDataPack()
+         * @param lazyUnitParsing If true then unit was not parsed yet and its data is kept in wireDataKeeper()
          * @return Operation status
          */
         virtual common::Error invoke(bool lazyUnitParsing) const override

@@ -139,7 +139,7 @@ class CacheLRU
          * cache.pushItem(newItem);
          * </pre>
          *
-         * \attention Key must be set in the item before adding to cache, otherwise undefined behaviour is expected
+         * @attention Key must be set in the item before adding to cache, otherwise undefined behaviour is expected
          */
         Item& pushItem(Item&& item)
         {

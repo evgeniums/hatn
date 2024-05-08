@@ -10,22 +10,26 @@
 /*
     
 */
-/** \file dataunit/fieldserialization.cpp
+/** @file dataunit/details/fieldserialization.ipp
   *
-  *      Classes for serializing and deserializing dataunit fields
+  *      Contains definition of helper classes for serializing and deserializing dataunit fields.
   *
   */
 
-#include <hatn/dataunit/syntax.h>
+#ifndef HATNFIELDSERIALIZATON_IPP
+#define HATNFIELDSERIALIZATON_IPP
+
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/fieldserialization.h>
+#include <hatn/dataunit/visitors.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 /********************** FixedSer **************************/
 
 //---------------------------------------------------------------
-template <typename T> struct Endianity
+template <typename T>
+struct Endianity
 {
     static void littleToNative(T& val)
     {
@@ -37,7 +41,8 @@ template <typename T> struct Endianity
         boost::endian::native_to_little_inplace(val);
     }
 };
-template <> struct Endianity<float>
+template <>
+struct Endianity<float>
 {
     static void littleToNative(float& val)
     {
@@ -51,7 +56,8 @@ template <> struct Endianity<float>
         boost::endian::native_to_little_inplace(*intVal);
     }
 };
-template <> struct Endianity<double>
+template <>
+struct Endianity<double>
 {
     static void nativeToLittle(double& val)
     {
@@ -67,7 +73,9 @@ template <> struct Endianity<double>
 };
 
 //---------------------------------------------------------------
-template <typename T> bool FixedSer<T>::serialize(const T& value, WireData& wired)
+template <typename T>
+template <typename BufferT>
+bool FixedSer<T>::serialize(const T& value, BufferT& wired)
 {
     constexpr static const int valueSize=sizeof(T);
 
@@ -89,7 +97,9 @@ template <typename T> bool FixedSer<T>::serialize(const T& value, WireData& wire
 }
 
 //---------------------------------------------------------------
-template <typename T> bool FixedSer<T>::deserialize(T& value, WireData& wired)
+template <typename T>
+template <typename BufferT>
+bool FixedSer<T>::deserialize(T& value, BufferT& wired)
 {
     constexpr static const int valueSize=sizeof(T);
 
@@ -101,7 +111,7 @@ template <typename T> bool FixedSer<T>::deserialize(T& value, WireData& wired)
     wired.incCurrentOffset(valueSize);
     if (wired.currentOffset()>buf->size())
     {
-        HATN_WARN(dataunit,"Unexpected end of buffer")
+        rawError(RawErrorCode::END_OF_STREAM,"unexpected end of buffer at size {}",buf->size());
         return false;
     }
 
@@ -118,7 +128,9 @@ template <typename T> bool FixedSer<T>::deserialize(T& value, WireData& wired)
 /********************** VariableSer **************************/
 
 //---------------------------------------------------------------
-template <typename T> bool VariableSer<T>::serialize(const T& value, WireData& wired)
+template <typename T>
+template <typename BufferT>
+bool VariableSer<T>::serialize(const T& value, BufferT& wired)
 {
     auto* buf=wired.mainContainer();
     auto consumed=Stream<T>::packVarInt(buf,value);
@@ -131,7 +143,9 @@ template <typename T> bool VariableSer<T>::serialize(const T& value, WireData& w
 }
 
 //---------------------------------------------------------------
-template <typename T> bool VariableSer<T>::deserialize(T& value, WireData& wired)
+template <typename T>
+template <typename BufferT>
+bool VariableSer<T>::deserialize(T& value, BufferT& wired)
 {
     auto* buf=wired.mainContainer();
     size_t availableSize=buf->size()-wired.currentOffset();
@@ -144,36 +158,22 @@ template <typename T> bool VariableSer<T>::deserialize(T& value, WireData& wired
     return true;
 }
 
-template class HATN_DATAUNIT_EXPORT FixedSer<int32_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<int64_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<uint32_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<uint64_t>;
-template class HATN_DATAUNIT_EXPORT FixedSer<float>;
-template class HATN_DATAUNIT_EXPORT FixedSer<double>;
-
-template class HATN_DATAUNIT_EXPORT VariableSer<bool>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int8_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int16_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int32_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<int64_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint8_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint16_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint32_t>;
-template class HATN_DATAUNIT_EXPORT VariableSer<uint64_t>;
-
 /********************** BytesSer **************************/
 
 //---------------------------------------------------------------
-template <typename T1,typename T2> struct _BytesSer
+template <typename T1,typename T2>
+struct _BytesSer
 {
-    static void store(WireData& wired, T1 arr, T2)
+    template <typename BufferT>
+    static void store(BufferT& wired, T1 arr, T2)
     {
         Assert(arr,"Empty arr");
         wired.mainContainer()->append(arr->data(),arr->size());
         wired.incSize(static_cast<int>(arr->size()));
     }
 
-    static void load(WireData& wired,T1 arr,const char* ptr,int dataSize, AllocatorFactory *)
+    template <typename BufferT>
+    static void load(BufferT& wired,T1 arr,const char* ptr,int dataSize, AllocatorFactory *)
     {
         if (wired.isUseInlineBuffers())
         {
@@ -185,13 +185,16 @@ template <typename T1,typename T2> struct _BytesSer
         }
     }
 };
+
 template <>
-    struct _BytesSer<const ::hatn::common::ByteArrayShared&,const ::hatn::common::ByteArray*>
+struct _BytesSer<const common::ByteArrayShared&,const common::ByteArray*>
 {
+
+    template <typename BufferT>
     static void store(
-            WireData& wired,
-            const ::hatn::common::ByteArrayShared& shared,
-            const ::hatn::common::ByteArray* onstack
+            BufferT& wired,
+            const common::ByteArrayShared& shared,
+            const common::ByteArray* onstack
         )
     {
         if (!shared.isNull())
@@ -201,7 +204,8 @@ template <>
         }
         else
         {
-            auto&& sharedBuf=wired.factory()->createObject<::hatn::common::ByteArrayManaged>(onstack->data(),onstack->size(),wired.factory()->dataMemoryResource());
+            auto&& f=wired.factory();
+            auto&& sharedBuf=f->template createObject<common::ByteArrayManaged>(onstack->data(),onstack->size(),f->dataMemoryResource());
             wired.appendBuffer(std::move(sharedBuf));
             wired.incSize(static_cast<int>(onstack->size()));
         }
@@ -209,18 +213,20 @@ template <>
 };
 
 template <>
-    struct _BytesSer<::hatn::common::ByteArrayShared&,::hatn::common::ByteArray*>
+struct _BytesSer<common::ByteArrayShared&,common::ByteArray*>
 {
-    static void load(WireData& wired,::hatn::common::ByteArrayShared& shared,const char* ptr,int dataSize, AllocatorFactory *factory)
+    template <typename BufferT>
+    static void load(BufferT& wired,common::ByteArrayShared& shared,const char* ptr,int dataSize, AllocatorFactory *factory)
     {
-        shared=factory->createObject<::hatn::common::ByteArrayManaged>(ptr,dataSize,wired.isUseInlineBuffers(),factory->dataMemoryResource());
+        shared=factory->createObject<common::ByteArrayManaged>(ptr,dataSize,wired.isUseInlineBuffers(),factory->dataMemoryResource());
     }
 };
 
 //---------------------------------------------------------------
 template <typename onstackT,typename sharedT>
+template <typename BufferT>
 bool BytesSer<onstackT,sharedT>::serialize(
-        WireData& wired,
+        BufferT& wired,
         const onstackT* buf,
         const sharedT& shared,
         bool canChainBlocks
@@ -259,8 +265,9 @@ bool BytesSer<onstackT,sharedT>::serialize(
 
 //---------------------------------------------------------------
 template <typename onstackT,typename sharedT>
+template <typename BufferT>
 bool BytesSer<onstackT,sharedT>::deserialize(
-        WireData& wired,
+        BufferT& wired,
         onstackT* valBuf,
         sharedT& shared,
         AllocatorFactory *factory,
@@ -284,7 +291,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if size is more than allowed
     if (maxSize>0&&static_cast<int>(dataSize)>static_cast<int>(maxSize))
     {
-        HATN_WARN(dataunit,"Overflow in size of bytes buffer")
+        rawError(RawErrorCode::SUSPECT_OVERFLOW,"overflow in requested size");
         return false;
     }
 
@@ -299,7 +306,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     // check if buffer contains required amount of data
     if (buf->size()<wired.currentOffset())
     {
-        HATN_WARN(dataunit,"Size of bytes buffer is less than requested size")
+        rawError(RawErrorCode::END_OF_STREAM,"available data size is less than requested size");
         return false;
     }
 
@@ -317,20 +324,12 @@ bool BytesSer<onstackT,sharedT>::deserialize(
     return true;
 }
 
-template class HATN_DATAUNIT_EXPORT BytesSer<common::ByteArray,common::ByteArrayShared>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow8,common::FixedByteArraySharedThrow8>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow16,common::FixedByteArraySharedThrow16>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow20,common::FixedByteArraySharedThrow20>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow32,common::FixedByteArraySharedThrow32>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow40,common::FixedByteArraySharedThrow40>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow64,common::FixedByteArraySharedThrow64>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow128,common::FixedByteArraySharedThrow128>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow256,common::FixedByteArraySharedThrow256>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow512,common::FixedByteArraySharedThrow512>;
-template class HATN_DATAUNIT_EXPORT BytesSer<common::FixedByteArrayThrow1024,common::FixedByteArraySharedThrow1024>;
+/********************** UnitSer **************************/
 
-//! Serialize DataUnit to wire
-bool UnitSer::serialize(const Unit* value, WireData& wired)
+//---------------------------------------------------------------
+
+template <typename UnitT, typename BufferT>
+bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 {
     if (value!=nullptr)
     {
@@ -338,57 +337,77 @@ bool UnitSer::serialize(const Unit* value, WireData& wired)
 
         // prepare buffer for size of the packed unit
         size_t reserveSizeLength=sizeof(uint32_t)+1;
-        auto* sizeBuf=wired.mainContainer();
+        auto* sizeBufSingle=wired.mainContainer();
+        size_t sizeBufChainedIdx=0;
         if (wired.isSingleBuffer())
         {
             // reserve sizeof(int32_t)+1 to keep size of packed unit
-            sizeBuf->resize(sizeBuf->size()+reserveSizeLength);
+            sizeBufSingle->resize(sizeBufSingle->size()+reserveSizeLength);
         }
         else
         {
             // just append meta block to keep size of packed unit
-            sizeBuf=wired.appendMetaVar(sizeof(uint32_t));
+            wired.appendMetaVar(sizeof(uint32_t));
+            sizeBufChainedIdx=wired.chain().size()-1;
         }
         wired.incSize(static_cast<int>(reserveSizeLength));
 
         // serialize field
         int size=-1;
 
-        const auto& preparedWireDataPack=value->wireDataPack();
-        if (!preparedWireDataPack.isNull())
+        const auto& preparedWireData=value->wireDataKeeper();
+        if (!preparedWireData.isNull())
         {
-            size=wired.append(preparedWireDataPack->wireData());
+            size=wired.append(*preparedWireData);
         }
         else
         {
             if (!wired.isSingleBuffer())
             {
-                auto&& sharedBuf=wired.factory()->createObject<::hatn::common::ByteArrayManaged>(
-                                    wired.factory()->dataMemoryResource()
-                                );
+                auto&& f=wired.factory();
+                auto&& sharedBuf=f->template createObject<::hatn::common::ByteArrayManaged>(
+                    f->dataMemoryResource()
+                    );
                 wired.setCurrentMainContainer(sharedBuf.get());
                 auto keepOffset=wired.currentOffset();
                 wired.setCurrentOffset(0);
-                size=value->serialize(wired,false);
+
+                size=io::serialize(*value,wired,false);
+                if (size<0)
+                {
+                    return false;
+                }
+
                 wired.setCurrentOffset(keepOffset);
                 wired.setCurrentMainContainer(nullptr);
-                wired.appendBuffer(std::move(sharedBuf));
+                if (!sharedBuf->isEmpty())
+                {
+                    wired.appendBuffer(common::SpanBuffer{std::move(sharedBuf)});
+                }
             }
             else
             {
-                size=value->serialize(wired,false);
-            }
-            if (size<0)
-            {
-                return false;
+                size=io::serialize(*value,wired,false);
+                if (size<0)
+                {
+                    return false;
+                }
             }
         }
 
         // preset size of embedded unit with 0
-        char* sizePtr=sizeBuf->data();
+        char* sizePtr=nullptr;
         if (wired.isSingleBuffer())
         {
+            sizePtr=sizeBufSingle->data();
             sizePtr+=prevSize;
+        }
+        else
+        {
+            const auto& chain=wired.chain();
+            auto& item=chain.at(sizeBufChainedIdx);
+            auto& sizeBufChained=item.buf;
+            sizePtr=sizeBufChained.data();
         }
         memset(sizePtr,0,reserveSizeLength);
 
@@ -402,12 +421,13 @@ bool UnitSer::serialize(const Unit* value, WireData& wired)
         // ok
         return true;
     }
-    HATN_WARN(dataunit,"Embedded or external object is not set, but requested for serializing");
     return false;
 }
 
-//! Deserialize DataUnit from wire
-bool UnitSer::deserialize(Unit* value, WireData& wired)
+//---------------------------------------------------------------
+
+template <typename UnitT, typename BufferT>
+bool UnitSer::deserialize(UnitT* value, BufferT& wired)
 {
     // find data size
     uint32_t dataSize=0;
@@ -421,25 +441,32 @@ bool UnitSer::deserialize(Unit* value, WireData& wired)
     }
     wired.incCurrentOffset(consumed);
 
-    // if zero size then finish
+    // if zero size then check required fields and finish
     if (dataSize==0)
     {
-        value->clear();
+        auto failedField=io::checkRequiredFields(*value);
+        if (failedField.second!=nullptr)
+        {
+            rawError(RawErrorCode::REQUIRED_FIELD_MISSING,failedField.first,"required field {} is not set",failedField.second);
+            return false;
+        }
         return true;
     }
 
     // check if buffer contains required amount of data
     if (buf->size()<(wired.currentOffset()+dataSize))
     {
-        HATN_WARN(dataunit,"Size of bytes buffer is less than requested size")
+        rawError(RawErrorCode::END_OF_STREAM,"available data size is less than requested size");
         return false;
     }
 
-    // temporarily set WireData size to SubUnit size with current offset
+    // temporarily set WireData size to subunit size with current offset
     auto keepSize=wired.size();
     wired.setSize(wired.currentOffset()+dataSize);
-    // parse SubUnit
-    auto ok=value->parse(wired,false);
+
+    // parse subunit
+    auto ok=io::deserialize(*value,wired,false);
+
     // restore size
     wired.setSize(keepSize);
 
@@ -447,5 +474,8 @@ bool UnitSer::deserialize(Unit* value, WireData& wired)
     return ok;
 }
 
+
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END
+
+#endif // HATNFIELDSERIALIZATON_IPP

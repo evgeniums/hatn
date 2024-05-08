@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unitwrapper.h
+/** @file dataunit/unitwrapper.h
   *
   *  Filter of unit updating operations that connects data unit with validator and notifier
   *
@@ -38,7 +38,8 @@ using HATN_COMMON_NS::_TR;
 namespace HATN_DATAUNIT_NS {
 
 /**
- * @brief Filter of unit updating operations that connects data unit with validator and notifier
+ * @brief Filter of unit updating operations that connects data unit with validator and notifier.
+ * @todo Implement filter.
  */
 template <typename SharedValidatorT>
 class UpdateFilter

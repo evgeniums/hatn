@@ -13,19 +13,17 @@
 #include <hatn/common/memorypool/newdeletepool.h>
 
 #include <hatn/test/multithreadfixture.h>
-
-#include <hatn/common/pmr/withstaticallocator.h>
-#include <hatn/common/pmr/withstaticallocator.ipp>
-#define HATN_WITH_STATIC_ALLOCATOR_INLINE HATN_WITH_STATIC_ALLOCATOR_INLINE_SRC
-#define HDU_DATAUNIT_EXPORT
-
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/dataunit/detail/unitmeta.ipp>
+#include <hatn/dataunit/detail/unittraits.ipp>
 
 //#define HATN_TEST_LOG_CONSOLE
 
 HATN_COMMON_USING
 HATN_DATAUNIT_USING
+
+namespace {
+
 static void setLogHandler()
 {
     auto handler=[](const ::hatn::common::FmtAllocatedBufferChar &s)
@@ -66,66 +64,59 @@ struct Env : public ::hatn::test::MultiThreadFixture
     Env& operator=(Env&&) =delete;
 };
 
-HDU_DATAUNIT(scalar_types,
-    HDU_FIELD(type_bool,TYPE_BOOL,1)
-    HDU_FIELD(type_int8,TYPE_INT8,2)
-    HDU_FIELD(type_int16,TYPE_INT16,3)
-    HDU_FIELD(type_int32,TYPE_INT32,4)
-    HDU_FIELD(type_int64,TYPE_INT64,5)
-    HDU_FIELD(type_uint8,TYPE_UINT8,6)
-    HDU_FIELD(type_uint16,TYPE_UINT16,7)
-    HDU_FIELD(type_uint32,TYPE_UINT32,8)
-    HDU_FIELD(type_uint64,TYPE_UINT64,9)
-    HDU_FIELD(type_float,TYPE_FLOAT,10)
-    HDU_FIELD(type_double,TYPE_DOUBLE,11)
-    HDU_ENUM(MyEnum,One=1,Two=2)
-    HDU_FIELD_DEFAULT(type_enum,HDU_TYPE_ENUM(MyEnum),12,MyEnum::Two)
-)
-HDU_INSTANTIATE_DATAUNIT(scalar_types)
+    HDU_V2_UNIT(scalar_types,
+            HDU_V2_FIELD(type_bool,TYPE_BOOL,1)
+            HDU_V2_FIELD(type_int8,TYPE_INT8,2)
+            HDU_V2_FIELD(type_int16,TYPE_INT16,3)
+            HDU_V2_FIELD(type_int32,TYPE_INT32,4)
+            HDU_V2_FIELD(type_int64,TYPE_INT64,5)
+            HDU_V2_FIELD(type_uint8,TYPE_UINT8,6)
+            HDU_V2_FIELD(type_uint16,TYPE_UINT16,7)
+            HDU_V2_FIELD(type_uint32,TYPE_UINT32,8)
+            HDU_V2_FIELD(type_uint64,TYPE_UINT64,9)
+            HDU_V2_FIELD(type_float,TYPE_FLOAT,10)
+            HDU_V2_FIELD(type_double,TYPE_DOUBLE,11)
+            HDU_V2_ENUM(MyEnum,One=1,Two=2)
+            HDU_V2_DEFAULT_FIELD(type_enum,HDU_V2_TYPE_ENUM(MyEnum),12,MyEnum::Two)
+            )
 
-HDU_DATAUNIT(byte_types,
-    HDU_FIELD(type_string,TYPE_STRING,1)
-    HDU_FIELD(type_bytes,TYPE_BYTES,2)
-    HDU_FIELD(type_fixed_string,HDU_TYPE_FIXED_STRING(128),3)
-)
-HDU_INSTANTIATE_DATAUNIT(byte_types)
+    HDU_V2_UNIT(byte_types,
+            HDU_V2_FIELD(type_string,TYPE_STRING,1)
+            HDU_V2_FIELD(type_bytes,TYPE_BYTES,2)
+            HDU_V2_FIELD(type_fixed_string,HDU_V2_TYPE_FIXED_STRING(128),3)
+            )
 
-HDU_DATAUNIT(subunit_types,
-    HDU_FIELD_DATAUNIT(scalar,scalar_types::TYPE,1)
-    HDU_FIELD_DATAUNIT(bytes,byte_types::TYPE,2)
-)
-HDU_INSTANTIATE_DATAUNIT(subunit_types)
+    HDU_V2_UNIT(subunit_types,
+            HDU_V2_FIELD(scalar,scalar_types::TYPE,1)
+            HDU_V2_FIELD(bytes,byte_types::TYPE,2)
+            )
 
-HDU_DATAUNIT(scalar_arrays,
-    HDU_FIELD_REPEATED(type_int8,TYPE_INT8,2)
-    HDU_FIELD_REPEATED(type_int16,TYPE_INT16,3)
-    HDU_FIELD_REPEATED(type_int32,TYPE_INT32,4)
-    HDU_FIELD_REPEATED(type_int64,TYPE_INT64,5)
-    HDU_FIELD_REPEATED(type_uint8,TYPE_UINT8,6)
-    HDU_FIELD_REPEATED(type_uint16,TYPE_UINT16,7)
-    HDU_FIELD_REPEATED(type_uint32,TYPE_UINT32,8)
-    HDU_FIELD_REPEATED(type_uint64,TYPE_UINT64,9)
-    HDU_FIELD_REPEATED(type_float,TYPE_FLOAT,10)
-    HDU_FIELD_REPEATED(type_double,TYPE_DOUBLE,11)
-    HDU_ENUM(MyEnum,One=1,Two=2)
-    HDU_FIELD_REPEATED(type_enum,HDU_TYPE_ENUM(MyEnum),12)
-)
-HDU_INSTANTIATE_DATAUNIT(scalar_arrays)
+    HDU_V2_UNIT(scalar_arrays,
+            HDU_V2_REPEATED_FIELD(type_int8,TYPE_INT8,2)
+            HDU_V2_REPEATED_FIELD(type_int16,TYPE_INT16,3)
+            HDU_V2_REPEATED_FIELD(type_int32,TYPE_INT32,4)
+            HDU_V2_REPEATED_FIELD(type_int64,TYPE_INT64,5)
+            HDU_V2_REPEATED_FIELD(type_uint8,TYPE_UINT8,6)
+            HDU_V2_REPEATED_FIELD(type_uint16,TYPE_UINT16,7)
+            HDU_V2_REPEATED_FIELD(type_uint32,TYPE_UINT32,8)
+            HDU_V2_REPEATED_FIELD(type_uint64,TYPE_UINT64,9)
+            HDU_V2_REPEATED_FIELD(type_float,TYPE_FLOAT,10)
+            HDU_V2_REPEATED_FIELD(type_double,TYPE_DOUBLE,11)
+            HDU_V2_ENUM(MyEnum,One=1,Two=2)
+            HDU_V2_REPEATED_FIELD(type_enum,HDU_V2_TYPE_ENUM(MyEnum),12)
+            )
 
-HDU_DATAUNIT(buf_arrays,
-    HDU_FIELD_REPEATED(type_string,TYPE_STRING,1)
-    HDU_FIELD_REPEATED(type_bytes,TYPE_BYTES,2)
-    HDU_FIELD_REPEATED(type_fixed_string,HDU_TYPE_FIXED_STRING(128),3)
-)
-HDU_INSTANTIATE_DATAUNIT(buf_arrays)
+    HDU_V2_UNIT(buf_arrays,
+            HDU_V2_REPEATED_FIELD(type_string,TYPE_STRING,1)
+            HDU_V2_REPEATED_FIELD(type_bytes,TYPE_BYTES,2)
+            HDU_V2_REPEATED_FIELD(type_fixed_string,HDU_V2_TYPE_FIXED_STRING(128),3)
+            )
 
-HDU_DATAUNIT(subunit_arrays,
-    HDU_FIELD_REPEATED_DATAUNIT(scalar,scalar_types::TYPE,1)
-    HDU_FIELD_REPEATED_DATAUNIT(bytes,byte_types::TYPE,2)
-)
-HDU_INSTANTIATE_DATAUNIT(subunit_arrays)
+    HDU_V2_UNIT(subunit_arrays,
+            HDU_V2_REPEATED_FIELD(scalar,scalar_types::TYPE,1)
+            HDU_V2_REPEATED_FIELD(bytes,byte_types::TYPE,2)
+            )
 
-namespace {
     int8_t   int8ValSampleNeg=-10;
     int16_t  int16ValSampleNeg=-10000;
     int32_t  int32ValSampleNeg=-1000000;
@@ -209,7 +200,8 @@ void checkScalarField(ObjT* obj,
         BOOST_CHECK(field->less(int16ValSampleNeg)==checkValsNegResults[12]);
         BOOST_CHECK(field->less(int32ValSampleNeg)==checkValsNegResults[13]);
         BOOST_CHECK(field->less(int64ValSampleNeg)==checkValsNegResults[14]);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 template <typename T>
 void checkScalarTypes(T* obj)
@@ -377,7 +369,8 @@ void checkScalarTypes(T* obj)
              true,true,true,true,true,true,true,true,true,true,true,true
             }
         );
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 BOOST_FIXTURE_TEST_CASE(TestScalar,Env)
 {
@@ -448,7 +441,8 @@ void checkByteTypes(T* obj, bool shared)
 {
     BOOST_TEST_CONTEXT("bytes"){checkByteField<decltype(byte_types::type_bytes)>(obj,shared);}
     BOOST_TEST_CONTEXT("string"){checkByteField<decltype(byte_types::type_string)>(obj,shared);}
-    BOOST_TEST_CONTEXT("fixed_string"){checkByteField<decltype(byte_types::type_fixed_string)>(obj,shared);HATN_DATAUNIT_NAMESPACE_END
+    BOOST_TEST_CONTEXT("fixed_string"){checkByteField<decltype(byte_types::type_fixed_string)>(obj,shared);}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestBytes,Env)
 {
@@ -533,7 +527,8 @@ void checkScalarArray(
         T val=static_cast<T>(0);
         field1->arrayGet(i,val);
         BOOST_CHECK_EQUAL(val,vec[i]);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 BOOST_FIXTURE_TEST_CASE(TestScalarArrays,Env)
 {
@@ -551,7 +546,8 @@ BOOST_FIXTURE_TEST_CASE(TestScalarArrays,Env)
     BOOST_TEST_CONTEXT("uint64"){checkScalarArray<type,decltype(scalar_arrays::type_uint64),uint64_t>({uint64_t(10000000000),uint64_t(0),uint64_t(12000000000),uint64_t(500000000000)});}
 
     BOOST_TEST_CONTEXT("float"){checkScalarArray<type,decltype(scalar_arrays::type_float),float>({float(100000),float(-100000),float(0),float(12000000),float(-300000),float(500000)});}
-    BOOST_TEST_CONTEXT("double"){checkScalarArray<type,decltype(scalar_arrays::type_double),double>({double(10000000000),double(-10000000000),double(0),double(12000000000),double(-300000000000),double(500000000000)});HATN_DATAUNIT_NAMESPACE_END
+    BOOST_TEST_CONTEXT("double"){checkScalarArray<type,decltype(scalar_arrays::type_double),double>({double(10000000000),double(-10000000000),double(0),double(12000000000),double(-300000000000),double(500000000000)});}
+}
 
 template <typename ObjT, typename FieldT>
 void checkByteArray(bool shared)
@@ -627,7 +623,8 @@ void checkByteArray(bool shared)
     {
         BOOST_CHECK(vec[i].isEqual(field2->arrayBufData(i),field2->arrayBufSize(i)));
         BOOST_CHECK(vec[i].isEqual(field2->arrayBufCStr(i)));
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 static void checkByteArrays(bool shared)
 {
@@ -636,12 +633,14 @@ static void checkByteArrays(bool shared)
 
     BOOST_TEST_CONTEXT("bytes"){checkByteArray<type,decltype(buf_arrays::type_bytes)>(shared);}
     BOOST_TEST_CONTEXT("string"){checkByteArray<type,decltype(buf_arrays::type_string)>(shared);}
-    BOOST_TEST_CONTEXT("fixed_string"){checkByteArray<type,decltype(buf_arrays::type_fixed_string)>(shared);HATN_DATAUNIT_NAMESPACE_END
+    BOOST_TEST_CONTEXT("fixed_string"){checkByteArray<type,decltype(buf_arrays::type_fixed_string)>(shared);}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestBufArrays,Env)
 {
     BOOST_TEST_CONTEXT("onstack"){checkByteArrays(false);}
-    BOOST_TEST_CONTEXT("shared"){checkByteArrays(true);HATN_DATAUNIT_NAMESPACE_END
+    BOOST_TEST_CONTEXT("shared"){checkByteArrays(true);}
+}
 
 template <typename ObjT>
 void checkSubunitArray()

@@ -21,7 +21,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
-#include <hatn/common/errorstack.h>
+#include <hatn/common/nativeerror.h>
 #include <hatn/common/translate.h>
 #include <hatn/common/plainfile.h>
 #include <hatn/common/runonscopeexit.h>
@@ -78,7 +78,8 @@ Error ConfigTreeIo::loadFromFile(
         auto ec=file.open(common::File::Mode::scan);
         if (ec)
         {
-            auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            err->setPrevError(std::move(ec));
             return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
         }
         closeOnExit.setEnable(true);
@@ -88,14 +89,16 @@ Error ConfigTreeIo::loadFromFile(
     auto ec=file.readAll(source);
     if (ec)
     {
-        auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to read file {}","base"), file.filename()));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to read file {}","base"), file.filename()));
+        err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
     }
     auto parseFormat=format.empty()?fileFormat(file.filename()):format;
     ec=parse(target,lib::toStringView(source),root,parseFormat);
     if (ec)
     {
-        auto err=std::make_shared<common::ErrorStack>(std::move(ec),file.filename());
+        auto err=std::make_shared<common::NativeError>(file.filename());
+        err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_LOAD_ERROR,std::move(err));
     }
     return OK;
@@ -133,7 +136,8 @@ Error ConfigTreeIo::saveToFile(
         auto ec=file.open(common::File::Mode::write);
         if (ec)
         {
-            auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to open file {}","base"), file.filename()));
+            err->setPrevError(std::move(ec));
             return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
         }
         closeOnExit.setEnable(true);
@@ -143,7 +147,8 @@ Error ConfigTreeIo::saveToFile(
     auto r=serialize(source,root,serializeFormat);
     if (r)
     {
-        auto err=std::make_shared<common::ErrorStack>(r.takeError(),fmt::format(_TR("failed to serialize configuration tree for {}","base"), file.filename()));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to serialize configuration tree for {}","base"), file.filename()));
+        err->setPrevError(r.takeError());
         return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
     }
 
@@ -151,7 +156,8 @@ Error ConfigTreeIo::saveToFile(
     file.write(r.value().data(),r.value().size(),ec);
     if (ec)
     {
-        auto err=std::make_shared<common::ErrorStack>(std::move(ec),fmt::format(_TR("failed to write to file {}","base"), file.filename()));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("failed to write to file {}","base"), file.filename()));
+        err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_SAVE_ERROR,std::move(err));
     }
     return OK;

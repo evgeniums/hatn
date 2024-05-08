@@ -105,6 +105,8 @@ template <typename T> class SharedPtrBase
 {
     public:
 
+        using hana_tag=shared_pointer_tag;
+
         //! Get held object const
         inline T* get() const noexcept
         {

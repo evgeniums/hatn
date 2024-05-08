@@ -27,15 +27,123 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 /********************** NativeError **************************/
 
+ApiError::~ApiError()=default;
+
 //---------------------------------------------------------------
+
+int ApiError::apiCode() const noexcept
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->value();
+    }
+    return 0;
+}
+
+//---------------------------------------------------------------
+
+std::string ApiError::apiMessage() const
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->message();
+    }
+    return std::string();
+}
+
+//---------------------------------------------------------------
+
+std::string ApiError::apiFamily() const
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->category()->name();
+    }
+    return std::string();
+}
+
+/********************** NativeError **************************/
 
 NativeError::~NativeError()=default;
 
-/********************** ErrorStack **************************/
+/********************** Error **************************/
 
 //---------------------------------------------------------------
 
-ErrorStack::~ErrorStack()=default;
+const ApiError* Error::apiError() const noexcept
+{
+    auto err=native();
+    if (err==nullptr)
+    {
+        return nullptr;
+    }
+    return err->apiError();
+}
+
+//---------------------------------------------------------------
+
+bool Error::compareNative(const Error& other) const noexcept
+{
+    return *other.native()==*this->native();
+}
+
+//---------------------------------------------------------------
+
+const std::error_category* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    return nativeError->category();
+}
+
+//---------------------------------------------------------------
+
+const boost::system::error_category* Error::nativeBoostCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    return nativeError->boostCategory();
+}
+
+//---------------------------------------------------------------
+
+std::string Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError) const
+{
+    auto msg=nativeError->message();
+    if (nativeError->category()!=nullptr)
+    {
+        if (!msg.empty())
+        {
+            return fmt::format("{}: {}", nativeError->category()->message(m_code), msg);
+        }
+        return nativeError->category()->message(m_code);
+    }
+    else if (nativeError->boostCategory()!=nullptr)
+    {
+        if (!msg.empty())
+        {
+            return fmt::format("{}: {}", nativeError->boostCategory()->message(m_code), msg);
+        }
+        return nativeError->boostCategory()->message(m_code);
+    }
+    return msg;
+}
+
+//---------------------------------------------------------------
+
+void Error::stackWith(Error&& next)
+{
+    auto nextNative=const_cast<NativeError*>(next.native());
+    if (nextNative!=nullptr)
+    {
+        nextNative->setPrevError(std::move(*this));
+    }
+    else
+    {
+        auto newNextNative=std::make_shared<NativeError>(next.category());
+        newNextNative->setBoostCategory(next.boostCategory());
+        newNextNative->setPrevError(std::move(*this));
+
+        next.setNative(next.value(),std::move(newNextNative));
+    }
+    *this=std::move(next);
+}
 
 /********************** CommonErrorCategory **************************/
 

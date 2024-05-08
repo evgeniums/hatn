@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/unit.h
+/** @file dataunit/unit.h
   *
   *      Base class for data units
   *
@@ -86,32 +86,13 @@ class HATN_DATAUNIT_EXPORT Unit
 
         //! Get field by ID
         virtual const Field* fieldById(int id) const;
-
-        //! Get field by ID
         virtual Field* fieldById(int id);
 
         //! Get field by name
-        /**
-         * @brief Find field by name
-         * @param name name
-         * @param size Name length or 0 if the name is null-terminated
-         * @return Found field
-         *
-         * This operation is slow as the searching is done iteratively field by field.
-         * For fast repetitive lookups use fillFieldNamesTable() and then make lookups
-         * in that table.
-         *
-         */
-        Field* fieldByName(const char* name,size_t size=0);
-
-        //! Get field by name with const signature
-        const Field* fieldByName(const char* name,size_t size=0) const;
-
-        //! Fill field names table as [name]=>[field]
-        void fillFieldNamesTable(common::pmr::map<FieldNamesKey,Field*>& table);
+        virtual const Field* fieldByName(common::lib::string_view name) const;
+        virtual Field* fieldByName(common::lib::string_view name);
 
         //! Parse DataUnit from plain data buffer
-        //! @todo Use Error with NativeError.
         bool parse(
             const char* data,
             size_t size,
@@ -119,7 +100,6 @@ class HATN_DATAUNIT_EXPORT Unit
         );
 
         //! Parse DataUnit from container
-        //! @todo Use Error with NativeError.
         bool parse(
                 const common::ByteArray& container,
                 bool inlineBuffer=true
@@ -133,13 +113,14 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param wired DataUnit  parse
          * @param topLevel Is this top level unit
          * @return Parsing status
-         *
-         * @todo Use Error with NativeError.
-         * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "parse"
-         *
          */
-        bool parse(
+        virtual bool parse(
             WireData& wired,
+            bool topLevel=true
+        );
+
+        virtual bool parse(
+            WireBufSolid& wired,
             bool topLevel=true
         );
 
@@ -148,24 +129,41 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param wired Control structure
          * @param topLevel This DataUnit is either top level (true) or embedded DataUnit (false)
          * @return Size of serialized data or -1 if failed
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
          */
-        int serialize(
+        virtual int serialize(
             WireData& wired,
             bool topLevel=true
         ) const;
 
+#if 0
+        //! @todo Maybe implement later
+
+        virtual bool parse(
+            WireBufSolidShared& wired,
+            bool topLevel=true
+        );
+
+        virtual int serialize(
+            WireBufSolid& wired,
+            bool topLevel=true
+        ) const;
+
+        virtual int serialize(
+            WireBufSolidShared& wired,
+            bool topLevel=true
+        ) const;
+
+        virtual int serialize(
+            WireBufChained& wired,
+            bool topLevel=true
+        ) const;
+#endif
         /**
          * @brief Serialize DataUnit to plain data buffer
          * @param buf Buffer
          * @param bufSize Size of buffer, must be equal or greater than size()
          * @param checkSize Check if bufSize is enough to store serialized data
          * @return Size of serialized data or -1 if failed
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
          */
         int serialize(
             char* buf,
@@ -176,15 +174,17 @@ class HATN_DATAUNIT_EXPORT Unit
         /**
          * @brief Serialize to data container
          * @param container Target container
-         * @param offsetOut Offest in target container
+         * @param offsetOut Offset in target container
          * @return Operation status
-         *
-         * @todo Use Error with NativeError.
          */
         template <typename ContainerT>
         bool serialize(ContainerT& container,
                        size_t offsetOut=0,
-                       typename std::enable_if<!std::is_base_of<WireData,ContainerT>::value,void*>::type=nullptr
+                       typename std::enable_if<
+                           !std::is_base_of<WireData,ContainerT>::value
+                           &&
+                           !std::is_base_of<WireBufBase,ContainerT>::value
+                        ,void*>::type=nullptr
                 )
         {
             auto expectedSize=size();
@@ -198,31 +198,24 @@ class HATN_DATAUNIT_EXPORT Unit
             return true;
         }
 
-        //! Get estimated size of wired data unit
-        /**
-         * @brief Actual packed size can be less than estimated but will never exceed it
-         * @return Estimated size of the packed unit
-         */
-        size_t size() const;
-
-        //! Hold wired data unit
-        inline void keepWireDataPack(
-            common::SharedPtr<WireDataPack> wired
+        //! Keep serialized data unit.
+        inline void keepWireData(
+            common::SharedPtr<WireData> wired
         ) noexcept
         {
-            m_wireDataPack=std::move(wired);
+            m_wireDataKeeper=std::move(wired);
         }
 
-        //! Get wired data unit
-        inline const common::SharedPtr<WireDataPack>& wireDataPack() const noexcept
+        //! Get serialized data unit.
+        inline const common::SharedPtr<WireData>& wireDataKeeper() const noexcept
         {
-            return m_wireDataPack;
+            return m_wireDataKeeper;
         }
 
-        //! Reset wire dataunit
-        inline void resetWireData() noexcept
+        //! Reset keeper of serialized data unit.
+        inline void resetWireDataKeeper() noexcept
         {
-            m_wireDataPack.reset();
+            m_wireDataKeeper.reset();
         }
 
         //! Handler type for fields iterator
@@ -244,16 +237,17 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual const char* name() const noexcept;
 
         //! Clear unit
-        void clear();
+        virtual void clear();
 
         //! Reset unit
-        void reset();
+        virtual void reset(bool onlyNonClean=false);
 
-        //! Is DataUnit empty
-        inline bool isEmpty() const noexcept
-        {
-            return m_clean;
-        }
+        //! Get estimated size of wired data unit
+        /**
+         * @brief Actual packed size can be less than estimated but will never exceed it
+         * @return Estimated size of the packed unit
+         */
+        virtual size_t size() const;
 
         /** Get reference to self **/
         inline const Unit& value() const noexcept
@@ -283,10 +277,6 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @param errorMessage Error message if JSON parsing failed
          * @return True on success
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
-         *
          */
         bool toJSON(common::FmtAllocatedBufferChar& buf,
                                               bool prettyFormat=false,
@@ -299,10 +289,6 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param prettyFormat Add line endings and identations
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
-         *
          */
         bool toJSON(common::ByteArray& buf,
                                       bool prettyFormat=false,
@@ -315,10 +301,6 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param prettyFormat Add line endings and identations
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
-         *
          */
         bool toJSON(std::string& buf,
                                       bool prettyFormat=false,
@@ -332,8 +314,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return True on success
          *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
+         * @todo Refactor json methods with non virtual methods, add mehod with filling error.
          */
         bool toJSON(std::vector<char>& buf,bool prettyFormat=false, int maxDecimalPlaces=0) const;
 
@@ -344,9 +325,6 @@ class HATN_DATAUNIT_EXPORT Unit
          * @param prettyFormat Add line endings and identations
          * @param maxDecimalPlaces Maximum number of decimal places for double output
          * @return JSON string
-         *
-         * @todo Use Error with NativeError.
-         * If serialization fails then warnings will appear in log describing the problem
          */
         std::string toString(bool prettyFormat=false,int maxDecimalPlaces=0) const;
 
@@ -360,10 +338,6 @@ class HATN_DATAUNIT_EXPORT Unit
          * @brief Load DataUnit from JSON
          * @param str JSON formatted string
          * @return Status of parsing
-         *
-         * @todo Use Error with NativeError.
-         * @todo Use string_view without reference.
-         * To see parsing errors the DEBUG logging mode must be enabled for "dataunit" module, context "json-parse"
          */
         bool loadFromJSON(const common::lib::string_view& str);
         bool loadFromJSON(const char* buf, size_t size)
@@ -398,6 +372,21 @@ class HATN_DATAUNIT_EXPORT Unit
             return false;
         }
 
+        bool isClean() const noexcept
+        {
+            return m_clean;
+        }
+
+        bool setClean(bool val) noexcept
+        {
+            return m_clean=val;
+        }
+
+        virtual std::pair<int,const char*> checkRequiredFields() noexcept
+        {
+            return std::pair<int,const char*>{-1,nullptr};
+        }
+
     private:
 
         template <typename T>
@@ -406,12 +395,13 @@ class HATN_DATAUNIT_EXPORT Unit
           int maxDecimalPlaces=0
         ) const;
 
-
-        common::SharedPtr<WireDataPack> m_wireDataPack;
+        common::SharedPtr<WireData> m_wireDataKeeper;
         bool m_clean;
 
         AllocatorFactory* m_factory;
         common::pmr::list<JsonParseHandler> m_jsonParseHandlers;
+
+        friend struct visitors;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

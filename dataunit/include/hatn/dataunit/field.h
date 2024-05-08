@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/field.h
+/** @file dataunit/field.h
   *
   *      Base class of dataunit fields
   *
@@ -27,19 +27,11 @@
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/allocatorfactory.h>
 #include <hatn/dataunit/fieldgetset.h>
+#include <hatn/dataunit/valuetypes.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 class Unit;
-
-//! Field types as defined in Google Protocol Buffers
-enum class WireType : int
-{
-    VarInt=0,
-    Fixed64=1,
-    WithLength=2,
-    Fixed32=5
-};
 
 namespace json
 {
@@ -53,8 +45,14 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 
         constexpr static const bool CanChainBlocks=false;
 
+        //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
+        constexpr static bool fieldRepeatedUnpackedProtoBuf() noexcept
+        {
+            return false;
+        }
+
         //! Ctor
-        Field(Unit* unit);
+        Field(ValueType type, Unit* unit, bool array=false);
 
         virtual ~Field();
         Field(const Field& other)=default;
@@ -75,7 +73,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return doStore(wired);
         }
 
-        static inline WireType wireTypeDef() noexcept
+        constexpr static inline WireType fieldWireType() noexcept
         {
             return WireType::VarInt;
         }
@@ -89,8 +87,20 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return CanChainBlocks;
         }
 
+        //! Can chain blocks
+        constexpr static bool fieldCanChainBlocks() noexcept
+        {
+            return CanChainBlocks;
+        }
+
         //! Check if field is set
         inline bool isSet() const noexcept
+        {
+            return m_set;
+        }
+
+        //! Check if field is set
+        inline bool fieldIsSet() const noexcept
         {
             return m_set;
         }
@@ -107,11 +117,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         virtual int getID() const noexcept =0;
         //! Get field name
         virtual const char* name() const noexcept {return nullptr;}
-        //! Get field name size
-        virtual size_t nameSize() const noexcept {return 0;}
-
-        //! Get field description.
-        virtual const char* description() const noexcept {return "";}
 
         //! Get field size
         virtual size_t size() const  noexcept =0;
@@ -124,7 +129,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             clear();
         }
 
-        //! Check if this field is compatible of repeated unpacked type with Google Protocol Buffers
+        //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers
         virtual bool isRepeatedUnpackedProtoBuf() const noexcept;
 
         /**
@@ -142,6 +147,14 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
          */
         virtual bool isParseToSharedArrays() const noexcept;
 
+        void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
+        {}
+
+        bool fieldIsParseToSharedArrays() const noexcept
+        {
+            return false;
+        }
+
         virtual void pushJsonParseHandler(Unit*)=0;
 
         virtual bool toJSON(json::Writer* writer) const=0;
@@ -157,21 +170,30 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return m_unit;
         }
 
+        ValueType valueTypeId() const noexcept
+        {
+            return m_valueTypeId;
+        }
+
+        bool isArray() const noexcept
+        {
+            return m_array;
+        }
+
     protected:
 
         //! Load field from wire
-        //! @todo Use Error with NativeError.
         virtual bool doLoad(WireData&,AllocatorFactory*)=0;
 
         //! Store field to wire
-        //! @todo Use Error with NativeError.
         virtual bool doStore(WireData&) const = 0;
-
-        bool m_set=false;
 
     private:
 
+        bool m_set;
         Unit* m_unit;
+        ValueType m_valueTypeId;
+        bool m_array;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

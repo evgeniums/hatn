@@ -1,11 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/compilecounter.h>
+#include <hatn/common/meta/interfacespack.h>
 
 HATN_USING
 HATN_COMMON_USING
 
-BOOST_AUTO_TEST_SUITE(TestMetaUtils)
+namespace {
 
 struct Interface1
 {
@@ -20,6 +21,16 @@ struct Interface2
 
 using AAA=VInterfacesPack<Interface1,Interface2>;
 
+HATN_COUNTER_MAKE(c1)
+constexpr auto v0=HATN_COUNTER_GET(c1);
+static_assert(0==v0,"");
+HATN_COUNTER_INC(c1)
+constexpr auto v1=HATN_COUNTER_GET(c1);
+static_assert(1==v1,"");
+
+}
+
+BOOST_AUTO_TEST_SUITE(TestMetaUtils)
 
 BOOST_AUTO_TEST_CASE(InterfacesPack)
 {

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/syntax.сpp
+/** @file dataunit/syntax.сpp
   *
   *      Hatn DataUnit meta definitions.
   *

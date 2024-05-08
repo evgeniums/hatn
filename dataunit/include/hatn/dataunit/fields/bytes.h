@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/bytes.h
+/** @file dataunit/bytes.h
   *
   *      DataUnit fields for bytes and strings
   *
@@ -77,28 +77,29 @@ class FieldTmplBytes : public Field, public BytesType
         using selfType=FieldTmplBytes<Type>;
         using isRepeatedType=std::false_type;
         constexpr static const bool CanChainBlocks=true;
+        constexpr static auto typeId=Type::typeId;
 
         explicit FieldTmplBytes(
             Unit *parentUnit
-        ) :
-            Field(parentUnit),
+            ) : Field(Type::typeId,parentUnit),
             m_factory(parentUnit->factory()),
             m_value(parentUnit)
         {
         }
 
-        inline static WireType wireTypeDef() noexcept
+        constexpr inline static WireType fieldWireType() noexcept
         {
             return WireType::WithLength;
         }
         //! Get wire type of the field
         virtual WireType wireType() const noexcept override
         {
-            return wireTypeDef();
+            return fieldWireType();
         }
 
         //! Deserialize field from wire
-        inline static bool deserialize(typename Type::type& value, WireData& wired, AllocatorFactory *factory)
+        template <typename BufferT>
+        static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory *factory)
         {
             return BytesSer<
                         typename Type::type::onstackType,
@@ -115,8 +116,17 @@ class FieldTmplBytes : public Field, public BytesType
                         );
         }
 
+        //! Deserialize field from wire
+        template <typename BufferT>
+        bool deserialize(BufferT& wired, AllocatorFactory *factory)
+        {
+            this->markSet(deserialize(this->m_value,wired,factory));
+            return this->isSet();
+        }
+
         //! Serialize field to wire
-        inline static bool serialize(const typename Type::type& value, WireData& wired)
+        template <typename BufferT>
+        static bool serialize(const typename Type::type& value, BufferT& wired)
         {
             return BytesSer<
                         typename Type::type::onstackType,
@@ -131,6 +141,23 @@ class FieldTmplBytes : public Field, public BytesType
                         );
         }
 
+        //! Serialize field to wire
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            return BytesSer<
+                typename Type::type::onstackType,
+                typename Type::type::sharedType
+                >
+                ::
+                serialize(
+                    wired,
+                    this->m_value.buf(),
+                    this->m_value.byteArrayShared(),
+                    Type::type::canChainBlocks::value
+                    );
+        }
+
         //! Get field size
         virtual size_t size() const noexcept override
         {
@@ -141,6 +168,11 @@ class FieldTmplBytes : public Field, public BytesType
         static inline size_t valueSize(const typename Type::type& value) noexcept
         {
             return value.size();
+        }
+
+        size_t fieldSize() const noexcept
+        {
+            return valueSize(m_value);
         }
 
         //! Prepare shared form of value storage for parsing from wire
@@ -212,6 +244,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         inline const auto& value() const noexcept
         {
+            //! @todo Validator must be able to work with temporary objects.
             // validator needs lvalue reference to view rather than a temporary object, so we keep it in this object
             m_view=decltype(m_view)(dataPtr(),dataSize());
             return m_view;
@@ -220,15 +253,26 @@ class FieldTmplBytes : public Field, public BytesType
         //! Clear field
         virtual void clear() override
         {
+            fieldClear();
+        }
+
+        //! Clear field
+        void fieldClear()
+        {
             this->m_value.clear();
-            this->m_set=false;
         }
 
         //! Reset field
         virtual void reset() override
         {
+            fieldReset();
+        }
+
+        //! Reset field
+        void fieldReset()
+        {
             this->m_value.reset();
-            this->m_set=false;
+            this->markSet(false);
         }
 
         inline typename Type::type::onstackType& byteArray() noexcept
@@ -256,9 +300,12 @@ class FieldTmplBytes : public Field, public BytesType
             this->m_value.setSharedByteArray(std::move(val));
         }
 
-        inline typename Type::type::onstackType* buf() noexcept
+        inline typename Type::type::onstackType* buf(bool forSet=true) noexcept
         {
-            markSet();
+            if (forSet)
+            {
+                markSet();
+            }
             return this->m_value.buf();
         }
 
@@ -274,6 +321,20 @@ class FieldTmplBytes : public Field, public BytesType
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers
          */
         virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
+        {
+            fieldSetParseToSharedArrays(enable,factory);
+        }
+
+        /**
+         * @brief Check if shared byte arrays must be used for parsing
+         * @return Boolean flag
+         */
+        virtual bool isParseToSharedArrays() const noexcept override
+        {
+            return fieldIsParseToSharedArrays();
+        }
+
+        void fieldSetParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* factory)
         {
             if (enable)
             {
@@ -293,14 +354,11 @@ class FieldTmplBytes : public Field, public BytesType
             }
         }
 
-        /**
-         * @brief Check if shared byte arrays must be used for parsing
-         * @return Boolean flag
-         */
-        virtual bool isParseToSharedArrays() const noexcept override
+        bool fieldIsParseToSharedArrays() const noexcept
         {
             return !byteArrayShared().isNull();
         }
+
 
         //! Format as JSON element
         inline static bool formatJSON(const typename Type::type& value,json::Writer* writer)
@@ -325,6 +383,12 @@ class FieldTmplBytes : public Field, public BytesType
 
         //! Can chain blocks
         virtual bool canChainBlocks() const noexcept override
+        {
+            return CanChainBlocks;
+        }
+
+        //! Can chain blocks
+        constexpr static bool fieldCanChainBlocks() noexcept
         {
             return CanChainBlocks;
         }
@@ -385,6 +449,7 @@ struct FieldTmpl<TYPE_BYTES> : public FieldTmplBytes<TYPE_BYTES>
 {
     using FieldTmplBytes<TYPE_BYTES>::FieldTmplBytes;
 };
+
 template<>
 struct FieldTmpl<TYPE_STRING> : public FieldTmplBytes<TYPE_STRING>
 {
@@ -397,6 +462,10 @@ struct FieldTmpl<_S<Length>> : public FieldTmplBytes<_S<Length>>
     using FieldTmplBytes<_S<Length>>::FieldTmplBytes;
     constexpr static const bool CanChainBlocks=false;
     virtual bool canChainBlocks() const noexcept override
+    {
+        return CanChainBlocks;
+    }
+    constexpr static bool fieldCanChainBlocks() noexcept
     {
         return CanChainBlocks;
     }

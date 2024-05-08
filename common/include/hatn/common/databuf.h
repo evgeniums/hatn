@@ -18,8 +18,10 @@
 #ifndef HATNDATABUF_H
 #define HATNDATABUF_H
 
+#include <system_error>
+
 #include <hatn/common/common.h>
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/consttraits.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -27,8 +29,13 @@ HATN_COMMON_NAMESPACE_BEGIN
 template <typename DataPointerT> struct DataBufWrapper
 {
     template <typename ContainerT>
-    DataBufWrapper(const ContainerT& container, size_t offset, size_t size=0) noexcept
+    DataBufWrapper(const ContainerT& container, size_t offset, size_t size) noexcept
         : m_buf(reinterpret_cast<DataPointerT>(container.data())+offset),m_size((size==0)?(container.size()-offset):size)
+    {}
+
+    template <typename ContainerT>
+    DataBufWrapper(const ContainerT& container, size_t size) noexcept
+        : m_buf(reinterpret_cast<DataPointerT>(container.data())),m_size(size)
     {}
 
     template <typename ContainerT>
@@ -85,13 +92,20 @@ template <typename DataPointerT> struct DataBufWrapper
     {
         return m_size;
     }
+
     inline DataPointerT data() const noexcept
     {
         return m_buf;
     }
+
     inline bool isEmpty() const noexcept
     {
         return m_size==0;
+    }
+
+    inline bool isNull() const noexcept
+    {
+        return m_buf==nullptr;
     }
 
     inline void resize(size_t size)
@@ -115,10 +129,25 @@ template <typename DataPointerT> struct DataBufWrapper
         m_size=size;
     }
 
+    inline void rebind(char* buf) noexcept
+    {
+        m_buf=const_cast<DataPointerT>(buf);
+    }
+
+    inline void rebind(const char* buf) noexcept
+    {
+        m_buf=const_cast<DataPointerT>(buf);
+    }
+
     inline void reset() noexcept
     {
         m_buf=nullptr;
         m_size=0;
+    }
+
+    inline operator bool() const noexcept
+    {
+        return m_buf!=nullptr;
     }
 
     private:
@@ -130,6 +159,6 @@ template <typename DataPointerT> struct DataBufWrapper
 using DataBuf=DataBufWrapper<char*>;
 using ConstDataBuf=DataBufWrapper<const char*>;
 
-//---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
+
 #endif // HATNDATABUF_H

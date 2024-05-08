@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/types.h
+/** @file dataunit/types.h
   *
   *      List of standard types of dataunit fields.
   *

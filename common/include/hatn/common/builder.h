@@ -21,7 +21,6 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/interface.h>
-#include <hatn/common/metautils.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -108,7 +107,7 @@ struct BuilderTraits
     };
 
     /**
-     * @brief Cast dynamically builder to specific interface
+     * @brief Cast dynamically builder to specific interface.
      * @param builder Builder
      * @return Casted interface or nulptr if failed to cast
      */
@@ -125,6 +124,7 @@ template <typename ...>
 struct BuilderMeta
 {
 };
+
 template <typename BuilderT,typename Type>
 struct BuilderMeta<BuilderT,Type>
 {
@@ -138,6 +138,7 @@ struct BuilderMeta<BuilderT,Type>
         return std::make_shared<BuilderT>(cuids());
     }
 };
+
 template <typename BuilderT,typename Type,typename ...Types>
 struct BuilderMeta<BuilderT,Type,Types...> : public BuilderMeta<BuilderT,Types...>
 {

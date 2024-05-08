@@ -21,67 +21,99 @@
 #include <hatn/common/format.h>
 
 #include <hatn/common/error.h>
-#include <hatn/common/nativeerror.h>
+#include <hatn/common/apierror.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Stack of errors.
-class HATN_COMMON_EXPORT ErrorStack : public NativeError
+class HATN_COMMON_EXPORT ErrorStack
 {
     public:
 
-        //! Ctor
-        ErrorStack(
-                Error prevError,
-                std::string nativeMessage,
-                int nativeCode=-1,
-                const std::error_category* category=nullptr
-            ) : NativeError(std::move(nativeMessage),nativeCode,category),
-                m_prevError(std::move(prevError))
-        {}
-
-        //! Ctor
-        ErrorStack(
-                Error prevError,
-                int nativeCode,
-                const std::error_category* category=nullptr
-            ) : NativeError(nativeCode,category),
-                m_prevError(std::move(prevError))
-        {}
-
-        //! Ctor
-        ErrorStack(
-                Error prevError,
-                const std::error_category* category
-            ) : NativeError(category),
-                m_prevError(std::move(prevError))
-        {}
-
-        ~ErrorStack();
-        ErrorStack(const ErrorStack&)=default;
-        ErrorStack(ErrorStack&&) =default;
-        ErrorStack& operator=(const ErrorStack&)=default;
-        ErrorStack& operator=(ErrorStack&&) =default;
-
-        const Error& prevError() const noexcept
+        void reset() noexcept
         {
-            return m_prevError;
+            m_stack.clear();
+            resetState();
         }
 
-        //! Get native error message.
-        virtual std::string nativeMessage() const override
+        void resetState() noexcept
         {
-            auto msg=NativeError::nativeMessage();
-            if (msg.empty())
+            m_index=static_cast<int>(m_stack.size())-1;
+        }
+
+        const Error* next() const noexcept
+        {
+            if (m_index<0)
             {
-                return m_prevError.message();
+                return nullptr;
             }
-            return fmt::format("{}: {}",msg,m_prevError.message());
+            return &(m_stack.at(static_cast<size_t>(m_index--)));
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_stack.empty();
+        }
+
+        operator bool() const noexcept
+        {
+            return !isNull();
+        }
+
+        std::string message() const
+        {
+            if (isNull())
+            {
+                return std::string();
+            }
+
+            std::string msg=m_stack.at(m_stack.size()-1).message();
+            for (size_t i=m_stack.size()-2;i>0;i--)
+            {
+                auto nextMsg=m_stack.at(i).message();
+                if (!msg.empty())
+                {
+                    if (!nextMsg.empty())
+                    {
+                        msg=fmt::format("{}: {}",msg,nextMsg);
+                    }
+                }
+                else
+                {
+                    msg=std::move(nextMsg);
+                }
+            }
+            return msg;
+        }
+
+        const ApiError* apiError() const noexcept
+        {
+            for (size_t i=m_stack.size()-1;i>0;i--)
+            {
+                auto apiError=m_stack.at(i).apiError();
+                if (apiError!=nullptr)
+                {
+                    return apiError;
+                }
+            }
+            return nullptr;
+        }
+
+        void push(Error error)
+        {
+            m_stack.emplace_back(std::move(error));
+            resetState();
+        }
+
+        void reserve(size_t n)
+        {
+            m_stack.reserve(n);
         }
 
     private:
 
-        Error m_prevError;
+        std::vector<Error> m_stack;
+        mutable int m_index=-1;
 };
 
 //---------------------------------------------------------------

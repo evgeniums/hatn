@@ -25,49 +25,82 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Guard running the handler on scope leaving.
-struct RunOnScopeExit final
+template <typename Fn>
+class RunOnScopeExitT
 {
-    /**
-     * @brief Constructor.
-     * @param handler handler to run when object is destroyed.
-     */
-    RunOnScopeExit(std::function<void ()> handler, bool enable=true) noexcept
-        : m_handler(std::move(handler)),
-          m_enable(enable)
-    {}
+    public:
 
-    //! Dtor
-    ~RunOnScopeExit()
-    {
-        if (m_enable && m_handler)
+        /**
+         * @brief Constructor.
+         * @param handler handler to run when object is destroyed.
+         */
+        RunOnScopeExitT(Fn&& handler, bool enable=true) noexcept
+            : m_handler(std::move(handler)),
+              m_enable(enable)
+        {}
+
+        //! Dtor
+        ~RunOnScopeExitT()
         {
-            m_handler();
+            if (m_enable)
+            {
+                m_handler();
+            }
         }
-    }
 
-    RunOnScopeExit(const RunOnScopeExit&)=delete;
-    RunOnScopeExit(RunOnScopeExit&&) =delete;
-    RunOnScopeExit& operator=(const RunOnScopeExit&)=delete;
-    RunOnScopeExit& operator=(RunOnScopeExit&&) =delete;
+        RunOnScopeExitT(const RunOnScopeExitT&)=delete;
+        RunOnScopeExitT& operator=(const RunOnScopeExitT&)=delete;
 
-    //! Enable handler
-    inline void setEnable(bool enable) noexcept
-    {
-        m_enable=enable;
-    }
+        RunOnScopeExitT(RunOnScopeExitT&& other) noexcept :
+            m_handler(std::move(other.m_handler)),
+            m_enable(other.m_enable)
+        {
+            other.m_enable=false;
+        }
 
-    //! Check if handler is enabled
-    inline bool isEnabled() const noexcept
-    {
-        return m_enable;
-    }
+        RunOnScopeExitT& operator=(RunOnScopeExitT&& other) noexcept
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+            m_handler=std::move(other.m_handler);
+            m_enable=other.m_enable;
+            other.m_enable=false;
+        }
+
+        //! Enable handler
+        inline void setEnable(bool enable) noexcept
+        {
+            m_enable=enable;
+        }
+
+        //! Check if handler is enabled
+        inline bool isEnabled() const noexcept
+        {
+            return m_enable;
+        }
 
     private:
 
-        std::function<void ()> m_handler;
+        Fn m_handler;
         bool m_enable;
 };
 
+template <typename Fn>
+auto makeScopeGuard(Fn&& fn, bool enable=true)
+{
+    return RunOnScopeExitT<std::decay_t<Fn>>(std::forward<Fn>(fn),enable);
+}
+
+using RunOnScopeExit=RunOnScopeExitT<std::function<void ()>>;
+
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
+
+#define HATN_SCOPE_GUARD(fn) \
+    auto _onExit=fn;\
+    auto _scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_onExit));\
+    std::ignore=_scopeGuard;
+
 #endif // HATNRUNONSCOPEEXIT_H

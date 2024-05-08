@@ -21,12 +21,14 @@
 #ifndef HATNDATAUNITS_H
 #define HATNDATAUNITS_H
 
-#include <map>
-
 #include <boost/hana.hpp>
 
+#include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
+#include <hatn/common/stdwrappers.h>
+
+#include <hatn/validator/utils/foreach_if.hpp>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/fields/scalar.h>
@@ -41,149 +43,216 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace hana=boost::hana;
 
-namespace detail
-{
-struct FalseFnT
-{
-    template <typename T>
-    constexpr bool operator() (T) const
-    {
-        return false;
-    }
-};
-constexpr FalseFnT FalseFn{};
-
-template <typename FieldT>
-struct CheckEachUnitFieldT
-{
-    template <typename T>
-    constexpr auto operator () (T) const
-    {
-        using type=typename T::type;
-        return hana::bool_<
-                    FieldT::ID==type::ID
-                    &&
-                    hana::is_a<typename FieldT::Type,type>
-                >{};
-    }
-};
-template <typename FieldT>
-constexpr CheckEachUnitFieldT<FieldT> CheckEachUnitField{};
-
+/**  @brief Base template for unit types. */
 template <typename ...Fields>
-struct UnitHasFieldT
+class UnitImpl
 {
-    template <typename T>
-    constexpr bool operator () (T) const
-    {
-        return hana::find_if(
-                hana::tuple_t<Fields...>,
-                CheckEachUnitField<typename T::type>
-            ) != hana::nothing;
-    }
-};
-template <typename ...Fields>
-constexpr UnitHasFieldT<Fields...> UnitHasField{};
-}
-
-/**
- * @brief Helper to check if Unit has a field.
- */
-template <typename FieldT, typename ...Fields>
-struct UnitHasField
-{
-    constexpr static const bool value=
-                        hana::if_(
-                            hana::is_a<FieldTag,FieldT>,
-                            dataunit::detail::UnitHasField<Fields...>,
-                            dataunit::detail::FalseFn
-                        )(hana::type_c<FieldT>);
-};
-
-/**  Base DataUnit template */
-template <typename ...Fields>
-    class UnitImpl : public hatn::common::VInterfacesPack<Fields...>
-{
-    constexpr static const unsigned short int MaxI = sizeof...(Fields)-1;
-
     public:
 
         /**  Ctor */
         UnitImpl(Unit* self);
 
         virtual ~UnitImpl()=default;
-        UnitImpl(const UnitImpl& other) :
-            hatn::common::VInterfacesPack<Fields...>(other)
-        {
-            copy(*this,other);
-        }
-        UnitImpl& operator= (const UnitImpl& other)
-        {
-            if (this!=&other)
-            {
-                hatn::common::VInterfacesPack<Fields...>::operator =(other);
-                copy(*this,other);
-            }
-            return *this;
-        }
+        UnitImpl(const UnitImpl& other)=default;
+        UnitImpl& operator= (const UnitImpl& other)=default;
         UnitImpl(UnitImpl&& other) =default;
         UnitImpl& operator= (UnitImpl&& other) =default;
 
-        /**  Get position of field */
-        template <typename T>
-        constexpr static int fieldPos() noexcept
+        /**  Get field count */
+        constexpr static int count() noexcept
         {
-            return std::decay_t<T>::index;
+            return sizeof ...(Fields);
+        }
+
+        template <typename PredicateT, typename HandlerT>
+        auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(m_fields,pred,handler);
+        }
+
+        template <typename PredicateT, typename HandlerT>
+        auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(m_fields,pred,handler);
+        }
+
+        template <typename PredicateT, typename HandlerT, typename DefaultT>
+        auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
+        }
+
+        template <typename PredicateT, typename HandlerT, typename DefaultT>
+        auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) const -> decltype(auto)
+        {
+            return hatn::validator::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
+        }
+
+        static const Field* findField(const UnitImpl* unit,int id);
+        static Field* findField(UnitImpl* unit,int id);
+
+        static const Field* findField(const UnitImpl* unit,common::lib::string_view name);
+        static Field* findField(UnitImpl* unit,common::lib::string_view name);
+
+        template <typename BufferT>
+        struct FieldParser
+        {
+            std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)> fn;
+            WireType wireType;
+            const char* fieldName;
+            int fieldId;
+        };
+
+        template <typename BufferT>
+        static const FieldParser<BufferT>* fieldParser(int id)
+        {
+            auto&& map=fieldParsers<BufferT>();
+            const auto it=map.find(id);
+            if (it==map.end())
+            {
+                return nullptr;
+            }
+            return &it->second;
+        }
+
+        template <typename BufferT, typename T>
+        static const FieldParser<BufferT>* fieldParser(T&& /*field*/)
+        {
+            return fieldParser<BufferT>(std::decay_t<T>::ID);
+        }
+
+        /**  Iterate fields applying visitor handler */
+        template <typename T>
+        bool iterate(const T& visitor);
+
+        /**  Iterate fields applying const visitor handler */
+        template <typename T>
+        bool iterateConst(const T& visitor) const;
+
+    protected:
+
+        template <typename Index>
+        auto get(Index&& idx) const -> decltype(auto)
+        {
+            return hana::at(m_fields,std::forward<Index>(idx));
+        }
+
+        template <typename Index>
+        auto get(Index&& idx) -> decltype(auto)
+        {
+            return hana::at(m_fields,std::forward<Index>(idx));
+        }
+
+    private:
+
+        static const common::FlatMap<int,uintptr_t>& fieldsMap();
+        static const common::FlatMap<common::lib::string_view,uintptr_t>& fieldsNameMap();
+
+        template <typename BufferT>
+        static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();
+
+        hana::tuple<Fields...> m_fields;
+};
+
+/** @brief Base DataUnit template for concatenation with unit config. **/
+template <typename Conf, typename ...Fields>
+class UnitConcat : public Unit, public UnitImpl<Fields...>
+{
+    public:
+
+        using selfType=UnitConcat<Conf,Fields...>;
+        using baseType=UnitImpl<Fields...>;
+        using conf=Conf;
+
+        UnitConcat(AllocatorFactory* factory=AllocatorFactory::getDefault());
+
+        /** Stub for compilation compatibility with SharedPtr */
+        constexpr static bool isNull() noexcept
+        {
+            return false;
+        }
+
+        /**  Check if unit has a field. */
+        template <typename T>
+        constexpr static bool hasField(T&&) noexcept
+        {
+            constexpr auto idx=hana::type_c<std::decay_t<T>>;
+            return hana::contains(Conf::fields_map,idx);
         }
 
         /**  Get position of field */
         template <typename T>
-        constexpr static int fieldPos(T&&) noexcept
+        constexpr static auto fieldPos() noexcept
         {
-            return fieldPos<std::decay_t<T>>();
+            return fieldPos(T{});
+        }
+
+        /**  Get position of field */
+        template <typename T>
+        constexpr static auto fieldPos(T&& fieldName) noexcept
+        {
+            return hana::value(fieldIndex(std::forward<T>(fieldName)));
+        }
+
+        /**  Get field reference by index */
+        template <int Index>
+        auto field() noexcept -> decltype(auto)
+        {
+            return this->get(hana::int_c<Index>);
+        }
+
+        /**  Get const field reference by index */
+        template <int Index>
+        auto field() const noexcept -> decltype(auto)
+        {
+            return this->get(hana::int_c<Index>);
         }
 
         /**  Get field by type. */
         template <typename T>
         auto field() const noexcept -> decltype(auto)
         {
-            using type=std::decay_t<T>;
-            static_assert(UnitHasField<type,Fields...>::value,"Invalid field");
-            return static_cast<const typename std::tuple_element<type::index, std::tuple<Fields...>>::type&>(this->template getInterface<type::index>());
+            return field(T{});
         }
 
         /**  Get field by type. */
         template <typename T>
         auto field() noexcept -> decltype(auto)
         {
-            using type=std::decay_t<T>;
-            static_assert(UnitHasField<type,Fields...>::value,"Invalid field");
-            return this->template getInterface<type::index>();
+            return field(T{});
         }
 
         /**  Get field. */
         template <typename T>
-        auto field(T&&
-            ) const noexcept -> decltype(auto)
+        auto field(T&& fieldName) const noexcept -> decltype(auto)
         {
-            return field<std::decay_t<T>>();
+            return this->get(fieldIndex(std::forward<T>(fieldName)));
         }
 
         /**  Get field. */
         template <typename T>
-        auto field(T&&
-               ) noexcept -> decltype(auto)
+        auto field(T&& fieldName) noexcept -> decltype(auto)
         {
-            return field<std::decay_t<T>>();
+            return this->get(fieldIndex(std::forward<T>(fieldName)));
         }
 
         /**  Check if field is set. */
         template <typename T>
-        auto isSet(T&& fieldName,
-                   std::enable_if_t<UnitHasField<std::decay_t<T>,Fields...>::value,void*> =nullptr
-                ) const noexcept
+        bool isSet(T&& fieldName) const noexcept
         {
-            return field(std::forward<T>(fieldName)).isSet();
+            constexpr auto idx=hana::type_c<std::decay_t<T>>;
+            auto self=this;
+            return hana::eval_if(
+                hana::contains(Conf::fields_map,idx),
+                [&](auto _)
+                {
+                    return _(self)->field(_(fieldName)).isSet();
+                },
+                [&](auto)
+                {
+                    return false;
+                }
+            );
         }
 
         /**
@@ -218,24 +287,11 @@ template <typename ...Fields>
             field(std::forward<T>(fieldName)).clear();
         }
 
-        /**  Get field reference by index */
-        template <int Index>
-        auto field() noexcept -> decltype(auto)
+        /** Reset field. */
+        template <typename T>
+        void resetField(T&& fieldName) noexcept
         {
-            return this->template getInterface<Index>();
-        }
-
-        /**  Get const field reference by index */
-        template <int Index>
-        auto field() const noexcept -> decltype(auto)
-        {
-            return static_cast<const typename std::tuple_element<Index, std::tuple<Fields...>>::type&>(this->template getInterface<Index>());
-        }
-
-        /**  Get field count */
-        constexpr static int count() noexcept
-        {
-            return sizeof...(Fields);
+            field(std::forward<T>(fieldName)).reset();
         }
 
         /**
@@ -355,111 +411,6 @@ template <typename ...Fields>
             autoAppendUnitFieldAtPath(*this,std::forward<PathT>(path),size);
         }
 
-        /**  Template of fields iterator */
-        template <typename T,int Index> struct Iterator
-        {
-            /**  Apply visitor to next field */
-            static bool next(
-                T& unit,
-                const Unit::FieldVisitor& callback=Unit::FieldVisitor()
-            );
-
-            /**  Apply visitor to next const field */
-            static bool nextConst(
-                const T& unit,
-                const Unit::FieldVisitorConst& callback=Unit::FieldVisitorConst()
-            );
-
-            /**  Copy next field */
-            static void copyNext(
-                T& unit,
-                const T& otherUnit
-            );
-
-            static void addToMapNext(
-                const T* unit,
-                std::map<int,uintptr_t>& map
-            );
-        };
-
-        /**  Iterator template specialization for last field */
-        template <typename T> struct Iterator<T,0>
-        {
-            /**  Iterate */
-            static bool next(
-                T& unit,
-                const Unit::FieldVisitor& callback=Unit::FieldVisitor()
-            );
-
-            /**  Iterate */
-            static bool nextConst(
-                const T& unit,
-                const Unit::FieldVisitorConst& callback=Unit::FieldVisitorConst()
-            );
-
-            /**  Copy next field */
-            static void copyNext(
-                T& unit,
-                const T& otherUnit
-            );
-
-            static void addToMapNext(
-                const T* unit,
-                std::map<int,uintptr_t>& map
-            );
-        };
-
-        /**  Copy one DataUnit to other */
-        static void copy(UnitImpl& dst,const UnitImpl& src);
-
-        static Field* findField(const UnitImpl* unit,int id);
-
-    protected:
-
-        /**  Iterate fields applying visitor handler */
-        bool iterate(const Unit::FieldVisitor& visitor);
-
-        /**  Iterate fields applying const visitor handler */
-        bool iterateConst(const Unit::FieldVisitorConst& visitor) const;
-
-    private:
-
-        static std::map<int,uintptr_t> m_map;
-        static common::MutexLock m_mapLocker;
-        static std::atomic<bool> m_mapReady;
-
-        static void fillMap(const UnitImpl* unit);
-};
-template <typename ...Fields> std::map<int,uintptr_t> UnitImpl<Fields...>::m_map;
-template <typename ...Fields> common::MutexLock UnitImpl<Fields...>::m_mapLocker;
-template <typename ...Fields> std::atomic<bool> UnitImpl<Fields...>::m_mapReady;
-
-/** Base DataUnit template for concatenation **/
-template <typename Conf, typename ...Fields>
-class UnitConcat : public Unit, public UnitImpl<Fields...>
-{
-    public:
-
-        using selfType=UnitConcat<Conf,Fields...>;
-        using baseType=UnitImpl<Fields...>;
-        using conf=Conf;
-
-        UnitConcat(AllocatorFactory* factory=AllocatorFactory::getDefault());
-
-        /** Stub for compilation compatibility with SharedPtr */
-        constexpr static bool isNull() noexcept
-        {
-            return false;
-        }
-
-        /**  Check if unit has a field. */
-        template <typename T>
-        constexpr static bool hasField(T&& fieldName) noexcept
-        {
-            std::ignore=fieldName;
-            return UnitHasField<std::decay_t<T>,Fields...>::value;
-        }
-
         /**
          * @brief Iterate over subunits of self type in a tree invoking handler on each subunit.
          * @param handler Handler to invoke on each subunit. Signature bool(const T*,const T*,size_t).
@@ -502,25 +453,18 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
             return Conf::name;
         }
 
-    protected:
+    private:
 
-        /**  Get field const pointer by ID */
-        const Field* doFieldById(int id) const;
-
-        /**  Get field pointer by ID */
-        Field* doFieldById(int id);
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFields(const Unit::FieldVisitor& visitor);
-
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFieldsConst(const Unit::FieldVisitorConst& visitor) const;
-
-        /**  Get field count */
-        size_t doFieldCount() const noexcept;
+        template <typename T>
+        constexpr static auto fieldIndex(T&&) noexcept
+        {
+            constexpr auto idx=hana::type_c<std::decay_t<T>>;
+            static_assert(hana::value(hana::contains(Conf::fields_map,idx)),"Field not found");
+            return Conf::fields_map[idx];
+        }
 };
 
-/**  DataUnit template */
+/**   template */
 template <typename Conf,typename ...Fields> using DataUnit=UnitConcat<Conf,Fields...>;
 
 /**  Managed variant of the DataUnit */
@@ -576,37 +520,118 @@ class EmptyUnit : public Unit
             return Conf::name;
         }
 
-    protected:
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT&, InitT&& init, const HandlerT&) -> decltype(auto)
+        {
+            return hana::id(std::forward<InitT>(init));
+        }
+
+        template <typename PredicateT, typename HandlerT, typename InitT>
+        auto each(const PredicateT&, InitT&& init, const HandlerT&) const -> decltype(auto)
+        {
+            return hana::id(std::forward<InitT>(init));
+        }
+
+        template <typename BufferT>
+        struct FieldParser
+        {
+            std::function<bool(EmptyUnit&, BufferT&, AllocatorFactory*)> fn;
+            WireType wireType;
+            const char* fieldName;
+            int fieldId;
+        };
+
+        template <typename BufferT>
+        static const FieldParser<BufferT>* fieldParser(int)
+        {
+            return nullptr;
+        }
+
+        template <typename BufferT, typename T>
+        static const FieldParser<BufferT>* fieldParser(T&& /*field*/)
+        {
+            return nullptr;
+        }
 
         /**  Iterate fields applying visitor handler */
-        bool doIterateFields(const Unit::FieldVisitor&)
+        template <typename T>
+        bool iterate(const T&)
         {
             return true;
         }
 
-        /**  Iterate fields applying visitor handler */
-        bool doIterateFieldsConst(const Unit::FieldVisitorConst&) const
+        /**  Iterate fields applying const visitor handler */
+        template <typename T>
+        bool iterateConst(const T&) const
         {
             return true;
         }
 
-        /**  Get field count */
-        constexpr static size_t doFieldCount() noexcept
+        virtual int serialize(WireData&,bool) const override
         {
             return 0;
         }
 
-        /** Get field by ID */
-        const Field* doFieldById(int) const
+        virtual bool parse(WireData&,bool =true) override
+        {
+            return true;
+        }
+
+        virtual bool parse(WireBufSolid&,bool =true) override
+        {
+            return true;
+        }
+
+        virtual bool iterateFields(const Unit::FieldVisitor&) override
+        {
+            return true;
+        }
+
+        virtual bool iterateFieldsConst(const Unit::FieldVisitorConst&) const override
+        {
+            return true;
+        }
+
+        virtual const Field* fieldById(int) const override
         {
             return nullptr;
         }
 
-        /** Get field by ID */
-        Field* doFieldById(int)
+        virtual Field* fieldById(int) override
         {
             return nullptr;
         }
+
+        virtual const Field* fieldByName(common::lib::string_view) const override
+        {
+            return nullptr;
+        }
+        virtual Field* fieldByName(common::lib::string_view) override
+        {
+            return nullptr;
+        }
+
+#if 0
+        virtual int serialize(WireBufSolid& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual int serialize(WireBufChained& wired,bool topLevel=true) const
+        {
+            return 0;
+        }
+
+        virtual bool parse(WireBufSolidShared& wired,bool topLevel=true) override
+        {
+            return true;
+        }
+#endif
 };
 
 /**  Managed variant of empty DataUnit */
@@ -654,7 +679,9 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
         return false;
     }
 
+    // find field
     const auto& field=this->field(fieldName);
+
     // process all units in field array
     for (auto&& it:field.vector)
     {
@@ -671,88 +698,135 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
 
 //---------------------------------------------------------------
 template <typename ...Fields>
-template <typename T,int Index>
-void UnitImpl<Fields...>::Iterator<T,Index>::copyNext(
-        T& unit,
-        const T& otherUnit
-    )
+Field* UnitImpl<Fields...>::findField(UnitImpl* unit,int id)
 {
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    auto& field = std::get<Index>(unit.m_interfaces);
-    const auto& otherField = std::get<Index>(otherUnit.m_interfaces);
-    field=otherField;
-    Iterator<T,Index-1>::copyNext(unit,otherUnit);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-void UnitImpl<Fields...>::Iterator<T,0>::copyNext(
-        T& unit,
-        const T& otherUnit
-    )
-{
-    auto& field = std::get<0>(unit.m_interfaces);
-    const auto& otherField = std::get<0>(otherUnit.m_interfaces);
-    field=otherField;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-void UnitImpl<Fields...>::copy(UnitImpl& dst,const UnitImpl& src)
-{
-    Iterator<UnitImpl<Fields...>,MaxI>::copyNext(dst,src);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T,int Index>
-void UnitImpl<Fields...>::Iterator<T,Index>::addToMapNext(
-        const T* unit,
-        std::map<int,uintptr_t>& map
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    const auto& field = std::get<Index>(unit->m_interfaces);
-    map[field.getID()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(unit);
-    Iterator<T,Index-1>::addToMapNext(unit,map);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-void UnitImpl<Fields...>::Iterator<T,0>::addToMapNext(
-        const T* unit,
-        std::map<int,uintptr_t>& map
-    )
-{
-    const auto& field = std::get<0>(unit->m_interfaces);
-    map[field.getID()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(unit);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-void UnitImpl<Fields...>::fillMap(const UnitImpl* unit)
-{
-    m_mapLocker.lock();
-    if (m_map.empty())
-    {
-        Iterator<UnitImpl<Fields...>,MaxI>::addToMapNext(unit,m_map);
-    }
-    m_mapLocker.unlock();
-    m_mapReady.store(true,std::memory_order_release);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
-{
-    auto it=m_map.find(id);
-    if (it!=m_map.end())
+    const auto& m=fieldsMap();
+    const auto it=m.find(id);
+    if (it!=m.end())
     {
         return reinterpret_cast<Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
     }
     return nullptr;
+}
+
+template <typename ...Fields>
+const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,int id)
+{
+    const auto& m=fieldsMap();
+    const auto it=m.find(id);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<const Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+template <typename ...Fields>
+Field* UnitImpl<Fields...>::findField(UnitImpl* unit,common::lib::string_view name)
+{
+    const auto& m=fieldsNameMap();
+    const auto it=m.find(name);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+template <typename ...Fields>
+const Field* UnitImpl<Fields...>::findField(const UnitImpl* unit,common::lib::string_view name)
+{
+    const auto& m=fieldsNameMap();
+    const auto it=m.find(name);
+    if (it!=m.end())
+    {
+        return reinterpret_cast<const Field*>(reinterpret_cast<uintptr_t>(unit)+it->second);
+    }
+    return nullptr;
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename T>
+bool UnitImpl<Fields...>::iterate(const T& visitor)
+{
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
+
+    auto handler=[&visitor](auto& field, auto&&)
+    {
+        return visitor(field);
+    };
+
+    return each(predicate,handler);
+}
+
+//---------------------------------------------------------------
+template <typename ...Fields>
+template <typename T>
+bool UnitImpl<Fields...>::iterateConst(const T& visitor) const
+{
+    auto predicate=[](bool ok)
+    {
+        return ok;
+    };
+
+    auto handler=[&visitor](const auto& field, auto&&)
+    {
+        return visitor(field);
+    };
+
+    return each(predicate,handler);
+}
+
+//---------------------------------------------------------------
+
+template <typename ...Fields>
+template <typename BufferT>
+const common::FlatMap<
+    int,
+    typename UnitImpl<Fields...>::template FieldParser<BufferT>
+    >&
+UnitImpl<Fields...>::fieldParsers()
+{
+    using unitT=UnitImpl<Fields...>;
+    using itemT=typename UnitImpl<Fields...>::template FieldParser<BufferT>;
+
+    auto f=[](auto&& state, auto fieldTypeC) {
+
+        using type=typename decltype(fieldTypeC)::type;
+
+        auto index=hana::first(state);
+        auto map=hana::second(state);
+
+        auto handler=[&index](unitT& unit, BufferT& buf, AllocatorFactory* factory)
+        {
+            auto& field=hana::at(unit.m_fields,index);
+            return field.deserialize(buf,factory);
+        };
+        auto item=itemT{
+            handler,
+            type::fieldWireType(),
+            type::fieldName(),
+            type::fieldId()
+        };
+        map[type::fieldId()]=item;
+
+        return hana::make_pair(hana::plus(index,hana::int_c<1>),std::move(map));
+    };
+
+    static const auto result=hana::fold(
+        hana::tuple_t<Fields...>,
+        hana::make_pair(
+            hana::int_c<0>,
+            common::FlatMap<int,itemT>{}
+            ),
+        f
+        );
+    static const auto map=hana::second(result);
+    return map;
 }
 
 //---------------------------------------------------------------

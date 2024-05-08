@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/updatenotifier.h
+/** @file dataunit/updatenotifier.h
   *
   *  Notifier of data unit updates
   *
@@ -30,6 +30,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 struct UpdateInvoker{};
 
+//! @todo Implement notifier.
 class UpdateNotifier
 {
     public:

@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/field.h
+/** @file dataunit/field.h
   *
   *      Common templates for field types
   *
@@ -30,7 +30,7 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/intrusive/avl_set.hpp>
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/constructwithargordefault.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/sharedptr.h>
@@ -147,8 +147,8 @@ struct FieldConf : public T
 
     using T::T;
 
-    //! Get field ID
-    virtual int getID() const noexcept override
+    //! Get static field id.
+    constexpr static int fieldId() noexcept
     {
         return Id;
     }
@@ -165,35 +165,39 @@ struct FieldConf : public T
         return FieldName::description;
     }
 
+    //! Get field required statically.
+    constexpr static bool fieldRequired() noexcept
+    {
+        return Required;
+    }
+
+    //! Get field ID
+    virtual int getID() const noexcept override
+    {
+        return Id;
+    }
+
     //! Get field name.
     virtual const char* name() const noexcept override
     {
         return FieldName::name;
     }
 
-    //! Get field description.
-    virtual const char* description() const noexcept override
-    {
-        return FieldName::description;
-    }
-
-    //! Get field name size
-    virtual size_t nameSize() const noexcept override
-    {
-        return ::hatn::common::CStrLength(FieldName::name);
-    }
-
     //! Check if field is required
     virtual bool isRequired() const noexcept override
     {
         return Required;
-    }
+    }    
 };
+
+struct DefaultValueTag{};
 
 /**  Template to set default values */
 template <typename T>
 struct DefaultValue
 {
+    using hana_tag=DefaultValueTag;
+
     using HasDefV=std::false_type;
     static typename T::type value() {return typename T::type(static_cast<typename T::type>(0));}
 };
@@ -205,11 +209,12 @@ struct FieldDefault
 template <typename Base,typename Type,typename DefaultV>
 struct FieldDefault<Base,Type,
             DefaultV,
-            std::enable_if_t<Type::isBytesType::value || Type::isUnitType::value>
+                    std::enable_if_t<(Type::isBytesType::value && !Type::isStringType::value) || Type::isUnitType::value>
         >  : public Base
 {
     using Base::Base;
 };
+
 /**  Base class with constructor with default value */
 template <typename Base,typename Type,typename DefaultV>
 struct FieldDefault<Base,Type,
@@ -222,14 +227,104 @@ struct FieldDefault<Base,Type,
     FieldDefault(Unit* unit) : Base(unit,DefaultV::value())
     {}
 
-    virtual vtype defaultValue() const override
+    vtype defaultValue() const
     {
-        return static_cast<vtype>(DefaultV::value());
+        return fieldDefaultValue();
     }
 
     virtual bool hasDefaultValue() const noexcept override
     {
+        return fieldHasDefaultValue();
+    }
+
+    bool fieldHasDefaultValue() const noexcept
+    {
         return DefaultV::HasDefV::value;
+    }
+
+    vtype fieldDefaultValue() const
+    {
+        return static_cast<vtype>(DefaultV::value());
+    }
+
+    //! Clear field
+    virtual void clear() override
+    {
+        fieldClear();
+    }
+
+    //! Reset field
+    virtual void reset() override
+    {
+        fieldReset();
+    }
+
+    //! Clear field
+    void fieldClear()
+    {
+        this->m_value=DummyConst<vtype>::f();
+    }
+
+    //! Reset field
+    void fieldReset()
+    {
+        this->m_value=fieldDefaultValue();
+        this->markSet(false);
+    }
+};
+
+/**  Base class with constructor with default value */
+template <typename Base,typename Type,typename DefaultV>
+struct FieldDefault<Base,Type,
+                    DefaultV,
+                    std::enable_if_t<Type::isStringType::value>
+                    > : public Base
+{
+    using vtype=decltype(DefaultV::value());
+
+    FieldDefault(Unit* unit) : Base(unit)
+    {
+        fillDefault();
+    }
+
+    void fillDefault()
+    {
+        if (DefaultV::HasDefV::value)
+        {
+            this->buf(false)->load(DefaultV::value());
+        }
+    }
+
+    auto defaultValue() const
+    {
+        return fieldDefaultValue();
+    }
+
+    virtual bool hasDefaultValue() const noexcept override
+    {
+        return fieldHasDefaultValue();
+    }
+
+    bool fieldHasDefaultValue() const noexcept
+    {
+        return DefaultV::HasDefV::value;
+    }
+
+    auto fieldDefaultValue() const
+    {
+        return DefaultV::value();
+    }
+
+    void fieldReset()
+    {
+        this->m_value.reset();
+        this->markSet(false);
+        fillDefault();
+    }
+
+    virtual void reset() override
+    {
+        fieldReset();
     }
 };
 

@@ -27,7 +27,7 @@
 #include <hatn/common/format.h>
 #include <hatn/common/elapsedtimer.h>
 
-#include <hatn/common/metautils.h>
+#include <hatn/common/meta/cstrlength.h>
 #include <hatn/common/locker.h>
 #include <hatn/common/fixedbytearray.h>
 #include <hatn/common/pmr/pmrtypes.h>
@@ -307,14 +307,14 @@ class HATN_COMMON_EXPORT Logger final
          * @brief Set handler for output of log text
          * @param handler The handler where to send log messages
          *
-         * \attention Not thread safe! Set the output handler on the program start only.
+         * @attention Not thread safe! Set the output handler on the program start only.
          */
         static void setOutputHandler(OutputHandler handler) noexcept;
         /**
          * @brief Set handler for output fatal log text
          * @param handler The handler where to send fatal messages
          *
-         * \attention Not thread safe! Set the fatal log handler on the program start only.
+         * @attention Not thread safe! Set the fatal log handler on the program start only.
          */
         static void setFatalLogHandler(OutputHandler handler) noexcept;
 

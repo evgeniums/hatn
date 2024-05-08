@@ -181,7 +181,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 
         /**
          * @brief Set the main thread
-         * @param thread Thread to set as main. \attention This thread must be created with newThread=false.
+         * @param thread Thread to set as main. @attention This thread must be created with newThread=false.
          * @return STL shared_ptr to main thread
          */
         static std::shared_ptr<Thread> setMainThread(std::shared_ptr<Thread> thread);

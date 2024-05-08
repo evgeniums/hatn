@@ -29,6 +29,7 @@
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/error.h>
+#include <hatn/common/result.h>
 
 #include <hatn/base/base.h>
 #include <hatn/base/baseerror.h>

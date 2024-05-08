@@ -4,25 +4,31 @@
 #include <vector>
 #include <iostream>
 
-#define HDU_DATAUNIT_EXPORT
-
 #include <hatn/common/thread.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/makeshared.h>
 
 #include <hatn/common/logger.h>
-#include <hatn/common/elapsedtimer.h>
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
 #include <hatn/thirdparty/base64/base64.h>
 
-#include <hatn/dataunit/syntax.h>
+#include <hatn/dataunit/dataunit.h>
+#include <hatn/dataunit/types.h>
+
 #include <hatn/test/multithreadfixture.h>
 
-using namespace HATN_DATAUNIT_NAMESPACE::types;
+#include <hatn/dataunit/syntax.h>
 
-#include "testunitdeclarations.h"
+#include "simpleunitdeclaration.h"
+#include "testunitdeclarations2.h"
+#include "testunitdeclarations3.h"
+#include "testunitdeclarations4.h"
+#include "testunitdeclarations5.h"
+#include "testunitdeclarations6.h"
+#include "testunitdeclarations7.h"
+#include "testunitdeclarations8.h"
 
 //#define HATN_TEST_LOG_CONSOLE
 
@@ -184,7 +190,8 @@ template <typename t_int8,typename traits,typename t> void typeChecks(t& allType
     const auto& f9_=allTypes.field(fields.type_double);
     BOOST_CHECK_CLOSE(f9_.get(),val_double,0.0001);
     BOOST_CHECK(f9_.isSet());
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
 {
@@ -214,16 +221,16 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
 #endif
     BOOST_CHECK_EQUAL(json,
                       "{\n"
-                      "    \"type_int8_required\": 89,\n"
-                      "    \"type_double\": 253245.7656,\n"
-                      "    \"type_float\": 253245.7656,\n"
-                      "    \"type_uint32\": 528548112,\n"
-                      "    \"type_uint16\": 63504,\n"
-                      "    \"type_uint8\": 10,\n"
-                      "    \"type_int32\": 528548112,\n"
-                      "    \"type_int16\": -2032,\n"
+                      "    \"type_bool\": true,\n"
                       "    \"type_int8\": -10,\n"
-                      "    \"type_bool\": true\n"
+                      "    \"type_int16\": -2032,\n"
+                      "    \"type_int32\": 528548112,\n"
+                      "    \"type_uint8\": 10,\n"
+                      "    \"type_uint16\": 63504,\n"
+                      "    \"type_uint32\": 528548112,\n"
+                      "    \"type_float\": 253245.7656,\n"
+                      "    \"type_double\": 253245.7656,\n"
+                      "    \"type_int8_required\": 89\n"
                       "}"
                       );
 
@@ -240,24 +247,23 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
 #endif
     BOOST_CHECK_EQUAL(json,
                       "{\n"
-                      "    \"type_int8_required\": 89,\n"
-                      "    \"type_string\": \"Hello world\",\n"
-                      "    \"type_double\": 253245.7656,\n"
-                      "    \"type_float\": 253245.7656,\n"
-                      "    \"type_uint32\": 528548112,\n"
-                      "    \"type_uint16\": 63504,\n"
-                      "    \"type_uint8\": 10,\n"
-                      "    \"type_int32\": 528548112,\n"
-                      "    \"type_int16\": -2032,\n"
+                      "    \"type_bool\": true,\n"
                       "    \"type_int8\": -10,\n"
-                      "    \"type_bool\": true\n"
+                      "    \"type_int16\": -2032,\n"
+                      "    \"type_int32\": 528548112,\n"
+                      "    \"type_uint8\": 10,\n"
+                      "    \"type_uint16\": 63504,\n"
+                      "    \"type_uint32\": 528548112,\n"
+                      "    \"type_float\": 253245.7656,\n"
+                      "    \"type_double\": 253245.7656,\n"
+                      "    \"type_string\": \"Hello world\",\n"
+                      "    \"type_int8_required\": 89\n"
                       "}"
                       );
 
     BOOST_CHECK(allTypesCopy.loadFromJSON(json));
     jsonCheck=allTypesCopy.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-
 
     auto& bytes=allTypes.field(fields.type_bytes);
     bytes.set("Hello world");
@@ -267,18 +273,18 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
 #endif
     BOOST_CHECK_EQUAL(json,
                       "{\n"
-                      "    \"type_int8_required\": 89,\n"
-                      "    \"type_bytes\": \"SGVsbG8gd29ybGQ=\",\n"
-                      "    \"type_string\": \"Hello world\",\n"
-                      "    \"type_double\": 253245.7656,\n"
-                      "    \"type_float\": 253245.7656,\n"
-                      "    \"type_uint32\": 528548112,\n"
-                      "    \"type_uint16\": 63504,\n"
-                      "    \"type_uint8\": 10,\n"
-                      "    \"type_int32\": 528548112,\n"
-                      "    \"type_int16\": -2032,\n"
+                      "    \"type_bool\": true,\n"
                       "    \"type_int8\": -10,\n"
-                      "    \"type_bool\": true\n"
+                      "    \"type_int16\": -2032,\n"
+                      "    \"type_int32\": 528548112,\n"
+                      "    \"type_uint8\": 10,\n"
+                      "    \"type_uint16\": 63504,\n"
+                      "    \"type_uint32\": 528548112,\n"
+                      "    \"type_float\": 253245.7656,\n"
+                      "    \"type_double\": 253245.7656,\n"
+                      "    \"type_string\": \"Hello world\",\n"
+                      "    \"type_bytes\": \"SGVsbG8gd29ybGQ=\",\n"
+                      "    \"type_int8_required\": 89\n"
                       "}"
                     );
 
@@ -406,16 +412,16 @@ template <typename traits> void checkSubUnit()
     BOOST_CHECK_EQUAL(json,
                       "{\n"
                       "    \"f0\": {\n"
-                      "        \"type_int8_required\": 123,\n"
-                      "        \"type_double\": 253245.7656,\n"
-                      "        \"type_float\": 253245.7656,\n"
-                      "        \"type_uint32\": 528548112,\n"
-                      "        \"type_uint16\": 63504,\n"
-                      "        \"type_uint8\": 10,\n"
-                      "        \"type_int32\": 528548112,\n"
-                      "        \"type_int16\": -2032,\n"
+                      "        \"type_bool\": true,\n"
                       "        \"type_int8\": -10,\n"
-                      "        \"type_bool\": true\n"
+                      "        \"type_int16\": -2032,\n"
+                      "        \"type_int32\": 528548112,\n"
+                      "        \"type_uint8\": 10,\n"
+                      "        \"type_uint16\": 63504,\n"
+                      "        \"type_uint32\": 528548112,\n"
+                      "        \"type_float\": 253245.7656,\n"
+                      "        \"type_double\": 253245.7656,\n"
+                      "        \"type_int8_required\": 123\n"
                       "    }\n"
                       "}"
                 );
@@ -450,16 +456,16 @@ template <typename traits> void checkRepeatedUnit()
                       "{\n"
                       "    \"f0\": [\n"
                       "        {\n"
-                      "            \"type_int8_required\": 123,\n"
-                      "            \"type_double\": 253245.7656,\n"
-                      "            \"type_float\": 253245.7656,\n"
-                      "            \"type_uint32\": 528548112,\n"
-                      "            \"type_uint16\": 63504,\n"
-                      "            \"type_uint8\": 10,\n"
-                      "            \"type_int32\": 528548112,\n"
-                      "            \"type_int16\": -2032,\n"
+                      "            \"type_bool\": true,\n"
                       "            \"type_int8\": -10,\n"
-                      "            \"type_bool\": true\n"
+                      "            \"type_int16\": -2032,\n"
+                      "            \"type_int32\": 528548112,\n"
+                      "            \"type_uint8\": 10,\n"
+                      "            \"type_uint16\": 63504,\n"
+                      "            \"type_uint32\": 528548112,\n"
+                      "            \"type_float\": 253245.7656,\n"
+                      "            \"type_double\": 253245.7656,\n"
+                      "            \"type_int8_required\": 123\n"
                       "        }\n"
                       "    ]\n"
                       "}"
@@ -469,7 +475,8 @@ template <typename traits> void checkRepeatedUnit()
     BOOST_REQUIRE(unit2.loadFromJSON(json));
     auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSubsUnit,Env)
 {
@@ -557,7 +564,8 @@ template <typename traits> void checkRepeatedDouble()
     BOOST_REQUIRE(unit2.loadFromJSON(json));
     auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestRepeatedDouble,Env)
 {
@@ -626,7 +634,8 @@ template <typename traits> void checkRepeatedBytes(bool shared=false)
         BOOST_REQUIRE(unit2.loadFromJSON(json));
         auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
         BOOST_CHECK_EQUAL(json,jsonCheck);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 template <typename traits> void checkRepeatedString(bool fixed)
 {
@@ -659,7 +668,8 @@ template <typename traits> void checkRepeatedString(bool fixed)
         BOOST_REQUIRE(unit2.loadFromJSON(json));
         auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
         BOOST_CHECK_EQUAL(json,jsonCheck);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestRepeatedBytes,Env)
@@ -687,13 +697,11 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
 #endif
     BOOST_CHECK_EQUAL(json,
           "{\n"
-          "    \"type_enum_repeated\": [\n"
-          "        1,\n"
-          "        1,\n"
-          "        1,\n"
-          "        1,\n"
-          "        1\n"
-          "    ],\n"
+          "    \"type_bool\": true,\n"
+          "    \"type_int32\": 1000,\n"
+          "    \"type_float\": 1010.215,\n"
+          "    \"type_double\": 3020.1123,\n"
+          "    \"type_enum\": 2,\n"
           "    \"type_double_repeated\": [\n"
           "        3030.3,\n"
           "        3030.3,\n"
@@ -703,11 +711,13 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
           "        3030.3,\n"
           "        3030.3\n"
           "    ],\n"
-          "    \"type_enum\": 2,\n"
-          "    \"type_double\": 3020.1123,\n"
-          "    \"type_float\": 1010.215,\n"
-          "    \"type_int32\": 1000,\n"
-          "    \"type_bool\": true\n"
+          "    \"type_enum_repeated\": [\n"
+          "        1,\n"
+          "        1,\n"
+          "        1,\n"
+          "        1,\n"
+          "        1\n"
+          "    ]\n"
           "}"
     );
 

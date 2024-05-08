@@ -19,6 +19,7 @@
 #define HATNCONTAINERUTILS_H
 
 #include <boost/algorithm/hex.hpp>
+#include <boost/hana.hpp>
 
 #include <hatn/thirdparty/base64/base64.h>
 #include <hatn/common/bytearray.h>
@@ -101,6 +102,24 @@ struct ContainerUtils final
         )
     {
         Base64::to(rawContainer.data(),rawContainer.size(),b64Container,append);
+    }
+
+    template <typename T, typename ...Args>
+    static void addElements(T& container, Args&& ...args)
+    {
+        boost::hana::for_each(boost::hana::make_tuple(std::forward<Args>(args)...),
+                       [&container](auto&& arg) {
+                           container.push_back(std::forward<decltype(arg)>(arg));
+                       });
+    }
+
+    template <typename T, typename ...Args>
+    static void insertElements(T& container, Args&& ...args)
+    {
+        boost::hana::for_each(boost::hana::make_tuple(std::forward<Args>(args)...),
+                       [&container](auto&& arg) {
+                           container.insert(std::forward<decltype(arg)>(arg));
+                       });
     }
 };
 

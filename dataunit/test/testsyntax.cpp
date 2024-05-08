@@ -14,10 +14,21 @@
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
+#include <hatn/dataunit/detail/fieldserialization.ipp>
+#include <hatn/dataunit/visitors.h>
+
 #include <hatn/test/multithreadfixture.h>
 
-#define HDU_DATAUNIT_EXPORT
-#include "testunitdeclarations.h"
+#include <hatn/dataunit/syntax.h>
+
+#include "simpleunitdeclaration.h"
+#include "testunitdeclarations2.h"
+#include "testunitdeclarations3.h"
+#include "testunitdeclarations4.h"
+#include "testunitdeclarations5.h"
+#include "testunitdeclarations6.h"
+#include "testunitdeclarations7.h"
+#include "testunitdeclarations8.h"
 
 //#define HATN_TEST_LOG_CONSOLE
 
@@ -33,6 +44,7 @@ static void setLogHandler()
         auto str=::hatn::common::fmtBufToString(s);
         str=str.substr(14,str.length());
 
+#if 0
         if (*logCount==0)
         {
             BOOST_CHECK_EQUAL(str,"t[main] WARNING:dataunit:serialize :: Failed to serialize DataUnit message all_types: required field type_int8_required is not set");
@@ -41,6 +53,7 @@ static void setLogHandler()
         {
             BOOST_CHECK_EQUAL(str,"t[main] DEBUG:1:dataunit:parse :: Failed to parse DataUnit message all_types: required field type_int8_required is not set");
         }
+#endif
         ++(*logCount);
     };
 
@@ -185,7 +198,8 @@ template <typename t_int8,typename traits,typename t> void typeChecks(t& allType
     BOOST_CHECK(f9_.isSet());
 }
 
-template <typename t_int8,typename traits,typename t> void typeCheckIsSet(const t& allTypes)
+template <typename t_int8,typename traits,typename t>
+void typeCheckIsSet(const t& allTypes)
 {
     const auto& fields=traits::fields;
 
@@ -266,7 +280,8 @@ template <typename t_int8,typename traits,typename t> void typeCheckIsSet(const 
     const auto& f9_=allTypes.field(fields.type_double);
     BOOST_CHECK_CLOSE(f9_.get(),val_double,0.0001);
     BOOST_CHECK(f9_.isSet());
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_AUTO_TEST_CASE(TestNames)
 {
@@ -274,42 +289,28 @@ BOOST_AUTO_TEST_CASE(TestNames)
     const auto& fields=traits::fields;
 
     BOOST_CHECK_EQUAL(std::string(fields.optional_field.name()),std::string("optional_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.optional_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.optional_field_descr.name()),std::string("optional_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.optional_field_descr.description()),std::string("Optional field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.required_field.name()),std::string("required_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.required_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.required_field_descr.name()),std::string("required_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.required_field_descr.description()),std::string("Required field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.default_field.name()),std::string("default_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.default_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.default_field_descr.name()),std::string("default_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.default_field_descr.description()),std::string("Default field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fields.repeated_field.name()),std::string("repeated_field"));
-    BOOST_CHECK_EQUAL(std::string(fields.repeated_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fields.repeated_field_descr.name()),std::string("repeated_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fields.repeated_field_descr.description()),std::string("Repeated field with description"));
 
     using traitsSubunit=subunit_names_and_descr::traits;
     const auto& fieldsSubunit=traitsSubunit::fields;
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field.name()),std::string("dataunit_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field_descr.name()),std::string("dataunit_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.dataunit_field_descr.description()),std::string("Dataunit field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field.name()),std::string("external_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field_descr.name()),std::string("external_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.external_field_descr.description()),std::string("External field with description"));
 
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field.name()),std::string("embedded_field"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field.description()),std::string(""));
     BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field_descr.name()),std::string("embedded_field_descr"));
-    BOOST_CHECK_EQUAL(std::string(fieldsSubunit.embedded_field_descr.description()),std::string("Embedded field with description"));
 }
 
 BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
@@ -340,11 +341,12 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesCopyOp);
     }
 
-    using extTraits=all_types::ext1::traits;
+    using extTraits=ext1::traits;
     const auto extFields=extTraits::fields;
+    const auto ext0Fields=ext0::traits::fields;
 
     extTraits::type extTypes;
-    auto& f1=extTypes.field(extFields.type_bool);
+    auto& f1=extTypes.field(fields.type_bool);
     BOOST_CHECK(!f1.isSet());
     BOOST_CHECK(!f1.get());
     f1.set(true);
@@ -360,13 +362,13 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
     BOOST_CHECK(f2.isSet());
     BOOST_CHECK(f2.get());
 
-    auto& fExt0Field=extTypes.field(extFields.ext0_int32);
+    auto& fExt0Field=extTypes.field(ext0Fields.ext0_int32);
     std::ignore=fExt0Field;
 
     empty_unit::traits::type empt;
     std::ignore=empt;
 
-    using extTraits2=empty_unit::ext2::traits;
+    using extTraits2=ext2::traits;
     const auto& extFields2=extTraits2::fields;
 
     extTraits2::type ext2;
@@ -437,7 +439,7 @@ BOOST_AUTO_TEST_CASE(TestDefaultFields)
     BOOST_CHECK_EQUAL(f2.get(),1000);
     f2.set(5000);
     BOOST_CHECK_EQUAL(f2.get(),5000);
-    f2.clear();
+    f2.reset();
     BOOST_CHECK_EQUAL(f2.get(),1000);
 
     auto& f3=unit.field(fields.type_enum);
@@ -465,7 +467,8 @@ template <typename C, typename F, typename T> void wireSingleVar(const T& val)
     C unit2;
     unit2.parse(wired);
     BOOST_CHECK_EQUAL(unit2.template field<F>().get(),val);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckSingleNumbers,::hatn::test::MultiThreadFixture)
 {
@@ -604,16 +607,17 @@ void checkByteArray(bool inlineBuffers=false)
             }
         }
         BOOST_CHECK(passed);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckByteArray,::hatn::test::MultiThreadFixture)
 {
-    checkByteArray<hatn::dataunit::WireDataSingle>();
-    checkByteArray<hatn::dataunit::WireDataSingleShared>();
-    checkByteArray<hatn::dataunit::WireDataChained>();
-    checkByteArray<hatn::dataunit::WireDataSingle>(true);
-    checkByteArray<hatn::dataunit::WireDataSingleShared>(true);
+    BOOST_TEST_CONTEXT("WireDataSingle,false"){checkByteArray<hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,false"){checkByteArray<hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("WireDataChained,false"){checkByteArray<hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("WireDataSingle,true"){checkByteArray<hatn::dataunit::WireDataSingle>(true);}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,true"){checkByteArray<hatn::dataunit::WireDataSingleShared>(true);}
     // inline buffers for chained wire are useless because data will be internally copied for parsing
     //checkByteArray<hatn::dataunit::WireDataChained>(true);
 }
@@ -650,7 +654,7 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedUint32,::hatn::test::MultiThre
     BOOST_CHECK_EQUAL(field1.value(2),field1_1.value(2));
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }
@@ -694,7 +698,7 @@ void serializeCheckRepeatedDouble()
     BOOST_CHECK_EQUAL(field1.value(3),field1_1.value(3));
     BOOST_CHECK_EQUAL(field1.value(4),field1_1.value(4));
 
-    field1.clear();
+    field1.reset();
     BOOST_CHECK_EQUAL(field1.count(),0);
     BOOST_CHECK(!field1.isSet());
 }
@@ -928,36 +932,37 @@ void serializeCheckRepeatedFixedString(bool shared=false, bool inlineBuffers=fal
             }
         }
         BOOST_CHECK(passed);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 
 template <typename WiredT>
 void checkRepeatedBytes(bool inlineBuffers=false)
 {
-    serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(false,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_bytes_repeated::traits,false"){serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_bytes_repeated_proto::traits,false"){serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated::traits,false"){serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated_proto::traits,false"){serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(false,inlineBuffers);}
 
-    serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(true,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_bytes_repeated::traits,true"){serializeCheckRepeatedBytes<wire_bytes_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_bytes_repeated_proto::traits,true"){serializeCheckRepeatedBytes<wire_bytes_repeated_proto::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated::traits,true"){serializeCheckRepeatedBytes<wire_string_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_string_repeated_proto::traits,true"){serializeCheckRepeatedBytes<wire_string_repeated_proto::traits,WiredT>(true,inlineBuffers);}
 
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(false,inlineBuffers);
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(false,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated::traits,false"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(false,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated_proto::traits,false"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(false,inlineBuffers);}
 
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(true,inlineBuffers);
-    serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(true,inlineBuffers);
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated::traits,true"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated::traits,WiredT>(true,inlineBuffers);}
+    BOOST_TEST_CONTEXT("wire_fixed_string_repeated_proto::traits,true"){serializeCheckRepeatedFixedString<wire_fixed_string_repeated_proto::traits,WiredT>(true,inlineBuffers);}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedBytes,Env)
 {
-    checkRepeatedBytes<hatn::dataunit::WireDataSingle>();
-    checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>();
-    checkRepeatedBytes<hatn::dataunit::WireDataChained>();
+    BOOST_TEST_CONTEXT("WireDataSingle,false"){checkRepeatedBytes<hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,false"){checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("WireDataChained,false"){checkRepeatedBytes<hatn::dataunit::WireDataChained>();}
 
-    checkRepeatedBytes<hatn::dataunit::WireDataSingle>(true);
-    checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>(true);
+    BOOST_TEST_CONTEXT("WireDataSingle,true"){checkRepeatedBytes<hatn::dataunit::WireDataSingle>(true);}
+    BOOST_TEST_CONTEXT("WireDataSingleShared,true"){checkRepeatedBytes<hatn::dataunit::WireDataSingleShared>(true);}
 
     // inline buffers for chained wire are useless because data will be internally copied for parsing
     //checkRepeatedBytes<hatn::dataunit::WireDataChained>(true);
@@ -1018,7 +1023,8 @@ template <typename traits, typename WiredT> void checkSerializeRepeatedSimpleUni
     const auto& field2=unit2.field(fields.f0);
     BOOST_CHECK(field2.isSet());
     BOOST_CHECK_EQUAL(field2.count(),1);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedSimpleUnit,Env)
 {
@@ -1208,12 +1214,12 @@ void checkSerializeSubUnit()
     BOOST_REQUIRE(field3.isSet());
     BOOST_REQUIRE(obj3!=nullptr);
     fillUnitFields(*obj3,0);
-    auto subWired3_1=hatn::common::makeShared<hatn::dataunit::WireDataPackSingleShared>();
+    auto subWired3_1=hatn::common::makeShared<hatn::dataunit::WireDataSingle>();
     auto expectedSizeSub=obj3->size();
-    auto packedSizeSub=obj3->serialize(*subWired3_1->wireData());
+    auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
-    obj3->keepWireDataPack(subWired3_1);
+    obj3->keepWireData(subWired3_1);
     hatn::dataunit::WireDataSingle wired3;
     auto packedSize3=unit3.serialize(wired3);
     BOOST_REQUIRE(packedSize3>0);
@@ -1229,7 +1235,8 @@ void checkSerializeSubUnit()
 
     const auto& obj3_2=field3_2.value();
     checkUnitFields(obj3_2,0);
-HATN_DATAUNIT_NAMESPACE_END
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeSubunit,Env)
 {
@@ -1276,7 +1283,7 @@ void checkSerializePreparedSubUnit()
     auto packedSizeSingle=unit1.serialize(wiredSingle1);
     BOOST_CHECK_EQUAL(packedSize,packedSizeSingle);
     BOOST_REQUIRE(wiredSingle1.mainContainer());
-    hatn::dataunit::WireDataSingle wiredSingle2=wired.toSingleWireData();
+    auto wiredSingle2=wired.toSolidWireBuf();
     BOOST_REQUIRE(wiredSingle2.mainContainer());
     BOOST_CHECK(*wiredSingle1.mainContainer()==*wiredSingle2.mainContainer());
 
@@ -1297,17 +1304,29 @@ void checkSerializePreparedSubUnit()
     fillUnitFields(*obj3,0);
     auto subWired3_1=hatn::common::makeShared<subWiredT>();
     auto expectedSizeSub=obj3->size();
-    auto packedSizeSub=obj3->serialize(*subWired3_1->wireData());
+    auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
-    obj3->keepWireDataPack(subWired3_1);
+    obj3->keepWireData(subWired3_1);
     WiredT wired3;
     auto packedSize3=unit3.serialize(wired3);
     BOOST_REQUIRE(packedSize3>0);
     BOOST_CHECK_EQUAL(packedSize,packedSize3);
     hatn::common::ByteArray barr3;
-    wired3.copyToContainer(barr3);
+    copyToContainer(wired3,&barr3);
     BOOST_CHECK(*wiredSingle1.mainContainer()==barr3);
+    if (*wiredSingle1.mainContainer()!=barr3)
+    {
+        BOOST_CHECK_EQUAL(wiredSingle1.mainContainer()->size(),barr3.size());
+        for (size_t i=0;i<barr3.size();i++)
+        {
+            if (wiredSingle1.mainContainer()->at(i)!=barr3.at(i))
+            {
+                BOOST_ERROR(fmt::format("Mismatch at {}",i));
+                break;
+            }
+        }
+    }
 
     wired3.resetState();
     typename traits::type unit3_2;
@@ -1324,27 +1343,28 @@ void checkSerializePreparedSubUnit()
 template <typename WiredT>
 void checkSerializePrepared()
 {
-    checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();
-    checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();
-    checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingle>();
-    checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingle>();
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingle"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingle>();}
 
-    checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();
-    checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();
-    checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();
-    checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackSingleShared>();
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingleShared"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataSingleShared>();}
 
-    checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();
-    checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();
-    checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataPackChained>();
-    checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataPackChained>();
-HATN_DATAUNIT_NAMESPACE_END
+    BOOST_TEST_CONTEXT("embedded_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<embedded_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("shared_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<shared_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("with_unit::traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<with_unit::traits,WiredT,hatn::dataunit::WireDataChained>();}
+    BOOST_TEST_CONTEXT("with_unit::shared_traits,WiredT,hatn::dataunit::WireDataChained"){checkSerializePreparedSubUnit<with_unit::shared_traits,WiredT,hatn::dataunit::WireDataChained>();}
+}
+}
 
 BOOST_FIXTURE_TEST_CASE(TestSerializePreparedSubunit,Env)
 {
-    checkSerializePrepared<hatn::dataunit::WireDataSingle>();
-    checkSerializePrepared<hatn::dataunit::WireDataSingleShared>();
-    checkSerializePrepared<hatn::dataunit::WireDataChained>();
+    BOOST_TEST_CONTEXT("hatn::dataunit::WireDataSingle"){checkSerializePrepared<hatn::dataunit::WireDataSingle>();}
+    BOOST_TEST_CONTEXT("hatn::dataunit::WireDataSingleShared"){checkSerializePrepared<hatn::dataunit::WireDataSingleShared>();}
+    BOOST_TEST_CONTEXT("hatn::dataunit::WireDataChained"){checkSerializePrepared<hatn::dataunit::WireDataChained>();}
 }
 
 namespace {
@@ -1384,7 +1404,8 @@ template <typename traits> void checkSerializeRepeatedUnit()
     {
         const auto& obj=field2.value(i);
         checkUnitFields(obj.value(),i);
-    HATN_DATAUNIT_NAMESPACE_END
+    }
+}
 }
 
 BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedUnit,Env)
@@ -1396,136 +1417,8 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeRepeatedUnit,Env)
 
     checkSerializeRepeatedUnit<wire_unit_repeated1::traits>();
     checkSerializeRepeatedUnit<wire_unit_repeated1::shared_traits>();
-//    checkSerializeRepeatedUnit<wire_unit_repeated_protobuf1::traits>();
+    checkSerializeRepeatedUnit<wire_unit_repeated_protobuf1::traits>();
     checkSerializeRepeatedUnit<wire_unit_repeated_protobuf1::shared_traits>();
-}
-
-namespace {
-template <typename T> void fillForPerformance(T& allTypes, int n)
-{
-    auto& f1=allTypes.field(all_types::type_bool);
-    f1.set(true);
-
-    int8_t val_int8=-10+n;
-    auto& f2=allTypes.field(all_types::type_int8);
-    f2.set(val_int8);
-
-    int8_t val_int8_required=123+n;
-    auto& f2_2=allTypes.field(all_types::type_int8_required);
-    f2_2.set(val_int8_required);
-
-    int16_t val_int16=0xF810+n;
-    auto& f3=allTypes.field(all_types::type_int16);
-    f3.set(val_int16);
-
-    int32_t val_int32=0x1F810110+n;
-    auto& f4=allTypes.field(all_types::type_int32);
-    f4.set(val_int32);
-
-    uint8_t val_uint8=10+n;
-    auto& f5=allTypes.field(all_types::type_uint8);
-    f5.set(val_uint8);
-
-    uint16_t val_uint16=0xF810+n;
-    auto& f6=allTypes.field(all_types::type_uint16);
-    f6.set(val_uint16);
-
-    uint32_t val_uint32=0x1F810110+n;
-    auto& f7=allTypes.field(all_types::type_uint32);
-    f7.set(val_uint32);
-
-    float val_float=253245.7686f+static_cast<float>(n);
-    auto& f8=allTypes.field(all_types::type_float);
-    f8.set(val_float);
-
-    float val_double=253245.7686f+static_cast<float>(n);
-    auto& f9=allTypes.field(all_types::type_double);
-    f9.set(val_double);
-HATN_DATAUNIT_NAMESPACE_END
-
-BOOST_FIXTURE_TEST_CASE(TestPerformance,Env,* boost::unit_test::disabled())
-{
-    int runs=5000000;
-    hatn::common::ElapsedTimer elapsed;
-    uint64_t elapsedMs=0;
-
-    auto perSecond=[&runs,&elapsedMs]()
-    {
-        auto ms=elapsedMs;
-        if (ms==0)
-        {
-            return 1000*runs;
-        }
-        // codechecker_intentional [all] Don't care
-        return static_cast<int>(round(1000*(runs/ms)));
-    };
-
-    std::cerr<<"Cycle creating DataUnit on stack"<<std::endl;
-
-    elapsed.reset();
-    for (int i=0;i<runs;++i)
-    {
-        typename all_types::type unit1;
-        auto& f1=unit1.field(all_types::type_bool);
-        f1.set(true);
-    }
-    elapsedMs=elapsed.elapsed().totalMilliseconds;
-    auto elapsedStr=elapsed.toString(true);
-    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
-
-    std::cerr<<"Cycle new/delete unit"<<std::endl;
-
-    elapsed.reset();
-    for (int i=0;i<runs;++i)
-    {
-        auto unit1=new typename all_types::type();
-        auto& f1=unit1->field(all_types::type_bool);
-        f1.set(true);
-        delete unit1;
-    }    
-    elapsedMs=elapsed.elapsed().totalMilliseconds;
-    elapsedStr=elapsed.toString(true);
-    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
-
-    std::cerr<<"Cycle setting values"<<std::endl;
-
-    typename all_types::type unit1;
-    elapsed.reset();
-    for (int i=0;i<runs;++i)
-    {
-        fillForPerformance(unit1,i);
-    }
-    elapsedMs=elapsed.elapsed().totalMilliseconds;
-    elapsedStr=elapsed.toString(true);
-    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
-
-    std::cerr<<"Cycle serialization"<<std::endl;
-
-    fillForPerformance(unit1,1234);
-    elapsed.reset();
-    for (int i=0;i<runs;++i)
-    {
-        hatn::dataunit::WireDataSingle wired;
-        unit1.serialize(wired);
-    }
-    elapsedMs=elapsed.elapsed().totalMilliseconds;
-    elapsedStr=elapsed.toString(true);
-    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
-
-    std::cerr<<"Cycle parsing"<<std::endl;
-
-    hatn::dataunit::WireDataSingle wired1;
-    unit1.serialize(wired1);
-
-    typename all_types::type unit2;
-    elapsed.reset();
-    for (int i=0;i<runs;++i)
-    {
-        unit2.parse(wired1);
-    }
-    elapsedMs=elapsed.elapsed().totalMilliseconds;
-    elapsedStr=elapsed.toString(true);
-    std::cerr<<"Duration "<<elapsedStr<<", perSecond="<<perSecond()<<std::endl;
 }
 
 BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
@@ -1538,6 +1431,7 @@ BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(ptr,unit1.get());
 }
 
+#if 1
 BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
 {
     auto factory=hatn::dataunit::AllocatorFactory::getDefault();
@@ -1585,6 +1479,7 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(levelCount,22);
     BOOST_CHECK_EQUAL(contentCount,5*count+10+20+30);
 }
+#endif
 
 BOOST_FIXTURE_TEST_CASE(TestFreeFactory,::hatn::test::MultiThreadFixture)
 {

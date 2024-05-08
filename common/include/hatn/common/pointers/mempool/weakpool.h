@@ -48,7 +48,7 @@ class HATN_COMMON_EXPORT WeakPool final : public Singleton
          * @param WeakPool will own the memory resource and destroy it in destructor
          * @return Pool instance
          *
-         * \attention Call init() only in the main thread before all other threads start
+         * @attention Call init() only in the main thread before all other threads start
          */
         static WeakPool* init(
             pmr::memory_resource* memResource=pmr::get_default_resource(),
@@ -68,7 +68,7 @@ class HATN_COMMON_EXPORT WeakPool final : public Singleton
         /**
          * @brief Release pool instance
          *
-         * \attention For thread safety call free() only in the main thread after all other threads have stopped
+         * @attention For thread safety call free() only in the main thread after all other threads have stopped
          */
         static void free() noexcept;
 

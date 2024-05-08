@@ -10,7 +10,7 @@
 /*
     
 */
-/** \file dataunit/fieldbase.сpp
+/** @file dataunit/fieldbase.сpp
   *
   *      Base class of dataunit fields
   *
@@ -23,9 +23,11 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /********************** Field **************************/
 
 //---------------------------------------------------------------
-Field::Field(Unit* unit)
+Field::Field(ValueType valeuTypeId,Unit* unit, bool array)
     : m_set(false),
-    m_unit(unit)
+      m_unit(unit),
+      m_valueTypeId(valeuTypeId),
+      m_array(array)
 {}
 
 //---------------------------------------------------------------
@@ -34,7 +36,7 @@ Field::~Field()=default;
 //---------------------------------------------------------------
 WireType Field::wireType() const noexcept
 {
-    return wireTypeDef();
+    return fieldWireType();
 }
 
 //---------------------------------------------------------------
@@ -44,15 +46,15 @@ bool Field::isRepeatedUnpackedProtoBuf() const noexcept
 }
 
 //---------------------------------------------------------------
-void Field::setParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory*)
+void Field::setParseToSharedArrays(bool enable,AllocatorFactory* factory)
 {
-    std::ignore=enable;
+    fieldSetParseToSharedArrays(enable,factory);
 }
 
 //---------------------------------------------------------------
 bool Field::isParseToSharedArrays() const noexcept
 {
-    return false;
+    return fieldIsParseToSharedArrays();
 }
 
 //---------------------------------------------------------------

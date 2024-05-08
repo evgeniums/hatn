@@ -74,6 +74,17 @@ std::string BaseErrorCategory::message(int code) const
             result=_TR("unknown merge mode","base");
             break;
 
+        case (static_cast<int>(BaseError::CONFIG_OBJECT_LOAD_ERROR)):
+            result=_TR("failed to load configuration object","base");
+            break;
+
+        case (static_cast<int>(BaseError::CONFIG_OBJECT_VALIDATE_ERROR)):
+            result=_TR("failed to validate configuration object","base");
+            break;
+
+        case (static_cast<int>(BaseError::UNSUPPORTED_TYPE)):
+            result=_TR("unsupported type","base");
+            break;
 
         default:
             result=_TR("unknown error");

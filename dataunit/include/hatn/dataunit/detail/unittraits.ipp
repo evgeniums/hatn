@@ -1,14 +1,16 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-  */
+*/
 
 /****************************************************************************/
 /*
 
 */
-/** \file datauint/detail/unittraits.ipp
+/** @file datauint/detail/unittraits.ipp
   *
   *      Implementations of DataUnit templates
   *
@@ -19,116 +21,53 @@
 #ifndef HATNDATAUNITSIMPL_H
 #define HATNDATAUNITSIMPL_H
 
+#include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/unittraits.h>
 
-namespace hatn {
-namespace dataunit {
+HATN_DATAUNIT_NAMESPACE_BEGIN
 
 /********************** UnitImpl **************************/
 
 //---------------------------------------------------------------
 template <typename ...Fields>
 UnitImpl<Fields...>::UnitImpl(Unit* self)
-    : ::hatn::common::VInterfacesPack<Fields...>(
-                    Fields(std::forward<Unit*>(self))...
-            )
+    : m_fields(Fields{self}...)
+{}
+
+//---------------------------------------------------------------
+
+template <typename ...Fields>
+const common::FlatMap<int,uintptr_t>& UnitImpl<Fields...>::fieldsMap()
 {
-    if (!m_mapReady.load(std::memory_order_acquire))
-    {
-        fillMap(this);
-    }
+    static Unit sampleUnit{};
+    static const UnitImpl<Fields...> sample(&sampleUnit);
+
+    auto f = [](common::FlatMap<int,uintptr_t> m, const auto& field) {
+        auto m1=std::move(m);
+        m1[field.fieldId()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(&sample);
+        return m1;
+    };
+
+    static const common::FlatMap<int,uintptr_t> map=hana::fold(sample.m_fields,common::FlatMap<int,uintptr_t>{},f);
+    return map;
 }
 
 //---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T,int Index>
-bool UnitImpl<Fields...>::Iterator<T,Index>::next(
-        T& unit,
-        const Unit::FieldVisitor& callback
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    auto& field = std::get<Index>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return Iterator<T,Index-1>::next(unit,callback);
-}
 
-//---------------------------------------------------------------
 template <typename ...Fields>
-template <typename T>
-bool UnitImpl<Fields...>::Iterator<T,0>::next(
-        T& unit,
-        const Unit::FieldVisitor& callback
-    )
+const common::FlatMap<common::lib::string_view,uintptr_t>& UnitImpl<Fields...>::fieldsNameMap()
 {
-    auto& field = std::get<0>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return true;
-}
+    static Unit sampleUnit{};
+    static const UnitImpl<Fields...> sample(&sampleUnit);
 
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T,int Index>
-bool UnitImpl<Fields...>::Iterator<T,Index>::nextConst(
-        const T& unit,
-        const Unit::FieldVisitorConst& callback
-    )
-{
-    static_assert(Index>=0&&Index<= MaxI,"Iterator index overflow");
-    const auto& field = std::get<Index>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return Iterator<T,Index-1>::nextConst(unit,callback);
-}
+    auto f = [](common::FlatMap<common::lib::string_view,uintptr_t> m, const auto& field) {
+        auto m1=std::move(m);
+        m1[field.fieldName()]=reinterpret_cast<uintptr_t>(&field)-reinterpret_cast<uintptr_t>(&sample);
+        return m1;
+    };
 
-//---------------------------------------------------------------
-template <typename ...Fields>
-template <typename T>
-bool UnitImpl<Fields...>::Iterator<T,0>::nextConst(
-        const T& unit,
-        const Unit::FieldVisitorConst& callback
-    )
-{
-    auto& field = std::get<0>(unit.m_interfaces);
-    if (callback)
-    {
-        if (!callback(field))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-bool UnitImpl<Fields...>::iterate(const Unit::FieldVisitor& visitor)
-{
-    return Iterator<UnitImpl<Fields...>,MaxI>::next(*this,visitor);
-}
-
-//---------------------------------------------------------------
-template <typename ...Fields>
-bool UnitImpl<Fields...>::iterateConst(const Unit::FieldVisitorConst& visitor) const
-{
-    return Iterator<UnitImpl<Fields...>,MaxI>::nextConst(*this,visitor);
+    static const common::FlatMap<common::lib::string_view,uintptr_t> map=hana::fold(sample.m_fields,common::FlatMap<common::lib::string_view,uintptr_t>{},f);
+    return map;
 }
 
 /********************** UnitConcat **************************/
@@ -141,41 +80,6 @@ UnitConcat<Conf,Fields...>::UnitConcat(
         UnitImpl<Fields...>(this)
 {}
 
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-const Field* UnitConcat<Conf,Fields...>::doFieldById(int id) const
-{
-    return baseType::findField(this,id);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-Field* UnitConcat<Conf,Fields...>::doFieldById(int id)
-{
-    return baseType::findField(this,id);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-bool UnitConcat<Conf,Fields...>::doIterateFields(const Unit::FieldVisitor& visitor)
-{
-    return this->iterate(visitor);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-bool UnitConcat<Conf,Fields...>::doIterateFieldsConst(const Unit::FieldVisitorConst& visitor) const
-{
-    return this->iterateConst(visitor);
-}
-
-//---------------------------------------------------------------
-template <typename Conf, typename ...Fields>
-size_t UnitConcat<Conf,Fields...>::doFieldCount() const noexcept
-{
-    return this->count();
-}
-
 /********************** EmptyUnit **************************/
 
 /********************** ManagedUnit **************************/
@@ -184,7 +88,6 @@ size_t UnitConcat<Conf,Fields...>::doFieldCount() const noexcept
 
 /********************** EmptyManagedUnit **************************/
 
-}
-}
+HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITSIMPL_H
