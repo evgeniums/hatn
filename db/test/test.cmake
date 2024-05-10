@@ -1,0 +1,18 @@
+SET (TEST_SOURCES
+    ${DB_TEST_SRC}/testcreate.cpp
+)
+
+SET (TEST_HEADERS
+    ${HEADERS}
+)
+
+ADD_HATN_CTESTS(db ${TEST_SOURCES} ${TEST_HEADERS})
+
+FUNCTION(TestDb)
+    COPY_LIBRARY_HERE(hatncommon${LIB_POSTFIX} ../common/)
+    COPY_LIBRARY_HERE(hatndataunit${LIB_POSTFIX} ../dataunit/)
+    COPY_LIBRARY_HERE(hatnbase${LIB_POSTFIX} ../base/)
+	COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)
+ENDFUNCTION(TestDb)
+
+ADD_CUSTOM_TARGET(dbtest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
