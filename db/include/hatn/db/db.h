@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
-    
-*/
+
 /** @file db/db.h
   *
   *  Hatn Database Library implements types and routines to work with database using dataunit objects.
