@@ -27,6 +27,7 @@ cmake -G "$cmake_gen_prefix Makefiles" \
         -DCMAKE_INSTALL_PREFIX=$root_dir \
         -DCMAKE_BUILD_TYPE=Release \
         -DWITH_TESTS=0 \
+		-DWITH_BENCHMARK_TOOLS=0 \
         -DFAIL_ON_WARNINGS=0 \
         -DWITH_GFLAGS=1 \
         -DWITH_LZ4=1 \
