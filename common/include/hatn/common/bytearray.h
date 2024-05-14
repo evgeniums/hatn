@@ -732,6 +732,8 @@ class HATN_COMMON_EXPORT ByteArray
 
     private:
 
+        HATN_IGNORE_UNINITIALIZED_BEGIN
+
         struct BufCtrl final
         {
             std::array<char,PREALLOCATED_SIZE> preallocated;
@@ -846,6 +848,8 @@ class HATN_COMMON_EXPORT ByteArray
             }
 
         };
+
+        HATN_IGNORE_UNINITIALIZED_END
 
         BufCtrl d;
 

@@ -86,6 +86,13 @@
 
     #endif
 
+    #define HATN_IGNORE_UNINITIALIZED_BEGIN \
+    _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Wuninitialized\"")
+
+    #define HATN_IGNORE_UNINITIALIZED_END \
+        _Pragma("GCC diagnostic pop")
+
 #else
 
     #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN
@@ -96,6 +103,8 @@
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END
     #define HATN_IGNORE_STRING_LITERAL_BEGIN
     #define HATN_IGNORE_STRING_LITERAL_END
+    #define HATN_IGNORE_UNINITIALIZED_BEGIN
+    #define HATN_IGNORE_UNINITIALIZED_END
 
 #endif
 
