@@ -26,6 +26,7 @@
 #include <hatn/common/objectid.h>
 
 #include <hatn/base/configtree.h>
+#include <hatn/base/configobject.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/dberror.h>
@@ -59,7 +60,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             return m_opened;
         }
 
-        Error open(const ClientConfig& config)
+        Error open(const ClientConfig& config, base::config_object::LogRecords& records)
         {
             if (m_opened)
             {
@@ -75,7 +76,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             };
             auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));\
             std::ignore=scopeGuard;
-            doOpen(config,ec);
+            doOpen(config,ec,records);
             return ec;
         }
 
@@ -93,7 +94,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
     protected:
 
-        virtual void doOpen(const ClientConfig& config, Error& ec)=0;
+        virtual void doOpen(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
         virtual void doClose(Error& ec)=0;
 
         void setClosed() noexcept

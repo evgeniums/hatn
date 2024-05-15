@@ -43,7 +43,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
     protected:
 
-        void doOpen(const ClientConfig& config, Error& ec) override;
+        void doOpen(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
         void doClose(Error& ec) override;
 
     private:
