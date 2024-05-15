@@ -340,6 +340,13 @@ inline common::Error makeBoostError(boost::system::errc::errc_t ec)
     return common::Error(static_cast<int>(ec),&boost::system::generic_category());
 }
 
+//! Set error code.
+template <typename T>
+inline void setError(Error& ec, T code) noexcept
+{
+    ec.setValue(static_cast<int>(code));
+}
+
 HATN_NAMESPACE_END
 
 #define HATN_CHECK_RETURN(Eval) \
