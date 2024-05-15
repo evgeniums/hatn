@@ -29,7 +29,10 @@ HATN_DB_NAMESPACE_BEGIN
 //! Error codes of hatndb lib.
 enum class DbError : int
 {
-    OK=static_cast<int>(common::CommonError::OK)
+    OK=static_cast<int>(common::CommonError::OK),
+    ALREADY_OPENED,
+    OPEN_FAILED,
+    CLOSE_FAILED
 };
 
 HATN_DB_NAMESPACE_END

@@ -8,6 +8,7 @@ SET (HEADERS
     include/hatn/db/object.h
     include/hatn/db/crud.h
     include/hatn/db/namespace.h
+    include/hatn/db/client.h
 )
 
 SET (HEADERS
@@ -17,6 +18,7 @@ SET (HEADERS
 SET (SOURCES
     src/dberror.cpp
     src/dbplugin.cpp
+    src/client.cpp
 )
 
 BUILD_HATN_MODULE()

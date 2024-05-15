@@ -17,14 +17,11 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbplugin.h>
 
-HATN_DB_NAMESPACE_BEGIN
+HATN_ROCKSDB_NAMESPACE_BEGIN
 
-namespace rocksdbdriver {
 
-} // namespace rocksdbdriver
+HATN_ROCKSDB_NAMESPACE_END
 
-HATN_DB_NAMESPACE_END
-
-// #ifndef NO_DYNAMIC_HATN_PLUGINS
-// HATN_PLUGIN_EXPORT(HATN_DB_NAMESPACE::rocksdbdriver::RocksDbPlugin)
-// #endif
+#ifndef NO_DYNAMIC_HATN_PLUGINS
+    HATN_PLUGIN_EXPORT(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin)
+#endif

@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file db/plugins/rocksdb/rocksdbclient.h
+
+/** @file db/plugins/rocksdb/rocksdbclient.h
   *
   *   RocksDB database client.
   *
@@ -16,78 +16,41 @@
 
 /****************************************************************************/
 
-#ifndef DRACOSHAROCKSDBCLIENT_H
-#define DRACOSHAROCKSDBCLIENT_H
+#ifndef HATNROCKSDBCLIENT_H
+#define HATNROCKSDBCLIENT_H
 
-#include <dracosha/db/dbclient.h>
+#include <memory>
 
-namespace dracosha {
-namespace db {
-namespace rocksdbdriver {
+#include <hatn/db/client.h>
 
-class RocksDbClient : public DbClient
+#include <hatn/db/plugins/rocksdb/rocksdbdriver.h>
+
+HATN_ROCKSDB_NAMESPACE_BEGIN
+
+class RocksdbClient_p;
+
+class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 {
     public:
 
-        using DbClient::DbClient;
+        RocksdbClient(
+            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+        );
 
-#if 0
-        /**
-          @brief Destructor.
-          */
-        virtual ~RocksDbClient()=default;
+        ~RocksdbClient();
 
-        /**
-         * @brief Open database.
-         * @return Operation status.
-         */
-        virtual common::Error open() =0;
+        void invokeClose(Error& ec);
 
-        /**
-         * @brief Close database.
-         * @return Operation status.
-         */
-        virtual common::Error close() =0;
+    protected:
 
-        /**
-         * @brief Flush in-memory temporary data to database.
-         * @return Operation status.
-         */
-        virtual common::Error flush() =0;
+        void doOpen(const ClientConfig& config, Error& ec) override;
+        void doClose(Error& ec) override;
 
-        /**
-         * @brief Begin database transaction.
-         * @return Operation status.
-         */
-        virtual common::Error beginTransaction() =0;
+    private:
 
-        /**
-         * @brief Commit database transaction.
-         * @return Operation status.
-         */
-        virtual common::Error commitTransaction() =0;
-
-        /**
-         * @brief Rollback database transaction.
-         * @return Operation status.
-         */
-        virtual common::Error rollbackTransaction() =0;
-
-        // set
-        // get
-        // mset
-        // mget
-        // remove
-
-        // setSchema
-        // getSchema
-        // checkSchema
-        // updateSchema
-#endif
+        std::unique_ptr<RocksdbClient_p> d;
 };
 
-} // namespace rocksdbdriver
-} // namespace db
-} // namespace dracosha
+HATN_ROCKSDB_NAMESPACE_END
 
-#endif // DRACOSHAROCKSDBCLIENT_H
+#endif // HATNROCKSDBCLIENT_H

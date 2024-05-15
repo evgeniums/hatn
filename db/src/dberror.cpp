@@ -39,6 +39,18 @@ std::string DbErrorCategory::message(int code) const
             result=common::CommonErrorCategory::getCategory().message(code);
             break;
 
+        case (static_cast<int>(DbError::ALREADY_OPENED)):
+            result=_TR("database connection already opened","db");
+            break;
+
+        case (static_cast<int>(DbError::OPEN_FAILED)):
+            result=_TR("failed to open database connection","db");
+            break;
+
+        case (static_cast<int>(DbError::CLOSE_FAILED)):
+            result=_TR("failed to close database connection","db");
+            break;
+
         default:
             result=_TR("unknown error");
     }
