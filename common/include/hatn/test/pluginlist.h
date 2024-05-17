@@ -114,6 +114,15 @@ class PluginList
             return fmt::format("{}/plugins/{}/{}/assets",MultiThreadFixture::assetsPath(),module,pluginName);
         }
 
+        static std::string assetsFilePath(const std::string& module, const std::string& file, const std::string& pluginName=std::string())
+        {
+            if (pluginName.empty())
+            {
+                return fmt::format("{}/{}/assets/{}",MultiThreadFixture::assetsPath(),module,file);
+            }
+            return fmt::format("{}/plugins/{}/{}/assets/{}",MultiThreadFixture::assetsPath(),module,pluginName,file);
+        }
+
         static std::string linefromFile(const std::string &fname)
         {
             std::ifstream ss(fname);
