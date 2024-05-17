@@ -35,6 +35,16 @@ class HATN_DB_EXPORT DbPlugin : public common::Plugin
         explicit DbPlugin(
             const common::PluginInfo* pluginInfo
         ) noexcept;
+
+        virtual Error init()
+        {
+            return OK;
+        }
+
+        virtual Error cleanup()
+        {
+            return OK;
+        }
 };
 
 HATN_DB_NAMESPACE_END

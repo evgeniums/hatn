@@ -7,10 +7,8 @@
 */
 
 /****************************************************************************/
-/*
 
-*/
-/** @file base/test/testconfigtree.cpp
+/** @file db/test/testinitplugins.cpp
   */
 
 /****************************************************************************/
@@ -18,12 +16,14 @@
 #include <boost/test/unit_test.hpp>
 
 #include "hatn_test_config.h"
+#include "initdbplugins.h"
 
-BOOST_AUTO_TEST_SUITE(TestCrud)
+BOOST_AUTO_TEST_SUITE(DbPluginsInit, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
-BOOST_AUTO_TEST_CASE(CreateObject)
+BOOST_AUTO_TEST_CASE(DbPluginLoad)
 {
-    BOOST_CHECK(true);
+    HATN_TEST_NAMESPACE::DbPluginTest::instance().eachPlugin<HATN_TEST_NAMESPACE::DbTestTraits>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
