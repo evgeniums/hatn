@@ -14,12 +14,10 @@
   */
 #include <iostream>
 
-#include <boost/filesystem.hpp>
-
-#include <hatn/common/format.h>
-
 #include <hatn/thirdparty/sha1/sha1.h>
 
+#include <hatn/common/filesystem.h>
+#include <hatn/common/format.h>
 #include <hatn/common/fileutils.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/translate.h>
@@ -181,16 +179,16 @@ PluginLoader::listDynamicPlugins(
 {
 #ifndef NO_DYNAMIC_HATN_PLUGINS
 
-    if (!boost::filesystem::exists(path))
+    if (!lib::filesystem::exists(path))
     {
         return std::vector<std::shared_ptr<hatn::common::PluginInfo>>();
     }
 
     std::vector<std::shared_ptr<hatn::common::PluginInfo>> result;
-    boost::filesystem::directory_iterator itEnd;
-    for (boost::filesystem::directory_iterator it(path); it != itEnd; ++it)
+    lib::filesystem::directory_iterator itEnd;
+    for (lib::filesystem::directory_iterator it(path); it != itEnd; ++it)
     {
-        if (boost::filesystem::is_regular_file(it->path()))
+        if (lib::filesystem::is_regular_file(it->path()))
         {
             std::string error;
             std::string fileName = it->path().string();
@@ -269,7 +267,7 @@ std::shared_ptr<hatn::common::Plugin> PluginLoader::loadDynamicPlugin(
     }
 
     std::shared_ptr<hatn::common::Plugin> plugin;
-    if (!boost::filesystem::exists(fileName))
+    if (!lib::filesystem::exists(fileName))
     {
         error=fmt::format(_TR("Could not load plugin {}: file does not exists"),fileName);
         HATN_WARN(plugin,error);
