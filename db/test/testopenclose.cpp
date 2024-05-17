@@ -16,6 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/base/configtreeloader.h>
+#include <hatn/test/multithreadfixture.h>
 
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
@@ -52,6 +53,7 @@ void openClose(std::shared_ptr<DbPlugin>& plugin)
     BOOST_REQUIRE(client);
     base::ConfigTree mainCfg;
     ConfigTreeLoader loader;
+    loader.setPrefixSubstitution("$tmp",MultiThreadFixture::tmpPath());
     auto configFile=PluginList::assetsFilePath(DB_MODULE_NAME,"simpleopenclose.jsonc",plugin->info()->name);
     auto ec=loader.loadFromFile(mainCfg,configFile);
     if (ec)
@@ -74,6 +76,10 @@ void openClose(std::shared_ptr<DbPlugin>& plugin)
     };
     base::config_object::LogRecords logRecords;
     auto ec1=client->open(cfg,logRecords);
+    for (auto&& it:logRecords)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("configuration \"{}\": {}",it.name,it.value));
+    }
     BOOST_CHECK(!ec1);
 
     BOOST_TEST_MESSAGE(fmt::format("closing {} client",plugin->info()->name));
