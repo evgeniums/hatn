@@ -147,8 +147,8 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
             auto reqResult=HATN_DATAUNIT_NAMESPACE::visitors::checkRequiredFields(_CFG);
             if (reqResult.first!=-1)
             {
-                auto errMsg=fmt::format(_TR("required parameter {} not set","base"),reqResult.second);
-                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: {}"), _CFG.name(), path.path(), errMsg));
+                auto errMsg=fmt::format(_TR("required parameter \"{}\" not set","base"),reqResult.second);
+                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}"), _CFG.name(), path.path(), errMsg));
                 return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
             }
         }
@@ -179,7 +179,7 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
     auto ec=_CFG.each(predicate,handler);
     if (ec)
     {
-        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: parameter {}","base"), _CFG.name(),path.path(),failedField));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": parameter \"{}\"","base"), _CFG.name(),path.path(),failedField));
         err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_OBJECT_LOAD_ERROR,std::move(err));
     }
@@ -216,7 +216,7 @@ Error ConfigObject<Traits>::validate(const ConfigTreePath& path, const Validator
     HATN_VALIDATOR_NAMESPACE::validate(_CFG,validator,err);
     if (err)
     {
-        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path {}: {}","base"), _CFG.name(), path.path(), err.message()));
+        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}","base"), _CFG.name(), path.path(), err.message()));
         return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
     }
 

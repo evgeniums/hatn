@@ -144,7 +144,7 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
 {
     auto makeError=[&filename](const ConfigTreePath& path, const Error& origin)
     {
-        auto msg=fmt::format(_TR("invalid format of include: {} at path {} in file {}","base"), origin.message(), path.path(), filename);
+        auto msg=fmt::format(_TR("invalid format of include: {} at path \"{}\" in file \"{}\"","base"), origin.message(), path.path(), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
 
