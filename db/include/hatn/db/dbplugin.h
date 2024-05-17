@@ -20,6 +20,7 @@
 #include <hatn/common/plugin.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/client.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -45,6 +46,8 @@ class HATN_DB_EXPORT DbPlugin : public common::Plugin
         {
             return OK;
         }
+
+        virtual std::shared_ptr<Client> makeClient() const=0;
 };
 
 HATN_DB_NAMESPACE_END

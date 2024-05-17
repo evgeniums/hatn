@@ -15,10 +15,19 @@
 
 /****************************************************************************/
 
+#include <hatn/db/plugins/rocksdb/rocksdbclient.h>
 #include <hatn/db/plugins/rocksdb/rocksdbplugin.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+//---------------------------------------------------------------
+
+std::shared_ptr<Client> RocksdbPlugin::makeClient() const
+{
+    return std::make_shared<RocksdbClient>();
+}
+
+//---------------------------------------------------------------
 
 HATN_ROCKSDB_NAMESPACE_END
 

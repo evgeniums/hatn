@@ -41,4 +41,8 @@
 #define HATN_DB_NS base
 #define HATN_DB_USING using namespace hatn::db;
 
+HATN_DB_NAMESPACE_BEGIN
+constexpr const char* DB_MODULE_NAME="db";
+HATN_DB_NAMESPACE_END
+
 #endif // HATNDB_H

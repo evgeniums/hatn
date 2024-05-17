@@ -33,6 +33,8 @@ class HATN_ROCKSDB_EXPORT RocksdbPlugin : public DbPlugin
         constexpr static const char* Revision="1.0.0";
 
         using DbPlugin::DbPlugin;
+
+        std::shared_ptr<Client> makeClient() const override;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -62,7 +62,7 @@ class RocksdbClient_p
     std::unique_ptr<rocksdb::DB> db;
 
     RocksdbConfig cfg;
-    RocksdbOptions opts;
+    RocksdbOptions opt;
 };
 
 //---------------------------------------------------------------
@@ -97,22 +97,21 @@ void RocksdbClient::doOpen(const ClientConfig &config, Error &ec, base::config_o
 
     // load options
     //! @todo records with prefix?
-    ec=d->opts.loadLogConfig(config.opts,config.optsPath,records);
+    ec=d->opt.loadLogConfig(config.opt,config.optPath,records);
     if (ec)
     {
         return;
     }
 
-
     //! @todo use column families
     //! @todo fill options from configuration
     rocksdb::DB* db{nullptr};
     rocksdb::Options options;
-    options.create_if_missing = d->opts.config().field(rocksdb_options::create_if_missing).value();
+    options.create_if_missing = d->opt.config().field(rocksdb_options::create_if_missing).value();
 
     // open database
     rocksdb::Status status;
-    if (d->opts.config().field(rocksdb_options::readonly).value())
+    if (d->opt.config().field(rocksdb_options::readonly).value())
     {
         status = rocksdb::DB::OpenForReadOnly(options, d->cfg.config().field(rocksdb_config::dbpath).c_str(), &db);
     }

@@ -36,10 +36,10 @@ HATN_DB_NAMESPACE_BEGIN
 struct ClientConfig
 {
     const base::ConfigTree& main;
-    const base::ConfigTree& opts;
+    const base::ConfigTree& opt;
 
     base::ConfigTreePath mainPath;
-    base::ConfigTreePath optsPath;
+    base::ConfigTreePath optPath;
 };
 
 class HATN_DB_EXPORT Client : public common::WithID
