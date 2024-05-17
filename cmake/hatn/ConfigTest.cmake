@@ -15,6 +15,7 @@ FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
     ENDIF(NOT BUILD_STATIC)
 
     IF (EXISTS ${PLUGIN_SRC_DIR}/test/assets)
+        MESSAGE(STATUS "Copying test assets for plugin \"${PLUGIN_NAME}\" for module \"${MODULE_NAME}\" from ${PLUGIN_SRC_DIR}/test/assets to ${MODULE_DST_DIR}/hatn${PLUGIN_NAME}/assets")
         COPY_PATH_BINDIR(${PLUGIN_SRC_DIR}/test/assets ${MODULE_DST_DIR}/hatn${PLUGIN_NAME}/assets)
     ENDIF()
 ENDFUNCTION(TEST_HATN_MODULE_PLUGIN)
