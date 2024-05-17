@@ -199,6 +199,24 @@ class HATN_BASE_EXPORT ConfigTreeLoader
             const std::string& format=std::string()
         ) const;
 
+        void setPrefixSubstitution(
+            std::string prefix,
+            std::string substitution
+        )
+        {
+            m_prefixSubstitutions.emplace(std::move(prefix),std::move(substitution));
+        }
+
+        void unsetPrefixSubstitution(const std::string& prefix)
+        {
+            m_prefixSubstitutions.erase(prefix);
+        }
+
+        const std::map<std::string,std::string>& prefixSubstitutions() const noexcept
+        {
+            return m_prefixSubstitutions;
+        }
+
     private:
 
         std::string m_defaultFormat;
@@ -209,6 +227,8 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         std::map<std::string,std::shared_ptr<ConfigTreeIo>> m_handlers;
 
         std::vector<std::string> m_includeDirs;
+
+        std::map<std::string,std::string> m_prefixSubstitutions;
 };
 
 HATN_BASE_NAMESPACE_END
