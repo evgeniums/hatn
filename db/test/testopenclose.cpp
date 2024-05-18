@@ -79,6 +79,15 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
     };
     base::config_object::LogRecords logRecords;
 
+    // destroy database
+    BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
+    ec=client->destroyDb(cfg,logRecords);
+    for (auto&& it:logRecords)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
+    }
+    BOOST_REQUIRE(!ec);
+
     // create database
     BOOST_TEST_MESSAGE(fmt::format("creating database by {} client",plugin->info()->name));
     ec=client->createDb(cfg,logRecords);
@@ -86,7 +95,7 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
     {
         BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
     }
-    BOOST_CHECK(!ec);
+    BOOST_REQUIRE(!ec);
 
     // open database
     BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
@@ -95,12 +104,12 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
     {
         BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
     }
-    BOOST_CHECK(!ec);
+    BOOST_REQUIRE(!ec);
 
     // close database
     BOOST_TEST_MESSAGE(fmt::format("closing database by {} client",plugin->info()->name));
     ec=client->closeDb();
-    BOOST_CHECK(!ec);
+    BOOST_REQUIRE(!ec);
 
     // destroy database
     BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
@@ -109,7 +118,7 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
     {
         BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
     }
-    BOOST_CHECK(!ec);
+    BOOST_REQUIRE(!ec);
 }
 
 } // anonymous namespace

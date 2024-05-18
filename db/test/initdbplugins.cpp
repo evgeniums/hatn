@@ -15,6 +15,7 @@
 */
 
 #include <boost/test/unit_test.hpp>
+#include "initdbplugins.h"
 
 #ifdef NO_DYNAMIC_HATN_PLUGINS
 
@@ -24,8 +25,6 @@ HATN_PLUGIN_INIT(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin)
 #endif
 
 #endif
-
-#include "initdbplugins.h"
 
 HATN_TEST_NAMESPACE_BEGIN
 
