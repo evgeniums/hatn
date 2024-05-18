@@ -40,21 +40,22 @@ void openEmptyConfig(std::shared_ptr<DbPlugin>& plugin)
         mainCfg, optCfg, base::ConfigTreePath{}, base::ConfigTreePath{}
     };
     base::config_object::LogRecords logRecords;
-    auto ec1=client->open(cfg,logRecords);
+    auto ec1=client->openDb(cfg,logRecords);
     BOOST_CHECK(ec1);
     BOOST_TEST_MESSAGE(ec1.message());
 }
 
-void openClose(std::shared_ptr<DbPlugin>& plugin)
+void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
 {
-    BOOST_TEST_MESSAGE(fmt::format("opening {} client",plugin->info()->name));
-
+    // make client
     auto client=plugin->makeClient();
     BOOST_REQUIRE(client);
+
+    // load main config
     base::ConfigTree mainCfg;
     ConfigTreeLoader loader;
     loader.setPrefixSubstitution("$tmp",MultiThreadFixture::tmpPath());
-    auto configFile=PluginList::assetsFilePath(DB_MODULE_NAME,"simpleopenclose.jsonc",plugin->info()->name);
+    auto configFile=PluginList::assetsFilePath(DB_MODULE_NAME,"createopenclosedestroy.jsonc",plugin->info()->name);
     auto ec=loader.loadFromFile(mainCfg,configFile);
     if (ec)
     {
@@ -62,6 +63,7 @@ void openClose(std::shared_ptr<DbPlugin>& plugin)
     }
     BOOST_REQUIRE(!ec);
 
+    // load options
     base::ConfigTree optCfg;
     ec=loader.loadFromFile(optCfg,configFile);
     if (ec)
@@ -70,33 +72,56 @@ void openClose(std::shared_ptr<DbPlugin>& plugin)
     }
     BOOST_REQUIRE(!ec);
 
+    // prepare config
     base::ConfigTreePath cfgPath{plugin->info()->name};
     ClientConfig cfg{
         mainCfg, optCfg, cfgPath, cfgPath.copyAppend("options")
     };
     base::config_object::LogRecords logRecords;
-    auto ec1=client->open(cfg,logRecords);
+
+    // create database
+    BOOST_TEST_MESSAGE(fmt::format("creating database by {} client",plugin->info()->name));
+    ec=client->createDb(cfg,logRecords);
     for (auto&& it:logRecords)
     {
-        BOOST_TEST_MESSAGE(fmt::format("configuration \"{}\": {}",it.name,it.value));
+        BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
     }
-    BOOST_CHECK(!ec1);
+    BOOST_CHECK(!ec);
 
-    BOOST_TEST_MESSAGE(fmt::format("closing {} client",plugin->info()->name));
-    auto ec2=client->close();
-    BOOST_CHECK(!ec2);
+    // open database
+    BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
+    ec=client->openDb(cfg,logRecords);
+    for (auto&& it:logRecords)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
+    }
+    BOOST_CHECK(!ec);
+
+    // close database
+    BOOST_TEST_MESSAGE(fmt::format("closing database by {} client",plugin->info()->name));
+    ec=client->closeDb();
+    BOOST_CHECK(!ec);
+
+    // destroy database
+    BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
+    ec=client->destroyDb(cfg,logRecords);
+    for (auto&& it:logRecords)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
+    }
+    BOOST_CHECK(!ec);
 }
 
 } // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(DbOpenClose, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
-BOOST_AUTO_TEST_CASE(DbOpenCloseGood)
+BOOST_AUTO_TEST_CASE(DbCreateOpenCloseDestroy)
 {
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
         [](std::shared_ptr<DbPlugin>& plugin)
         {
-            openClose(plugin);
+            createOpenCloseDestroy(plugin);
         }
     );
 }

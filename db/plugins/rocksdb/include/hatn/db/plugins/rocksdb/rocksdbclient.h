@@ -39,12 +39,16 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         ~RocksdbClient();
 
-        void invokeClose(Error& ec);
+        void invokeCloseDb(Error& ec);
+        void invokeOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool createIfMissing=false);
 
     protected:
 
-        void doOpen(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
-        void doClose(Error& ec) override;
+        virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
+        virtual Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
+
+        void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
+        void doCloseDb(Error& ec) override;
 
     private:
 

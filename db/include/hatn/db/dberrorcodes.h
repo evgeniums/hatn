@@ -30,9 +30,11 @@ HATN_DB_NAMESPACE_BEGIN
 enum class DbError : int
 {
     OK=static_cast<int>(common::CommonError::OK),
-    ALREADY_OPENED,
-    OPEN_FAILED,
-    CLOSE_FAILED
+    DB_ALREADY_OPENED,
+    DB_OPEN_FAILED,
+    DB_CLOSE_FAILED,
+    DB_CREATE_FAILED,
+    DB_DESTROY_FAILED
 };
 
 HATN_DB_NAMESPACE_END

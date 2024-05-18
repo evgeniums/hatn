@@ -43,7 +43,6 @@ HDU_UNIT(rocksdb_config,
 
 HDU_UNIT(rocksdb_options,
          HDU_FIELD(readonly,TYPE_BOOL,1)
-         HDU_FIELD(create_if_missing,TYPE_BOOL,2,false,true)
          )
 
 } // anonymous namespace
@@ -80,13 +79,59 @@ RocksdbClient::~RocksdbClient()
     if (isOpen())
     {
         Error ec;
-        invokeClose(ec);
+        invokeCloseDb(ec);
     }
 }
 
 //---------------------------------------------------------------
 
-void RocksdbClient::doOpen(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
+void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
+{
+    invokeOpenDb(config,ec,records,false);
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object::LogRecords& records)
+{
+    Error ec;
+    invokeOpenDb(config,ec,records,true);
+    HATN_CHECK_EC(ec)
+    invokeCloseDb(ec);
+    return ec;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object::LogRecords& records)
+{
+    // load config
+    auto ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
+    HATN_CHECK_EC(ec)
+
+    // destroy database
+    rocksdb::Options options;
+    auto status = rocksdb::DestroyDB(d->cfg.config().field(rocksdb_config::dbpath).c_str(),options);
+    if (!status.ok())
+    {
+        //! @todo handle error
+        setError(ec,DbError::DB_DESTROY_FAILED);
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+void RocksdbClient::doCloseDb(Error &ec)
+{
+    invokeCloseDb(ec);
+}
+
+//---------------------------------------------------------------
+
+void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records, bool createIfMissing)
 {
     // load config
     ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
@@ -107,7 +152,7 @@ void RocksdbClient::doOpen(const ClientConfig &config, Error &ec, base::config_o
     //! @todo fill options from configuration
     rocksdb::DB* db{nullptr};
     rocksdb::Options options;
-    options.create_if_missing = d->opt.config().field(rocksdb_options::create_if_missing).value();
+    options.create_if_missing = createIfMissing;
 
     // open database
     rocksdb::Status status;
@@ -124,7 +169,14 @@ void RocksdbClient::doOpen(const ClientConfig &config, Error &ec, base::config_o
     if (!status.ok())
     {
         //! @todo handle error
-        setError(ec,DbError::OPEN_FAILED);
+        if (createIfMissing)
+        {
+            setError(ec,DbError::DB_CREATE_FAILED);
+        }
+        else
+        {
+            setError(ec,DbError::DB_OPEN_FAILED);
+        }
         return;
     }
 
@@ -134,14 +186,7 @@ void RocksdbClient::doOpen(const ClientConfig &config, Error &ec, base::config_o
 
 //---------------------------------------------------------------
 
-void RocksdbClient::doClose(Error &ec)
-{
-    invokeClose(ec);
-}
-
-//---------------------------------------------------------------
-
-void RocksdbClient::invokeClose(Error &ec)
+void RocksdbClient::invokeCloseDb(Error &ec)
 {
     ec.reset();
     if (d->db)
@@ -162,7 +207,7 @@ void RocksdbClient::invokeClose(Error &ec)
         if (!status.ok())
         {
             //! @todo handle error
-            setError(ec,DbError::CLOSE_FAILED);
+            setError(ec,DbError::DB_CLOSE_FAILED);
         }
 
         // done

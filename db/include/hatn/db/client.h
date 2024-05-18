@@ -60,11 +60,11 @@ class HATN_DB_EXPORT Client : public common::WithID
             return m_opened;
         }
 
-        Error open(const ClientConfig& config, base::config_object::LogRecords& records)
+        Error openDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
             if (m_opened)
             {
-                return DbError::ALREADY_OPENED;
+                return DbError::DB_ALREADY_OPENED;
             }
 
             Error ec;
@@ -76,26 +76,39 @@ class HATN_DB_EXPORT Client : public common::WithID
             };
             auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));\
             std::ignore=scopeGuard;
-            doOpen(config,ec,records);
+            doOpenDb(config,ec,records);
             return ec;
         }
 
-        Error close()
+        Error closeDb()
         {
             if (m_opened)
             {
                 Error ec;
                 HATN_SCOPE_GUARD([this](){m_opened=false;})
-                doClose(ec);
+                doCloseDb(ec);
                 return ec;
             }
             return OK;
         }
 
+        Error createDb(const ClientConfig& config, base::config_object::LogRecords& records)
+        {
+            return doCreateDb(config,records);
+        }
+
+        Error destroyDb(const ClientConfig& config, base::config_object::LogRecords& records)
+        {
+            return doDestroyDb(config,records);
+        }
+
     protected:
 
-        virtual void doOpen(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
-        virtual void doClose(Error& ec)=0;
+        virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
+        virtual Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
+
+        virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
+        virtual void doCloseDb(Error& ec)=0;
 
         void setClosed() noexcept
         {
