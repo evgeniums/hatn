@@ -197,9 +197,11 @@ std::string CommonErrorCategory::message(int code) const
         case (static_cast<int>(CommonError::RESULT_ERROR)):
             result=_TR("cannot get value of error result");
             break;
-
         case (static_cast<int>(CommonError::RESULT_NOT_ERROR)):
             result=_TR("cannot move not error result");
+            break;
+        case (static_cast<int>(CommonError::NOT_FOUND)):
+            result=_TR("not found");
             break;
 
         default:

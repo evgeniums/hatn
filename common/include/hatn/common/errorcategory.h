@@ -42,7 +42,8 @@ enum class ErrorCodes : int
     TIMEOUT=10,
     RESULT_ERROR=11,
     RESULT_NOT_ERROR=12,
-    NOT_IMPLEMENTED=13
+    NOT_IMPLEMENTED=13,
+    NOT_FOUND=14
 };
 
 using CommonError=ErrorCodes;
