@@ -266,9 +266,9 @@ HATN_COMMON_NAMESPACE_END
 
 //! Declare class UID, place it in class declaration
 #define HATN_CUID_DECLARE() \
-    static ::hatn::common::CUID_TYPE cuid() noexcept; \
-    static std::set<::hatn::common::CUID_TYPE> cuids(); \
-    static void fillCuids(std::set<::hatn::common::CUID_TYPE>& s); \
+    static HATN_COMMON_NAMESPACE::CUID_TYPE cuid() noexcept; \
+    static std::set<HATN_COMMON_NAMESPACE::CUID_TYPE> cuids(); \
+    static void fillCuids(std::set<HATN_COMMON_NAMESPACE::CUID_TYPE>& s); \
 	private: \
 		static std::string m_humanReadableType; \
 	public: \
@@ -277,18 +277,18 @@ HATN_COMMON_NAMESPACE_END
 
 //! Instantiate class UID, place it in compilation unit source (*.cpp)
 #define HATN_CUID_INIT(ClassName) \
-    ::hatn::common::CUID_TYPE ClassName::cuid() noexcept \
+    HATN_COMMON_NAMESPACE::CUID_TYPE ClassName::cuid() noexcept \
     { \
         static int dummy; \
-        return reinterpret_cast<::hatn::common::CUID_TYPE>(&dummy); \
+        return reinterpret_cast<HATN_COMMON_NAMESPACE::CUID_TYPE>(&dummy); \
     } \
-    std::set<::hatn::common::CUID_TYPE> ClassName::cuids() \
+    std::set<HATN_COMMON_NAMESPACE::CUID_TYPE> ClassName::cuids() \
     { \
-        std::set<::hatn::common::CUID_TYPE> res; \
+        std::set<HATN_COMMON_NAMESPACE::CUID_TYPE> res; \
         res.insert(cuid()); \
         return res; \
     } \
-    void ClassName::fillCuids(std::set<::hatn::common::CUID_TYPE>& s) \
+    void ClassName::fillCuids(std::set<HATN_COMMON_NAMESPACE::CUID_TYPE>& s) \
     { \
         s.insert(cuid()); \
     } \
@@ -304,8 +304,8 @@ HATN_COMMON_NAMESPACE_END
 
 //! Declare class UID, place it in class declaration
 #define HATN_CUID_DECLARE_MULTI() \
-    static ::hatn::common::CUID_TYPE cuid() noexcept; \
-    static std::set<::hatn::common::CUID_TYPE> cuids(); \
+    static HATN_COMMON_NAMESPACE::CUID_TYPE cuid() noexcept; \
+    static std::set<HATN_COMMON_NAMESPACE::CUID_TYPE> cuids(); \
 	private: \
 		static std::string m_humanReadableType; \
 	public: \
@@ -314,12 +314,12 @@ HATN_COMMON_NAMESPACE_END
 
 //! Instantiate class UID, place it in compilation unit source (*.cpp)
 #define HATN_CUID_INIT_MULTI(ClassName) \
-    ::hatn::common::CUID_TYPE ClassName::cuid() noexcept \
+    HATN_COMMON_NAMESPACE::CUID_TYPE ClassName::cuid() noexcept \
     { \
         static int dummy; \
-        return reinterpret_cast<::hatn::common::CUID_TYPE>(&dummy); \
+        return reinterpret_cast<HATN_COMMON_NAMESPACE::CUID_TYPE>(&dummy); \
     } \
-    std::set<::hatn::common::CUID_TYPE> ClassName::cuids() \
+    std::set<HATN_COMMON_NAMESPACE::CUID_TYPE> ClassName::cuids() \
     { \
         std::set<CUID_TYPE> res; \
         fillCuids(res,false); \
