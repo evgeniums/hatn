@@ -624,12 +624,12 @@ class unit_t : public BaseT
 //---------------------------------------------------------------
 
 template <typename FieldsT>
-constexpr FieldsT field_ids_instance{};
+constexpr FieldsT field_id_s_instance{};
 
 template <typename UnitT, typename ManagedT, typename FieldsT>
 struct unit_traits
 {
-    constexpr static const auto& fields=field_ids_instance<FieldsT>;
+    constexpr static const auto& fields=field_id_s_instance<FieldsT>;
 
     using type=UnitT;
     using managed=ManagedT;

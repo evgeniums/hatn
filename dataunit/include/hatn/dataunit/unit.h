@@ -25,6 +25,7 @@
 
 #include <hatn/common/format.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/classuid.h>
 
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/wiredata.h>
@@ -385,6 +386,11 @@ class HATN_DATAUNIT_EXPORT Unit
         virtual std::pair<int,const char*> checkRequiredFields() noexcept
         {
             return std::pair<int,const char*>{-1,nullptr};
+        }
+
+        virtual common::CUID_TYPE typeID() const noexcept
+        {
+            return 0;
         }
 
     private:

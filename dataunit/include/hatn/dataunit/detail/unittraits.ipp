@@ -73,6 +73,7 @@ const common::FlatMap<common::lib::string_view,uintptr_t>& UnitImpl<Fields...>::
 /********************** UnitConcat **************************/
 
 //---------------------------------------------------------------
+
 template <typename Conf, typename ...Fields>
 UnitConcat<Conf,Fields...>::UnitConcat(
         AllocatorFactory* factory
@@ -80,13 +81,23 @@ UnitConcat<Conf,Fields...>::UnitConcat(
         UnitImpl<Fields...>(this)
 {}
 
-/********************** EmptyUnit **************************/
-
-/********************** ManagedUnit **************************/
-
 //---------------------------------------------------------------
 
-/********************** EmptyManagedUnit **************************/
+template <typename Conf, typename ...Fields>
+common::CUID_TYPE UnitConcat<Conf,Fields...>::cuid() noexcept
+{
+    static int dummy;
+    return reinterpret_cast<common::CUID_TYPE>(&dummy);
+}
+
+/********************** EmptyUnit **************************/
+
+template <typename Conf>
+common::CUID_TYPE EmptyUnit<Conf>::cuid() noexcept
+{
+    static int dummy;
+    return reinterpret_cast<common::CUID_TYPE>(&dummy);
+}
 
 HATN_DATAUNIT_NAMESPACE_END
 

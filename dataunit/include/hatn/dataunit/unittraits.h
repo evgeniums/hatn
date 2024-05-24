@@ -27,6 +27,7 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/classuid.h>
 
 #include <hatn/validator/utils/foreach_if.hpp>
 
@@ -35,6 +36,8 @@
 #include <hatn/dataunit/fields/bytes.h>
 #include <hatn/dataunit/fields/subunit.h>
 #include <hatn/dataunit/fields/repeated.h>
+
+#include <hatn/dataunit/unit.h>
 
 #include <hatn/dataunit/readunitfieldatpath.h>
 #include <hatn/dataunit/updateunitfieldatpath.h>
@@ -67,25 +70,25 @@ class UnitImpl
         template <typename PredicateT, typename HandlerT>
         auto each(const PredicateT& pred, const HandlerT& handler) -> decltype(auto)
         {
-            return hatn::validator::foreach_if(m_fields,pred,handler);
+            return HATN_VALIDATOR_NAMESPACE::foreach_if(m_fields,pred,handler);
         }
 
         template <typename PredicateT, typename HandlerT>
         auto each(const PredicateT& pred, const HandlerT& handler) const -> decltype(auto)
         {
-            return hatn::validator::foreach_if(m_fields,pred,handler);
+            return HATN_VALIDATOR_NAMESPACE::foreach_if(m_fields,pred,handler);
         }
 
         template <typename PredicateT, typename HandlerT, typename DefaultT>
         auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) -> decltype(auto)
         {
-            return hatn::validator::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
+            return HATN_VALIDATOR_NAMESPACE::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
         }
 
         template <typename PredicateT, typename HandlerT, typename DefaultT>
         auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) const -> decltype(auto)
         {
-            return hatn::validator::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
+            return HATN_VALIDATOR_NAMESPACE::foreach_if(m_fields,pred,std::forward<DefaultT>(defaultRet),handler);
         }
 
         static const Field* findField(const UnitImpl* unit,int id);
@@ -157,7 +160,7 @@ class UnitImpl
 /** @brief Base DataUnit template for concatenation with unit config. **/
 template <typename Conf, typename ...Fields>
 class UnitConcat : public Unit, public UnitImpl<Fields...>
-{
+{        
     public:
 
         using selfType=UnitConcat<Conf,Fields...>;
@@ -453,6 +456,14 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
             return Conf::name;
         }
 
+        static common::CUID_TYPE cuid() noexcept;
+
+        //! Get type ID
+        common::CUID_TYPE typeID() const noexcept override
+        {
+            return this->cuid();
+        }
+
     private:
 
         template <typename T>
@@ -632,6 +643,14 @@ class EmptyUnit : public Unit
             return true;
         }
 #endif
+
+        static common::CUID_TYPE cuid() noexcept;
+
+        //! Get type ID
+        common::CUID_TYPE typeID() const noexcept override
+        {
+            return this->cuid();
+        }
 };
 
 /**  Managed variant of empty DataUnit */
