@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
 
-*/
 /** @file db/client.h
   *
   * Contains declaration of base database client.
@@ -30,6 +28,8 @@
 
 #include <hatn/db/db.h>
 #include <hatn/db/dberror.h>
+
+#include <hatn/db/namespace.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -64,7 +64,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             if (m_opened)
             {
-                return DbError::DB_ALREADY_OPENED;
+                return DbError::DB_ALREADY_OPEN;
             }
 
             Error ec;
@@ -102,6 +102,24 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doDestroyDb(config,records);
         }
 
+        Error checkSchema(const std::string& schemaName, const Namespace& ns)
+        {
+            if (m_opened)
+            {
+                return doCheckSchema(schemaName,ns);
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        Error migrateSchema(const std::string& schemaName, const Namespace& ns)
+        {
+            if (m_opened)
+            {
+                return doMigrateSchema(schemaName,ns);
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
@@ -109,6 +127,9 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
         virtual void doCloseDb(Error& ec)=0;
+
+        virtual Error doCheckSchema(const std::string& schemaName, const Namespace& ns)=0;
+        virtual Error doMigrateSchema(const std::string& schemaName, const Namespace& ns)=0;
 
         void setClosed() noexcept
         {

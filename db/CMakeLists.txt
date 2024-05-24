@@ -9,16 +9,14 @@ SET (HEADERS
     include/hatn/db/crud.h
     include/hatn/db/namespace.h
     include/hatn/db/client.h
-)
-
-SET (HEADERS
-    ${HEADERS}
+    include/hatn/db/schema.h
 )
 
 SET (SOURCES
     src/dberror.cpp
     src/dbplugin.cpp
     src/client.cpp
+    src/schema.cpp
 )
 
 BUILD_HATN_MODULE()

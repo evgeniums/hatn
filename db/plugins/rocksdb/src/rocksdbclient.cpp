@@ -16,6 +16,7 @@
 /****************************************************************************/
 
 #include <rocksdb/db.h>
+#include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/detail/syntax.ipp>
@@ -23,6 +24,8 @@
 #include <hatn/base/configobject.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbclient.h>
+#include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 
 HATN_DB_USING
 
@@ -58,10 +61,10 @@ class RocksdbClient_p
 {
     public:
 
-    std::unique_ptr<rocksdb::DB> db;
-
     RocksdbConfig cfg;
     RocksdbOptions opt;
+
+    std::unique_ptr<RocksdbHandler> handler;
 };
 
 //---------------------------------------------------------------
@@ -150,19 +153,22 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     //! @todo use column families
     //! @todo fill options from configuration
-    rocksdb::DB* db{nullptr};
-    rocksdb::Options options;
+    ROCKSDB_NAMESPACE::DB* db{nullptr};
+    ROCKSDB_NAMESPACE::TransactionDB* transactionDb{nullptr};
+    ROCKSDB_NAMESPACE::Options options;
+    ROCKSDB_NAMESPACE::TransactionDBOptions tx_options;
     options.create_if_missing = createIfMissing;
 
     // open database
     rocksdb::Status status;
     if (d->opt.config().field(rocksdb_options::readonly).value())
     {
-        status = rocksdb::DB::OpenForReadOnly(options, d->cfg.config().field(rocksdb_config::dbpath).c_str(), &db);
+        status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,d->cfg.config().field(rocksdb_config::dbpath).c_str(),&db);
     }
     else
     {
-        status = rocksdb::DB::Open(options, d->cfg.config().field(rocksdb_config::dbpath).c_str(), &db);
+        status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,tx_options,d->cfg.config().field(rocksdb_config::dbpath).c_str(),&transactionDb);
+        db=transactionDb;
     }
 
     // check status
@@ -181,7 +187,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     }
 
     // done
-    d->db.reset(db);
+    d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
 }
 
 //---------------------------------------------------------------
@@ -189,18 +195,18 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 void RocksdbClient::invokeCloseDb(Error &ec)
 {
     ec.reset();
-    if (d->db)
+    if (d->handler)
     {
         rocksdb::Status status;
         if (d->cfg.config().field(rocksdb_config::wait_compact_shutdown).value())
         {
             auto opt = rocksdb::WaitForCompactOptions();
             opt.close_db = true;
-            status = d->db->WaitForCompact(opt);
+            status = d->handler->p()->db->WaitForCompact(opt);
         }
         else
         {
-            status=d->db->Close();
+            status=d->handler->p()->db->Close();
         }
 
         // check status
@@ -211,8 +217,22 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         }
 
         // done
-        d->db.reset();
+        d->handler.reset();
     }
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doCheckSchema(const std::string &schemaName, const Namespace &ns)
+{
+    return common::CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doMigrateSchema(const std::string &schemaName, const Namespace &ns)
+{
+    return common::CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------

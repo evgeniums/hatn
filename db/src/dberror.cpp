@@ -39,8 +39,12 @@ std::string DbErrorCategory::message(int code) const
             result=common::CommonErrorCategory::getCategory().message(code);
             break;
 
-        case (static_cast<int>(DbError::DB_ALREADY_OPENED)):
-            result=_TR("database connection already opened","db");
+        case (static_cast<int>(DbError::DB_ALREADY_OPEN)):
+            result=_TR("database connection already open","db");
+            break;
+
+        case (static_cast<int>(DbError::DB_NOT_OPEN)):
+            result=_TR("database connection not open","db");
             break;
 
         case (static_cast<int>(DbError::DB_OPEN_FAILED)):
@@ -57,6 +61,22 @@ std::string DbErrorCategory::message(int code) const
 
         case (static_cast<int>(DbError::DB_DESTROY_FAILED)):
             result=_TR("failed to destroy database","db");
+            break;
+
+        case (static_cast<int>(DbError::MODEL_NOT_FOUND)):
+            result=_TR("model not found","db");
+            break;
+
+        case (static_cast<int>(DbError::SCHEMA_NOT_FOUND)):
+            result=_TR("schema not found","db");
+            break;
+
+        case (static_cast<int>(DbError::TX_CREATE_OBJECT_FAILED)):
+            result=_TR("failed to commit transaction for create object","db");
+            break;
+
+        case (static_cast<int>(DbError::DB_READ_ONLY)):
+            result=_TR("invalid request for read only database","db");
             break;
 
         default:
