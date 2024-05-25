@@ -392,4 +392,12 @@ HATN_NAMESPACE_END
     }\
 }
 
+#define HATN_CHECK_EMPTY_RETURN(ec) \
+{\
+    if (ec)\
+    {\
+        return;\
+    }\
+}
+
 #endif // HATNERROR_H
