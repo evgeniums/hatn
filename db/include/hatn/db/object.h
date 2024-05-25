@@ -22,6 +22,7 @@
 #define HATNDBOBJECT_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/databuf.h>
 
 #include <hatn/dataunit/syntax.h>
 
@@ -34,6 +35,12 @@ HDU_UNIT(object,
     HDU_FIELD(created_at,TYPE_UINT32,1001)
     HDU_FIELD(updated_at,TYPE_UINT32,1002)
 )
+
+Error GenerateId(common::DataBuf& buf)
+{
+    //! @todo Implement ID generation
+    return common::ErrorCodes::NOT_IMPLEMENTED;
+}
 
 HATN_DB_NAMESPACE_END
 

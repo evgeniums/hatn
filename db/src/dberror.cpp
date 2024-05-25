@@ -71,8 +71,20 @@ std::string DbErrorCategory::message(int code) const
             result=_TR("schema not found","db");
             break;
 
-        case (static_cast<int>(DbError::TX_CREATE_OBJECT_FAILED)):
-            result=_TR("failed to commit transaction for create object","db");
+        case (static_cast<int>(DbError::PARTITION_NOT_FOUND)):
+            result=_TR("partition not found","db");
+            break;
+
+        case (static_cast<int>(DbError::COLLECTION_NOT_FOUND)):
+            result=_TR("collection not found","db");
+            break;
+
+        case (static_cast<int>(DbError::TX_COMMIT_FAILED)):
+            result=_TR("failed to commit database transaction","db");
+            break;
+
+        case (static_cast<int>(DbError::WRITE_OBJECT_FAILED)):
+            result=_TR("failed to write object to database","db");
             break;
 
         case (static_cast<int>(DbError::DB_READ_ONLY)):

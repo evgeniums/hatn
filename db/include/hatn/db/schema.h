@@ -40,6 +40,8 @@ HDU_UNIT_WITH(index,(HDU_BASE(object)),
     HDU_REPEATED_FIELD(field_names,TYPE_UINT32,3)
     HDU_FIELD(unique,TYPE_BOOL,4)
     HDU_FIELD(prefix,TYPE_UINT32,5)
+    HDU_FIELD(ttl,TYPE_UINT32,6)
+    HDU_FIELD(topic,TYPE_BOOL,7)
 )
 
 struct NestedFieldTag{};
@@ -75,8 +77,8 @@ HDU_UNIT(model_field,
 HDU_UNIT_WITH(model,(HDU_BASE(object)),
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(model_fields,model_field::TYPE,2)
-    HDU_FIELD(partitioning,TYPE_STRING,3)
-    HDU_REPEATED_FIELD(partition_field_names,TYPE_UINT32,4)
+    HDU_ENUM(partition_mode,day,week,month,quarter,year)
+    HDU_FIELD(partition,HDU_TYPE_ENUM(partition_mode),3)
 )
 
 template <typename UnitT, typename ...Indexes>
