@@ -176,7 +176,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //! Use this macro for field of enum type.
 /**
  *
- * @example HDU_FIELD(fe1,HDU_V2_TYPE_ENUM(e1),1,false,e1::One)
+ * @example HDU_FIELD(fe1,HDU_TYPE_ENUM(e1),1,false,e1::One)
  *
  */
 #define HDU_TYPE_ENUM(Type) HDU_V2_TYPE_ENUM(Type)
@@ -185,7 +185,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /**
  * @param Length of fixed string. Can be one of: 8,16,20,32,40,64,128,256,512,1024
  *
- * @example HDU_FIELD(fe1,HDU_V2_TYPE_FIXED_STRING(64),1,false,"Hello world!")
+ * @example HDU_FIELD(fe1,HDU_TYPE_FIXED_STRING(64),1,false,"Hello world!")
  */
 #define HDU_TYPE_FIXED_STRING(Length) HDU_V2_TYPE_FIXED_STRING(Length)
 
