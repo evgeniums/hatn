@@ -143,7 +143,7 @@ SET (HEADERS
     include/hatn/common/singleton.h
     include/hatn/common/runonscopeexit.h
 
-    include/hatn/common/month.h
+    include/hatn/common/datetime.h
 
     include/hatn/common/meta/consttraits.h
     include/hatn/common/meta/pointertraits.h
