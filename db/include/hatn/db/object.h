@@ -36,12 +36,6 @@ HDU_UNIT(object,
     HDU_FIELD(updated_at,TYPE_UINT32,1002)
 )
 
-Error GenerateId(common::DataBuf& buf)
-{
-    //! @todo Implement ID generation
-    return common::ErrorCodes::NOT_IMPLEMENTED;
-}
-
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBOBJECT_H
