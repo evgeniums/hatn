@@ -203,6 +203,15 @@ std::string CommonErrorCategory::message(int code) const
         case (static_cast<int>(CommonError::NOT_FOUND)):
             result=_TR("not found");
             break;
+        case (static_cast<int>(CommonError::INVALID_TIME_FORMAT)):
+            result=_TR("invalid time format");
+            break;
+        case (static_cast<int>(CommonError::INVALID_DATE_FORMAT)):
+            result=_TR("invalid date format");
+            break;
+        case (static_cast<int>(CommonError::INVALID_DATETIME_FORMAT)):
+            result=_TR("invalid datetime format");
+            break;
 
         default:
             result=_TR("unknown error");

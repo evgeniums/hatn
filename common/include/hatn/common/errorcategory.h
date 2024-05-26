@@ -26,7 +26,7 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Common errors
-enum class ErrorCodes : int
+enum class CommonError : int
 {
     UNKNOWN=-1,
     OK=0,
@@ -43,10 +43,11 @@ enum class ErrorCodes : int
     RESULT_ERROR=11,
     RESULT_NOT_ERROR=12,
     NOT_IMPLEMENTED=13,
-    NOT_FOUND=14
+    NOT_FOUND=14,
+    INVALID_TIME_FORMAT=15,
+    INVALID_DATE_FORMAT=16,
+    INVALID_DATETIME_FORMAT=17
 };
-
-using CommonError=ErrorCodes;
 
 //! Error category for hatncommonlib.
 class HATN_COMMON_EXPORT CommonErrorCategory : public std::error_category
