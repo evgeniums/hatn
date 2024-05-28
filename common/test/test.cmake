@@ -20,6 +20,7 @@ SET(TEST_SOURCES
     ${COMMON_TEST_SRC}/testpoolmemoryresource.cpp
     ${COMMON_TEST_SRC}/testflatmap.cpp
     ${COMMON_TEST_SRC}/testresult.cpp
+    ${COMMON_TEST_SRC}/testdatetime.cpp
 )
 
 IF(ENABLE_TRANSLATIONS)

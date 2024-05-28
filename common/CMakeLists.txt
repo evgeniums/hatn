@@ -218,6 +218,7 @@ SET (SOURCES
     src/plainfile.cpp
 
     src/singleton.cpp
+    src/datetime.cpp
 )
 
 SET (SOURCES
