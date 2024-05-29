@@ -14,7 +14,8 @@
  */
 
 #include <chrono>
-#include "boost/date_time/local_time/local_time.hpp"
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/local_time/local_time.hpp>
 
 #include <hatn/common/datetime.h>
 
@@ -42,8 +43,8 @@ std::string Date::toString(const lib::string_view& format) const
 
 Date Date::currentUtc()
 {
-    //! @todo implement
-    return Date{};
+    auto d=boost::gregorian::day_clock::universal_day();
+    return Date{d.year(),d.month(),d.day()};
 }
 
 /**************************** Time ******************************/
@@ -68,8 +69,10 @@ std::string Time::toString(const lib::string_view& format) const
 
 Time Time::currentUtc()
 {
-    //! @todo implement
-    return Time{};
+    auto pt=boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration dt=pt.time_of_day();
+    auto ms=dt.total_seconds()*10000-dt.total_milliseconds();
+    return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
 }
 
 /**************************** DateTimeUtc ******************************/
@@ -104,8 +107,7 @@ Result<DateTimeUtc> DateTimeUtc::parse(const lib::string_view& str)
 
 DateTimeUtc DateTimeUtc::currentUtc()
 {
-    //! @todo implement
-    return DateTimeUtc{};
+    return DateTimeUtc{Date::currentUtc(),Time::currentUtc()};
 }
 
 //---------------------------------------------------------------
@@ -119,8 +121,17 @@ uint64_t DateTimeUtc::msSinceEpoch()
 
 Result<DateTimeUtc> DateTimeUtc::fromMsSinceEpoch(uint64_t value)
 {
-    //! @todo implement
-    return Error{CommonError::NOT_IMPLEMENTED};
+    auto seconds=value/1000;
+    auto ms=value-seconds;
+
+    auto pt=boost::posix_time::from_time_t(seconds);
+    auto date=pt.date();
+    auto dt=pt.time_of_day();
+
+    return DateTimeUtc{
+        Date{date.year(),date.month(),date.day()},
+        Time{dt.hours(),dt.minutes(),dt.seconds(),ms}
+    };
 }
 
 /**************************** TimeZone ******************************/

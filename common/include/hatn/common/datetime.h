@@ -29,7 +29,9 @@ class HATN_COMMON_EXPORT Date
 {
     public:
 
-        Date():Date(0,0,0)
+        Date(): m_year(static_cast<decltype(m_year)>(0)),
+                m_month(static_cast<decltype(m_month)>(0)),
+                m_day(static_cast<decltype(m_day)>(0))
         {}
 
         template <typename YearT, typename MonthT, typename DayT>
@@ -63,10 +65,13 @@ class HATN_COMMON_EXPORT Date
 
         Error set(uint32_t value) noexcept
         {
-            m_year=value/10000;
-            m_month=(value-m_year*10000)/100;
-            m_day=value-m_year*10000-m_month*100;
-            HATN_CHECK_RETURN(validate())
+            auto year=value/10000;
+            auto month=(value-year*10000)/100;
+            auto day=value-year*10000-month*100;
+            HATN_CHECK_RETURN(validate(year,month,day))
+            m_year=year;
+            m_month=month;
+            m_day=day;
             return OK;
         }
 
@@ -132,15 +137,21 @@ class HATN_COMMON_EXPORT Date
         uint8_t m_month;
         uint8_t m_day;
 
-        Error validate() noexcept
+        template <typename YearT, typename MonthT, typename DayT>
+        Error validate(YearT year, MonthT month, DayT day) noexcept
         {
             //! @todo check number of days per month
-            if (m_month>12 || m_day>31 || m_month==0 || m_day==0 || m_year==0)
+            if (month>12 || day>31 || month==0 || day==0 || year==0)
             {
                 reset();
                 return CommonError::INVALID_DATE_FORMAT;
             }
             return OK;
+        }
+
+        Error validate() noexcept
+        {
+            return validate(m_year,m_month,m_day);
         }
 };
 
