@@ -29,6 +29,21 @@ class HATN_COMMON_EXPORT Date
 {
     public:
 
+        enum class Format : int
+        {
+            Iso,
+            IsoSlash,
+            Number,
+            EuropeDot,
+            UsDot,
+            EuropeSlash,
+            UsSlash,
+            EuropeShortDot,
+            UsShortDot,
+            EuropeShortSlash,
+            UsShortSlash
+        };
+
         Date(): m_year(static_cast<decltype(m_year)>(0)),
                 m_month(static_cast<decltype(m_month)>(0)),
                 m_day(static_cast<decltype(m_day)>(0))
@@ -110,9 +125,9 @@ class HATN_COMMON_EXPORT Date
 
         void reset() noexcept
         {
-            setYear(0);
-            setMonth(0);
-            setDay(0);
+            m_year=static_cast<decltype(m_year)>(0);
+            m_month=static_cast<decltype(m_month)>(0);
+            m_day=static_cast<decltype(m_day)>(0);
         }
 
         bool isValid() const noexcept
@@ -125,11 +140,12 @@ class HATN_COMMON_EXPORT Date
             return !isValid();
         }
 
-        static Result<Date> parse(const lib::string_view& str);
+        static Result<Date> parse(const lib::string_view& str, Format format=Format::Iso, uint16_t baseShortYear=2000);
 
-        std::string toString(const lib::string_view& format=lib::string_view{}) const;
+        std::string toString(Format format=Format::Iso) const;
 
         static Date currentUtc();
+        static Date currentLocal();
 
     private:
 
@@ -143,7 +159,6 @@ class HATN_COMMON_EXPORT Date
             //! @todo check number of days per month
             if (month>12 || day>31 || month==0 || day==0 || year==0)
             {
-                reset();
                 return CommonError::INVALID_DATE_FORMAT;
             }
             return OK;
@@ -151,7 +166,12 @@ class HATN_COMMON_EXPORT Date
 
         Error validate() noexcept
         {
-            return validate(m_year,m_month,m_day);
+            auto ec=validate(m_year,m_month,m_day);
+            if (ec)
+            {
+                reset();
+            }
+            return ec;
         }
 };
 
@@ -159,7 +179,17 @@ class HATN_COMMON_EXPORT Time
 {
     public:
 
-        Time():Time(0,0,0,0)
+        enum class FormatPrecision : int
+        {
+            Minute,
+            Second,
+            Millisecond
+        };
+
+        Time(): m_hour(static_cast<decltype(m_hour)>(0)),
+                m_minute(static_cast<decltype(m_minute)>(0)),
+                m_second(static_cast<decltype(m_second)>(0)),
+                m_millisecond(static_cast<decltype(m_millisecond)>(0))
         {}
 
         template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
@@ -181,6 +211,11 @@ class HATN_COMMON_EXPORT Time
             }
         }
 
+        uint8_t hour() const noexcept
+        {
+            return m_hour;
+        }
+
         uint8_t minute() const noexcept
         {
             return m_minute;
@@ -198,11 +233,16 @@ class HATN_COMMON_EXPORT Time
 
         Error set(uint64_t value) noexcept
         {
-            m_hour=value/10000000;
-            m_minute=(value-m_hour*10000000)/100000;
-            m_second=(value-m_hour*10000000-m_minute*100000)/1000;
-            m_millisecond=value-m_hour*10000000-m_minute*100000-m_second*1000;
-            HATN_CHECK_RETURN(validate())
+            auto hour=value/10000000;
+            auto minute=(value-hour*10000000)/100000;
+            auto second=(value-hour*10000000-minute*100000)/1000;
+            auto millisecond=value%1000;
+
+            HATN_CHECK_RETURN(setHour(hour))
+            HATN_CHECK_RETURN(setMinute(minute))
+            HATN_CHECK_RETURN(setSecond(second))
+            HATN_CHECK_RETURN(setMillisecond(millisecond))
+
             return OK;
         }
 
@@ -237,6 +277,7 @@ class HATN_COMMON_EXPORT Time
                 return CommonError::INVALID_TIME_FORMAT;
             }
             m_hour=static_cast<decltype(m_hour)>(value);
+            return OK;
         }
 
         template <typename T>
@@ -247,6 +288,7 @@ class HATN_COMMON_EXPORT Time
                 return CommonError::INVALID_TIME_FORMAT;
             }
             m_minute=static_cast<decltype(m_minute)>(value);
+            return OK;
         }
 
         template <typename T>
@@ -257,23 +299,40 @@ class HATN_COMMON_EXPORT Time
                 return CommonError::INVALID_TIME_FORMAT;
             }
             m_second=static_cast<decltype(m_second)>(value);
+            return OK;
         }
 
         template <typename T>
         Error setMillisecond(T value) noexcept
         {
-            if (value>=60)
+            if (value>=1000)
             {
                 return CommonError::INVALID_TIME_FORMAT;
             }
             m_millisecond=static_cast<decltype(m_millisecond)>(value);
+            return OK;
         }
 
-        static Result<Time> parse(const lib::string_view& format);
+        static Result<Time> parse(const lib::string_view& str, FormatPrecision precision=FormatPrecision::Second, bool ampm=false);
 
-        std::string toString(const lib::string_view& format=lib::string_view{}) const;
+        std::string toString(FormatPrecision precision=FormatPrecision::Second, bool ampm=false) const;
 
         static Time currentUtc();
+        static Time currentLocal();
+
+        template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
+        static Error validate(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0) noexcept
+        {
+            if (hour>=24 || minute>=60 || second>=60 || ms>=1000)
+            {
+                return CommonError::INVALID_TIME_FORMAT;
+            }
+            if (hour==0 && minute==0 && second==0 && ms==0)
+            {
+                return CommonError::INVALID_TIME_FORMAT;
+            }
+            return OK;
+        }
 
     private:
 
@@ -284,12 +343,12 @@ class HATN_COMMON_EXPORT Time
 
         Error validate() noexcept
         {
-            if (m_hour>=24 || m_minute>=60 || m_second>=60 || m_millisecond>=1000)
+            auto ec=validate(m_hour,m_minute,m_second,m_millisecond);
+            if (ec)
             {
                 reset();
-                return CommonError::INVALID_TIME_FORMAT;
             }
-            return OK;
+            return ec;
         }
 };
 
@@ -460,6 +519,8 @@ class DateRange
             :m_value(0)
         {
             //! @todo implement
+            std::ignore=dt;
+            std::ignore=type;
         }
 
         uint32_t value() const noexcept
