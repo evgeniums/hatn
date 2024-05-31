@@ -69,6 +69,11 @@ namespace {
 
 Result<Date> Date::parse(const lib::string_view& str, Format format, uint16_t baseShortYear)
 {
+    if (str.empty())
+    {
+        return Date{};
+    }
+
     try
     {
         Date dt;
@@ -281,6 +286,41 @@ Date Date::currentLocal()
 
 Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision, bool ampm)
 {
+    if (str.empty())
+    {
+        return Time{};
+    }
+
+    auto extractMs=[](const std::string& msStr)
+    {
+        int millisecond=0;
+        switch (msStr.size())
+        {
+        case(1):
+            millisecond=std::stoi(msStr)*100;
+            break;
+        case(2):
+            millisecond=std::stoi(msStr)*10;
+            break;
+        case(3):
+            millisecond=std::stoi(msStr);
+            break;
+        case(4):
+            millisecond=std::stoi(msStr)/10;
+            break;
+        case(5):
+            millisecond=std::stoi(msStr)/100;
+            break;
+        case(6):
+            millisecond=std::stoi(msStr)/1000;
+            break;
+        default:
+            return Result<int>{Error{CommonError::INVALID_TIME_FORMAT}};
+        }
+
+        return Result<int>{millisecond};
+    };
+
     try
     {
         int hour{0};
@@ -300,44 +340,75 @@ Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision,
         }
         switch (precision)
         {
-        case (FormatPrecision::Second):
-            if (parts.size()!=(ampm?4:3))
+            case (FormatPrecision::Second):
             {
-                return Error{CommonError::INVALID_TIME_FORMAT};
+                if (parts.size()!=(ampm?4:3))
+                {
+                    return Error{CommonError::INVALID_TIME_FORMAT};
+                }
+                hour=std::stoi(parts[0]);
+                minute=std::stoi(parts[1]);
+                second=std::stoi(parts[2]);
+                if (ampm)
+                {
+                    ampmStr=parts[3];
+                }
+                break;
             }
-            hour=std::stoi(parts[0]);
-            minute=std::stoi(parts[1]);
-            second=std::stoi(parts[2]);
-            if (ampm)
-            {
-                ampmStr=parts[3];
-            }
-            break;
 
-        case (FormatPrecision::Minute):
-            if (parts.size()!=(ampm?3:2))
+            case (FormatPrecision::Minute):
             {
-                return Error{CommonError::INVALID_TIME_FORMAT};
+                if (parts.size()!=(ampm?3:2))
+                {
+                    return Error{CommonError::INVALID_TIME_FORMAT};
+                }
+                hour=std::stoi(parts[0]);
+                minute=std::stoi(parts[1]);
+                if (ampm)
+                {
+                    ampmStr=parts[2];
+                }
+                break;
             }
-            hour=std::stoi(parts[0]);
-            minute=std::stoi(parts[1]);
-            if (ampm)
-            {
-                ampmStr=parts[2];
-            }
-            break;
 
-        case (FormatPrecision::Millisecond):
-            Assert(!ampm,"Milliseconds not supported in AM/PM mode");
-            if (parts.size()!=4)
+            case (FormatPrecision::Millisecond):
             {
-                return Error{CommonError::INVALID_TIME_FORMAT};
+                Assert(!ampm,"Milliseconds not supported in AM/PM mode");
+                if (parts.size()<3)
+                {
+                    return Error{CommonError::INVALID_TIME_FORMAT};
+                }
+                hour=std::stoi(parts[0]);
+                minute=std::stoi(parts[1]);
+                second=std::stoi(parts[2]);
+                if (parts.size()==4)
+                {
+                    auto r=extractMs(parts[3]);
+                    HATN_CHECK_RESULT(r);
+                    millisecond=r.takeValue();
+                }
+                break;
             }
-            hour=std::stoi(parts[0]);
-            minute=std::stoi(parts[1]);
-            second=std::stoi(parts[2]);
-            millisecond=std::stoi(parts[3]);
-            break;
+
+            case (FormatPrecision::Number):
+            {
+                Assert(!ampm,"Milliseconds not supported in AM/PM mode");
+                auto num=std::stoi(parts[0]);
+                if (num<0)
+                {
+                    return Error{CommonError::INVALID_TIME_FORMAT};
+                }
+                Time t{static_cast<uint64_t>(num)*1000};
+                if (parts.size()==2)
+                {
+                    auto r=extractMs(parts[2]);
+                    HATN_CHECK_RESULT(r);
+                    millisecond=r.takeValue();
+                    HATN_CHECK_RESULT(t.setMillisecond(millisecond))
+                }
+                return t;
+                break;
+            }
         }
 
         if (ampm)
@@ -413,6 +484,10 @@ std::string Time::toString(FormatPrecision precision, bool ampm) const
             case (FormatPrecision::Millisecond):
                 str=fmt::format("{}:{:02d}:{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
                 break;
+
+            case (FormatPrecision::Number):
+                str=fmt::format("{}{:02d}{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
+                break;
         }
     }
     else
@@ -428,7 +503,25 @@ std::string Time::toString(FormatPrecision precision, bool ampm) const
             break;
 
         case (FormatPrecision::Millisecond):
-            str=fmt::format("{:02d}:{:02d}:{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
+            if (m_millisecond>0)
+            {
+                str=fmt::format("{:02d}:{:02d}:{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
+            }
+            else
+            {
+                str=fmt::format("{:02d}:{:02d}:{:02d}",m_hour,m_minute,m_second);
+            }
+            break;        
+
+        case (FormatPrecision::Number):
+            if (m_millisecond>0)
+            {
+                str=fmt::format("{:02d}{:02d}{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
+            }
+            else
+            {
+                str=fmt::format("{:02d}{:02d}{:02d}",m_hour,m_minute,m_second);
+            }
             break;
         }
     }
@@ -464,7 +557,7 @@ std::string DateTime::toIsoString(bool withMilliseconds) const
         m_date.year(),m_date.month(),m_date.day(),
         m_time.hour(),m_time.minute(),m_time.second());
 
-    if (withMilliseconds)
+    if (withMilliseconds && m_time.millisecond()>0)
     {
         fmt::format_to(std::back_inserter(buf),".{:03d}",m_time.millisecond());
     }
@@ -483,11 +576,73 @@ std::string DateTime::toIsoString(bool withMilliseconds) const
 
 //---------------------------------------------------------------
 
-Result<DateTime> DateTime::parseIsoString(const lib::string_view& format)
+Result<DateTime> DateTime::parseIsoString(const lib::string_view& str)
 {
-    //! @todo implement
-    std::ignore=format;
-    return Error{CommonError::NOT_IMPLEMENTED};
+    std::vector<std::string> mainParts;
+    boost::split(mainParts,str,boost::is_any_of("T"));
+    if (mainParts.size()!=2)
+    {
+        return Error{CommonError::INVALID_DATETIME_FORMAT};
+    }
+
+    DateTime dt;
+
+    auto date=Date::parse(mainParts[0]);
+    if (date)
+    {
+        date=Date::parse(mainParts[0],Date::Format::Number);
+        HATN_CHECK_RESULT(date)
+    }
+    dt.m_date=date.takeValue();
+
+    auto parseTime=[&dt](const lib::string_view& str)
+    {
+        auto time=Time::parse(str,Time::FormatPrecision::Millisecond);
+        if (time)
+        {
+            time=Time::parse(str,Time::FormatPrecision::Number);
+            if (time)
+            {
+                return time.error();
+            }
+        }
+        dt.m_time=time.takeValue();
+        return Error{};
+    };
+
+    if (boost::algorithm::ends_with(mainParts[1],"Z"))
+    {
+        mainParts[1].pop_back();
+        HATN_CHECK_RETURN(parseTime(mainParts[1]))
+    }
+    else
+    {
+        if (mainParts[1].size()<14)
+        {
+            return Error{CommonError::INVALID_DATETIME_FORMAT};
+        }
+
+        auto timeStr=mainParts[1].substr(0,mainParts[1].size()-6);
+        HATN_CHECK_RETURN(parseTime(timeStr))
+
+        auto tzStr=mainParts[1].substr(mainParts[1].size()-6,6);
+        std::vector<std::string> tzParts;
+        boost::split(tzParts,tzStr,boost::is_any_of(":"));
+        if (tzParts.size()!=2)
+        {
+            return Error{CommonError::INVALID_DATETIME_FORMAT};
+        }
+        try
+        {
+            auto tz=std::stoi(tzParts[0]);
+            HATN_CHECK_RETURN(dt.setTz(tz))
+        }
+        catch(...)
+        {
+        }
+    }
+
+    return dt;
 }
 
 //---------------------------------------------------------------

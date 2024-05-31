@@ -187,7 +187,8 @@ class HATN_COMMON_EXPORT Time
         {
             Minute,
             Second,
-            Millisecond
+            Millisecond,
+            Number
         };
 
         Time(): m_hour(static_cast<decltype(m_hour)>(0)),
@@ -405,7 +406,7 @@ class HATN_COMMON_EXPORT DateTime
             return OK;
         }
 
-        std::string toIsoString(bool withMilliseconds=false) const;
+        std::string toIsoString(bool withMilliseconds=true) const;
 
         DateTime toUtc() const
         {
