@@ -25,6 +25,8 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+class DateTime;
+
 class HATN_COMMON_EXPORT Date
 {
     public:
@@ -173,6 +175,8 @@ class HATN_COMMON_EXPORT Date
             }
             return ec;
         }
+
+        friend class DateTime;
 };
 
 class HATN_COMMON_EXPORT Time
@@ -350,56 +354,23 @@ class HATN_COMMON_EXPORT Time
             }
             return ec;
         }
+
+        friend class DateTime;
 };
 
-//! @todo Implement timezone
-class HATN_COMMON_EXPORT TimeZone
+class HATN_COMMON_EXPORT DateTime
 {
     public:
 
-        TimeZone():m_name("UTC"),m_offset(0)
+        DateTime():m_tz(0)
         {}
 
-        int8_t offset() const noexcept
+        template <typename TzT>
+        DateTime(Date date, Time time, TzT tz=0)
+            :m_date(std::move(date)),m_time(std::move(time)),m_tz(static_cast<decltype(m_tz)>(tz))
         {
-            return m_offset;
+            HATN_CHECK_THROW(validate())
         }
-
-        const std::string& name() const noexcept
-        {
-            return m_name;
-        }
-
-        template <typename T>
-        Error setOffset(T value)
-        {
-            return setOffset(static_cast<int8_t>(value));
-        }
-
-        Error setOffset(int8_t value);
-
-        Error setName(std::string name);
-
-    private:
-
-        std::string m_name;
-        int8_t m_offset;
-};
-
-class HATN_COMMON_EXPORT DateTimeUtc
-{
-    public:
-
-        DateTimeUtc();
-
-        DateTimeUtc(Date date, Time time):m_date(std::move(date)),m_time(std::move(time))
-        {}
-
-        virtual ~DateTimeUtc();
-        DateTimeUtc(const DateTimeUtc&)=default;
-        DateTimeUtc(DateTimeUtc&&)=default;
-        DateTimeUtc& operator=(const DateTimeUtc&)=default;
-        DateTimeUtc& operator=(DateTimeUtc&&)=default;
 
         const Date& date() const
         {
@@ -421,76 +392,102 @@ class HATN_COMMON_EXPORT DateTimeUtc
             return m_time;
         }
 
-        virtual std::string toString(const lib::string_view& format=lib::string_view{}) const;
-
-        static Result<DateTimeUtc> parse(const lib::string_view& str);
-
-        static DateTimeUtc currentUtc();
-
-        static uint64_t msSinceEpoch();
-
-        static Result<DateTimeUtc> fromMsSinceEpoch(uint64_t value);
-
-    private:
-
-        Date m_date;
-        Time m_time;
-};
-
-//! @todo Implement DateTime
-class HATN_COMMON_EXPORT DateTime : public DateTimeUtc
-{
-    public:
-
-        DateTime();
-
-        DateTime(Date date, Time time, TimeZone tz=TimeZone{}):
-            DateTimeUtc(std::move(date),std::move(time)),
-            m_tz(std::move(tz))
-        {}
-
-        DateTime(DateTimeUtc dt, TimeZone tz=TimeZone{}):
-            DateTimeUtc(std::move(dt)),
-            m_tz(std::move(tz))
-        {}
-
-        virtual ~DateTime();
-        DateTime(const DateTime&)=default;
-        DateTime(DateTime&&)=default;
-        DateTime& operator=(const DateTime&)=default;
-        DateTime& operator=(DateTime&&)=default;
-
-        const TimeZone& tz() const noexcept
+        int8_t tz() const noexcept
         {
             return m_tz;
         }
 
-        TimeZone& tz() noexcept
+        template <typename T>
+        Error setTz(T tz) noexcept
         {
-            return m_tz;
+            HATN_CHECK_RETURN(validateTz(tz))
+            m_tz=static_cast<decltype(m_tz)>(tz);
+            return OK;
         }
+
+        std::string toIsoString(bool withMilliseconds=false) const;
+
+        DateTime toUtc() const
+        {
+            return toTz(*this).takeValue();
+        }
+
+        DateTime toLocal() const
+        {
+            return toTz(*this,localTz()).takeValue();
+        }
+
+        uint64_t toEpochMs() const;
+
+        uint32_t toEpoch() const;
+
+        static Result<DateTime> parseIsoString(const lib::string_view& format);
 
         static DateTime currentUtc();
 
         static DateTime currentLocal();
 
-        virtual std::string toString(const lib::string_view& format=lib::string_view{}) const override;
+        static uint64_t sinceEpochMs();
 
-        static Result<DateTime> parse(const lib::string_view& str);
+        static uint32_t sinceEpoch();
 
-        static DateTime toTz(const DateTime& from, TimeZone tz=TimeZone{});
-
-        static DateTime toTz(const DateTimeUtc& from, TimeZone tz=TimeZone{});
-
-        DateTimeUtc toUtc() const
+        static Result<DateTime> utcFromEpochMs(uint64_t milliseconds)
         {
-            auto utc=toTz(*this);
-            return DateTimeUtc{static_cast<const DateTimeUtc&>(utc)};
+            return fromEpochMs(milliseconds,0);
+        }
+
+        static Result<DateTime> localFromEpochMs(uint64_t milliseconds)
+        {
+            return fromEpochMs(milliseconds,localTz());
+        }
+
+        static Result<DateTime> utcFromEpoch(uint32_t seconds)
+        {
+            return fromEpoch(seconds,0);
+        }
+
+        static Result<DateTime> localFromEpoch(uint32_t seconds)
+        {
+            return fromEpoch(seconds,localTz());
+        }
+
+        static Result<DateTime> fromEpochMs(uint64_t seconds, int8_t tz=0);
+
+        static Result<DateTime> fromEpoch(uint32_t seconds, int8_t tz=0);
+
+        static int8_t localTz();
+
+        static Result<DateTime> toTz(const DateTime& from, int8_t tz=0);
+
+        template <typename T>
+        static Result<DateTime> toTz(const DateTime& from, T tz=0)
+        {
+            return toTz(from,static_cast<decltype(m_tz)>(tz));
+        }
+
+        template <typename T>
+        static Error validateTz(T tz)
+        {
+            if ((tz < (-12)) || tz>12)
+            {
+                return CommonError::INVALID_DATETIME_FORMAT;
+            }
+            return OK;
         }
 
     private:
 
-        TimeZone m_tz;
+        Error validate() noexcept
+        {
+            HATN_CHECK_RETURN(m_date.validate())
+            HATN_CHECK_RETURN(m_time.validate())
+            HATN_CHECK_RETURN(validateTz(m_tz))
+            return OK;
+        }
+
+        Date m_date;
+        Time m_time;
+        int8_t m_tz;
 };
 
 class DateRange
@@ -508,10 +505,6 @@ class DateRange
         };
 
         DateRange(const DateTime& dt, Type type=Type::Month)
-            :DateRange(dt.toUtc(),type)
-        {}
-
-        DateRange(const DateTimeUtc& dt, Type type=Type::Month)
             :DateRange(dt.date(),type)
         {}
 

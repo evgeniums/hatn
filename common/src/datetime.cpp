@@ -16,11 +16,52 @@
 #include <chrono>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
+#include <boost/date_time/c_local_time_adjustor.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <hatn/common/format.h>
 #include <hatn/common/datetime.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
+
+namespace {
+
+    Date makeDate(const boost::gregorian::date& d)
+    {
+        return Date{d.year(),d.month(),d.day()};
+    }
+
+    Time makeTime(const boost::posix_time::ptime& pt)
+    {
+        boost::posix_time::time_duration dt=pt.time_of_day();
+        auto ms=dt.total_milliseconds()-dt.total_seconds()*1000;
+        return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
+    }
+
+    std::pair<boost::posix_time::ptime,int8_t> utcToLocal(const boost::posix_time::ptime& utc)
+    {
+        boost::date_time::c_local_adjustor<boost::posix_time::ptime> adj;
+        auto localDt=adj.utc_to_local(utc);
+        auto tz=localDt-utc;
+        return std::make_pair(localDt,static_cast<int8_t>(tz.total_seconds()/60));
+    }
+
+    boost::gregorian::date toBoostDate(const Date& dt)
+    {
+        return boost::gregorian::date{dt.year(),dt.month(),dt.day()};
+    }
+
+    boost::posix_time::time_duration toBoostTimeDuration(const Time& t)
+    {
+        return boost::posix_time::time_duration{t.hour(),t.minute(),t.second(),t.millisecond()};
+    }
+
+    boost::posix_time::ptime toBoostPtime(const DateTime& dt)
+    {
+        return boost::posix_time::ptime{toBoostDate(dt.date()),toBoostTimeDuration(dt.time())};
+    }
+
+} // anonymous namespace
 
 /**************************** Date ******************************/
 
@@ -220,11 +261,6 @@ std::string Date::toString(Format format) const
 
 //---------------------------------------------------------------
 
-Date makeDate(const boost::gregorian::date& d)
-{
-    return Date{d.year(),d.month(),d.day()};
-}
-
 Date Date::currentUtc()
 {
     auto d=boost::gregorian::day_clock::universal_day();
@@ -402,13 +438,6 @@ std::string Time::toString(FormatPrecision precision, bool ampm) const
 
 //---------------------------------------------------------------
 
-Time makeTime(const boost::posix_time::ptime& pt)
-{
-    boost::posix_time::time_duration dt=pt.time_of_day();
-    auto ms=dt.total_milliseconds()-dt.total_seconds()*1000;
-    return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
-}
-
 Time Time::currentUtc()
 {
     auto pt=boost::posix_time::microsec_clock::universal_time();
@@ -423,113 +452,38 @@ Time Time::currentLocal()
     return makeTime(pt);
 }
 
-/**************************** DateTimeUtc ******************************/
-
-//---------------------------------------------------------------
-
-DateTimeUtc::DateTimeUtc()
-{}
-
-//---------------------------------------------------------------
-
-DateTimeUtc::~DateTimeUtc()
-{}
-
-//---------------------------------------------------------------
-
-std::string DateTimeUtc::toString(const lib::string_view& format) const
-{
-    //! @todo implement
-    std::ignore=format;
-    return std::string{};
-}
-
-//---------------------------------------------------------------
-
-Result<DateTimeUtc> DateTimeUtc::parse(const lib::string_view& format)
-{
-    //! @todo implement
-    std::ignore=format;
-    return Error{CommonError::NOT_IMPLEMENTED};
-}
-
-//---------------------------------------------------------------
-
-DateTimeUtc DateTimeUtc::currentUtc()
-{
-    auto pt=boost::posix_time::microsec_clock::universal_time();
-    return DateTimeUtc{makeDate(pt.date()),makeTime(pt)};
-}
-
-//---------------------------------------------------------------
-
-uint64_t DateTimeUtc::msSinceEpoch()
-{
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-}
-
-//---------------------------------------------------------------
-
-Result<DateTimeUtc> DateTimeUtc::fromMsSinceEpoch(uint64_t value)
-{
-    auto seconds=value/1000;
-    auto ms=value-seconds;
-
-    auto pt=boost::posix_time::from_time_t(seconds);
-    auto date=pt.date();
-    auto dt=pt.time_of_day();
-
-    return DateTimeUtc{
-        Date{date.year(),date.month(),date.day()},
-        Time{dt.hours(),dt.minutes(),dt.seconds(),ms}
-    };
-}
-
-/**************************** TimeZone ******************************/
-
-//---------------------------------------------------------------
-
-Error TimeZone::setOffset(int8_t value)
-{
-    m_offset=static_cast<decltype(m_offset)>(value);
-    //! @todo implement name update
-    return OK;
-}
-
-//---------------------------------------------------------------
-
-Error TimeZone::setName(std::string name)
-{
-    //! @todo implement
-    m_name=std::move(name);
-    //! @todo implement offset update
-    return CommonError::NOT_IMPLEMENTED;
-}
-
 /**************************** DateTime ******************************/
 
 //---------------------------------------------------------------
 
-DateTime::DateTime()
-{}
-
-//---------------------------------------------------------------
-
-DateTime::~DateTime()
-{}
-
-//---------------------------------------------------------------
-
-std::string DateTime::toString(const lib::string_view& format) const
+std::string DateTime::toIsoString(bool withMilliseconds) const
 {
-    //! @todo implement
-    std::ignore=format;
-    return std::string{};
+    FmtAllocatedBufferChar buf;
+
+    fmt::format_to(std::back_inserter(buf),"{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}",
+        m_date.year(),m_date.month(),m_date.day(),
+        m_time.hour(),m_time.minute(),m_time.second());
+
+    if (withMilliseconds)
+    {
+        fmt::format_to(std::back_inserter(buf),".{:03d}",m_time.millisecond());
+    }
+
+    if (m_tz==0)
+    {
+        fmt::format_to(std::back_inserter(buf),"Z");
+    }
+    else
+    {
+        fmt::format_to(std::back_inserter(buf),"{:+02d}:00",m_tz);
+    }
+
+    return fmtBufToString(buf);
 }
 
 //---------------------------------------------------------------
 
-Result<DateTime> DateTime::parse(const lib::string_view& format)
+Result<DateTime> DateTime::parseIsoString(const lib::string_view& format)
 {
     //! @todo implement
     std::ignore=format;
@@ -540,36 +494,132 @@ Result<DateTime> DateTime::parse(const lib::string_view& format)
 
 DateTime DateTime::currentUtc()
 {
-    //! @todo implement
-    return DateTime{};
+    auto pt=boost::posix_time::microsec_clock::universal_time();
+    return DateTime{makeDate(pt.date()),makeTime(pt),0};
 }
 
 //---------------------------------------------------------------
 
 DateTime DateTime::currentLocal()
 {
-    //! @todo implement
-    return DateTime{};
+    auto utc=boost::posix_time::microsec_clock::universal_time();
+    auto local=utcToLocal(utc);
+    const auto& localDt=local.first;
+
+    return DateTime{makeDate(localDt.date()),makeTime(localDt),local.second};
 }
 
 //---------------------------------------------------------------
 
-DateTime DateTime::toTz(const DateTime& from, TimeZone tz)
+uint64_t DateTime::sinceEpochMs()
 {
-    //! @todo implement
-    std::ignore=from;
-    std::ignore=tz;
-    return DateTime{};
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 //---------------------------------------------------------------
 
-DateTime DateTime::toTz(const DateTimeUtc& from, TimeZone tz)
+uint32_t DateTime::sinceEpoch()
 {
-    //! @todo implement
-    std::ignore=from;
-    std::ignore=tz;
-    return DateTime{};
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+//---------------------------------------------------------------
+
+int8_t DateTime::localTz()
+{
+    auto utc=boost::posix_time::microsec_clock::universal_time();
+    auto local=utcToLocal(utc);
+    return local.second;
+}
+
+//---------------------------------------------------------------
+
+Result<DateTime> DateTime::fromEpochMs(uint64_t value, int8_t tz)
+{
+    auto seconds=value/1000;
+    auto ms=value%1000;
+    seconds+=tz*60;
+
+    auto pt=boost::posix_time::from_time_t(seconds);
+    auto date=pt.date();
+    auto dt=pt.time_of_day();
+
+    return DateTime{
+        Date{date.year(),date.month(),date.day()},
+        Time{dt.hours(),dt.minutes(),dt.seconds(),ms},
+        tz
+    };
+}
+
+//---------------------------------------------------------------
+
+Result<DateTime> DateTime::fromEpoch(uint32_t value, int8_t tz)
+{
+    auto seconds=value+tz*60;
+
+    auto pt=boost::posix_time::from_time_t(seconds);
+    auto date=pt.date();
+    auto dt=pt.time_of_day();
+
+    return DateTime{
+        Date{date.year(),date.month(),date.day()},
+        Time{dt.hours(),dt.minutes(),dt.seconds(),0},
+        tz
+    };
+}
+
+//---------------------------------------------------------------
+
+Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
+{
+    HATN_CHECK_RETURN(validateTz(tz))
+
+    if (tz==from.m_tz)
+    {
+        return from;
+    }
+
+    auto diff=tz-from.m_tz;
+    auto fromEpoch=from.toEpochMs();
+    fromEpoch+=diff*60000;
+
+    return fromEpochMs(fromEpoch,tz);
+}
+
+//---------------------------------------------------------------
+
+uint64_t DateTime::toEpochMs() const
+{
+    auto* utc=this;
+    DateTime tmpUtc;
+    if (m_tz!=0)
+    {
+        tmpUtc=toUtc();
+        utc=&tmpUtc;
+    }
+
+    auto pt=toBoostPtime(*utc);
+    auto epoch=boost::posix_time::ptime{boost::gregorian::date{1970,1,1}};
+    auto duration=pt-epoch;
+    return duration.total_milliseconds();
+}
+
+//---------------------------------------------------------------
+
+uint32_t DateTime::toEpoch() const
+{
+    auto* utc=this;
+    DateTime tmpUtc;
+    if (m_tz!=0)
+    {
+        tmpUtc=toUtc();
+        utc=&tmpUtc;
+    }
+
+    auto pt=toBoostPtime(*utc);
+    auto epoch=boost::posix_time::ptime{boost::gregorian::date{1970,1,1}};
+    auto duration=pt-epoch;
+    return duration.total_seconds();
 }
 
 //---------------------------------------------------------------
