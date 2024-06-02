@@ -38,6 +38,11 @@ namespace {
         return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
     }
 
+    DateTime makeDateTime(const boost::posix_time::ptime& pt, int8_t tz)
+    {
+        return DateTime{makeDate(pt.date()),makeTime(pt),tz};
+    }
+
     std::pair<boost::posix_time::ptime,int8_t> utcToLocal(const boost::posix_time::ptime& utc)
     {
         boost::date_time::c_local_adjustor<boost::posix_time::ptime> adj;
@@ -278,6 +283,80 @@ Date Date::currentLocal()
 {
     auto d=boost::gregorian::day_clock::local_day();
     return makeDate(d);
+}
+
+//---------------------------------------------------------------
+
+void Date::addDays(int value)
+{
+    Assert(!isNull(),"Invalid operation for null date");
+
+    auto gd=toBoostDate(*this);
+    boost::gregorian::date_duration dd(value);
+    gd+=dd;
+    m_year=gd.year();
+    m_month=gd.month();
+    m_day=gd.day();
+}
+
+//---------------------------------------------------------------
+
+uint8_t Date::dayOfWeek() const
+{
+    if (isNull())
+    {
+        return 0;
+    }
+
+    auto gd=toBoostDate(*this);
+    return gd.day_of_week();
+}
+
+//---------------------------------------------------------------
+
+uint16_t Date::dayOfYear() const
+{
+    if (isNull())
+    {
+        return 0;
+    }
+
+    auto gd=toBoostDate(*this);
+    return gd.day_of_year();
+}
+
+//---------------------------------------------------------------
+
+uint16_t Date::weekNumber() const
+{
+    if (isNull())
+    {
+        return 0;
+    }
+
+    auto gd=toBoostDate(*this);
+    return gd.week_number();
+}
+
+//---------------------------------------------------------------
+
+uint16_t Date::daysInMonth(uint16_t year,uint8_t month)
+{
+    return boost::gregorian::gregorian_calendar::end_of_month_day(year, month);
+}
+
+//---------------------------------------------------------------
+
+bool Date::isLeapYear() const
+{
+    return boost::gregorian::gregorian_calendar::is_leap_year(m_year);
+}
+
+//---------------------------------------------------------------
+
+bool Date::isLeapYear(uint16_t year)
+{
+    return boost::gregorian::gregorian_calendar::is_leap_year(year);
 }
 
 /**************************** Time ******************************/
@@ -775,6 +854,278 @@ uint32_t DateTime::toEpoch() const
     auto epoch=boost::posix_time::ptime{boost::gregorian::date{1970,1,1}};
     auto duration=pt-epoch;
     return duration.total_seconds();
+}
+
+//---------------------------------------------------------------
+
+void DateTime::addHours(int value)
+{
+    auto pt=toBoostPtime(*this);
+    boost::posix_time::time_duration dd{value,0,0,0};
+    pt+=dd;
+    *this=makeDateTime(pt,m_tz);
+}
+
+//---------------------------------------------------------------
+
+void DateTime::addMinutes(int value)
+{
+    auto pt=toBoostPtime(*this);
+    boost::posix_time::time_duration dd{0,value,0,0};
+    pt+=dd;
+    *this=makeDateTime(pt,m_tz);
+}
+
+//---------------------------------------------------------------
+
+void DateTime::addSeconds(int value)
+{
+    auto pt=toBoostPtime(*this);
+    boost::posix_time::time_duration dd{0,0,value,0};
+    pt+=dd;
+    *this=makeDateTime(pt,m_tz);
+}
+
+//---------------------------------------------------------------
+
+void DateTime::addMilliseconds(int value)
+{
+    auto pt=toBoostPtime(*this);
+    boost::posix_time::time_duration dd{0,0,0,value};
+    pt+=dd;
+    *this=makeDateTime(pt,m_tz);
+}
+
+/**************************** DateRange ******************************/
+
+//---------------------------------------------------------------
+
+uint32_t DateRange::dateToRange(const Date& dt, Type type)
+{
+    auto gd=toBoostDate(dt);
+
+    uint32_t range=0;
+
+    switch (type)
+    {
+        case(Type::Year):
+            break;
+
+        case(Type::HalfYear):
+            range=static_cast<uint32_t>(dt.month()>6)+1;
+            break;
+
+        case(Type::Quarter):
+            range=static_cast<uint32_t>(dt.month()/4)+1;
+            break;
+
+        case(Type::Month):
+            range=dt.month();
+            break;
+
+        case(Type::Week):
+            range=gd.week_number();
+            break;
+
+        case(Type::Day):
+            range=gd.day_of_year();
+            break;
+    }
+
+    uint32_t result=range+dt.year()*1000+static_cast<uint32_t>(type)*1000*10000;
+    return result;
+}
+
+//---------------------------------------------------------------
+
+Date DateRange::begin() const
+{
+    switch (type())
+    {
+    case(Type::Year):
+        return Date{year(),1,1};
+        break;
+
+    case(Type::HalfYear):
+    {
+        auto r=range();
+        if (r==2)
+        {
+            return Date{year(),7,1};
+        }
+        else
+        {
+            return Date{year(),1,1};
+        }
+        break;
+    }
+
+    case(Type::Quarter):
+    {
+        auto r=range();
+        switch(r)
+        {
+            case(2):
+                return Date{year(),4,1};
+                break;
+
+            case(3):
+                return Date{year(),7,1};
+                break;
+
+            case(4):
+                return Date{year(),10,1};
+                break;
+
+            default:
+                return Date{year(),1,1};
+                break;
+        }
+    }
+
+    case(Type::Month):
+        return Date{year(),range(),1};
+        break;
+
+    case(Type::Week):
+    {
+        auto weeks=range();
+        if (weeks>1)
+        {
+            boost::gregorian::date gd{year(),1,1};
+            auto days=(weeks-1)*7;
+            boost::gregorian::date_duration dd(days+1);
+            gd+=dd;
+            return Date{year(),gd.month(),gd.day()};
+        }
+        else
+        {
+            return Date{year(),1,1};
+        }
+        break;
+    }
+
+    case(Type::Day):
+    {
+        auto days=range();
+        if (days>1)
+        {
+            boost::gregorian::date gd{year(),1,1};
+            boost::gregorian::date_duration dd(days-1);
+            gd+=dd;
+            return Date{year(),gd.month(),gd.day()};
+        }
+        else
+        {
+            return Date{year(),1,1};
+        }
+        break;
+    }
+    }
+
+    return Date{};
+}
+
+//---------------------------------------------------------------
+
+Date DateRange::end() const
+{
+    switch (type())
+    {
+    case(Type::Year):
+        return Date{year(),12,31};
+        break;
+
+    case(Type::HalfYear):
+    {
+        auto r=range();
+        if (r==2)
+        {
+            return Date{year(),12,31};
+        }
+        else
+        {
+            return Date{year(),6,30};
+        }
+        break;
+    }
+
+    case(Type::Quarter):
+    {
+        auto r=range();
+        switch(r)
+        {
+        case(2):
+            return Date{year(),6,30};
+            break;
+
+        case(3):
+            return Date{year(),9,30};
+            break;
+
+        case(4):
+            return Date{year(),12,31};
+            break;
+
+        default:
+            return Date{year(),3,31};
+            break;
+        }
+    }
+
+    case(Type::Month):
+    {
+        boost::gregorian::date gd{year(),static_cast<uint16_t>(range()+1),1};
+        boost::gregorian::date_duration dd(1);
+        gd-=dd;
+        return Date{year(),gd.month(),gd.day()};
+        break;
+    }
+
+    case(Type::Week):
+    {
+        auto weeks=range();
+        if (weeks>1)
+        {
+            boost::gregorian::date gd{year(),1,1};
+            auto days=(weeks-1)*7;
+            boost::gregorian::date_duration dd(days+7);
+            gd+=dd;
+            return Date{year(),gd.month(),gd.day()};
+        }
+        else
+        {
+            return Date{year(),7,1};
+        }
+        break;
+    }
+
+    case(Type::Day):
+    {
+        auto days=range();
+        if (days>1)
+        {
+            boost::gregorian::date gd{year(),1,1};
+            boost::gregorian::date_duration dd(days-1);
+            gd+=dd;
+            return Date{year(),gd.month(),gd.day()};
+        }
+        else
+        {
+            return Date{year(),1,1};
+        }
+        break;
+    }
+    }
+
+    return Date{};
+}
+
+//---------------------------------------------------------------
+
+bool DateRange::contains(const Date& dt) const
+{
+    return dt>=begin() && dt<=end();
 }
 
 //---------------------------------------------------------------

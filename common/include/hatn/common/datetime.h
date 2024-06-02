@@ -84,12 +84,18 @@ class HATN_COMMON_EXPORT Date
         {
             auto year=value/10000;
             auto month=(value-year*10000)/100;
-            auto day=value-year*10000-month*100;
+            auto day=value%100;
             HATN_CHECK_RETURN(validate(year,month,day))
             m_year=year;
             m_month=month;
             m_day=day;
             return OK;
+        }
+
+        uint32_t toNumber() const noexcept
+        {
+            uint32_t result=m_year*10000 + m_month*100 + m_day;
+            return result;
         }
 
         template <typename T>
@@ -147,7 +153,47 @@ class HATN_COMMON_EXPORT Date
         std::string toString(Format format=Format::Iso) const;
 
         static Date currentUtc();
+
         static Date currentLocal();
+
+        bool operator==(const Date& other) const noexcept
+        {
+            return m_year==other.m_year && m_month==other.m_month && m_day==other.m_day;
+        }
+
+        bool operator<(const Date& other) const noexcept
+        {
+            return toNumber()<other.toNumber();
+        }
+
+        bool operator<=(const Date& other) const noexcept
+        {
+            return toNumber()<=other.toNumber();
+        }
+
+        bool operator>(const Date& other) const noexcept
+        {
+            return toNumber()>other.toNumber();
+        }
+
+        bool operator>=(const Date& other) const noexcept
+        {
+            return toNumber()>=other.toNumber();
+        }
+
+        void addDays(int days);
+
+        uint8_t dayOfWeek() const;
+
+        uint16_t dayOfYear() const;
+
+        uint16_t weekNumber() const;
+
+        static uint16_t daysInMonth(uint16_t year,uint8_t month);
+
+        bool isLeapYear() const;
+
+        static bool isLeapYear(uint16_t year);
 
     private:
 
@@ -158,8 +204,11 @@ class HATN_COMMON_EXPORT Date
         template <typename YearT, typename MonthT, typename DayT>
         Error validate(YearT year, MonthT month, DayT day) noexcept
         {
-            //! @todo check number of days per month
             if (month>12 || day>31 || month==0 || day==0 || year==0)
+            {
+                return CommonError::INVALID_DATE_FORMAT;
+            }
+            if (day>daysInMonth(static_cast<uint16_t>(year), static_cast<uint8_t>(month)))
             {
                 return CommonError::INVALID_DATE_FORMAT;
             }
@@ -251,6 +300,12 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        uint64_t toNumber() const noexcept
+        {
+            uint64_t result=m_hour*10000000 + m_minute*100000 + m_second*1000 + m_millisecond;
+            return result;
+        }
+
         void reset()
         {
             m_hour=0;
@@ -337,6 +392,32 @@ class HATN_COMMON_EXPORT Time
                 return CommonError::INVALID_TIME_FORMAT;
             }
             return OK;
+        }
+
+        bool operator==(const Time& other) const noexcept
+        {
+            return m_hour==other.m_hour&& m_minute==other.m_minute && m_second==other.m_second
+                && m_millisecond==other.m_millisecond;
+        }
+
+        bool operator<(const Time& other) const noexcept
+        {
+            return toNumber()<other.toNumber();
+        }
+
+        bool operator<=(const Time& other) const noexcept
+        {
+            return toNumber()<=other.toNumber();
+        }
+
+        bool operator>(const Time& other) const noexcept
+        {
+            return toNumber()>other.toNumber();
+        }
+
+        bool operator>=(const Time& other) const noexcept
+        {
+            return toNumber()>=other.toNumber();
         }
 
     private:
@@ -476,6 +557,117 @@ class HATN_COMMON_EXPORT DateTime
             return OK;
         }
 
+        bool before(const DateTime& other) const
+        {
+            return sinceEpochMs()<other.sinceEpochMs();
+        }
+
+        bool after(const DateTime& other) const
+        {
+            return sinceEpochMs()>other.sinceEpochMs();
+        }
+
+        bool equal(const DateTime& other) const
+        {
+            return sinceEpochMs()==other.sinceEpochMs();
+        }
+
+        bool beforeOrEqual(const DateTime& other) const
+        {
+            return sinceEpochMs()<=other.sinceEpochMs();
+        }
+
+        bool afterOrEqual(const DateTime& other) const
+        {
+            return sinceEpochMs()>=other.sinceEpochMs();
+        }
+
+        bool operator ==(const DateTime& other) const noexcept
+        {
+            return m_tz==other.m_tz && m_date==other.m_date && m_time==other.m_time;
+        }
+
+        bool operator <(const DateTime& other) const
+        {
+            auto s=sinceEpochMs();
+            auto o=other.sinceEpochMs();
+
+            if (s<o)
+            {
+                return true;
+            }
+            if (s==o)
+            {
+                return m_tz<other.m_tz;
+            }
+
+            return false;
+        }
+
+        bool operator <=(const DateTime& other) const
+        {
+            auto s=sinceEpochMs();
+            auto o=other.sinceEpochMs();
+
+            if (s<o)
+            {
+                return true;
+            }
+            if (s==o)
+            {
+                return m_tz<=other.m_tz;
+            }
+
+            return false;
+        }
+
+        bool operator >(const DateTime& other) const
+        {
+            auto s=sinceEpochMs();
+            auto o=other.sinceEpochMs();
+
+            if (s>o)
+            {
+                return true;
+            }
+            if (s==o)
+            {
+                return m_tz>other.m_tz;
+            }
+
+            return false;
+        }
+
+        bool operator >=(const DateTime& other) const
+        {
+            auto s=sinceEpochMs();
+            auto o=other.sinceEpochMs();
+
+            if (s>o)
+            {
+                return true;
+            }
+            if (s==o)
+            {
+                return m_tz>=other.m_tz;
+            }
+
+            return false;
+        }
+
+        void addDays(int value)
+        {
+            m_date.addDays(value);
+        }
+
+        void addHours(int value);
+
+        void addMinutes(int value);
+
+        void addSeconds(int value);
+
+        void addMilliseconds(int value);
+
     private:
 
         Error validate() noexcept
@@ -491,7 +683,11 @@ class HATN_COMMON_EXPORT DateTime
         int8_t m_tz;
 };
 
-class DateRange
+/**
+ * @brief Date range contains range the dates formatted as:
+ * <type[0]><year[0:3]><range_pos[0:2]>.
+ */
+class HATN_COMMON_EXPORT DateRange
 {
     public:
 
@@ -509,13 +705,11 @@ class DateRange
             :DateRange(dt.date(),type)
         {}
 
+        static uint32_t dateToRange(const Date& dt, Type type=Type::Month);
+
         DateRange(const Date& dt, Type type=Type::Month)
-            :m_value(0)
-        {
-            //! @todo implement
-            std::ignore=dt;
-            std::ignore=type;
-        }
+            :m_value(dateToRange(dt,type))
+        {}
 
         uint32_t value() const noexcept
         {
@@ -524,32 +718,38 @@ class DateRange
 
         Type type() const noexcept
         {
-            //! @todo implement
-            return Month;
+            return static_cast<Type>(m_value/(1000*10000));
         }
 
-        Date begin() const noexcept
+        uint32_t range() const noexcept
         {
-            //! @todo implement
-            return Date{};
+            return m_value%1000;
         }
 
-        Date end() const noexcept
+        uint16_t year() const noexcept
         {
-            //! @todo implement
-            return Date{};
+            return (m_value/1000)%10000;
         }
 
-        DateTime beginDateTime() const noexcept
+        Date begin() const;
+
+        Date end() const;
+
+        DateTime beginDateTime() const
         {
-            //! @todo implement
-            return DateTime{};
+            return DateTime{begin(),Time{0,0,1,0},0};
         }
 
-        DateTime endDateTime() const noexcept
+        DateTime endDateTime() const
         {
-            //! @todo implement
-            return DateTime{};
+            return DateTime{end(),Time{23,59,59,0},0};
+        }
+
+        bool contains(const Date& dt) const;
+
+        bool contains(const DateTime& dt) const
+        {
+            return contains(dt.date());
         }
 
     private:
