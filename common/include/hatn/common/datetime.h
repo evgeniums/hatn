@@ -29,10 +29,16 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 class DateTime;
 
+/**
+ * @brief The Date class.
+ */
 class HATN_COMMON_EXPORT Date
 {
     public:
 
+        /**
+         * @brief The Format enum.
+         */
         enum class Format : int
         {
             Iso,
@@ -48,11 +54,20 @@ class HATN_COMMON_EXPORT Date
             UsShortSlash
         };
 
+        /**
+         * @brief Default ctor.
+         */
         Date(): m_year(static_cast<decltype(m_year)>(0)),
                 m_month(static_cast<decltype(m_month)>(0)),
                 m_day(static_cast<decltype(m_day)>(0))
         {}
 
+        /**
+         * @brief Ctor with init.
+         * @param year Year.
+         * @param month Month.
+         * @param day day.
+         */
         template <typename YearT, typename MonthT, typename DayT>
         Date(YearT year, MonthT month, DayT day)
             : m_year(static_cast<decltype(m_year)>(year)),
@@ -62,26 +77,47 @@ class HATN_COMMON_EXPORT Date
             HATN_CHECK_THROW(validate())
         }
 
+         /**
+         * @brief Ctor from single number.
+         * @param value Number in format (year*10000 + month*100 + day).
+         */
         Date(uint32_t value)
         {
             HATN_CHECK_THROW(set(value));
         }
 
+        /**
+         * @brief Get year.
+         * @return Year.
+         */
         uint16_t year() const noexcept
         {
             return m_year;
         }
 
+        /**
+         * @brief Get month.
+         * @return Month.
+         */
         uint8_t month() const noexcept
         {
             return m_month;
         }
 
+        /**
+         * @brief Get day.
+         * @return Day.
+         */
         uint8_t day() const noexcept
         {
             return m_day;
         }
 
+        /**
+         * @brief Set date frm single number.
+         * @param value Number in format (year*10000 + month*100 + day).
+         * @return Validation result.
+         */
         Error set(uint32_t value) noexcept
         {
             auto year=value/10000;
@@ -94,12 +130,21 @@ class HATN_COMMON_EXPORT Date
             return OK;
         }
 
+        /**
+         * @brief Get date as single number.
+         * @return Number in format (year*10000 + month*100 + day).
+         */
         uint32_t toNumber() const noexcept
         {
             uint32_t result=m_year*10000 + m_month*100 + m_day;
             return result;
         }
 
+        /**
+         * @brief setYear
+         * @param value Year.
+         * @return Validation result.
+         */
         template <typename T>
         Error setYear(T value) noexcept
         {
@@ -111,6 +156,11 @@ class HATN_COMMON_EXPORT Date
             return OK;
         }
 
+        /**
+         * @brief setMonth
+         * @param value Month.
+         * @return Validation result.
+         */
         template <typename T>
         Error setMonth(T value) noexcept
         {
@@ -122,6 +172,11 @@ class HATN_COMMON_EXPORT Date
             return OK;
         }
 
+        /**
+         * @brief setDay
+         * @param value Day.
+         * @return Validation result.
+         */
         template <typename T>
         Error setDay(T value) noexcept
         {
@@ -133,6 +188,9 @@ class HATN_COMMON_EXPORT Date
             return OK;
         }
 
+        /**
+         * @brief Reset date to default invalid state.
+         */
         void reset() noexcept
         {
             m_year=static_cast<decltype(m_year)>(0);
@@ -140,22 +198,54 @@ class HATN_COMMON_EXPORT Date
             m_day=static_cast<decltype(m_day)>(0);
         }
 
+        /**
+         * @brief Check if object is valid.
+         * @return Operation result.
+         */
         bool isValid() const noexcept
         {
             return m_year>=1970 || m_month>=1 || m_day>=1;
         }
 
+        /**
+         * @brief Check if object is null.
+         * @return Operation result.
+         */
         bool isNull() const noexcept
         {
             return !isValid();
         }
 
-        static Result<Date> parse(const lib::string_view& str, Format format=Format::Iso, uint16_t baseShortYear=2000);
+        /**
+         * @brief Parse date from string.
+         * @param str String.
+         * @param format Format.
+         * @param baseShortYear Base year in case of short year format.
+         * @return Operation result.
+         */
+        static Result<Date> parse(
+            const lib::string_view& str,
+            Format format=Format::Iso,
+            uint16_t baseShortYear=2000
+        );
 
+        /**
+         * @brief Format date to string.
+         * @param format Format.
+         * @return Formatted date.
+         */
         std::string toString(Format format=Format::Iso) const;
 
+        /**
+         * @brief Get current UTC date.
+         * @return Current UTC date.
+         */
         static Date currentUtc();
 
+        /**
+         * @brief Get current local date.
+         * @return Current local date.
+         */
         static Date currentLocal();
 
         bool operator==(const Date& other) const noexcept
@@ -238,10 +328,16 @@ class HATN_COMMON_EXPORT Date
         friend class DateTime;
 };
 
+/**
+ * @brief The Time class.
+ */
 class HATN_COMMON_EXPORT Time
 {
     public:
 
+        /**
+         * @brief The FormatPrecision enum.
+         */
         enum class FormatPrecision : int
         {
             Minute,
@@ -250,12 +346,22 @@ class HATN_COMMON_EXPORT Time
             Number
         };
 
+        /**
+         * @brief Default ctor.
+         */
         Time(): m_hour(static_cast<decltype(m_hour)>(0)),
                 m_minute(static_cast<decltype(m_minute)>(0)),
                 m_second(static_cast<decltype(m_second)>(0)),
                 m_millisecond(static_cast<decltype(m_millisecond)>(0))
         {}
 
+        /**
+         * @brief Ctor with init.
+         * @param hour Hour.
+         * @param minute Minute.
+         * @param second Second.
+         * @param ms Millisecond.
+         */
         template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
         Time(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0)
             : m_hour(static_cast<decltype(m_hour)>(hour)),
@@ -266,6 +372,10 @@ class HATN_COMMON_EXPORT Time
             HATN_CHECK_THROW(validate())
         }
 
+        /**
+         * @brief Ctor from single number.
+         * @param value Number in format (hour*10000000 + minute*100000 + second*1000 + millisecond).
+         */
         Time(uint64_t value)
         {
             auto ec=set(value);
@@ -275,26 +385,47 @@ class HATN_COMMON_EXPORT Time
             }
         }
 
+        /**
+         * @brief Get hour.
+         * @return Hour.
+         */
         uint8_t hour() const noexcept
         {
             return m_hour;
         }
 
+        /**
+         * @brief Get minute.
+         * @return Minute.
+         */
         uint8_t minute() const noexcept
         {
             return m_minute;
         }
 
+        /**
+         * @brief Get second.
+         * @return Second.
+         */
         uint8_t second() const noexcept
         {
             return m_second;
         }
 
+        /**
+         * @brief Get millisecond.
+         * @return Millisecond.
+         */
         uint16_t millisecond() const noexcept
         {
             return m_millisecond;
         }
 
+        /**
+         * @brief Set time from single number.
+         * @param value Number in format (hour*10000000 + minute*100000 + second*1000 + millisecond).
+         * @return Validation result.
+         */
         Error set(uint64_t value) noexcept
         {
             auto hour=value/10000000;
@@ -310,12 +441,19 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        /**
+         * @brief Get time as single number.
+         * @return Number in format (hour*10000000 + minute*100000 + second*1000 + millisecond).
+         */
         uint64_t toNumber() const noexcept
         {
             uint64_t result=m_hour*10000000 + m_minute*100000 + m_second*1000 + m_millisecond;
             return result;
         }
 
+        /**
+         * @brief Reset time to default invalid state.
+         */
         void reset()
         {
             m_hour=0;
@@ -324,11 +462,19 @@ class HATN_COMMON_EXPORT Time
             m_millisecond=0;
         }
 
+        /**
+         * @brief Check if object is valid.
+         * @return Operation result.
+         */
         bool isValid() const noexcept
         {
             return m_hour>0 || m_minute>0 || m_second>0 || m_millisecond>0;
         }
 
+        /**
+         * @brief Check if object is null.
+         * @return Operation result.
+         */
         bool isNull() const noexcept
         {
             return !isValid();
@@ -339,6 +485,11 @@ class HATN_COMMON_EXPORT Time
             return isValid();
         }
 
+        /**
+         * @brief setHour.
+         * @param value Hour.
+         * @return Validation result.
+         */
         template <typename T>
         Error setHour(T value) noexcept
         {
@@ -350,6 +501,11 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        /**
+         * @brief setMinute.
+         * @param value Minute.
+         * @return Validation result.
+         */
         template <typename T>
         Error setMinute(T value) noexcept
         {
@@ -361,6 +517,11 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        /**
+         * @brief setSecond.
+         * @param value Second.
+         * @return Validation result.
+         */
         template <typename T>
         Error setSecond(T value) noexcept
         {
@@ -372,6 +533,11 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        /**
+         * @brief setMillisecond.
+         * @param value Millisecond.
+         * @return Validation result.
+         */
         template <typename T>
         Error setMillisecond(T value) noexcept
         {
@@ -383,13 +549,50 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
-        static Result<Time> parse(const lib::string_view& str, FormatPrecision precision=FormatPrecision::Second, bool ampm=false);
+        /**
+         * @brief Parse time from string.
+         * @param str Source string.
+         * @param precision Format precision.
+         * @param ampm Truu if AM/PM mode is used.
+         * @return Operation result.
+         */
+        static Result<Time> parse(
+            const lib::string_view& str,
+            FormatPrecision precision=FormatPrecision::Second,
+            bool ampm=false
+        );
 
-        std::string toString(FormatPrecision precision=FormatPrecision::Second, bool ampm=false) const;
+        /**
+         * @brief Format time to string.
+         * @param precision Format precision.
+         * @param ampm Truu if AM/PM mode must be used.
+         * @return Formatted time.
+         */
+        std::string toString(
+            FormatPrecision precision=FormatPrecision::Second,
+            bool ampm=false
+        ) const;
 
+        /**
+         * @brief get current UTC time.
+         * @return Current UTC time.
+         */
         static Time currentUtc();
+
+        /**
+         * @brief get current local time.
+         * @return Current local time.
+         */
         static Time currentLocal();
 
+        /**
+         * @brief Validate time fields.
+         * @param hour Hour.
+         * @param minute Minute.
+         * @param second Second.
+         * @param ms Millisecond.
+         * @return Validation result.
+         */
         template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
         static Error validate(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0) noexcept
         {
@@ -404,6 +607,10 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        /**
+         * @brief addHours.
+         * @param value Hours.
+         */
         void addHours(int value)
         {
             auto hour=(m_hour+value)%24;
@@ -414,6 +621,10 @@ class HATN_COMMON_EXPORT Time
             m_hour=hour;
         }
 
+        /**
+         * @brief addMinutes.
+         * @param value Minutes.
+         */
         void addMinutes(int value)
         {
             if (abs(value)>=60)
@@ -433,6 +644,10 @@ class HATN_COMMON_EXPORT Time
             m_minute=minute;
         }
 
+        /**
+         * @brief addSeconds.
+         * @param value Seconds.
+         */
         void addSeconds(int value)
         {
             if (abs(value)>=60)
@@ -452,6 +667,10 @@ class HATN_COMMON_EXPORT Time
             m_second=second;
         }
 
+        /**
+         * @brief addMilliseconds.
+         * @param value Milliseconds.
+         */
         void addMilliseconds(int value)
         {
             auto s=value/1000;
