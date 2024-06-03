@@ -523,13 +523,33 @@ class HATN_COMMON_EXPORT Time
         friend class DateTime;
 };
 
+/**
+ * @brief The DateTime class.
+ */
 class HATN_COMMON_EXPORT DateTime
 {
     public:
 
+        /**
+         * @brief The Diff class returned by diff() method.
+         */
+        struct Diff
+        {
+            int32_t hours;
+            int32_t minutes;
+            int32_t seconds;
+        };
+
+        //! Default ctor.
         DateTime():m_tz(0)
         {}
 
+        /**
+         * @brief Ctor with init.
+         * @param date Date.
+         * @param time Time.
+         * @param tz Timezone.
+         */
         template <typename TzT>
         DateTime(Date date, Time time, TzT tz=0)
             :m_date(std::move(date)),m_time(std::move(time)),m_tz(static_cast<decltype(m_tz)>(tz))
@@ -537,31 +557,77 @@ class HATN_COMMON_EXPORT DateTime
             HATN_CHECK_THROW(validate())
         }
 
+        /**
+         * @brief Get date.
+         * @return Const date reference.
+         */
         const Date& date() const
         {
             return m_date;
         }
 
+        /**
+         * @brief Get date.
+         * @return Date reference.
+         */
         Date& date()
         {
             return m_date;
         }
 
+        /**
+         * @brief Get time.
+         * @return Const time reference.
+         */
         const Time& time() const
         {
             return m_time;
         }
 
+        /**
+         * @brief Get time.
+         * @return Time reference.
+         */
         Time& time()
         {
             return m_time;
         }
 
+        /**
+         * @brief Get timezone.
+         * @return Timezone.
+         */
         int8_t tz() const noexcept
         {
             return m_tz;
         }
 
+        /**
+         * @brief Check if datetime is valid.
+         * @return True if valid.
+         */
+        bool isValid() const noexcept
+        {
+            return m_date.isValid() && m_time.isValid();
+        }
+
+        /**
+         * @brief Check if datetime is null.
+         * @return True if not valid.
+         */
+        bool isNull() const noexcept
+        {
+            return !isValid();
+        }
+
+        /**
+         * @brief Set time zone.
+         * @param tz New timezone.
+         * @return OK if tz is valid.
+         *
+         * This method changes timezone as is without updating time and date.
+         * To convert datetime to new timezone uset toTz() method.
+         */
         template <typename T>
         Error setTz(T tz) noexcept
         {
@@ -570,110 +636,260 @@ class HATN_COMMON_EXPORT DateTime
             return OK;
         }
 
+        /**
+         * @brief Format datetime as ISO string.
+         * @param withMilliseconds Show milliseconds.
+         * @return Formatted string.
+         */
         std::string toIsoString(bool withMilliseconds=true) const;
 
+        /**
+         * @brief Convert datetime to UTC.
+         * @return UTC datetime.
+         */
         DateTime toUtc() const
         {
             return toTz(*this).takeValue();
         }
 
+        /**
+         * @brief Convert datetime to local.
+         * @return UTC datetime.
+         */
         DateTime toLocal() const
         {
             return toTz(*this,localTz()).takeValue();
         }
 
+        /**
+         * @brief Get milliseconds since epoch.
+         * @return Milliseconds since epoch.
+         */
         uint64_t toEpochMs() const;
 
+        /**
+         * @brief Get seconds since epoch.
+         * @return Seconds since epoch.
+         */
         uint32_t toEpoch() const;
 
-        static Result<DateTime> parseIsoString(const lib::string_view& format);
+        /**
+         * @brief Parse datetime in ISO format.
+         * @param format String in ISO format.
+         * @return Parsing result.
+         *
+         * Supported formats:
+         * 2023-10-05T21:35:47.123Z for UTC with milliseconds
+         * 20231005T21:35:47.123Z for UTC with milliseconds
+         * 2023-10-05T21:35:47Z for UTC
+         * 20231005T21:35:47Z for UTC
+         * 2023-10-05T21:35:47.123+03:00 with timezone with milliseconds
+         * 20231005T21:35:47.123-03:00 for with timezone with milliseconds
+         * 2023-10-05T21:35:47+03:00 with timezone
+         * 20231005T21:35:47-03:00 for with timezone
+         */
+        static Result<DateTime> parseIsoString(const lib::string_view& str);
 
+        /**
+         * @brief Get current UTC datetime.
+         * @return Current UTC datetime.
+         */
         static DateTime currentUtc();
 
+        /**
+         * @brief Get current local datetime.
+         * @return Current local datetime.
+         */
         static DateTime currentLocal();
 
-        static uint64_t sinceEpochMs();
+        /**
+         * @brief Construct datetime from milliseconds since epoch.
+         * @param milliseconds Milliseconds since epoch.
+         * @param tz Timezone.
+         * @return Constructed datetime or error.
+         */
+        static Result<DateTime> fromEpochMs(uint64_t milliseconds, int8_t tz=0);
 
-        static uint32_t sinceEpoch();
+        /**
+         * @brief Construct datetime from seconds since epoch.
+         * @param seconds Seconds since epoch.
+         * @param tz Timezone.
+         * @return Constructed datetime or error.
+         */
+        static Result<DateTime> fromEpoch(uint32_t seconds, int8_t tz=0);
 
+        /**
+         * @brief Construct UTC datetime from milliseconds since epoch.
+         * @param milliseconds Milliseconds since epoch.
+         * @return Constructed datetime or error.
+         */
         static Result<DateTime> utcFromEpochMs(uint64_t milliseconds)
         {
             return fromEpochMs(milliseconds,0);
         }
 
+        /**
+         * @brief Construct local datetime from milliseconds since epoch.
+         * @param milliseconds Milliseconds since epoch.
+         * @return Constructed datetime or error.
+         */
         static Result<DateTime> localFromEpochMs(uint64_t milliseconds)
         {
             return fromEpochMs(milliseconds,localTz());
         }
 
+        /**
+         * @brief Construct UTC datetime from seconds since epoch.
+         * @param seconds Seconds since epoch.
+         * @return Constructed datetime or error.
+         */
         static Result<DateTime> utcFromEpoch(uint32_t seconds)
         {
             return fromEpoch(seconds,0);
         }
 
+        /**
+         * @brief Construct local datetime from seconds since epoch.
+         * @param seconds Seconds since epoch.
+         * @return Constructed datetime or error.
+         */
         static Result<DateTime> localFromEpoch(uint32_t seconds)
         {
             return fromEpoch(seconds,localTz());
         }
 
-        static Result<DateTime> fromEpochMs(uint64_t seconds, int8_t tz=0);
-
-        static Result<DateTime> fromEpoch(uint32_t seconds, int8_t tz=0);
-
+        /**
+         * @brief Get local timezone.
+         * @return Local timezone.
+         */
         static int8_t localTz();
 
+        /**
+         * @brief Convert datetime to datetime with given timezone.
+         * @param from Original datetime.
+         * @param tz Timezone.
+         * @return Converted datetime or error.
+         */
         static Result<DateTime> toTz(const DateTime& from, int8_t tz=0);
 
+        /**
+         * @brief Convert datetime to datetime with given timezone.
+         * @param from Original datetime.
+         * @param tz Timezone.
+         * @return Converted datetime or error.
+         */
         template <typename T>
         static Result<DateTime> toTz(const DateTime& from, T tz=0)
         {
             return toTz(from,static_cast<decltype(m_tz)>(tz));
         }
 
+        /**
+         * @brief Validate timezone.
+         * @param tz Timezone.
+         * @return Validation result.
+         */
         template <typename T>
         static Error validateTz(T tz)
         {
-            if ((tz < (-12)) || tz>12)
+            if (abs(tz)>12)
             {
                 return CommonError::INVALID_DATETIME_FORMAT;
             }
             return OK;
         }
 
+        /**
+         * @brief Get current milliseconds since epoch.
+         * @return Milliseconds since epoch till now.
+         */
+        static uint64_t millisecondsSinceEpoch();
+
+        /**
+         * @brief Get current seconds since epoch.
+         * @return Seconds since epoch till now.
+         */
+        static uint32_t secondsSinceEpoch();
+
+        /**
+         * @brief Check if datetime is before other regardless of timezone.
+         * @param other Other datetime.
+         * @return True if this is before other.
+         */
         bool before(const DateTime& other) const
         {
-            return sinceEpochMs()<other.sinceEpochMs();
+            return toEpochMs()<other.toEpochMs();
         }
 
+        /**
+         * @brief Check if datetime is after other regardless of timezone.
+         * @param other Other datetime.
+         * @return True if this is after other.
+         */
         bool after(const DateTime& other) const
         {
-            return sinceEpochMs()>other.sinceEpochMs();
+            return toEpochMs()>other.toEpochMs();
         }
 
+        /**
+         * @brief Check if datetimes are equal regardless of timezone.
+         * @param other Other datetime.
+         * @return True if datetimes are equal.
+         */
         bool equal(const DateTime& other) const
         {
-            return sinceEpochMs()==other.sinceEpochMs();
+            return toEpochMs()==other.toEpochMs();
         }
 
+        /**
+         * @brief Check if datetime is before or equal to other regardless of timezone.
+         * @param other Other datetime.
+         * @return True if this is before or equal to other.
+         */
         bool beforeOrEqual(const DateTime& other) const
         {
-            return sinceEpochMs()<=other.sinceEpochMs();
+            return toEpochMs()<=other.toEpochMs();
         }
 
+        /**
+         * @brief Check if datetime is after or equal to other regardless of timezone.
+         * @param other Other datetime.
+         * @return True if this is after or equal to other.
+         */
         bool afterOrEqual(const DateTime& other) const
         {
-            return sinceEpochMs()>=other.sinceEpochMs();
+            return toEpochMs()>=other.toEpochMs();
         }
 
+        /**
+         * @brief Equality operator, datetimes are equal if all their members are equal including timezones.
+         * @param other Other datetime.
+         * @return True if datetimes are equal.
+         */
         bool operator ==(const DateTime& other) const noexcept
         {
             return m_tz==other.m_tz && m_date==other.m_date && m_time==other.m_time;
         }
 
+        /**
+         * @brief operator != negates operator ==.
+         * @param other Other datetime.
+         * @return Operation result.
+         */
+        bool operator !=(const DateTime& other) const noexcept
+        {
+            return !(*this==other);
+        }
+
+        /**
+         * @brief operator < compares datetimes since epoch and timezones.
+         * @param other Other datetime.
+         * @return Operation result.
+         */
         bool operator <(const DateTime& other) const
         {
-            auto s=sinceEpochMs();
-            auto o=other.sinceEpochMs();
+            auto s=toEpochMs();
+            auto o=other.toEpochMs();
 
             if (s<o)
             {
@@ -687,10 +903,15 @@ class HATN_COMMON_EXPORT DateTime
             return false;
         }
 
+        /**
+         * @brief operator <= compares datetimes since epoch and timezones.
+         * @param other Other datetime.
+         * @return Operation result.
+         */
         bool operator <=(const DateTime& other) const
         {
-            auto s=sinceEpochMs();
-            auto o=other.sinceEpochMs();
+            auto s=toEpochMs();
+            auto o=other.toEpochMs();
 
             if (s<o)
             {
@@ -704,10 +925,15 @@ class HATN_COMMON_EXPORT DateTime
             return false;
         }
 
+        /**
+         * @brief operator > compares datetimes since epoch and timezones.
+         * @param other Other datetime.
+         * @return Operation result.
+         */
         bool operator >(const DateTime& other) const
         {
-            auto s=sinceEpochMs();
-            auto o=other.sinceEpochMs();
+            auto s=toEpochMs();
+            auto o=other.toEpochMs();
 
             if (s>o)
             {
@@ -721,10 +947,15 @@ class HATN_COMMON_EXPORT DateTime
             return false;
         }
 
+        /**
+         * @brief operator >= compares datetimes since epoch and timezones.
+         * @param other Other datetime.
+         * @return Operation result.
+         */
         bool operator >=(const DateTime& other) const
         {
-            auto s=sinceEpochMs();
-            auto o=other.sinceEpochMs();
+            auto s=toEpochMs();
+            auto o=other.toEpochMs();
 
             if (s>o)
             {
@@ -738,36 +969,72 @@ class HATN_COMMON_EXPORT DateTime
             return false;
         }
 
+        /**
+         * @brief Add days.
+         * @param value Days to add.
+         */
         void addDays(int value)
         {
             m_date.addDays(value);
         }
 
+        /**
+         * @brief Add hours.
+         * @param value Hours to add.
+         */
         void addHours(int value);
 
+        /**
+         * @brief Add minutes.
+         * @param value Minutes to add.
+         */
         void addMinutes(int value);
 
+        /**
+         * @brief Add seconds.
+         * @param value Seconds to add.
+         */
         void addSeconds(int value);
 
+        /**
+         * @brief Add milliseconds.
+         * @param value Milliseconds to add.
+         */
         void addMilliseconds(int value);
 
-        uint64_t diffMilliseconds(const DateTime& other) const
+        /**
+         * @brief Calculate difference with other datetime in milliseconds.
+         * @param other Other datetime.
+         * @return Difference in milliseconds.
+         */
+        int64_t diffMilliseconds(const DateTime& other) const
         {
-            return sinceEpochMs()-other.sinceEpochMs();
+            return static_cast<int64_t>(toEpochMs())-static_cast<int64_t>(other.toEpochMs());
         }
 
-        uint32_t diffSeconds(const DateTime& other) const
+        /**
+         * @brief Calculate difference with other datetime in seconds.
+         * @param other Other datetime.
+         * @return Difference in seconds.
+         */
+        int32_t diffSeconds(const DateTime& other) const
         {
-            return sinceEpoch()-other.sinceEpoch();
+            return toEpoch()-other.toEpoch();
         }
 
-        std::tuple<uint32_t,uint8_t,uint8_t> diff(const DateTime& other) const
+        /**
+         * @brief Calculate difference with other datetime.
+         * @param other Other datetime.
+         * @return Difference.
+         */
+        Diff diff(const DateTime& other) const
         {
             auto d=diffSeconds(other);
-            auto h=d/3600;
-            auto m=(d-h*3600)/60;
-            auto s=d%60;
-            return std::make_tuple(h,m,s);
+            Diff r;
+            r.hours=d/3600;
+            r.minutes=(d-r.hours*3600)/60;
+            r.seconds=d%60;
+            return r;
         }
 
     private:

@@ -350,4 +350,300 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_CHECK(t5<=t4);
 }
 
+BOOST_AUTO_TEST_CASE(TestDateTime)
+{
+    // null
+    DateTime dt1;
+    BOOST_REQUIRE(dt1.isNull());
+    BOOST_REQUIRE(!dt1.isValid());
+
+    // current
+    auto dt2=DateTime::currentUtc();
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC with ms: {}",dt2.toIsoString()));
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC without ms: {}",dt2.toIsoString(false)));
+    BOOST_REQUIRE(!dt2.isNull());
+    BOOST_REQUIRE(dt2.isValid());
+
+    dt2=DateTime::currentLocal();
+    BOOST_TEST_MESSAGE(fmt::format("datetime local: {}",dt2.toIsoString()));
+    BOOST_REQUIRE(!dt2.isNull());
+    BOOST_REQUIRE(dt2.isValid());
+
+    auto msSinceEpoch=DateTime::millisecondsSinceEpoch();
+    auto dt2_1ms=DateTime::fromEpochMs(msSinceEpoch);
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC ms since epoch: {}",dt2_1ms.value().toIsoString()));
+    BOOST_REQUIRE(!dt2_1ms.value().isNull());
+    auto secsSinceEpoch=DateTime::secondsSinceEpoch();
+    auto dt2_1=DateTime::fromEpoch(secsSinceEpoch);
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC since epoch: {}",dt2_1.value().toIsoString()));
+    BOOST_REQUIRE(!dt2_1.value().isNull());
+
+    // ctor
+    auto dt3=DateTime{Date{2024,03,31},Time{11,23,17,254},-5};
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3: {}",dt3.toIsoString()));
+    BOOST_REQUIRE(!dt3.isNull());
+    BOOST_REQUIRE(dt3.isValid());
+    BOOST_CHECK_EQUAL(dt3.date().year(),2024);
+    BOOST_CHECK_EQUAL(dt3.date().month(),3);
+    BOOST_CHECK_EQUAL(dt3.date().day(),31);
+    BOOST_CHECK_EQUAL(dt3.time().hour(),11);
+    BOOST_CHECK_EQUAL(dt3.time().minute(),23);
+    BOOST_CHECK_EQUAL(dt3.time().second(),17);
+    BOOST_CHECK_EQUAL(dt3.time().millisecond(),254);
+    BOOST_CHECK_EQUAL(dt3.tz(),-5);
+
+    // since epoch
+    auto dt4=DateTime{Date{2024,03,31},Time{11,23,17,254},0};
+    auto ep4=dt4.toEpoch();
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4 UTC: {}, {}",dt4.toIsoString(),ep4));
+    auto dt5=DateTime::fromEpoch(ep4);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC: {}, {}",dt5.value().toIsoString(),dt5.value().toEpoch()));
+    auto dt5_1=DateTime::utcFromEpoch(ep4);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5_1 UTC: {}, {}",dt5_1.value().toIsoString(),dt5_1.value().toEpoch()));
+    auto ep4Ms=dt4.toEpochMs();
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4 UTC ms: {}, {}",dt4.toIsoString(),ep4Ms));
+    auto dt4Ms1=DateTime::utcFromEpochMs(ep4Ms);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4_1 UTC ms: {}, {}",dt4Ms1.value().toIsoString(),dt4Ms1.value().toEpochMs()));
+    BOOST_CHECK_EQUAL(dt4Ms1.value().toEpochMs(),ep4Ms);
+    auto dt5Ms=DateTime::fromEpochMs(ep4Ms);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC ms: {}, {}",dt5Ms.value().toIsoString(),dt5Ms.value().toEpochMs()));
+
+    uint64_t ep3Ms=dt3.toEpochMs();
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3 tz -05: {}, {}",dt3.toIsoString(),ep3Ms));
+    auto r6=DateTime::fromEpochMs(ep3Ms,dt3.tz());
+    BOOST_REQUIRE(!r6);
+    auto dt6=r6.takeValue();
+    BOOST_REQUIRE(!dt6.isNull());
+    BOOST_REQUIRE(dt6.isValid());
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 6: {}, {}",dt6.toIsoString(),dt6.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt6.date().year(),2024);
+    BOOST_CHECK_EQUAL(dt6.date().month(),3);
+    BOOST_CHECK_EQUAL(dt6.date().day(),31);
+    BOOST_CHECK_EQUAL(dt6.time().hour(),11);
+    BOOST_CHECK_EQUAL(dt6.time().minute(),23);
+    BOOST_CHECK_EQUAL(dt6.time().second(),17);
+    BOOST_CHECK_EQUAL(dt6.time().millisecond(),254);
+    BOOST_CHECK_EQUAL(dt6.tz(),-5);
+
+    // convert tz
+    auto dt7Utc=dt6.toUtc();
+    BOOST_REQUIRE(!dt7Utc.isNull());
+    BOOST_REQUIRE(dt7Utc.isValid());
+    BOOST_TEST_MESSAGE(fmt::format("converted datetime 7 UTC: {}, {}",dt7Utc.toIsoString(),dt7Utc.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt6.toEpochMs(),dt7Utc.toEpochMs());
+    auto dt8Local=dt7Utc.toLocal();
+    BOOST_TEST_MESSAGE(fmt::format("converted datetime 8 local: {}, {}",dt8Local.toIsoString(),dt8Local.toEpochMs()));
+    auto localMs=dt8Local.toEpochMs();
+    auto localS=dt8Local.toEpoch();
+    auto dt8LocalMs=DateTime::localFromEpochMs(localMs);
+    BOOST_TEST_MESSAGE(fmt::format("local datetime 8 ms: {}, {}",dt8LocalMs.value().toIsoString(),dt8LocalMs.value().toEpochMs()));
+    BOOST_CHECK_EQUAL(dt8LocalMs.value().toEpochMs(),localMs);
+    auto dt8LocalS=DateTime::localFromEpoch(localS);
+    BOOST_TEST_MESSAGE(fmt::format("local datetime 8: {}, {}",dt8LocalS.value().toIsoString(),dt8LocalS.value().toEpoch()));
+    BOOST_CHECK_EQUAL(dt8LocalS.value().toEpoch(),localS);
+
+    // set tz
+    dt3.setTz(-6);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3 with tz -06: {}, {}",dt3.toIsoString(),dt3.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt3.date().year(),2024);
+    BOOST_CHECK_EQUAL(dt3.date().month(),3);
+    BOOST_CHECK_EQUAL(dt3.date().day(),31);
+    BOOST_CHECK_EQUAL(dt3.time().hour(),11);
+    BOOST_CHECK_EQUAL(dt3.time().minute(),23);
+    BOOST_CHECK_EQUAL(dt3.time().second(),17);
+    BOOST_CHECK_EQUAL(dt3.time().millisecond(),254);
+    BOOST_CHECK_EQUAL(dt3.tz(),-6);
+    BOOST_CHECK_EQUAL(dt3.toEpochMs(),1711905797254);
+
+    // local tz
+    BOOST_TEST_MESSAGE(fmt::format("local tz: {}",DateTime::localTz()));
+
+    // before/after
+    auto dt9=DateTime{Date{2024,03,31},Time{11,23,17,254},-5};
+    auto dt10=dt9;
+    BOOST_CHECK(dt9.equal(dt10));
+    BOOST_CHECK(!dt9.after(dt10));
+    BOOST_CHECK(dt9.afterOrEqual(dt10));
+    BOOST_CHECK(!dt9.before(dt10));
+    BOOST_CHECK(dt9.beforeOrEqual(dt10));
+    BOOST_CHECK(!dt10.after(dt9));
+    BOOST_CHECK(dt10.afterOrEqual(dt9));
+    BOOST_CHECK(!dt10.before(dt9));
+    BOOST_CHECK(dt10.beforeOrEqual(dt9));
+    BOOST_CHECK(dt9==dt10);
+    BOOST_CHECK(!(dt9<dt10));
+    BOOST_CHECK(dt9<=dt10);
+    BOOST_CHECK(!(dt9>dt10));
+    BOOST_CHECK(dt9>=dt10);
+    dt10.addSeconds(100);
+    BOOST_CHECK(!dt9.equal(dt10));
+    BOOST_CHECK(!dt9.after(dt10));
+    BOOST_CHECK(!dt9.afterOrEqual(dt10));
+    BOOST_CHECK(dt9.before(dt10));
+    BOOST_CHECK(dt9.beforeOrEqual(dt10));
+    BOOST_CHECK(dt10.after(dt9));
+    BOOST_CHECK(dt10.afterOrEqual(dt9));
+    BOOST_CHECK(!dt10.before(dt9));
+    BOOST_CHECK(!dt10.beforeOrEqual(dt9));
+    BOOST_CHECK(dt9!=dt10);
+    BOOST_CHECK(dt9<dt10);
+    BOOST_CHECK(dt9<=dt10);
+    BOOST_CHECK(!(dt9>dt10));
+    BOOST_CHECK(!(dt9>=dt10));
+
+    // add/diff
+    BOOST_TEST_MESSAGE(fmt::format("dt9: {}, {}",dt9.toIsoString(),dt9.toEpochMs()));
+    BOOST_TEST_MESSAGE(fmt::format("dt10: {}, {}",dt10.toIsoString(),dt10.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-100);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),100);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-100000);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),100000);
+    auto diff1=dt9.diff(dt10);
+    BOOST_CHECK_EQUAL(diff1.hours,0);
+    BOOST_CHECK_EQUAL(diff1.minutes,-1);
+    BOOST_CHECK_EQUAL(diff1.seconds,-40);
+    dt10.addSeconds(-100);
+    BOOST_CHECK(dt9==dt10);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),0);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),0);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),0);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),0);
+    dt10.addMilliseconds(1010);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-1);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),1);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-1010);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),1010);
+    dt10.addMilliseconds(-1010);
+    dt10.addMinutes(3);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-180);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),180);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-180000);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),180000);
+    auto diff2=dt9.diff(dt10);
+    BOOST_CHECK_EQUAL(diff2.hours,0);
+    BOOST_CHECK_EQUAL(diff2.minutes,-3);
+    BOOST_CHECK_EQUAL(diff2.seconds,0);
+    auto diff2_1=dt10.diff(dt9);
+    BOOST_CHECK_EQUAL(diff2_1.hours,0);
+    BOOST_CHECK_EQUAL(diff2_1.minutes,3);
+    BOOST_CHECK_EQUAL(diff2_1.seconds,0);
+    dt10.addMinutes(-3);
+    dt10.addHours(2);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-7200);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),7200);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-7200000);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),7200000);
+    diff2=dt9.diff(dt10);
+    BOOST_CHECK_EQUAL(diff2.hours,-2);
+    BOOST_CHECK_EQUAL(diff2.minutes,0);
+    BOOST_CHECK_EQUAL(diff2.seconds,0);
+    diff2_1=dt10.diff(dt9);
+    BOOST_CHECK_EQUAL(diff2_1.hours,2);
+    BOOST_CHECK_EQUAL(diff2_1.minutes,0);
+    BOOST_CHECK_EQUAL(diff2_1.seconds,0);
+    dt10.addHours(-2);
+    dt10.addSeconds(7432);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-7432);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),7432);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-7432000);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),7432000);
+    diff2=dt9.diff(dt10);
+    BOOST_CHECK_EQUAL(diff2.hours,-2);
+    BOOST_CHECK_EQUAL(diff2.minutes,-3);
+    BOOST_CHECK_EQUAL(diff2.seconds,-52);
+    diff2_1=dt10.diff(dt9);
+    BOOST_CHECK_EQUAL(diff2_1.hours,2);
+    BOOST_CHECK_EQUAL(diff2_1.minutes,3);
+    BOOST_CHECK_EQUAL(diff2_1.seconds,52);
+    dt10.addSeconds(-7432);
+    dt10.addDays(5);
+    BOOST_CHECK_EQUAL(dt9.diffSeconds(dt10),-432000);
+    BOOST_CHECK_EQUAL(dt10.diffSeconds(dt9),432000);
+    BOOST_CHECK_EQUAL(dt9.diffMilliseconds(dt10),-432000000);
+    BOOST_CHECK_EQUAL(dt10.diffMilliseconds(dt9),432000000);
+    diff2=dt9.diff(dt10);
+    BOOST_CHECK_EQUAL(diff2.hours,-120);
+    BOOST_CHECK_EQUAL(diff2.minutes,0);
+    BOOST_CHECK_EQUAL(diff2.seconds,0);
+    diff2_1=dt10.diff(dt9);
+    BOOST_CHECK_EQUAL(diff2_1.hours,120);
+    BOOST_CHECK_EQUAL(diff2_1.minutes,0);
+    BOOST_CHECK_EQUAL(diff2_1.seconds,0);
+
+    // parsing
+    auto p1Str="2023-10-05T21:35:47.123Z";
+    auto p1=DateTime::parseIsoString(p1Str);
+    BOOST_CHECK(!p1);
+    BOOST_REQUIRE(p1.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 1: {} to {}",p1Str,p1.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.123Z",p1.value().toIsoString());
+
+    auto p2Str="20231005T21:35:47.123Z";
+    auto p2=DateTime::parseIsoString(p2Str);
+    BOOST_CHECK(!p2);
+    BOOST_REQUIRE(p2.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 2: {} to {}",p2Str,p2.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.123Z",p2.value().toIsoString());
+
+    auto p3Str="2023-10-05T21:35:47Z";
+    auto p3=DateTime::parseIsoString(p3Str);
+    BOOST_CHECK(!p3);
+    BOOST_REQUIRE(p3.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 3: {} to {}",p3Str,p3.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47Z",p3.value().toIsoString());
+
+    auto p4Str="20231005T21:35:47Z";
+    auto p4=DateTime::parseIsoString(p4Str);
+    BOOST_CHECK(!p4);
+    BOOST_REQUIRE(p4.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 4: {} to {}",p4Str,p4.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47Z",p4.value().toIsoString());
+
+    auto p5Str="20231005T21:35:47.15Z";
+    auto p5=DateTime::parseIsoString(p5Str);
+    BOOST_CHECK(!p5);
+    BOOST_REQUIRE(p5.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 5: {} to {}",p5Str,p5.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.150Z",p5.value().toIsoString());
+
+    auto p6Str="20231005T21:35:47.156789Z";
+    auto p6=DateTime::parseIsoString(p6Str);
+    BOOST_CHECK(!p6);
+    BOOST_REQUIRE(p6.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 6: {} to {}",p6Str,p6.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.156Z",p6.value().toIsoString());
+
+    auto p7Str="2023-10-05T21:35:47.123+03:00";
+    auto p7=DateTime::parseIsoString(p7Str);
+    BOOST_CHECK(!p7);
+    BOOST_REQUIRE(p7.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 7: {} to {}",p7Str,p7.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.123+03:00",p7.value().toIsoString());
+
+    auto p8Str="20231005T21:35:47.123-03:00";
+    auto p8=DateTime::parseIsoString(p8Str);
+    BOOST_CHECK(!p8);
+    BOOST_REQUIRE(p8.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 8: {} to {}",p8Str,p8.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47.123-03:00",p8.value().toIsoString());
+
+    auto p9Str="2023-10-05T21:35:47+03:00";
+    auto p9=DateTime::parseIsoString(p9Str);
+    BOOST_CHECK(!p9);
+    BOOST_REQUIRE(p9.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 9: {} to {}",p9Str,p9.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47+03:00",p9.value().toIsoString());
+
+    auto p10Str="20231005T21:35:47-03:00";
+    auto p10=DateTime::parseIsoString(p10Str);
+    BOOST_CHECK(!p10);
+    BOOST_REQUIRE(p10.value().isValid());
+    BOOST_TEST_MESSAGE(fmt::format("parse 10: {} to {}",p10Str,p10.value().toIsoString()));
+    BOOST_CHECK_EQUAL("2023-10-05T21:35:47-03:00",p10.value().toIsoString());
+
+    auto p11Str="202310005T21:35:47-03:00";
+    auto p11=DateTime::parseIsoString(p11Str);
+    BOOST_CHECK(p11);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

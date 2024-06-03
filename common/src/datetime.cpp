@@ -48,7 +48,7 @@ namespace {
         boost::date_time::c_local_adjustor<boost::posix_time::ptime> adj;
         auto localDt=adj.utc_to_local(utc);
         auto tz=localDt-utc;
-        return std::make_pair(localDt,static_cast<int8_t>(tz.total_seconds()/60));
+        return std::make_pair(localDt,static_cast<int8_t>(tz.total_seconds()/3600));
     }
 
     boost::gregorian::date toBoostDate(const Date& dt)
@@ -58,7 +58,7 @@ namespace {
 
     boost::posix_time::time_duration toBoostTimeDuration(const Time& t)
     {
-        return boost::posix_time::time_duration{t.hour(),t.minute(),t.second(),t.millisecond()};
+        return boost::posix_time::time_duration{t.hour(),t.minute(),t.second(),t.millisecond()*1000};
     }
 
     boost::posix_time::ptime toBoostPtime(const DateTime& dt)
@@ -640,7 +640,7 @@ std::string DateTime::toIsoString(bool withMilliseconds) const
     }
     else
     {
-        fmt::format_to(std::back_inserter(buf),"{:+02d}:00",m_tz);
+        fmt::format_to(std::back_inserter(buf),"{:+03d}:00",m_tz);
     }
 
     return fmtBufToString(buf);
@@ -738,14 +738,14 @@ DateTime DateTime::currentLocal()
 
 //---------------------------------------------------------------
 
-uint64_t DateTime::sinceEpochMs()
+uint64_t DateTime::millisecondsSinceEpoch()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 //---------------------------------------------------------------
 
-uint32_t DateTime::sinceEpoch()
+uint32_t DateTime::secondsSinceEpoch()
 {
     return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
@@ -765,7 +765,7 @@ Result<DateTime> DateTime::fromEpochMs(uint64_t value, int8_t tz)
 {
     auto seconds=value/1000;
     auto ms=value%1000;
-    seconds+=tz*60;
+    seconds+=tz*3600;
 
     auto pt=boost::posix_time::from_time_t(seconds);
     auto date=pt.date();
@@ -782,17 +782,7 @@ Result<DateTime> DateTime::fromEpochMs(uint64_t value, int8_t tz)
 
 Result<DateTime> DateTime::fromEpoch(uint32_t value, int8_t tz)
 {
-    auto seconds=value+tz*60;
-
-    auto pt=boost::posix_time::from_time_t(seconds);
-    auto date=pt.date();
-    auto dt=pt.time_of_day();
-
-    return DateTime{
-        Date{date.year(),date.month(),date.day()},
-        Time{dt.hours(),dt.minutes(),dt.seconds(),0},
-        tz
-    };
+    return fromEpochMs(static_cast<uint64_t>(value)*1000,tz);
 }
 
 //---------------------------------------------------------------
@@ -805,48 +795,31 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
     {
         return from;
     }
-
     auto diff=tz-from.m_tz;
-    auto fromEpoch=from.toEpochMs();
-    fromEpoch+=diff*60000;
 
-    return fromEpochMs(fromEpoch,tz);
+    auto pt=toBoostPtime(from);
+    auto fromEpoch=boost::posix_time::to_time_t(pt)*1000+from.time().millisecond();
+    fromEpoch+=diff*3600000;
+
+    auto r=fromEpochMs(fromEpoch,0);
+    HATN_CHECK_RESULT(r)
+    r.value().setTz(tz);
+    return r;
 }
 
 //---------------------------------------------------------------
 
 uint64_t DateTime::toEpochMs() const
 {
-    auto* utc=this;
-    DateTime tmpUtc;
-    if (m_tz!=0)
-    {
-        tmpUtc=toUtc();
-        utc=&tmpUtc;
-    }
-
-    auto pt=toBoostPtime(*utc);
-    auto epoch=boost::posix_time::ptime{boost::gregorian::date{1970,1,1}};
-    auto duration=pt-epoch;
-    return duration.total_milliseconds();
+    auto pt=toBoostPtime(*this);
+    return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - m_tz*3600000;
 }
 
 //---------------------------------------------------------------
 
 uint32_t DateTime::toEpoch() const
 {
-    auto* utc=this;
-    DateTime tmpUtc;
-    if (m_tz!=0)
-    {
-        tmpUtc=toUtc();
-        utc=&tmpUtc;
-    }
-
-    auto pt=toBoostPtime(*utc);
-    auto epoch=boost::posix_time::ptime{boost::gregorian::date{1970,1,1}};
-    auto duration=pt-epoch;
-    return duration.total_seconds();
+    return static_cast<uint32_t>(toEpochMs()/1000);
 }
 
 //---------------------------------------------------------------
@@ -884,7 +857,7 @@ void DateTime::addSeconds(int value)
 void DateTime::addMilliseconds(int value)
 {
     auto pt=toBoostPtime(*this);
-    boost::posix_time::time_duration dd{0,0,0,value};
+    boost::posix_time::time_duration dd{0,0,0,1000*value};
     pt+=dd;
     *this=makeDateTime(pt,m_tz);
 }
