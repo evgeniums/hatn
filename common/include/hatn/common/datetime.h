@@ -17,6 +17,8 @@
 #ifndef HATNDATETIME_H
 #define HATNDATETIME_H
 
+#include <cmath>
+
 #include <hatn/common/common.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/error.h>
@@ -161,6 +163,11 @@ class HATN_COMMON_EXPORT Date
             return m_year==other.m_year && m_month==other.m_month && m_day==other.m_day;
         }
 
+        bool operator!=(const Date& other) const noexcept
+        {
+            return !(*this==other);
+        }
+
         bool operator<(const Date& other) const noexcept
         {
             return toNumber()<other.toNumber();
@@ -191,7 +198,10 @@ class HATN_COMMON_EXPORT Date
 
         static uint16_t daysInMonth(uint16_t year,uint8_t month);
 
-        bool isLeapYear() const;
+        bool isLeapYear() const
+        {
+            return isLeapYear(m_year);
+        }
 
         static bool isLeapYear(uint16_t year);
 
@@ -394,10 +404,83 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        void addHours(int value)
+        {
+            auto hour=(m_hour+value)%24;
+            if (hour<0)
+            {
+                hour+=24;
+            }
+            m_hour=hour;
+        }
+
+        void addMinutes(int value)
+        {
+            if (abs(value)>=60)
+            {
+                addHours(value/60);
+            }
+            auto minute=m_minute+value%60;
+            if (minute<0)
+            {
+                addHours(-1);
+                minute+=60;
+            } else if (minute>=60)
+            {
+                addHours(1);
+                minute-=60;
+            }
+            m_minute=minute;
+        }
+
+        void addSeconds(int value)
+        {
+            if (abs(value)>=60)
+            {
+                addMinutes(value/60);
+            }
+            auto second=m_second+value%60;
+            if (second<0)
+            {
+                addMinutes(-1);
+                second+=60;
+            } else if (second>=60)
+            {
+                addMinutes(1);
+                second-=60;
+            }
+            m_second=second;
+        }
+
+        void addMilliseconds(int value)
+        {
+            auto s=value/1000;
+            if (abs(s)>0)
+            {
+                addSeconds(s);
+            }
+            auto millisecond=m_millisecond+value%1000;
+            if (millisecond<0)
+            {
+                addSeconds(-1);
+                millisecond+=1000;
+            } else if (millisecond>=1000)
+            {
+                addSeconds(1);
+                millisecond-=1000;
+            }
+            m_millisecond=millisecond;
+        }
+
         bool operator==(const Time& other) const noexcept
         {
             return m_hour==other.m_hour&& m_minute==other.m_minute && m_second==other.m_second
                 && m_millisecond==other.m_millisecond;
+        }
+
+        bool operator!=(const Time& other) const noexcept
+        {
+            return !(*this==other);
         }
 
         bool operator<(const Time& other) const noexcept
@@ -667,6 +750,25 @@ class HATN_COMMON_EXPORT DateTime
         void addSeconds(int value);
 
         void addMilliseconds(int value);
+
+        uint64_t diffMilliseconds(const DateTime& other) const
+        {
+            return sinceEpochMs()-other.sinceEpochMs();
+        }
+
+        uint32_t diffSeconds(const DateTime& other) const
+        {
+            return sinceEpoch()-other.sinceEpoch();
+        }
+
+        std::tuple<uint32_t,uint8_t,uint8_t> diff(const DateTime& other) const
+        {
+            auto d=diffSeconds(other);
+            auto h=d/3600;
+            auto m=(d-h*3600)/60;
+            auto s=d%60;
+            return std::make_tuple(h,m,s);
+        }
 
     private:
 

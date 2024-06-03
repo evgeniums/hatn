@@ -9,10 +9,12 @@ BOOST_AUTO_TEST_SUITE(TestDateTime)
 
 BOOST_AUTO_TEST_CASE(TestDate)
 {
+    // null
     Date dt1;
     BOOST_REQUIRE(dt1.isNull());
     BOOST_REQUIRE(!dt1.isValid());
 
+    // current
     auto dt2=Date::currentUtc();
     BOOST_TEST_MESSAGE(fmt::format("today UTC: {:04d}{:02d}{:02d}",dt2.year(),dt2.month(),dt2.day()));
     BOOST_REQUIRE(!dt2.isNull());
@@ -23,6 +25,7 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_REQUIRE(!dt2.isNull());
     BOOST_REQUIRE(dt2.isValid());
 
+    // ctor
     auto dt3=Date{2024,03,31};
     BOOST_TEST_MESSAGE(fmt::format("fixed date: {:04d}{:02d}{:02d}",dt3.year(),dt3.month(),dt3.day()));
     BOOST_REQUIRE(!dt3.isNull());
@@ -31,6 +34,10 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_CHECK_EQUAL(dt3.month(),3);
     BOOST_CHECK_EQUAL(dt3.day(),31);
 
+    // to number
+    BOOST_CHECK_EQUAL(dt3.toNumber(),20240331);
+
+    // to string
     BOOST_CHECK_EQUAL(dt3.toString(Date::Format::Iso),"2024-03-31");
     BOOST_CHECK_EQUAL(dt3.toString(Date::Format::IsoSlash),"2024/03/31");
     BOOST_CHECK_EQUAL(dt3.toString(Date::Format::Number),"20240331");
@@ -43,6 +50,7 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_CHECK_EQUAL(dt3.toString(Date::Format::UsShortSlash),"03/31/24");
     BOOST_CHECK_EQUAL(dt3.toString(Date::Format::EuropeShortSlash),"31/03/24");
 
+    // parse
     auto checkParse=[](const std::string& str, Date::Format format)
     {
         auto r=Date::parse(str,format);
@@ -65,6 +73,7 @@ BOOST_AUTO_TEST_CASE(TestDate)
     auto r=Date::parse("20240331",Date::Format::Iso);
     BOOST_REQUIRE(r);
 
+    // set
     auto ec=dt3.setYear(2025);
     BOOST_REQUIRE(!ec);
     BOOST_CHECK_EQUAL(dt3.year(),2025);
@@ -101,6 +110,7 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_CHECK_EQUAL(dt3.month(),2);
     BOOST_CHECK_EQUAL(dt3.day(),5);
 
+    // reset
     dt3.reset();
     BOOST_CHECK_EQUAL(dt3.year(),0);
     BOOST_CHECK_EQUAL(dt3.month(),0);
@@ -108,19 +118,82 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_REQUIRE(dt3.isNull());
     BOOST_REQUIRE(!dt3.isValid());
 
+    // validate throw
     auto h1=[]{
         auto dt4=Date{2024,03,33};
         std::ignore=dt4;
     };
     BOOST_CHECK_THROW(h1(),std::runtime_error);
+
+    // add days
+    auto dt4=Date{2024,01,22};
+    dt4.addDays(1);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),1);
+    BOOST_CHECK_EQUAL(dt4.day(),23);
+    dt4.addDays(-1);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),1);
+    BOOST_CHECK_EQUAL(dt4.day(),22);
+    dt4.addDays(10);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),2);
+    BOOST_CHECK_EQUAL(dt4.day(),1);
+    dt4.addDays(-52);
+    BOOST_CHECK_EQUAL(dt4.year(),2023);
+    BOOST_CHECK_EQUAL(dt4.month(),12);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),11);
+
+    // leap/day of year/week
+    auto dt5=Date{2024,01,22};
+    BOOST_CHECK(!dt4.isLeapYear());
+    BOOST_CHECK(dt5.isLeapYear());
+    BOOST_CHECK_EQUAL(dt4.dayOfYear(),345);
+    BOOST_CHECK_EQUAL(dt5.dayOfYear(),22);
+    dt4.addDays(1);
+    BOOST_CHECK_EQUAL(dt4.dayOfWeek(),2);
+    BOOST_CHECK_EQUAL(dt5.dayOfWeek(),1);
+    BOOST_CHECK_EQUAL(Date::daysInMonth(2024,1),31);
+    BOOST_CHECK_EQUAL(Date::daysInMonth(2024,2),29);
+    BOOST_CHECK_EQUAL(Date::daysInMonth(2023,2),28);
+
+    // compare
+    auto dt6=dt5;
+    BOOST_CHECK(dt5==dt6);
+    BOOST_CHECK(dt5>=dt6);
+    BOOST_CHECK(dt5<=dt6);
+    BOOST_CHECK(!(dt5<dt6));
+    BOOST_CHECK(!(dt5>dt6));
+    dt5.addDays(1);
+    BOOST_CHECK(dt5!=dt6);
+    BOOST_CHECK(dt5>dt6);
+    BOOST_CHECK(dt6<dt5);
+    BOOST_CHECK(dt5>=dt6);
+    BOOST_CHECK(dt6<=dt5);
+    dt5.addDays(-1);
+    dt5.addDays(31);
+    BOOST_CHECK(dt5!=dt6);
+    BOOST_CHECK(dt5>dt6);
+    BOOST_CHECK(dt6<dt5);
+    BOOST_CHECK(dt5>=dt6);
+    BOOST_CHECK(dt6<=dt5);
+    dt5.addDays(-31);
+    dt5.addDays(365);
+    BOOST_CHECK(dt5!=dt6);
+    BOOST_CHECK(dt5>dt6);
+    BOOST_CHECK(dt6<dt5);
+    BOOST_CHECK(dt5>=dt6);
+    BOOST_CHECK(dt6<=dt5);
 }
 
 BOOST_AUTO_TEST_CASE(TestTime)
 {
+    // null
     Time t1;
     BOOST_REQUIRE(t1.isNull());
     BOOST_REQUIRE(!t1.isValid());
 
+    // current
     auto t2=Time::currentUtc();
     BOOST_TEST_MESSAGE(fmt::format("current UTC: {:02d}:{:02d}:{:02d}.{:03d}",t2.hour(),t2.minute(),t2.second(),t2.millisecond()));
     BOOST_REQUIRE(!t2.isNull());
@@ -131,6 +204,7 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_REQUIRE(!t2.isNull());
     BOOST_REQUIRE(t2.isValid());
 
+    // ctor
     auto t3=Time{11,23,17,254};
     BOOST_TEST_MESSAGE(t3.toString());
     BOOST_REQUIRE(!t3.isNull());
@@ -140,6 +214,10 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_CHECK_EQUAL(t3.second(),17);
     BOOST_CHECK_EQUAL(t3.millisecond(),254);
 
+    // to number
+    BOOST_CHECK_EQUAL(t3.toNumber(),112317254);
+
+    // set
     auto ec=t3.setHour(22);
     BOOST_REQUIRE(!ec);
     BOOST_CHECK_EQUAL(t3.hour(),22);
@@ -175,6 +253,7 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_CHECK_EQUAL(t3.second(),24);
     BOOST_CHECK_EQUAL(t3.millisecond(),209);
 
+    // to string
     BOOST_CHECK_EQUAL(t3.toString(Time::FormatPrecision::Second),"19:35:24");
     BOOST_CHECK_EQUAL(t3.toString(Time::FormatPrecision::Millisecond),"19:35:24.209");
     BOOST_CHECK_EQUAL(t3.toString(Time::FormatPrecision::Minute),"19:35");
@@ -192,6 +271,7 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_CHECK_EQUAL(t3.toString(Time::FormatPrecision::Millisecond,true),"12:35:24.209 a.m.");
     BOOST_CHECK_EQUAL(t3.toString(Time::FormatPrecision::Minute,true),"12:35 a.m.");
 
+    // parse
     auto checkParse=[](const std::string& str, Time::FormatPrecision precision, bool ampm)
     {
         auto r=Time::parse(str,precision,ampm);
@@ -211,6 +291,7 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_TEST_CONTEXT("Noon p.m."){checkParse("12:35:24 p.m.",Time::FormatPrecision::Second,true);}
     BOOST_TEST_CONTEXT("Noon p.m."){checkParse("12:35 p.m.",Time::FormatPrecision::Minute,true);}
 
+    // reset
     t3.reset();
     BOOST_CHECK_EQUAL(t3.hour(),0);
     BOOST_CHECK_EQUAL(t3.minute(),0);
@@ -219,11 +300,54 @@ BOOST_AUTO_TEST_CASE(TestTime)
     BOOST_REQUIRE(t3.isNull());
     BOOST_REQUIRE(!t3.isValid());
 
+    // validate throw
     auto h1=[]{
         auto t4=Time{24,03,33,900};
         std::ignore=t4;
     };
     BOOST_CHECK_THROW(h1(),std::runtime_error);
+
+    // add
+    auto t4=Time{11,23,17,254};
+    BOOST_CHECK_EQUAL(t4.toNumber(),112317254);
+    t4.addMilliseconds(100);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112317354);
+    t4.addMilliseconds(700);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112318054);
+    t4.addMilliseconds(5000);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112323054);
+    t4.addMilliseconds(37256);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112400310);
+    t4.addSeconds(60*38);
+    BOOST_CHECK_EQUAL(t4.toNumber(),120200310);
+    t4.addMinutes(60*14+5);
+    BOOST_CHECK_EQUAL(t4.toNumber(),20700310);
+    t4.addMinutes(-(60*14+5));
+    BOOST_CHECK_EQUAL(t4.toNumber(),120200310);
+    t4.addSeconds(-(60*38));
+    BOOST_CHECK_EQUAL(t4.toNumber(),112400310);
+    t4.addMilliseconds(-37256);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112323054);
+    t4.addMilliseconds(-5000);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112318054);
+    t4.addMilliseconds(-700);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112317354);
+    t4.addMilliseconds(-100);
+    BOOST_CHECK_EQUAL(t4.toNumber(),112317254);
+
+    // compare
+    auto t5=t4;
+    BOOST_CHECK(t4==t5);
+    BOOST_CHECK(t4>=t5);
+    BOOST_CHECK(t4<=t5);
+    BOOST_CHECK(!(t4<t5));
+    BOOST_CHECK(!(t4>t5));
+    t4.addSeconds(100);
+    BOOST_CHECK(t4!=t5);
+    BOOST_CHECK(t4>t5);
+    BOOST_CHECK(t4>=t5);
+    BOOST_CHECK(t5<t4);
+    BOOST_CHECK(t5<=t4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

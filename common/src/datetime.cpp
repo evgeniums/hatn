@@ -347,13 +347,6 @@ uint16_t Date::daysInMonth(uint16_t year,uint8_t month)
 
 //---------------------------------------------------------------
 
-bool Date::isLeapYear() const
-{
-    return boost::gregorian::gregorian_calendar::is_leap_year(m_year);
-}
-
-//---------------------------------------------------------------
-
 bool Date::isLeapYear(uint16_t year)
 {
     return boost::gregorian::gregorian_calendar::is_leap_year(year);
