@@ -646,4 +646,264 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK(p11);
 }
 
+BOOST_AUTO_TEST_CASE(TestDateRange)
+{
+    DateRange r0;
+    BOOST_CHECK(!r0.isValid());
+
+    auto dt1=Date{2023,10,25};
+    auto dt2=Date{2024,03,31};
+
+    auto r1=DateRange::dateToRange(dt1,DateRange::Type::Year);
+    BOOST_REQUIRE(r1.isValid());
+    BOOST_CHECK_EQUAL(static_cast<int>(r1.type()),static_cast<int>(DateRange::Type::Year));
+    BOOST_CHECK_EQUAL(r1.year(),2023);
+    BOOST_CHECK_EQUAL(r1.range(),1);
+    BOOST_CHECK_EQUAL(r1.value(),2023001);
+    BOOST_CHECK(r1.contains(dt1));
+    BOOST_CHECK(!r1.contains(dt2));
+    auto bd=Date{2023,1,1};
+    BOOST_CHECK_EQUAL(r1.begin().toNumber(),bd.toNumber());
+    auto ed=Date{2023,12,31};
+    BOOST_CHECK_EQUAL(r1.end().toNumber(),ed.toNumber());
+
+    auto r2=DateRange::dateToRange(dt1,DateRange::Type::HalfYear);
+    BOOST_REQUIRE(r2.isValid());
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::HalfYear));
+    BOOST_CHECK_EQUAL(r2.year(),2023);
+    BOOST_CHECK_EQUAL(r2.range(),2);
+    BOOST_CHECK_EQUAL(r2.value(),12023002);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::HalfYear);
+    BOOST_REQUIRE(r2.isValid());
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::HalfYear));
+    BOOST_CHECK_EQUAL(r2.year(),2024);
+    BOOST_CHECK_EQUAL(r2.range(),1);
+    BOOST_CHECK_EQUAL(r2.value(),12024001);
+    BOOST_CHECK(r2.contains(dt2));
+    BOOST_CHECK(!r2.contains(dt1));
+    bd=Date{2024,1,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,06,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    auto r3=DateRange::dateToRange(dt1,DateRange::Type::Quarter);
+    BOOST_REQUIRE(r3.isValid());
+    BOOST_CHECK_EQUAL(static_cast<int>(r3.type()),static_cast<int>(DateRange::Type::Quarter));
+    BOOST_CHECK_EQUAL(r3.year(),2023);
+    BOOST_CHECK_EQUAL(r3.range(),4);
+    BOOST_CHECK_EQUAL(r3.value(),22023004);
+    BOOST_CHECK(r3.contains(dt1));
+    BOOST_CHECK(!r3.contains(dt2));
+    bd=Date{2023,10,1};
+    BOOST_CHECK_EQUAL(r3.begin().toNumber(),bd.toNumber());
+    ed=Date{2023,12,31};
+    BOOST_CHECK_EQUAL(r3.end().toNumber(),ed.toNumber());
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Quarter);
+    BOOST_REQUIRE(r3.isValid());
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::Quarter));
+    BOOST_CHECK_EQUAL(r2.year(),2024);
+    BOOST_CHECK_EQUAL(r2.range(),1);
+    BOOST_CHECK_EQUAL(r2.value(),22024001);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,1,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,3,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+    dt2.setMonth(5);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Quarter);
+    BOOST_CHECK_EQUAL(r2.range(),2);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,4,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,6,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+    dt2.setMonth(8);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Quarter);
+    BOOST_CHECK_EQUAL(r2.range(),3);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,7,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,9,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setDay(15);
+    dt2.setMonth(1);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::Month));
+    BOOST_CHECK_EQUAL(r2.year(),2024);
+    BOOST_CHECK_EQUAL(r2.range(),1);
+    BOOST_CHECK_EQUAL(r2.value(),32024001);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,1,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,1,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(2);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),2);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,2,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,2,29};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(3);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),3);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,3,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,3,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(4);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),4);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,4,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,4,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(5);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),5);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,5,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,5,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(6);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),6);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,6,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,6,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(7);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),7);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,7,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,7,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(8);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),8);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,8,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,8,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(9);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),9);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,9,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,9,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(10);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),10);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,10,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,10,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(11);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),11);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,11,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,11,30};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setMonth(12);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Month);
+    BOOST_CHECK_EQUAL(r2.range(),12);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,12,1};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,12,31};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+
+    dt2.setDay(15);
+    dt2.setMonth(1);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Week);
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::Week));
+    BOOST_CHECK_EQUAL(r2.year(),2024);
+    BOOST_CHECK_EQUAL(r2.range(),3);
+    BOOST_CHECK_EQUAL(r2.value(),42024003);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,1,15};
+    BOOST_CHECK_EQUAL(bd.weekNumber(),3);
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    bd=Date{2024,1,14};
+    BOOST_CHECK_EQUAL(bd.weekNumber(),2);
+    ed=Date{2024,1,21};
+    BOOST_CHECK_EQUAL(ed.weekNumber(),3);
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+    ed=Date{2024,1,22};
+    BOOST_CHECK_EQUAL(ed.weekNumber(),4);
+
+    dt2.setDay(2);
+    dt2.setMonth(2);
+    r2=DateRange::dateToRange(dt2,DateRange::Type::Day);
+    BOOST_CHECK_EQUAL(static_cast<int>(r2.type()),static_cast<int>(DateRange::Type::Day));
+    BOOST_CHECK_EQUAL(r2.year(),2024);
+    BOOST_CHECK_EQUAL(r2.range(),33);
+    BOOST_CHECK_EQUAL(r2.value(),52024033);
+    BOOST_CHECK(!r2.contains(dt1));
+    BOOST_CHECK(r2.contains(dt2));
+    bd=Date{2024,2,2};
+    BOOST_CHECK_EQUAL(r2.begin().toNumber(),bd.toNumber());
+    ed=Date{2024,2,2};
+    BOOST_CHECK_EQUAL(r2.end().toNumber(),ed.toNumber());
+    auto d=Date{2024,2,1};
+    BOOST_CHECK(!r2.contains(d));
+    d=Date{2024,2,2};
+    BOOST_CHECK(r2.contains(d));
+    BOOST_CHECK_EQUAL(d.dayOfYear(),33);
+    d=Date{2024,2,3};
+    BOOST_CHECK(!r2.contains(d));
+
+    auto bdt=DateTime(Date(2024,2,2),Time(0,0,1));
+    BOOST_CHECK(r2.beginDateTime()==bdt);
+    auto edt=DateTime(Date(2024,2,2),Time(23,59,59));
+    BOOST_CHECK(r2.endDateTime()==edt);
+    BOOST_CHECK(r2.contains(bdt));
+    BOOST_CHECK(r2.contains(edt));
+    bdt.addHours(5);
+    BOOST_CHECK(r2.contains(bdt));
+    edt.addHours(5);
+    BOOST_CHECK(!r2.contains(edt));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

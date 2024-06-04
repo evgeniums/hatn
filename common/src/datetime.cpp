@@ -864,42 +864,63 @@ void DateTime::addMilliseconds(int value)
 
 /**************************** DateRange ******************************/
 
-//---------------------------------------------------------------
-
-uint32_t DateRange::dateToRange(const Date& dt, Type type)
+uint32_t DateRange::dateToRangeNumber(const Date& dt, Type type)
 {
-    auto gd=toBoostDate(dt);
+    if (dt.isNull())
+    {
+        return 0;
+    }
 
+    auto gd=toBoostDate(dt);
     uint32_t range=0;
 
     switch (type)
     {
-        case(Type::Year):
-            break;
+    case(Type::Year):
+        range=1;
+        break;
 
-        case(Type::HalfYear):
-            range=static_cast<uint32_t>(dt.month()>6)+1;
-            break;
+    case(Type::HalfYear):
+        range=static_cast<uint32_t>(dt.month()>6)+1;
+        break;
 
-        case(Type::Quarter):
-            range=static_cast<uint32_t>(dt.month()/4)+1;
-            break;
+    case(Type::Quarter):
+    {
+        auto m=dt.month();
+        range=static_cast<uint32_t>(m/3);
+        if (m%3!=0)
+        {
+            range+=1;
+        }
+        break;
+    }
 
-        case(Type::Month):
-            range=dt.month();
-            break;
+    case(Type::Month):
+        range=dt.month();
+        break;
 
-        case(Type::Week):
-            range=gd.week_number();
-            break;
+    case(Type::Week):
+        range=gd.week_number();
+        break;
 
-        case(Type::Day):
-            range=gd.day_of_year();
-            break;
+    case(Type::Day):
+        range=gd.day_of_year();
+        break;
+
+    default:
+        type=static_cast<Type>(0);
+        break;
     }
 
     uint32_t result=range+dt.year()*1000+static_cast<uint32_t>(type)*1000*10000;
     return result;
+}
+
+//---------------------------------------------------------------
+
+DateRange DateRange::dateToRange(const Date& dt, Type type)
+{
+    return DateRange{dateToRangeNumber(dt,type)};
 }
 
 //---------------------------------------------------------------
@@ -960,7 +981,7 @@ Date DateRange::begin() const
         {
             boost::gregorian::date gd{year(),1,1};
             auto days=(weeks-1)*7;
-            boost::gregorian::date_duration dd(days+1);
+            boost::gregorian::date_duration dd(days);
             gd+=dd;
             return Date{year(),gd.month(),gd.day()};
         }
@@ -1041,7 +1062,19 @@ Date DateRange::end() const
 
     case(Type::Month):
     {
-        boost::gregorian::date gd{year(),static_cast<uint16_t>(range()+1),1};
+        uint16_t nextYear=year();
+        uint16_t nextMonth=static_cast<uint16_t>(range());
+        if (nextMonth==12)
+        {
+            nextYear+=1;
+            nextMonth=1;
+        }
+        else
+        {
+            nextMonth+=1;
+        }
+
+        boost::gregorian::date gd{nextYear,nextMonth,1};
         boost::gregorian::date_duration dd(1);
         gd-=dd;
         return Date{year(),gd.month(),gd.day()};
@@ -1055,7 +1088,7 @@ Date DateRange::end() const
         {
             boost::gregorian::date gd{year(),1,1};
             auto days=(weeks-1)*7;
-            boost::gregorian::date_duration dd(days+7);
+            boost::gregorian::date_duration dd(days+6);
             gd+=dd;
             return Date{year(),gd.month(),gd.day()};
         }
