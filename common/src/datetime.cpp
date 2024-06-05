@@ -727,6 +727,15 @@ DateTime DateTime::currentUtc()
 
 //---------------------------------------------------------------
 
+void DateTime::toCurrentUtc()
+{
+    auto pt=boost::posix_time::microsec_clock::universal_time();
+    m_date=makeDate(pt.date());
+    m_time=makeTime(pt);
+}
+
+//---------------------------------------------------------------
+
 DateTime DateTime::currentLocal()
 {
     auto utc=boost::posix_time::microsec_clock::universal_time();
@@ -734,6 +743,18 @@ DateTime DateTime::currentLocal()
     const auto& localDt=local.first;
 
     return DateTime{makeDate(localDt.date()),makeTime(localDt),local.second};
+}
+
+//---------------------------------------------------------------
+
+void DateTime::toCurrentLocal()
+{
+    auto utc=boost::posix_time::microsec_clock::universal_time();
+    auto local=utcToLocal(utc);
+    const auto& localDt=local.first;
+    m_date=makeDate(localDt.date());
+    m_time=makeTime(localDt);
+    m_tz=local.second;
 }
 
 //---------------------------------------------------------------

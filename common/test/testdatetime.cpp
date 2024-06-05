@@ -644,6 +644,26 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     auto p11Str="202310005T21:35:47-03:00";
     auto p11=DateTime::parseIsoString(p11Str);
     BOOST_CHECK(p11);
+
+    // to number / from number
+    auto dt11=DateTime{Date{2024,03,31},Time{11,23,17,254},7};
+    auto n11=dt11.toNumber();
+    BOOST_TEST_MESSAGE(fmt::format("to number: {:016x}",n11));
+    auto d12=DateTime::fromNumber(n11);
+    BOOST_CHECK(!d12);
+    BOOST_CHECK(d12.value()==dt11);
+
+    // set number
+    DateTime dt13;
+    BOOST_CHECK(dt13.isNull());
+    auto ec=dt13.setNumber(n11);
+    BOOST_CHECK(!dt13.isNull());
+    BOOST_CHECK(!ec);
+    BOOST_CHECK(dt13==dt11);
+
+    // reset
+    dt13.reset();
+    BOOST_CHECK(dt13.isNull());
 }
 
 BOOST_AUTO_TEST_CASE(TestDateRange)

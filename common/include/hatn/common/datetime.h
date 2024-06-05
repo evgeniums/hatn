@@ -941,6 +941,10 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime currentLocal();
 
+        void toCurrentUtc();
+
+        void toCurrentLocal();
+
         /**
          * @brief Construct datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
@@ -1276,6 +1280,10 @@ class HATN_COMMON_EXPORT DateTime
             return r;
         }
 
+        /**
+         * @brief Convert datetime to single number.
+         * @return Operation result.
+         */
         uint64_t toNumber() const
         {
             if (isNull())
@@ -1288,9 +1296,15 @@ class HATN_COMMON_EXPORT DateTime
                 return toEpochMs();
             }
 
-            return toEpochMs() + (static_cast<uint64_t>(m_tz)<<48);
+            auto ep=toEpochMs();
+            return ep + (static_cast<uint64_t>(m_tz)<<48);
         }
 
+        /**
+         * @brief Construct datetime from single number.
+         * @param num Number.
+         * @return Operation result.
+         */
         static Result<DateTime> fromNumber(uint64_t num)
         {
             if (num==0)
@@ -1304,8 +1318,34 @@ class HATN_COMMON_EXPORT DateTime
                 return utcFromEpochMs(num);
             }
 
-            auto epochMs=num&0xFFFFFFFFFFFFFF;
+            auto epochMs=num&0xFFFFFFFFFFFF;
             return fromEpochMs(epochMs,static_cast<int8_t>(tz));
+        }
+
+        /**
+         * @brief Set datetime from single number.
+         * @param num Number.
+         * @return Operation status.
+         */
+        Error setNumber(uint64_t num)
+        {
+            auto r=fromNumber(num);
+            if (r)
+            {
+                return r.takeError();
+            }
+            *this=r.takeValue();
+            return OK;
+        }
+
+        /**
+         * @brief Reset date time.
+         */
+        void reset() noexcept
+        {
+            m_date.reset();
+            m_time.reset();
+            m_tz=0;
         }
 
     private:
