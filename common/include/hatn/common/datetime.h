@@ -1297,7 +1297,8 @@ class HATN_COMMON_EXPORT DateTime
             }
 
             auto ep=toEpochMs();
-            return ep + (static_cast<uint64_t>(m_tz)<<48);
+            auto tz=static_cast<uint8_t>(m_tz);
+            return ep + (static_cast<uint64_t>(tz)<<48);
         }
 
         /**
