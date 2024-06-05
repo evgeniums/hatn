@@ -297,4 +297,18 @@ enum class EnumName : int {__VA_ARGS__};
 
 #define HDU_V2_INSTANTIATE(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_INST(__VA_ARGS__)(__VA_ARGS__))
 
+#define HDU_V2_INSTANTIATE_EMPTY(UnitName) \
+    template class HATN_DATAUNIT_NAMESPACE::EmptyUnit<UnitName::conf>;
+
+#ifdef _MSC_VER
+
+    #define HDU_V2_EXPORT_EMPTY(UnitName,Export) \
+        template class Export HATN_DATAUNIT_NAMESPACE::EmptyUnit<UnitName::conf>;
+
+#else
+
+    #define HDU_V2_EXPORT_EMPTY(UnitName,Export) HDU_V2_INSTANTIATE_EMPTY(UnitName)
+
+#endif
+
 #endif // HATNDATAUNITMACROS_H
