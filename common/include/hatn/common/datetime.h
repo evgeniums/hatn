@@ -1276,6 +1276,38 @@ class HATN_COMMON_EXPORT DateTime
             return r;
         }
 
+        uint64_t toNumber() const
+        {
+            if (isNull())
+            {
+                return 0;
+            }
+
+            if (m_tz==0)
+            {
+                return toEpochMs();
+            }
+
+            return toEpochMs() + (static_cast<uint64_t>(m_tz)<<48);
+        }
+
+        static Result<DateTime> fromNumber(uint64_t num)
+        {
+            if (num==0)
+            {
+                return DateTime{};
+            }
+
+            auto tz=num>>48;
+            if (tz==0)
+            {
+                return utcFromEpochMs(num);
+            }
+
+            auto epochMs=num&0xFFFFFFFFFFFFFF;
+            return fromEpochMs(epochMs,static_cast<int8_t>(tz));
+        }
+
     private:
 
         Error validate() noexcept

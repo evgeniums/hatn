@@ -89,7 +89,7 @@ Result<Date> Date::parse(const lib::string_view& str, Format format, uint16_t ba
             auto num=std::stoi(s);
             if (num<0)
             {
-                Error{CommonError::INVALID_DATE_FORMAT};
+                return Error{CommonError::INVALID_DATE_FORMAT};
             }
             HATN_CHECK_RETURN(dt.set(num))
             return dt;
@@ -295,8 +295,8 @@ void Date::addDays(int value)
     boost::gregorian::date_duration dd(value);
     gd+=dd;
     m_year=gd.year();
-    m_month=gd.month();
-    m_day=gd.day();
+    m_month=static_cast<decltype(m_month)>(gd.month());
+    m_day=static_cast<decltype(m_month)>(gd.day());
 }
 
 //---------------------------------------------------------------
@@ -309,7 +309,7 @@ uint8_t Date::dayOfWeek() const
     }
 
     auto gd=toBoostDate(*this);
-    return gd.day_of_week();
+    return static_cast<uint8_t>(gd.day_of_week());
 }
 
 //---------------------------------------------------------------
@@ -747,7 +747,7 @@ uint64_t DateTime::millisecondsSinceEpoch()
 
 uint32_t DateTime::secondsSinceEpoch()
 {
-    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 //---------------------------------------------------------------
@@ -803,7 +803,10 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
 
     auto r=fromEpochMs(fromEpoch,0);
     HATN_CHECK_RESULT(r)
-    r.value().setTz(tz);
+    if (r.value().setTz(tz))
+    {
+        return Error{CommonError::INVALID_DATETIME_FORMAT};
+    }
     return r;
 }
 
