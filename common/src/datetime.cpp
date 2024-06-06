@@ -782,7 +782,7 @@ int8_t DateTime::localTz()
 
 //---------------------------------------------------------------
 
-Result<DateTime> DateTime::fromEpochMs(uint64_t value, int8_t tz)
+DateTime DateTime::fromEpochMs(uint64_t value, int8_t tz)
 {
     auto seconds=value/1000;
     auto ms=value%1000;
@@ -801,7 +801,7 @@ Result<DateTime> DateTime::fromEpochMs(uint64_t value, int8_t tz)
 
 //---------------------------------------------------------------
 
-Result<DateTime> DateTime::fromEpoch(uint32_t value, int8_t tz)
+DateTime DateTime::fromEpoch(uint32_t value, int8_t tz)
 {
     return fromEpochMs(static_cast<uint64_t>(value)*1000,tz);
 }
@@ -822,13 +822,12 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
     auto fromEpoch=boost::posix_time::to_time_t(pt)*1000+from.time().millisecond();
     fromEpoch+=diff*3600000;
 
-    auto r=fromEpochMs(fromEpoch,0);
-    HATN_CHECK_RESULT(r)
-    if (r.value().setTz(tz))
+    auto dt=fromEpochMs(fromEpoch,0);
+    if (dt.setTz(tz))
     {
         return Error{CommonError::INVALID_DATETIME_FORMAT};
     }
-    return r;
+    return dt;
 }
 
 //---------------------------------------------------------------

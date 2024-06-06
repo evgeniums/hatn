@@ -951,7 +951,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param tz Timezone.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> fromEpochMs(uint64_t milliseconds, int8_t tz=0);
+        static DateTime fromEpochMs(uint64_t milliseconds, int8_t tz=0);
 
         /**
          * @brief Construct datetime from seconds since epoch.
@@ -959,14 +959,14 @@ class HATN_COMMON_EXPORT DateTime
          * @param tz Timezone.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> fromEpoch(uint32_t seconds, int8_t tz=0);
+        static DateTime fromEpoch(uint32_t seconds, int8_t tz=0);
 
         /**
          * @brief Construct UTC datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> utcFromEpochMs(uint64_t milliseconds)
+        static DateTime utcFromEpochMs(uint64_t milliseconds)
         {
             return fromEpochMs(milliseconds,0);
         }
@@ -976,7 +976,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param milliseconds Milliseconds since epoch.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> localFromEpochMs(uint64_t milliseconds)
+        static DateTime localFromEpochMs(uint64_t milliseconds)
         {
             return fromEpochMs(milliseconds,localTz());
         }
@@ -986,7 +986,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param seconds Seconds since epoch.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> utcFromEpoch(uint32_t seconds)
+        static DateTime utcFromEpoch(uint32_t seconds)
         {
             return fromEpoch(seconds,0);
         }
@@ -996,7 +996,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param seconds Seconds since epoch.
          * @return Constructed datetime or error.
          */
-        static Result<DateTime> localFromEpoch(uint32_t seconds)
+        static DateTime localFromEpoch(uint32_t seconds)
         {
             return fromEpoch(seconds,localTz());
         }

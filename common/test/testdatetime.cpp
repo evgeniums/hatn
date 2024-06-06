@@ -371,12 +371,12 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
 
     auto msSinceEpoch=DateTime::millisecondsSinceEpoch();
     auto dt2_1ms=DateTime::fromEpochMs(msSinceEpoch);
-    BOOST_TEST_MESSAGE(fmt::format("datetime UTC ms since epoch: {}",dt2_1ms.value().toIsoString()));
-    BOOST_REQUIRE(!dt2_1ms.value().isNull());
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC ms since epoch: {}",dt2_1ms.toIsoString()));
+    BOOST_REQUIRE(!dt2_1ms.isNull());
     auto secsSinceEpoch=DateTime::secondsSinceEpoch();
     auto dt2_1=DateTime::fromEpoch(secsSinceEpoch);
-    BOOST_TEST_MESSAGE(fmt::format("datetime UTC since epoch: {}",dt2_1.value().toIsoString()));
-    BOOST_REQUIRE(!dt2_1.value().isNull());
+    BOOST_TEST_MESSAGE(fmt::format("datetime UTC since epoch: {}",dt2_1.toIsoString()));
+    BOOST_REQUIRE(!dt2_1.isNull());
 
     // ctor
     auto dt3=DateTime{Date{2024,03,31},Time{11,23,17,254},-5};
@@ -397,22 +397,20 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     auto ep4=dt4.toEpoch();
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4 UTC: {}, {}",dt4.toIsoString(),ep4));
     auto dt5=DateTime::fromEpoch(ep4);
-    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC: {}, {}",dt5.value().toIsoString(),dt5.value().toEpoch()));
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC: {}, {}",dt5.toIsoString(),dt5.toEpoch()));
     auto dt5_1=DateTime::utcFromEpoch(ep4);
-    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5_1 UTC: {}, {}",dt5_1.value().toIsoString(),dt5_1.value().toEpoch()));
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5_1 UTC: {}, {}",dt5_1.toIsoString(),dt5_1.toEpoch()));
     auto ep4Ms=dt4.toEpochMs();
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4 UTC ms: {}, {}",dt4.toIsoString(),ep4Ms));
     auto dt4Ms1=DateTime::utcFromEpochMs(ep4Ms);
-    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4_1 UTC ms: {}, {}",dt4Ms1.value().toIsoString(),dt4Ms1.value().toEpochMs()));
-    BOOST_CHECK_EQUAL(dt4Ms1.value().toEpochMs(),ep4Ms);
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 4_1 UTC ms: {}, {}",dt4Ms1.toIsoString(),dt4Ms1.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt4Ms1.toEpochMs(),ep4Ms);
     auto dt5Ms=DateTime::fromEpochMs(ep4Ms);
-    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC ms: {}, {}",dt5Ms.value().toIsoString(),dt5Ms.value().toEpochMs()));
+    BOOST_TEST_MESSAGE(fmt::format("fixed datetime 5 UTC ms: {}, {}",dt5Ms.toIsoString(),dt5Ms.toEpochMs()));
 
     uint64_t ep3Ms=dt3.toEpochMs();
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3 tz -05: {}, {}",dt3.toIsoString(),ep3Ms));
-    auto r6=DateTime::fromEpochMs(ep3Ms,dt3.tz());
-    BOOST_REQUIRE(!r6);
-    auto dt6=r6.takeValue();
+    auto dt6=DateTime::fromEpochMs(ep3Ms,dt3.tz());
     BOOST_REQUIRE(!dt6.isNull());
     BOOST_REQUIRE(dt6.isValid());
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 6: {}, {}",dt6.toIsoString(),dt6.toEpochMs()));
@@ -436,11 +434,11 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     auto localMs=dt8Local.toEpochMs();
     auto localS=dt8Local.toEpoch();
     auto dt8LocalMs=DateTime::localFromEpochMs(localMs);
-    BOOST_TEST_MESSAGE(fmt::format("local datetime 8 ms: {}, {}",dt8LocalMs.value().toIsoString(),dt8LocalMs.value().toEpochMs()));
-    BOOST_CHECK_EQUAL(dt8LocalMs.value().toEpochMs(),localMs);
+    BOOST_TEST_MESSAGE(fmt::format("local datetime 8 ms: {}, {}",dt8LocalMs.toIsoString(),dt8LocalMs.toEpochMs()));
+    BOOST_CHECK_EQUAL(dt8LocalMs.toEpochMs(),localMs);
     auto dt8LocalS=DateTime::localFromEpoch(localS);
-    BOOST_TEST_MESSAGE(fmt::format("local datetime 8: {}, {}",dt8LocalS.value().toIsoString(),dt8LocalS.value().toEpoch()));
-    BOOST_CHECK_EQUAL(dt8LocalS.value().toEpoch(),localS);
+    BOOST_TEST_MESSAGE(fmt::format("local datetime 8: {}, {}",dt8LocalS.toIsoString(),dt8LocalS.toEpoch()));
+    BOOST_CHECK_EQUAL(dt8LocalS.toEpoch(),localS);
 
     // set tz
     dt3.setTz(-6);
