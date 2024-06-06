@@ -39,35 +39,6 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
         return;
     }
 
-    // handle _id
-    if (!object.field(db::object::_id).isSet())
-    {
-        auto& obj=const_cast<UnitT&>(object);
-        auto& id=obj.field(db::object::_id);
-        ec=db::ObjectId::GenerateId({id.dataPtr(),id.DataSize()});
-        HATN_CHECK_EMPTY_RETURN(ec)
-        obj.resetWireDataKeeper();
-    }
-
-    // handle creation time
-    if (!object.field(db::object::created_at).isSet())
-    {
-        auto& obj=const_cast<UnitT&>(object);
-        auto& f=obj.field(db::object::created_at);
-        //! @todo generate created_at
-        obj.resetWireDataKeeper();
-    }
-
-    // handle update time
-    if (!object.field(db::object::updated_at).isSet())
-    {
-        auto& obj=const_cast<UnitT&>(object);
-        auto& c=obj.field(db::object::created_at);
-        auto& u=obj.field(db::object::updated_at);
-        u.set(c.value());
-        obj.resetWireDataKeeper();
-    }
-
     // handle partition
     auto partition=handler.p()->defaultPartition;
     if (model.definition.field(db::model::partition).isSet())

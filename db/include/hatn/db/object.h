@@ -27,14 +27,33 @@
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/objectid.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
 HDU_UNIT(object,
-    HDU_FIELD(_id,HDU_TYPE_FIXED_STRING(20),1000)
-    HDU_FIELD(created_at,TYPE_UINT32,1001)
-    HDU_FIELD(updated_at,TYPE_UINT32,1002)
+    HDU_FIELD(_id,TYPE_OBJECT_ID,100)
+    HDU_FIELD(created_at,TYPE_DATETIME,101)
+    HDU_FIELD(updated_at,TYPE_DATETIME,102)
 )
+
+template <typename ObjectT>
+void initObject(ObjectT& obj)
+{
+    // generate _id
+    auto& id=obj.field(object::_id).get();
+    id.generate();
+
+    // set creation time
+    auto dt=id.toDatetime();
+    obj.field(object::created_at).set(dt);
+
+    // set update time
+    obj.field(object::updated_at).set(dt);
+
+    // reset wire data keeper
+    obj.resetWireDataKeeper();
+}
 
 HATN_DB_NAMESPACE_END
 

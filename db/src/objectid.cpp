@@ -36,7 +36,7 @@ void ObjectId::generate()
 
     if (m_timepoint>prevMs)
     {
-        if (lastMs.compare_exchange_strong(id.m_timepoint,prevMs))
+        if (lastMs.compare_exchange_strong(m_timepoint,prevMs))
         {
             if (seq.compare_exchange_strong(prevSeq,1))
             {

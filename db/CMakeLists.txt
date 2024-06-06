@@ -13,6 +13,11 @@ SET (HEADERS
     include/hatn/db/schema.h
 )
 
+SET (HEADERS
+    ${HEADERS}
+    include/hatn/db/detail/objectid.ipp
+)
+
 SET (SOURCES
     src/dberror.cpp
     src/dbplugin.cpp

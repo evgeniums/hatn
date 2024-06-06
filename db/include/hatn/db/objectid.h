@@ -28,6 +28,8 @@
 #include <hatn/common/databuf.h>
 #include <hatn/common/datetime.h>
 
+#include <hatn/dataunit/fields/custom.h>
+
 #include <hatn/db/db.h>
 
 HATN_DB_NAMESPACE_BEGIN
@@ -48,7 +50,7 @@ class HATN_DB_EXPORT ObjectId
         void generate();
 
         template <typename BufferT>
-        void serialize(BufferT& buf)
+        void serialize(BufferT& buf) const
         {
             Assert(buf.size()>=Length,"invalid buf size for ObjectId");
             fmt::format_to_n(buf.data(),Length,"{:010x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
@@ -158,6 +160,53 @@ class HATN_DB_EXPORT ObjectId
         // hex string: 2*(5+3+4) = 24 characters
 };
 
+//! Definition of DateTime type
+struct HATN_DB_EXPORT TYPE_OBJECT_ID : public HATN_DATAUNIT_NAMESPACE::types::BaseType<ObjectId,std::true_type,HATN_DATAUNIT_NAMESPACE::ValueType::Custom>
+{
+    using CustomType=std::true_type;
+};
+
+class ObjectIdTraits
+{
+    public:
+
+        using TYPE=TYPE_OBJECT_ID;
+        using type=ObjectId;
+
+        static size_t valueSize(const ObjectId&) noexcept
+        {
+            return ObjectId::Length;
+        }
+
+        constexpr static size_t fieldSize() noexcept
+        {
+            return ObjectId::Length;
+        }
+
+        template <typename BufferT>
+        static bool serialize(const ObjectId& val, BufferT& wired);
+
+        template <typename BufferT>
+        static bool deserialize(ObjectId& val, BufferT& wired, HATN_DATAUNIT_NAMESPACE::AllocatorFactory* =nullptr);
+
+        static void fieldClear(ObjectId& value)
+        {
+            value.reset();
+        }
+};
+
+using ObjectIdField=HATN_DATAUNIT_NAMESPACE::CustomField<ObjectIdTraits>;
+
 HATN_DB_NAMESPACE_END
+
+HATN_DATAUNIT_NAMESPACE_BEGIN
+
+template <>
+struct FieldTmpl<HATN_DB_NAMESPACE::TYPE_OBJECT_ID> : public HATN_DB_NAMESPACE::ObjectIdField
+{
+    using HATN_DB_NAMESPACE::ObjectIdField::ObjectIdField;
+};
+
+HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDBOBJECTID_H
