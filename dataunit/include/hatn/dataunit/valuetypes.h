@@ -53,7 +53,9 @@ enum class ValueType : int
     String,
     Bytes,
     Dataunit,
-    DateTime
+    DateTime,
+
+    Custom=256
 };
 
 namespace types {

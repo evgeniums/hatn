@@ -28,6 +28,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /********************** FixedSer **************************/
 
 //---------------------------------------------------------------
+
 template <typename T>
 struct Endianity
 {
@@ -73,6 +74,7 @@ struct Endianity<double>
 };
 
 //---------------------------------------------------------------
+
 template <typename T>
 template <typename BufferT>
 bool FixedSer<T>::serialize(const T& value, BufferT& wired)
@@ -97,6 +99,7 @@ bool FixedSer<T>::serialize(const T& value, BufferT& wired)
 }
 
 //---------------------------------------------------------------
+
 template <typename T>
 template <typename BufferT>
 bool FixedSer<T>::deserialize(T& value, BufferT& wired)
@@ -128,6 +131,7 @@ bool FixedSer<T>::deserialize(T& value, BufferT& wired)
 /********************** VariableSer **************************/
 
 //---------------------------------------------------------------
+
 template <typename T>
 template <typename BufferT>
 bool VariableSer<T>::serialize(const T& value, BufferT& wired)
@@ -143,6 +147,7 @@ bool VariableSer<T>::serialize(const T& value, BufferT& wired)
 }
 
 //---------------------------------------------------------------
+
 template <typename T>
 template <typename BufferT>
 bool VariableSer<T>::deserialize(T& value, BufferT& wired)
@@ -189,7 +194,6 @@ struct _BytesSer
 template <>
 struct _BytesSer<const common::ByteArrayShared&,const common::ByteArray*>
 {
-
     template <typename BufferT>
     static void store(
             BufferT& wired,
@@ -223,6 +227,7 @@ struct _BytesSer<common::ByteArrayShared&,common::ByteArray*>
 };
 
 //---------------------------------------------------------------
+
 template <typename onstackT,typename sharedT>
 template <typename BufferT>
 bool BytesSer<onstackT,sharedT>::serialize(
@@ -264,6 +269,7 @@ bool BytesSer<onstackT,sharedT>::serialize(
 }
 
 //---------------------------------------------------------------
+
 template <typename onstackT,typename sharedT>
 template <typename BufferT>
 bool BytesSer<onstackT,sharedT>::deserialize(
@@ -277,7 +283,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
 {
     valBuf->clear();
 
-    // find data size
+    // figure out data size
     uint32_t dataSize=0;
     auto* buf=wired.mainContainer();
     size_t availableBufSize=buf->size()-wired.currentOffset();
@@ -429,7 +435,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
 template <typename UnitT, typename BufferT>
 bool UnitSer::deserialize(UnitT* value, BufferT& wired)
 {
-    // find data size
+    // figure out data size
     uint32_t dataSize=0;
     auto* buf=wired.mainContainer();
     size_t availableBufSize=buf->size()-wired.currentOffset();
@@ -474,6 +480,81 @@ bool UnitSer::deserialize(UnitT* value, BufferT& wired)
     return ok;
 }
 
+/********************** AsBytesSer **************************/
+
+//---------------------------------------------------------------
+
+template <typename BufferT>
+bool AsBytesSer::serializeAppend(
+        BufferT& wired,
+        const char* data,
+        size_t size
+    )
+{
+    wired.incSize(
+        Stream<uint32_t>::packVarInt(
+                wired.mainContainer(),static_cast<int>(size)
+            )
+        );
+    wired.mainContainer()->append(data,size);
+    wired.incSize(static_cast<int>(size));
+    return true;
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT>
+common::DataBuf AsBytesSer::serializePrepare(
+        BufferT& wired,
+        size_t size
+    )
+{
+    wired.incSize(
+        Stream<uint32_t>::packVarInt(
+                wired.mainContainer(),static_cast<int>(size)
+            )
+        );
+    auto* buf=wired.mainContainer();
+    auto prevSize=buf->size();
+    buf->resize(prevSize+size);
+    wired.incSize(static_cast<int>(size));
+    return common::DataBuf{buf,prevSize,0};
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT, typename HandlerT>
+bool AsBytesSer::deserialize(BufferT& wired, HandlerT fn, size_t maxSize)
+{
+    // figure out data size
+    uint32_t dataSize=0;
+    auto* buf=wired.mainContainer();
+    size_t availableBufSize=buf->size()-wired.currentOffset();
+    auto consumed=Stream<uint32_t>::unpackVarInt(buf->data()+wired.currentOffset(),availableBufSize,dataSize);
+    if (consumed<0)
+    {
+        return false;
+    }
+    wired.incCurrentOffset(consumed);
+
+    // check if size is more than allowed
+    if (maxSize>0&&static_cast<int>(dataSize)>static_cast<int>(maxSize))
+    {
+        rawError(RawErrorCode::SUSPECT_OVERFLOW,"overflow in requested size");
+        return false;
+    }
+
+    // if zero size then finish
+    if (dataSize==0)
+    {
+        return fn(nullptr,0);
+    }
+
+    // handle data
+    auto* ptr=buf->data()+wired.currentOffset();
+    wired.incCurrentOffset(dataSize);
+    return fn(ptr,dataSize);
+}
 
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

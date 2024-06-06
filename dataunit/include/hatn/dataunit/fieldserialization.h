@@ -86,18 +86,40 @@ class BytesSer
                                 );
 };
 
-//! Serializer/deserializer of subunit fields
+//! Serializer/deserializer of subunit fields.
 class HATN_DATAUNIT_EXPORT UnitSer
 {
-public:
+    public:
 
-    //! Serialize to wir
-    template <typename UnitT, typename BufferT>
-    static bool serialize(const UnitT* value, BufferT& wired);
+        //! Serialize to wir
+        template <typename UnitT, typename BufferT>
+        static bool serialize(const UnitT* value, BufferT& wired);
 
-    //! Deserialize from wire
-    template <typename UnitT, typename BufferT>
-    static bool deserialize(UnitT* value, BufferT& wired);
+        //! Deserialize from wire
+        template <typename UnitT, typename BufferT>
+        static bool deserialize(UnitT* value, BufferT& wired);
+};
+
+//! Setrializer/deserializer of "as bytes" fields.
+class HATN_DATAUNIT_EXPORT AsBytesSer
+{
+    public:
+
+        template <typename BufferT>
+        static bool serializeAppend(
+            BufferT& wired,
+            const char* data,
+            size_t size
+        );
+
+        template <typename BufferT>
+        static common::DataBuf serializePrepare(
+            BufferT& wired,
+            size_t size
+        );
+
+        template <typename BufferT, typename HandlerT>
+        static bool deserialize(BufferT& wired, HandlerT fn, size_t maxSize=0);
 };
 
 HATN_DATAUNIT_NAMESPACE_END
