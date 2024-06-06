@@ -44,7 +44,7 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
     {
         auto& obj=const_cast<UnitT&>(object);
         auto& id=obj.field(db::object::_id);
-        ec=db::GenerateId({id.dataPtr(),id.DataSize()});
+        ec=db::ObjectId::GenerateId({id.dataPtr(),id.DataSize()});
         HATN_CHECK_EMPTY_RETURN(ec)
         obj.resetWireDataKeeper();
     }
