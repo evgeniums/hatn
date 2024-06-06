@@ -31,6 +31,9 @@ namespace rapidjson { using SizeType=size_t; }
 #include <rapidjson/reader.h>
 
 #include <hatn/thirdparty/base64/base64.h>
+
+#include <hatn/common/datetime.h>
+
 #include <hatn/dataunit/dataunit.h>
 
 #include <hatn/dataunit/datauniterror.h>
@@ -213,19 +216,23 @@ struct FieldReaderBase : public ReaderBaseHandler<FieldReaderBase<FieldType,Enco
 };
 
 
-template <typename TYPE,typename FieldType,typename=void> struct FieldReader
+template <typename TYPE,typename FieldType,typename=void>
+struct FieldReader
 {
 };
 
 //! JSON read handler for integer fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                            !FieldType::isRepeatedType::value
-                                                            &&
-                                                            std::is_integral<typename TYPE::type>::value
-                                                        >>
-                                                    : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                        !decltype(meta::is_custom_type<TYPE>())::value
+                        &&
+                        !FieldType::isRepeatedType::value
+                        &&
+                        std::is_integral<typename TYPE::type>::value
+                    >>
+                : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -237,14 +244,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable integer fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                std::is_integral<typename TYPE::type>::value
-                                                            >
-                                                         > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            std::is_integral<typename TYPE::type>::value
+                        >
+                     > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -267,14 +277,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for floating point fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                            !FieldType::isRepeatedType::value
-                                                            &&
-                                                            std::is_floating_point<typename TYPE::type>::value
-                                                        >>
-                                                    : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                        !decltype(meta::is_custom_type<TYPE>())::value
+                        &&
+                        !FieldType::isRepeatedType::value
+                        &&
+                        std::is_floating_point<typename TYPE::type>::value
+                    >>
+                : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -287,14 +300,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable floating point fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                std::is_floating_point<typename FieldType::type>::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            std::is_floating_point<typename FieldType::type>::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -318,16 +334,19 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for byte fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                !FieldType::isRepeatedType::value
-                                                                &&
-                                                                TYPE::isBytesType::value
-                                                                &&
-                                                                !TYPE::isStringType::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            !FieldType::isRepeatedType::value
+                            &&
+                            TYPE::isBytesType::value
+                            &&
+                            !TYPE::isStringType::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -342,6 +361,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             FieldType::isRepeatedType::value
                             &&
                             TYPE::isBytesType::value
@@ -378,6 +399,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             !FieldType::isRepeatedType::value
                             &&
                             TYPE::isStringType::value
@@ -394,14 +417,17 @@ struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable string fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                TYPE::isStringType::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            TYPE::isStringType::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -429,6 +455,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             !FieldType::isRepeatedType::value
                             &&
                             TYPE::isUnitType::value
@@ -454,6 +482,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                 FieldType,
                 std::enable_if_t<
+                    !decltype(meta::is_custom_type<TYPE>())::value
+                    &&
                     FieldType::isRepeatedType::value
                     &&
                     TYPE::isUnitType::value
@@ -524,7 +554,8 @@ class Writer
 };
 
 //! JSON write handler
-template <typename T, typename StreamT> class WriterTmpl : public Writer
+template <typename T, typename StreamT>
+class WriterTmpl : public Writer
 {
     public:
 
@@ -578,11 +609,7 @@ template <typename T, typename StreamT> class WriterTmpl : public Writer
 template <typename T,typename=void>
 struct Fieldwriter
 {
-};
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<!std::is_scalar<T>::value>>
-{
-    inline static bool write(const T&,json::Writer*)
+    static bool write(const T&,json::Writer*)
     {
         return false;
     }
@@ -590,7 +617,7 @@ struct Fieldwriter<T,std::enable_if_t<!std::is_scalar<T>::value>>
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_signed<T>::value && !std::is_floating_point<T>::value && !std::is_same<int64_t,T>::value && !std::is_same<bool,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int(val);
     }
@@ -598,7 +625,7 @@ struct Fieldwriter<T,std::enable_if_t<std::is_signed<T>::value && !std::is_float
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_unsigned<T>::value && !std::is_same<uint64_t,T>::value && !std::is_same<bool,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint(val);
     }
@@ -606,7 +633,7 @@ struct Fieldwriter<T,std::enable_if_t<std::is_unsigned<T>::value && !std::is_sam
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_same<uint64_t,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint64(val);
     }
@@ -614,7 +641,7 @@ struct Fieldwriter<T,std::enable_if_t<std::is_same<uint64_t,T>::value>>
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_same<int64_t,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int64(val);
     }
@@ -622,7 +649,7 @@ struct Fieldwriter<T,std::enable_if_t<std::is_same<int64_t,T>::value>>
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_same<bool,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Bool(val);
     }
@@ -630,7 +657,7 @@ struct Fieldwriter<T,std::enable_if_t<std::is_same<bool,T>::value>>
 template <typename T>
 struct Fieldwriter<T,std::enable_if_t<std::is_floating_point<T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Double(static_cast<double>(val));
     }

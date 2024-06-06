@@ -387,6 +387,12 @@ struct TYPE_ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
     using Enum=EnumT;
 };
 
+//! Definition of DateTime type
+struct HATN_DATAUNIT_EXPORT TYPE_DATETIME : public BaseType<uint64_t,std::true_type,ValueType::DateTime>
+{
+    using CustomType=std::true_type;
+};
+
 }
 
 HATN_DATAUNIT_NAMESPACE_END

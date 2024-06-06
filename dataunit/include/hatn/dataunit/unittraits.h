@@ -36,6 +36,7 @@
 #include <hatn/dataunit/fields/bytes.h>
 #include <hatn/dataunit/fields/subunit.h>
 #include <hatn/dataunit/fields/repeated.h>
+#include <hatn/dataunit/fields/datetime.h>
 
 #include <hatn/dataunit/unit.h>
 

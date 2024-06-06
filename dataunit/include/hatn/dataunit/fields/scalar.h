@@ -139,12 +139,6 @@ class Scalar : public Field
         constexpr static auto typeId=Type::typeId;
         constexpr static auto isArray=isRepeatedType{};
 
-        //! Move ctor
-        explicit Scalar(type&& defaultValue)
-            : m_value(std::move(defaultValue))
-        {
-        }
-
         //! Ctor with default value
         Scalar(Unit* unit,const type& defaultValue)
             : Field(Type::typeId,unit),

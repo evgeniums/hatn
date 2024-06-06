@@ -42,7 +42,7 @@ static_assert(decltype(meta::is_basic_type<Type>())::value || hana::is_a<repeate
     static_assert(decltype(meta::is_unit_type<Type>())::value,"Only dataunit types can be used in this expression for "#FieldName);
 
 #define HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
-static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
+static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_basic_type<Type>())::value || decltype(meta::is_custom_type<Type>())::value,"Invalid field type for "#FieldName);
 
 #define HDU_V2_CHECK_ID(FieldName,Id) \
     static_assert(std::is_integral<decltype(Id)>::value && Id>0,"ID must be positive integer for "#FieldName);

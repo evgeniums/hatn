@@ -52,7 +52,8 @@ enum class ValueType : int
     Double,
     String,
     Bytes,
-    Dataunit
+    Dataunit,
+    DateTime
 };
 
 namespace types {
@@ -94,6 +95,22 @@ template <ValueType TypeId>
 constexpr auto IsString=hana::bool_c<
     TypeId==ValueType::String
     >;
+
+}
+
+namespace meta {
+
+template <typename Type>
+constexpr auto is_custom_type()
+{
+    auto check=[](auto x) -> decltype(hana::bool_c<decltype(x)::type::CustomType::value>)
+    {
+        return hana::bool_c<decltype(x)::type::CustomType::value>;
+    };
+
+    auto ok=hana::sfinae(check)(hana::type_c<Type>);
+    return hana::equal(ok,hana::just(hana::true_c));
+}
 
 }
 
