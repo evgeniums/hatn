@@ -34,9 +34,9 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct RocksdbPartition
 {
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>> collections;
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>> indexes;
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>> ttlIndexes;
+    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> collections;
+    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> indexes;
+    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> ttlIndexes;
 
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCF(const std::string_view& name) const
     {
