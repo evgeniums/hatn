@@ -648,7 +648,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     // to number / from number
     auto dt11=DateTime{Date{2024,03,31},Time{11,23,17,254},7};
     auto n11=dt11.toNumber();
-    BOOST_TEST_MESSAGE(fmt::format("dt11 to number: {} -> {:016x}",dt11.toIsoString(),n11));
+    BOOST_TEST_MESSAGE(fmt::format("dt11 to number: {} -> {:#016x}",dt11.toIsoString(),n11));
     auto d12=DateTime::fromNumber(n11);
     BOOST_CHECK(!d12);
     BOOST_CHECK(d12.value()==dt11);
@@ -656,7 +656,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     // set number
     auto dt13=DateTime{Date{2024,03,31},Time{11,23,17,254},-7};
     auto n13=dt13.toNumber();
-    BOOST_TEST_MESSAGE(fmt::format("dt13 to number: {} -> {:016x}",dt13.toIsoString(),n13));
+    BOOST_TEST_MESSAGE(fmt::format("dt13 to number: {} -> {:#016x}",dt13.toIsoString(),n13));
     DateTime dt14;
     BOOST_CHECK(dt14.isNull());
     auto ec=dt14.setNumber(n13);

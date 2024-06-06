@@ -1291,14 +1291,8 @@ class HATN_COMMON_EXPORT DateTime
                 return 0;
             }
 
-            if (m_tz==0)
-            {
-                return toEpochMs();
-            }
-
-            auto ep=toEpochMs();
-            auto tz=static_cast<uint8_t>(m_tz);
-            return ep + (static_cast<uint64_t>(tz)<<48);
+            auto ep=(toEpochMs()<<8) | static_cast<uint8_t>(m_tz);
+            return ep;
         }
 
         /**
@@ -1313,13 +1307,8 @@ class HATN_COMMON_EXPORT DateTime
                 return DateTime{};
             }
 
-            auto tz=num>>48;
-            if (tz==0)
-            {
-                return utcFromEpochMs(num);
-            }
-
-            auto epochMs=num&0xFFFFFFFFFFFF;
+            auto tz=num&0xFF;
+            auto epochMs=num>>8;
             return fromEpochMs(epochMs,static_cast<int8_t>(tz));
         }
 
