@@ -347,6 +347,8 @@ class HATN_DATAUNIT_EXPORT Unit
             return loadFromJSON(view);
         }
 
+        //! @todo Load from JSON with ec.
+
         void pushJsonParseHandler(const JsonParseHandler& handler);
 
         /**
