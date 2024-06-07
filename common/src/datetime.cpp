@@ -727,7 +727,7 @@ DateTime DateTime::currentUtc()
 
 //---------------------------------------------------------------
 
-void DateTime::toCurrentUtc()
+void DateTime::loadCurrentUtc()
 {
     auto pt=boost::posix_time::microsec_clock::universal_time();
     m_date=makeDate(pt.date());
@@ -747,7 +747,7 @@ DateTime DateTime::currentLocal()
 
 //---------------------------------------------------------------
 
-void DateTime::toCurrentLocal()
+void DateTime::loadCurrentLocal()
 {
     auto utc=boost::posix_time::microsec_clock::universal_time();
     auto local=utcToLocal(utc);

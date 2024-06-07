@@ -941,9 +941,9 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime currentLocal();
 
-        void toCurrentUtc();
+        void loadCurrentUtc();
 
-        void toCurrentLocal();
+        void loadCurrentLocal();
 
         /**
          * @brief Construct datetime from milliseconds since epoch.
