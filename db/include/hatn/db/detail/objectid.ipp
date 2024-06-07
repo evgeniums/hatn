@@ -71,10 +71,10 @@ struct FieldReader<TYPE,
 
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
-        auto ok=this->m_field.get().parse(common::ConstDataBuf(data,size));
-        if (ok)
+        auto ok=this->m_field->mutableValue()->parse(common::ConstDataBuf(data,size));
+        if (!ok)
         {
-            this->m_field->markSet();
+            this->m_field->markSet(false);
         }
         return ok;
     }

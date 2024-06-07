@@ -38,7 +38,11 @@ class HATN_DB_EXPORT ObjectId
 {
     public:
 
-        constexpr static const uint32_t Length=24;
+        constexpr static const uint32_t DateTimeLength=10;
+        constexpr static const uint32_t SeqLength=4;
+        constexpr static const uint32_t RandLength=8;
+
+        constexpr static const uint32_t Length=DateTimeLength+SeqLength+RandLength;
 
         static ObjectId generateId()
         {
@@ -53,7 +57,7 @@ class HATN_DB_EXPORT ObjectId
         void serialize(BufferT& buf) const
         {
             Assert(buf.size()>=Length,"invalid buf size for ObjectId");
-            fmt::format_to_n(buf.data(),Length,"{:010x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
+            fmt::format_to_n(buf.data(),Length,"{:010x}{:04x}{:08x}",m_timepoint,m_seq&0xFFFF,m_rand);
         }
 
         bool parse(const common::ConstDataBuf& buf) noexcept;
@@ -154,10 +158,10 @@ class HATN_DB_EXPORT ObjectId
     private:
 
         uint64_t m_timepoint=0; // 5 bytes: 0xFFFFFFFFFF
-        uint32_t m_seq=0; // 3 bytes: 0xFFFFFF
+        uint32_t m_seq=0; // 2 bytes: 0xFFFF
         uint32_t m_rand=0; // 4 bytes: 0xFFFFFFFF
 
-        // hex string: 2*(5+3+4) = 24 characters
+        // hex string: 2*(5+2+4) = 22 characters
 };
 
 //! Definition of DateTime type

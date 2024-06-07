@@ -27,7 +27,7 @@ HATN_DB_NAMESPACE_BEGIN
 void ObjectId::generate()
 {
     static std::atomic<uint64_t> lastMs{0};
-    static std::atomic<uint32_t> seq{0};
+    static std::atomic<uint32_t> seq{1};
 
     m_timepoint=common::DateTime::millisecondsSinceEpoch();
     auto prevMs=lastMs.load();
@@ -36,7 +36,8 @@ void ObjectId::generate()
 
     if (m_timepoint>prevMs)
     {
-        if (lastMs.compare_exchange_strong(m_timepoint,prevMs))
+        auto tp=m_timepoint;
+        if (lastMs.compare_exchange_strong(tp,prevMs))
         {
             if (seq.compare_exchange_strong(prevSeq,1))
             {
@@ -69,19 +70,19 @@ bool ObjectId::parse(const common::ConstDataBuf &buf) noexcept
 
 #else
 
-    auto r = std::from_chars(buf.data(), buf.data() + 10, m_timepoint, 16);
+    auto r = std::from_chars(buf.data(), buf.data() + DateTimeLength, m_timepoint, 16);
     if (r.ec != std::errc())
     {
         reset();
         return false;
     }
-    r = std::from_chars(r.ptr, r.ptr + 6, m_seq, 16);
+    r = std::from_chars(r.ptr, r.ptr + SeqLength, m_seq, 16);
     if (r.ec != std::errc())
     {
         reset();
         return false;
     }
-    r = std::from_chars(r.ptr, r.ptr + 8, m_rand, 16);
+    r = std::from_chars(r.ptr, r.ptr + RandLength, m_rand, 16);
     if (r.ec != std::errc())
     {
         reset();

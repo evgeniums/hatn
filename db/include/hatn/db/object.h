@@ -41,11 +41,11 @@ template <typename ObjectT>
 void initObject(ObjectT& obj)
 {
     // generate _id
-    auto& id=obj.field(object::_id).get();
-    id.generate();
+    auto* id=obj.field(object::_id).mutableValue();
+    id->generate();
 
     // set creation time
-    auto dt=id.toDatetime();
+    auto dt=id->toDatetime();
     obj.field(object::created_at).set(dt);
 
     // set update time
