@@ -518,7 +518,7 @@ common::DataBuf AsBytesSer::serializePrepare(
     auto prevSize=buf->size();
     buf->resize(prevSize+size);
     wired.incSize(static_cast<int>(size));
-    return common::DataBuf{buf,prevSize,0};
+    return common::DataBuf{*buf,prevSize,0};
 }
 
 //---------------------------------------------------------------

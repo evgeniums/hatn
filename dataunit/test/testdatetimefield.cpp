@@ -29,9 +29,8 @@ BOOST_AUTO_TEST_CASE(DatetimeFieldUtc)
 {
     u1::type o1;
     auto& f1=o1.field(u1::f1);
-    f1.get().toCurrentUtc();
-    f1.markSet();
-    BOOST_TEST_MESSAGE(fmt::format("before serialize: {}",f1.get().toIsoString()));
+    f1.mutableValue()->loadCurrentUtc();
+    BOOST_TEST_MESSAGE(fmt::format("before serialize: {}",f1.value().toIsoString()));
 
     WireBufSolid buf;
     Error ec;
@@ -42,18 +41,17 @@ BOOST_AUTO_TEST_CASE(DatetimeFieldUtc)
     io::deserialize(o2,buf,ec);
     BOOST_REQUIRE(!ec);
     const auto& f2=o2.field(u1::f1);
-    BOOST_TEST_MESSAGE(fmt::format("after serialize: {}",f2.get().toIsoString()));
+    BOOST_TEST_MESSAGE(fmt::format("after serialize: {}",f2.value().toIsoString()));
 
-    BOOST_CHECK(f1.get()==f2.get());
+    BOOST_CHECK(f1.value()==f2.value());
 }
 
 BOOST_AUTO_TEST_CASE(DatetimeFieldLocal)
 {
     u1::type o1;
     auto& f1=o1.field(u1::f1);
-    f1.get().toCurrentLocal();
-    f1.markSet();
-    BOOST_TEST_MESSAGE(fmt::format("before serialize: {}",f1.get().toIsoString()));
+    f1.mutableValue()->loadCurrentLocal();
+    BOOST_TEST_MESSAGE(fmt::format("before serialize: {}",f1.value().toIsoString()));
 
     WireBufSolid buf;
     Error ec;
@@ -64,9 +62,9 @@ BOOST_AUTO_TEST_CASE(DatetimeFieldLocal)
     io::deserialize(o2,buf,ec);
     BOOST_REQUIRE(!ec);
     const auto& f2=o2.field(u1::f1);
-    BOOST_TEST_MESSAGE(fmt::format("after deserialize: {}",f2.get().toIsoString()));
+    BOOST_TEST_MESSAGE(fmt::format("after deserialize: {}",f2.value().toIsoString()));
 
-    BOOST_CHECK(f1.get()==f2.get());
+    BOOST_CHECK(f1.value()==f2.value());
 }
 
 BOOST_AUTO_TEST_CASE(DatetimeFieldJson)
@@ -75,7 +73,7 @@ BOOST_AUTO_TEST_CASE(DatetimeFieldJson)
     auto& f1=o1.field(u1::f1);
     common::DateTime dt1{common::Date{2024,3,27},common::Time{15,21,37}};
     f1.set(dt1);
-    BOOST_TEST_MESSAGE(fmt::format("before json serialize: {}",f1.get().toIsoString()));
+    BOOST_TEST_MESSAGE(fmt::format("before json serialize: {}",f1.value().toIsoString()));
 
     auto j1=o1.toString(true);
     BOOST_TEST_MESSAGE(fmt::format("json: \n{}\n",j1));
@@ -84,10 +82,10 @@ BOOST_AUTO_TEST_CASE(DatetimeFieldJson)
     auto ok=o2.loadFromJSON(j1);
     BOOST_REQUIRE(ok);
     const auto& f2=o2.field(u1::f1);
-    BOOST_TEST_MESSAGE(fmt::format("after json serialize: {}",f2.get().toIsoString()));
+    BOOST_TEST_MESSAGE(fmt::format("after json serialize: {}",f2.value().toIsoString()));
 
-    BOOST_CHECK(f1.get()==f2.get());
-    BOOST_CHECK(f2.get()==dt1);
+    BOOST_CHECK(f1.value()==f2.value());
+    BOOST_CHECK(f2.value()==dt1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

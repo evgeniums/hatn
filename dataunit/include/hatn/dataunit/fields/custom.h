@@ -60,7 +60,7 @@ class CustomField : public Field
         template <typename BufferT>
         static bool serialize(const type& val, BufferT& wired)
         {
-            return TraitsT::serialize(val.toNumber(),wired);
+            return TraitsT::serialize(val,wired);
         }
 
         template <typename BufferT>
@@ -85,26 +85,21 @@ class CustomField : public Field
             : Field(Type::typeId,unit)
         {}
 
-        //! Get field
-        type& get() noexcept
-        {
-            return m_value;
-        }
-
-        //! Get const field
-        const type& get() const noexcept
-        {
-            return m_value;
-        }
-
         //! Get const value
-        inline const type& value() const noexcept
+        const type& value() const noexcept
         {
             return m_value;
+        }
+
+        //! Get mutable value marking as set.
+        type* mutableValue() noexcept
+        {
+            this->markSet();
+            return &m_value;
         }
 
         //! Set field
-        inline void set(type val)
+        void set(type val)
         {
             this->markSet(true);
             m_value=std::move(val);
@@ -173,13 +168,7 @@ class CustomField : public Field
             JsonR<Type,std::false_type>::push(topUnit,this);
         }
 
-        template <typename T>
-        void setVal(T val) noexcept
-        {
-            m_value=std::move(val);
-        }
-
-        void getVal(type &val) const noexcept
+        void copyValue(type &val) const noexcept
         {
             val=m_value;
         }
