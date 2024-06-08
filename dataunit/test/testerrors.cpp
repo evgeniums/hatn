@@ -65,7 +65,7 @@ HDU_V2_UNIT(u4,
 
 uint32_t urand(uint32_t mn, uint32_t mx)
 {
-    return HATN_COMMON_NAMESPACE::Utils::uniformRand(mn,mx);
+    return HATN_COMMON_NAMESPACE::Random::uniform(mn,mx);
 }
 
 }

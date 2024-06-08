@@ -20,33 +20,12 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#endif
-
-struct RandEng
-{
-    std::mt19937 gen;
-    RandEng():gen(time(0))
-    {
-    }
-};
-
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#endif
-
-static RandEng Eng;
-
 //---------------------------------------------------------------
-uint32_t Utils::uniformRand(uint32_t min, uint32_t max) noexcept
+uint32_t Random::uniform(const uint32_t& min, const uint32_t& max)
 {
-    if (min==max)
-    {
-        return min;
-    }
-    std::uniform_int_distribution<uint32_t> distr(min,max);
-    return distr(Eng.gen);
+    static thread_local std::mt19937 gen{std::random_device{}()};
+    std::uniform_int_distribution<uint32_t> distr{min,max};
+    return distr(gen);
 }
 
 //---------------------------------------------------------------

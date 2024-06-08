@@ -791,7 +791,7 @@ BOOST_AUTO_TEST_CASE(ByteArrayFromFile)
 BOOST_AUTO_TEST_CASE(ByteArrayToFile)
 {
     ByteArray b1("Hello from hatn!\nThree lines\nThanks.");
-    std::string fileName=fmt::format("{}/writebytearray{}.txt",test::MultiThreadFixture::tmpPath(),Utils::uniformRand(0,10000));
+    std::string fileName=fmt::format("{}/writebytearray{}.txt",test::MultiThreadFixture::tmpPath(),Random::generate(10000));
     BOOST_TEST_MESSAGE(fileName);
     auto ec=b1.saveToFile(fileName);
     BOOST_REQUIRE(ec.isNull());

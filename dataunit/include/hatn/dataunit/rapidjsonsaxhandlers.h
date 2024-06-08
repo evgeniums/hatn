@@ -61,7 +61,8 @@ struct ReaderBase
     {}
 };
 
-template <typename T,typename T1> inline void pushHandler(
+template <typename T,typename T1>
+void pushHandler(
             Unit* topUnit,
             T* obj,
             int scopes=0,
@@ -83,7 +84,8 @@ template <typename T,typename T1> inline void pushHandler(
     topUnit->pushJsonParseHandler(handler);
 }
 
-template <typename T> struct ReaderBaseHandler : public ReaderBase
+template <typename T>
+struct ReaderBaseHandler : public ReaderBase
 {
     ReaderBaseHandler(
             Unit* topUnit,
