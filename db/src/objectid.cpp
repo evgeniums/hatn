@@ -36,8 +36,7 @@ void ObjectId::generate()
 
     if (m_timepoint>prevMs)
     {
-        auto tp=m_timepoint;
-        if (lastMs.compare_exchange_strong(tp,prevMs))
+        if (lastMs.compare_exchange_strong(prevMs,m_timepoint))
         {
             if (seq.compare_exchange_strong(prevSeq,1))
             {
@@ -48,10 +47,14 @@ void ObjectId::generate()
 
     if (!restartSeq)
     {
-        m_seq=seq.fetch_add(1);
+        m_seq=seq.fetch_add(1)+1;
+    }
+    else
+    {
+        m_seq=1;
     }
 
-    m_rand=common::Utils::uniformRand(1,0xFFFFFFFF);
+    m_rand=common::Random::uniform(1,0xFFFFFFFF);
 }
 
 //---------------------------------------------------------------

@@ -50,49 +50,4 @@ bool ObjectIdTraits::deserialize(ObjectId& val, BufferT& wired, HATN_DATAUNIT_NA
 
 HATN_DB_NAMESPACE_END
 
-HATN_DATAUNIT_NAMESPACE_BEGIN
-
-//---------------------------------------------------------------
-
-namespace json {
-
-//! JSON read handler for DateTime fields
-template <typename TYPE,typename FieldType>
-struct FieldReader<TYPE,
-                   FieldType,
-                   std::enable_if_t<
-                       !FieldType::isRepeatedType::value
-                       &&
-                       std::is_same<TYPE,db::TYPE_OBJECT_ID>::value
-                       >
-                   > : public FieldReaderBase<FieldType>
-{
-    using json::FieldReaderBase<FieldType>::FieldReaderBase;
-
-    bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
-    {
-        auto ok=this->m_field->mutableValue()->parse(common::ConstDataBuf(data,size));
-        if (!ok)
-        {
-            this->m_field->markSet(false);
-        }
-        return ok;
-    }
-};
-
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<db::ObjectId,std::decay_t<T>>::value>>
-{
-    static bool write(const T& val,json::Writer* writer)
-    {
-        std::array<char,db::ObjectId::Length> buf;
-        val.serialize(buf);
-        return writer->String(buf.data(),buf.size());
-    }
-};
-
-} // namespace json
-
-HATN_DATAUNIT_NAMESPACE_END
-
 #endif // HATNDBOBJECTID_H

@@ -39,7 +39,7 @@ class HATN_DB_EXPORT ObjectId
     public:
 
         constexpr static const uint32_t DateTimeLength=10;
-        constexpr static const uint32_t SeqLength=4;
+        constexpr static const uint32_t SeqLength=6;
         constexpr static const uint32_t RandLength=8;
 
         constexpr static const uint32_t Length=DateTimeLength+SeqLength+RandLength;
@@ -57,7 +57,7 @@ class HATN_DB_EXPORT ObjectId
         void serialize(BufferT& buf) const
         {
             Assert(buf.size()>=Length,"invalid buf size for ObjectId");
-            fmt::format_to_n(buf.data(),Length,"{:010x}{:04x}{:08x}",m_timepoint,m_seq&0xFFFF,m_rand);
+            fmt::format_to_n(buf.data(),Length,"{:010x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
         }
 
         bool parse(const common::ConstDataBuf& buf) noexcept;
@@ -74,7 +74,7 @@ class HATN_DB_EXPORT ObjectId
             return common::DateTime::fromEpochMs(m_timepoint);
         }
 
-        uint64_t sinceEpochMs() const noexcept
+        uint64_t timepoint() const noexcept
         {
             return m_timepoint;
         }
@@ -158,10 +158,10 @@ class HATN_DB_EXPORT ObjectId
     private:
 
         uint64_t m_timepoint=0; // 5 bytes: 0xFFFFFFFFFF
-        uint32_t m_seq=0; // 2 bytes: 0xFFFF
+        uint32_t m_seq=0; // 3 bytes: 0xFFFFFF
         uint32_t m_rand=0; // 4 bytes: 0xFFFFFFFF
 
-        // hex string: 2*(5+2+4) = 22 characters
+        // hex string: 2*(5+3+4) = 24 characters
 };
 
 //! Definition of DateTime type
@@ -210,6 +210,48 @@ struct FieldTmpl<HATN_DB_NAMESPACE::TYPE_OBJECT_ID> : public HATN_DB_NAMESPACE::
 {
     using HATN_DB_NAMESPACE::ObjectIdField::ObjectIdField;
 };
+
+
+//---------------------------------------------------------------
+
+namespace json {
+
+//! JSON read handler for DateTime fields
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                   FieldType,
+                   std::enable_if_t<
+                       !FieldType::isRepeatedType::value
+                       &&
+                       std::is_same<TYPE,db::TYPE_OBJECT_ID>::value
+                       >
+                   > : public FieldReaderBase<FieldType>
+{
+    using json::FieldReaderBase<FieldType>::FieldReaderBase;
+
+    bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
+    {
+        auto ok=this->m_field->mutableValue()->parse(common::ConstDataBuf(data,size));
+        if (!ok)
+        {
+            this->m_field->markSet(false);
+        }
+        return ok;
+    }
+};
+
+template <typename T>
+struct Fieldwriter<T,std::enable_if_t<std::is_same<db::ObjectId,std::decay_t<T>>::value>>
+{
+    static bool write(const T& val,json::Writer* writer)
+    {
+        std::array<char,db::ObjectId::Length> buf;
+        val.serialize(buf);
+        return writer->String(buf.data(),buf.size());
+    }
+};
+
+} // namespace json
 
 HATN_DATAUNIT_NAMESPACE_END
 
