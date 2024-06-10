@@ -23,7 +23,7 @@
 
 #include <hatn/common/bytearray.h>
 #include <hatn/common/logger.h>
-#include <hatn/common/logger.h>
+#include <hatn/common/datetime.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/meta/constructwithargordefault.h>
 
@@ -388,7 +388,7 @@ struct TYPE_ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
 };
 
 //! Definition of DateTime type
-struct HATN_DATAUNIT_EXPORT TYPE_DATETIME : public BaseType<uint64_t,std::true_type,ValueType::DateTime>
+struct HATN_DATAUNIT_EXPORT TYPE_DATETIME : public BaseType<common::DateTime,std::true_type,ValueType::DateTime>
 {
     using CustomType=std::true_type;
 };
