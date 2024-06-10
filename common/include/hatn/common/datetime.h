@@ -1338,6 +1338,16 @@ class HATN_COMMON_EXPORT DateTime
             m_tz=0;
         }
 
+        operator Date() const noexcept
+        {
+            return m_date;
+        }
+
+        operator Time() const noexcept
+        {
+            return m_time;
+        }
+
     private:
 
         Error validate() noexcept
