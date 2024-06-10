@@ -23,6 +23,7 @@
 
 #include <boost/hana.hpp>
 
+#include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/datetime.h>
 
 #include <hatn/dataunit/syntax.h>
@@ -54,20 +55,84 @@ struct NestedField
     SubFieldT subField;
 };
 
-template <typename IndexT, typename ...Fields>
-struct Index
+#define HDB_NAME_PREPARE(Name) \
+    struct _hdb_t_##Name \
+    { \
+        constexpr static const char* name=#Name; \
+    }; \
+    constexpr _hdb_t_##Name _hdb_s_##Name{};
+
+#define HDB_NAME(Name) _hdb_s_##Name
+#define HDB_TTL(ttl) hana::int_<ttl>
+
+using Unique=hana::true_;
+using NotUnique=hana::false_;
+using DatePartition=hana::true_;
+using NotDatePartition=hana::false_;
+using NotTtl=hana::int_<0>;
+using Topic=hana::true_;
+using NotTopic=hana::false_;
+
+template <typename UniqueT=NotUnique,
+         typename DatePartitionT=NotDatePartition, typename TtlT=NotTtl,
+         typename TopicT=NotTopic>
+struct IndexConfig
+{
+    constexpr static bool unique()
+    {
+        return UniqueT::value;
+    }
+
+    constexpr static bool date_partition()
+    {
+        return DatePartitionT::value;
+    }
+
+    constexpr static int ttl()
+    {
+        return TtlT::value;
+    }
+
+    constexpr static bool topic()
+    {
+        return TopicT::value;
+    }
+};
+
+template <typename ModelNameT, typename IndexNameT, typename ConfigT, typename ...Fields>
+struct Index : public ConfigT
 {
     constexpr static const boost::hana::tuple<Fields...> fields{};
-    constexpr static const hana::false_ datePartitionField{};
 
-    IndexT storage;
+    constexpr static const char* model()
+    {
+        return ModelNameT::name;
+    }
+
+    constexpr static const char* name()
+    {
+        return IndexNameT::name;
+    }
+
+    constexpr static decltype(auto) date_partition_field()
+    {
+        return hana::front(fields);
+    }
 };
 
-template <typename Field>
-struct DatePartitionIndex : public Index<Field>
+struct makeIndexT
 {
-    constexpr static const Field datePartitionField{};
+    template <typename ModelNameT, typename IndexNameT, typename ConfigT, typename ...Fields>
+    auto operator()(ModelNameT&& model, IndexNameT name, ConfigT&& config, Fields&& ...fields) const
+    {
+        auto t=hana::make_tuple(std::forward<ModelNameT>(model),std::forward<IndexNameT>(name),std::forward<ConfigT>(config),std::forward<Fields>(fields)...);
+        auto c=common::tupleToTupleC(t);
+        auto ci=hana::unpack(c,hana::template_<Index>);
+        using type=typename decltype(ci)::type;
+        return type{};
+    }
 };
+constexpr makeIndexT makeIndex{};
 
 HDU_UNIT(model_field,
     HDU_FIELD(id,TYPE_UINT32,1)
