@@ -23,10 +23,10 @@
 
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/db/object.h>
-#include <hatn/db/detail/objectid.ipp>
+#include <hatn/db/ipp/objectid.ipp>
 
 #include "hatn_test_config.h"
 

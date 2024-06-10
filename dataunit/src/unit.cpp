@@ -40,7 +40,7 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
 #include <hatn/dataunit/stream.h>
-#include <hatn/dataunit/detail/wirebuf.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/unit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN

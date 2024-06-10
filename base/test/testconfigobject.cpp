@@ -22,10 +22,10 @@
 #include <hatn/dataunit/valuetypes.h>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
-#include <hatn/dataunit/detail/wirebuf.ipp>
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
 
 #include <hatn/base/baseerror.h>
 #include <hatn/base/configtree.h>

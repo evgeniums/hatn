@@ -8,8 +8,8 @@
 
 #include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/unitmacros.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 bool TestRelaxMissingFieldSerializing=false;

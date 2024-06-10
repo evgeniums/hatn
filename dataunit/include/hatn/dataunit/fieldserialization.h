@@ -124,6 +124,6 @@ class HATN_DATAUNIT_EXPORT AsBytesSer
 
 HATN_DATAUNIT_NAMESPACE_END
 
-#include <hatn/dataunit/detail/fieldserialization.ipp>
+#include <hatn/dataunit/ipp/fieldserialization.ipp>
 
 #endif // HATNFIELDSERIALIZATON_H

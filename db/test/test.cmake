@@ -3,6 +3,7 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testinitplugins.cpp
     ${DB_TEST_SRC}/testopenclose.cpp
     ${DB_TEST_SRC}/testcreate.cpp
+    ${DB_TEST_SRC}/testschema.cpp
 )
 
 SET (TEST_HEADERS

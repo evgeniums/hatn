@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file dataunit/details/fieldserialization.ipp
+/** @file dataunit/ipps/fieldserialization.ipp
   *
   *      Contains definition of helper classes for serializing and deserializing dataunit fields.
   *

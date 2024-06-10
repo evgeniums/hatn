@@ -19,13 +19,11 @@
 #ifndef HATNDBSCHEMA_H
 #define HATNDBSCHEMA_H
 
-#include <cinttypes>
-#include <string>
 #include <set>
 
 #include <boost/hana.hpp>
 
-#include <hatn/common/classuid.h>
+#include <hatn/common/datetime.h>
 
 #include <hatn/dataunit/syntax.h>
 
@@ -39,9 +37,10 @@ HDU_UNIT_WITH(index,(HDU_BASE(object)),
     HDU_FIELD(name,TYPE_STRING,2)
     HDU_REPEATED_FIELD(field_names,TYPE_UINT32,3)
     HDU_FIELD(unique,TYPE_BOOL,4)
-    HDU_FIELD(prefix,TYPE_UINT32,5)
-    HDU_FIELD(ttl,TYPE_UINT32,6)
-    HDU_FIELD(topic,TYPE_BOOL,7)
+    HDU_FIELD(date_partition,TYPE_BOOL,5)
+    HDU_FIELD(prefix,TYPE_UINT32,6)
+    HDU_FIELD(ttl,TYPE_UINT32,7)
+    HDU_FIELD(topic,TYPE_BOOL,8)
 )
 
 struct NestedFieldTag{};
@@ -55,14 +54,19 @@ struct NestedField
     SubFieldT subField;
 };
 
-template <typename ...Fields>
+template <typename IndexT, typename ...Fields>
 struct Index
 {
-    std::string name;
-    boost::hana::tuple<Fields...> fields;
-    bool unique;
+    constexpr static const boost::hana::tuple<Fields...> fields{};
+    constexpr static const hana::false_ datePartitionField{};
 
-    index::type storage;
+    IndexT storage;
+};
+
+template <typename Field>
+struct DatePartitionIndex : public Index<Field>
+{
+    constexpr static const Field datePartitionField{};
 };
 
 HDU_UNIT(model_field,
@@ -74,26 +78,45 @@ HDU_UNIT(model_field,
     HDU_FIELD(default_value,TYPE_STRING,6)
 )
 
+using DatePartitionMode=common::DateRange::Type;
+
 HDU_UNIT_WITH(model,(HDU_BASE(object)),
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(model_fields,model_field::TYPE,2)
-    HDU_ENUM(partition_mode,day,week,month,quarter,year)
-    HDU_FIELD(partition,HDU_TYPE_ENUM(partition_mode),3)
+    HDU_FIELD(date_partition_mode,HDU_TYPE_ENUM(DatePartitionMode),3)
+    HDU_FIELD(date_partition_field,TYPE_STRING,4)
 )
 
-template <typename UnitT, typename ...Indexes>
+template <typename ModelT, typename UnitT, typename ...Indexes>
 struct Model
 {
     boost::hana::tuple<Indexes...> indexes;
-    model::type definition;
+    ModelT definition;
     UnitT sample;
 };
+
+struct datePartitionFieldT
+{
+    template <typename IndexesT>
+    constexpr decltype(auto) operator()(IndexesT&& indexes) const
+    {
+        hana::find_if(
+            std::forward<IndexesT>(indexes),
+            [](auto&& index)
+            {
+                return hana::not_(std::is_same<decltype(std::decay_t<decltype(index)>::datePartitionField),hana::false_>{});
+            }
+        );
+    }
+};
+constexpr datePartitionFieldT datePartitionField{};
 
 template <typename ...Models>
 struct Schema
 {
     std::string name;
     boost::hana::tuple<Models...> models;
+    std::set<DatePartitionMode> partitionModes;
 };
 
 HATN_DB_NAMESPACE_END

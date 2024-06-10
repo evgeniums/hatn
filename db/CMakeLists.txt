@@ -15,7 +15,7 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
-    include/hatn/db/detail/objectid.ipp
+    include/hatn/db/ipp/objectid.ipp
 )
 
 SET (SOURCES

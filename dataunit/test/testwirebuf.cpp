@@ -1,7 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/wiredata.h>
-#include <hatn/dataunit/detail/wirebuf.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
 
 #include <hatn/common/flatmap.h>
 

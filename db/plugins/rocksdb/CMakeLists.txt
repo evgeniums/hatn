@@ -28,7 +28,7 @@ SET(SCHEMA_HEADERS
 
 SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h
-    include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
+    include/hatn/db/plugins/rocksdb/ipp/rocksdbcreateobject.ipp
 )
 
 SET (SCHEMA_SOURCES

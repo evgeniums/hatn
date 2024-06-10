@@ -1408,6 +1408,21 @@ class HATN_COMMON_EXPORT DateRange
             return m_value!=0;
         }
 
+        void set(uint32_t value) noexcept
+        {
+            m_value=value;
+        }
+
+        void set(const Date& dt, Type type=Type::Month)
+        {
+            set(dateToRangeNumber(dt,type));
+        }
+
+        void set(const DateTime& dt, Type type=Type::Month)
+        {
+            set(dt.date(),type);
+        }
+
         /**
          * @brief Construct range from date.
          * @param dt Date.

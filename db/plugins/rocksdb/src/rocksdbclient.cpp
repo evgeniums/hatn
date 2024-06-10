@@ -19,7 +19,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/base/configobject.h>
 

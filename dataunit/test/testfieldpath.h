@@ -4,7 +4,7 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/syntax.ipp>
+#include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/dataunit/readunitfieldatpath.h>
 #include <hatn/dataunit/updateunitfieldatpath.h>

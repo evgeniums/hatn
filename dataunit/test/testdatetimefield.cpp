@@ -1,8 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 #include <hatn/dataunit/visitors.h>
 
 HATN_USING

@@ -14,7 +14,7 @@
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
-#include <hatn/dataunit/detail/fieldserialization.ipp>
+#include <hatn/dataunit/ipp/fieldserialization.ipp>
 #include <hatn/dataunit/visitors.h>
 
 #include <hatn/test/multithreadfixture.h>

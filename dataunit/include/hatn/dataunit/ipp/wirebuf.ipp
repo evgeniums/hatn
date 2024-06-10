@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file dataunit/detail/wirebuf.ipp
+/** @file dataunit/ipp/wirebuf.ipp
   *
   *  Contains definitions for wire buf templates.
   *

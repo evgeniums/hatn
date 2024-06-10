@@ -24,12 +24,12 @@ SET (HEADERS
 
     include/hatn/dataunit/unittraits.h
 
-    include/hatn/dataunit/detail/unittraits.ipp
-    include/hatn/dataunit/detail/syntax.ipp
-    include/hatn/dataunit/detail/types.ipp
+    include/hatn/dataunit/ipp/unittraits.ipp
+    include/hatn/dataunit/ipp/syntax.ipp
+    include/hatn/dataunit/ipp/types.ipp
 
     include/hatn/dataunit/fieldserialization.h
-    include/hatn/dataunit/detail/fieldserialization.ipp
+    include/hatn/dataunit/ipp/fieldserialization.ipp
 
     include/hatn/dataunit/updatefilter.h
     include/hatn/dataunit/updatenotifier.h
@@ -46,13 +46,13 @@ SET (HEADERS
     include/hatn/dataunit/wirebuf.h
     include/hatn/dataunit/wirebufsolid.h
     include/hatn/dataunit/wirebufchained.h
-    include/hatn/dataunit/detail/wirebuf.ipp
+    include/hatn/dataunit/ipp/wirebuf.ipp
 
     include/hatn/dataunit/visitors.h
     include/hatn/dataunit/tags.h
 
     include/hatn/dataunit/unitmeta.h
-    include/hatn/dataunit/detail/unitmeta.ipp
+    include/hatn/dataunit/ipp/unitmeta.ipp
     include/hatn/dataunit/unitmacros.h
     include/hatn/dataunit/datauniterror.h
     include/hatn/dataunit/datauniterrorcodes.h

@@ -31,7 +31,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct CreateObjectT
 {
-    template <typename UnitT, typename ...Indexes>
+    template <typename UnitT, typename PartitionFieldT, typename ...Indexes>
     void operator ()(RocksdbHandler& handler, const db::Namespace& ns, const db::Model<UnitT,Indexes...>, const UnitT& object, Error& ec) const;
 };
 

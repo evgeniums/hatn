@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
+/** @file db/plugins/rocksdb/ipp/rocksdbcreateobject.ipp
   *
   *   RocksDB database template for object creating.
   *
@@ -41,10 +41,27 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
 
     // handle partition
     auto partition=handler.p()->defaultPartition;
-    if (model.definition.field(db::model::partition).isSet())
+    if (model.definition.field(db::model::date_partition_mode).isSet())
     {
-        //! @todo figure out partition key by creation time
-        uint32_t partitionKey{0};
+        auto mode=model.definition.field(db::model::date_partition_mode).value();
+
+        // figure out partition key
+        constexpr auto partitionField=datePartitionField(model.indexes);
+        auto partitionKey=hana::eval_if(
+            hana::is_nothing(partitionField),
+            [&](auto _)
+            {
+                auto dt=_(object).field(db::object::created_at).value();
+                return common::DateRange::dateToRangeNumber(dt,_(mode));
+            },
+            [&](auto _)
+            {
+                const auto& field=hana::value(_(partitionField)).datePartitionField;
+                auto dt=_(object).field(field).value();
+                return common::DateRange::dateToRangeNumber(dt,_(mode));
+            }
+        );
+
         auto r=handler.p()->partition(partitionKey);
         HATN_CHECK_EMPTY_RETURN(r)
         partition=r.takeValue();
