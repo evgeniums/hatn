@@ -154,6 +154,7 @@ SET (HEADERS
     include/hatn/common/meta/compilecounter.h
     include/hatn/common/meta/enumint.h
     include/hatn/common/meta/dynamiccastwithsample.h
+    include/hatn/common/meta/tupletypec.h
 
     include/hatn/common/experimental/stats/stats.h
 )
