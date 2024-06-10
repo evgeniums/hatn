@@ -86,7 +86,7 @@ struct IndexConfig
         return UniqueT::value;
     }
 
-    constexpr static bool is_date_partition()
+    constexpr static bool isDatePartitioned()
     {
         return DatePartitionT::value;
     }
@@ -96,7 +96,7 @@ struct IndexConfig
         return TtlT::value;
     }
 
-    constexpr static bool is_ttl()
+    constexpr static bool isTtl()
     {
         return TtlT::value>0;
     }
@@ -120,7 +120,7 @@ struct Index : public ConfigT
         return m_name;
     }
 
-    constexpr static decltype(auto) date_partition_field()
+    constexpr static decltype(auto) datePartitionField()
     {
         return hana::front(fields);
     }
@@ -136,7 +136,7 @@ struct makeIndexT
     auto operator()(ConfigT&& config, Fields&& ...fields) const
     {
         auto ft=hana::make_tuple(fields...);
-        using isDatePartition=hana::bool_<std::decay_t<ConfigT>::is_date_partition()>;
+        using isDatePartition=hana::bool_<std::decay_t<ConfigT>::isDatePartitioned()>;
         static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
                       "Date partition can be used for index with single field only");
         using firstFieldType=typename std::decay_t<decltype(hana::front(ft))>::Type::type;
@@ -148,7 +148,7 @@ struct makeIndexT
                                                   ),
                       "Type of date partition field must be one of: DateTime or Date or ObjectId");
 
-        using isTtl=hana::bool_<std::decay_t<ConfigT>::is_ttl()>;
+        using isTtl=hana::bool_<std::decay_t<ConfigT>::isTtl()>;
         static_assert(!isTtl::value || (isTtl::value && (decltype(hana::size(ft))::value==1)),
                       "Ttl mode can be used for index with single field only");
         static_assert(!isTtl::value || (isTtl::value &&
@@ -209,38 +209,83 @@ HDU_UNIT_WITH(model,(HDU_BASE(object)),
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(model_fields,model_field::TYPE,2)
     HDU_FIELD(date_partition_mode,HDU_TYPE_ENUM(DatePartitionMode),3)
-    HDU_FIELD(date_partition_field,TYPE_STRING,4)
+    HDU_FIELD(datePartitionField,TYPE_STRING,4)
 )
 
-template <typename ModelT, typename UnitT, typename ...Indexes>
-struct Model
+template <DatePartitionMode PartitionMode=DatePartitionMode::Month>
+struct ModelConfig
 {
-    boost::hana::tuple<Indexes...> indexes;
-    ModelT definition;
-    UnitT sample;
+    constexpr static DatePartitionMode datePartitionMode()
+    {
+        return PartitionMode;
+    }
 };
 
-struct datePartitionFieldT
+template <typename ConfigT, typename UnitType, typename ...Indexes>
+struct Model : public ConfigT
 {
-    template <typename IndexesT>
-    constexpr decltype(auto) operator()(IndexesT&& indexes) const
+    using Type=UnitType;
+
+    hana::tuple<Indexes...> indexes;
+
+    template <typename ...Args>
+    Model(Args&& ...args) : indexes(hana::make_tuple(std::forward<Args>(args)...))
+    {}
+
+    constexpr static bool isDatePartitioned()
     {
-        hana::find_if(
-            std::forward<IndexesT>(indexes),
+        return hana::find_if(
+            hana::tuple_t<Indexes...>,
             [](auto&& index)
             {
-                return hana::not_(std::is_same<decltype(std::decay_t<decltype(index)>::datePartitionField),hana::false_>{});
+                using type=typename std::decay_t<decltype(index)>::type;
+                return hana::bool_<type::isDatePartitioned()>{};
+            }
+        ) != hana::nothing;
+    }
+
+    constexpr static decltype(auto) datePartitionField()
+    {
+        auto found=hana::find_if(
+                   hana::tuple_t<Indexes...>,
+                   [](auto&& index)
+                   {
+                       using type=typename std::decay_t<decltype(index)>::type;
+                       return hana::bool_<type::isDatePartitioned()>{};
+                   }
+        );
+
+        return hana::eval_if(
+            hana::equal(found,hana::nothing),
+            [&](auto _)
+            {
+                return hana::false_{};
+            },
+            [&](auto _)
+            {
+                using type=typename std::decay_t<decltype(_(found).value())>::type;
+                return type::datePartitionField();
             }
         );
     }
 };
-constexpr datePartitionFieldT datePartitionField{};
+
+template <typename UnitType>
+struct makeModelT
+{
+    template <typename ConfigT, typename ...Indexes>
+    auto operator()(ConfigT&&, Indexes ...indexes) const
+    {
+        return Model<ConfigT,UnitType,Indexes...>{indexes...};
+    }
+};
+template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
 
 template <typename ...Models>
 struct Schema
 {
     std::string name;
-    boost::hana::tuple<Models...> models;
+    hana::tuple<Models...> models;
     std::set<DatePartitionMode> partitionModes;
 };
 
