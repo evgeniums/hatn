@@ -155,7 +155,7 @@ struct makeIndexT
                                                   (std::is_same<firstFieldType,common::DateTime>::value
                                                    )
                                                   ),
-                      "Type of ttl field must be DateTime only");
+                      "Type of ttl field must be of DateTime only");
 
         const auto& lastArg=hana::back(ft);
         auto p=hana::eval_if(
@@ -208,8 +208,6 @@ using DatePartitionMode=common::DateRange::Type;
 HDU_UNIT_WITH(model,(HDU_BASE(object)),
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(model_fields,model_field::TYPE,2)
-    HDU_FIELD(date_partition_mode,HDU_TYPE_ENUM(DatePartitionMode),3)
-    HDU_FIELD(datePartitionField,TYPE_STRING,4)
 )
 
 template <DatePartitionMode PartitionMode=DatePartitionMode::Month>
@@ -234,27 +232,12 @@ struct Model : public ConfigT
 
     constexpr static bool isDatePartitioned()
     {
-        return hana::find_if(
-            hana::tuple_t<Indexes...>,
-            [](auto&& index)
-            {
-                using type=typename std::decay_t<decltype(index)>::type;
-                return hana::bool_<type::isDatePartitioned()>{};
-            }
-        ) != hana::nothing;
+        return findPartitionIndex() != hana::nothing;
     }
 
     constexpr static decltype(auto) datePartitionField()
     {
-        auto found=hana::find_if(
-                   hana::tuple_t<Indexes...>,
-                   [](auto&& index)
-                   {
-                       using type=typename std::decay_t<decltype(index)>::type;
-                       return hana::bool_<type::isDatePartitioned()>{};
-                   }
-        );
-
+        auto found=findPartitionIndex();
         return hana::eval_if(
             hana::equal(found,hana::nothing),
             [&](auto _)
@@ -268,6 +251,23 @@ struct Model : public ConfigT
             }
         );
     }
+
+    private:
+
+        constexpr static auto findPartitionIndex()
+        {
+            auto pred=[](auto&& index)
+            {
+                using type=typename std::decay_t<decltype(index)>::type;
+                return hana::bool_<type::isDatePartitioned()>{};
+            };
+
+            constexpr auto xs=hana::tuple_t<Indexes...>;
+            constexpr auto count=hana::count_if(xs,pred);
+            static_assert(hana::less_equal(count,hana::size_c<1>),"Only one date partition index can be specified for a model");
+
+            return hana::find_if(xs,pred);
+        }
 };
 
 template <typename UnitType>
@@ -280,6 +280,24 @@ struct makeModelT
     }
 };
 template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
+
+template <typename UnitT, typename ModelT>
+common::DateRange datePartition(const UnitT& unit, const ModelT& model)
+{
+    return hana::eval_if(
+        hana::bool_<std::decay_t<ModelT>::isDatePartitioned()>{},
+        [&](auto _)
+        {
+            const auto& f=_(unit).field(_(model).datePartitionField());
+            Assert(f.isSet(),"Partition field not set");
+            return common::DateRange{f.value(),_(model).datePartitionMode()};
+        },
+        [](auto)
+        {
+            return common::DateRange{};
+        }
+    );
+}
 
 template <typename ...Models>
 struct Schema

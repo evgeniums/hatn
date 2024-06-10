@@ -84,11 +84,20 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     BOOST_CHECK(model1.isDatePartitioned());
     auto partitionField1=model1.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField1.name(),"created_at");
+    object::type o1;
+    o1.field(object::created_at).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
+    auto partitionRange1=datePartition(o1,model1);
+    BOOST_REQUIRE(partitionRange1.isValid());
+    BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
     auto model2=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx3);
     BOOST_CHECK(!model2.isDatePartitioned());
     auto partitionField2=model2.datePartitionField();
     BOOST_CHECK(!partitionField2.value);
+    object::type o2;
+    o2.field(object::created_at).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
+    auto partitionRange2=datePartition(o2,model2);
+    BOOST_CHECK(!partitionRange2.isValid());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
