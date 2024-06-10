@@ -24,7 +24,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 //! Cast enum to int
 template <typename T>
-constexpr static int EnumInt(T t) noexcept
+constexpr int EnumInt(T t) noexcept
 {
     return static_cast<int>(t);
 }
