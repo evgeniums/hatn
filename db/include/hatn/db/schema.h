@@ -39,7 +39,7 @@ HATN_DB_NAMESPACE_BEGIN
 HDU_UNIT_WITH(index,(HDU_BASE(object)),
     HDU_FIELD(model,TYPE_STRING,1)
     HDU_FIELD(name,TYPE_STRING,2)
-    HDU_REPEATED_FIELD(field_names,TYPE_UINT32,3)
+    HDU_REPEATED_FIELD(field_names,TYPE_STRING,3)
     HDU_FIELD(unique,TYPE_BOOL,4)
     HDU_FIELD(date_partition,TYPE_BOOL,5)
     HDU_FIELD(prefix,TYPE_UINT32,6)
@@ -49,23 +49,50 @@ HDU_UNIT_WITH(index,(HDU_BASE(object)),
 
 struct NestedFieldTag{};
 
-template <typename FieldT, typename SubFieldT>
+template <typename PathT>
 struct NestedField
 {
     using hana_tag=NestedFieldTag;
 
-    FieldT field;
-    SubFieldT subField;
+    constexpr static const PathT path{};
+    using Type=typename std::decay_t<decltype(hana::back(path))>::Type;
+
+    static std::string name()
+    {
+        auto fillName=[]()
+        {
+            common::FmtAllocatedBufferChar buf;
+            auto handler=[&buf](auto&& field, auto&& idx)
+            {
+                if (idx.value==0)
+                {
+                    fmt::format_to(std::back_inserter(buf),"{}",field.name());
+                }
+                else
+                {
+                    fmt::format_to(std::back_inserter(buf),"__{}",field.name());
+                }
+                return true;
+            };
+            HATN_VALIDATOR_NAMESPACE::foreach_if(path,HATN_DATAUNIT_META_NAMESPACE::true_predicate,handler);
+            return common::fmtBufToString(buf);
+        };
+
+        static std::string str=fillName();
+        return str;
+    }
 };
 
-#define HDB_NAME_PREPARE(Name) \
-    struct _hdb_t_##Name \
-    { \
-        constexpr static const char* name=#Name; \
-    }; \
-    constexpr _hdb_t_##Name _hdb_s_##Name{};
+struct nestedIndexFieldT
+{
+    template <typename ...PathT>
+    constexpr auto operator()(PathT ...path) const
+    {
+        return NestedField<decltype(hana::make_tuple(path...))>{};
+    }
+};
+constexpr nestedIndexFieldT nestedIndexField{};
 
-#define HDB_NAME(Name) _hdb_s_##Name
 #define HDB_TTL(ttl) hana::int_<ttl>
 
 using Unique=hana::true_;
@@ -159,7 +186,10 @@ struct makeIndexT
 
         const auto& lastArg=hana::back(ft);
         auto p=hana::eval_if(
-            hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,decltype(lastArg)>,
+            hana::or_(
+                hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,decltype(lastArg)>,
+                hana::is_a<NestedFieldTag,decltype(lastArg)>
+            ),
             [&](auto _)
             {
                 common::FmtAllocatedBufferChar buf;
@@ -180,7 +210,7 @@ struct makeIndexT
             },
             [&](auto _)
             {
-                static_assert(std::is_constructible<std::string,decltype(lastArg)>::value,"Last argument must be a name of the index");
+                static_assert(std::is_constructible<std::string,decltype(_(lastArg))>::value,"Last argument must be a name of the index");
                 return std::make_pair(hana::drop_back(_(ft)),_(lastArg));
             }
         );
@@ -193,6 +223,30 @@ struct makeIndexT
     }
 };
 constexpr makeIndexT makeIndex{};
+
+struct getIndexFieldT
+{
+    template <typename UnitT, typename FieldT>
+    decltype(auto) operator()(UnitT&& unit, FieldT&& field) const
+    {
+        return hana::eval_if(
+            hana::is_a<NestedFieldTag,FieldT>,
+            [&](auto _)
+            {
+                auto handler=[](auto&& currentUnit, auto&& currentField)
+                {
+                    return currentUnit.field(currentField);
+                };
+                return hana::fold(_(field).path,_(unit),handler);
+            },
+            [&](auto _)
+            {
+                return _(unit).field(_(field));
+            }
+        );
+    }
+};
+constexpr getIndexFieldT getIndexField{};
 
 HDU_UNIT(model_field,
     HDU_FIELD(id,TYPE_UINT32,1)
@@ -288,7 +342,7 @@ common::DateRange datePartition(const UnitT& unit, const ModelT& model)
         hana::bool_<std::decay_t<ModelT>::isDatePartitioned()>{},
         [&](auto _)
         {
-            const auto& f=_(unit).field(_(model).datePartitionField());
+            const auto& f=getIndexField(_(unit),_(model).datePartitionField());
             Assert(f.isSet(),"Partition field not set");
             return common::DateRange{f.value(),_(model).datePartitionMode()};
         },

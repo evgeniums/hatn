@@ -37,10 +37,16 @@ HATN_TEST_USING
 
 namespace {
 
+HDU_UNIT(n1,
+    HDU_FIELD(f1,TYPE_DATETIME,1)
+)
+
+HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
+    HDU_FIELD(nf1,n1::TYPE,1)
+    HDU_FIELD(f2,TYPE_UINT32,2)
+)
+
 } // anonymous namespace
-
-#define HDB_MAKE_INDEX(Model,Name)
-
 
 BOOST_AUTO_TEST_SUITE(TestDbSchema)
 
@@ -98,6 +104,34 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     o2.field(object::created_at).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
     auto partitionRange2=datePartition(o2,model2);
     BOOST_CHECK(!partitionRange2.isValid());
+}
+
+BOOST_AUTO_TEST_CASE(NestedIndexField)
+{
+    auto nestedField1=nestedIndexField(nu1::nf1,n1::f1);
+
+    constexpr auto isField=hana::or_(hana::is_a<FieldTag,decltype(nestedField1)>,hana::is_a<NestedFieldTag,decltype(nestedField1)>);
+    static_assert(decltype(isField)::value,"");
+    auto ft=hana::make_tuple(nestedField1);
+    const auto& lastArg=hana::back(ft);
+    constexpr auto isBackField=hana::or_(hana::is_a<FieldTag,decltype(lastArg)>,hana::is_a<NestedFieldTag,decltype(lastArg)>);
+    static_assert(decltype(isBackField)::value,"");
+
+    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
+    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},nestedField1);
+    BOOST_CHECK_EQUAL(idx2.name(),"idx_nf1__f1");
+    auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
+
+    auto model1=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    BOOST_CHECK(model1.isDatePartitioned());
+    auto partitionField1=model1.datePartitionField();
+    BOOST_CHECK_EQUAL(partitionField1.name(),"nf1__f1");
+
+    nu1::type o1;
+    o1.field(nu1::nf1).mutableValue()->field(n1::f1).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
+    auto partitionRange1=datePartition(o1,model1);
+    BOOST_REQUIRE(partitionRange1.isValid());
+    BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
