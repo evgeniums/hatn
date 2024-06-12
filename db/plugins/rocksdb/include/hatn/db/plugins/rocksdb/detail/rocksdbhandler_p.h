@@ -78,6 +78,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         std::map<uint32_t,std::unique_ptr<RocksdbPartition>> partitions;
         std::unique_ptr<RocksdbPartition> defaultPartition;
 
+        bool inTransaction;
+
         Result<RocksdbPartition*> partition(uint32_t partitionKey) const noexcept
         {
             auto it=partitions.find(partitionKey);

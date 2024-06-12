@@ -20,10 +20,13 @@
 #define HATNROCKSDBHANDLER_H
 
 #include <memory>
+#include <function>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
+
+using TransactionFn=std::function<Error ()>;
 
 class RocksdbHandler_p;
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
@@ -42,6 +45,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         {
             return d.get();
         }
+
+        Error transaction(const TransactionFn& fn, bool relaxedIfInTransaction=false);
 
     private:
 

@@ -30,9 +30,11 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename UnitT, typename ...Indexes>
-void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns, const db::Model<UnitT,Indexes...>& model, const UnitT& object, Error& ec) const
+template <typename ConfigT, typename UnitT, typename ...Indexes>
+void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns, const db::Model<ConfigT,UnitT,Indexes...>& model, const UnitT& object, Error& ec) const
 {
+    using modelType=std::decay_t<db::Model<ConfigT,UnitT,Indexes...>>;
+
     if (handler.p()->readOnly)
     {
         setError(ec,DbError::DB_READ_ONLY);
@@ -40,32 +42,24 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
     }
 
     // handle partition
-    auto partition=handler.p()->defaultPartition;
-    if (model.definition.field(db::model::date_partition_mode).isSet())
+    auto r=hana::eval_if(
+        hana::bool_<modelType::isDatePartitioned()>{},
+        [&](auto _)
+        {
+            auto partitionRange=datePartition(_(object),_(model));
+            return handler.p()->partition(partitionRange.value());
+        },
+        [&](auto _)
+        {
+            return Result<RocksdbPartition*>{_(handler).p()->defaultPartition};
+        }
+    );
+    if (r)
     {
-        auto mode=model.definition.field(db::model::date_partition_mode).value();
-
-        // figure out partition key
-        constexpr auto partitionField=datePartitionField(model.indexes);
-        auto partitionKey=hana::eval_if(
-            hana::is_nothing(partitionField),
-            [&](auto _)
-            {
-                auto dt=_(object).field(db::object::created_at).value();
-                return common::DateRange::dateToRangeNumber(dt,_(mode));
-            },
-            [&](auto _)
-            {
-                const auto& field=hana::value(_(partitionField)).datePartitionField;
-                auto dt=_(object).field(field).value();
-                return common::DateRange::dateToRangeNumber(dt,_(mode));
-            }
-        );
-
-        auto r=handler.p()->partition(partitionKey);
-        HATN_CHECK_EMPTY_RETURN(r)
-        partition=r.takeValue();
+        ec=r.takeError();
+        return;
     }
+    auto&& partition=r.takeValue();
 
     // serialize object
     dataunit::WireBufSolid buf;
@@ -79,57 +73,33 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
         buf=object.wireDataKeeper()->toSolidWireBuf();
     }
 
-    // init transaction
-    auto rdb=handler.p()->transactionDb;
-    auto tx=rdb->BeginTransaction(handler.p()->writeOptions,handler.p()->transactionOptions);
-    if (tx==nullptr)
+    // transaction fn
+    auto transactionFn=[&]()
     {
-        setError(ec,DbError::TX_BEGIN_FAILED);
-        return;
-    }
-    auto onExit=[&ec,&tx]()
-    {
-        rocksdb::Status status;
-        if (ec)
+        auto rdb=handler.p()->transactionDb;
+        auto objectId=object.field(db::object::_id).value().toString();
+
+        // check unique indexes
+
+        // write serialized object to rocksdb
+        auto collectionCF=partition->collectionCF(ns.collection());
+        //! @todo handle keys in one place
+        auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
+        ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
+        auto status=rdb->Put(handler.p()->writeOptions,collectionCF,objectKey,objectValue);
+        if (!status.ok())
         {
-            status=tx->Rollback();
-            if (!status.ok())
-            {
-                //! @todo report error
-            }
+            //! @todo construct error
+            return dbError(DbError::WRITE_OBJECT_FAILED);
         }
-        else
-        {
-            status=tx->Commit();
-            if (!status.ok())
-            {
-                //! @todo construct error
-                ec=dbError(DbError::TX_COMMIT_FAILED);
-            }
-        }
-        delete tx;
+
+        // construct and write indexes to rocksdb
+
+        // construct and write ttl indexes to rocksdb
     };
-    auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));
-    std::ignore=scopeGuard;
 
-    // check unique indexes
-
-    // write serialized object to rocksdb
-    auto collectionCF=partition->collectionCF(ns.collection());
-    //! @todo handle keys in one place
-    auto objectKey=fmt::format("{}:{}:{}",ns.tenancyName(),ns.collection(),object.field(db::object::_id).c_str());
-    ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-    auto status=rdb->Put(handler.p()->writeOptions,collectionCF,objectKey,objectValue);
-    if (!status.ok())
-    {
-        //! @todo construct error
-        ec=dbError(DbError::WRITE_OBJECT_FAILED);
-        return;
-    }
-
-    // construct and write indexes to rocksdb
-
-    // construct and write ttl indexes to rocksdb
+    // invoke transaction
+    ec=handler->transaction(transactionFn,false);
 }
 
 HATN_ROCKSDB_NAMESPACE_END
