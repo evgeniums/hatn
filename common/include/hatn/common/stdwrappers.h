@@ -30,9 +30,14 @@
 #if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
     #include <boost/variant.hpp>
     #include <boost/optional.hpp>
+    #include <boost/thread/shared_mutex.hpp>
+    #include <boost/thread/locks.hpp>
+    #include <boost/thread/lock_types.hpp>
 #else
     #include <variant>
     #include <optional>
+    #include <shared_mutex>
+    #include <mutex>
 #endif
 
 #include <fmt/core.h>
@@ -45,9 +50,16 @@ namespace lib
 
 #if __cplusplus < 201703L
     using string_view=boost::string_view;
+    using shared_mutex=boost::shared_mutex;
+    template <typename T> using shared_lock=boost::shared_lock<T>;
+    template <typename T> using unique_lock=boost::unique_lock<T>;
 #else
     using string_view=std::string_view;
+    using shared_mutex=std::shared_mutex;
+    template <typename T> using shared_lock=std::shared_lock<T>;
+    template <typename T> using unique_lock=std::unique_lock<T>;
 #endif
+
 template <typename T> string_view toStringView(const T& buf) noexcept
 {
     return string_view(buf.data(),buf.size());
