@@ -1551,7 +1551,7 @@ class HATN_COMMON_EXPORT DateRange
 
         std::string toString() const;
 
-        Result<DateRange> fromString(const common::lib::string_view& str);
+        static Result<DateRange> fromString(const common::lib::string_view& str);
 
         bool operator==(const DateRange& other) const noexcept
         {
