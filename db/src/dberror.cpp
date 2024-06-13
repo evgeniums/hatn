@@ -92,11 +92,15 @@ std::string DbErrorCategory::message(int code) const
             break;
 
         case (static_cast<int>(DbError::PARTITION_CREATE_FALIED)):
-            result=_TR("failed to create partition","db");
+            result=_TR("failed to create database partition","db");
             break;
 
         case (static_cast<int>(DbError::PARTITION_DELETE_FALIED)):
-            result=_TR("failed to delete partition","db");
+            result=_TR("failed to delete database partition","db");
+            break;
+
+        case (static_cast<int>(DbError::PARTITION_LIST_FAILED)):
+            result=_TR("failed to list database partitions","db");
             break;
 
         default:

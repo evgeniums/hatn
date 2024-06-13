@@ -44,6 +44,13 @@ struct RocksdbPartition
         Ttl
     };
 
+    constexpr static const char* CollectionSuffix="collections";
+    constexpr static const char* IndexSuffix="indexes";
+    constexpr static const char* TtlSuffix="ttl";
+
+    RocksdbPartition()
+    {}
+
     RocksdbPartition(
             ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf,
             ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf,
@@ -63,15 +70,15 @@ struct RocksdbPartition
         switch (cfType)
         {
             case (CfType::Collection):
-                return fmt::format("{}_collection",range.toString());
+                return fmt::format("{}_{}",range.toString(),CollectionSuffix);
                 break;
 
             case (CfType::Index):
-                return fmt::format("{}_index",range.toString());
+                return fmt::format("{}_{}",range.toString(),IndexSuffix);
                 break;
 
             case (CfType::Ttl):
-                return fmt::format("{}_ttl",range.toString());
+                return fmt::format("{}_{}",range.toString(),TtlSuffix);
                 break;
         }
 
@@ -84,7 +91,10 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 {
     public:
 
-        RocksdbHandler_p(ROCKSDB_NAMESPACE::DB* db, ROCKSDB_NAMESPACE::TransactionDB* transactionDb=nullptr);
+        RocksdbHandler_p(
+            ROCKSDB_NAMESPACE::DB* db,
+            ROCKSDB_NAMESPACE::TransactionDB* transactionDb=nullptr
+        );
 
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
@@ -100,7 +110,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         bool readOnly;
 
         std::map<common::DateRange,std::shared_ptr<RocksdbPartition>> partitions;
-        std::unique_ptr<RocksdbPartition> defaultPartition;
+        std::shared_ptr<RocksdbPartition> defaultPartition;
 
         bool inTransaction;
         mutable common::lib::shared_mutex partitionMutex;

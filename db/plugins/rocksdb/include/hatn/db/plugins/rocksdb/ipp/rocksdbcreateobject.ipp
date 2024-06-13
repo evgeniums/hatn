@@ -25,6 +25,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 #include <hatn/db/plugins/rocksdb/rocksdbcreateobject.h>
 
@@ -35,31 +36,30 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
 {
     using modelType=std::decay_t<db::Model<ConfigT,UnitT,Indexes...>>;
 
-    if (handler.p()->readOnly)
+    if (handler.readOnly())
     {
         setError(ec,DbError::DB_READ_ONLY);
         return;
     }
 
     // handle partition
-    auto r=hana::eval_if(
+    auto&& partition=hana::eval_if(
         hana::bool_<modelType::isDatePartitioned()>{},
         [&](auto _)
         {
             auto partitionRange=datePartition(_(object),_(model));
-            return handler.p()->partition(partitionRange.value());
+            return _(handler).partition(partitionRange);
         },
         [&](auto _)
         {
-            return Result<RocksdbPartition*>{_(handler).p()->defaultPartition};
+            return _(handler).defaultPartition();
         }
     );
-    if (r)
+    if (!partition)
     {
-        ec=r.takeError();
+        ec=dbError(DbError::PARTITION_NOT_FOUND);
         return;
     }
-    auto&& partition=r.takeValue();
 
     // serialize object
     dataunit::WireBufSolid buf;
@@ -85,7 +85,7 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
         //! @todo handle keys in one place
         auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        auto status=rdb->Put(handler.p()->writeOptions,partition->collectionCF,objectKey,objectValue);
+        auto status=rdb->Put(handler.p()->writeOptions,partition->collectionCF.get(),objectKey,objectValue);
         if (!status.ok())
         {
             //! @todo construct error

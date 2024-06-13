@@ -52,9 +52,16 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         Error transaction(const TransactionFn& fn, bool relaxedIfInTransaction=false);
 
-        Result<std::shared_ptr<RocksdbPartition>> createPartition(const common::DateRange& range);
+        Result<std::shared_ptr<RocksdbPartition>> createPartition(const common::DateRange& range=common::DateRange{});
 
         Error deletePartition(const common::DateRange& range);
+
+        std::shared_ptr<RocksdbPartition> partition(const common::DateRange& range) const noexcept;
+        void insertPartition(const common::DateRange& range, std::shared_ptr<RocksdbPartition> partition);
+
+        std::shared_ptr<RocksdbPartition> defaultPartition() const noexcept;
+
+        bool readOnly() const noexcept;
 
     private:
 

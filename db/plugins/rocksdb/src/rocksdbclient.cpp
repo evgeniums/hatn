@@ -15,6 +15,8 @@
 
 /****************************************************************************/
 
+#include <boost/algorithm/string.hpp>
+
 #include <rocksdb/db.h>
 #include <rocksdb/utilities/transaction_db.h>
 
@@ -155,18 +157,59 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::DB* db{nullptr};
     ROCKSDB_NAMESPACE::TransactionDB* transactionDb{nullptr};
     ROCKSDB_NAMESPACE::Options options;
-    ROCKSDB_NAMESPACE::TransactionDBOptions tx_options;
+    ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
+    ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
+    ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
+    ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     options.create_if_missing = createIfMissing;
 
+    std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
+
+    // list names of existing column families
+    std::vector<std::string> cfNames;
+    auto status = ROCKSDB_NAMESPACE::DB::ListColumnFamilies(options, dbPath, &cfNames);
+    // check status
+    if (!status.ok())
+    {
+        //! @todo handle error
+        //! @todo create db if not exists
+        setError(ec,DbError::PARTITION_LIST_FAILED);
+        return;
+    }
+
+    // fill cf descriptors
+    std::vector<ROCKSDB_NAMESPACE::ColumnFamilyDescriptor> cfDescriptors;
+    for (auto&& cfName : cfNames)
+    {
+        if (boost::ends_with(cfName,RocksdbPartition::CollectionSuffix))
+        {
+            cfDescriptors.emplace_back(cfName,collCfOptions);
+        }
+        else if (boost::ends_with(cfName,RocksdbPartition::IndexSuffix))
+        {
+            cfDescriptors.emplace_back(cfName,indexCfOptions);
+        }
+        else if (boost::ends_with(cfName,RocksdbPartition::TtlSuffix))
+        {
+            cfDescriptors.emplace_back(cfName,ttlCfOptions);
+        }
+        else
+        {
+            //! @todo Inform about unknown column family
+            setError(ec,DbError::PARTITION_LIST_FAILED);
+            return;
+        }
+    }
+
     // open database
-    rocksdb::Status status;
+    std::vector<ROCKSDB_NAMESPACE::ColumnFamilyHandle*> cfHandles;
     if (d->opt.config().field(rocksdb_options::readonly).value())
     {
-        status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,d->cfg.config().field(rocksdb_config::dbpath).c_str(),&db);
+        status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&db);
     }
     else
     {
-        status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,tx_options,d->cfg.config().field(rocksdb_config::dbpath).c_str(),&transactionDb);
+        status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,cfDescriptors,&cfHandles,&transactionDb);
         db=transactionDb;
     }
 
@@ -185,8 +228,107 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         return;
     }
 
-    // done
+    // create handler
     d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
+    d->handler->p()->collColumnFamilyOptions=collCfOptions;
+    d->handler->p()->indexColumnFamilyOptions=indexCfOptions;
+    d->handler->p()->ttlColumnFamilyOptions=ttlCfOptions;
+    //! @todo set other options
+
+    // fill partitions
+    std::set<size_t> cfIndexes;
+    for (size_t i=0;i<cfHandles.size();i++)
+    {
+        auto cfHandle=cfHandles[i];
+
+        const auto& name=cfHandle->GetName();
+        std::vector<std::string> parts;
+        boost::split(parts,name,boost::is_any_of("_"));
+        if (parts.size()!=2)
+        {
+            //! @todo inform on error
+            setError(ec,DbError::PARTITION_LIST_FAILED);
+            break;
+        }
+
+        auto partitionDateRange=common::DateRange::fromString(parts[0]);
+        if (partitionDateRange)
+        {
+            //! @todo inform on error
+            setError(ec,DbError::PARTITION_LIST_FAILED);
+            break;
+        }
+
+        auto partition=d->handler->partition(partitionDateRange.value());
+        if (!partition)
+        {
+            partition=std::make_shared<RocksdbPartition>();
+            d->handler->insertPartition(partitionDateRange.value(),partition);
+        }
+
+        if (parts[1]==RocksdbPartition::CollectionSuffix)
+        {
+            partition->collectionCf.reset(cfHandle);
+        }
+        else if (parts[1]==RocksdbPartition::IndexSuffix)
+        {
+            partition->indexCf.reset(cfHandle);
+        }
+        else if (parts[1]==RocksdbPartition::TtlSuffix)
+        {
+            partition->ttlCf.reset(cfHandle);
+        }
+        else
+        {
+            //! @todo Warn about unknown column family
+            setError(ec,DbError::PARTITION_LIST_FAILED);
+            break;
+        }
+
+        cfIndexes.insert(i);
+    }
+
+    // create default partition
+    if (!ec)
+    {
+        auto r=d->handler->createPartition();
+        if (r)
+        {
+            //! @todo handle error
+            setError(ec,DbError::PARTITION_CREATE_FALIED);
+        }
+        else
+        {
+            d->handler->p()->defaultPartition=r.takeValue();
+        }
+    }
+
+    // close db in case of error
+    if (ec)
+    {
+        // explicitly delete cf handles that are not own by partitions
+        for (size_t i=0;i<cfHandles.size();i++)
+        {
+            auto it=cfIndexes.find(i);
+            if (it==cfIndexes.end())
+            {
+                delete cfHandles[i];
+            }
+        }
+
+        // implicitly delete cf handles owned by partitions
+        d->handler->p()->partitions.clear();
+
+        // close db
+        auto status=d->handler->p()->db->Close();
+        if (!status.ok())
+        {
+            //! @todo handle error
+        }
+
+        // done closing db on failure
+        d->handler.reset();
+    }
 }
 
 //---------------------------------------------------------------
@@ -196,6 +338,8 @@ void RocksdbClient::invokeCloseDb(Error &ec)
     ec.reset();
     if (d->handler)
     {
+        d->handler->p()->partitions.clear();
+
         rocksdb::Status status;
         if (d->cfg.config().field(rocksdb_config::wait_compact_shutdown).value())
         {

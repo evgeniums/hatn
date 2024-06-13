@@ -227,4 +227,40 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 
 //---------------------------------------------------------------
 
+std::shared_ptr<RocksdbPartition> RocksdbHandler::partition(const common::DateRange& range) const noexcept
+{
+    common::lib::shared_lock<common::lib::shared_mutex> l{d->partitionMutex};
+
+    auto it=d->partitions.find(range);
+    if (it!=d->partitions.end())
+    {
+        return it->second;
+    }
+    return std::shared_ptr<RocksdbPartition>{};
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<RocksdbPartition> RocksdbHandler::defaultPartition() const noexcept
+{
+    return d->defaultPartition;
+}
+
+//---------------------------------------------------------------
+
+void RocksdbHandler::insertPartition(const common::DateRange &range, std::shared_ptr<RocksdbPartition> partition)
+{
+    common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+    d->partitions.emplace(range,std::move(partition));
+}
+
+//---------------------------------------------------------------
+
+bool RocksdbHandler::readOnly() const noexcept
+{
+    return d->readOnly;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END
