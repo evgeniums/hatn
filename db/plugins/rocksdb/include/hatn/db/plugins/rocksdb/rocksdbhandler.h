@@ -22,6 +22,8 @@
 #include <memory>
 #include <functional>
 
+#include <hatn/common/datetime.h>
+
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -29,6 +31,8 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 using TransactionFn=std::function<Error ()>;
 
 class RocksdbHandler_p;
+struct RocksdbPartition;
+
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 {
     public:
@@ -47,6 +51,10 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         }
 
         Error transaction(const TransactionFn& fn, bool relaxedIfInTransaction=false);
+
+        Result<std::shared_ptr<RocksdbPartition>> createPartition(const common::DateRange& range);
+
+        Error deletePartition(const common::DateRange& range);
 
     private:
 

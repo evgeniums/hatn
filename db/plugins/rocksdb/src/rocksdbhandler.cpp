@@ -90,4 +90,141 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
 
 //---------------------------------------------------------------
 
+Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const common::DateRange& range)
+{
+    common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+
+    // skip existing partition
+    std::shared_ptr<RocksdbPartition> partition;
+    auto it=d->partitions.find(range);
+    if (it!=d->partitions.end())
+    {
+        partition=it->second;
+        if (partition->collectionCf && partition->indexCf && partition->ttlCf)
+        {
+            return partition;
+        }
+    }
+
+    // create column families
+
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf;
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
+
+    if (!partition || !partition->collectionCf)
+    {
+        auto status=d->transactionDb->CreateColumnFamily(d->collColumnFamilyOptions,
+                                                                         RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Collection,range),
+                                                                         &collectionCf
+                                                                         );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+        if (partition)
+        {
+            partition->collectionCf.reset(collectionCf);
+        }
+    }
+
+    if (!partition || !partition->indexCf)
+    {
+        auto status=d->transactionDb->CreateColumnFamily(d->indexColumnFamilyOptions,
+                                                                    RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Index,range),
+                                                                    &indexCf
+                                                                    );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+        if (partition)
+        {
+            partition->indexCf.reset(indexCf);
+        }
+    }
+
+    if (!partition || !partition->collectionCf)
+    {
+        auto status=d->transactionDb->CreateColumnFamily(d->ttlColumnFamilyOptions,
+                                                                    RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Ttl,range),
+                                                                    &ttlCf
+                                                                    );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+        if (partition)
+        {
+            partition->ttlCf.reset(ttlCf);
+        }
+    }
+
+    // keep partition
+    if (!partition)
+    {
+        partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf);
+        d->partitions.emplace(range,std::move(partition));
+    }
+
+    return partition;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbHandler::deletePartition(const common::DateRange& range)
+{
+    common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+
+    // skip existing partition
+    auto it=d->partitions.find(range);
+    if (it==d->partitions.end())
+    {
+        return OK;
+    }
+    auto partition=it->second;
+
+    // drop column families
+    if (partition->indexCf)
+    {
+        auto status=d->transactionDb->DropColumnFamily(partition->indexCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+    }
+
+    if (partition->collectionCf)
+    {
+        auto status=d->transactionDb->DropColumnFamily(partition->collectionCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+    }
+
+    if (partition->ttlCf)
+    {
+        auto status=d->transactionDb->DropColumnFamily(partition->ttlCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+    }
+
+    // delete partition
+    d->partitions.erase(it);
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

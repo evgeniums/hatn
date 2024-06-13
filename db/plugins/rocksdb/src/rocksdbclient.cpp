@@ -151,7 +151,6 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         return;
     }
 
-    //! @todo use column families
     //! @todo fill options from configuration
     ROCKSDB_NAMESPACE::DB* db{nullptr};
     ROCKSDB_NAMESPACE::TransactionDB* transactionDb{nullptr};
@@ -241,54 +240,8 @@ Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const st
 {
     for (auto&& range: dateRanges)
     {
-        common::lib::unique_lock<common::lib::shared_mutex> l{d->handler->p()->partitionMutex};
-
-        // skip existing partition
-        auto it=d->handler->p()->partitions.find(range);
-        if (it!=d->handler->p()->partitions.end())
-        {
-            continue;
-        }
-
-        // create column families
-
-        ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf;
-        ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
-        ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
-
-        auto status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->collColumnFamilyOptions,
-                                                           RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Collection,range),
-                                                           &collectionCf
-                                                           );
-        if (!status.ok())
-        {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
-        }
-
-        status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->indexColumnFamilyOptions,
-                                                                         RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Index,range),
-                                                                         &indexCf
-                                                                         );
-        if (!status.ok())
-        {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
-        }
-
-        status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->ttlColumnFamilyOptions,
-                                                                    RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Ttl,range),
-                                                                    &ttlCf
-                                                                    );
-        if (!status.ok())
-        {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
-        }
-
-        // keep partition
-        auto partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf);
-        d->handler->p()->partitions.emplace(range,std::move(partition));
+        auto r=d->handler->createPartition(range);
+        HATN_CHECK_RESULT(r)
     }
 
     // done
@@ -301,38 +254,8 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 {
     for (auto&& range: dateRanges)
     {
-        common::lib::unique_lock<common::lib::shared_mutex> l{d->handler->p()->partitionMutex};
-
-        // skip existing partition
-        auto it=d->handler->p()->partitions.find(range);
-        if (it==d->handler->p()->partitions.end())
-        {
-            continue;
-        }
-        auto partition=it->second;
-
-        // drop column families
-        auto status=d->handler->p()->transactionDb->DropColumnFamily(partition->indexCf.get());
-        if (!status.ok())
-        {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
-        }
-        status=d->handler->p()->transactionDb->DropColumnFamily(partition->collectionCf.get());
-        if (!status.ok())
-        {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
-        }
-        status=d->handler->p()->transactionDb->DropColumnFamily(partition->ttlCf.get());
-        if (!status.ok())
-        {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
-        }
-
-        // delete partition
-        d->handler->p()->partitions.erase(it);
+        auto ec=d->handler->deletePartition(range);
+        HATN_CHECK_EC(ec)
     }
 
     // done

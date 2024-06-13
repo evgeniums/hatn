@@ -63,15 +63,15 @@ struct RocksdbPartition
         switch (cfType)
         {
             case (CfType::Collection):
-                return fmt::format("collection_{}",range.value());
+                return fmt::format("{}_collection",range.toString());
                 break;
 
             case (CfType::Index):
-                return fmt::format("index_{}",range.value());
+                return fmt::format("{}_index",range.toString());
                 break;
 
             case (CfType::Ttl):
-                return fmt::format("ttl_{}",range.value());
+                return fmt::format("{}_ttl",range.toString());
                 break;
         }
 
