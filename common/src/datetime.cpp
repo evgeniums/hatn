@@ -1152,4 +1152,25 @@ bool DateRange::contains(const Date& dt) const
 
 //---------------------------------------------------------------
 
+std::set<DateRange> DateRange::datesToRanges(const Date& to, const Date& from, Type type)
+{
+    auto dateFrom=from;
+    if (dateFrom.isNull())
+    {
+        dateFrom=to;
+    }
+
+    std::set<common::DateRange> ranges;
+
+    while (dateFrom<=to)
+    {
+        ranges.emplace(dateFrom,type);
+        dateFrom.addDays(1);
+    }
+
+    return ranges;
+}
+
+//---------------------------------------------------------------
+
 HATN_COMMON_NAMESPACE_END

@@ -18,6 +18,7 @@
 #define HATNDATETIME_H
 
 #include <cmath>
+#include <set>
 
 #include <hatn/common/common.h>
 #include <hatn/common/utils.h>
@@ -1442,6 +1443,15 @@ class HATN_COMMON_EXPORT DateRange
         static DateRange dateToRange(const Date& dt, Type type=Type::Month);
 
         /**
+         * @brief Construct list of ranges for interval of dates.
+         * @param to Max date.
+         * @param from Min date, if null then the same as max date.
+         * @param type Range type.
+         * @return Set of date ranges.
+         */
+        static std::set<DateRange> datesToRanges(const Date& to, const Date& from=Date{}, Type type=Type::Month);
+
+        /**
          * @brief Calculate range number from date.
          * @param dt Date.
          * @param type Range type.
@@ -1530,6 +1540,36 @@ class HATN_COMMON_EXPORT DateRange
         bool contains(const DateTime& dt) const
         {
             return contains(dt.date());
+        }
+
+        bool operator==(const DateRange& other) const noexcept
+        {
+            return m_value==other.m_value;
+        }
+
+        bool operator!=(const DateRange& other) const noexcept
+        {
+            return m_value!=other.m_value;
+        }
+
+        bool operator<(const DateRange& other) const noexcept
+        {
+            return m_value<other.m_value;
+        }
+
+        bool operator<=(const DateRange& other) const noexcept
+        {
+            return m_value<=other.m_value;
+        }
+
+        bool operator>(const DateRange& other) const noexcept
+        {
+            return m_value>other.m_value;
+        }
+
+        bool operator>=(const DateRange& other) const noexcept
+        {
+            return m_value>=other.m_value;
         }
 
     private:
