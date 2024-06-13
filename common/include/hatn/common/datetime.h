@@ -1390,7 +1390,9 @@ class HATN_COMMON_EXPORT DateRange
          * @param value Number.
          */
         DateRange(uint32_t value=0) : m_value(value)
-        {}
+        {
+            //! @todo Maybe validate.
+        }
 
         /**
          * @brief Ctor from DateTime.
@@ -1407,7 +1409,7 @@ class HATN_COMMON_EXPORT DateRange
          * @param type Range type.
          */
         DateRange(const Date& dt, Type type=Type::Month)
-            :m_value(dateToRangeNumber(dt,type))
+            :DateRange(dateToRangeNumber(dt,type))
         {}
 
         /**
@@ -1417,6 +1419,11 @@ class HATN_COMMON_EXPORT DateRange
         bool isValid() const noexcept
         {
             return m_value!=0;
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_value==0;
         }
 
         void set(uint32_t value) noexcept
@@ -1541,6 +1548,10 @@ class HATN_COMMON_EXPORT DateRange
         {
             return contains(dt.date());
         }
+
+        std::string toString() const;
+
+        Result<DateRange> fromString(const common::lib::string_view& str);
 
         bool operator==(const DateRange& other) const noexcept
         {

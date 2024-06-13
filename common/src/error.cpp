@@ -212,6 +212,9 @@ std::string CommonErrorCategory::message(int code) const
         case (static_cast<int>(CommonError::INVALID_DATETIME_FORMAT)):
             result=_TR("invalid datetime format");
             break;
+        case (static_cast<int>(CommonError::INVALID_DATERANGE_FORMAT)):
+            result=_TR("invalid format of date range");
+            break;
 
         default:
             result=_TR("unknown error");

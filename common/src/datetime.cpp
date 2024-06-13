@@ -14,6 +14,11 @@
  */
 
 #include <chrono>
+
+#if __cplusplus >= 201703L
+#include <charconv>
+#endif
+
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/c_local_time_adjustor.hpp>
@@ -1169,6 +1174,40 @@ std::set<DateRange> DateRange::datesToRanges(const Date& to, const Date& from, T
     }
 
     return ranges;
+}
+
+//---------------------------------------------------------------
+
+std::string DateRange::toString() const
+{
+    return fmt::format("{:08d}",m_value);
+}
+
+//---------------------------------------------------------------
+
+Result<DateRange> DateRange::fromString(const common::lib::string_view& str)
+{
+    uint32_t value{0};
+
+#if __cplusplus >= 201703L
+    auto r = std::from_chars(str.data(), str.data() + str.size(), value, 10);
+    if (r.ec != std::errc())
+    {
+        return commonError(CommonError::INVALID_DATERANGE_FORMAT);
+    }
+#else
+    std::string s{str.begin(),str.end()};
+    try
+    {
+        value=static_cast<uint32_t>(std::stoi(s));
+    }
+    catch (...)
+    {
+        return commonError(CommonError::INVALID_DATERANGE_FORMAT);
+    }
+#endif
+
+    return DateRange{value};
 }
 
 //---------------------------------------------------------------

@@ -46,7 +46,8 @@ enum class CommonError : int
     NOT_FOUND=14,
     INVALID_TIME_FORMAT=15,
     INVALID_DATE_FORMAT=16,
-    INVALID_DATETIME_FORMAT=17
+    INVALID_DATETIME_FORMAT=17,
+    INVALID_DATERANGE_FORMAT=18
 };
 
 //! Error category for hatncommonlib.
