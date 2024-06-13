@@ -237,4 +237,108 @@ Error RocksdbClient::doMigrateSchema(const std::string &schemaName, const Namesp
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
+{
+    for (auto&& range: dateRanges)
+    {
+        common::lib::unique_lock<common::lib::shared_mutex> l{d->handler->p()->partitionMutex};
+
+        // skip existing partition
+        auto it=d->handler->p()->partitions.find(range);
+        if (it!=d->handler->p()->partitions.end())
+        {
+            continue;
+        }
+
+        // create column families
+
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf;
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
+
+        auto status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->collColumnFamilyOptions,
+                                                           RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Collection,range),
+                                                           &collectionCf
+                                                           );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+
+        status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->indexColumnFamilyOptions,
+                                                                         RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Index,range),
+                                                                         &indexCf
+                                                                         );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+
+        status=d->handler->p()->transactionDb->CreateColumnFamily(d->handler->p()->ttlColumnFamilyOptions,
+                                                                    RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Ttl,range),
+                                                                    &ttlCf
+                                                                    );
+        if (!status.ok())
+        {
+            //! @todo handle error
+            return dbError(DbError::PARTITION_CREATE_FALIED);
+        }
+
+        // keep partition
+        auto partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf);
+        d->handler->p()->partitions.emplace(range,std::move(partition));
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
+{
+    for (auto&& range: dateRanges)
+    {
+        common::lib::unique_lock<common::lib::shared_mutex> l{d->handler->p()->partitionMutex};
+
+        // skip existing partition
+        auto it=d->handler->p()->partitions.find(range);
+        if (it==d->handler->p()->partitions.end())
+        {
+            continue;
+        }
+        auto partition=it->second;
+
+        // drop column families
+        auto status=d->handler->p()->transactionDb->DropColumnFamily(partition->indexCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+        status=d->handler->p()->transactionDb->DropColumnFamily(partition->collectionCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+        status=d->handler->p()->transactionDb->DropColumnFamily(partition->ttlCf.get());
+        if (!status.ok())
+        {
+            //! @todo handle error, skip non-existent cf
+            return dbError(DbError::PARTITION_DELETE_FALIED);
+        }
+
+        // delete partition
+        d->handler->p()->partitions.erase(it);
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

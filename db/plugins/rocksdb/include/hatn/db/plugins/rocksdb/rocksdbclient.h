@@ -44,14 +44,17 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
     protected:
 
-        virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
-        virtual Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
+        Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
+        Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
 
         Error doCheckSchema(const std::string& schemaName, const Namespace& ns) override;
         Error doMigrateSchema(const std::string& schemaName, const Namespace& ns) override;
 
         void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
         void doCloseDb(Error& ec) override;
+
+        Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
+        Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
 
     private:
 

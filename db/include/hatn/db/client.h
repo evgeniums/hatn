@@ -19,6 +19,9 @@
 #ifndef HATNDBCLIENT_H
 #define HATNDBCLIENT_H
 
+#include <vector>
+#include <set>
+
 #include <hatn/common/error.h>
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/objectid.h>
@@ -28,6 +31,7 @@
 
 #include <hatn/db/db.h>
 #include <hatn/db/dberror.h>
+#include <hatn/db/model.h>
 
 #include <hatn/db/namespace.h>
 
@@ -120,6 +124,26 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        Error addDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
+        {
+            if (m_opened)
+            {
+                return doAddDatePartitions(models,datePartitionRanges(models,to,from));
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
+        {
+            if (m_opened)
+            {
+                return doDeleteDatePartitions(models,datePartitionRanges(models,to,from));
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
@@ -130,6 +154,9 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Error doCheckSchema(const std::string& schemaName, const Namespace& ns)=0;
         virtual Error doMigrateSchema(const std::string& schemaName, const Namespace& ns)=0;
+
+        virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
+        virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
 
         void setClosed() noexcept
         {

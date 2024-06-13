@@ -82,11 +82,10 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
         // check unique indexes
 
         // write serialized object to rocksdb
-        auto collectionCF=partition->collectionCF(ns.collection());
         //! @todo handle keys in one place
         auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        auto status=rdb->Put(handler.p()->writeOptions,collectionCF,objectKey,objectValue);
+        auto status=rdb->Put(handler.p()->writeOptions,partition->collectionCF,objectKey,objectValue);
         if (!status.ok())
         {
             //! @todo construct error

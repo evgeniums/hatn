@@ -91,6 +91,14 @@ std::string DbErrorCategory::message(int code) const
             result=_TR("invalid request for read only database","db");
             break;
 
+        case (static_cast<int>(DbError::PARTITION_CREATE_FALIED)):
+            result=_TR("failed to create partition","db");
+            break;
+
+        case (static_cast<int>(DbError::PARTITION_DELETE_FALIED)):
+            result=_TR("failed to delete partition","db");
+            break;
+
         default:
             result=_TR("unknown error");
     }

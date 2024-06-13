@@ -20,11 +20,14 @@
 #define HATNROCKSDBHANDLER_P_H
 
 #include <map>
+#include <map>
 
 #include <rocksdb/db.h>
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/common/result.h>
+#include <hatn/common/datetime.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/db/dberror.h>
 
@@ -34,29 +37,46 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct RocksdbPartition
 {
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> collections;
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> indexes;
-    std::map<std::string,std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>,std::less<>> ttlIndexes;
-
-    ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCF(const std::string_view& name) const
+    enum class CfType : int
     {
-        auto it=collections.find(name);
-        Assert(it!=collections.end(),"collection not found");
-        return it->second.get();
-    }
+        Collection,
+        Index,
+        Ttl
+    };
 
-    ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCF(const std::string_view& name) const
-    {
-        auto it=indexes.find(name);
-        Assert(it!=indexes.end(),"index not found");
-        return it->second.get();
-    }
+    RocksdbPartition(
+            ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf,
+            ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf,
+            ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf
+        ) :
+            collectionCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{collectionCf}),
+            indexCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{indexCf}),
+            ttlCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{ttlCf})
+    {}
 
-    ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlIndexCF(const std::string_view& name) const
+    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> collectionCf;
+    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> indexCf;
+    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> ttlCf;
+
+    static std::string columnFamilyName(CfType cfType, const common::DateRange& range)
     {
-        auto it=ttlIndexes.find(name);
-        Assert(it!=ttlIndexes.end(),"ttl index not found");
-        return it->second.get();
+        switch (cfType)
+        {
+            case (CfType::Collection):
+                return fmt::format("collection_{}",range.value());
+                break;
+
+            case (CfType::Index):
+                return fmt::format("index_{}",range.value());
+                break;
+
+            case (CfType::Ttl):
+                return fmt::format("ttl_{}",range.value());
+                break;
+        }
+
+        Assert(false,"Unknown column family type");
+        return std::string{};
     }
 };
 
@@ -73,21 +93,28 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         ROCKSDB_NAMESPACE::ReadOptions readOptions;
         ROCKSDB_NAMESPACE::TransactionOptions transactionOptions;
 
+        ROCKSDB_NAMESPACE::ColumnFamilyOptions collColumnFamilyOptions;
+        ROCKSDB_NAMESPACE::ColumnFamilyOptions indexColumnFamilyOptions;
+        ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlColumnFamilyOptions;
+
         bool readOnly;
 
-        std::map<uint32_t,std::unique_ptr<RocksdbPartition>> partitions;
+        std::map<common::DateRange,std::shared_ptr<RocksdbPartition>> partitions;
         std::unique_ptr<RocksdbPartition> defaultPartition;
 
         bool inTransaction;
+        mutable common::lib::shared_mutex partitionMutex;
 
-        Result<RocksdbPartition*> partition(uint32_t partitionKey) const noexcept
+        Result<std::shared_ptr<RocksdbPartition>> partition(uint32_t partitionKey) const noexcept
         {
+            common::lib::shared_lock<common::lib::shared_mutex> l{partitionMutex};
+
             auto it=partitions.find(partitionKey);
             if (it==partitions.end())
             {
                 return dbError(DbError::PARTITION_NOT_FOUND);
             }
-            return it->second.get();
+            return it->second;
         }
 };
 

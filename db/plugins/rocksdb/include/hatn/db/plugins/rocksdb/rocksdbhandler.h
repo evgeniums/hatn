@@ -20,7 +20,7 @@
 #define HATNROCKSDBHANDLER_H
 
 #include <memory>
-#include <function>
+#include <functional>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 

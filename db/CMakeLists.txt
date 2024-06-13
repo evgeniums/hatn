@@ -10,6 +10,8 @@ SET (HEADERS
     include/hatn/db/crud.h
     include/hatn/db/namespace.h
     include/hatn/db/client.h
+    include/hatn/db/index.h
+    include/hatn/db/model.h
     include/hatn/db/schema.h
 )
 
