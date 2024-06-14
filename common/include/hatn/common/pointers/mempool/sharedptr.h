@@ -335,6 +335,17 @@ template <typename T> class SharedPtr<T,std::enable_if_t<std::is_base_of<Managed
             reset();
         }
 
+        //! Swap pointers.
+        void swap(SharedPtr<T>& other) noexcept
+        {
+            std::swap(this->d,other.d);
+        }
+
+        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs)
+        {
+            std::swap(lhs.d,rhs.d);
+        }
+
         //! Make dynamic cast
         template <typename Y> SharedPtr<Y> dynamicCast() const noexcept
         {
@@ -492,6 +503,19 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
         ~SharedPtr()
         {
             reset();
+        }
+
+        //! Swap pointers.
+        void swap(SharedPtr<T>& other) noexcept
+        {
+            std::swap(this->d,other.d);
+            std::swap(this->m,other.m);
+        }
+
+        //! Swap pointers.
+        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs)
+        {
+            lhs.swap(rhs);
         }
 
         //! Make dynamic cast
