@@ -50,14 +50,13 @@ class HATN_DB_EXPORT Client : public common::WithID
 {
     public:
 
-        using common::WithID::WithID;
+        Client(common::STR_ID_TYPE id=common::STR_ID_TYPE());
+        virtual ~Client();
 
         Client(const Client&)=delete;
         Client(Client&&)=default;
         Client& operator=(const Client&)=delete;
         Client& operator=(Client&&)=default;
-
-        virtual ~Client();
 
         bool isOpen() const noexcept
         {

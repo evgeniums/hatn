@@ -63,6 +63,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         bool readOnly() const noexcept;
 
+        void resetCf();
+
     private:
 
         std::unique_ptr<RocksdbHandler_p> d;

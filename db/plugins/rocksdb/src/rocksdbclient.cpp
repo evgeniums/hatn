@@ -164,6 +164,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     options.create_if_missing = createIfMissing;
 
     std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
+    bool createNew=false;
+    bool readOnly=d->opt.config().field(rocksdb_options::readonly).value();
 
     // list names of existing column families
     std::vector<std::string> cfNames;
@@ -171,10 +173,13 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     // check status
     if (!status.ok())
     {
-        //! @todo handle error
-        //! @todo create db if not exists
-        setError(ec,DbError::PARTITION_LIST_FAILED);
-        return;
+        createNew=!readOnly && status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kPathNotFound && createIfMissing;
+        if (!createNew)
+        {
+            //! @todo handle error
+            setError(ec,DbError::PARTITION_LIST_FAILED);
+            return;
+        }
     }
 
     // fill cf descriptors
@@ -193,6 +198,10 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         {
             cfDescriptors.emplace_back(cfName,ttlCfOptions);
         }
+        else if (cfName=="default")
+        {
+            cfDescriptors.emplace_back(cfName,collCfOptions);
+        }
         else
         {
             //! @todo Inform about unknown column family
@@ -203,14 +212,22 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     // open database
     std::vector<ROCKSDB_NAMESPACE::ColumnFamilyHandle*> cfHandles;
-    if (d->opt.config().field(rocksdb_options::readonly).value())
+    if (createNew)
     {
-        status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&db);
+        status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,&transactionDb);
+        db=transactionDb;
     }
     else
     {
-        status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,cfDescriptors,&cfHandles,&transactionDb);
-        db=transactionDb;
+        if (d->opt.config().field(rocksdb_options::readonly).value())
+        {
+            status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&db);
+        }
+        else
+        {
+            status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,cfDescriptors,&cfHandles,&transactionDb);
+            db=transactionDb;
+        }
     }
 
     // check status
@@ -242,6 +259,13 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         auto cfHandle=cfHandles[i];
 
         const auto& name=cfHandle->GetName();
+        if (name=="default")
+        {
+            d->handler->p()->defaultCf.reset(cfHandle);
+            cfIndexes.insert(i);
+            continue;
+        }
+
         std::vector<std::string> parts;
         boost::split(parts,name,boost::is_any_of("_"));
         if (parts.size()!=2)
@@ -306,7 +330,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     // close db in case of error
     if (ec)
     {
-        // explicitly delete cf handles that are not own by partitions
+        // explicitly delete cf handles not owned by handler
         for (size_t i=0;i<cfHandles.size();i++)
         {
             auto it=cfIndexes.find(i);
@@ -316,8 +340,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
             }
         }
 
-        // implicitly delete cf handles owned by partitions
-        d->handler->p()->partitions.clear();
+        // implicitly delete cf handles owned by handler
+        d->handler->resetCf();
 
         // close db
         auto status=d->handler->p()->db->Close();
@@ -338,12 +362,12 @@ void RocksdbClient::invokeCloseDb(Error &ec)
     ec.reset();
     if (d->handler)
     {
-        d->handler->p()->partitions.clear();
+        d->handler->resetCf();
 
         rocksdb::Status status;
         if (d->cfg.config().field(rocksdb_config::wait_compact_shutdown).value())
         {
-            auto opt = rocksdb::WaitForCompactOptions();
+            auto opt = rocksdb::WaitForCompactOptions{};
             opt.close_db = true;
             status = d->handler->p()->db->WaitForCompact(opt);
         }

@@ -263,4 +263,13 @@ bool RocksdbHandler::readOnly() const noexcept
 
 //---------------------------------------------------------------
 
+void RocksdbHandler::resetCf()
+{
+    d->partitions.clear();
+    d->defaultCf.reset();
+    d->defaultPartition.reset();
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

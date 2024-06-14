@@ -99,8 +99,12 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
 
+        //! @todo make sync=true for mobile platforms and configurable for other
         ROCKSDB_NAMESPACE::WriteOptions writeOptions;
+
+        //! @todo make configurable deadline
         ROCKSDB_NAMESPACE::ReadOptions readOptions;
+
         ROCKSDB_NAMESPACE::TransactionOptions transactionOptions;
 
         ROCKSDB_NAMESPACE::ColumnFamilyOptions collColumnFamilyOptions;
@@ -111,6 +115,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
         std::map<common::DateRange,std::shared_ptr<RocksdbPartition>> partitions;
         std::shared_ptr<RocksdbPartition> defaultPartition;
+        std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 
         bool inTransaction;
         mutable common::lib::shared_mutex partitionMutex;

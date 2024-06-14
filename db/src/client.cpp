@@ -22,6 +22,13 @@ HATN_DB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+Client::Client(common::STR_ID_TYPE id)
+    : WithID(std::move(id)),
+      m_opened(false)
+{}
+
+//---------------------------------------------------------------
+
 Client::~Client()
 {}
 
