@@ -13,6 +13,7 @@ SET (HEADERS
     include/hatn/db/index.h
     include/hatn/db/model.h
     include/hatn/db/schema.h
+    include/hatn/db/modelregistry.h
 )
 
 SET (HEADERS
@@ -27,6 +28,7 @@ SET (SOURCES
     src/schema.cpp
     src/object.cpp
     src/objectid.cpp
+    src/modelregistry.cpp
 )
 
 BUILD_HATN_MODULE()

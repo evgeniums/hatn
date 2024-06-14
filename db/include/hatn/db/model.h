@@ -21,9 +21,12 @@
 
 #include <set>
 
+#include <hatn/common/classuid.h>
+
 #include <hatn/db/db.h>
 #include <hatn/db/object.h>
 #include <hatn/db/index.h>
+#include <hatn/db/modelregistry.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -50,6 +53,22 @@ struct ModelConfig
     {
         return PartitionMode;
     }
+
+    uint32_t modelId() const noexcept
+    {
+        return m_modelId;
+    }
+
+    private:
+
+        void setModelId(uint32_t modelId) noexcept
+        {
+            m_modelId=modelId;
+        }
+
+        uint32_t m_modelId;
+
+        template <typename UnitType> friend struct makeModelT;
 };
 
 template <typename ConfigT, typename UnitType, typename ...Indexes>
@@ -65,7 +84,8 @@ struct Model : public ConfigT
 
     constexpr static const char* name()
     {
-        return Type::name();
+        using type=typename Type::type;
+        return type::unitName();
     }
 
     constexpr static bool isDatePartitioned()
@@ -108,13 +128,21 @@ struct Model : public ConfigT
         }
 };
 
+/**
+ * @brief Create and register a model.
+ *
+ * @note Not thread safe. Create and register models at initial steps and then use those models in operations.
+ */
 template <typename UnitType>
 struct makeModelT
 {
     template <typename ConfigT, typename ...Indexes>
     auto operator()(ConfigT&&, Indexes ...indexes) const
     {
-        return Model<ConfigT,UnitType,Indexes...>{indexes...};
+        using type=Model<ConfigT,UnitType,Indexes...>;
+        auto m=type{indexes...};
+        m.setModelId(ModelRegistry::instance().registerModel(type::name()));
+        return m;
     }
 };
 template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
@@ -145,7 +173,8 @@ class ModelInfo
         ModelInfo(ModelT&& model, std::string collection=std::decay_t<ModelT>::name())
             : m_collection(std::move(collection)),
               m_datePartitioned(model.isDatePartitioned()),
-              m_datePartitionMode(model.datePartitionMode())
+              m_datePartitionMode(model.datePartitionMode()),
+              m_id(0)
         {}
 
         const std::string& collection() const noexcept
@@ -163,11 +192,17 @@ class ModelInfo
             return m_datePartitionMode;
         }
 
+        uint32_t modelId() const noexcept
+        {
+            return m_id;
+        }
+
     private:
 
         std::string m_collection;
         bool m_datePartitioned;
         DatePartitionMode m_datePartitionMode;
+        uint32_t m_id;
 };
 
 HATN_DB_NAMESPACE_END

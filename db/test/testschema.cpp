@@ -104,6 +104,12 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     o2.field(object::created_at).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
     auto partitionRange2=datePartition(o2,model2);
     BOOST_CHECK(!partitionRange2.isValid());
+
+    BOOST_CHECK_EQUAL(model1.modelId(),1);
+    BOOST_CHECK_EQUAL(model2.modelId(),1);
+
+    auto model3=makeModel<n1::TYPE>(ModelConfig<>{});
+    BOOST_CHECK_EQUAL(model3.modelId(),2);
 }
 
 BOOST_AUTO_TEST_CASE(NestedIndexField)
