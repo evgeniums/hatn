@@ -81,28 +81,6 @@ UnitConcat<Conf,Fields...>::UnitConcat(
         UnitImpl<Fields...>(this)
 {}
 
-#if !defined(__MINGW32__)
-
-//---------------------------------------------------------------
-
-template <typename Conf, typename ...Fields>
-common::CUID_TYPE UnitConcat<Conf,Fields...>::cuid() noexcept
-{
-    static int dummy;
-    return reinterpret_cast<common::CUID_TYPE>(&dummy);
-}
-
-/********************** EmptyUnit **************************/
-
-template <typename Conf>
-common::CUID_TYPE EmptyUnit<Conf>::cuid() noexcept
-{
-    static int dummy;
-    return reinterpret_cast<common::CUID_TYPE>(&dummy);
-}
-
-#endif
-
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITSIMPL_H

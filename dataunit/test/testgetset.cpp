@@ -149,7 +149,7 @@ void checkScalarField(ObjT* obj,
     auto field=obj->fieldById(FieldT::id());
     T val=valPos;
     valSample=checkValsPos[0];
-    field->setValue(val);
+    field->setV(val);
     BOOST_CHECK(field->equals(val));
     BOOST_CHECK(field->less(valSample)==checkValsPosResults[0]);
     valSample=checkValsPos[1];
@@ -157,7 +157,7 @@ void checkScalarField(ObjT* obj,
     valSample=checkValsPos[2];
     BOOST_CHECK(field->less(valSample)==checkValsPosResults[2]);
     valSample=0;
-    field->getValue(valSample);
+    field->getV(valSample);
     BOOST_CHECK_EQUAL(val,valSample);
 
     BOOST_CHECK(field->less(int8ValSamplePos)==checkValsPosResults[3]);
@@ -177,7 +177,7 @@ void checkScalarField(ObjT* obj,
     {
         val=valNeg;
         valSample=checkValsNeg[0];
-        field->setValue(val);
+        field->setV(val);
         BOOST_CHECK(field->equals(val));
         BOOST_CHECK(field->less(valSample)==checkValsNegResults[0]);
         valSample=checkValsNeg[1];
@@ -185,7 +185,7 @@ void checkScalarField(ObjT* obj,
         valSample=checkValsNeg[2];
         BOOST_CHECK(field->less(valSample)==checkValsNegResults[2]);
         valSample=0;
-        field->getValue(valSample);
+        field->getV(valSample);
         BOOST_CHECK_EQUAL(val,valSample);
 
         BOOST_CHECK(field->less(int8ValSamplePos)==checkValsNegResults[3]);
@@ -220,11 +220,11 @@ void checkScalarTypes(T* obj)
     BOOST_CHECK_EQUAL(scalar_types::type_enum.id(),12);
 
     auto boolField=obj->fieldById(scalar_types::type_bool.id());
-    boolField->setValue(true);
+    boolField->setV(true);
     BOOST_CHECK(boolField->equals(true));
     BOOST_CHECK(!boolField->less(false));
     bool boolVal=false;
-    boolField->getValue(boolVal);
+    boolField->getV(boolVal);
     BOOST_CHECK_EQUAL(boolVal,true);
 
     BOOST_TEST_CONTEXT("int8_t")
@@ -411,7 +411,7 @@ void checkByteField(ObjT* obj, bool shared)
     ByteArray sample3("Hello world from Hatn");
     ByteArray sample4("Zaza text");
 
-    field->setValue(sample1);
+    field->setV(sample1);
 
     BOOST_CHECK(field->equals(sample1.data(),sample1.size()));
     BOOST_CHECK(field->lexEquals(sample1.data(),sample1.size()));

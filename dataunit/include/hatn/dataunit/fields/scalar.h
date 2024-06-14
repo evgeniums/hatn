@@ -308,29 +308,29 @@ class Scalar : public Field
         virtual bool equals(float val) const override {return equalTo(val);}
         virtual bool equals(double val) const override {return equalTo(val);}
 
-        virtual void setValue(bool val) override {setVal(val);}
-        virtual void setValue(uint8_t val) override {setVal(val);}
-        virtual void setValue(uint16_t val) override {setVal(val);}
-        virtual void setValue(uint32_t val) override {setVal(val);}
-        virtual void setValue(uint64_t val) override {setVal(val);}
-        virtual void setValue(int8_t val) override {setVal(val);}
-        virtual void setValue(int16_t val) override {setVal(val);}
-        virtual void setValue(int32_t val) override {setVal(val);}
-        virtual void setValue(int64_t val) override {setVal(val);}
-        virtual void setValue(float val) override {setVal(val);}
-        virtual void setValue(double val) override {setVal(val);}
+        virtual void setV(bool val) override {setVal(val);}
+        virtual void setV(uint8_t val) override {setVal(val);}
+        virtual void setV(uint16_t val) override {setVal(val);}
+        virtual void setV(uint32_t val) override {setVal(val);}
+        virtual void setV(uint64_t val) override {setVal(val);}
+        virtual void setV(int8_t val) override {setVal(val);}
+        virtual void setV(int16_t val) override {setVal(val);}
+        virtual void setV(int32_t val) override {setVal(val);}
+        virtual void setV(int64_t val) override {setVal(val);}
+        virtual void setV(float val) override {setVal(val);}
+        virtual void setV(double val) override {setVal(val);}
 
-        virtual void getValue(bool& val) const override {getVal(val);}
-        virtual void getValue(uint8_t& val) const override {getVal(val);}
-        virtual void getValue(uint16_t& val) const override {getVal(val);}
-        virtual void getValue(uint32_t& val) const override {getVal(val);}
-        virtual void getValue(uint64_t& val) const override {getVal(val);}
-        virtual void getValue(int8_t& val) const override {getVal(val);}
-        virtual void getValue(int16_t& val) const override {getVal(val);}
-        virtual void getValue(int32_t& val) const override {getVal(val);}
-        virtual void getValue(int64_t& val) const override {getVal(val);}
-        virtual void getValue(float& val) const override {getVal(val);}
-        virtual void getValue(double& val) const override {getVal(val);}
+        virtual void getV(bool& val) const override {getVal(val);}
+        virtual void getV(uint8_t& val) const override {getVal(val);}
+        virtual void getV(uint16_t& val) const override {getVal(val);}
+        virtual void getV(uint32_t& val) const override {getVal(val);}
+        virtual void getV(uint64_t& val) const override {getVal(val);}
+        virtual void getV(int8_t& val) const override {getVal(val);}
+        virtual void getV(int16_t& val) const override {getVal(val);}
+        virtual void getV(int32_t& val) const override {getVal(val);}
+        virtual void getV(int64_t& val) const override {getVal(val);}
+        virtual void getV(float& val) const override {getVal(val);}
+        virtual void getV(double& val) const override {getVal(val);}
 
     protected:
 

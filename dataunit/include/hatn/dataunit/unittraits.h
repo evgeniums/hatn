@@ -27,7 +27,6 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/stdwrappers.h>
-#include <hatn/common/classuid.h>
 
 #include <hatn/validator/utils/foreach_if.hpp>
 
@@ -457,14 +456,6 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
             return Conf::name;
         }
 
-        static common::CUID_TYPE cuid() noexcept;
-
-        //! Get type ID
-        common::CUID_TYPE typeID() const noexcept override
-        {
-            return this->cuid();
-        }
-
     private:
 
         template <typename T>
@@ -644,14 +635,6 @@ class EmptyUnit : public Unit
             return true;
         }
 #endif
-
-        static common::CUID_TYPE cuid() noexcept;
-
-        //! Get type ID
-        common::CUID_TYPE typeID() const noexcept override
-        {
-            return this->cuid();
-        }
 };
 
 /**  Managed variant of empty DataUnit */
@@ -848,28 +831,6 @@ UnitImpl<Fields...>::fieldParsers()
     static const auto map=hana::second(result);
     return map;
 }
-
-#if defined(__MINGW32__)
-
-//---------------------------------------------------------------
-
-template <typename Conf, typename ...Fields>
-common::CUID_TYPE UnitConcat<Conf,Fields...>::cuid() noexcept
-{
-    static int dummy;
-    return reinterpret_cast<common::CUID_TYPE>(&dummy);
-}
-
-/********************** EmptyUnit **************************/
-
-template <typename Conf>
-common::CUID_TYPE EmptyUnit<Conf>::cuid() noexcept
-{
-    static int dummy;
-    return reinterpret_cast<common::CUID_TYPE>(&dummy);
-}
-
-#endif
 
 //---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

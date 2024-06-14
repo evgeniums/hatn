@@ -413,7 +413,7 @@ class FieldTmplBytes : public Field, public BytesType
             return boost::algorithm::iequals(buf()->stringView(),common::lib::string_view(data,length));
         }
 
-        virtual void setValue(const char* data, size_t length) override {buf()->load(data,length);}
+        virtual void setV(const char* data, size_t length) override {buf()->load(data,length);}
         virtual void bufResize(size_t size) override {buf()->resize(size);}
         virtual void bufReserve(size_t size) override {buf()->reserve(size);}
         virtual const char* bufCStr() override {return c_str();}
