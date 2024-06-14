@@ -98,7 +98,7 @@ template<typename _ForwardIterator, typename _Tp, typename _Compare>
 //---------------------------------------------------------------
 
 template <typename VectorT, typename ItemT>
-class FlatContainerIterator
+class FlatContainerIteratorBase
 {
     public:
 
@@ -112,7 +112,7 @@ class FlatContainerIterator
 
     public:
 
-        FlatContainerIterator(
+        FlatContainerIteratorBase(
                 VectorT* vec,
                 size_t idx=0
             )  : m_vec(vec),
@@ -124,7 +124,7 @@ class FlatContainerIterator
             }
         }
 
-        FlatContainerIterator& operator=(size_t idx) noexcept
+        FlatContainerIteratorBase& operator=(size_t idx) noexcept
         {
             m_idx = idx;
             return *this;
@@ -134,12 +134,12 @@ class FlatContainerIterator
         {
             return m_idx<m_vec->size();
         }
-        bool operator==(const FlatContainerIterator& other) const noexcept
+        bool operator==(const FlatContainerIteratorBase& other) const noexcept
         {
             return (m_idx == other.m_idx);
         }
 
-        FlatContainerIterator& operator+=(const difference_type& diff)
+        FlatContainerIteratorBase& operator+=(const difference_type& diff)
         {
             m_idx+=diff;
             if (m_idx>m_vec->size())
@@ -149,7 +149,7 @@ class FlatContainerIterator
             }
             return *this;
         }
-        FlatContainerIterator& operator-=(const difference_type& diff)
+        FlatContainerIteratorBase& operator-=(const difference_type& diff)
         {
             if (m_idx<diff)
             {
@@ -158,7 +158,7 @@ class FlatContainerIterator
             m_idx-=diff;
             return *this;
         }
-        FlatContainerIterator& operator++()
+        FlatContainerIteratorBase& operator++()
         {
             ++m_idx;
             if (m_idx>m_vec->size())
@@ -168,7 +168,7 @@ class FlatContainerIterator
             }
             return *this;
         }
-        FlatContainerIterator& operator--()
+        FlatContainerIteratorBase& operator--()
         {
             if (m_idx==0)
             {
@@ -177,55 +177,20 @@ class FlatContainerIterator
             --m_idx;
             return *this;
         }
-        FlatContainerIterator operator+(const difference_type& diff)
+        FlatContainerIteratorBase operator+(const difference_type& diff)
         {
             auto it=FlatContainerIterator(m_vec,m_idx);
             it+=diff;
             return it;
         }
-        FlatContainerIterator operator-(const difference_type& diff)
+        FlatContainerIteratorBase operator-(const difference_type& diff)
         {
             auto it=FlatContainerIterator(m_vec,m_idx);
             it-=diff;
             return it;
         }
 
-        reference operator*()
-        {
-            if (m_idx==m_vec->size())
-            {
-                throw std::out_of_range("Iterator of flat container is invalid");
-            }
-            return (*m_vec)[m_idx];
-        }
-        const_reference operator*() const
-        {
-            if (m_idx==m_vec->size())
-            {
-                throw std::out_of_range("Iterator of flat container is invalid");
-            }
-            return (*m_vec)[m_idx];
-        }
-
-        pointer operator->()
-        {
-            if (m_idx==m_vec->size())
-            {
-                throw std::out_of_range("Iterator of flat container is invalid");
-            }
-            return &((*m_vec)[m_idx]);
-        }
-
-        const_pointer operator->() const
-        {
-            if (m_idx==m_vec->size())
-            {
-                throw std::out_of_range("Iterator of flat container is invalid");
-            }
-            return &((*m_vec)[m_idx]);
-        }
-
-    private:
+    protected:
 
         VectorT* m_vec;
         size_t m_idx;
@@ -236,6 +201,60 @@ class FlatContainerIterator
                   typename CompareKeyT
                   >
         friend class FlatContainer;
+};
+
+template <typename VectorT, typename ItemT>
+class FlatContainerIterator : public FlatContainerIteratorBase<VectorT,ItemT>
+{
+    public:
+
+        using base=FlatContainerIteratorBase<VectorT,ItemT>;
+        using base::FlatContainerIteratorBase;
+
+        typename base::reference operator*()
+        {
+            if (this->m_idx==this->m_vec->size())
+            {
+                throw std::out_of_range("Iterator of flat container is invalid");
+            }
+            return (*this->m_vec)[this->m_idx];
+        }
+
+        typename base::pointer operator->()
+        {
+            if (this->m_idx==this->m_vec->size())
+            {
+                throw std::out_of_range("Iterator of flat container is invalid");
+            }
+            return &((*this->m_vec)[this->m_idx]);
+        }
+};
+
+template <typename VectorT, typename ItemT>
+class FlatContainerIteratorConst : public FlatContainerIteratorBase<VectorT,ItemT>
+{
+    public:
+
+        using base=FlatContainerIteratorBase<VectorT,ItemT>;
+        using base::FlatContainerIteratorBase;
+
+        typename base::const_reference operator*() const
+        {
+            if (this->m_idx==this->m_vec->size())
+            {
+                throw std::out_of_range("Iterator of flat container is invalid");
+            }
+            return (*this->m_vec)[this->m_idx];
+        }
+
+        typename base::const_pointer operator->() const
+        {
+            if (this->m_idx==this->m_vec->size())
+            {
+                throw std::out_of_range("Iterator of flat container is invalid");
+            }
+            return &((*this->m_vec)[this->m_idx]);
+        }
 };
 
 //---------------------------------------------------------------
@@ -251,7 +270,7 @@ class FlatContainer
 
         using vector_type=std::vector<ItemT,AllocT>;
         using iterator=FlatContainerIterator<vector_type,ItemT>;
-        using const_iterator=FlatContainerIterator<const vector_type,ItemT>;
+        using const_iterator=FlatContainerIteratorConst<const vector_type,ItemT>;
 
         FlatContainer()
         {}
@@ -398,13 +417,15 @@ struct FlatMapCompareItem
         return CompareKeyT()(l.first,r.first);
     }
 
-    constexpr bool operator() (const KeyT& l,
+    template <typename T>
+    constexpr bool operator() (const T& l,
                      const std::pair<KeyT,ValueT>& r) noexcept
     {
         return CompareKeyT()(l,r.first);
     }
 
-    constexpr bool operator() (const std::pair<KeyT,ValueT>& l,const KeyT& r) noexcept
+    template <typename T>
+    constexpr bool operator() (const std::pair<KeyT,ValueT>& l,const T& r) noexcept
     {
         return CompareKeyT()(l.first,r);
     }
@@ -443,6 +464,12 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
         std::pair<iterator,bool> insert_or_assign(ItemT&& val)
         {
             return this->insert(std::move(val));
+        }
+
+        template<class... Args >
+        std::pair<iterator, bool> emplace(Args&&... args)
+        {
+            return this->insert(std::make_pair(std::forward<Args>(args)...));
         }
 
         ValueT& operator[](const KeyT& key)

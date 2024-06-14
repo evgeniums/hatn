@@ -8,6 +8,7 @@
 
 #include <hatn/common/elapsedtimer.h>
 #include <hatn/common/flatmap.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -181,7 +182,33 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapOps)
     BOOST_REQUIRE(it10==fm.end());
 }
 
-#define TEST_FLATMAP_PERFORMANCE
+BOOST_AUTO_TEST_CASE(CheckFlatMapComp)
+{
+    common::FlatMap<uint32_t,std::string,std::less<>> m1;
+    m1[1]="a";
+
+    auto it1=m1.find(1);
+    BOOST_REQUIRE(it1!=m1.end());
+    std::string v1=it1->second;
+    BOOST_CHECK_EQUAL(v1,"a");
+
+    const auto& m1_=m1;
+    auto it1_=m1_.find(1);
+    BOOST_REQUIRE(it1_!=m1_.end());
+    std::string v1_=it1_->second;
+    BOOST_CHECK_EQUAL(v1_,"a");
+
+    common::FlatMap<std::string,uint32_t,std::less<>> m2;
+    m2["a"]=1;
+
+    lib::string_view s2("a");
+    auto it2=m2.find(s2);
+    BOOST_REQUIRE(it2!=m2.end());
+    uint32_t v2=it2->second;
+    BOOST_CHECK_EQUAL(v2,1);
+}
+
+// #define TEST_FLATMAP_PERFORMANCE
 
 #ifdef TEST_FLATMAP_PERFORMANCE
 
