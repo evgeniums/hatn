@@ -48,7 +48,9 @@ cmake -G "Unix Makefiles" \
 	    -Dlz4_INCLUDE_DIRS=$toolchain_install_path/include \
 	    -Dlz4_LIBRARIES=$toolchain_install_path/lib/liblz4.a \
 	    -DROCKSDB_BUILD_SHARED=0 \
-	    -DDISABLE_MARCH_NATIVE=1 \
+	    -DDISABLE_MARCH_NATIVE=1 \	
+		-DWITH_PERF_CONTEXT=0 \
+		-DWITH_IOSTATS_CONTEXT=0 \
 	    $folder
 
 make -j$build_workers install
