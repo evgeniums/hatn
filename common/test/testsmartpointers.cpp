@@ -1042,10 +1042,26 @@ BOOST_FIXTURE_TEST_CASE(CheckUniquePtr,MultiThreadFixture)
     BOOST_CHECK(obj5.get()!=nullptr);
     BOOST_CHECK_EQUAL(obj5->m_id,890);
     BOOST_CHECK_EQUAL(obj5->m_str,std::string("Hello again and again"));
+
+    auto obj6=pmr::makeUnique<TestStruct>(123,"Hello from hatn");
+    BOOST_REQUIRE(!obj6.isNull());
+    BOOST_CHECK_EQUAL(obj6->m_id,123);
+    pmr::UniquePtr<TestStruct> obj7;
+    BOOST_REQUIRE(obj7.isNull());
+    obj6.swap(obj7);
+    BOOST_REQUIRE(!obj7.isNull());
+    BOOST_CHECK_EQUAL(obj7->m_id,123);
+    BOOST_REQUIRE(obj6.isNull());
+    std::swap(obj6,obj7);
+    BOOST_REQUIRE(!obj6.isNull());
+    BOOST_CHECK_EQUAL(obj6->m_id,123);
+    BOOST_REQUIRE(obj7.isNull());
 }
 
 BOOST_FIXTURE_TEST_CASE(Swap,MultiThreadFixture)
 {
+    // pmr
+
     pmr::polymorphic_allocator<TestStruct> allocator1(HATN_COMMON_NAMESPACE::pmr::get_default_resource());
     auto p1=pointers_mempool::Pointers::allocateShared(allocator1,123);
     BOOST_CHECK_EQUAL(p1.refCount(),1);
@@ -1131,6 +1147,47 @@ BOOST_FIXTURE_TEST_CASE(Swap,MultiThreadFixture)
     BOOST_REQUIRE(p5.get()!=nullptr);
     BOOST_CHECK_EQUAL(p5->m_id,3636);
 
+    WeakPtr<PlainTestStruct> w5{p5};
+    {
+        auto pw5=w5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),2);
+        BOOST_REQUIRE(pw5.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw5->m_id,3636);
+    }
+
+    WeakPtr<PlainTestStruct> w6;
+    {
+        auto pw6=w6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),0);
+        BOOST_REQUIRE(pw6.get()==nullptr);
+    }
+
+    w5.swap(w6);
+    {
+        auto pw6=w6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),2);
+        BOOST_REQUIRE(pw6.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw6->m_id,3636);
+
+        auto pw5=w5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),0);
+        BOOST_REQUIRE(pw5.get()==nullptr);
+    }
+
+    std::swap(w5,w6);
+    {
+        auto pw5=w5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),2);
+        BOOST_REQUIRE(pw5.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw5->m_id,3636);
+
+        auto pw6=w6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),0);
+        BOOST_REQUIRE(pw6.get()==nullptr);
+    }
+
+    // std
+
     auto p6=pointers_std::Pointers::makeShared<PlainTestStruct>(2525);
     BOOST_CHECK_EQUAL(p6.refCount(),1);
     BOOST_REQUIRE(p6.get()!=nullptr);
@@ -1159,6 +1216,45 @@ BOOST_FIXTURE_TEST_CASE(Swap,MultiThreadFixture)
     BOOST_CHECK_EQUAL(p7.refCount(),1);
     BOOST_REQUIRE(p7.get()!=nullptr);
     BOOST_CHECK_EQUAL(p7->m_id,3636);
+
+    pointers_std::Pointers::WeakPtr<PlainTestStruct> sw5{p7};
+    {
+        auto pw5=sw5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),2);
+        BOOST_REQUIRE(pw5.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw5->m_id,3636);
+    }
+
+    pointers_std::Pointers::WeakPtr<PlainTestStruct> sw6;
+    {
+        auto pw6=sw6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),0);
+        BOOST_REQUIRE(pw6.get()==nullptr);
+    }
+
+    sw5.swap(sw6);
+    {
+        auto pw6=sw6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),2);
+        BOOST_REQUIRE(pw6.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw6->m_id,3636);
+
+        auto pw5=sw5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),0);
+        BOOST_REQUIRE(pw5.get()==nullptr);
+    }
+
+    std::swap(sw5,sw6);
+    {
+        auto pw5=sw5.lock();
+        BOOST_CHECK_EQUAL(pw5.refCount(),2);
+        BOOST_REQUIRE(pw5.get()!=nullptr);
+        BOOST_CHECK_EQUAL(pw5->m_id,3636);
+
+        auto pw6=sw6.lock();
+        BOOST_CHECK_EQUAL(pw6.refCount(),0);
+        BOOST_REQUIRE(pw6.get()==nullptr);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

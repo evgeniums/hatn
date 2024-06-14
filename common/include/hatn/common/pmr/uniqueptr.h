@@ -25,7 +25,7 @@
 HATN_COMMON_NAMESPACE_BEGIN
 namespace pmr {
 
-//! Unique pointer that can be used with polimorphic allocator
+//! Unique pointer that can be used with polymorphic allocator
 template <typename T>
 class UniquePtr final
 {
@@ -55,6 +55,19 @@ class UniquePtr final
         ~UniquePtr()
         {
             doReset();
+        }
+
+        //! Swap pointers.
+        void swap(UniquePtr<T>& other) noexcept
+        {
+            std::swap(this->m_ptr,other.m_ptr);
+            std::swap(this->m_alloc,other.m_alloc);
+        }
+
+        friend void swap(UniquePtr<T>& lhs, UniquePtr<T>& rhs)
+        {
+            std::swap(lhs.m_ptr,rhs.m_ptr);
+            std::swap(lhs.m_alloc,rhs.m_alloc);
         }
 
         T* operator-> () noexcept

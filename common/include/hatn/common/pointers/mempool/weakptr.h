@@ -64,6 +64,19 @@ template <typename T> class WeakPtr final
             addRef();
         }
 
+        //! Swap pointers.
+        void swap(WeakPtr<T>& other) noexcept
+        {
+            std::swap(this->d,other.d);
+            std::swap(this->obj,other.obj);
+        }
+
+        //! Swap pointers.
+        friend void swap(WeakPtr<T>& lhs, WeakPtr<T>& rhs)
+        {
+            lhs.swap(rhs);
+        }
+
         //! Assignment operator
         WeakPtr& operator=(const WeakPtr<T>& ptr) noexcept
         {

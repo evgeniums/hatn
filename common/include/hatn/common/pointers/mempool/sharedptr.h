@@ -513,7 +513,7 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
         }
 
         //! Swap pointers.
-        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs)
+        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs) noexcept
         {
             lhs.swap(rhs);
         }

@@ -133,9 +133,9 @@ template <typename T> class SharedPtr
         }
 
         //! Swap pointers.
-        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs)
+        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs) noexcept
         {
-            std::swap(lhs,rhs);
+            std::swap(lhs.p,rhs.p);
         }
 
         //! Make dynamic cast
