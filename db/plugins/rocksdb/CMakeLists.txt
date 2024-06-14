@@ -8,7 +8,7 @@ MACRO(LINK_ROCKSDB target)
     TARGET_LINK_LIBRARIES(${target} PUBLIC rocksdb)
 
     IF(MSVC)
-        TARGET_LINK_LIBRARIES(${target} PUBLIC liblz4_static)
+        TARGET_LINK_LIBRARIES(${target} PUBLIC lz4_static)
     ELSE()
         TARGET_LINK_LIBRARIES(${target} PUBLIC lz4)
     ENDIF()
