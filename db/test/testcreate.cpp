@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file base/test/testconfigtree.cpp
+/** @file base/test/testcreate.cpp
   */
 
 /****************************************************************************/
@@ -19,9 +19,16 @@
 
 #include "hatn_test_config.h"
 
-BOOST_AUTO_TEST_SUITE(TestCrud)
+#include "initdbplugins.h"
+#include "preparedb.h"
 
-BOOST_AUTO_TEST_CASE(CreateObject)
+HATN_USING
+HATN_DB_USING
+HATN_TEST_USING
+
+BOOST_AUTO_TEST_SUITE(DbTestCrud, *boost::unit_test::fixture<DbTestFixture>())
+
+BOOST_AUTO_TEST_CASE(PrepareDb)
 {
     BOOST_CHECK(true);
 }

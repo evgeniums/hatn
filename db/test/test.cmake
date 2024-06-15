@@ -7,17 +7,19 @@ SET (TEST_SOURCES
 )
 
 SET (TEST_HEADERS
-    ${HEADERS}    
+    ${HEADERS}
 )
 
 SET(MODULE_TEST_LIB dbtestlib)
 
 SET(TEST_LIB_SOURCES
     ${DB_TEST_SRC}/initdbplugins.cpp
+    ${DB_TEST_SRC}/preparedb.cpp
 )
 
 SET(TEST_LIB_HEADERS
     ${DB_TEST_SRC}/initdbplugins.h
+    ${DB_TEST_SRC}/preparedb.h
 )
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES} ${TEST_LIB_HEADERS})

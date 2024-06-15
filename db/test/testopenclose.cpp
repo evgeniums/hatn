@@ -15,11 +15,13 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <hatn/common/datetime.h>
 #include <hatn/base/configtreeloader.h>
 #include <hatn/test/multithreadfixture.h>
 
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
+#include "preparedb.h"
 
 HATN_USING
 HATN_DB_USING
@@ -27,6 +29,15 @@ HATN_BASE_USING
 HATN_TEST_USING
 
 namespace {
+
+HDU_UNIT(n1,
+    HDU_FIELD(f1,TYPE_DATETIME,1)
+)
+
+HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
+    HDU_FIELD(nf1,n1::TYPE,1)
+    HDU_FIELD(f2,TYPE_UINT32,2)
+)
 
 void openEmptyConfig(std::shared_ptr<DbPlugin>& plugin)
 {
@@ -143,6 +154,28 @@ BOOST_AUTO_TEST_CASE(DbOpenEmptyConfig)
             openEmptyConfig(plugin);
         }
         );
+}
+
+BOOST_AUTO_TEST_CASE(DbPrepare)
+{
+    auto handler=[](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        BOOST_TEST_MESSAGE("Handler OK");
+    };
+
+    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
+    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
+    auto model1=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model2=makeModel<n1::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+
+    std::vector<ModelInfo> models{model1,model2};
+    auto today=common::Date::currentUtc();
+    auto from=today.copyAddDays(-365);
+    auto to=today.copyAddDays(365);
+
+    PartitionRange pr{std::move(models),from,to};
+    PrepareDbAndRun::eachPlugin(handler,"createopenclosedestroy.jsonc",pr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

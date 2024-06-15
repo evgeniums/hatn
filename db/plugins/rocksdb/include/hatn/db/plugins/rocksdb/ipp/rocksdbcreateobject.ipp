@@ -79,22 +79,36 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
         auto rdb=handler.p()->transactionDb;
         auto objectId=object.field(db::object::_id).value().toString();
 
-        // check unique indexes
+        // prepare batch
+        ROCKSDB_NAMESPACE::WriteBatch batch;
 
-        // write serialized object to rocksdb
+        // put unique indexes to batch, uniqueness is provided by merge operation
+
+        // put serialized object to batch
         //! @todo handle keys in one place
         auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        auto status=rdb->Put(handler.p()->writeOptions,partition->collectionCF.get(),objectKey,objectValue);
+        auto status=batch.Put(partition->collectionCF.get(),objectKey,objectValue);
         if (!status.ok())
         {
             //! @todo construct error
             return dbError(DbError::WRITE_OBJECT_FAILED);
         }
 
-        // construct and write indexes to rocksdb
+        // put ordinary indexes to batch
 
-        // construct and write ttl indexes to rocksdb
+        // put ttl indexes to batch
+
+        // write batch to rocksdb
+        status=rdb->Write(handler.p()->writeOptions,&batch);
+        if (!status.ok())
+        {
+            //! @todo construct error
+            return dbError(DbError::WRITE_OBJECT_FAILED);
+        }
+
+        // done
+        return Error{OK};
     };
 
     // invoke transaction
