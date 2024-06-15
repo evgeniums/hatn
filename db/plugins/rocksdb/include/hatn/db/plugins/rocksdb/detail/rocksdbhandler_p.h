@@ -32,6 +32,7 @@
 #include <hatn/db/dberror.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
+#include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN    
 
@@ -96,6 +97,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
             ROCKSDB_NAMESPACE::TransactionDB* transactionDb=nullptr
         );
 
+        std::shared_ptr<RocksdbSchema> schema;
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
 

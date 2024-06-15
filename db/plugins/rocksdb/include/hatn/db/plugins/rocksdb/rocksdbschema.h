@@ -21,39 +21,20 @@
 
 #include <map>
 #include <memory>
-#include <functional>
 
 #include <hatn/common/singleton.h>
-
-#include <hatn/dataunit/unit.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/db/namespace.h>
 #include <hatn/db/schema.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/rocksdbmodel.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace dataunit=HATN_DATAUNIT_NAMESPACE;
-
-class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
-{
-    public:
-
-        RocksdbModel();
-
-        CUID_TYPE cuid() const noexcept
-        {
-            return m_cuid;
-        }
-
-        std::function<Error (RocksdbHandler& handler, const db::Namespace& ns, const dataunit::Unit& object)> createObject;
-
-    private:
-
-        CUID_TYPE m_cuid;
-};
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchema
 {
@@ -67,11 +48,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchema
 
         void addModel(std::shared_ptr<RocksdbModel> model);
 
-        Result<std::shared_ptr<RocksdbModel>> model(CUID_TYPE) const noexcept;
+        std::shared_ptr<RocksdbModel> model(const db::ModelInfo& info) const;
 
     private:
 
-        std::map<CUID_TYPE,std::shared_ptr<RocksdbModel>> m_models;
+        std::map<db::ModelInfo,std::shared_ptr<RocksdbModel>> m_models;
 };
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
@@ -83,14 +64,16 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
         static RocksdbSchemas& instance();
         static void free() noexcept;
 
-        template <typename ...Models>
-        static Error Register(const db::Schema<Models...>& schema);
+        template <typename SchemaT>
+        void registerSchema(const SchemaT& schema);
+
+        std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& name) const;
 
     private:
 
         RocksdbSchemas();
 
-        std::map<std::string,std::unique_ptr<RocksdbSchema>> m_schemas;
+        std::map<std::string,std::shared_ptr<RocksdbSchema>,std::less<>> m_schemas;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

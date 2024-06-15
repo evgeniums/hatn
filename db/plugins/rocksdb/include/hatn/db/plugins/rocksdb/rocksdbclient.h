@@ -47,14 +47,17 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
         Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
 
-        Error doCheckSchema(const std::string& schemaName, const Namespace& ns) override;
-        Error doMigrateSchema(const std::string& schemaName, const Namespace& ns) override;
+        Error doCheckSchema(const common::lib::string_view& schemaName, const Namespace& ns) override;
+        Error doMigrateSchema(const common::lib::string_view& schemaName, const Namespace& ns) override;
+        Error doBindSchema(const common::lib::string_view& schemaName, const Namespace& ns) override;
 
         void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
         void doCloseDb(Error& ec) override;
 
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
         Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
+
+        Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object) override;
 
     private:
 

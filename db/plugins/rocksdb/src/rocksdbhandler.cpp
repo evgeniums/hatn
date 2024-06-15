@@ -27,11 +27,13 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-RocksdbHandler_p::RocksdbHandler_p(ROCKSDB_NAMESPACE::DB* db, ROCKSDB_NAMESPACE::TransactionDB* transactionDb)
-    : db(db),
-    transactionDb(transactionDb),
-    readOnly(transactionDb==nullptr),
-    inTransaction(false)
+RocksdbHandler_p::RocksdbHandler_p(
+        ROCKSDB_NAMESPACE::DB* db,
+        ROCKSDB_NAMESPACE::TransactionDB* transactionDb
+    ) : db(db),
+        transactionDb(transactionDb),
+        readOnly(transactionDb==nullptr),
+        inTransaction(false)
 {}
 
 /********************** RocksdbHandler **************************/
@@ -268,6 +270,27 @@ void RocksdbHandler::resetCf()
     d->partitions.clear();
     d->defaultCf.reset();
     d->defaultPartition.reset();
+}
+
+//---------------------------------------------------------------
+
+void RocksdbHandler::setSchema(std::shared_ptr<RocksdbSchema> schema)
+{
+    d->schema=std::move(schema);
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<RocksdbSchema>& RocksdbHandler::schema()
+{
+    return d->schema;
+}
+
+//---------------------------------------------------------------
+
+const std::shared_ptr<RocksdbSchema>& RocksdbHandler::schema() const
+{
+    return d->schema;
 }
 
 //---------------------------------------------------------------

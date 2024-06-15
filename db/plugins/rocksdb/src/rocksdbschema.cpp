@@ -54,24 +54,37 @@ RocksdbSchemas::RocksdbSchemas()
 {
 }
 
+//---------------------------------------------------------------
+
+std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &name) const
+{
+    auto it=m_schemas.find(name);
+    if (it==m_schemas.end())
+    {
+        return std::shared_ptr<RocksdbSchema>{};
+    }
+
+    return it->second;
+}
+
 /********************** RocksdbSchema **************************/
 
 //---------------------------------------------------------------
 
 void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
 {
-    Assert(m_models.find(model->cuid())!=m_models.end(),"duplicate model");
-    m_models.emplace(model->cuid(),std::move(model));
+    Assert(m_models.find(model->info())!=m_models.end(),"duplicate model");
+    m_models.emplace(model->info(),std::move(model));
 }
 
 //---------------------------------------------------------------
 
-Result<std::shared_ptr<RocksdbModel>> RocksdbSchema::model(CUID_TYPE cuid) const noexcept
+std::shared_ptr<RocksdbModel> RocksdbSchema::model(const db::ModelInfo& info) const
 {
-    auto it=m_models.find(cuid);
+    auto it=m_models.find(info);
     if (it==m_models.end())
     {
-        return dbError(DbError::MODEL_NOT_FOUND);
+        return std::shared_ptr<RocksdbModel>{};
     }
 
     return it->second;
@@ -81,7 +94,8 @@ Result<std::shared_ptr<RocksdbModel>> RocksdbSchema::model(CUID_TYPE cuid) const
 
 //---------------------------------------------------------------
 
-RocksdbModel::RocksdbModel()
+RocksdbModel::RocksdbModel(db::ModelInfo info)
+    :m_modelInfo(std::move(info))
 {}
 
 //---------------------------------------------------------------

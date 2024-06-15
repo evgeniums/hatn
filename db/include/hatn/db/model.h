@@ -71,10 +71,10 @@ struct ModelConfig
         template <typename UnitType> friend struct makeModelT;
 };
 
-template <typename ConfigT, typename UnitType, typename ...Indexes>
+template <typename ConfigT, typename UnitT, typename ...Indexes>
 struct Model : public ConfigT
 {
-    using Type=UnitType;
+    using UnitType=UnitT;
 
     hana::tuple<Indexes...> indexes;
 
@@ -84,7 +84,7 @@ struct Model : public ConfigT
 
     constexpr static const char* name()
     {
-        using type=typename Type::type;
+        using type=typename UnitType::type;
         return type::unitName();
     }
 
@@ -174,7 +174,7 @@ class ModelInfo
             : m_collection(std::move(collection)),
               m_datePartitioned(model.isDatePartitioned()),
               m_datePartitionMode(model.datePartitionMode()),
-              m_id(0)
+              m_id(model.modelId())
         {}
 
         const std::string& collection() const noexcept
@@ -197,6 +197,16 @@ class ModelInfo
             return m_id;
         }
 
+        bool operator <(const ModelInfo& other) const noexcept
+        {
+            return m_id<other.m_id;
+        }
+
+        bool operator ==(const ModelInfo& other) const noexcept
+        {
+            return m_id==other.m_id;
+        }
+
     private:
 
         std::string m_collection;
@@ -204,6 +214,29 @@ class ModelInfo
         DatePartitionMode m_datePartitionMode;
         uint32_t m_id;
 };
+
+template <typename ModelT>
+struct ModelWithInfo
+{
+    template <typename T>
+    ModelWithInfo(T&& model, std::string collection=std::decay_t<T>::name())
+        : info(model,std::move(collection)),
+          model(std::forward<T>(model))
+    {}
+
+    ModelInfo info;
+    ModelT model;
+};
+
+struct makeModelWithInfoT
+{
+    template <typename ModelT>
+    auto operator()(ModelT&& model, std::string collection=std::decay_t<ModelT>::name()) const
+    {
+        return ModelWithInfo<std::decay_t<ModelT>>{std::forward<ModelT>(model),std::move(collection)};
+    }
+};
+constexpr makeModelWithInfoT makeModelWithInfo{};
 
 HATN_DB_NAMESPACE_END
 

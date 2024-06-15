@@ -27,6 +27,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbclient.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 
 HATN_DB_USING
@@ -390,16 +391,30 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCheckSchema(const std::string &schemaName, const Namespace &ns)
+Error RocksdbClient::doCheckSchema(const common::lib::string_view &schemaName, const Namespace &ns)
 {
     return common::CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doMigrateSchema(const std::string &schemaName, const Namespace &ns)
+Error RocksdbClient::doMigrateSchema(const common::lib::string_view &schemaName, const Namespace &ns)
 {
     return common::CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doBindSchema(const common::lib::string_view &schemaName, const Namespace &)
+{
+    auto schema=RocksdbSchemas::instance().schema(schemaName);
+    if (!schema)
+    {
+        return dbError(DbError::SCHEMA_NOT_FOUND);
+    }
+
+    d->handler->p()->schema=std::move(schema);
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -420,6 +435,7 @@ Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const st
 
 Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
+    //! @todo test delete partition
     for (auto&& range: dateRanges)
     {
         auto ec=d->handler->deletePartition(range);
@@ -428,6 +444,18 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
+{
+    Assert(d->handler->p()->schema,"Schema not bound");
+
+    auto rdbModel=d->handler->p()->schema->model(model);
+    Assert(!rdbModel,"Model not registered");
+
+    return rdbModel->createObject(*d->handler,ns,object);
 }
 
 //---------------------------------------------------------------

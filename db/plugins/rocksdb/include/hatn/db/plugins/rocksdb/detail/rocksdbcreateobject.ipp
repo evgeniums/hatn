@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/plugins/rocksdb/ipp/rocksdbcreateobject.ipp
+/** @file db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
   *
   *   RocksDB database template for object creating.
   *
@@ -19,27 +19,44 @@
 #ifndef HATNROCKSDBCREATEOBJECT_IPP
 #define HATNROCKSDBCREATEOBJECT_IPP
 
-#include <hatn/common/runonscopeexit.h>
-
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
+#include <hatn/db/namespace.h>
 
+#include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
-#include <hatn/db/plugins/rocksdb/rocksdbcreateobject.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename ConfigT, typename UnitT, typename ...Indexes>
-void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns, const db::Model<ConfigT,UnitT,Indexes...>& model, const UnitT& object, Error& ec) const
+struct CreateObjectT
 {
-    using modelType=std::decay_t<db::Model<ConfigT,UnitT,Indexes...>>;
+    template <typename ModelT, typename UnitT>
+    static Error operator ()(const ModelT& model, RocksdbHandler& handler, const db::Namespace& ns, UnitT* object) const;
+};
+constexpr CreateObjectT CreateObject{};
+
+template <typename ModelT, typename UnitT>
+Error CreateObjectT::operator ()(
+                               const ModelT& model,
+                               RocksdbHandler& handler,
+                               const db::Namespace& ns,
+                               UnitT* object
+                               ) const
+{
+    using modelType=std::decay_t<ModelT>;
+    static_assert(
+        std::is_same<
+            std::decay_t<UnitT>,
+            typename modelType::UnitType
+            >::value,
+        "Invalid type of object (UnitT)"
+    );
 
     if (handler.readOnly())
     {
-        setError(ec,DbError::DB_READ_ONLY);
-        return;
+        return db::dbError(db::DbError::DB_READ_ONLY);
     }
 
     // handle partition
@@ -57,27 +74,26 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
     );
     if (!partition)
     {
-        ec=dbError(DbError::PARTITION_NOT_FOUND);
-        return;
+        return dbError(DbError::PARTITION_NOT_FOUND);
     }
 
     // serialize object
     dataunit::WireBufSolid buf;
-    if (!object.wireDataKeeper())
+    if (!object->wireDataKeeper())
     {
-        dataunit::io::serialize(object,buf,ec);
+        dataunit::io::serialize(*object,buf,ec);
         HATN_CHECK_EMPTY_RETURN(ec)
     }
     else
     {
-        buf=object.wireDataKeeper()->toSolidWireBuf();
+        buf=object->wireDataKeeper()->toSolidWireBuf();
     }
 
     // transaction fn
     auto transactionFn=[&]()
     {
         auto rdb=handler.p()->transactionDb;
-        auto objectId=object.field(db::object::_id).value().toString();
+        auto objectId=object->field(db::object::_id).value().toString();
 
         // prepare batch
         ROCKSDB_NAMESPACE::WriteBatch batch;
@@ -112,7 +128,7 @@ void CreateObjectT::operator ()(RocksdbHandler& handler, const db::Namespace& ns
     };
 
     // invoke transaction
-    ec=handler->transaction(transactionFn,false);
+    return handler->transaction(transactionFn,false);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

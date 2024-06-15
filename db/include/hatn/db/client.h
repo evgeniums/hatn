@@ -105,7 +105,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doDestroyDb(config,records);
         }
 
-        Error checkSchema(const std::string& schemaName, const Namespace& ns)
+        Error checkSchema(const common::lib::string_view& schemaName, const Namespace& ns)
         {
             if (m_opened)
             {
@@ -114,11 +114,20 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error migrateSchema(const std::string& schemaName, const Namespace& ns)
+        Error migrateSchema(const common::lib::string_view& schemaName, const Namespace& ns)
         {
             if (m_opened)
             {
                 return doMigrateSchema(schemaName,ns);
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        Error bindSchema(const common::lib::string_view& schemaName, const Namespace& ns)
+        {
+            if (m_opened)
+            {
+                return doBindSchema(schemaName,ns);
             }
             return dbError(DbError::DB_NOT_OPEN);
         }
@@ -143,6 +152,15 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
 
+        Error create(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
+        {
+            if (m_opened)
+            {
+                return doCreate(ns,model,object);
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
@@ -151,11 +169,14 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
         virtual void doCloseDb(Error& ec)=0;
 
-        virtual Error doCheckSchema(const std::string& schemaName, const Namespace& ns)=0;
-        virtual Error doMigrateSchema(const std::string& schemaName, const Namespace& ns)=0;
+        virtual Error doCheckSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
+        virtual Error doMigrateSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
+        virtual Error doBindSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
 
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
+
+        virtual Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)=0;
 
         void setClosed() noexcept
         {

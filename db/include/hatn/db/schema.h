@@ -19,19 +19,31 @@
 #ifndef HATNDBSCHEMA_H
 #define HATNDBSCHEMA_H
 
+#include <hatn/common/meta/decaytuple.h>
+
 #include <hatn/db/db.h>
-#include <hatn/db/index.h>
 #include <hatn/db/model.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
-template <typename ...Models>
+template <typename ModelsWithInfoT>
 struct Schema
 {
     std::string name;
-    hana::tuple<Models...> models;
-    std::set<DatePartitionMode> partitionModes;
+    ModelsWithInfoT models;
 };
+
+struct makeSchemaT
+{
+    template <typename ...ModelsWithInfoT>
+    auto operator ()(std::string name, Models&& ...models) const
+    {
+        auto xs=hana::make_tuple(std::forward<ModelsWithInfoT>(models)...);
+        using modelsType=common::decayTuple<decltype(xs)>;
+        return Schema<modelsType>{std::move(name),std::forward<ModelsWithInfoT>(models)...};
+    }
+};
+constexpr makeSchemaT makeSchema{};
 
 HATN_DB_NAMESPACE_END
 

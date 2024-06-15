@@ -32,6 +32,7 @@ using TransactionFn=std::function<Error ()>;
 
 class RocksdbHandler_p;
 struct RocksdbPartition;
+class RocksdbSchema;
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 {
@@ -64,6 +65,12 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         bool readOnly() const noexcept;
 
         void resetCf();
+
+        void setSchema(std::shared_ptr<RocksdbSchema> schema);
+
+        std::shared_ptr<RocksdbSchema>& schema();
+
+        const std::shared_ptr<RocksdbSchema>& schema() const;
 
     private:
 
