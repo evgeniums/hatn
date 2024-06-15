@@ -281,6 +281,13 @@ class HATN_COMMON_EXPORT Date
 
         void addDays(int days);
 
+        Date copyAddDays(int days)
+        {
+            auto dt=*this;
+            dt.addDays(days);
+            return dt;
+        }
+
         uint8_t dayOfWeek() const;
 
         uint16_t dayOfYear() const;
