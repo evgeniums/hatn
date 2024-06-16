@@ -79,3 +79,16 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
 HATN_ROCKSDB_NAMESPACE_END
 
 #endif // HATNROCKSDBSCHEMA_H
+
+/*
+ * 1. Ttl-aware column families with timestamp suffix. Use in filter, check on reads, add ttl thread.
+ *
+ * 2. Parts of keys are of fixed size. Nullable key parts are prepended with NULL-flag.
+ *
+ * 3. Think of prefix filter.
+ *
+ *
+ *
+ *
+ *
+*/

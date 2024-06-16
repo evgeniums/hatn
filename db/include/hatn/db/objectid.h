@@ -187,6 +187,8 @@ class ObjectIdTraits
         using TYPE=TYPE_OBJECT_ID;
         using type=ObjectId;
 
+        using maxSize=std::integral_constant<int,ObjectId::Length>;
+
         static size_t valueSize(const ObjectId&) noexcept
         {
             return ObjectId::Length;
@@ -220,7 +222,6 @@ struct FieldTmpl<HATN_DB_NAMESPACE::TYPE_OBJECT_ID> : public HATN_DB_NAMESPACE::
 {
     using HATN_DB_NAMESPACE::ObjectIdField::ObjectIdField;
 };
-
 
 //---------------------------------------------------------------
 

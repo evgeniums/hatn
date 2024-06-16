@@ -47,6 +47,8 @@ class CustomField : public Field
         constexpr static auto typeId=Type::typeId;
         constexpr static auto isArray=isRepeatedType{};
 
+        using maxSize=typename TraitsT::maxSize;
+
         static size_t valueSize(const type& v) noexcept
         {
             return TraitsT::valueSize(v);

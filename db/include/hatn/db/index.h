@@ -92,6 +92,94 @@ struct nestedIndexFieldT
 };
 constexpr nestedIndexFieldT nestedIndexField{};
 
+struct AutoSizeTag{};
+
+struct AutoSizeT
+{
+    using hana_tag=AutoSizeTag;
+};
+constexpr AutoSizeT AutoSize{};
+
+struct IndexFieldTag{};
+
+using NotNullT=hana::false_;
+constexpr NotNullT NotNull{};
+
+using NullableT=hana::true_;
+constexpr NullableT Nullable{};
+
+namespace detail {
+
+template <typename T, typename LengthT>
+struct IndexFieldHelper
+{
+    static constexpr size_t size=LengthT::value;
+};
+
+template <typename T>
+struct IndexFieldHelper<T,AutoSizeT>
+{
+    using maxSize=typename T::maxSize;
+    static constexpr size_t size=maxSize::value;
+};
+
+}
+
+template <typename FieldT, typename LengthT=AutoSizeT, typename NullableT=NotNullT>
+struct IndexField
+{
+    using hana_tag=IndexFieldTag;
+
+    using field_type=FieldT;
+    using Type=typename std::decay_t<field_type>::Type;
+
+    constexpr static const field_type field{};
+
+    constexpr static size_t length() noexcept
+    {
+        return detail::IndexFieldHelper<Type,LengthT>::size;
+    }
+
+    constexpr static bool nullable() noexcept
+    {
+        return NullableT::value;
+    }
+
+    static auto name()
+    {
+        return std::decay_t<field_type>::name();
+    }
+};
+
+struct indexFieldT
+{
+    template <typename FieldT, typename LengthT, typename NullableT>
+    constexpr static auto create(FieldT, LengthT, NullableT)
+    {
+        return IndexField<FieldT,std::decay_t<LengthT>,std::decay_t<NullableT>>{};
+    }
+
+    template <typename FieldT, typename LengthT, typename NullableT>
+    constexpr auto operator()(FieldT f, LengthT l, NullableT n) const
+    {
+        return create(f,l,n);
+    }
+
+    template <typename FieldT, typename LengthT>
+    constexpr auto operator()(FieldT f, LengthT l) const
+    {
+        return create(f,l,NotNull);
+    }
+
+    template <typename FieldT>
+    constexpr auto operator()(FieldT f) const
+    {
+        return create(f,AutoSize,NotNull);
+    }
+};
+constexpr indexFieldT indexField{};
+
+#define HDB_LENGTH(l) hana::size_t<l>{}
 #define HDB_TTL(ttl) hana::int_<ttl>
 
 using Unique=hana::true_;
@@ -136,7 +224,7 @@ struct IndexConfig
 template <typename ConfigT, typename ...Fields>
 struct Index : public ConfigT
 {
-    constexpr static const boost::hana::tuple<Fields...> fields{};
+    constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
 
     Index(std::string name):m_name(std::move(name))
     {}
@@ -187,7 +275,8 @@ struct makeIndexT
         auto p=hana::eval_if(
             hana::or_(
                 hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,decltype(lastArg)>,
-                hana::is_a<NestedFieldTag,decltype(lastArg)>
+                hana::is_a<NestedFieldTag,decltype(lastArg)>,
+                hana::is_a<IndexFieldTag,decltype(lastArg)>
             ),
             [&](auto _)
             {
@@ -226,7 +315,7 @@ constexpr makeIndexT makeIndex{};
 struct getIndexFieldT
 {
     template <typename UnitT, typename FieldT>
-    decltype(auto) operator()(UnitT&& unit, FieldT&& field) const
+    static decltype(auto) invoke(UnitT&& unit, FieldT&& field)
     {
         return hana::eval_if(
             hana::is_a<NestedFieldTag,FieldT>,
@@ -240,9 +329,25 @@ struct getIndexFieldT
             },
             [&](auto _)
             {
-                return _(unit).field(_(field));
+                return hana::eval_if(
+                    hana::is_a<IndexFieldTag,FieldT>,
+                    [&](auto _)
+                    {
+                        return getIndexFieldT::invoke(_(unit),_(field).field);
+                    },
+                    [&](auto _)
+                    {
+                        return _(unit).field(_(field));
+                    }
+                );
             }
         );
+    }
+
+    template <typename UnitT, typename FieldT>
+    decltype(auto) operator()(UnitT&& unit, FieldT&& field) const
+    {
+        return getIndexFieldT::invoke(std::forward<UnitT>(unit),std::forward<FieldT>(field));
     }
 };
 constexpr getIndexFieldT getIndexField{};

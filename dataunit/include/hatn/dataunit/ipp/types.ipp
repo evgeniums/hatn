@@ -49,6 +49,7 @@ struct BaseType
     using isBytesType=std::false_type;
     using isStringType=std::false_type;
     using isRepeatedType=std::false_type;
+    using maxSize=std::integral_constant<int,sizeof(type)>;
 
     constexpr static const bool isSizeIterateNeeded=false;
     constexpr static const ValueType typeId=valueType;
@@ -357,6 +358,8 @@ template <int length> struct HATN_DATAUNIT_EXPORT TYPE_FIXED_STRING
 
     using isPackedProtoBufCompatible=std::false_type;
     constexpr static const bool isSizeIterateNeeded=true;
+
+    using maxSize=std::integral_constant<int,length>;
 };
 
 /**

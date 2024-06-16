@@ -46,9 +46,30 @@ HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
     HDU_FIELD(f2,TYPE_UINT32,2)
 )
 
+
 } // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(TestDbSchema)
+
+BOOST_AUTO_TEST_CASE(IndexField)
+{
+    static_assert(decltype(hana::is_a<AutoSizeTag,AutoSizeT>)::value,"");
+
+    auto if1=indexField(nu1::f2);
+    static_assert(decltype(if1)::length()==4,"");
+    static_assert(!decltype(if1)::nullable(),"");
+    BOOST_CHECK_EQUAL(if1.length(),4);
+
+    auto if2=indexField(nu1::f2,HDB_LENGTH(8));
+    static_assert(decltype(if2)::length()==8,"");
+    static_assert(!decltype(if2)::nullable(),"");
+    BOOST_CHECK_EQUAL(if2.length(),8);
+
+    auto if3=indexField(nu1::f2,AutoSize,Nullable);
+    static_assert(decltype(if3)::length()==4,"");
+    static_assert(decltype(if3)::nullable(),"");
+    BOOST_CHECK_EQUAL(if3.length(),4);
+}
 
 BOOST_AUTO_TEST_CASE(MakeIndex)
 {
@@ -79,6 +100,10 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::_id);
     BOOST_CHECK(!idx4.unique());
     BOOST_CHECK(idx4.isDatePartitioned());
+
+    auto idx5=makeIndex(IndexConfig<NotUnique,DatePartition>{},indexField(object::_id));
+    BOOST_CHECK(!idx5.unique());
+    BOOST_CHECK(idx5.isDatePartitioned());
 }
 
 BOOST_AUTO_TEST_CASE(MakeModel)
@@ -110,6 +135,17 @@ BOOST_AUTO_TEST_CASE(MakeModel)
 
     auto model3=makeModel<n1::TYPE>(ModelConfig<>{});
     BOOST_CHECK_EQUAL(model3.modelId(),2);
+
+    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},indexField(object::created_at));
+    auto model4=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx4,idx3);
+    BOOST_CHECK(model4.isDatePartitioned());
+    auto partitionField4=model4.datePartitionField();
+    BOOST_CHECK_EQUAL(partitionField4.name(),"created_at");
+    object::type o4;
+    o4.field(object::created_at).set(common::DateTime{common::Date{2024,6,27},common::Time{10,1,1}});
+    auto partitionRange4=datePartition(o4,model4);
+    BOOST_REQUIRE(partitionRange4.isValid());
+    BOOST_CHECK_EQUAL(partitionRange4.value(),32024006);
 }
 
 BOOST_AUTO_TEST_CASE(NestedIndexField)

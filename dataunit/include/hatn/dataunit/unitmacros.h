@@ -68,7 +68,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
     {\
         struct strings\
         {\
-                constexpr static const char* name=#FieldName;\
+            constexpr static const char* name=#FieldName;\
         };\
         using traits=field_traits<field_generator,\
                        strings,\

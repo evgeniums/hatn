@@ -36,7 +36,7 @@ struct Schema
 struct makeSchemaT
 {
     template <typename ...ModelsWithInfoT>
-    auto operator ()(std::string name, Models&& ...models) const
+    auto operator ()(std::string name, ModelsWithInfoT&& ...models) const
     {
         auto xs=hana::make_tuple(std::forward<ModelsWithInfoT>(models)...);
         using modelsType=common::decayTuple<decltype(xs)>;

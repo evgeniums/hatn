@@ -88,6 +88,8 @@ class DateTime : public Field
         constexpr static auto typeId=Type::typeId;
         constexpr static auto isArray=isRepeatedType{};
 
+        using maxSize=std::integral_constant<int,sizeof(uint64_t)>;
+
         //! Ctor with default value
         DateTime(Unit* unit,type defaultValue)
             : Field(Type::typeId,unit),
