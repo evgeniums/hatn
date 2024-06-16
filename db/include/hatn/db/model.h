@@ -47,10 +47,14 @@ HDU_UNIT_WITH(model,(HDU_BASE(object)),
     HDU_REPEATED_FIELD(model_fields,model_field::TYPE,2)
 )
 
+struct ModelConfigTag{};
+
 template <DatePartitionMode PartitionMode=DatePartitionMode::Month>
 class ModelConfig
 {
     public:
+
+        using hana_tag=ModelConfigTag;
 
         ModelConfig()=default;
 
@@ -88,14 +92,14 @@ inline ModelConfig<> DefaultModelConfig{};
 
 struct ModelTag{};
 
-template <typename ConfigT, typename UnitT, typename ...Indexes>
+template <typename ConfigT, typename UnitT, typename Indexes>
 struct Model : public ConfigT
 {
     using hana_tag=ModelTag;
 
     using UnitType=UnitT;
 
-    hana::tuple<Indexes...> indexes;
+    Indexes indexes;
 
     template <typename CfgT,typename Ts>
     Model(
@@ -153,7 +157,7 @@ struct Model : public ConfigT
                 return hana::bool_<type::isDatePartitioned()>{};
             };
 
-            constexpr auto xs=hana::tuple_t<Indexes...>;
+            constexpr auto xs=common::tupleToTupleCType<Indexes>{};
             constexpr auto count=hana::count_if(xs,pred);
             static_assert(hana::less_equal(count,hana::size_c<1>),"Only one date partition index can be specified for a model");
 
@@ -170,10 +174,28 @@ template <typename UnitType>
 struct unitModelT
 {
     template <typename ConfigT, typename ...Indexes>
-    auto operator()(ConfigT&& config, Indexes ...indexes) const
+    auto operator()(ConfigT&& cfg, Indexes ...indexes) const
     {
-        using type=Model<std::decay_t<ConfigT>,UnitType,Indexes...>;
-        auto m=type{std::forward<ConfigT>(config),hana::make_tuple(indexes...)};
+        auto xs1=hana::make_tuple(indexes...);
+
+        auto args=hana::eval_if(
+            hana::is_a<ModelConfigTag,ConfigT>,
+            [&](auto _)
+            {
+                return std::make_pair(_(cfg),_(xs1));
+            },
+            [&](auto _)
+            {
+                return std::make_pair(DefaultModelConfig,hana::prepend(_(xs1),_(cfg)));
+            }
+            );
+        auto&& config=args.first;
+        using configT=std::decay_t<decltype(config)>;
+        auto&& xs=args.second;
+        using indexesT=std::decay_t<decltype(xs)>;
+
+        using type=Model<configT,UnitType,indexesT>;
+        auto m=type{config,xs};
         m.setModelId(ModelRegistry::instance().registerModel(type::name()));
         return m;
     }

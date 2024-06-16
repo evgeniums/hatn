@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     BOOST_REQUIRE(partitionRange1.isValid());
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
-    auto model2=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx3);
+    auto model2=unitModel<object::TYPE>(idx1,idx3);
     BOOST_CHECK(!model2.isDatePartitioned());
     auto partitionField2=model2.datePartitionField();
     BOOST_CHECK(!partitionField2.value);
