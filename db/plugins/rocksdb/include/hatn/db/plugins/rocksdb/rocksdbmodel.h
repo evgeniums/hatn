@@ -28,11 +28,12 @@
 #include <hatn/db/model.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
-#include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace dataunit=HATN_DATAUNIT_NAMESPACE;
+
+class RocksdbHandler;
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 {

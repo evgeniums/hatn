@@ -30,7 +30,6 @@
 #include <hatn/db/schema.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
-#include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/rocksdbmodel.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
