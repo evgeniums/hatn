@@ -103,6 +103,11 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     auto idx5=makeIndex(IndexConfig<NotUnique,DatePartition>{},indexField(object::_id));
     BOOST_CHECK(!idx5.unique());
     BOOST_CHECK(idx5.isDatePartitioned());
+
+    auto idx6=makeIndex(object::created_at,object::updated_at);
+    BOOST_CHECK_EQUAL(idx6.name(),"idx_created_at_updated_at");
+    BOOST_CHECK(!idx6.unique());
+    BOOST_CHECK(!idx6.isDatePartitioned());
 }
 
 BOOST_AUTO_TEST_CASE(MakeModel)

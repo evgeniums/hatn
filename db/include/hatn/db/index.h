@@ -190,11 +190,15 @@ using NotTtl=hana::int_<0>;
 using Topic=hana::true_;
 using NotTopic=hana::false_;
 
+struct IndexConfigTag{};
+
 template <typename UniqueT=NotUnique,
          typename DatePartitionT=NotDatePartition, typename TtlT=NotTtl,
          typename TopicT=NotTopic>
 struct IndexConfig
 {
+    using hana_tag=IndexConfigTag;
+
     constexpr static bool unique()
     {
         return UniqueT::value;
@@ -248,10 +252,26 @@ struct Index : public ConfigT
 struct makeIndexT
 {
     template <typename ConfigT, typename ...Fields>
-    auto operator()(ConfigT&& config, Fields&& ...fields) const
+    auto operator()(ConfigT&& cfg, Fields&& ...fields) const
     {
-        auto ft=hana::make_tuple(fields...);
-        using isDatePartition=hana::bool_<std::decay_t<ConfigT>::isDatePartitioned()>;
+        auto ft1=hana::make_tuple(fields...);
+
+        auto args=hana::eval_if(
+            hana::is_a<IndexConfigTag,ConfigT>,
+            [&](auto _)
+            {
+                return std::make_pair(_(cfg),_(ft1));
+            },
+            [&](auto _)
+            {
+                return std::make_pair(DefaultIndexConfig,hana::prepend(_(ft1),_(cfg)));
+            }
+        );
+        auto&& config=args.first;
+        using configT=std::decay_t<decltype(config)>;
+        auto&& ft=args.second;
+
+        using isDatePartition=hana::bool_<configT::isDatePartitioned()>;
         static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
                       "Date partition can be used for index with single field only");
         using firstFieldType=typename std::decay_t<decltype(hana::front(ft))>::Type::type;
@@ -263,7 +283,7 @@ struct makeIndexT
                                                   ),
                       "Type of date partition field must be one of: DateTime or Date or ObjectId");
 
-        using isTtl=hana::bool_<std::decay_t<ConfigT>::isTtl()>;
+        using isTtl=hana::bool_<configT::isTtl()>;
         static_assert(!isTtl::value || (isTtl::value && (decltype(hana::size(ft))::value==1)),
                       "Ttl mode can be used for index with single field only");
         static_assert(!isTtl::value || (isTtl::value &&
@@ -304,7 +324,7 @@ struct makeIndexT
             }
         );
 
-        auto t=hana::prepend(std::move(p.first),std::forward<ConfigT>(config));
+        auto t=hana::prepend(std::move(p.first),config);
         auto c=common::tupleToTupleC(t);
         auto ci=hana::unpack(c,hana::template_<Index>);
         using type=typename decltype(ci)::type;
