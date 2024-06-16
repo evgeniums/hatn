@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
-    auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
+    auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
 
     auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig,idx1,idx2,idx3);
     BOOST_CHECK_EQUAL(mi2->info.collection(),"nu1");

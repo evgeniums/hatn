@@ -220,6 +220,7 @@ struct IndexConfig
         return TopicT::value;
     }
 };
+constexpr IndexConfig<> DefaultIndexConfig{};
 
 template <typename ConfigT, typename ...Fields>
 struct Index : public ConfigT
