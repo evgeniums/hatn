@@ -46,7 +46,6 @@ HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
     HDU_FIELD(f2,TYPE_UINT32,2)
 )
 
-
 } // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(TestDbSchema)
@@ -111,7 +110,7 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
-    auto model1=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model1=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
     BOOST_CHECK(model1.isDatePartitioned());
     auto partitionField1=model1.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField1.name(),"created_at");
@@ -121,7 +120,7 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     BOOST_REQUIRE(partitionRange1.isValid());
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
-    auto model2=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx3);
+    auto model2=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx3);
     BOOST_CHECK(!model2.isDatePartitioned());
     auto partitionField2=model2.datePartitionField();
     BOOST_CHECK(!partitionField2.value);
@@ -133,11 +132,11 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     BOOST_CHECK_EQUAL(model1.modelId(),1);
     BOOST_CHECK_EQUAL(model2.modelId(),1);
 
-    auto model3=makeModel<n1::TYPE>(ModelConfig<>{});
+    auto model3=unitModel<n1::TYPE>(ModelConfig<>{});
     BOOST_CHECK_EQUAL(model3.modelId(),2);
 
     auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},indexField(object::created_at));
-    auto model4=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx4,idx3);
+    auto model4=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx4,idx3);
     BOOST_CHECK(model4.isDatePartitioned());
     auto partitionField4=model4.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField4.name(),"created_at");
@@ -164,7 +163,7 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     BOOST_CHECK_EQUAL(idx2.name(),"idx_nf1__f1");
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
 
-    auto model1=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model1=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
     BOOST_CHECK(model1.isDatePartitioned());
     auto partitionField1=model1.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField1.name(),"nf1__f1");

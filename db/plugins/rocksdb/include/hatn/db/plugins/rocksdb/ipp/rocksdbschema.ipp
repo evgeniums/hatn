@@ -28,20 +28,20 @@
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename SchemaT>
-static void RocksdbSchemas::registerSchema(const SchemaT& schema)
+void RocksdbSchemas::registerSchema(const SchemaT& schema)
 {
-    Assert(m_schemas.find(schema.name)!=m_schemas.end(),"duplicate schema");
+    Assert(m_schemas.find(schema.name)==m_schemas.end(),"duplicate schema");
 
-    RocksdbSchema rdbSchema;
+    auto rdbSchema=std::make_shared<RocksdbSchema>();
 
     auto addModel=[&rdbSchema](auto&& model)
     {
         auto rdbModel=std::make_shared<RocksdbModel>(model.info);
         auto m=model.model;
 
-        using modelT=std::decay_t<decltype(m)>;
-        using unitT=typename m::UnitType;
-        static unitT sample;
+        using modelT=std::decay_t<decltype(model)>;
+        using unitT=typename modelT::ModelType::UnitType;
+        static typename unitT::type sample;
 
         rdbModel->createObject=[m](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
         {
@@ -49,7 +49,7 @@ static void RocksdbSchemas::registerSchema(const SchemaT& schema)
             return CreateObject(m,handler,ns,obj);
         };
 
-        rdbSchema.addModel(rdbModel);
+        rdbSchema->addModel(std::move(rdbModel));
     };
 
     boost::hana::for_each(schema.models,addModel);

@@ -33,7 +33,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 struct CreateObjectT
 {
     template <typename ModelT, typename UnitT>
-    static Error operator ()(const ModelT& model, RocksdbHandler& handler, const db::Namespace& ns, UnitT* object) const;
+    Error operator ()(const ModelT& model, RocksdbHandler& handler, const db::Namespace& ns, UnitT* object) const;
 };
 constexpr CreateObjectT CreateObject{};
 
@@ -46,10 +46,11 @@ Error CreateObjectT::operator ()(
                                ) const
 {
     using modelType=std::decay_t<ModelT>;
+    using unitType=typename modelType::UnitType;
     static_assert(
         std::is_same<
             std::decay_t<UnitT>,
-            typename modelType::UnitType
+            typename unitType::type
             >::value,
         "Invalid type of object (UnitT)"
     );
@@ -64,7 +65,7 @@ Error CreateObjectT::operator ()(
         hana::bool_<modelType::isDatePartitioned()>{},
         [&](auto _)
         {
-            auto partitionRange=datePartition(_(object),_(model));
+            auto partitionRange=datePartition(*_(object),_(model));
             return _(handler).partition(partitionRange);
         },
         [&](auto _)
@@ -81,8 +82,9 @@ Error CreateObjectT::operator ()(
     dataunit::WireBufSolid buf;
     if (!object->wireDataKeeper())
     {
+        Error ec;
         dataunit::io::serialize(*object,buf,ec);
-        HATN_CHECK_EMPTY_RETURN(ec)
+        HATN_CHECK_EC(ec)
     }
     else
     {
@@ -104,7 +106,7 @@ Error CreateObjectT::operator ()(
         //! @todo handle keys in one place
         auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        auto status=batch.Put(partition->collectionCF.get(),objectKey,objectValue);
+        auto status=batch.Put(partition->collectionCf.get(),objectKey,objectValue);
         if (!status.ok())
         {
             //! @todo construct error
@@ -128,7 +130,7 @@ Error CreateObjectT::operator ()(
     };
 
     // invoke transaction
-    return handler->transaction(transactionFn,false);
+    return handler.transaction(transactionFn,false);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

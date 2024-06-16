@@ -73,7 +73,7 @@ std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &na
 
 void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
 {
-    Assert(m_models.find(model->info())!=m_models.end(),"duplicate model");
+    Assert(m_models.find(model->info())==m_models.end(),"duplicate model");
     m_models.emplace(model->info(),std::move(model));
 }
 

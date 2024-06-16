@@ -17,8 +17,6 @@
 
 #include <hatn/test/multithreadfixture.h>
 
-//! @todo Move *.ipp from detail.
-
 #include <hatn/common/elapsedtimer.h>
 
 #include <hatn/dataunit/visitors.h>

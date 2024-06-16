@@ -25,6 +25,12 @@
 #include <hatn/db/dbplugin.h>
 #include <hatn/db/model.h>
 
+#include <hatn_test_config.h>
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/rocksdbschema.h>
+#endif
+
 HATN_TEST_NAMESPACE_BEGIN
 
 using TestFn=std::function<void (std::shared_ptr<db::DbPlugin>& plugin, std::shared_ptr<db::Client> client)>;

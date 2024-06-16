@@ -49,6 +49,7 @@ void ModelRegistry::free()
 {
     instance().m_modelIds.clear();
     instance().m_modelNames.clear();
+    ModelCounter=0;
 }
 
 //---------------------------------------------------------------

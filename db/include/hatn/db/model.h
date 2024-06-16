@@ -19,6 +19,7 @@
 #ifndef HATNDBMODEL_H
 #define HATNDBMODEL_H
 
+#include <type_traits>
 #include <set>
 
 #include <hatn/common/classuid.h>
@@ -47,17 +48,29 @@ HDU_UNIT_WITH(model,(HDU_BASE(object)),
 )
 
 template <DatePartitionMode PartitionMode=DatePartitionMode::Month>
-struct ModelConfig
+class ModelConfig
 {
-    constexpr static DatePartitionMode datePartitionMode()
-    {
-        return PartitionMode;
-    }
+    public:
 
-    uint32_t modelId() const noexcept
-    {
-        return m_modelId;
-    }
+        ModelConfig()=default;
+
+        ModelConfig(std::string collection) : m_collection(std::move(collection))
+        {}
+
+        constexpr static DatePartitionMode datePartitionMode()
+        {
+            return PartitionMode;
+        }
+
+        uint32_t modelId() const noexcept
+        {
+            return m_modelId;
+        }
+
+        const std::string& collection() const noexcept
+        {
+            return m_collection;
+        }
 
     private:
 
@@ -67,20 +80,40 @@ struct ModelConfig
         }
 
         uint32_t m_modelId;
+        std::string m_collection;
 
-        template <typename UnitType> friend struct makeModelT;
+        template <typename UnitType> friend struct unitModelT;
 };
+using DefaultConfig=ModelConfig<>;
+
+struct ModelTag{};
 
 template <typename ConfigT, typename UnitT, typename ...Indexes>
 struct Model : public ConfigT
 {
+    using hana_tag=ModelTag;
+
     using UnitType=UnitT;
 
     hana::tuple<Indexes...> indexes;
 
-    template <typename ...Args>
-    Model(Args&& ...args) : indexes(hana::make_tuple(std::forward<Args>(args)...))
+    template <typename CfgT,typename Ts>
+    Model(
+        CfgT&& config,
+        Ts&& indexes,
+          std::enable_if_t<
+              decltype(hana::is_a<hana::tuple_tag,Ts>)::value,
+              void*
+              > =nullptr) :
+                    ConfigT(std::forward<CfgT>(config)),
+                    indexes(std::forward<Ts>(indexes))
     {}
+
+    ~Model()=default;
+    Model(const Model&)=default;
+    Model(Model&&)=default;
+    Model& operator=(const Model&)=default;
+    Model& operator=(Model&&)=default;
 
     constexpr static const char* name()
     {
@@ -129,23 +162,23 @@ struct Model : public ConfigT
 };
 
 /**
- * @brief Create and register a model.
+ * @brief Create and register unit model.
  *
  * @note Not thread safe. Create and register models at initial steps and then use those models in operations.
  */
 template <typename UnitType>
-struct makeModelT
+struct unitModelT
 {
     template <typename ConfigT, typename ...Indexes>
-    auto operator()(ConfigT&&, Indexes ...indexes) const
+    auto operator()(ConfigT&& config, Indexes ...indexes) const
     {
         using type=Model<ConfigT,UnitType,Indexes...>;
-        auto m=type{indexes...};
+        auto m=type{std::forward<ConfigT>(config),hana::make_tuple(indexes...)};
         m.setModelId(ModelRegistry::instance().registerModel(type::name()));
         return m;
     }
 };
-template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
+template <typename UnitType> constexpr unitModelT<UnitType> unitModel{};
 
 template <typename UnitT, typename ModelT>
 common::DateRange datePartition(const UnitT& unit, const ModelT& model)
@@ -170,12 +203,28 @@ class ModelInfo
     public:
 
         template <typename ModelT>
-        ModelInfo(ModelT&& model, std::string collection=std::decay_t<ModelT>::name())
-            : m_collection(std::move(collection)),
+        ModelInfo(ModelT&& model,
+                  std::enable_if_t<
+                      decltype(hana::is_a<ModelTag,ModelT>)::value,
+                      void*
+                      > =nullptr
+                  )
+            : m_collection(std::decay_t<ModelT>::name()),
               m_datePartitioned(model.isDatePartitioned()),
               m_datePartitionMode(model.datePartitionMode()),
               m_id(model.modelId())
-        {}
+        {
+            if (!model.collection().empty())
+            {
+                m_collection=model.collection();
+            }
+        }
+
+        ~ModelInfo()=default;
+        ModelInfo(const ModelInfo&)=default;
+        ModelInfo(ModelInfo&&)=default;
+        ModelInfo& operator=(const ModelInfo&)=default;
+        ModelInfo& operator=(ModelInfo&&)=default;
 
         const std::string& collection() const noexcept
         {
@@ -218,9 +267,16 @@ class ModelInfo
 template <typename ModelT>
 struct ModelWithInfo
 {
+    using ModelType=ModelT;
+
     template <typename T>
-    ModelWithInfo(T&& model, std::string collection=std::decay_t<T>::name())
-        : info(model,std::move(collection)),
+    ModelWithInfo(T&& model,
+                  std::enable_if_t<
+                      decltype(hana::is_a<ModelTag,T>)::value,
+                      void*
+                      > =nullptr
+                  )
+        : info(model),
           model(std::forward<T>(model))
     {}
 
@@ -231,12 +287,24 @@ struct ModelWithInfo
 struct makeModelWithInfoT
 {
     template <typename ModelT>
-    auto operator()(ModelT&& model, std::string collection=std::decay_t<ModelT>::name()) const
+    auto operator()(ModelT&& model) const
     {
-        return ModelWithInfo<std::decay_t<ModelT>>{std::forward<ModelT>(model),std::move(collection)};
+        return ModelWithInfo<std::decay_t<ModelT>>{std::forward<ModelT>(model)};
     }
 };
 constexpr makeModelWithInfoT makeModelWithInfo{};
+
+template <typename UnitType>
+struct makeModelT
+{
+    template <typename ConfigT, typename ...Indexes>
+    auto operator()(ConfigT&& config, Indexes ...indexes) const
+    {
+        auto m=unitModel<UnitType>(std::forward<ConfigT>(config),std::forward<Indexes>(indexes)...);
+        return makeModelWithInfo(std::move(m));
+    }
+};
+template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
 
 HATN_DB_NAMESPACE_END
 

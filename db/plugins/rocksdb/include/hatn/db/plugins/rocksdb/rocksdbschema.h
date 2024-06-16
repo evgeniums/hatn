@@ -26,6 +26,7 @@
 #include <hatn/common/stdwrappers.h>
 
 #include <hatn/db/namespace.h>
+#include <hatn/db/model.h>
 #include <hatn/db/schema.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>

@@ -23,8 +23,22 @@
 #include "preparedb.h"
 
 HATN_USING
+HATN_DATAUNIT_USING
 HATN_DB_USING
 HATN_TEST_USING
+
+namespace {
+
+    HDU_UNIT(n1,
+             HDU_FIELD(f1,TYPE_DATETIME,1)
+             )
+
+    HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
+                  HDU_FIELD(nf1,n1::TYPE,1)
+                  HDU_FIELD(f2,TYPE_UINT32,2)
+                  )
+
+} // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(DbTestCrud, *boost::unit_test::fixture<DbTestFixture>())
 

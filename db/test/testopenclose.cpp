@@ -166,8 +166,8 @@ BOOST_AUTO_TEST_CASE(DbPrepare)
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
-    auto model1=makeModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
-    auto model2=makeModel<n1::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model1=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model2=unitModel<n1::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
 
     std::vector<ModelInfo> models{model1,model2};
     auto today=common::Date::currentUtc();
