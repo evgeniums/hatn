@@ -31,6 +31,9 @@ constexpr auto tupleToTupleC(T&& t) noexcept
     return boost::hana::transform(std::forward<T>(t),boost::hana::make<boost::hana::type_tag>);
 }
 
+template <typename T>
+using tupleToTupleCType=decltype(tupleToTupleC(std::declval<T>()));
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTUPLETYPEC_H
