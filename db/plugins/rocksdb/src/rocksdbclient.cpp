@@ -452,8 +452,8 @@ Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, d
 {
     Assert(d->handler->p()->schema,"Schema not bound");
 
-    auto rdbModel=d->handler->p()->schema->model(model);
-    Assert(!rdbModel,"Model not registered");
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
 
     return rdbModel->createObject(*d->handler,ns,object);
 }

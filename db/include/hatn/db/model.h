@@ -84,7 +84,7 @@ class ModelConfig
 
         template <typename UnitType> friend struct unitModelT;
 };
-using DefaultConfig=ModelConfig<>;
+inline ModelConfig<> DefaultModelConfig{};
 
 struct ModelTag{};
 
@@ -172,7 +172,7 @@ struct unitModelT
     template <typename ConfigT, typename ...Indexes>
     auto operator()(ConfigT&& config, Indexes ...indexes) const
     {
-        using type=Model<ConfigT,UnitType,Indexes...>;
+        using type=Model<std::decay_t<ConfigT>,UnitType,Indexes...>;
         auto m=type{std::forward<ConfigT>(config),hana::make_tuple(indexes...)};
         m.setModelId(ModelRegistry::instance().registerModel(type::name()));
         return m;
@@ -212,19 +212,14 @@ class ModelInfo
             : m_collection(std::decay_t<ModelT>::name()),
               m_datePartitioned(model.isDatePartitioned()),
               m_datePartitionMode(model.datePartitionMode()),
-              m_id(model.modelId())
+              m_id(model.modelId()),
+              m_nativeModel(nullptr)
         {
             if (!model.collection().empty())
             {
                 m_collection=model.collection();
             }
         }
-
-        ~ModelInfo()=default;
-        ModelInfo(const ModelInfo&)=default;
-        ModelInfo(ModelInfo&&)=default;
-        ModelInfo& operator=(const ModelInfo&)=default;
-        ModelInfo& operator=(ModelInfo&&)=default;
 
         const std::string& collection() const noexcept
         {
@@ -256,12 +251,30 @@ class ModelInfo
             return m_id==other.m_id;
         }
 
+        void setNativeModel(void* nativeModel) noexcept
+        {
+            m_nativeModel=nativeModel;
+        }
+
+        void* nativeModelV() const noexcept
+        {
+            return m_nativeModel;
+        }
+
+        template <typename T>
+        T* nativeModel() const noexcept
+        {
+            return reinterpret_cast<T*>(m_nativeModel);
+        }
+
     private:
 
         std::string m_collection;
         bool m_datePartitioned;
         DatePartitionMode m_datePartitionMode;
         uint32_t m_id;
+
+        void* m_nativeModel;
 };
 
 template <typename ModelT>
@@ -289,7 +302,7 @@ struct makeModelWithInfoT
     template <typename ModelT>
     auto operator()(ModelT&& model) const
     {
-        return ModelWithInfo<std::decay_t<ModelT>>{std::forward<ModelT>(model)};
+        return std::make_shared<ModelWithInfo<std::decay_t<ModelT>>>(std::forward<ModelT>(model));
     }
 };
 constexpr makeModelWithInfoT makeModelWithInfo{};

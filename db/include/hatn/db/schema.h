@@ -26,11 +26,50 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-template <typename ModelsWithInfoT>
-struct Schema
+class HATN_DB_EXPORT DbSchema
 {
-    std::string name;
-    ModelsWithInfoT models;
+    public:
+
+        virtual ~DbSchema();
+
+        DbSchema()=default;
+        DbSchema(const DbSchema&)=delete;
+        DbSchema(DbSchema&&)=default;
+        DbSchema& operator=(const DbSchema&)=delete;
+        DbSchema& operator=(DbSchema&&)=default;
+};
+
+template <typename ModelsWithInfoT>
+class Schema : public DbSchema
+{
+    public:
+
+        Schema(
+                std::string name,
+                ModelsWithInfoT models
+            ) : m_name(std::move(name)),
+                m_models(std::move(models))
+        {}
+
+        std::string name() const noexcept
+        {
+            return m_name;
+        }
+
+        const ModelsWithInfoT& models() const noexcept
+        {
+            return m_models;
+        }
+
+        ModelsWithInfoT& models() noexcept
+        {
+            return m_models;
+        }
+
+    private:
+
+        std::string m_name;
+        ModelsWithInfoT m_models;
 };
 
 struct makeSchemaT
@@ -40,7 +79,7 @@ struct makeSchemaT
     {
         auto xs=hana::make_tuple(std::forward<ModelsWithInfoT>(models)...);
         using modelsType=common::decayTuple<decltype(xs)>;
-        return Schema<modelsType>{std::move(name),std::forward<ModelsWithInfoT>(models)...};
+        return std::make_shared<Schema<modelsType>>(std::move(name),std::move(xs));
     }
 };
 constexpr makeSchemaT makeSchema{};

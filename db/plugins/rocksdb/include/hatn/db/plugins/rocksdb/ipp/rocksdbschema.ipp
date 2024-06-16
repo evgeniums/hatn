@@ -27,34 +27,34 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename SchemaT>
-void RocksdbSchemas::registerSchema(const SchemaT& schema)
+template <typename DbSchemaSharedPtrT>
+void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema)
 {
-    Assert(m_schemas.find(schema.name)==m_schemas.end(),"duplicate schema");
+    Assert(m_schemas.find(schema->name())==m_schemas.end(),"Trying to register duplicate database schema");
 
-    auto rdbSchema=std::make_shared<RocksdbSchema>();
+    auto rdbSchema=std::make_shared<RocksdbSchema>(schema);
 
-    auto addModel=[&rdbSchema](auto&& model)
+    auto addModel=[&rdbSchema](auto model)
     {
-        auto rdbModel=std::make_shared<RocksdbModel>(model.info);
-        auto m=model.model;
+        auto rdbModel=std::make_shared<RocksdbModel>(model->info);
 
-        using modelT=std::decay_t<decltype(model)>;
+        using modelT=typename std::decay_t<decltype(model)>::element_type;
         using unitT=typename modelT::ModelType::UnitType;
         static typename unitT::type sample;
 
-        rdbModel->createObject=[m](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
+        rdbModel->createObject=[model](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
         {
             auto* obj=sample.castToUnit(object);
-            return CreateObject(m,handler,ns,obj);
+            return CreateObject(model->model,handler,ns,obj);
         };
 
         rdbSchema->addModel(std::move(rdbModel));
     };
 
-    boost::hana::for_each(schema.models,addModel);
+    auto& models=schema->models();
+    boost::hana::for_each(models,addModel);
 
-    m_schemas[schema.name]=std::move(rdbSchema);
+    m_schemas[schema->name()]=std::move(rdbSchema);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

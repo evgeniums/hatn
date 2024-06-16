@@ -79,7 +79,7 @@ void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
 
 //---------------------------------------------------------------
 
-std::shared_ptr<RocksdbModel> RocksdbSchema::model(const db::ModelInfo& info) const
+std::shared_ptr<RocksdbModel> RocksdbSchema::findModel(const db::ModelInfo& info) const
 {
     auto it=m_models.find(info);
     if (it==m_models.end())
@@ -94,9 +94,11 @@ std::shared_ptr<RocksdbModel> RocksdbSchema::model(const db::ModelInfo& info) co
 
 //---------------------------------------------------------------
 
-RocksdbModel::RocksdbModel(db::ModelInfo info)
-    :m_modelInfo(std::move(info))
-{}
+RocksdbModel::RocksdbModel(db::ModelInfo& info)
+    :m_modelInfo(info)
+{
+    m_modelInfo.setNativeModel(this);
+}
 
 //---------------------------------------------------------------
 

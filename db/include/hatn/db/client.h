@@ -152,11 +152,12 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
 
-        Error create(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
+        template <typename ModelT>
+        Error create(const db::Namespace& ns, const std::shared_ptr<ModelT>& model, dataunit::Unit* object)
         {
             if (m_opened)
             {
-                return doCreate(ns,model,object);
+                return doCreate(ns,model->info,object);
             }
             return dbError(DbError::DB_NOT_OPEN);
         }
