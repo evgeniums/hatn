@@ -93,6 +93,8 @@ struct ModelTag{};
 template <typename ConfigT, typename UnitT, typename Indexes>
 struct Model : public ConfigT
 {
+    //! @todo Check if indexes are valid, i.e. use existing fields.
+
     using hana_tag=ModelTag;
 
     using UnitType=UnitT;
@@ -218,6 +220,8 @@ common::DateRange datePartition(const UnitT& unit, const ModelT& model)
     );
 }
 
+class DbSchema;
+
 class ModelInfo
 {
     public:
@@ -287,6 +291,16 @@ class ModelInfo
             return reinterpret_cast<T*>(m_nativeModel);
         }
 
+        void setSchema(const std::shared_ptr<DbSchema>& schema) noexcept
+        {
+            m_schema=schema;
+        }
+
+        std::shared_ptr<DbSchema> schema() const noexcept
+        {
+            return m_schema.lock();
+        }
+
     private:
 
         std::string m_collection;
@@ -295,6 +309,7 @@ class ModelInfo
         uint32_t m_id;
 
         void* m_nativeModel;
+        std::weak_ptr<DbSchema> m_schema;
 };
 
 template <typename ModelT>

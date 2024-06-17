@@ -294,4 +294,16 @@ std::shared_ptr<RocksdbSchema> RocksdbHandler::schema(const lib::string_view &sc
 
 //---------------------------------------------------------------
 
+Error RocksdbHandler::ensureModelSchema(const ModelInfo &model) const
+{
+    auto s=schema(model.schema()->name());
+    if (!s)
+    {
+        return dbError(DbError::SCHEMA_NOT_FOUND);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

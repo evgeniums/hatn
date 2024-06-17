@@ -24,6 +24,9 @@
 
 #include <hatn/common/datetime.h>
 
+#include <hatn/db/dberror.h>
+#include <hatn/db/model.h>
+
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -69,6 +72,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         void addSchema(std::shared_ptr<RocksdbSchema> schema);
 
         std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& schemaName) const;
+
+        Error ensureModelSchema(const ModelInfo &model) const;
 
     private:
 

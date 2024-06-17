@@ -77,9 +77,12 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
 
     auto mi1=makeModelWithInfo(m1);
     BOOST_CHECK(mi1->info.nativeModelV()==nullptr);
+    BOOST_CHECK(!mi1->info.schema());
     std::string s1Name{"schema1"};
     auto s1=makeSchema(s1Name,mi1);
     BOOST_CHECK(mi1->info.nativeModelV()==nullptr);
+    BOOST_REQUIRE(mi1->info.schema());
+    BOOST_CHECK_EQUAL(mi1->info.schema()->name(),s1Name);
 
     rdb::RocksdbSchemas::instance().registerSchema(s1);
     BOOST_CHECK(mi1->info.nativeModelV()!=nullptr);

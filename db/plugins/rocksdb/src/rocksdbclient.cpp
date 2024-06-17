@@ -32,6 +32,17 @@
 
 HATN_DB_USING
 
+#ifdef BUILD_DEBUG
+
+    #define ENSURE_MODEL_SCHEMA \
+        HATN_CHECK_RETURN(d->handler->ensureModelSchema(model))
+
+#else
+
+    #define ENSURE_MODEL_SCHEMA
+
+#endif
+
 namespace {
 
 /********************** Client config **************************/
@@ -476,7 +487,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
 {
-    //! @todo Check model's schema
+    ENSURE_MODEL_SCHEMA
 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");

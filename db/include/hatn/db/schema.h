@@ -87,7 +87,9 @@ struct makeSchemaT
     {
         auto xs=hana::make_tuple(std::forward<ModelsWithInfoT>(models)...);
         using modelsType=common::decayTuple<decltype(xs)>;
-        return std::make_shared<Schema<modelsType>>(std::move(name),std::move(xs));
+        auto s=std::make_shared<Schema<modelsType>>(std::move(name),std::move(xs));
+        hana::for_each(s->models(),[s](auto&& model) {model->info.setSchema(s);});
+        return s;
     }
 };
 constexpr makeSchemaT makeSchema{};
