@@ -32,6 +32,7 @@
 #include <hatn/db/db.h>
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
+#include <hatn/db/schema.h>
 
 #include <hatn/db/namespace.h>
 
@@ -105,29 +106,57 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doDestroyDb(config,records);
         }
 
-        Error checkSchema(const common::lib::string_view& schemaName, const Namespace& ns)
+        Error addSchema(std::shared_ptr<DbSchema> schema)
         {
             if (m_opened)
             {
-                return doCheckSchema(schemaName,ns);
+                return doAddSchema(std::move(schema));
             }
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error migrateSchema(const common::lib::string_view& schemaName, const Namespace& ns)
+        template <typename T>
+        Error addSchema(std::shared_ptr<T> schema,
+                        std::enable_if_t<
+                            !std::is_same<T,DbSchema>::value,void*
+                            > =nullptr
+            )
+        {
+            return addSchema(std::static_pointer_cast<DbSchema>(schema));
+        }
+
+        Result<std::vector<std::shared_ptr<DbSchema>>> listSchemas() const
         {
             if (m_opened)
             {
-                return doMigrateSchema(schemaName,ns);
+                return doListSchemas();
             }
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error bindSchema(const common::lib::string_view& schemaName, const Namespace& ns)
+        Result<std::shared_ptr<DbSchema>> schema(const common::lib::string_view& schemaName) const
         {
             if (m_opened)
             {
-                return doBindSchema(schemaName,ns);
+                return doFindSchema(schemaName);
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        Error checkSchemas()
+        {
+            if (m_opened)
+            {
+                return doCheckSchemas();
+            }
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        Error migrateSchemas()
+        {
+            if (m_opened)
+            {
+                return doMigrateSchemas();
             }
             return dbError(DbError::DB_NOT_OPEN);
         }
@@ -170,9 +199,11 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
         virtual void doCloseDb(Error& ec)=0;
 
-        virtual Error doCheckSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
-        virtual Error doMigrateSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
-        virtual Error doBindSchema(const common::lib::string_view& schemaName, const Namespace& ns)=0;
+        virtual Error doAddSchema(std::shared_ptr<DbSchema> schema)=0;
+        virtual Result<std::shared_ptr<DbSchema>> doFindSchema(const common::lib::string_view& schemaName) const=0;
+        virtual Result<std::vector<std::shared_ptr<DbSchema>>> doListSchemas() const=0;
+        virtual Error doCheckSchemas()=0;
+        virtual Error doMigrateSchemas()=0;
 
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;

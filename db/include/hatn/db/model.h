@@ -22,8 +22,6 @@
 #include <type_traits>
 #include <set>
 
-#include <hatn/common/classuid.h>
-
 #include <hatn/db/db.h>
 #include <hatn/db/object.h>
 #include <hatn/db/index.h>

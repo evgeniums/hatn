@@ -103,6 +103,10 @@ std::string DbErrorCategory::message(int code) const
             result=_TR("failed to list database partitions","db");
             break;
 
+        case (static_cast<int>(DbError::SCHEMA_NOT_REGISTERED)):
+            result=_TR("schema not registered","db");
+            break;
+
         default:
             result=_TR("unknown error");
     }

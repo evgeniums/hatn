@@ -30,6 +30,11 @@ class HATN_DB_EXPORT DbSchema
 {
     public:
 
+        DbSchema(
+            std::string name
+            ) : m_name(std::move(name))
+        {}
+
         virtual ~DbSchema();
 
         DbSchema()=default;
@@ -37,6 +42,15 @@ class HATN_DB_EXPORT DbSchema
         DbSchema(DbSchema&&)=default;
         DbSchema& operator=(const DbSchema&)=delete;
         DbSchema& operator=(DbSchema&&)=default;
+
+        std::string name() const noexcept
+        {
+            return m_name;
+        }
+
+    private:
+
+        std::string m_name;
 };
 
 template <typename ModelsWithInfoT>
@@ -47,14 +61,9 @@ class Schema : public DbSchema
         Schema(
                 std::string name,
                 ModelsWithInfoT models
-            ) : m_name(std::move(name)),
+            ) : DbSchema(std::move(name)),
                 m_models(std::move(models))
         {}
-
-        std::string name() const noexcept
-        {
-            return m_name;
-        }
 
         const ModelsWithInfoT& models() const noexcept
         {
@@ -68,7 +77,6 @@ class Schema : public DbSchema
 
     private:
 
-        std::string m_name;
         ModelsWithInfoT m_models;
 };
 

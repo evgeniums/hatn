@@ -28,6 +28,7 @@
 #include <hatn/common/result.h>
 #include <hatn/common/datetime.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/flatmap.h>
 
 #include <hatn/db/dberror.h>
 
@@ -97,7 +98,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
             ROCKSDB_NAMESPACE::TransactionDB* transactionDb=nullptr
         );
 
-        std::shared_ptr<RocksdbSchema> schema;
+        common::FlatMap<std::string,std::shared_ptr<RocksdbSchema>,std::less<>> schemas;
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
 

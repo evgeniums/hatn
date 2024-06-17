@@ -274,23 +274,22 @@ void RocksdbHandler::resetCf()
 
 //---------------------------------------------------------------
 
-void RocksdbHandler::setSchema(std::shared_ptr<RocksdbSchema> schema)
+void RocksdbHandler::addSchema(std::shared_ptr<RocksdbSchema> schema)
 {
-    d->schema=std::move(schema);
+    auto name=schema->dbSchema()->name();
+    d->schemas[std::move(name)]=std::move(schema);
 }
 
 //---------------------------------------------------------------
 
-std::shared_ptr<RocksdbSchema>& RocksdbHandler::schema()
+std::shared_ptr<RocksdbSchema> RocksdbHandler::schema(const lib::string_view &schemaName) const
 {
-    return d->schema;
-}
-
-//---------------------------------------------------------------
-
-const std::shared_ptr<RocksdbSchema>& RocksdbHandler::schema() const
-{
-    return d->schema;
+    auto it=d->schemas.find(schemaName);
+    if (it!=d->schemas.end())
+    {
+        return it->second;
+    }
+    return std::shared_ptr<RocksdbSchema>{};
 }
 
 //---------------------------------------------------------------

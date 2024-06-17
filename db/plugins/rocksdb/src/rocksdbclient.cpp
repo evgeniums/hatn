@@ -391,30 +391,56 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCheckSchema(const common::lib::string_view &schemaName, const Namespace &ns)
+Error RocksdbClient::doAddSchema(std::shared_ptr<DbSchema> schema)
 {
-    return common::CommonError::NOT_IMPLEMENTED;
+    auto rs=RocksdbSchemas::instance().schema(schema->name());
+    if (!rs)
+    {
+        return dbError(DbError::SCHEMA_NOT_REGISTERED);
+    }
+
+    d->handler->addSchema(std::move(rs));
+    return OK;
 }
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doMigrateSchema(const common::lib::string_view &schemaName, const Namespace &ns)
+Result<std::shared_ptr<DbSchema>> RocksdbClient::doFindSchema(const lib::string_view &schemaName) const
 {
-    return common::CommonError::NOT_IMPLEMENTED;
-}
-
-//---------------------------------------------------------------
-
-Error RocksdbClient::doBindSchema(const common::lib::string_view &schemaName, const Namespace &)
-{
-    auto schema=RocksdbSchemas::instance().schema(schemaName);
-    if (!schema)
+    auto s=d->handler->schema(schemaName);
+    if (!s)
     {
         return dbError(DbError::SCHEMA_NOT_FOUND);
     }
+    return s->dbSchema();
+}
 
-    d->handler->p()->schema=std::move(schema);
-    return OK;
+//---------------------------------------------------------------
+
+Result<std::vector<std::shared_ptr<DbSchema>>> RocksdbClient::doListSchemas() const
+{
+    std::vector<std::shared_ptr<DbSchema>> r;
+
+    for (auto&& it:d->handler->p()->schemas)
+    {
+        r.push_back(it.second->dbSchema());
+    }
+
+    return r;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doCheckSchemas()
+{
+    return common::CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doMigrateSchemas()
+{
+    return common::CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------
@@ -450,7 +476,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
 {
-    Assert(d->handler->p()->schema,"Schema not bound");
+    //! @todo Check model's schema
 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");

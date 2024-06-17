@@ -66,11 +66,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         void resetCf();
 
-        void setSchema(std::shared_ptr<RocksdbSchema> schema);
+        void addSchema(std::shared_ptr<RocksdbSchema> schema);
 
-        std::shared_ptr<RocksdbSchema>& schema();
-
-        const std::shared_ptr<RocksdbSchema>& schema() const;
+        std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& schemaName) const;
 
     private:
 

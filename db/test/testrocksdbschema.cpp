@@ -89,10 +89,22 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     BOOST_REQUIRE(rm1);
     BOOST_REQUIRE(rm1->createObject);
 
-    auto handler=[&s1Name](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1Name,s1,&mi1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
     {
-        auto ec=client->bindSchema(s1Name,Namespace{});
+        auto ec=client->addSchema(s1);
         BOOST_REQUIRE(!ec);
+        auto s1_=client->schema(s1->name());
+        BOOST_REQUIRE(!s1_);
+        BOOST_CHECK_EQUAL(s1_->get()->name(),s1->name());
+        auto sl=client->listSchemas();
+        BOOST_REQUIRE(!sl);
+        BOOST_REQUIRE(!sl->empty());
+        BOOST_CHECK_EQUAL(sl->at(0)->name(),s1->name());
+
+        std::string s2Name{"schema2"};
+        auto s2=makeSchema(s2Name,mi1);
+        auto s2_=client->schema(s2->name());
+        BOOST_REQUIRE(s2_);
     };
     std::vector<ModelInfo> models{mo1};
     auto today=common::Date::currentUtc();
