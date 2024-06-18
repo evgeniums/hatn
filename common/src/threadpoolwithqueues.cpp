@@ -180,7 +180,7 @@ ThreadPoolWithQueues<TaskT>::ThreadPoolWithQueues(
         auto thread=std::make_shared<ThreadWithQueue<TaskT>>(name.c_str(),threadQueue);
 
         //! @todo Is it needed?
-        // thread->setThreadQueueInterface(this);
+        // thread->setThreadQ(this);
 
         this->traits().d->threadStorage.push_back(thread);
         this->traits().d->threads.insert(thread.get());

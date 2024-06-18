@@ -31,7 +31,7 @@
 #include <hatn/common/mutexqueue.h>
 
 #include <hatn/common/ipp/threadwithqueue.ipp>
-#include <hatn/common/ipp/threadqueueinterface.ipp>
+#include <hatn/common/ipp/threadq.ipp>
 
 //! @note Do not move this include upper because boost asio must be included before stacktrace, otherwise WinSock.h defined error on Windows will arises
 #include <boost/stacktrace.hpp>

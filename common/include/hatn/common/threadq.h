@@ -7,7 +7,7 @@
 */
 
 /****************************************************************************/
-/** @file common/threadqueueinterface.h
+/** @file common/threadq.h
   *
   *     Interface of threads queue.
   *
@@ -56,6 +56,17 @@ struct Task final
     QueueItem* queueItem;
 };
 
+class TaskContext : public ManagedObject
+{
+    public:
+
+        virtual void beforeThreadProcessing()
+        {}
+
+        virtual void afterThreadProcessing()
+        {}
+};
+
 //! Thread task with context
 /**
  * @brief Thread can check if context exists and invoke task only when it exists
@@ -68,14 +79,14 @@ struct TaskWithContext final
     //! Handler to invoke
     HandlerT handler;
     //! Context
-    WeakPtr<ManagedObject> context;
+    WeakPtr<TaskContext> context;
     //! Check if context exists before invoke
     bool checkContext;
 
     //! Ctor
     TaskWithContext(
         HandlerT handler=HandlerT(), //!< Handler to invoke
-        WeakPtr<ManagedObject> context=WeakPtr<ManagedObject>(), //!< Context to invoke with
+        WeakPtr<TaskContext> context=WeakPtr<TaskContext>(), //!< Context to invoke with
         bool checkContext=true //!< Check if context exists before invoke
     ) noexcept: handler(std::move(handler)),context(std::move(context)),checkContext(checkContext),queueItem(nullptr)
     {}
@@ -84,7 +95,13 @@ struct TaskWithContext final
     inline void operator() ()
     {
         auto ctx=context.lock();
-        if (!ctx.isNull()||!checkContext)
+        if (!ctx.isNull())
+        {
+            ctx->beforeThreadProcessing();
+            handler(ctx);
+            ctx->afterThreadProcessing();
+        }
+        else if (!checkContext)
         {
             handler(ctx);
         }
@@ -169,7 +186,6 @@ struct TaskInlineContext final
 #pragma GCC diagnostic pop
 #endif
 
-
 template <typename TaskT>
 class ThreadQueueTraitsSample
 {
@@ -235,7 +251,7 @@ class ThreadQueueTraitsSample
 
 //! Interface of thread with queue
 template <typename TaskT, template <typename> class Traits>
-class ThreadQueueInterface : public WithTraits<Traits<TaskT>>
+class ThreadQ : public WithTraits<Traits<TaskT>>
 {
     public:
 
@@ -302,20 +318,13 @@ class ThreadQueueInterface : public WithTraits<Traits<TaskT>>
         }
 
         //! Get current thread interface
-        static ThreadQueueInterface<TaskT,Traits>* current() noexcept;
+        static ThreadQ<TaskT,Traits>* current() noexcept;
 
     protected:
 
         //! Set current thread interface with thread locality
-        static void setCurrent(ThreadQueueInterface<TaskT,Traits>* interface);
+        static void setCurrent(ThreadQ<TaskT,Traits>* interface);
 };
-
-// template <template <typename> class Traits>
-// using TaskThreadInterface=ThreadQueueInterface<Task,Traits>;
-// using TaskWithContextThreadInterface=ThreadQueueInterface<TaskWithContext>;
-
-// using TaskThreadCategoriesPool=ThreadCategoriesPool<TaskThreadInterface>;
-// using TaskWithContextThreadCategoriesPool=ThreadCategoriesPool<TaskWithContextThreadInterface>;
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

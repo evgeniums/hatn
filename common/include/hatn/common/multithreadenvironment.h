@@ -20,7 +20,7 @@
 #include <hatn/common/environment.h>
 #include <hatn/common/threadcategoriespool.h>
 #include <hatn/common/thread.h>
-#include <hatn/common/threadqueueinterface.h>
+#include <hatn/common/threadq.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 

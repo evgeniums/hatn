@@ -19,7 +19,7 @@
 #define HATNTHREADWITHQUEUE_H
 
 #include <hatn/common/common.h>
-#include <hatn/common/threadqueueinterface.h>
+#include <hatn/common/threadq.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/queue.h>
 
@@ -95,7 +95,7 @@ class ThreadWithQueueTraits
  * Still, you can use execAsync or execSync before populating the queue with post() or when the queue is empty.
  */
 template <typename TaskT>
-class ThreadWithQueue : public Thread, public ThreadQueueInterface<TaskT,ThreadWithQueueTraits>
+class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTraits>
 {
     public:
 
@@ -130,10 +130,10 @@ class ThreadWithQueue : public Thread, public ThreadQueueInterface<TaskT,ThreadW
         void clearQueue();
 
         //! Set thread queue interface if this thread is a part of thread pool
-        void setThreadQueueInterface(ThreadQueueInterface<TaskT,ThreadWithQueueTraits>* interface) noexcept;
+        void setThreadQ(ThreadQ<TaskT,ThreadWithQueueTraits>* interface) noexcept;
 
         //! Get thread queue interface if this thread is a part of thread pool
-        ThreadQueueInterface<TaskT,ThreadWithQueueTraits>* threadQueueInterface() const noexcept;
+        ThreadQ<TaskT,ThreadWithQueueTraits>* threadQueueInterface() const noexcept;
 
     protected:
 

@@ -17,7 +17,7 @@
 
 #include <hatn/common/mutexqueue.h>
 
-#include <hatn/common/threadqueueinterface.h>
+#include <hatn/common/threadq.h>
 #include <hatn/common/threadwithqueue.h>
 
 #include <hatn/common/logger.h>
@@ -44,7 +44,7 @@ class ThreadWithQueueTraits_p
         int maxHandlersPerLoop=0;
         std::atomic<int> lockForAdd;
 
-        ThreadQueueInterface<TaskT,ThreadWithQueueTraits>* threadQueueInterface;
+        ThreadQ<TaskT,ThreadWithQueueTraits>* threadQueueInterface;
 
         ThreadWithQueueTraits_p(
                 ThreadWithQueueTraits<TaskT> *traits,
@@ -228,9 +228,9 @@ ThreadWithQueue<TaskT>::ThreadWithQueue(
         Queue<TaskT>* queue,
         bool newThread
     ) : Thread(id,newThread),
-        ThreadQueueInterface<TaskT,ThreadWithQueueTraits>(queue)
+        ThreadQ<TaskT,ThreadWithQueueTraits>(queue)
 {
-    setThreadQueueInterface(this);
+    setThreadQ(this);
     this->traits().d->thread=this;
 }
 
@@ -303,14 +303,14 @@ void ThreadWithQueue<TaskT>::beforeRun()
 
 //---------------------------------------------------------------
 template <typename TaskT>
-void ThreadWithQueue<TaskT>::setThreadQueueInterface(ThreadQueueInterface<TaskT,ThreadWithQueueTraits>* interface) noexcept
+void ThreadWithQueue<TaskT>::setThreadQ(ThreadQ<TaskT,ThreadWithQueueTraits>* interface) noexcept
 {
     this->traits().d->threadQueueInterface=interface;
 }
 
 //---------------------------------------------------------------
 template <typename TaskT>
-ThreadQueueInterface<TaskT,ThreadWithQueueTraits>* ThreadWithQueue<TaskT>::threadQueueInterface() const noexcept
+ThreadQ<TaskT,ThreadWithQueueTraits>* ThreadWithQueue<TaskT>::threadQueueInterface() const noexcept
 {
     return this->traits().d->threadQueueInterface;
 }

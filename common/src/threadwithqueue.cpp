@@ -18,7 +18,7 @@
 #include <hatn/common/mpscqueue.h>
 
 #include <hatn/common/threadwithqueue.h>
-#include <hatn/common/ipp/threadqueueinterface.ipp>
+#include <hatn/common/ipp/threadq.ipp>
 #include <hatn/common/ipp/threadcategoriespool.ipp>
 #include <hatn/common/ipp/threadwithqueue.ipp>
 

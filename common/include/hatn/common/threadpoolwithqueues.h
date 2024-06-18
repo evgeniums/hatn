@@ -78,7 +78,7 @@ class ThreadPoolWithQueuesTraits
 
 //! hatn pool of threads with queues
 template <typename TaskT>
-class ThreadPoolWithQueues : public ThreadQueueInterface<TaskT,ThreadPoolWithQueuesTraits>
+class ThreadPoolWithQueues : public ThreadQ<TaskT,ThreadPoolWithQueuesTraits>
 {
     public:
 

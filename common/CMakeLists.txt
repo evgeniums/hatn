@@ -68,7 +68,7 @@ SET (HEADERS
     include/hatn/common/sharedlocker.h
     include/hatn/common/interface.h
     include/hatn/common/environment.h
-    include/hatn/common/threadqueueinterface.h
+    include/hatn/common/threadq.h
     include/hatn/common/threadwithqueue.h
     include/hatn/common/threadpoolwithqueues.h
     include/hatn/common/stream.h
@@ -159,7 +159,7 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
-    include/hatn/common/ipp/threadqueueinterface.ipp
+    include/hatn/common/ipp/threadq.ipp
     include/hatn/common/ipp/threadwithqueue.ipp
     include/hatn/common/ipp/threadcategoriespool.ipp
 )
@@ -205,7 +205,6 @@ SET (SOURCES
 
     src/threadcategory.cpp
     src/multithreadenvironment.cpp
-    src/threadqueueinterface.cpp
     src/factory.cpp
 
     src/pointers/mempool/managedobject.cpp
