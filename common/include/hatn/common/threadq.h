@@ -28,6 +28,7 @@
 #include <hatn/common/threadcategoriespool.h>
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/taskcontext.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -54,15 +55,6 @@ struct Task final
     }
 
     QueueItem* queueItem;
-};
-
-class HATN_COMMON_EXPORT TaskContext : public ManagedObject
-{
-    public:
-
-        virtual void beforeThreadProcessing();
-
-        virtual void afterThreadProcessing();
 };
 
 //! Thread task with context

@@ -75,6 +75,7 @@ SET (HEADERS
     include/hatn/common/timer.h
     include/hatn/common/asiotimer.h
     include/hatn/common/syncinvoker.h
+    include/hatn/common/taskcontext.h
 
     include/hatn/common/memorypool/pool.h
     include/hatn/common/memorypool/rawblock.h

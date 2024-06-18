@@ -23,26 +23,21 @@ HATN_COMMON_NAMESPACE_BEGIN
 namespace detail
 {
     template <typename TaskT, template <typename> class Traits>
-    struct ThreadQWrapper
-    {
-        thread_local static ThreadQ<TaskT,Traits>* current;
-    };
-    template <typename TaskT, template <typename> class Traits>
-    thread_local ThreadQ<TaskT,Traits>* ThreadQWrapper<TaskT,Traits>::current=nullptr;
+    thread_local static ThreadQ<TaskT,Traits>* ThreadQCurrent{nullptr};
 }
 
 //---------------------------------------------------------------
 template <typename TaskT, template <typename> class Traits>
 void ThreadQ<TaskT,Traits>::setCurrent(ThreadQ<TaskT,Traits> *interface)
 {
-    detail::ThreadQWrapper<TaskT,Traits>::current=interface;
+    detail::ThreadQCurrent<TaskT,Traits> =interface;
 }
 
 //---------------------------------------------------------------
 template <typename TaskT, template <typename> class Traits>
 ThreadQ<TaskT,Traits>* ThreadQ<TaskT,Traits>::current() noexcept
 {
-    return detail::ThreadQWrapper<TaskT,Traits>::current;
+    return detail::ThreadQCurrent<TaskT,Traits>;
 }
 
 //---------------------------------------------------------------
