@@ -255,15 +255,19 @@ class ThreadQ : public WithTraits<Traits<TaskT>>
 {
     public:
 
-        using WithTraits<Traits<TaskT>>::WithTraits;
+        //! Ctor
+        template <typename ... Args>
+        ThreadQ(Args&& ...traitsArgs) noexcept : WithTraits(std::forward<Args>(traitsArgs)...)
+        {}
 
         //! Post task
+        template <typename T>
         void postTask(
-            TaskT task
+            T&& task
         )
         {
-            Assert(TaskT::CopyConstructible,"Can not post task that is not copy constructible");
-            this->traits().postTask(std::move(task));
+            static_assert(std::decay_t<TaskT>::CopyConstructible,"Can not post task that is not copy constructible");
+            this->traits().postTask(std::forward<T>(task));
         }
 
         //! Post prepared task
