@@ -31,7 +31,8 @@ HATN_COMMON_NAMESPACE_BEGIN
 namespace pointers_mempool {
 
 //! Weak pointer
-template <typename T> class WeakPtr final
+template <typename T>
+class WeakPtr final
 {
     public:
 
@@ -119,7 +120,7 @@ template <typename T> class WeakPtr final
         }
 
         //! Assignment operator to shared pointer
-        WeakPtr& operator=(SharedPtr<T> sharedPtr)
+        WeakPtr& operator=(const SharedPtr<T>& sharedPtr)
         {
             loadFromShared(sharedPtr);
             return *this;
@@ -140,6 +141,13 @@ template <typename T> class WeakPtr final
                 d=nullptr;
                 obj=nullptr;
             }
+        }
+
+        //! Check if shared pointer exists and lock it
+        inline SharedPtr<T> lock() const noexcept
+        {
+            auto self=const_cast<WeakPtr<T>*>(this);
+            return self->lock();
         }
 
         //! Check if shared pointer exists and lock it
