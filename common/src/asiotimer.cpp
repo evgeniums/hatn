@@ -14,6 +14,7 @@
   */
 
 #include <hatn/common/thread.h>
+#include <hatn/common/weakptr.h>
 #include <hatn/common/asiotimer.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
@@ -39,33 +40,37 @@ void AsioTimerTraits<NativeT,TimerT>::start()
 {
     m_running=true;
     expiresFromNow(m_native,m_periodUs);
-    m_native.async_wait(
-        guardedAsyncHandler(
-            std::function<void (const boost::system::error_code&)>(
-                [this](const boost::system::error_code& ec)
+    auto sharedTimer=m_timer->sharedFromThis();
+    Assert(sharedTimer,"Asio timer must be used within SharedPtr only");
+    m_native.async_wait(        
+        [this,timer{toWeakPtr(sharedTimer)}](const boost::system::error_code& ec)
+        {
+            auto t=timer.lock();
+            if (t.isNull())
+            {
+                return;
+            }
+
+            m_running=false;
+            if (ec)
+            {
+                if (m_timer->handler())
                 {
-                    m_running=false;
-                    if (ec)
-                    {
-                        if (m_timer->handler())
-                        {
-                            m_timer->handler()(TimerT::Status::Cancel);
-                        }
-                    }
-                    else
-                    {
-                        if (m_timer->handler())
-                        {
-                            m_timer->handler()(TimerT::Status::Timeout);
-                        }
-                        if (!m_timer->isSingleShot())
-                        {
-                            m_timer->start();
-                        }
-                    }
+                    m_timer->handler()(TimerT::Status::Cancel);
                 }
-            )
-        )
+            }
+            else
+            {
+                if (m_timer->handler())
+                {
+                    m_timer->handler()(TimerT::Status::Timeout);
+                }
+                if (!m_timer->isSingleShot())
+                {
+                    m_timer->start();
+                }
+            }
+        }
     );
 }
 

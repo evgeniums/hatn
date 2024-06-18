@@ -127,7 +127,6 @@ SET (HEADERS
 
     include/hatn/common/featureset.h
     include/hatn/common/containerutils.h
-    include/hatn/common/objectguard.h
     include/hatn/common/objecttraits.h
 
     include/hatn/common/spanbuffer.h
@@ -218,7 +217,6 @@ SET (SOURCES
     src/pmr/allocatorfactory.cpp
 
     src/elapsedtimer.cpp
-    src/objectguard.cpp
 
     src/plainfile.cpp
 
