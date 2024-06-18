@@ -56,15 +56,13 @@ struct Task final
     QueueItem* queueItem;
 };
 
-class TaskContext : public ManagedObject
+class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 {
     public:
 
-        virtual void beforeThreadProcessing()
-        {}
+        virtual void beforeThreadProcessing();
 
-        virtual void afterThreadProcessing()
-        {}
+        virtual void afterThreadProcessing();
 };
 
 //! Thread task with context
@@ -74,40 +72,72 @@ class TaskContext : public ManagedObject
 struct TaskWithContext final
 {
     constexpr static const bool CopyConstructible=true;
-    using HandlerT=std::function<void(const SharedPtr<ManagedObject>&)>;
-
-    //! Handler to invoke
-    HandlerT handler;
-    //! Context
-    WeakPtr<TaskContext> context;
-    //! Check if context exists before invoke
-    bool checkContext;
+    using HandlerT=std::function<void(const SharedPtr<TaskContext>&)>;
 
     //! Ctor
     TaskWithContext(
-        HandlerT handler=HandlerT(), //!< Handler to invoke
-        WeakPtr<TaskContext> context=WeakPtr<TaskContext>(), //!< Context to invoke with
-        bool checkContext=true //!< Check if context exists before invoke
-    ) noexcept: handler(std::move(handler)),context(std::move(context)),checkContext(checkContext),queueItem(nullptr)
+        HandlerT handler=HandlerT{}, //!< Handler to invoke
+        SharedPtr<TaskContext> context=SharedPtr<TaskContext>{} //!< Context to invoke with
+    ) noexcept: handler(std::move(handler)),
+                context(std::move(context)),
+                checkGuard(false),
+                queueItem(nullptr)
     {}
+
+    inline void setGuard(SharedPtr<ManagedObject> g, bool alwaysCheck=true) noexcept
+    {
+        guard=g;
+        checkGuard=alwaysCheck;
+    }
+
+    inline void setHandler(HandlerT h) noexcept
+    {
+        handler=std::move(h);
+    }
+
+    inline void setContext(SharedPtr<TaskContext> ctx) noexcept
+    {
+        context=std::move(ctx);
+    }
 
     //! Function operator
     inline void operator() ()
     {
-        auto ctx=context.lock();
-        if (!ctx.isNull())
+        if (checkGuard)
         {
-            ctx->beforeThreadProcessing();
-            handler(ctx);
-            ctx->afterThreadProcessing();
+            auto g=guard.lock();
+            if (g.isNull())
+            {
+                return;
+            }
         }
-        else if (!checkContext)
+
+        if (!context.isNull())
         {
-            handler(ctx);
+            context->beforeThreadProcessing();
+            handler(context);
+            context->afterThreadProcessing();
+        }
+        else
+        {
+            handler(context);
         }
     }
 
-    QueueItem* queueItem;
+    private:
+
+        //! Handler to invoke
+        HandlerT handler;
+        //! Context
+        SharedPtr<TaskContext> context;
+        //! Task guard
+        WeakPtr<ManagedObject> guard;
+        //! Check if guard exists before invoke
+        bool checkGuard;
+
+    public:
+
+        QueueItem* queueItem;
 };
 
 #ifdef __GNUC__
@@ -255,9 +285,11 @@ class ThreadQ : public WithTraits<Traits<TaskT>>
 {
     public:
 
+        using base=WithTraits<Traits<TaskT>>;
+
         //! Ctor
         template <typename ... Args>
-        ThreadQ(Args&& ...traitsArgs) noexcept : WithTraits(std::forward<Args>(traitsArgs)...)
+        ThreadQ(Args&& ...traitsArgs) noexcept : base(std::forward<Args>(traitsArgs)...)
         {}
 
         //! Post task
