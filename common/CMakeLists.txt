@@ -153,6 +153,8 @@ SET (HEADERS
     include/hatn/common/meta/tupletypec.h
     include/hatn/common/meta/decaytuple.h
 
+    include/hatn/common/allocatoronstack.h
+
     include/hatn/common/experimental/stats/stats.h
 )
 

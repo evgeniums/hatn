@@ -9,6 +9,8 @@
 #include <hatn/common/elapsedtimer.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/allocatoronstack.h>
+#include <hatn/common/fixedbytearray.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -187,13 +189,13 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapComp)
     common::FlatMap<uint32_t,std::string,std::less<>> m1;
     m1[1]="a";
 
-    auto it1=m1.find(1);
+    auto it1=m1.find(uint32_t(1));
     BOOST_REQUIRE(it1!=m1.end());
     std::string v1=it1->second;
     BOOST_CHECK_EQUAL(v1,"a");
 
     const auto& m1_=m1;
-    auto it1_=m1_.find(1);
+    auto it1_=m1_.find(uint32_t(1));
     BOOST_REQUIRE(it1_!=m1_.end());
     std::string v1_=it1_->second;
     BOOST_CHECK_EQUAL(v1_,"a");
@@ -207,6 +209,64 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapComp)
     uint32_t v2=it2->second;
     BOOST_CHECK_EQUAL(v2,1);
 }
+
+BOOST_AUTO_TEST_CASE(CheckAllocatorOnStack)
+{
+    std::vector<FixedByteArray64,AllocatorOnStack<FixedByteArray64,256>> v1;
+
+    BOOST_CHECK_EQUAL(v1.capacity(),0);
+    BOOST_CHECK_EQUAL(v1.size(),0);
+
+    v1.reserve(256);
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_CHECK_EQUAL(v1.size(),0);
+
+    v1.push_back("hi");
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),1);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+
+    v1.resize(50);
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),50);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+
+    v1.push_back("hello");
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),51);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+    BOOST_CHECK_EQUAL(v1[50].c_str(),"hello");
+
+    v1.clear();
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),0);
+
+    v1.push_back("hello");
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),1);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hello");
+}
+
+BOOST_AUTO_TEST_CASE(CheckFlatMapAllocatorOnStack)
+{
+    using pairAlloc=AllocatorOnStack<std::pair<FixedByteArray32,FixedByteArray64>,256>;
+    FlatMap<FixedByteArray32,FixedByteArray64,std::less<FixedByteArray32>,pairAlloc> m1;
+
+    m1.reserve(256);
+    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
+    m1["hi"]="hello";
+    BOOST_REQUIRE_EQUAL(m1.size(),1);
+    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
+    BOOST_CHECK_EQUAL(m1["hi"].c_str(),"hello");
+
+    m1.erase("hi");
+    BOOST_REQUIRE_EQUAL(m1.size(),0);
+    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
+}
+
 
 // #define TEST_FLATMAP_PERFORMANCE
 
