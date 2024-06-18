@@ -25,7 +25,8 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Pool of threads mapped to categories
-template <typename ThreadType> class ThreadCategoriesPool
+template <typename ThreadT>
+class ThreadCategoriesPool
 {
     public:
 
@@ -47,7 +48,7 @@ template <typename ThreadType> class ThreadCategoriesPool
          * If no such priority in the category exists then will be used a thread with the lowest priority.
          * If no such category exists then will be returned default thread.
          */
-        std::shared_ptr<ThreadType> threadShared(
+        std::shared_ptr<ThreadT> threadShared(
             const ThreadCategory& category=ThreadCategory(),
             int priority=0
         ) const noexcept;
@@ -61,7 +62,7 @@ template <typename ThreadType> class ThreadCategoriesPool
          * If no such priority in the category exists then will be used a thread with the lowest priority.
          * If no such category exists then will be returned default thread.
          */
-        inline ThreadType* thread(
+        inline ThreadT* thread(
             const ThreadCategory& category=ThreadCategory(),
             int priority=0
         ) const noexcept
@@ -69,14 +70,14 @@ template <typename ThreadType> class ThreadCategoriesPool
             return threadShared(category,priority).get();
         }
 
-        inline std::shared_ptr<ThreadType> threadShared(
+        inline std::shared_ptr<ThreadT> threadShared(
                     const ThreadCategoryAndPriority& categoryAndPriority
                 ) noexcept
         {
             return threadShared(categoryAndPriority.category(),categoryAndPriority.priority());
         }
 
-        inline ThreadType* thread(
+        inline ThreadT* thread(
                     const ThreadCategoryAndPriority& categoryAndPriority
                 ) noexcept
         {
@@ -94,19 +95,19 @@ template <typename ThreadType> class ThreadCategoriesPool
          *
          */
         void insertThread(
-            const std::shared_ptr<ThreadType>& thread,
+            const std::shared_ptr<ThreadT>& thread,
             const ThreadCategory& category=ThreadCategory(),
             int priority=0
         );
 
         //! Set fallback thread if no category/priority found
-        inline void setDefaultThread(std::shared_ptr<ThreadType> thread) noexcept
+        inline void setDefaultThread(std::shared_ptr<ThreadT> thread) noexcept
         {
             m_defaultThread=std::move(thread);
         }
 
         //! Get fallback thread
-        inline std::shared_ptr<ThreadType> defaultThread() const noexcept
+        inline std::shared_ptr<ThreadT> defaultThread() const noexcept
         {
             return m_defaultThread;
         }
@@ -119,8 +120,8 @@ template <typename ThreadType> class ThreadCategoriesPool
 
     private:
 
-        std::map<ThreadCategory,std::map<int,std::shared_ptr<ThreadType>>> m_threads;
-        std::shared_ptr<ThreadType> m_defaultThread;
+        std::map<ThreadCategory,std::map<int,std::shared_ptr<ThreadT>>> m_threads;
+        std::shared_ptr<ThreadT> m_defaultThread;
 };
 
 HATN_COMMON_NAMESPACE_END

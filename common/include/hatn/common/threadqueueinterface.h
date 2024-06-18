@@ -27,6 +27,7 @@
 #include <hatn/common/queue.h>
 #include <hatn/common/threadcategoriespool.h>
 #include <hatn/common/sharedptr.h>
+#include <hatn/common/objecttraits.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -102,8 +103,8 @@ struct TaskWithContext final
  *
  * This is a workaround to avoid prolifiration of thread classes (with/without copy-constructible contexts).
  *
- * @attention Use it only by posting tasks with pointers to prepared tasks: first prepare() and then post(TaskTypetem*).
- * Do not post it by value with postTask(TaskType).
+ * @attention Use it only by posting tasks with pointers to prepared tasks: first prepare() and then post(TaskTtem*).
+ * Do not post it by value with postTask(TaskT).
  */
 template <typename T>
 struct TaskInlineContext final
@@ -168,34 +169,94 @@ struct TaskInlineContext final
 #pragma GCC diagnostic pop
 #endif
 
+
+template <typename TaskT>
+class ThreadQueueTraitsSample
+{
+    //! Post task
+    void postTask(
+            TaskT task
+        )
+    {
+        std::ignore=task;
+    }
+
+    //! Post prepared task
+    void post(
+            TaskT* task
+        )
+    {
+        std::ignore=task;
+    }
+
+    /**
+         * @brief Set new queue
+         * @param queue
+         *
+         * Not thread safe, call it only in setup routines before running thread
+         */
+    void setQueue(Queue<TaskT>* queue)
+    {
+        std::ignore=queue;
+    }
+
+    /**
+         * @brief Prepare queue item and create task object
+         * @return Prepared task object that can be filled in the caller and then pushed back to the queue
+         */
+    TaskT* prepare()
+    {
+        return nullptr;
+    }
+
+    /**
+         * @brief Set max number of tasks per sinle io_context loop (default 64)
+         * @param count
+         *
+         * Set this parameter before starting thread, though it is not critical to set it in runtime but take into account that parameter isn't atomic.
+         */
+    void setMaxTasksPerLoop(int count)
+    {
+        std::ignore=count;
+    }
+
+    //! Get max number of tasks per single io_context loop
+    int maxTasksPerLoop() const
+    {
+        return 1;
+    }
+
+    //! Check if interface includes current thread
+    bool containsCurrentThread() const
+    {
+        return false;
+    }
+};
+
 //! Interface of thread with queue
-template <typename TaskType>
-class ThreadQueueInterface
+template <typename TaskT, template <typename> class Traits>
+class ThreadQueueInterface : public WithTraits<Traits<TaskT>>
 {
     public:
 
-        //! Constructor
-        ThreadQueueInterface() = default;
-
-        virtual ~ThreadQueueInterface()=default;
-        ThreadQueueInterface(const ThreadQueueInterface&)=default;
-        ThreadQueueInterface(ThreadQueueInterface&&) =default;
-        ThreadQueueInterface& operator=(const ThreadQueueInterface&)=default;
-        ThreadQueueInterface& operator=(ThreadQueueInterface&&) =default;
+        using WithTraits<Traits<TaskT>>::WithTraits;
 
         //! Post task
         void postTask(
-            TaskType task
+            TaskT task
         )
         {
-            Assert(TaskType::CopyConstructible,"Can not post task that is not copy constructible");
-            doPostTask(std::move(task));
+            Assert(TaskT::CopyConstructible,"Can not post task that is not copy constructible");
+            this->traits().postTask(std::move(task));
         }
 
         //! Post prepared task
-        virtual void post(
-            TaskType* task
-        ) = 0;
+        void post(
+            TaskT* task
+        )
+        {
+            this->traits().post(task);
+        }
 
         /**
          * @brief Set new queue
@@ -203,13 +264,19 @@ class ThreadQueueInterface
          *
          * Not thread safe, call it only in setup routines before running thread
          */
-        virtual void setQueue(Queue<TaskType>* queue) = 0;
+        void setQueue(Queue<TaskT>* queue)
+        {
+            this->traits().setQueue(queue);
+        }
 
         /**
          * @brief Prepare queue item and create task object
          * @return Prepared task object that can be filled in the caller and then pushed back to the queue
          */
-        virtual TaskType* prepare() = 0;
+        TaskT* prepare()
+        {
+            return this->traits().prepare();
+        }
 
         /**
          * @brief Set max number of tasks per sinle io_context loop (default 64)
@@ -217,32 +284,38 @@ class ThreadQueueInterface
          *
          * Set this parameter before starting thread, though it is not critical to set it in runtime but take into account that parameter isn't atomic.
          */
-        virtual void setMaxTasksPerLoop(int count) =0;
+        void setMaxTasksPerLoop(int count)
+        {
+            this->traits().setMaxTasksPerLoop(count);
+        }
 
         //! Get max number of tasks per single io_context loop
-        virtual int maxTasksPerLoop() const=0;
+        int maxTasksPerLoop() const
+        {
+            return this->traits().maxTasksPerLoop();
+        }
 
         //! Check if interface includes current thread
-        virtual bool containsCurrentThread() const=0;
+        bool containsCurrentThread() const
+        {
+            return this->traits().containsCurrentThread();
+        }
 
         //! Get current thread interface
-        static ThreadQueueInterface<TaskType>* currentThreadInterface() noexcept;
+        static ThreadQueueInterface<TaskT,Traits>* current() noexcept;
 
     protected:
 
-        virtual void doPostTask(
-            TaskType task
-        ) =0;
-
         //! Set current thread interface with thread locality
-        static void setCurrentThreadInterface(ThreadQueueInterface<TaskType>* interface);
+        static void setCurrent(ThreadQueueInterface<TaskT,Traits>* interface);
 };
 
-using TaskThreadInterface=ThreadQueueInterface<Task>;
-using TaskWithContextThreadInterface=ThreadQueueInterface<TaskWithContext>;
+// template <template <typename> class Traits>
+// using TaskThreadInterface=ThreadQueueInterface<Task,Traits>;
+// using TaskWithContextThreadInterface=ThreadQueueInterface<TaskWithContext>;
 
-using TaskThreadCategoriesPool=ThreadCategoriesPool<TaskThreadInterface>;
-using TaskWithContextThreadCategoriesPool=ThreadCategoriesPool<TaskWithContextThreadInterface>;
+// using TaskThreadCategoriesPool=ThreadCategoriesPool<TaskThreadInterface>;
+// using TaskWithContextThreadCategoriesPool=ThreadCategoriesPool<TaskWithContextThreadInterface>;
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

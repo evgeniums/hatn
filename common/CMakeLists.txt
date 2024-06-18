@@ -69,9 +69,7 @@ SET (HEADERS
     include/hatn/common/interface.h
     include/hatn/common/environment.h
     include/hatn/common/threadqueueinterface.h
-    include/hatn/common/threadqueueinterfaceimpl.h
     include/hatn/common/threadwithqueue.h
-    include/hatn/common/threadwithqueueimpl.h
     include/hatn/common/threadpoolwithqueues.h
     include/hatn/common/stream.h
     include/hatn/common/timer.h
@@ -99,8 +97,7 @@ SET (HEADERS
 
     include/hatn/common/format.h
     include/hatn/common/threadcategory.h
-    include/hatn/common/threadcategoriespool.h
-    include/hatn/common/threadcategoriespoolimpl.h
+    include/hatn/common/threadcategoriespool.h    
     include/hatn/common/multithreadenvironment.h
     include/hatn/common/builder.h
     include/hatn/common/factory.h
@@ -158,6 +155,13 @@ SET (HEADERS
     include/hatn/common/meta/decaytuple.h
 
     include/hatn/common/experimental/stats/stats.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+    include/hatn/common/ipp/threadqueueinterface.ipp
+    include/hatn/common/ipp/threadwithqueue.ipp
+    include/hatn/common/ipp/threadcategoriespool.ipp
 )
 
 SET (HEADERS

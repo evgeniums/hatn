@@ -46,7 +46,7 @@
 #include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
 
-#include <hatn/common/threadcategoriespoolimpl.h>
+#include <hatn/common/ipp/threadcategoriespool.ipp>
 #include <hatn/common/loggermoduleimp.h>
 
 DECLARE_LOG_MODULE(thread)

@@ -6,26 +6,27 @@
       
 */
 /****************************************************************************/
-/** @file common/threadcategoriespool.h
+/** @file common/ipp/threadcategoriespool.ipp
  *
  *     Pool of threads mapped to categories.
  *
  */
 /****************************************************************************/
 
-#ifndef HATNTHREADQUEUECATEGORIESPOOLIMPL_H
-#define HATNTHREADQUEUECATEGORIESPOOLIMPL_H
+#ifndef HATNTHREADQUEUECATEGORIESPOOL_IPP
+#define HATNTHREADQUEUECATEGORIESPOOL_IPP
 
 #include <hatn/common/threadcategoriespool.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-template <typename ThreadType> std::shared_ptr<ThreadType> ThreadCategoriesPool<ThreadType>::threadShared(
+template <typename ThreadT>
+std::shared_ptr<ThreadT> ThreadCategoriesPool<ThreadT>::threadShared(
             const ThreadCategory& category,
             int priority
         ) const noexcept
 {
-    std::shared_ptr<ThreadType> thread;
+    std::shared_ptr<ThreadT> thread;
 
     auto it=m_threads.find(category);
     if (it!=m_threads.end())
@@ -52,13 +53,14 @@ template <typename ThreadType> std::shared_ptr<ThreadType> ThreadCategoriesPool<
     return thread;
 }
 
-template <typename ThreadType> void ThreadCategoriesPool<ThreadType>::insertThread(
-    const std::shared_ptr<ThreadType>& thread,
+template <typename ThreadT>
+void ThreadCategoriesPool<ThreadT>::insertThread(
+    const std::shared_ptr<ThreadT>& thread,
     const ThreadCategory& category,
     int priority
 )
 {
-    std::map<int,std::shared_ptr<ThreadType>> priorityThreads;
+    std::map<int,std::shared_ptr<ThreadT>> priorityThreads;
     auto it=m_threads.find(category);
     if (it!=m_threads.end())
     {
@@ -70,4 +72,4 @@ template <typename ThreadType> void ThreadCategoriesPool<ThreadType>::insertThre
 
 HATN_COMMON_NAMESPACE_END
 
-#endif // HATNTHREADQUEUECATEGORIESPOOLIMPL_H
+#endif // HATNTHREADQUEUECATEGORIESPOOL_IPP

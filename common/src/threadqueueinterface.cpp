@@ -13,15 +13,9 @@
  *
  */
 
-#include <hatn/common/threadqueueinterfaceimpl.h>
+#include <hatn/common/ipp/threadqueueinterface.ipp>
 
 HATN_COMMON_NAMESPACE_BEGIN
-
-#ifndef _THREAD_QUEUE_INTERFACE
-#define _THREAD_QUEUE_INTERFACE
-template class HATN_COMMON_EXPORT ThreadQueueInterface<Task>;
-template class HATN_COMMON_EXPORT ThreadQueueInterface<TaskWithContext>;
-#endif
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
