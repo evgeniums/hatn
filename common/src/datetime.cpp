@@ -24,7 +24,6 @@
 #include <boost/date_time/c_local_time_adjustor.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <hatn/common/format.h>
 #include <hatn/common/datetime.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
@@ -207,12 +206,12 @@ Result<Date> Date::parse(const lib::string_view& str, Format format, uint16_t ba
 
 //---------------------------------------------------------------
 
-std::string Date::toString(Format format) const
+void Date::serialize(FmtAllocatedBufferChar &buf,Format format) const
 {
-    std::string str="invalid";
     if (!isValid())
     {
-        return str;
+        fmt::format_to(std::back_inserter(buf),"{}","invalid");
+        return;
     }
 
     auto shortYear=[this]()
@@ -222,56 +221,61 @@ std::string Date::toString(Format format) const
 
     switch (format)
     {
-        case(Format::Number):
-            str=fmt::format("{:04d}{:02d}{:02d}",year(),month(),day());
-            break;
+    case(Format::Number):
+        fmt::format_to(std::back_inserter(buf),"{:04d}{:02d}{:02d}",year(),month(),day());
+        break;
 
-        case(Format::Iso):
-            str=fmt::format("{:04d}-{:02d}-{:02d}",year(),month(),day());
-            break;
+    case(Format::Iso):
+        fmt::format_to(std::back_inserter(buf),"{:04d}-{:02d}-{:02d}",year(),month(),day());
+        break;
 
-        case(Format::IsoSlash):
-            str=fmt::format("{:04d}/{:02d}/{:02d}",year(),month(),day());
-            break;
+    case(Format::IsoSlash):
+        fmt::format_to(std::back_inserter(buf),"{:04d}/{:02d}/{:02d}",year(),month(),day());
+        break;
 
-        case(Format::EuropeDot):
-            str=fmt::format("{:02d}.{:02d}.{:04d}",day(),month(),year());
-            break;
+    case(Format::EuropeDot):
+        fmt::format_to(std::back_inserter(buf),"{:02d}.{:02d}.{:04d}",day(),month(),year());
+        break;
 
-        case(Format::UsDot):
-            str=fmt::format("{:02d}.{:02d}.{:04d}",month(),day(),year());
-            break;
+    case(Format::UsDot):
+        fmt::format_to(std::back_inserter(buf),"{:02d}.{:02d}.{:04d}",month(),day(),year());
+        break;
 
-        case(Format::EuropeShortDot):
-            str=fmt::format("{:02d}.{:02d}.{:02d}",day(),month(),shortYear());
-            break;
+    case(Format::EuropeShortDot):
+        fmt::format_to(std::back_inserter(buf),"{:02d}.{:02d}.{:02d}",day(),month(),shortYear());
+        break;
 
-        case(Format::UsShortDot):
-            str=fmt::format("{:02d}.{:02d}.{:02d}",month(),day(),shortYear());
-            break;
+    case(Format::UsShortDot):
+        fmt::format_to(std::back_inserter(buf),"{:02d}.{:02d}.{:02d}",month(),day(),shortYear());
+        break;
 
-        case(Format::EuropeSlash):
-            str=fmt::format("{:02d}/{:02d}/{:04d}",day(),month(),year());
-            break;
+    case(Format::EuropeSlash):
+        fmt::format_to(std::back_inserter(buf),"{:02d}/{:02d}/{:04d}",day(),month(),year());
+        break;
 
-        case(Format::UsSlash):
-            str=fmt::format("{:02d}/{:02d}/{:04d}",month(),day(),year());
-            break;
+    case(Format::UsSlash):
+        fmt::format_to(std::back_inserter(buf),"{:02d}/{:02d}/{:04d}",month(),day(),year());
+        break;
 
-        case(Format::EuropeShortSlash):
-            str=fmt::format("{:02d}/{:02d}/{:02d}",day(),month(),shortYear());
-            break;
+    case(Format::EuropeShortSlash):
+        fmt::format_to(std::back_inserter(buf),"{:02d}/{:02d}/{:02d}",day(),month(),shortYear());
+        break;
 
-        case(Format::UsShortSlash):
-            str=fmt::format("{:02d}/{:02d}/{:02d}",month(),day(),shortYear());
-            break;
+    case(Format::UsShortSlash):
+        fmt::format_to(std::back_inserter(buf),"{:02d}/{:02d}/{:02d}",month(),day(),shortYear());
+        break;
 
-        default:
-            str=fmt::format("{:04d}{:02d}{:02d}",year(),month(),day());
-            break;
+    default:
+        fmt::format_to(std::back_inserter(buf),"{:04d}{:02d}{:02d}",year(),month(),day());
+        break;
     }
+}
 
-    return str;
+std::string Date::toString(Format format) const
+{
+    FmtAllocatedBufferChar buf;
+    serialize(buf,format);
+    return fmtBufToString(buf);
 }
 
 //---------------------------------------------------------------
@@ -522,12 +526,12 @@ Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision,
 
 //---------------------------------------------------------------
 
-std::string Time::toString(FormatPrecision precision, bool ampm) const
+void Time::serialize(FmtAllocatedBufferChar &buf, FormatPrecision precision, bool ampm) const
 {
-    std::string str="invalid";
     if (!isValid())
     {
-        return str;
+        fmt::format_to(std::back_inserter(buf),"{}","invalid");
+        return;
     }
 
     if (ampm)
@@ -550,21 +554,21 @@ std::string Time::toString(FormatPrecision precision, bool ampm) const
 
         switch (precision)
         {
-            case (FormatPrecision::Second):
-                str=fmt::format("{}:{:02d}:{:02d} {}",hour,m_minute,m_second,ampmStr);
-                break;
+        case (FormatPrecision::Second):
+            fmt::format_to(std::back_inserter(buf),"{}:{:02d}:{:02d} {}",hour,m_minute,m_second,ampmStr);
+            break;
 
-            case (FormatPrecision::Minute):
-                str=fmt::format("{}:{:02d} {}",hour,m_minute,ampmStr);
-                break;
+        case (FormatPrecision::Minute):
+            fmt::format_to(std::back_inserter(buf),"{}:{:02d} {}",hour,m_minute,ampmStr);
+            break;
 
-            case (FormatPrecision::Millisecond):
-                str=fmt::format("{}:{:02d}:{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
-                break;
+        case (FormatPrecision::Millisecond):
+            fmt::format_to(std::back_inserter(buf),"{}:{:02d}:{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
+            break;
 
-            case (FormatPrecision::Number):
-                str=fmt::format("{}{:02d}{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
-                break;
+        case (FormatPrecision::Number):
+            fmt::format_to(std::back_inserter(buf),"{}{:02d}{:02d}.{:03d} {}",hour,m_minute,m_second,m_millisecond,ampmStr);
+            break;
         }
     }
     else
@@ -572,38 +576,45 @@ std::string Time::toString(FormatPrecision precision, bool ampm) const
         switch (precision)
         {
         case (FormatPrecision::Second):
-            str=fmt::format("{:02d}:{:02d}:{:02d}",m_hour,m_minute,m_second);
+            fmt::format_to(std::back_inserter(buf),"{:02d}:{:02d}:{:02d}",m_hour,m_minute,m_second);
             break;
 
         case (FormatPrecision::Minute):
-            str=fmt::format("{:02d}:{:02d}",m_hour,m_minute);
+            fmt::format_to(std::back_inserter(buf),"{:02d}:{:02d}",m_hour,m_minute);
             break;
 
         case (FormatPrecision::Millisecond):
             if (m_millisecond>0)
             {
-                str=fmt::format("{:02d}:{:02d}:{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
+                fmt::format_to(std::back_inserter(buf),"{:02d}:{:02d}:{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
             }
             else
             {
-                str=fmt::format("{:02d}:{:02d}:{:02d}",m_hour,m_minute,m_second);
+                fmt::format_to(std::back_inserter(buf),"{:02d}:{:02d}:{:02d}",m_hour,m_minute,m_second);
             }
-            break;        
+            break;
 
         case (FormatPrecision::Number):
             if (m_millisecond>0)
             {
-                str=fmt::format("{:02d}{:02d}{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
+                fmt::format_to(std::back_inserter(buf),"{:02d}{:02d}{:02d}.{:03d}",m_hour,m_minute,m_second,m_millisecond);
             }
             else
             {
-                str=fmt::format("{:02d}{:02d}{:02d}",m_hour,m_minute,m_second);
+                fmt::format_to(std::back_inserter(buf),"{:02d}{:02d}{:02d}",m_hour,m_minute,m_second);
             }
             break;
         }
     }
+}
 
-    return str;
+//---------------------------------------------------------------
+
+std::string Time::toString(FormatPrecision precision, bool ampm) const
+{
+    FmtAllocatedBufferChar buf;
+    serialize(buf,precision,ampm);
+    return fmtBufToString(buf);
 }
 
 //---------------------------------------------------------------
@@ -626,13 +637,11 @@ Time Time::currentLocal()
 
 //---------------------------------------------------------------
 
-std::string DateTime::toIsoString(bool withMilliseconds) const
+void DateTime::serialize(FmtAllocatedBufferChar &buf, bool withMilliseconds) const
 {
-    FmtAllocatedBufferChar buf;
-
     fmt::format_to(std::back_inserter(buf),"{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}",
-        m_date.year(),m_date.month(),m_date.day(),
-        m_time.hour(),m_time.minute(),m_time.second());
+                   m_date.year(),m_date.month(),m_date.day(),
+                   m_time.hour(),m_time.minute(),m_time.second());
 
     if (withMilliseconds && m_time.millisecond()>0)
     {
@@ -647,7 +656,14 @@ std::string DateTime::toIsoString(bool withMilliseconds) const
     {
         fmt::format_to(std::back_inserter(buf),"{:+03d}:00",m_tz);
     }
+}
 
+//---------------------------------------------------------------
+
+std::string DateTime::toIsoString(bool withMilliseconds) const
+{
+    FmtAllocatedBufferChar buf;
+    serialize(buf,withMilliseconds);
     return fmtBufToString(buf);
 }
 
@@ -1174,6 +1190,13 @@ std::set<DateRange> DateRange::datesToRanges(const Date& to, const Date& from, T
     }
 
     return ranges;
+}
+
+//---------------------------------------------------------------
+
+void DateRange::serialize(FmtAllocatedBufferChar &buf) const
+{
+    fmt::format_to(std::back_inserter(buf),"{:08d}",m_value);
 }
 
 //---------------------------------------------------------------

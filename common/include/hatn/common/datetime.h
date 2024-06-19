@@ -25,6 +25,7 @@
 #include <hatn/common/error.h>
 #include <hatn/common/result.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/format.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -229,6 +230,13 @@ class HATN_COMMON_EXPORT Date
             Format format=Format::Iso,
             uint16_t baseShortYear=2000
         );
+
+        /**
+         * @brief Serialize date to buffer.
+         * @param buf Target buffer.
+         * @param format Format.
+         */
+        void serialize(FmtAllocatedBufferChar &buf,Format format=Format::Number) const;
 
         /**
          * @brief Format date to string.
@@ -582,9 +590,20 @@ class HATN_COMMON_EXPORT Time
         );
 
         /**
+         * @brief Serialize date to buffer.
+         * @param precision Format precision.
+         * @param ampm True if AM/PM mode must be used.
+         */
+        void serialize(
+            FmtAllocatedBufferChar &buf,
+            FormatPrecision precision=FormatPrecision::Second,
+            bool ampm=false
+        ) const;
+
+        /**
          * @brief Format time to string.
          * @param precision Format precision.
-         * @param ampm Truu if AM/PM mode must be used.
+         * @param ampm True if AM/PM mode must be used.
          * @return Formatted time.
          */
         std::string toString(
@@ -882,6 +901,13 @@ class HATN_COMMON_EXPORT DateTime
             m_tz=static_cast<decltype(m_tz)>(tz);
             return OK;
         }
+
+        /**
+         * @brief Serialize datetime to buffer as ISO string.
+         * @param buf Target buffer.
+         * @param withMilliseconds Show milliseconds.
+         */
+        void serialize(FmtAllocatedBufferChar &buf, bool withMilliseconds=true) const;
 
         /**
          * @brief Format datetime as ISO string.
@@ -1555,6 +1581,8 @@ class HATN_COMMON_EXPORT DateRange
         {
             return contains(dt.date());
         }
+
+        void serialize(FmtAllocatedBufferChar &buf) const;
 
         std::string toString() const;
 

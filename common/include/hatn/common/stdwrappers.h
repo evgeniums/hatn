@@ -67,32 +67,48 @@ template <typename T> string_view toStringView(const T& buf) noexcept
 
 #if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
     template <typename ...Types> using variant=boost::variant<Types...>;
-    template <typename T,typename ...Types> constexpr T& variantGet(variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr T& variantGet(variant<Types...>& var) noexcept
     {
         return boost::get<T>(var);
     }
-    template <typename T,typename ...Types> constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
         return boost::get<T>(var);
     }
-    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    template <typename ...Types>
+    constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
     {
         return static_cast<std::size_t>(var.which());
+    }
+    template<typename Visitor, typename Variant>
+    decltype(auto) variantVisit(Visitor&& vis, Variant&& var)
+    {
+        return boost::apply_visitor(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=boost::optional<T>;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
-    template <typename T,typename ...Types> constexpr T& variantGet(variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr T& variantGet(variant<Types...>& var) noexcept
     {
         return std::get<T>(var);
     }
-    template <typename T,typename ...Types> constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
         return std::get<T>(var);
     }
-    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    template <typename ...Types>
+    constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
     {
         return var.index();
+    }
+    template<typename Visitor, typename Variant>
+    decltype(auto) variantVisit(Visitor&& vis, Variant&& var)
+    {
+        return std::visit(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=std::optional<T>;
     #define HATN_VARIANT_CPP17
