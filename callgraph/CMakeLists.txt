@@ -2,6 +2,8 @@ PROJECT(hatncallgraph)
 
 SET (HEADERS
     include/hatn/callgraph/callgraph.h
+    include/hatn/callgraph/stacklogrecord.h
+    include/hatn/callgraph/stacklog.h
 )
 
 SET (HEADERS
