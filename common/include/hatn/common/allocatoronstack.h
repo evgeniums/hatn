@@ -20,6 +20,7 @@
 #include <type_traits>
 
 #include <hatn/common/common.h>
+#include <hatn/common/utils.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -50,8 +51,15 @@ class AllocatorOnStack
 
         template <class U>
         AllocatorOnStack(const AllocatorOnStack<U,Size>&)=delete;
+
+        // Move constructor is defined only in order to compile it.
+        // You must never call it explicitly with allocator that is already in use.
         template <class U>
-        AllocatorOnStack(AllocatorOnStack<U,Size>&&)=delete;
+        AllocatorOnStack(AllocatorOnStack<U,Size>&&)
+        {
+            Assert(m_occupied==0,"Do not call move constructor for AllocatorOnStack that is already in use");
+        }
+
         template <class U>
         AllocatorOnStack& operator =(const AllocatorOnStack<U,Size>&)=delete;
         template <class U>
