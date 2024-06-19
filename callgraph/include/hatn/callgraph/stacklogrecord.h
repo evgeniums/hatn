@@ -12,7 +12,7 @@
 */
 /** @file callgraph/stacklogrecord.h
   *
-  *  Defines StackLogRecord.
+  *  Defines Record.
   *
   */
 
@@ -29,11 +29,14 @@
 
 HATN_CALLGRAPH_NAMESPACE_BEGIN
 
-constexpr size_t StackLogKeyLength=16;
-constexpr size_t StackLogValueLength=64;
+namespace stacklog
+{
 
-template <size_t Length=StackLogValueLength>
-using StackLogValueT=common::lib::variant<
+constexpr size_t MaxKeyLength=16;
+constexpr size_t MaxValueLength=64;
+
+template <size_t Length=MaxValueLength>
+using ValueT=common::lib::variant<
         int8_t,
         uint8_t,
         int16_t,
@@ -51,13 +54,13 @@ using StackLogValueT=common::lib::variant<
         common::FixedByteArray<Length>
     >;
 
-using StackLogValue=StackLogValueT<>;
+using Value=ValueT<>;
 
 namespace detail {
 
-struct LogValueSerializer
+struct ValueSerializer
 {
-    LogValueSerializer(common::FmtAllocatedBufferChar &buf):buf(buf)
+    ValueSerializer(common::FmtAllocatedBufferChar &buf):buf(buf)
     {}
 
     common::FmtAllocatedBufferChar &buf;
@@ -158,12 +161,21 @@ struct LogValueSerializer
 template <typename T>
 void serializeValue(common::FmtAllocatedBufferChar &buf, const T& v)
 {
-    detail::LogValueSerializer s(buf);
+    detail::ValueSerializer s(buf);
     lib::variantVisit(s,v);
 }
 
-template <size_t ValueLength=StackLogValueLength, size_t KeyLength=StackLogKeyLength>
-using StackLogRecord=std::pair<common::FixedByteArray<KeyLength>,StackLogValueT<ValueLength>>;
+template <size_t KeyLength=MaxKeyLength>
+using KeyT=common::FixedByteArray<KeyLength>;
+
+using Key=KeyT<>;
+
+template <typename ValueT=Value, typename KeyT=Key>
+using RecordT=std::pair<KeyT,ValueT>;
+
+using Record=RecordT<>;
+
+} // namespace stacklog
 
 HATN_CALLGRAPH_NAMESPACE_END
 

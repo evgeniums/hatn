@@ -17,8 +17,15 @@
   */
 
 #include <hatn/callgraph/callgraph.h>
+#include <hatn/callgraph/stacklog.h>
 
 HATN_CALLGRAPH_NAMESPACE_BEGIN
 
-HATN_CALLGRAPH_NAMESPACE_END
+namespace stacklog
+{
 
+template struct HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData>;
+
+} // namespace stacklog
+
+HATN_CALLGRAPH_NAMESPACE_END
