@@ -24,7 +24,7 @@ HATN_CALLGRAPH_NAMESPACE_BEGIN
 namespace stacklog
 {
 
-template struct HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData>;
+template class HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData>;
 
 } // namespace stacklog
 
