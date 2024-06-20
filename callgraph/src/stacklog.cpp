@@ -19,12 +19,15 @@
 #include <hatn/callgraph/callgraph.h>
 #include <hatn/callgraph/stacklog.h>
 
+HATN_TASK_CONTEXT_DEFINE(HATN_CALLGRAPH_NAMESPACE::stacklog::StackLog)
+
 HATN_CALLGRAPH_NAMESPACE_BEGIN
 
 namespace stacklog
 {
 
-template class HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData>;
+template class HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData,ThreadCursorData>;
+template class HATN_CALLGRAPH_EXPORT StackLogWrapperT<StackLog>;
 
 } // namespace stacklog
 

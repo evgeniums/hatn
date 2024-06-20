@@ -21,6 +21,7 @@
 
 #include <hatn/callgraph/callgraph.h>
 #include <hatn/callgraph/stacklogrecord.h>
+#include <hatn/callgraph/stacklog.h>
 
 HATN_COMMON_USING
 HATN_CALLGRAPH_USING
@@ -154,12 +155,28 @@ BOOST_AUTO_TEST_CASE(FormatLogValue)
     BOOST_CHECK_EQUAL(str,r.toString());
 }
 
-// BOOST_AUTO_TEST_CASE(stacklog::SingleThread)
-// {
-// }
+BOOST_AUTO_TEST_CASE(StackLogContext)
+{
+    HATN_COMMON_NAMESPACE::ThreadLocalContext<stacklog::StackLog> tlCtx;
+    BOOST_CHECK(tlCtx.value()==nullptr);
 
-// BOOST_AUTO_TEST_CASE(stacklog::MultiThread)
-// {
-// }
+    stacklog::StackLog sl;
+    tlCtx.setValue(&sl);
+    BOOST_CHECK(tlCtx.value()==&sl);
+
+    tlCtx.reset();
+    BOOST_CHECK(tlCtx.value()==nullptr);
+
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<stacklog::StackLogWrapper>();
+    ctx->beforeThreadProcessing();
+    BOOST_CHECK(tlCtx.value()!=nullptr);
+
+    auto& container=ctx->get<stacklog::StackLogWrapper>();
+    auto stackLog=container.value();
+    BOOST_CHECK(tlCtx.value()==stackLog);
+
+    ctx->afterThreadProcessing();
+    BOOST_CHECK(tlCtx.value()==nullptr);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
