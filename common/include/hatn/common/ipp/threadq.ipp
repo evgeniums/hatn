@@ -41,6 +41,7 @@ ThreadQ<TaskT,Traits>* ThreadQ<TaskT,Traits>::current() noexcept
 }
 
 //---------------------------------------------------------------
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTHREADQUEUEINTERFACEL_IPP

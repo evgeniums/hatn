@@ -55,9 +55,9 @@ class AllocatorOnStack
         // Move constructor is defined only in order to compile it.
         // You must never call it explicitly with allocator that is already in use.
         template <class U>
-        AllocatorOnStack(AllocatorOnStack<U,Size>&&)
+        AllocatorOnStack(AllocatorOnStack<U,Size>&& other)
         {
-            Assert(m_occupied==0,"Do not call move constructor for AllocatorOnStack that is already in use");
+            Assert(other.m_occupied==0,"Do not call move constructor for AllocatorOnStack that is already in use");
         }
 
         template <class U>

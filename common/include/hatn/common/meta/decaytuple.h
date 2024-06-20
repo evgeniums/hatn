@@ -33,6 +33,12 @@ constexpr auto decayTupleFn(boost::hana::tuple<Ts...>) -> boost::hana::tuple<std
 template <typename T>
 using decayTuple = decltype(decayTupleFn(std::declval<std::decay_t<T>>()));
 
+template <typename ...Ts>
+using decayStdTupleT = std::tuple<std::decay_t<Ts>...>;
+
+template <typename ...Ts>
+using decayHanaTupleT = boost::hana::tuple<std::decay_t<Ts>...>;
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNDECAYTUPLE_H
