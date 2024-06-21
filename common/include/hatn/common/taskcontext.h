@@ -50,7 +50,7 @@ class TaskContextWrapper
 
         using type=T;
 
-        // Impement in derived class.
+        // Implement in derived class.
 
         // const T* value() const noexcept
         // {
@@ -65,8 +65,11 @@ class TaskContextWrapper
 template <typename T>
 class ThreadLocalContext
 {
-    static T* value() noexcept;
-    static void setValue(T* val) noexcept;
+    // Implement in class specialization.
+
+    // static T* value() noexcept;
+    // static void setValue(T* val) noexcept;
+    // static void reset() noexcept;
 };
 
 namespace detail {
