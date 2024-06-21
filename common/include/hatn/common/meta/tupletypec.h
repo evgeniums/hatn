@@ -24,15 +24,22 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! Concert tuple to tuple_t
+//! Convert tuple to tuple_t.
 template <typename T>
 constexpr auto tupleToTupleC(T&& t) noexcept
 {
     return boost::hana::transform(std::forward<T>(t),boost::hana::make<boost::hana::type_tag>);
 }
-//! Concert tuple_t to tuple
+
+/**
+ * @brief Convert tuple_t to tuple.
+ * @param t hana::tuple_t value.
+ * @return hana::tuple of types from t.
+ *
+ * Only default-constructed types in tuple are supported.
+ */
 template <typename T>
-constexpr auto tupleCToTuple(T&& t) noexcept
+constexpr auto tupleCToTuple(T&& t)
 {
     return boost::hana::transform(std::forward<T>(t),
         [](auto v){
@@ -42,15 +49,30 @@ constexpr auto tupleCToTuple(T&& t) noexcept
     );
 }
 
+/**
+ * Convert type of tuple of types to type of tuple of type_c.
+ */
 template <typename T>
 using tupleToTupleCType=decltype(tupleToTupleC(std::declval<T>()));
 
+namespace detail {
+
+template <typename T>
+constexpr auto tupleCToTupleType(T tc) noexcept
+{
+    return boost::hana::unpack(tc,boost::hana::template_<boost::hana::tuple>);
+}
+
+}
+
+template <typename T>
+using tupleCToTupleTypeC=decltype(detail::tupleCToTupleType(std::declval<T>()));
+
 /**
- * Convert type of tuple of type_c to type tuple of types.
- * Currently supported only default-constructed types in tuple.
+ * Convert type of tuple of type_c to type of tuple of types.
  */
 template <typename T>
-using tupleCToTupleType=decltype(tupleCToTuple(std::declval<T>()));
+using tupleCToTupleType=typename tupleCToTupleTypeC<T>::type;
 
 HATN_COMMON_NAMESPACE_END
 
