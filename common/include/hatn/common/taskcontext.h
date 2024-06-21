@@ -27,20 +27,47 @@ namespace hana=boost::hana;
 #include <hatn/common/meta/decaytuple.h>
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/makeshared.h>
+#include <hatn/common/fixedbytearray.h>
+#include <hatn/common/databuf.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 struct TaskContextTag{};
+using TaskContextId=FixedByteArray20;
 
 class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 {
     public:
+
+        TaskContext()
+        {
+            generateId(m_id);
+        }
+
+        TaskContext(TaskContextId id) : m_id(std::move(id))
+        {}
 
         using hana_tag=TaskContextTag;
 
         virtual void beforeThreadProcessing();
 
         virtual void afterThreadProcessing();
+
+        const TaskContextId& id() const noexcept
+        {
+            return m_id;
+        }
+
+        void setId(TaskContextId id) noexcept
+        {
+            m_id=std::move(id);
+        }
+
+        static void generateId(DataBuf buf);
+
+    private:
+
+        TaskContextId m_id;
 };
 
 template <typename T>

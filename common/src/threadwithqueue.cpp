@@ -26,12 +26,6 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-void TaskContext::beforeThreadProcessing()
-{}
-
-void TaskContext::afterThreadProcessing()
-{}
-
 template class HATN_COMMON_EXPORT ThreadWithQueueTraits<Task>;
 template class HATN_COMMON_EXPORT ThreadWithQueueTraits<TaskWithContext>;
 template class HATN_COMMON_EXPORT ThreadWithQueue<Task>;

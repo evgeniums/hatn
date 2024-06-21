@@ -225,6 +225,8 @@ SET (SOURCES
 
     src/singleton.cpp
     src/datetime.cpp
+
+    src/taskcontext.cpp
 )
 
 SET (SOURCES
