@@ -16,19 +16,14 @@
   *
   */
 
-#include <hatn/callgraph/callgraph.h>
-#include <hatn/callgraph/stacklog.h>
+#include <hatn/logcontext/logcontext.h>
+#include <hatn/logcontext/context.h>
 
-HATN_TASK_CONTEXT_DEFINE(HATN_CALLGRAPH_NAMESPACE::stacklog::StackLog)
+HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context)
 
-HATN_CALLGRAPH_NAMESPACE_BEGIN
+HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-namespace stacklog
-{
+template class HATN_LOGCONTEXT_EXPORT ContextT<DefaultConfig,FnCursorData,ThreadCursorData>;
+template class HATN_LOGCONTEXT_EXPORT ContextWrapperT<Context>;
 
-template class HATN_CALLGRAPH_EXPORT StackLogT<DefaultConfig,FnCursorData,ThreadCursorData>;
-template class HATN_CALLGRAPH_EXPORT StackLogWrapperT<StackLog>;
-
-} // namespace stacklog
-
-HATN_CALLGRAPH_NAMESPACE_END
+HATN_LOGCONTEXT_NAMESPACE_END

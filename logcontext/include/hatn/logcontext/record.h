@@ -10,27 +10,24 @@
 /*
     
 */
-/** @file callgraph/stacklogrecord.h
+/** @file logcontext/stacklogrecord.h
   *
-  *  Defines Record.
+  *  Defines types and helpers of logcontext records.
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNSTACKLOGRECORD_H
-#define HATNSTACKLOGRECORD_H
+#ifndef HATNLOGRECORD_H
+#define HATNLOGRECORD_H
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/datetime.h>
 #include <hatn/common/fixedbytearray.h>
 
-#include <hatn/callgraph/callgraph.h>
+#include <hatn/logcontext/logcontext.h>
 
-HATN_CALLGRAPH_NAMESPACE_BEGIN
-
-namespace stacklog
-{
+HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 constexpr size_t MaxKeyLength=16;
 constexpr size_t MaxValueLength=64;
@@ -175,8 +172,6 @@ using RecordT=std::pair<KeyT,ValueT>;
 
 using Record=RecordT<>;
 
-} // namespace stacklog
+HATN_LOGCONTEXT_NAMESPACE_END
 
-HATN_CALLGRAPH_NAMESPACE_END
-
-#endif // HATNSTACKLOGRECORD_H
+#endif // HATNLOGRECORD_H

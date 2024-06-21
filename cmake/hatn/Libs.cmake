@@ -2,7 +2,7 @@
 SET (HATN_MODULES	
 	common
 	validator
-	callgraph
+	logcontext
 	dataunit
 	base
 	db

@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file callgraph/stacklog.h
+/** @file logcontext/context.h
   *
   *  Contains stack log types and helpers.
   *
@@ -18,8 +18,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNSTACKLOG_H
-#define HATNSTACKLOG_H
+#ifndef HATNLOGCONTEXT_H
+#define HATNLOGCONTEXT_H
 
 #include <vector>
 
@@ -28,13 +28,10 @@
 #include <hatn/common/thread.h>
 #include <hatn/common/taskcontext.h>
 
-#include <hatn/callgraph/callgraph.h>
-#include <hatn/callgraph/stacklogrecord.h>
+#include <hatn/logcontext/logcontext.h>
+#include <hatn/logcontext/record.h>
 
-HATN_CALLGRAPH_NAMESPACE_BEGIN
-
-namespace stacklog
-{
+HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 constexpr size_t MaxVarStackSize=32;
 constexpr size_t MaxVarMapSize=16;
@@ -73,7 +70,7 @@ using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
 template <typename Config=DefaultConfig,
          typename FnCursorDataT=FnCursorData,
          typename ThreadCursorDataT=ThreadCursorData>
-class StackLogT
+class ContextT
 {
     public:
 
@@ -91,7 +88,7 @@ class StackLogT
         using fnStackAllocatorT=common::AllocatorOnStack<fnCursorT,config::FnDepth>;
         using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
 
-        StackLogT()
+        ContextT()
         {
             m_varStack.reserve(config::VarStackSize);
             m_globalVarMap.reserve(config::VarMapSize);
@@ -204,33 +201,31 @@ class StackLogT
 
         Error m_error;
 };
-using StackLog=StackLogT<>;
+using Context=ContextT<>;
 
-template <typename StackLogT=StackLog>
-class StackLogWrapperT : public common::TaskContextWrapper<StackLogT>
+template <typename ContextT=Context>
+class ContextWrapperT : public common::TaskContextWrapper<ContextT>
 {
     public:
 
-        const StackLogT* value() const noexcept
+        const ContextT* value() const noexcept
         {
-            return &m_stackLog;
+            return &m_context;
         }
 
-        StackLogT* value() noexcept
+        ContextT* value() noexcept
         {
-            return &m_stackLog;
+            return &m_context;
         }
 
     private:
 
-        StackLogT m_stackLog;
+        ContextT m_context;
 };
-using StackLogWrapper=StackLogWrapperT<>;
+using ContextWrapper=ContextWrapperT<>;
 
-} // namespace stacklog
+HATN_LOGCONTEXT_NAMESPACE_END
 
-HATN_CALLGRAPH_NAMESPACE_END
+HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
 
-HATN_TASK_CONTEXT_DECLARE(HATN_CALLGRAPH_NAMESPACE::stacklog::StackLog,HATN_CALLGRAPH_EXPORT)
-
-#endif // HATNSTACKLOG_H
+#endif // HATNLOGCONTEXT_H
