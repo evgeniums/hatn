@@ -51,7 +51,7 @@ constexpr size_t MaxFnDepth=16;
 constexpr size_t MaxFnNameLength=32;
 constexpr size_t MaxThreadDepth=8;
 constexpr size_t MaxTagLength=16;
-constexpr size_t MaxTagMapSize=8;
+constexpr size_t MaxTagSetSize=8;
 
 struct DefaultConfig
 {
@@ -63,7 +63,7 @@ struct DefaultConfig
     constexpr static const size_t FnNameLength=MaxFnNameLength;
     constexpr static const size_t ThreadDepth=MaxThreadDepth;
     constexpr static const size_t TagLength=MaxTagLength;
-    constexpr static const size_t TagMapSize=MaxTagMapSize;
+    constexpr static const size_t TagSetSize=MaxTagSetSize;
 };
 
 struct FnCursorData
@@ -106,14 +106,14 @@ class ContextT
         using varMapAllocatorT=common::AllocatorOnStack<recordT,config::VarMapSize>;
         using fnStackAllocatorT=common::AllocatorOnStack<fnCursorT,config::FnDepth>;
         using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
-        using tagMapAllocatorT=common::AllocatorOnStack<tagRecordT,config::TagMapSize>;
+        using tagSetAllocatorT=common::AllocatorOnStack<tagT,config::TagSetSize>;
 
-        ContextT()
+        ContextT() : m_logLevel(LogLevel::Default)
         {
             m_varStack.reserve(config::VarStackSize);
             m_globalVarMap.reserve(config::VarMapSize);
             m_fnStack.reserve(config::FnDepth);
-            m_tags.reserve(config::TagMapSize);
+            m_tags.reserve(config::TagSetSize);
         }
 
         void enterFn(const char* name)
@@ -214,9 +214,9 @@ class ContextT
             return m_error;
         }
 
-        void setTag(tagT tag, LogLevel level=LogLevel::Default)
+        void setTag(tagT tag)
         {
-            m_tags.emplace(std::move(tag),level);
+            m_tags.insert(std::move(tag));
         }
 
         void unsetTag(const common::lib::string_view& tag)
@@ -224,14 +224,25 @@ class ContextT
             m_tags.erase(tag);
         }
 
-        common::lib::optional<LogLevel> findTag(const common::lib::string_view& tag) const
+        bool containsTag(const common::lib::string_view& tag) const
         {
             auto it=m_tags.find(tag);
-            if (it!=m_tags.end())
-            {
-                return it->second;
-            }
-            return common::lib::optional<LogLevel>{};
+            return it!=m_tags.end();
+        }
+
+        LogLevel logLevel() const noexcept
+        {
+            return m_logLevel;
+        }
+
+        void setLogLevel(LogLevel level) noexcept
+        {
+            m_logLevel=level;
+        }
+
+        const std::vector<fnCursorT,fnStackAllocatorT>& fnStack() const noexcept
+        {
+            return m_fnStack;
         }
 
     private:
@@ -240,9 +251,10 @@ class ContextT
         std::vector<recordT,varStackAllocatorT> m_varStack;
         std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
         common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
-        common::FlatMap<tagT,LogLevel,std::less<tagT>,tagMapAllocatorT> m_tags;
+        common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
 
         Error m_error;
+        LogLevel m_logLevel;
 };
 using Context=ContextT<>;
 

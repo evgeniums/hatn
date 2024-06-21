@@ -10,16 +10,14 @@
 /*
 
 */
-/** @file base/stacklog.сpp
+/** @file logcontext/context.сpp
   *
-  *      Contains definition of some stack log types.
+  *      Contains definition log context.
   *
   */
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/context.h>
-
-HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context)
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
@@ -27,3 +25,5 @@ template class HATN_LOGCONTEXT_EXPORT ContextT<DefaultConfig,FnCursorData,Thread
 template class HATN_LOGCONTEXT_EXPORT ContextWrapperT<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context)

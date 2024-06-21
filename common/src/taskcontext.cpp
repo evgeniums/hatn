@@ -29,7 +29,7 @@ void TaskContext::generateId(DataBuf buf)
     auto dt=common::DateTime::millisecondsSinceEpoch();
     auto rand=common::Random::uniform(1,0xFFFFFF);
 
-    fmt::format_to_n(buf.data(),buf.size(),"{:010x}{:04x}{:06x}",dt,s&0xFFFF,rand;
+    fmt::format_to_n(buf.data(),buf.size(),"{:010x}{:04x}{:06x}",dt,s&0xFFFF,rand);
 }
 
 //---------------------------------------------------------------
