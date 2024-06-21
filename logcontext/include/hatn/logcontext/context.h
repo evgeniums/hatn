@@ -33,11 +33,25 @@
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
+enum class LogLevel : int8_t
+{
+    Default=-1,
+    None=0,
+    Fatal=1,
+    Err=2,
+    Warn=3,
+    Info=4,
+    Debug=5,
+    Trace=6
+};
+
 constexpr size_t MaxVarStackSize=32;
 constexpr size_t MaxVarMapSize=16;
 constexpr size_t MaxFnDepth=16;
 constexpr size_t MaxFnNameLength=32;
 constexpr size_t MaxThreadDepth=8;
+constexpr size_t MaxTagLength=16;
+constexpr size_t MaxTagMapSize=8;
 
 struct DefaultConfig
 {
@@ -48,12 +62,15 @@ struct DefaultConfig
     constexpr static const size_t FnDepth=MaxFnDepth;
     constexpr static const size_t FnNameLength=MaxFnNameLength;
     constexpr static const size_t ThreadDepth=MaxThreadDepth;
+    constexpr static const size_t TagLength=MaxTagLength;
+    constexpr static const size_t TagMapSize=MaxTagMapSize;
 };
 
 struct FnCursorData
 {
     size_t fnStackOffset=0;
     size_t varStackOffset=0;
+    common::ThreadId threadId;
 };
 
 template <typename FnCursorDataT=FnCursorData, size_t NameLength=MaxFnNameLength>
@@ -82,23 +99,28 @@ class ContextT
         using fnCursorDataT=FnCursorDataT;
         using fnCursorT=FnCursorT<FnCursorDataT,config::FnNameLength>;
         using threadCursorT=ThreadCursorT<ThreadCursorDataT>;
+        using tagT=common::FixedByteArray<config::TagLength>;
+        using tagRecordT=std::pair<tagT,LogLevel>;
 
         using varStackAllocatorT=common::AllocatorOnStack<recordT,config::VarStackSize>;
         using varMapAllocatorT=common::AllocatorOnStack<recordT,config::VarMapSize>;
         using fnStackAllocatorT=common::AllocatorOnStack<fnCursorT,config::FnDepth>;
         using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
+        using tagMapAllocatorT=common::AllocatorOnStack<tagRecordT,config::TagMapSize>;
 
         ContextT()
         {
             m_varStack.reserve(config::VarStackSize);
             m_globalVarMap.reserve(config::VarMapSize);
             m_fnStack.reserve(config::FnDepth);
+            m_tags.reserve(config::TagMapSize);
         }
 
         void enterFn(const char* name)
         {
             Assert(!m_error,"Must not continue stack in error state");
-            m_fnStack.emplace_back(std::make_pair(name,fnCursorDataT{m_fnStack.size(),m_varStack.size()}));
+            m_fnStack.emplace_back(
+                std::make_pair(name,fnCursorDataT{m_fnStack.size(),m_varStack.size(),common::Thread::currentThreadID()}));
         }
 
         void leaveFn()
@@ -192,12 +214,33 @@ class ContextT
             return m_error;
         }
 
+        void setTag(tagT tag, LogLevel level=LogLevel::Default)
+        {
+            m_tags.emplace(std::move(tag),level);
+        }
+
+        void unsetTag(const common::lib::string_view& tag)
+        {
+            m_tags.erase(tag);
+        }
+
+        common::lib::optional<LogLevel> findTag(const common::lib::string_view& tag) const
+        {
+            auto it=m_tags.find(tag);
+            if (it!=m_tags.end())
+            {
+                return it->second;
+            }
+            return common::lib::optional<LogLevel>{};
+        }
+
     private:
 
         std::vector<fnCursorT,fnStackAllocatorT> m_fnStack;
         std::vector<recordT,varStackAllocatorT> m_varStack;
         std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
         common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
+        common::FlatMap<tagT,LogLevel,std::less<tagT>,tagMapAllocatorT> m_tags;
 
         Error m_error;
 };
