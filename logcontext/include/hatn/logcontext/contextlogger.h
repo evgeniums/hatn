@@ -63,11 +63,12 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HDU_CTX_GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
 
 #define HATN_CTX_LOG_IF_1(Level,Module) \
+    {HATN_LOG_MODULE(Module)* _{nullptr}; std::ignore=_;} \
     if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
             Level, \
             HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
-            Module) \
+            #Module ) \
     )
 
 #define HATN_CTX_LOG_1(Level,Msg,Module) \
@@ -77,7 +78,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
             Level, \
             HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
             Msg, \
-            Module \
+            #Module \
         ); \
     }
 
@@ -133,7 +134,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
                       Level, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
-                      Module, \
+                      #Module, \
                       std::move(recs) \
                     ); \
     }

@@ -20,6 +20,8 @@
 #include "hatn_test_config.h"
 
 #include <hatn/common/datetime.h>
+#include <hatn/common/logger.h>
+#include <hatn/common/loggermoduleimp.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
@@ -28,6 +30,10 @@
 
 HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
+
+#define NONE_EXPORT
+DECLARE_LOG_MODULE_EXPORT(sample_module,NONE_EXPORT)
+INIT_LOG_MODULE(sample_module,NONE_EXPORT)
 
 BOOST_AUTO_TEST_SUITE(TestLogContext)
 
@@ -212,50 +218,50 @@ BOOST_AUTO_TEST_CASE(Logger)
     BOOST_TEST_MESSAGE("Log with context log level=INFO");
 
     HATN_CTX_FATAL("Fatal without module");
-    HATN_CTX_FATAL("Fatal with module","sample_module");
+    HATN_CTX_FATAL("Fatal with module",sample_module);
     HATN_CTX_ERROR("Error without module");
-    HATN_CTX_ERROR("Error with module","sample_module");
+    HATN_CTX_ERROR("Error with module",sample_module);
     HATN_CTX_WARN("Warn without module");
-    HATN_CTX_WARN("Warn with module","sample_module");
+    HATN_CTX_WARN("Warn with module",sample_module);
     HATN_CTX_INFO("Info without module");
-    HATN_CTX_INFO("Info with module","sample_module");
+    HATN_CTX_INFO("Info with module",sample_module);
     HATN_CTX_DEBUG("Debug without module");
-    HATN_CTX_DEBUG("Debug with module","sample_module");
+    HATN_CTX_DEBUG("Debug with module",sample_module);
     HATN_CTX_TRACE("Trace without module");
-    HATN_CTX_TRACE("Trace with module","sample_module");
+    HATN_CTX_TRACE("Trace with module",sample_module);
 
     BOOST_TEST_MESSAGE("Log with context log level=ANY");
     logCtx->setLogLevel(LogLevel::Any);
 
     HATN_CTX_FATAL("Fatal without module");
-    HATN_CTX_FATAL("Fatal with module","sample_module");
+    HATN_CTX_FATAL("Fatal with module",sample_module);
     HATN_CTX_ERROR("Error without module");
-    HATN_CTX_ERROR("Error with module","sample_module");
+    HATN_CTX_ERROR("Error with module",sample_module);
     HATN_CTX_WARN("Warn without module");
-    HATN_CTX_WARN("Warn with module","sample_module");
+    HATN_CTX_WARN("Warn with module",sample_module);
     HATN_CTX_INFO("Info without module");
-    HATN_CTX_INFO("Info with module","sample_module");
+    HATN_CTX_INFO("Info with module",sample_module);
     HATN_CTX_DEBUG("Debug without module");
-    HATN_CTX_DEBUG("Debug with module","sample_module");
+    HATN_CTX_DEBUG("Debug with module",sample_module);
     HATN_CTX_TRACE("Trace without module");
-    HATN_CTX_TRACE("Trace with module","sample_module");
+    HATN_CTX_TRACE("Trace with module",sample_module);
 
     auto r1=makeRecord("r1","hello");
     auto r2=makeRecord("r2",12345);
     auto r3=makeRecord("r3",HATN_COMMON_NAMESPACE::Date::currentUtc());
 
     HATN_CTX_FATAL_RECORDS("Fatal with records without module",r1,r2,r3);
-    HATN_CTX_FATAL_RECORDS_M("Fatal with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_FATAL_RECORDS_M("Fatal with records with module",sample_module,r1,r2,r3);
     HATN_CTX_ERROR_RECORDS("Error with records without module",r1,r2,r3);
-    HATN_CTX_ERROR_RECORDS_M("Error with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_ERROR_RECORDS_M("Error with records with module",sample_module,r1,r2,r3);
     HATN_CTX_WARN_RECORDS("Warn with records without module",r1,r2,r3);
-    HATN_CTX_WARN_RECORDS_M("Warn with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_WARN_RECORDS_M("Warn with records with module",sample_module,r1,r2,r3);
     HATN_CTX_INFO_RECORDS("Info with records without module",r1,r2,r3);
-    HATN_CTX_INFO_RECORDS_M("Info with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_INFO_RECORDS_M("Info with records with module",sample_module,r1,r2,r3);
     HATN_CTX_DEBUG_RECORDS("Debug with records without module",r1,r2,r3);
-    HATN_CTX_DEBUG_RECORDS_M("Debug with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_DEBUG_RECORDS_M("Debug with records with module",sample_module,r1,r2,r3);
     HATN_CTX_TRACE_RECORDS("Trace with records without module",r1,r2,r3);
-    HATN_CTX_TRACE_RECORDS_M("Trace with records with module","sample_module",r1,r2,r3);
+    HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
     ctx->afterThreadProcessing();
 }
