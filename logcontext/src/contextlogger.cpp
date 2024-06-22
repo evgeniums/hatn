@@ -36,7 +36,11 @@ std::shared_ptr<ContextLogger>& globalLogger()
 
 //---------------------------------------------------------------
 
-ContextLogger::ContextLogger(LogHandler handler) : m_logger(std::move(handler))
+template class HATN_LOGCONTEXT_EXPORT LoggerHandlerT<Context>;
+
+//---------------------------------------------------------------
+
+ContextLogger::ContextLogger(LoggerHandlerTraits handler) : m_logger(std::move(handler))
 {}
 
 //---------------------------------------------------------------
@@ -46,7 +50,7 @@ ContextLogger::~ContextLogger()
 
 //---------------------------------------------------------------
 
-Logger& ContextLogger::init(LogHandler handler)
+Logger& ContextLogger::init(LoggerHandlerTraits handler)
 {
     globalLogger().reset(new ContextLogger(std::move(handler)));
     return globalLogger()->logger();

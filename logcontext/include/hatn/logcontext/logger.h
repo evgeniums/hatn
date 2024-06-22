@@ -26,6 +26,7 @@
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/pmr/pmrtypes.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/context.h>
@@ -234,42 +235,77 @@ class LoggerBaseT
 using LoggerBase=LoggerBaseT<>;
 
 template <typename ContextT=Context>
-using LogHandlerT=std::function<void (
-    LogLevel level,
-    const ContextT* ctx,
-    std::string msg,
-    lib::string_view module,
-    std::vector<Record> records
-    )>;
-
-using LogHandler=LogHandlerT<>;
-
-template <typename ContextT=Context>
-class LoggerTraitsHandlerT
+class LoggerHandlerT
 {
     public:
 
-        LoggerTraitsHandlerT(LogHandlerT<ContextT> handler) : m_handler(std::move(handler))
+        virtual ~LoggerHandlerT()
+        {}
+
+        LoggerHandlerT()=default;
+        LoggerHandlerT(const LoggerHandlerT&)=default;
+        LoggerHandlerT(LoggerHandlerT&&)=default;
+        LoggerHandlerT& operator=(const LoggerHandlerT&)=default;
+        LoggerHandlerT& operator=(LoggerHandlerT&&)=default;
+
+        virtual void log(
+            LogLevel level,
+            const ContextT* ctx,
+            common::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+        )=0;
+
+        virtual void logError(
+            LogLevel level,
+            Error ec,
+            const ContextT* ctx,
+            common::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+        )=0;
+};
+using LoggerHandler=LoggerHandlerT<>;
+
+template <typename ContextT=Context>
+class LoggerHandlerTraitsT
+{
+    public:
+
+        LoggerHandlerTraitsT(std::shared_ptr<LoggerHandlerT<ContextT>> handler)
+            : m_handler(std::move(handler))
         {}
 
         void log(
             LogLevel level,
             const ContextT* ctx,
-            std::string msg,
+            common::pmr::string msg,
             lib::string_view module=lib::string_view{},
-            std::vector<Record> records=std::vector<Record>{}
-            )
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+        )
         {
-            m_handler(level,ctx,std::move(msg),module,std::move(records));
+            m_handler->log(level,ctx,std::move(msg),module,std::move(records));
+        }
+
+        void logError(
+            LogLevel level,
+            Error ec,
+            const ContextT* ctx,
+            common::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+        )
+        {
+            m_handler->logError(level,std::move(ec),ctx,std::move(msg),module,std::move(records));
         }
 
     private:
 
-        LogHandlerT<ContextT> m_handler;
+        std::shared_ptr<LoggerHandlerT<ContextT>> m_handler;
 };
+using LoggerHandlerTraits=LoggerHandlerTraitsT<>;
 
-
-template <template <typename> class Traits=LoggerTraitsHandlerT, typename ContextT=Context>
+template <template <typename> class Traits=LoggerHandlerTraitsT, typename ContextT=Context>
 class LoggerT : public LoggerBaseT<ContextT>,
                 public common::WithTraits<Traits<ContextT>>
 {
@@ -283,13 +319,25 @@ class LoggerT : public LoggerBaseT<ContextT>,
 
         void log(
             LogLevel level,
-            const contextT* ctx,
-            std::string msg,
+            const ContextT* ctx,
+            common::pmr::string msg,
             lib::string_view module=lib::string_view{},
-            std::vector<Record> records=std::vector<Record>{}
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
         {
             this->traits().log(level,ctx,std::move(msg),module,std::move(records));
+        }
+
+        void logError(
+            LogLevel level,
+            Error ec,
+            const ContextT* ctx,
+            common::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+            )
+        {
+            this->traits().log(level,std::move(ec),ctx,std::move(msg),module,std::move(records));
         }
 };
 

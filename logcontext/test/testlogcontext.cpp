@@ -210,25 +210,50 @@ struct aaa
 #define B1(b,V1,V2,V3) if (b) {auto c=(V1 + V2 + V3);std::ignore=c;}
 #endif
 
+class TestLoggerHandler : public LoggerHandler
+{
+    public:
+
+        void log(
+            LogLevel level,
+            const Context* ctx,
+            HATN_COMMON_NAMESPACE::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
+            ) override
+        {
+            auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
+                                           // ctx.id(),
+                                           msg,
+                                           module,
+                                           records.size()
+                                           );
+            BOOST_TEST_MESSAGE(str);
+        }
+
+        void logError(
+            LogLevel level,
+            Error ec,
+            const Context* ctx,
+            HATN_COMMON_NAMESPACE::pmr::string msg,
+            lib::string_view module=lib::string_view{},
+            HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
+        ) override
+        {
+            auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
+                                           // ctx.id(),
+                                           msg,
+                                           module,
+                                           records.size()
+                                           );
+            BOOST_TEST_MESSAGE(str);
+        }
+};
+
 BOOST_AUTO_TEST_CASE(Logger)
 {
-    auto handler=[](
-        LogLevel level,
-        const Context* ctx,
-        HATN_COMMON_NAMESPACE::lib::string_view msg,
-        HATN_COMMON_NAMESPACE::lib::string_view module,
-        std::vector<Record> records
-        )
-    {
-        auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
-                                       // ctx.id(),
-                                       msg,
-                                       module,
-                                       records.size()
-                );
-        BOOST_TEST_MESSAGE(str);
-    };
-    ContextLogger::init(handler);
+    auto handler=std::make_shared<TestLoggerHandler>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
 

@@ -34,7 +34,7 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
     public:
 
-        static Logger& init(LogHandler handler);
+        static Logger& init(LoggerHandlerTraits handler);
 
         static Logger& instance();
 
@@ -44,7 +44,7 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
     private:
 
-        ContextLogger(LogHandler handler);
+        ContextLogger(LoggerHandlerTraits handler);
 
         Logger m_logger;
 
@@ -70,6 +70,8 @@ HATN_LOGCONTEXT_NAMESPACE_END
             HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
             #Module ) \
     )
+
+//! @todo Message string and records vector with custom allocators.
 
 #define HATN_CTX_LOG_1(Level,Msg,Module) \
     HATN_CTX_LOG_IF_1(Level,Module) \
@@ -129,7 +131,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
 #define HATN_CTX_LOG_RECORDS_M(Level,Msg,Module,...) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            std::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{__VA_ARGS__}; \
+            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{__VA_ARGS__}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
                       Level, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
@@ -142,7 +144,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
 #define HATN_CTX_LOG_RECORDS(Level,Msg,...) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            std::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{__VA_ARGS__}; \
+            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{__VA_ARGS__}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
               Level, \
               HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
