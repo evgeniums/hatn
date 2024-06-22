@@ -59,8 +59,8 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_MSG_FORMAT(Format,...) fmt::format(Format,__VA_ARGS__)
 
 #define HATN_CTX_EXPAND(x) x
-#define HDU_CTX_GET_ARG3(arg1, arg2, arg3, ...) arg3
-#define HDU_CTX_GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
+#define HATN_CTX_GET_ARG3(arg1, arg2, arg3, ...) arg3
+#define HATN_CTX_GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
 
 #define HATN_CTX_LOG_IF_1(Level,Module) \
     {HATN_LOG_MODULE(Module)* _{nullptr}; std::ignore=_;} \
@@ -101,16 +101,16 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
     }
 
 #define HATN_CTX_LOG_IF(...) \
-        HATN_CTX_EXPAND(HDU_CTX_GET_ARG3(__VA_ARGS__, \
-                              HATN_CTX_LOG_IF_1(__VA_ARGS__), \
-                              HATN_CTX_LOG_IF_0(__VA_ARGS__) \
-                             ))
+        HATN_CTX_EXPAND(HATN_CTX_GET_ARG3(__VA_ARGS__, \
+                              HATN_CTX_LOG_IF_1, \
+                              HATN_CTX_LOG_IF_0 \
+                             )(__VA_ARGS__))
 
 #define HATN_CTX_LOG(...) \
-        HATN_CTX_EXPAND(HDU_CTX_GET_ARG4(__VA_ARGS__, \
-                                 HATN_CTX_LOG_1(__VA_ARGS__), \
-                                 HATN_CTX_LOG_0(__VA_ARGS__) \
-                                 ))
+        HATN_CTX_EXPAND(HATN_CTX_GET_ARG4(__VA_ARGS__, \
+                                 HATN_CTX_LOG_1, \
+                                 HATN_CTX_LOG_0 \
+                                 )(__VA_ARGS__))
 
 #define HATN_CTX_INFO(...) HATN_CTX_LOG(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,__VA_ARGS__)
 #define HATN_CTX_ERROR(...) HATN_CTX_LOG(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,__VA_ARGS__)
@@ -152,18 +152,18 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
               ); \
     }
 
-#define HATN_CTX_INFO_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,__VA_ARGS__)
-#define HATN_CTX_ERROR_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,__VA_ARGS__)
-#define HATN_CTX_WARN_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,__VA_ARGS__)
-#define HATN_CTX_DEBUG_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,__VA_ARGS__)
-#define HATN_CTX_FATAL_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,__VA_ARGS__)
-#define HATN_CTX_TRACE_RECORDS(...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,__VA_ARGS__)
+#define HATN_CTX_INFO_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,Msg,__VA_ARGS__)
+#define HATN_CTX_ERROR_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,Msg,__VA_ARGS__)
+#define HATN_CTX_WARN_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,Msg,__VA_ARGS__)
+#define HATN_CTX_DEBUG_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,Msg,__VA_ARGS__)
+#define HATN_CTX_FATAL_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,Msg,__VA_ARGS__)
+#define HATN_CTX_TRACE_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,Msg,__VA_ARGS__)
 
-#define HATN_CTX_INFO_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,__VA_ARGS__)
-#define HATN_CTX_ERROR_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,__VA_ARGS__)
-#define HATN_CTX_WARN_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,__VA_ARGS__)
-#define HATN_CTX_DEBUG_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,__VA_ARGS__)
-#define HATN_CTX_FATAL_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,__VA_ARGS__)
-#define HATN_CTX_TRACE_RECORDS_M(...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,__VA_ARGS__)
+#define HATN_CTX_INFO_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,Msg,Module,__VA_ARGS__)
+#define HATN_CTX_ERROR_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,Msg,Module,__VA_ARGS__)
+#define HATN_CTX_WARN_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,Msg,Module,__VA_ARGS__)
+#define HATN_CTX_DEBUG_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,Msg,Module,__VA_ARGS__)
+#define HATN_CTX_FATAL_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,Msg,Module,__VA_ARGS__)
+#define HATN_CTX_TRACE_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,Msg,Module,__VA_ARGS__)
 
 #endif // HATNCONTEXTCONTEXTLOGGER_H
