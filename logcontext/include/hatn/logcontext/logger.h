@@ -79,11 +79,11 @@ class LoggerBaseT
             }
 
             // figure out current level by stack function
-            if (!ctx->fnStack().empty())
+            if (!ctx->scopeStack().empty())
             {
-                const auto& fn=ctx->fnStack().back();
-                auto it=logger.functions().find(common::lib::string_view(fn.first));
-                if (it!=logger.functions().end())
+                const auto& scope=ctx->currentScope();
+                auto it=logger.scopes().find(common::lib::string_view(scope.first));
+                if (it!=logger.scopes().end())
                 {
                     if (it->second>level)
                     {
@@ -169,33 +169,33 @@ class LoggerBaseT
             m_modules.clear();
         }
 
-        void setFunctionLevel(std::string fn, LogLevel level)
+        void setScopeLevel(std::string scope, LogLevel level)
         {
             common::lib::unique_lock<common::lib::shared_mutex> l(m_mutex);
-            m_functions.emplace(std::move(fn),level);
+            m_scopes.emplace(std::move(scope),level);
         }
 
-        void unsetFunction(const common::lib::string_view& fn)
+        void unsetScope(const common::lib::string_view& scope)
         {
             common::lib::unique_lock<common::lib::shared_mutex> l(m_mutex);
-            m_functions.erase(fn);
+            m_scopes.erase(scope);
         }
 
-        void clearFunctions()
+        void clearScopes()
         {
             common::lib::unique_lock<common::lib::shared_mutex> l(m_mutex);
-            m_functions.clear();
+            m_scopes.clear();
         }
 
-        const levelMapT& functions() const noexcept
+        const levelMapT& scopes() const noexcept
         {
-            return m_functions;
+            return m_scopes;
         }
 
         void reset()
         {
             m_defaultLevel=DefaultLogLevel;
-            clearFunctions();
+            clearScopes();
             clearModules();
             clearTags();
         }
@@ -226,7 +226,7 @@ class LoggerBaseT
 
         levelMapT m_tags;
         levelMapT m_modules;
-        levelMapT m_functions;
+        levelMapT m_scopes;
 
         mutable common::lib::shared_mutex m_mutex;
 };

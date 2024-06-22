@@ -67,11 +67,26 @@ inline const char* logLevelName(LogLevel level) noexcept
 
 constexpr size_t MaxVarStackSize=32;
 constexpr size_t MaxVarMapSize=16;
-constexpr size_t MaxFnDepth=16;
-constexpr size_t MaxFnNameLength=32;
+constexpr size_t MaxScopeDepth=16;
+constexpr size_t MaxScopeNameLength=32;
 constexpr size_t MaxThreadDepth=8;
 constexpr size_t MaxTagLength=16;
 constexpr size_t MaxTagSetSize=8;
+constexpr size_t MaxScopeErrorLength=32;
+
+template <size_t ErrorLength=MaxScopeErrorLength, typename ScopeErrorT=common::FixedByteArray<ErrorLength>>
+struct ScopeCursorDataT
+{
+    using errorT=ScopeErrorT;
+
+    size_t scopeStackOffset=0;
+    size_t varStackOffset=0;
+    common::ThreadId threadId;
+    ScopeErrorT error;
+};
+
+template <typename ScopeCursorDataT, size_t NameLength=MaxScopeNameLength>
+using ScopeCursorT=std::pair<common::FixedByteArray<NameLength>,ScopeCursorDataT>;
 
 struct DefaultConfig
 {
@@ -79,33 +94,26 @@ struct DefaultConfig
     constexpr static const size_t KeyLength=MaxKeyLength;
     constexpr static const size_t VarStackSize=MaxVarStackSize;
     constexpr static const size_t VarMapSize=MaxVarMapSize;
-    constexpr static const size_t FnDepth=MaxFnDepth;
-    constexpr static const size_t FnNameLength=MaxFnNameLength;
+    constexpr static const size_t ScopeDepth=MaxScopeDepth;
+    constexpr static const size_t ScopeNameLength=MaxScopeNameLength;
+    constexpr static const size_t ScopeErrorLength=MaxScopeErrorLength;
     constexpr static const size_t ThreadDepth=MaxThreadDepth;
     constexpr static const size_t TagLength=MaxTagLength;
     constexpr static const size_t TagSetSize=MaxTagSetSize;
-};
 
-struct FnCursorData
-{
-    size_t fnStackOffset=0;
-    size_t varStackOffset=0;
-    common::ThreadId threadId;
+    using ScopeCursorData=ScopeCursorDataT<ScopeErrorLength>;
+    using ScopeCursor=ScopeCursorT<ScopeCursorData,ScopeNameLength>;
 };
-
-template <typename FnCursorDataT=FnCursorData, size_t NameLength=MaxFnNameLength>
-using FnCursorT=std::pair<common::FixedByteArray<NameLength>,FnCursorDataT>;
 
 struct ThreadCursorData
 {
-    size_t fnStackOffset=0;
+    size_t scopeStackOffset=0;
 };
 
 template <typename CursorDataT=ThreadCursorData>
 using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
 
 template <typename Config=DefaultConfig,
-         typename FnCursorDataT=FnCursorData,
          typename ThreadCursorDataT=ThreadCursorData>
 class ContextT
 {
@@ -116,52 +124,68 @@ class ContextT
         using valueT=ValueT<config::ValueLength>;
         using keyT=KeyT<config::KeyLength>;
         using recordT=RecordT<valueT,keyT>;
-        using fnCursorDataT=FnCursorDataT;
-        using fnCursorT=FnCursorT<FnCursorDataT,config::FnNameLength>;
+        using scopeCursorDataT=typename config::ScopeCursorData;
+        using scopeErrorT=typename scopeCursorDataT::errorT;
+        using scopeCursorT=typename config::ScopeCursor;
         using threadCursorT=ThreadCursorT<ThreadCursorDataT>;
         using tagT=common::FixedByteArray<config::TagLength>;
         using tagRecordT=std::pair<tagT,LogLevel>;
 
         using varStackAllocatorT=common::AllocatorOnStack<recordT,config::VarStackSize>;
         using varMapAllocatorT=common::AllocatorOnStack<recordT,config::VarMapSize>;
-        using fnStackAllocatorT=common::AllocatorOnStack<fnCursorT,config::FnDepth>;
+        using scopeStackAllocatorT=common::AllocatorOnStack<scopeCursorT,config::ScopeDepth>;
         using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
         using tagSetAllocatorT=common::AllocatorOnStack<tagT,config::TagSetSize>;
 
-        ContextT() : m_logLevel(LogLevel::Default)
+        ContextT()
+            :   m_currentScopeIdx(0),
+                m_lockStack(false),
+                m_logLevel(LogLevel::Default)
         {
             m_varStack.reserve(config::VarStackSize);
             m_globalVarMap.reserve(config::VarMapSize);
-            m_fnStack.reserve(config::FnDepth);
+            m_scopeStack.reserve(config::ScopeDepth);
             m_tags.reserve(config::TagSetSize);
         }
 
-        void enterFn(const char* name)
+        void enterScope(const char* name)
         {
-            Assert(!m_error,"Must not continue stack in error state");
-            m_fnStack.emplace_back(
-                std::make_pair(name,fnCursorDataT{m_fnStack.size(),m_varStack.size(),common::Thread::currentThreadID()}));
+            m_currentScopeIdx++;
+            Assert(m_currentScopeIdx<=config::ScopeDepth,"Reached depth of scope stack");
+            m_scopeStack.emplace_back(
+                std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),scopeErrorT{}}));
         }
 
-        void leaveFn()
+        void describeScopeError(lib::string_view err, bool lockStack=true)
         {
-            if (m_error)
+            if (lockStack)
             {
-                return;
+                m_lockStack=true;
             }
+            auto& scopeCursor=currentScope();
+            scopeCursor.second.error=err;
+        }
 
-            const auto& fnCursor=m_fnStack.back();
-            bool freeFn=true;
+        void leaveScope()
+        {
+            const auto& scopeCursor=currentScope();
+            bool freeScope=true;
 
             if (!m_threadStack.empty())
             {
                 const auto& threadCursor=m_threadStack.back();
-                freeFn=fnCursor.second.fnStackOffset>threadCursor.second.fnStackOffset;
+                freeScope=scopeCursor.second.scopeStackOffset>threadCursor.second.scopeStackOffset;
             }
-            if (freeFn)
+            if (freeScope)
             {
-                m_varStack.resize(fnCursor.second.varStackOffset);
-                m_fnStack.pop_back();
+                m_currentScopeIdx--;
+                Assert(m_currentScopeIdx<=config::ScopeDepth,"Mismatched number of enter/leace scope calls");
+
+                if (!m_lockStack)
+                {
+                    m_varStack.resize(scopeCursor.second.varStackOffset);
+                    m_scopeStack.pop_back();
+                }
             }
         }
 
@@ -190,7 +214,7 @@ class ContextT
         void acquireThread(const common::ThreadId& id)
         {
             m_threadStack.emplace_back(
-                std::make_pair(id,ThreadCursorDataT{m_fnStack.size()})
+                std::make_pair(id,ThreadCursorDataT{m_scopeStack.size()})
             );
         }
 
@@ -214,24 +238,9 @@ class ContextT
             m_threadStack.resize(pos);
         }
 
-        void setEc(const Error& ec)
+        void setStackLocked(bool enable)
         {
-            m_error=ec;
-        }
-
-        void setEc(Error&& ec)
-        {
-            m_error=std::move(ec);
-        }
-
-        void resetEc() noexcept
-        {
-            m_error.reset();
-        }
-
-        Error& ec() noexcept
-        {
-            return m_error;
+            m_lockStack=enable;
         }
 
         void setTag(tagT tag)
@@ -260,20 +269,46 @@ class ContextT
             m_logLevel=level;
         }
 
-        const std::vector<fnCursorT,fnStackAllocatorT>& fnStack() const noexcept
+        const std::vector<scopeCursorT,scopeStackAllocatorT>& scopeStack() const noexcept
         {
-            return m_fnStack;
+            return m_scopeStack;
+        }
+
+        const scopeCursorT& currentScope() const
+        {
+            return m_scopeStack.at(m_currentScopeIdx);
+        }
+
+        scopeCursorT& currentScope()
+        {
+            return m_scopeStack.at(m_currentScopeIdx);
+        }
+
+        void resetStacks()
+        {
+            m_currentScopeIdx=0;
+            m_scopeStack.clear();
+            m_varStack.clear();
+            m_threadStack.clear();
+        }
+
+        void reset()
+        {
+            resetStacks();
+            m_globalVarMap.clear();
+            m_tags.clear();
         }
 
     private:
 
-        std::vector<fnCursorT,fnStackAllocatorT> m_fnStack;
+        std::vector<scopeCursorT,scopeStackAllocatorT> m_scopeStack;
         std::vector<recordT,varStackAllocatorT> m_varStack;
         std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
         common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
         common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
 
-        Error m_error;
+        size_t m_currentScopeIdx;
+        bool m_lockStack;
         LogLevel m_logLevel;
 };
 using Context=ContextT<>;
