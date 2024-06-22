@@ -58,7 +58,7 @@ inline memory_resource* get_default_resource() noexcept
 {return boost::container::pmr::get_default_resource();}
 
 template <typename T> using vector=std::vector<T, polymorphic_allocator<T>>;
-using string=std::basic_string<char,polymorphic_allocator<char>>;
+using string=std::basic_string<char,std::char_traits<char>,polymorphic_allocator<char>>;
 template <typename T> using list=std::list<T,polymorphic_allocator<T>>;
 #if defined (__APPLE__) || defined (BUILD_ANDROID)
 template <typename Key, typename Value> using map=boost::container::pmr::map<Key,Value>;
