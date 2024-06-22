@@ -172,6 +172,12 @@ using RecordT=std::pair<KeyT,ValueT>;
 
 using Record=RecordT<>;
 
+template <typename ValueT, typename KeyT>
+auto makeRecord(KeyT key, ValueT&& value)
+{
+    return std::make_pair(std::forward<KeyT>(key),std::forward<ValueT>(value));
+}
+
 HATN_LOGCONTEXT_NAMESPACE_END
 
 #endif // HATNLOGRECORD_H

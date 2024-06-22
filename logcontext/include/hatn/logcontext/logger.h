@@ -44,19 +44,19 @@ class LoggerBaseT
 
         static LogLevel contextLogLevel(
                 const LoggerBaseT& logger,
-                const contextT& ctx,
+                const contextT* ctx,
                 lib::string_view module=lib::string_view{}
             )
         {
             logger.lockRd();
 
             // init current level from context
-            auto level=ctx.logLevel();
+            auto level=ctx->logLevel();
 
             // figure out current level from tags
             for (auto&& tag: logger.tags())
             {
-                if (ctx.containsTag(tag.first))
+                if (ctx->containsTag(tag.first))
                 {
                     if (tag.second>level)
                     {
@@ -79,9 +79,9 @@ class LoggerBaseT
             }
 
             // figure out current level by stack function
-            if (!ctx.fnStack().empty())
+            if (!ctx->fnStack().empty())
             {
-                const auto& fn=ctx.fnStack().back();
+                const auto& fn=ctx->fnStack().back();
                 auto it=logger.functions().find(common::lib::string_view(fn.first));
                 if (it!=logger.functions().end())
                 {
@@ -106,7 +106,7 @@ class LoggerBaseT
         static bool passLog(
                 const LoggerBaseT& logger,
                 LogLevel level,
-                const contextT& ctx,
+                const contextT* ctx,
                 lib::string_view module=lib::string_view{}
             )
         {
@@ -236,9 +236,10 @@ using LoggerBase=LoggerBaseT<>;
 template <typename ContextT=Context>
 using LogHandlerT=std::function<void (
     LogLevel level,
-    const ContextT& ctx,
+    const ContextT* ctx,
     std::string msg,
-    lib::string_view module
+    lib::string_view module,
+    std::vector<Record> records
     )>;
 
 using LogHandler=LogHandlerT<>;
@@ -253,12 +254,13 @@ class LoggerTraitsHandlerT
 
         void log(
             LogLevel level,
-            const ContextT& ctx,
+            const ContextT* ctx,
             std::string msg,
-            lib::string_view module=lib::string_view{}
+            lib::string_view module=lib::string_view{},
+            std::vector<Record> records=std::vector<Record>{}
             )
         {
-            m_handler(level,ctx,std::move(msg),module);
+            m_handler(level,ctx,std::move(msg),module,std::move(records));
         }
 
     private:
@@ -281,12 +283,13 @@ class LoggerT : public LoggerBaseT<ContextT>,
 
         void log(
             LogLevel level,
-            const contextT& ctx,
+            const contextT* ctx,
             std::string msg,
-            lib::string_view module=lib::string_view{}
+            lib::string_view module=lib::string_view{},
+            std::vector<Record> records=std::vector<Record>{}
             )
         {
-            this->traits().log(level,ctx,std::move(msg),module);
+            this->traits().log(level,ctx,std::move(msg),module,std::move(records));
         }
 };
 
