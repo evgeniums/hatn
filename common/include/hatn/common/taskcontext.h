@@ -78,12 +78,12 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
         static DateTime generateId(TaskContextId& id);
 
-        DateTime startDateTime() const noexcept
+        DateTime startedAt() const noexcept
         {
             return m_datetime;
         }
 
-        void setStartDateTime(const DateTime& datetime) noexcept
+        void setStartedAt(const DateTime& datetime) noexcept
         {
             m_datetime=datetime;
         }
@@ -106,16 +106,44 @@ class TaskContextWrapper
 
         using type=T;
 
-        // Implement in derived class.
+        TaskContextWrapper(TaskContext* taskContext) : m_value(taskContext)
+        {}
 
-        // const T* value() const noexcept
-        // {
-        //     return &...;
-        // }
-        // T* value() noexcept
-        // {
-        //     return &...;
-        // }
+        const type* value() const noexcept
+        {
+            return &m_value;
+        }
+
+        type* value() noexcept
+        {
+            return &m_value;
+        }
+
+    private:
+
+        type m_value;
+};
+
+class TaskContextValue
+{
+    public:
+
+        TaskContextValue(TaskContext* taskContext) : m_taskCtx(taskContext)
+        {}
+
+        const TaskContext* taskCtx() const noexcept
+        {
+            return m_taskCtx;
+        }
+
+        TaskContext* taskCtx() noexcept
+        {
+            return m_taskCtx;
+        }
+
+    private:
+
+        TaskContext* m_taskCtx;
 };
 
 template <typename T>
@@ -165,8 +193,13 @@ class TaskContextT : public BaseTaskContextT
 
         using selfT=TaskContextT<ContextWrappersT,BaseTaskContextT>;
 
+        static ContextWrappersT constructWrappers(TaskContext* self)
+        {
+            return ContextWrappersT{hana::replicate<hana::tuple_tag>(self,hana::size(tupleToTupleCType<ContextWrappersT>{}))};
+        }
+
         TaskContextT():
-            m_wrappers(),
+            m_wrappers(constructWrappers(this)),
             m_refs(wrapperRefs())
         {}
 
@@ -292,7 +325,7 @@ struct TaskContextTraits
             }
         );
         auto wrappersC=hana::first(tc);
-        using wrappersT=std::decay_t<decltype(tupleCToTuple(wrappersC))>;
+        using wrappersT=common::tupleCToTupleType<std::decay_t<decltype(wrappersC)>>; // std::decay_t<decltype(tupleCToTuple(wrappersC))>;
         auto base=hana::second(tc);
         return hana::template_<TaskContextT>(hana::type_c<wrappersT>,base);
     }

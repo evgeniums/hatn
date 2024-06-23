@@ -104,14 +104,6 @@ class Result
         using type=T;
 
         /**
-         * @brief Constructor with value emplacement.
-         * @param args Arguments to value constructor.
-         */
-        template <typename ...Args>
-        Result(Args&& ...args) : m_value(std::forward<Args>(args)...)
-        {}
-
-        /**
          * @brief Constructor with value.
          * @param value Result value to wrap.
          */
@@ -163,6 +155,14 @@ class Result
                 throw ErrorException{commonError(CommonError::RESULT_NOT_ERROR)};
             }
         }
+
+        /**
+         * @brief Constructor with value emplacement.
+         * @param args Arguments to value constructor.
+         */
+        template <typename ...Args>
+        Result(Args&& ...args) : m_value(std::forward<Args>(args)...)
+        {}
 
         /**
          * @brief Move assignment operator.

@@ -115,7 +115,7 @@ using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
 
 template <typename Config=DefaultConfig,
          typename ThreadCursorDataT=ThreadCursorData>
-class ContextT
+class ContextT : public common::TaskContextValue
 {
     public:
 
@@ -137,8 +137,9 @@ class ContextT
         using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
         using tagSetAllocatorT=common::AllocatorOnStack<tagT,config::TagSetSize>;
 
-        ContextT()
-            :   m_currentScopeIdx(0),
+        ContextT(common::TaskContext* taskCtx)
+            :   TaskContextValue(taskCtx),
+                m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_logLevel(LogLevel::Default)
         {
@@ -318,19 +319,7 @@ class ContextWrapperT : public common::TaskContextWrapper<ContextT>
 {
     public:
 
-        const ContextT* value() const noexcept
-        {
-            return &m_context;
-        }
-
-        ContextT* value() noexcept
-        {
-            return &m_context;
-        }
-
-    private:
-
-        ContextT m_context;
+        using common::TaskContextWrapper<ContextT>::TaskContextWrapper;
 };
 using ContextWrapper=ContextWrapperT<>;
 

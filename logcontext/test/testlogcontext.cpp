@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(LogContext)
     HATN_COMMON_NAMESPACE::ThreadLocalContext<Context> tlCtx;
     BOOST_CHECK(tlCtx.value()==nullptr);
 
-    Context sl;
+    Context sl{nullptr};
     tlCtx.setValue(&sl);
     BOOST_CHECK(tlCtx.value()==&sl);
 
@@ -188,28 +188,6 @@ BOOST_AUTO_TEST_CASE(LogContext)
     BOOST_CHECK(tlCtx.value()==nullptr);
 }
 
-#if 0
-struct aaa
-{
-    aaa(int v):_v(v)
-    {
-        BOOST_TEST_MESSAGE(fmt::format("Ctor {}",v));
-    }
-
-    int operator() () const noexcept
-    {
-        return _v;
-    }
-
-    int _v;
-};
-
-#define AAA(v) aaa{v}()
-
-#define A1(V1,V2,V3) (V1 + V2 + V3)
-#define B1(b,V1,V2,V3) if (b) {auto c=(V1 + V2 + V3);std::ignore=c;}
-#endif
-
 class TestLoggerHandler : public LoggerHandler
 {
     public:
@@ -222,8 +200,10 @@ class TestLoggerHandler : public LoggerHandler
             HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
             ) override
         {
-            auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
-                                           // ctx.id(),
+            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={}, msg=\"{}\", module={}, records_count={}",
+                                           logLevelName(level),
+                                           ctx->taskCtx()->id().c_str(),
+                                           ctx->taskCtx()->startedAt().toIsoString(),
                                            msg,
                                            module,
                                            records.size()
@@ -311,22 +291,6 @@ BOOST_AUTO_TEST_CASE(Logger)
     HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
     ctx->afterThreadProcessing();
-
-#if 0
-    auto a1=A1(1,2,3);
-    auto a2=A1(AAA(1),AAA(2),AAA(3));
-    BOOST_TEST_MESSAGE("Enable b1");
-    B1(true,AAA(1),AAA(2),AAA(3));
-    BOOST_TEST_MESSAGE("Disable b1");
-    B1(false,AAA(1),AAA(2),AAA(3));
-    BOOST_TEST_MESSAGE("Done b1");
-
-    BOOST_TEST_MESSAGE("Enable b1");
-    B1(true,aaa{1}(),aaa{2}(),aaa{3}());
-    BOOST_TEST_MESSAGE("Disable b1");
-    B1(false,aaa{1}(),aaa{2}(),aaa{3}());
-    BOOST_TEST_MESSAGE("Done b1");
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

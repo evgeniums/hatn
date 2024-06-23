@@ -30,6 +30,7 @@ DateTime TaskContext::generateId(TaskContextId& id)
     auto dt=common::DateTime::millisecondsSinceEpoch();
     auto rand=common::Random::uniform(1,0xFFFFFF);
 
+    id.resize(id.capacity());
     fmt::format_to_n(id.data(),id.size(),"{:010x}{:04x}{:06x}",dt,s&0xFFFF,rand);
     return DateTime::fromEpochMs(dt);
 }
@@ -70,7 +71,7 @@ Result<DateTime> TaskContext::extractDateTime(const TaskContextId& id)
         return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }
 #else
-    auto r = std::from_chars(id.data(), id.data() + DateTimeLength, dtNum, 16);
+    auto r = std::from_chars(id.data(), id.data() + id.size(), dtNum, 16);
     if (r.ec != std::errc())
     {
         return CommonError::INVALID_DATETIME_FORMAT;
