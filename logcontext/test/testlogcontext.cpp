@@ -15,6 +15,8 @@
 
 /****************************************************************************/
 
+#include <fmt/chrono.h>
+
 #include <boost/test/unit_test.hpp>
 
 #include "hatn_test_config.h"
@@ -200,10 +202,15 @@ class TestLoggerHandler : public LoggerHandler
             HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
             ) override
         {
-            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={}, msg=\"{}\", module={}, records_count={}",
+            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, msg=\"{}\", module={}, records_count={}",
                                            logLevelName(level),
                                            ctx->taskCtx()->id().c_str(),
-                                           ctx->taskCtx()->startedAt().toIsoString(),
+#if __cplusplus < 201703L
+                                           ctx->taskCtx()->startedAt(),
+#else
+                                           std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt()),
+#endif
+                                           ctx->taskCtx()->finishMicroseconds(),
                                            msg,
                                            module,
                                            records.size()
@@ -220,13 +227,13 @@ class TestLoggerHandler : public LoggerHandler
             HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
         ) override
         {
-            auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
-                                           // ctx.id(),
-                                           msg,
-                                           module,
-                                           records.size()
-                                           );
-            BOOST_TEST_MESSAGE(str);
+            // auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
+            //                                // ctx.id(),
+            //                                msg,
+            //                                module,
+            //                                records.size()
+            //                                );
+            // BOOST_TEST_MESSAGE(str);
         }
 };
 

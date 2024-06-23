@@ -22,17 +22,18 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-DateTime TaskContext::generateId(TaskContextId& id)
+std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextId& id)
 {
     static std::atomic<uint64_t> seq{1};
 
     auto s=seq.fetch_add(1);
-    auto dt=common::DateTime::millisecondsSinceEpoch();
+    auto started=now();
+    auto millisSinceEpoch=std::chrono::duration_cast<std::chrono::milliseconds>(started.time_since_epoch()).count();
     auto rand=common::Random::uniform(1,0xFFFFFF);
 
     id.resize(id.capacity());
-    fmt::format_to_n(id.data(),id.size(),"{:010x}{:04x}{:06x}",dt,s&0xFFFF,rand);
-    return DateTime::fromEpochMs(dt);
+    fmt::format_to_n(id.data(),id.size(),"{:010x}{:04x}{:06x}",millisSinceEpoch,s&0xFFFF,rand);
+    return started;
 }
 
 //---------------------------------------------------------------
@@ -51,33 +52,34 @@ void TaskContext::afterThreadProcessing()
 
 //---------------------------------------------------------------
 
-Result<DateTime> TaskContext::extractDateTime(const TaskContextId& id)
+Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(const TaskContextId& id)
 {
     if (id.size()<id.capacity())
     {
         return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }
 
-    uint64_t dtNum{0};
+    uint64_t millisSinceEpoch{0};
 
 #if __cplusplus < 201703L
     try
     {
         std::string dtStr{id.data(), id.size()};
-        dtNum=std::stoll(dtStr,nullptr,16);
+        millisSinceEpoch=std::stoll(dtStr,nullptr,16);
     }
     catch(...)
     {
         return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }
 #else
-    auto r = std::from_chars(id.data(), id.data() + id.size(), dtNum, 16);
+    auto r = std::from_chars(id.data(), id.data() + id.size(), millisSinceEpoch, 16);
     if (r.ec != std::errc())
     {
         return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }
 #endif
-    return DateTime::fromNumber(dtNum);
+    auto dSinceEpoch=std::chrono::milliseconds(millisSinceEpoch);
+    return std::chrono::time_point<TaskContext::Clock>(dSinceEpoch);
 }
 
 //---------------------------------------------------------------

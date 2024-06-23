@@ -22,6 +22,8 @@
 #include <charconv>
 #endif
 
+#include <chrono>
+
 #include <boost/hana.hpp>
 
 namespace hana=boost::hana;
@@ -44,21 +46,29 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 {
     public:
 
-        TaskContext()
+        using Clock = std::chrono::system_clock;
+        using SteadyClock = std::chrono::steady_clock;
+
+        TaskContext() : m_steadyStarted(nowSteady())
         {
-            m_datetime=generateId(m_id);
+            m_started=generateId(m_id);
         }
 
-        TaskContext(TaskContextId id) : m_id(std::move(id))
+        TaskContext(TaskContextId id) : m_id(std::move(id)),
+                                        m_steadyStarted(nowSteady())
         {
-            auto dt=extractDateTime(m_id);
-            if (!dt)
+            auto msSinceEpoch=extractStarted(m_id);
+            if (!msSinceEpoch)
             {
-                m_datetime=dt.takeValue();
+                m_started=msSinceEpoch.value();
+            }
+            else
+            {
+                m_started=now();
             }
         }
 
-        static Result<DateTime> extractDateTime(const TaskContextId& id);
+        static Result<std::chrono::time_point<Clock>> extractStarted(const TaskContextId& id);
 
         using hana_tag=TaskContextTag;
 
@@ -76,27 +86,58 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             m_id=std::move(id);
         }
 
-        static DateTime generateId(TaskContextId& id);
-
-        DateTime startedAt() const noexcept
-        {
-            return m_datetime;
-        }
-
-        void setStartedAt(const DateTime& datetime) noexcept
-        {
-            m_datetime=datetime;
-        }
+        static std::chrono::time_point<Clock> generateId(TaskContextId& id);
 
         bool isValid() const noexcept
         {
-            return m_datetime.isValid() && m_id.size()==m_id.capacity();
+            return !m_id.isEmpty();
+        }
+
+        static std::chrono::time_point<Clock> now() noexcept
+        {
+            return Clock::now();
+        }
+
+        static std::chrono::time_point<SteadyClock> nowSteady() noexcept
+        {
+            return SteadyClock::now();
+        }
+
+        uint64_t elapsedMicroseconds() const noexcept
+        {
+            auto d=nowSteady()-m_steadyStarted;
+            return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
+        }
+
+        uint64_t finishMicroseconds() const noexcept
+        {
+            if (m_steadyFinished.time_since_epoch().count()==0)
+            {
+                auto self=const_cast<TaskContext*>(this);
+                self->finish();
+            }
+            auto d=m_steadyFinished-m_steadyStarted;
+            return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
+        }
+
+        void finish() noexcept
+        {
+            m_steadyFinished=nowSteady();
+        }
+
+        std::chrono::time_point<Clock> startedAt() const noexcept
+        {
+            return m_started;
         }
 
     private:
 
         TaskContextId m_id;
-        DateTime m_datetime;
+
+        std::chrono::time_point<Clock> m_started;
+
+        std::chrono::time_point<SteadyClock> m_steadyStarted;
+        std::chrono::time_point<SteadyClock> m_steadyFinished;
 };
 
 template <typename T>
