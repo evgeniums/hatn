@@ -18,6 +18,10 @@
 #ifndef HATNTASKCONTEXT_H
 #define HATNTASKCONTEXT_H
 
+#if __cplusplus >= 201703L
+#include <charconv>
+#endif
+
 #include <boost/hana.hpp>
 
 namespace hana=boost::hana;
@@ -29,6 +33,7 @@ namespace hana=boost::hana;
 #include <hatn/common/makeshared.h>
 #include <hatn/common/fixedbytearray.h>
 #include <hatn/common/databuf.h>
+#include <hatn/common/datetime.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -41,11 +46,19 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
         TaskContext()
         {
-            generateId(m_id);
+            m_datetime=generateId(m_id);
         }
 
         TaskContext(TaskContextId id) : m_id(std::move(id))
-        {}
+        {
+            auto dt=extractDateTime(m_id);
+            if (!dt)
+            {
+                m_datetime=dt.takeValue();
+            }
+        }
+
+        static Result<DateTime> extractDateTime(const TaskContextId& id);
 
         using hana_tag=TaskContextTag;
 
@@ -63,11 +76,27 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             m_id=std::move(id);
         }
 
-        static void generateId(DataBuf buf);
+        static DateTime generateId(TaskContextId& id);
+
+        DateTime startDateTime() const noexcept
+        {
+            return m_datetime;
+        }
+
+        void setStartDateTime(const DateTime& datetime) noexcept
+        {
+            m_datetime=datetime;
+        }
+
+        bool isValid() const noexcept
+        {
+            return m_datetime.isValid() && m_id.size()==m_id.capacity();
+        }
 
     private:
 
         TaskContextId m_id;
+        DateTime m_datetime;
 };
 
 template <typename T>
