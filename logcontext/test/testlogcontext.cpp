@@ -202,14 +202,15 @@ class TestLoggerHandler : public LoggerHandler
             HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
             ) override
         {
+#if __cplusplus < 201703L
+            auto start=ctx->taskCtx()->startedAt();
+#else
+            auto start=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt());
+#endif
             auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, msg=\"{}\", module={}, records_count={}",
                                            logLevelName(level),
                                            ctx->taskCtx()->id().c_str(),
-#if __cplusplus < 201703L
-                                           ctx->taskCtx()->startedAt(),
-#else
-                                           std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt()),
-#endif
+                                           start,
                                            ctx->taskCtx()->finishMicroseconds(),
                                            msg,
                                            module,
@@ -220,20 +221,29 @@ class TestLoggerHandler : public LoggerHandler
 
         void logError(
             LogLevel level,
-            Error ec,
+            const Error& ec,
             const Context* ctx,
             HATN_COMMON_NAMESPACE::pmr::string msg,
             lib::string_view module=lib::string_view{},
             HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
         ) override
         {
-            // auto str=HATN_CTX_MSG_FORMAT("level={}, msg=\"{}\", module={}, records_count={}",logLevelName(level),
-            //                                // ctx.id(),
-            //                                msg,
-            //                                module,
-            //                                records.size()
-            //                                );
-            // BOOST_TEST_MESSAGE(str);
+#if __cplusplus < 201703L
+            auto start=ctx->taskCtx()->startedAt();
+#else
+            auto start=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt());
+#endif
+            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, ec=\"{}\", msg=\"{}\", module={}, records_count={}",
+                                           logLevelName(level),
+                                           ctx->taskCtx()->id().c_str(),
+                                           start,
+                                           ctx->taskCtx()->finishMicroseconds(),
+                                           ec.message(),
+                                           msg,
+                                           module,
+                                           records.size()
+                                           );
+            BOOST_TEST_MESSAGE(str);
         }
 };
 
@@ -272,6 +282,9 @@ struct B1 : public TaskContext
 
 BOOST_AUTO_TEST_CASE(Logger)
 {
+    B1<A1,A2> b1;
+    std::ignore=b1;
+
     auto handler=std::make_shared<TestLoggerHandler>();
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
@@ -284,10 +297,13 @@ BOOST_AUTO_TEST_CASE(Logger)
 
     BOOST_TEST_MESSAGE("Log with context log level=INFO");
 
-    HATN_CTX_FATAL("Fatal without module");
-    HATN_CTX_FATAL("Fatal with module",sample_module);
-    HATN_CTX_ERROR("Error without module");
-    HATN_CTX_ERROR("Error with module",sample_module);
+    Error ec{CommonError::UNKNOWN};
+
+    HATN_CTX_FATAL(ec,"Fatal without module");
+    HATN_CTX_FATAL(ec,"Fatal with module",sample_module);
+    HATN_CTX_ERROR(ec,"Error without module");
+    HATN_CTX_ERROR(ec,"Error with module",sample_module);
+
     HATN_CTX_WARN("Warn without module");
     HATN_CTX_WARN("Warn with module",sample_module);
     HATN_CTX_INFO("Info without module");
@@ -300,10 +316,11 @@ BOOST_AUTO_TEST_CASE(Logger)
     BOOST_TEST_MESSAGE("Log with context log level=ANY");
     logCtx->setLogLevel(LogLevel::Any);
 
-    HATN_CTX_FATAL("Fatal without module");
-    HATN_CTX_FATAL("Fatal with module",sample_module);
-    HATN_CTX_ERROR("Error without module");
-    HATN_CTX_ERROR("Error with module",sample_module);
+    HATN_CTX_FATAL(ec,"Fatal without module");
+    HATN_CTX_FATAL(ec,"Fatal with module",sample_module);
+    HATN_CTX_ERROR(ec,"Error without module");
+    HATN_CTX_ERROR(ec,"Error with module",sample_module);
+
     HATN_CTX_WARN("Warn without module");
     HATN_CTX_WARN("Warn with module",sample_module);
     HATN_CTX_INFO("Info without module");
@@ -317,10 +334,11 @@ BOOST_AUTO_TEST_CASE(Logger)
     auto r2=makeRecord("r2",12345);
     auto r3=makeRecord("r3",HATN_COMMON_NAMESPACE::Date::currentUtc());
 
-    HATN_CTX_FATAL_RECORDS("Fatal with records without module",r1,r2,r3);
-    HATN_CTX_FATAL_RECORDS_M("Fatal with records with module",sample_module,r1,r2,r3);
-    HATN_CTX_ERROR_RECORDS("Error with records without module",r1,r2,r3);
-    HATN_CTX_ERROR_RECORDS_M("Error with records with module",sample_module,r1,r2,r3);
+    HATN_CTX_FATAL_RECORDS(ec,"Fatal with records without module",r1,r2,r3);
+    HATN_CTX_FATAL_RECORDS_M(ec,"Fatal with records with module",sample_module,r1,r2,r3);
+    HATN_CTX_ERROR_RECORDS(ec,"Error with records without module",r1,r2,r3);
+    HATN_CTX_ERROR_RECORDS_M(ec,"Error with records with module",sample_module,r1,r2,r3);
+
     HATN_CTX_WARN_RECORDS("Warn with records without module",r1,r2,r3);
     HATN_CTX_WARN_RECORDS_M("Warn with records with module",sample_module,r1,r2,r3);
     HATN_CTX_INFO_RECORDS("Info with records without module",r1,r2,r3);
@@ -331,9 +349,6 @@ BOOST_AUTO_TEST_CASE(Logger)
     HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
     ctx->afterThreadProcessing();
-
-    B1<A1,A2> b1;
-    std::ignore=b1;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

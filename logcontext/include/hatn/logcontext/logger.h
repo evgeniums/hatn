@@ -258,7 +258,7 @@ class LoggerHandlerT
 
         virtual void logError(
             LogLevel level,
-            Error ec,
+            const Error& ec,
             const ContextT* ctx,
             common::pmr::string msg,
             lib::string_view module=lib::string_view{},
@@ -289,14 +289,14 @@ class LoggerHandlerTraitsT
 
         void logError(
             LogLevel level,
-            Error ec,
+            const Error& ec,
             const ContextT* ctx,
             common::pmr::string msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
         {
-            m_handler->logError(level,std::move(ec),ctx,std::move(msg),module,std::move(records));
+            m_handler->logError(level,ec,ctx,std::move(msg),module,std::move(records));
         }
 
     private:
@@ -330,14 +330,14 @@ class LoggerT : public LoggerBaseT<ContextT>,
 
         void logError(
             LogLevel level,
-            Error ec,
+            const Error& ec,
             const ContextT* ctx,
             common::pmr::string msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
         {
-            this->traits().log(level,std::move(ec),ctx,std::move(msg),module,std::move(records));
+            this->traits().logError(level,ec,ctx,std::move(msg),module,std::move(records));
         }
 };
 
