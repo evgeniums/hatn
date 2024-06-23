@@ -68,9 +68,15 @@ bool ObjectId::parse(const common::ConstDataBuf &buf) noexcept
     }
 
 #if __cplusplus < 201703L
-
-    static_assert(false,"C++14 not supported for db");
-
+    try
+    {
+        std::string dtStr{buf.data(), DateTimeLength};
+        m_timepoint=std::stoll(dtStr,nullptr,16);
+    }
+    catch(...)
+    {
+        return false;
+    }
 #else
 
     auto r = std::from_chars(buf.data(), buf.data() + DateTimeLength, m_timepoint, 16);
