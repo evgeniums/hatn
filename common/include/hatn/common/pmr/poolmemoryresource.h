@@ -36,7 +36,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 namespace pmr {
 
 /**
- * @brief Memory resource that uses pools as backend
+ * @brief Memory resource that uses pools as backend.
  *
  * Memory pool will be created on the first allocation request if createEmbeddedPool is set.
  * If there is no embedded pool and createEmbeddedPool is not set

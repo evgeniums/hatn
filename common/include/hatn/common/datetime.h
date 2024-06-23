@@ -983,7 +983,7 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Construct datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
          * @param tz Timezone.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime.
          */
         static DateTime fromEpochMs(uint64_t milliseconds, int8_t tz=0);
 
