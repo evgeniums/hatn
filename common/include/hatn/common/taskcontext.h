@@ -193,13 +193,13 @@ class TaskContextT : public BaseTaskContextT
 
         using selfT=TaskContextT<ContextWrappersT,BaseTaskContextT>;
 
-        static ContextWrappersT constructWrappers(TaskContext* self)
+        static auto replicateThis(TaskContext* self)
         {
-            return ContextWrappersT{hana::replicate<hana::tuple_tag>(self,hana::size(tupleToTupleCType<ContextWrappersT>{}))};
+            return hana::replicate<hana::tuple_tag>(self,hana::size(tupleToTupleCType<ContextWrappersT>{}));
         }
 
         TaskContextT():
-            m_wrappers(constructWrappers(this)),
+            m_wrappers(replicateThis(this)),
             m_refs(wrapperRefs())
         {}
 

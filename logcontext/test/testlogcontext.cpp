@@ -230,6 +230,39 @@ class TestLoggerHandler : public LoggerHandler
         }
 };
 
+struct A1
+{
+    A1(TaskContext*)
+    {}
+
+    A1(A1 &&)
+    {
+        BOOST_TEST_MESSAGE("A1 move construtor");
+    }
+};
+
+struct A2
+{
+    A2(TaskContext*)
+    {}
+};
+
+template <typename ...Types>
+struct B1 : public TaskContext
+{
+    using type=hana::tuple<Types...>;
+
+    static auto replicateThis(TaskContext* self)
+    {
+        return hana::replicate<hana::tuple_tag>(self,hana::size_t<sizeof...(Types)>{});
+    }
+
+    B1() : fields(replicateThis(this))
+    {}
+
+    type fields;
+};
+
 BOOST_AUTO_TEST_CASE(Logger)
 {
     auto handler=std::make_shared<TestLoggerHandler>();
@@ -291,6 +324,9 @@ BOOST_AUTO_TEST_CASE(Logger)
     HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
     ctx->afterThreadProcessing();
+
+    B1<A1,A2> b1;
+    std::ignore=b1;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

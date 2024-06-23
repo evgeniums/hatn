@@ -149,6 +149,12 @@ class ContextT : public common::TaskContextValue
             m_tags.reserve(config::TagSetSize);
         }
 
+        ~ContextT()=default;
+        ContextT(ContextT&&)=delete;
+        ContextT(const ContextT&)=delete;
+        ContextT& operator=(ContextT&&)=delete;
+        ContextT& operator=(const ContextT&)=delete;
+
         void enterScope(const char* name)
         {
             m_currentScopeIdx++;
