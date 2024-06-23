@@ -74,7 +74,7 @@ Result<DateTime> TaskContext::extractDateTime(const TaskContextId& id)
     auto r = std::from_chars(id.data(), id.data() + id.size(), dtNum, 16);
     if (r.ec != std::errc())
     {
-        return CommonError::INVALID_DATETIME_FORMAT;
+        return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }
 #endif
     return DateTime::fromNumber(dtNum);

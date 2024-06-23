@@ -119,8 +119,24 @@ class Result
          * @throws ErrorException if error is null.
          */
         Result(
-            Error error
+            Error&& error
             ) : m_error(std::move(error))
+        {
+            if (m_error.isNull())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_NOT_ERROR)};
+            }
+        }
+
+        /**
+         * @brief Constructor with error.
+         * @param error Result error.
+         *
+         * @throws ErrorException if error is null.
+         */
+        Result(
+            const Error& error
+            ) : m_error(error)
         {
             if (m_error.isNull())
             {
