@@ -24,31 +24,45 @@
 #include <hatn/common/error.h>
 #include <hatn/db/db.h>
 
+#define HATN_DB_ERRORS(Do) \
+    Do(DbError,OK,_TR("OK")) \
+    Do(DbError,DB_ALREADY_OPEN,_TR("database connection already open","db")) \
+    Do(DbError,DB_OPEN_FAILED,_TR("failed to open database connection","db")) \
+    Do(DbError,DB_CLOSE_FAILED,_TR("failed to close database connection","db")) \
+    Do(DbError,DB_CREATE_FAILED,_TR("failed to create database","db")) \
+    Do(DbError,DB_DESTROY_FAILED,_TR("failed to destroy database","db")) \
+    Do(DbError,DB_NOT_OPEN,_TR("database connection not open","db")) \
+    Do(DbError,MODEL_NOT_FOUND,_TR("model not found","db")) \
+    Do(DbError,SCHEMA_NOT_FOUND,_TR("schema not found","db")) \
+    Do(DbError,SCHEMA_NOT_REGISTERED,_TR("schema not registered","db")) \
+    Do(DbError,PARTITION_NOT_FOUND,_TR("partition not found","db")) \
+    Do(DbError,COLLECTION_NOT_FOUND,_TR("collection not found","db")) \
+    Do(DbError,DB_READ_ONLY,_TR("invalid request for read only database","db")) \
+    Do(DbError,TX_BEGIN_FAILED,_TR("failed to validate configuration object","db")) \
+    Do(DbError,TX_COMMIT_FAILED,_TR("failed to commit database transaction","db")) \
+    Do(DbError,WRITE_OBJECT_FAILED,_TR("failed to write object to database","db")) \
+    Do(DbError,PARTITION_CREATE_FALIED,_TR("failed to create database partition","db")) \
+    Do(DbError,PARTITION_DELETE_FALIED,_TR("failed to delete database partition","db")) \
+    Do(DbError,PARTITION_LIST_FAILED,_TR("failed to list database partitions","db")) \
+
 HATN_DB_NAMESPACE_BEGIN
 
 //! Error codes of hatndb lib.
 enum class DbError : int
 {
-    OK=static_cast<int>(common::CommonError::OK),
-    DB_ALREADY_OPEN,
-    DB_OPEN_FAILED,
-    DB_CLOSE_FAILED,
-    DB_CREATE_FAILED,
-    DB_DESTROY_FAILED,
-    DB_NOT_OPEN,
-    MODEL_NOT_FOUND,
-    SCHEMA_NOT_FOUND,
-    SCHEMA_NOT_REGISTERED,
-    PARTITION_NOT_FOUND,
-    COLLECTION_NOT_FOUND,
-    DB_READ_ONLY,
-    TX_BEGIN_FAILED,
-    TX_COMMIT_FAILED,
-    WRITE_OBJECT_FAILED,
-    PARTITION_CREATE_FALIED,
-    PARTITION_DELETE_FALIED,
-    PARTITION_LIST_FAILED
+    HATN_DB_ERRORS(HATN_ERROR_CODE)
 };
+
+//! db errors codes as strings.
+constexpr const char* const DbErrorStrings[] = {
+    HATN_DB_ERRORS(HATN_ERROR_STR)
+};
+
+//! db error code to string.
+inline const char* dbErrorString(DbError code)
+{
+    return errorString(code,DbErrorStrings);
+}
 
 HATN_DB_NAMESPACE_END
 
