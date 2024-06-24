@@ -86,17 +86,30 @@ class HATN_COMMON_EXPORT NativeError
         //! Get error message.
         std::string message() const
         {
+            FmtAllocatedBufferChar buf;
+            message(buf);
+            return fmtBufToString(buf);
+        }
+
+        void message(FmtAllocatedBufferChar& buf) const
+        {
             auto msg=nativeMessage();
             if (m_prevError)
             {
-                auto prevMsg=m_prevError->message();
                 if (msg.empty())
                 {
-                    return prevMsg;
+                    m_prevError->message(buf);
                 }
-                msg=fmt::format("{}: {}", msg, prevMsg);
+                else
+                {
+                    fmt::format_to(std::back_inserter(buf),"{}: ", msg);
+                    m_prevError->message(buf);
+                }
             }
-            return msg;
+            else
+            {
+                buf.append(msg);
+            }
         }
 
         //! Get native error code.

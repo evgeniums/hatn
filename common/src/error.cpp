@@ -103,26 +103,18 @@ const boost::system::error_category* Error::nativeBoostCategory(const std::share
 
 //---------------------------------------------------------------
 
-std::string Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError) const
+void Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const
 {
-    auto msg=nativeError->message();
     if (nativeError->category()!=nullptr)
     {
-        if (!msg.empty())
-        {
-            return fmt::format("{}: {}", nativeError->category()->message(m_code), msg);
-        }
-        return nativeError->category()->message(m_code);
+        fmt::format_to(std::back_inserter(buf),"{}: ", nativeError->category()->message(m_code));
     }
     else if (nativeError->boostCategory()!=nullptr)
     {
-        if (!msg.empty())
-        {
-            return fmt::format("{}: {}", nativeError->boostCategory()->message(m_code), msg);
-        }
-        return nativeError->boostCategory()->message(m_code);
+        fmt::format_to(std::back_inserter(buf),"{}: ", nativeError->boostCategory()->message(m_code));
     }
-    return msg;
+
+    nativeError->message(buf);
 }
 
 //---------------------------------------------------------------

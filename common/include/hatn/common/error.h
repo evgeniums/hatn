@@ -28,6 +28,7 @@
 #include <hatn/common/common.h>
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/errorcategory.h>
+#include <hatn/common/format.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -86,31 +87,44 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         //! Get message
         inline std::string message() const
         {
+            FmtAllocatedBufferChar buf;
+            message(buf);
+            return fmtBufToString(buf);
+        }
+
+        inline void message(FmtAllocatedBufferChar& buf) const
+        {
             switch (lib::variantIndex(m_extended))
             {
                 case(0):
                 {
                     auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
-                    return systemCat->message(m_code);
+                    buf.append(systemCat->message(m_code));
+                    return;
                 }
+                break;
 
                 case(1):
                 {
                     auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
-                    return boostCat->message(m_code);
+                    buf.append(lib::string_view(boostCat->message(m_code)));
+                    return;
                 }
+                break;
 
                 case(2):
                 {
                     const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
                     if (nativeError)
                     {
-                        return nativeMessage(nativeError);
+                        nativeMessage(nativeError,buf);
                     }
+                    return;
                 }
+                break;
             }
 
-            return CommonErrorCategory::getCategory().message(m_code);
+            buf.append(CommonErrorCategory::getCategory().message(m_code));
         }
 
         //! Get value
@@ -265,7 +279,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         bool compareNative(const Error& other) const noexcept;
         const std::error_category* nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
         const boost::system::error_category* nativeBoostCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
-        std::string nativeMessage(const std::shared_ptr<NativeError>& nativeError) const;
+        void nativeMessage(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
 
         int32_t m_code;
 
