@@ -24,15 +24,29 @@
 #include <hatn/common/error.h>
 #include <hatn/dataunit/dataunit.h>
 
+#define HATN_DATAUNIT_ERRORS(Do) \
+    Do(UnitError,OK,_TR("OK")) \
+    Do(UnitError,PARSE_ERROR,_TR("failed to parse object","dataunit")) \
+    Do(UnitError,SERIALIZE_ERROR,_TR("failed to serialize object"))
+
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //! Error codes of hatndataunit lib.
 enum class UnitError : int
 {
-    OK=static_cast<int>(common::CommonError::OK),
-    PARSE_ERROR=1,
-    SERIALIZE_ERROR=2
+    HATN_DATAUNIT_ERRORS(HATN_ERROR_CODE)
 };
+
+//! Unit errors codes as strings.
+constexpr const char* const UnitErrorStrings[] = {
+    HATN_DATAUNIT_ERRORS(HATN_ERROR_STR)
+};
+
+//! Unit error code to string.
+inline const char* unitErrorString(UnitError code)
+{
+    return errorString(code,UnitErrorStrings);
+}
 
 enum class RawErrorCode : int
 {

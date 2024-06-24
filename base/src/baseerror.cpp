@@ -38,53 +38,7 @@ std::string BaseErrorCategory::message(int code) const
     std::string result;
     switch (code)
     {
-        case (static_cast<int>(BaseError::OK)):
-            result=common::CommonErrorCategory::getCategory().message(code);
-            break;
-
-        case (static_cast<int>(BaseError::VALUE_NOT_SET)):
-            result=_TR("value not set","base");
-            break;
-
-        case (static_cast<int>(BaseError::INVALID_TYPE)):
-            result=_TR("invalid type","base");
-            break;
-
-        case (static_cast<int>(BaseError::STRING_NOT_NUMBER)):
-            result=_TR("cannot convert string to number","base");
-            break;
-
-        case (static_cast<int>(BaseError::UNSUPPORTED_CONFIG_FORMAT)):
-            result=_TR("configuration format not supported","base");
-            break;
-
-        case (static_cast<int>(BaseError::CONFIG_PARSE_ERROR)):
-            result=_TR("failed to parse configuration file","base");
-            break;
-
-        case (static_cast<int>(BaseError::CONFIG_LOAD_ERROR)):
-            result=_TR("failed to load configuration file","base");
-            break;
-
-        case (static_cast<int>(BaseError::CONFIG_SAVE_ERROR)):
-            result=_TR("failed to save configuration file","base");
-            break;
-
-        case (static_cast<int>(BaseError::UNKKNOWN_CONFIG_MERGE_MODE)):
-            result=_TR("unknown merge mode","base");
-            break;
-
-        case (static_cast<int>(BaseError::CONFIG_OBJECT_LOAD_ERROR)):
-            result=_TR("failed to load configuration object","base");
-            break;
-
-        case (static_cast<int>(BaseError::CONFIG_OBJECT_VALIDATE_ERROR)):
-            result=_TR("failed to validate configuration object","base");
-            break;
-
-        case (static_cast<int>(BaseError::UNSUPPORTED_TYPE)):
-            result=_TR("unsupported type","base");
-            break;
+        HATN_BASE_ERRORS(HATN_ERROR_MESSAGE)
 
         default:
             result=_TR("unknown error");
