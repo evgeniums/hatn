@@ -153,60 +153,8 @@ std::string CommonErrorCategory::message(int code) const
     std::string result;
     switch (code)
     {
-        case (static_cast<int>(CommonError::OK)):
-            result=_TR("OK");
-        break;
-        case (static_cast<int>(CommonError::INVALID_SIZE)):
-            result=_TR("invalid size");
-        break;
-        case (static_cast<int>(CommonError::INVALID_ARGUMENT)):
-            result=_TR("invalid argument");
-        break;
-        case (static_cast<int>(CommonError::UNSUPPORTED)):
-            result=_TR("operation is not supported");
-        break;
-        case (static_cast<int>(CommonError::INVALID_FILENAME)):
-            result=_TR("invalide file name");
-        break;
-        case (static_cast<int>(CommonError::FILE_FLUSH_FAILED)):
-            result=_TR("failed to flush file");
-        break;
-        case (static_cast<int>(CommonError::FILE_ALREADY_OPEN)):
-            result=_TR("file is already open");
-        break;
-        case (static_cast<int>(CommonError::FILE_WRITE_FAILED)):
-            result=_TR("failed to write file");
-        break;
-        case (static_cast<int>(CommonError::FILE_NOT_OPEN)):
-            result=_TR("file not open");
-        break;
-        case (static_cast<int>(CommonError::TIMEOUT)):
-            result=_TR("operation timeout");
-        break;
-        case (static_cast<int>(CommonError::NOT_IMPLEMENTED)):
-            result=_TR("requested operation with provided arguments not implemented yet");
-            break;
-        case (static_cast<int>(CommonError::RESULT_ERROR)):
-            result=_TR("cannot get value of error result");
-            break;
-        case (static_cast<int>(CommonError::RESULT_NOT_ERROR)):
-            result=_TR("cannot move not error result");
-            break;
-        case (static_cast<int>(CommonError::NOT_FOUND)):
-            result=_TR("not found");
-            break;
-        case (static_cast<int>(CommonError::INVALID_TIME_FORMAT)):
-            result=_TR("invalid time format");
-            break;
-        case (static_cast<int>(CommonError::INVALID_DATE_FORMAT)):
-            result=_TR("invalid date format");
-            break;
-        case (static_cast<int>(CommonError::INVALID_DATETIME_FORMAT)):
-            result=_TR("invalid datetime format");
-            break;
-        case (static_cast<int>(CommonError::INVALID_DATERANGE_FORMAT)):
-            result=_TR("invalid format of date range");
-            break;
+
+        HATN_COMMON_ERRORS(HATN_ERROR_MESSAGE)
 
         default:
             result=_TR("unknown error");

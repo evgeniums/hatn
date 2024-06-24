@@ -7,7 +7,7 @@
 */
 
 /****************************************************************************/
-/** @file common/commonerrorcategory.h
+/** @file common/errorcategory.h
   *
   *     Contains declarations of error category for hatncommon lib.
   *
@@ -22,33 +22,9 @@
 #include <system_error>
 
 #include <hatn/common/common.h>
+#include <hatn/common/commonerrorcodes.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
-
-//! Common errors
-enum class CommonError : int
-{
-    UNKNOWN=-1,
-    OK=0,
-    INVALID_SIZE=1,
-    INVALID_ARGUMENT=2,
-    UNSUPPORTED=3,
-    INVALID_FILENAME=4,
-    FILE_FLUSH_FAILED=5,
-    FILE_ALREADY_OPEN=6,
-    FILE_WRITE_FAILED=7,
-    FILE_READ_FAILED=8,
-    FILE_NOT_OPEN=9,
-    TIMEOUT=10,
-    RESULT_ERROR=11,
-    RESULT_NOT_ERROR=12,
-    NOT_IMPLEMENTED=13,
-    NOT_FOUND=14,
-    INVALID_TIME_FORMAT=15,
-    INVALID_DATE_FORMAT=16,
-    INVALID_DATETIME_FORMAT=17,
-    INVALID_DATERANGE_FORMAT=18
-};
 
 //! Error category for hatncommonlib.
 class HATN_COMMON_EXPORT CommonErrorCategory : public std::error_category
