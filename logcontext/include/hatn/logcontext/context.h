@@ -27,6 +27,7 @@
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/runonscopeexit.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
@@ -332,5 +333,21 @@ using ContextWrapper=ContextWrapperT<>;
 HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
+
+#define HATN_CTX_IF() \
+    if (HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()!=nullptr)
+
+#define HATN_CTX_SCOPE_DEFER() \
+    auto _onExit=[ScopeCtx]{ \
+        ScopeCtx->leaveScope();\
+    }; \
+    auto _scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_onExit),ScopeCtx!=nullptr);\
+    std::ignore=_scopeGuard;
+
+#define HATN_CTX_SCOPE(Name) \
+    auto ScopeCtx=HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(); \
+    HATN_SCOPE_IF() \
+    { ScopeCtx->enterScope(Name); } \
+    HATN_SCOPE_DEFER()
 
 #endif // HATNLOGCONTEXT_H
