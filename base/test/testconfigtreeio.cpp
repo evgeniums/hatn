@@ -35,7 +35,7 @@ namespace {
 
 void expectedError(const Error& ec, const std::string& msg=std::string())
 {
-    BOOST_TEST_MESSAGE(fmt::format("Expeceted error: {}",ec.message()));
+    BOOST_TEST_MESSAGE(fmt::format("Expected error: {}",ec.message()));
     if (!msg.empty())
     {
         BOOST_CHECK_EQUAL(msg,ec.message());
