@@ -123,11 +123,9 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             return Clock::now();
         }
 
-        std::chrono::time_point<Clock> now() noexcept
+        std::chrono::time_point<Clock> now() const noexcept
         {
-            auto tp=nowUtc();
-            adjustTz(tp);
-            return tp;
+            return adjustTz(nowUtc());
         }
 
         static std::chrono::time_point<SteadyClock> nowSteady() noexcept
@@ -160,15 +158,6 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
         std::chrono::time_point<Clock> startedAt() const noexcept
         {
             return m_started;
-        }
-
-        static std::chrono::time_point<Clock> adjustTp(const std::chrono::time_point<Clock>& val)
-        {
-#if __cplusplus < 201703L
-            return val;
-#else
-            return std::chrono::floor<std::chrono::microseconds>(val);
-#endif
         }
 
     private:

@@ -58,15 +58,18 @@ class StreamLoggerT : public LoggerHandlerT<ContextT>
         {
             common::FmtAllocatedBufferChar buf;
 
+#if __cplusplus >= 201703L
+            auto tp=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->now());
+#else
+            auto tp=ctx->taskCtx()->now();
+#endif
             fmt::format_to(std::back_inserter(buf),"{:%Y%m%dT%H:%M:%S}"
                                                     " lvl={}"
-                                                    " ctx={}",
-                           ctx->taskCtx()->adjustTp(
-                               ctx->taskCtx()->adjustTz(ctx->taskCtx()->startedAt())
-                           ),
-                           logLevelName(level),
-                           ctx->taskCtx()->id().c_str()
+                                                    " ctx=",
+                           tp,
+                           logLevelName(level)
                         );
+            buf.append(ctx->taskCtx()->id());
             if (ec!=nullptr)
             {
                 buf.append(lib::string_view(" err=\""));
