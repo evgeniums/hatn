@@ -798,7 +798,7 @@ class HATN_COMMON_EXPORT DateTime
         };
 
         //! Default ctor.
-        DateTime():m_tz(0)
+        DateTime():m_tz(m_defaultTz)
         {}
 
         /**
@@ -975,9 +975,29 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime currentLocal();
 
+        /**
+         * @brief Get current datetime for time zone.
+         * @return Current datetime in specified time zone.
+         */
+        static DateTime current(int8_t tz);
+
+        /**
+         * @brief Get current datetime.
+         * @return Current datetime in default time zone.
+         */
+        static DateTime current();
+
+        static void setDefaultTz(int8_t tz);
+
+        static int8_t defaultTz() noexcept;
+
         void loadCurrentUtc();
 
         void loadCurrentLocal();
+
+        void loadCurrent(int8_t tz);
+
+        void loadCurrent();
 
         /**
          * @brief Construct datetime from milliseconds since epoch.
@@ -1395,6 +1415,8 @@ class HATN_COMMON_EXPORT DateTime
         Date m_date;
         Time m_time;
         int8_t m_tz;
+
+        static int8_t m_defaultTz;
 };
 
 /**

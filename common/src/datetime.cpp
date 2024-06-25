@@ -635,6 +635,23 @@ Time Time::currentLocal()
 
 /**************************** DateTime ******************************/
 
+int8_t DateTime::m_defaultTz=0;
+
+//---------------------------------------------------------------
+
+void DateTime::setDefaultTz(int8_t tz)
+{
+    HATN_CHECK_THROW(validateTz(tz))
+    m_defaultTz=tz;
+}
+
+//---------------------------------------------------------------
+
+int8_t DateTime::defaultTz() noexcept
+{
+    return m_defaultTz;
+}
+
 //---------------------------------------------------------------
 
 void DateTime::serialize(FmtAllocatedBufferChar &buf, bool withMilliseconds) const
@@ -776,6 +793,41 @@ void DateTime::loadCurrentLocal()
     m_date=makeDate(localDt.date());
     m_time=makeTime(localDt);
     m_tz=local.second;
+}
+
+//---------------------------------------------------------------
+
+DateTime DateTime::current(int8_t tz)
+{
+    auto utc=boost::posix_time::microsec_clock::universal_time();
+    DateTime dt{makeDate(utc.date()),makeTime(utc),tz};
+    dt.addHours(tz);
+    return dt;
+}
+
+//---------------------------------------------------------------
+
+DateTime DateTime::current()
+{
+    return current(m_defaultTz);
+}
+
+//---------------------------------------------------------------
+
+void DateTime::loadCurrent(int8_t tz)
+{
+    auto utc=boost::posix_time::microsec_clock::universal_time();
+    m_date=makeDate(utc.date());
+    m_time=makeTime(utc);
+    m_tz=tz;
+    addHours(tz);
+}
+
+//---------------------------------------------------------------
+
+void DateTime::loadCurrent()
+{
+    loadCurrent(m_defaultTz);
 }
 
 //---------------------------------------------------------------
