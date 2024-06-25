@@ -142,7 +142,10 @@ SET (HEADERS
     include/hatn/common/singleton.h
     include/hatn/common/runonscopeexit.h
 
+    include/hatn/common/date.h
+    include/hatn/common/time.h
     include/hatn/common/datetime.h
+    include/hatn/common/daterange.h
 
     include/hatn/common/meta/consttraits.h
     include/hatn/common/meta/pointertraits.h

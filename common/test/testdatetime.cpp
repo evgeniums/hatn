@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
+#include <hatn/common/daterange.h>
 
 HATN_USING
 HATN_COMMON_USING
