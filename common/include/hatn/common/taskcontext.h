@@ -49,13 +49,18 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
         using Clock = std::chrono::system_clock;
         using SteadyClock = std::chrono::steady_clock;
 
-        TaskContext() : m_steadyStarted(nowSteady())
+        TaskContext(int8_t tz=DateTime::defaultTz())
+                              : m_steadyStarted(nowSteady()),
+                                m_tz(tz)
         {
             m_started=generateId(m_id);
+            adjustTz(m_started);
         }
 
-        TaskContext(TaskContextId id) : m_id(std::move(id)),
-                                        m_steadyStarted(nowSteady())
+        TaskContext(TaskContextId id, int8_t tz=DateTime::defaultTz())
+                                : m_id(std::move(id)),
+                                  m_steadyStarted(nowSteady()),
+                                  m_tz(tz)
         {
             auto msSinceEpoch=extractStarted(m_id);
             if (!msSinceEpoch)
@@ -64,8 +69,28 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             }
             else
             {
-                m_started=now();
+                m_started=nowUtc();
             }
+            adjustTz(m_started);
+        }
+
+        std::chrono::time_point<Clock> adjustTz(const std::chrono::time_point<Clock>& tp) const
+        {
+            if (m_tz!=0)
+            {
+                return tp+std::chrono::hours(m_tz);
+            }
+            return tp;
+        }
+
+        void setTz(int8_t tz) noexcept
+        {
+            m_tz=tz;
+        }
+
+        int8_t tz() const noexcept
+        {
+            return m_tz;
         }
 
         static Result<std::chrono::time_point<Clock>> extractStarted(const TaskContextId& id);
@@ -93,9 +118,16 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             return !m_id.isEmpty();
         }
 
-        static std::chrono::time_point<Clock> now() noexcept
+        static std::chrono::time_point<Clock> nowUtc() noexcept
         {
             return Clock::now();
+        }
+
+        std::chrono::time_point<Clock> now() noexcept
+        {
+            auto tp=nowUtc();
+            adjustTz(tp);
+            return tp;
         }
 
         static std::chrono::time_point<SteadyClock> nowSteady() noexcept
@@ -130,6 +162,15 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             return m_started;
         }
 
+        static std::chrono::time_point<Clock> adjustTp(const std::chrono::time_point<Clock>& val)
+        {
+#if __cplusplus < 201703L
+            return val;
+#else
+            return std::chrono::floor<std::chrono::microseconds>(val);
+#endif
+        }
+
     private:
 
         TaskContextId m_id;
@@ -138,6 +179,8 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
         std::chrono::time_point<SteadyClock> m_steadyStarted;
         std::chrono::time_point<SteadyClock> m_steadyFinished;
+
+        int8_t m_tz;
 };
 
 template <typename T>

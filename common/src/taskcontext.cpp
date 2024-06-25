@@ -27,7 +27,7 @@ std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextI
     static std::atomic<uint64_t> seq{1};
 
     auto s=seq.fetch_add(1);
-    auto started=now();
+    auto started=nowUtc();
     auto millisSinceEpoch=std::chrono::duration_cast<std::chrono::milliseconds>(started.time_since_epoch()).count();
     auto rand=common::Random::uniform(1,0xFFFFFF);
 
@@ -40,14 +40,12 @@ std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextI
 
 void TaskContext::beforeThreadProcessing()
 {
-    //! @todo Keep in local thread
 }
 
 //---------------------------------------------------------------
 
 void TaskContext::afterThreadProcessing()
 {
-    //! @todo Move from local thread
 }
 
 //---------------------------------------------------------------
