@@ -10,20 +10,18 @@
 /*
 
 */
-/** @file logcontext/context.сpp
+/** @file logcontext/streamlogger.сpp
   *
-  *  Contains definitions of log context.
+  * Contains definition of stream logger.
   *
   */
 
 #include <hatn/logcontext/logcontext.h>
-#include <hatn/logcontext/context.h>
+#include <hatn/logcontext/streamlogger.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template class HATN_LOGCONTEXT_EXPORT ContextT<DefaultConfig,ThreadCursorData>;
-template class HATN_LOGCONTEXT_EXPORT ContextWrapperT<Context>;
+template class HATN_LOGCONTEXT_EXPORT StreamLoggerT<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context)

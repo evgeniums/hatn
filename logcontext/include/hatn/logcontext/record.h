@@ -149,7 +149,9 @@ struct ValueSerializer
     template <size_t Length>
     void operator()(const common::FixedByteArray<Length>& v)
     {
+        buf.append(lib::string_view("\""));
         buf.append(v);
+        buf.append(lib::string_view("\""));
     }
 };
 

@@ -29,6 +29,7 @@
 #include <hatn/logcontext/record.h>
 #include <hatn/logcontext/context.h>
 #include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/streamlogger.h>
 
 HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
@@ -166,7 +167,7 @@ BOOST_AUTO_TEST_CASE(FormatLogValue)
     BOOST_CHECK_EQUAL(str,r.toString());
 }
 
-BOOST_AUTO_TEST_CASE(LogContext)
+BOOST_AUTO_TEST_CASE(CreateLogContext)
 {
     HATN_COMMON_NAMESPACE::ThreadLocalContext<Context> tlCtx;
     BOOST_CHECK(tlCtx.value()==nullptr);
@@ -190,6 +191,7 @@ BOOST_AUTO_TEST_CASE(LogContext)
     BOOST_CHECK(tlCtx.value()==nullptr);
 }
 
+#if 0
 class TestLoggerHandler : public LoggerHandler
 {
     public:
@@ -207,7 +209,7 @@ class TestLoggerHandler : public LoggerHandler
 #else
             auto start=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt());
 #endif
-            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, msg=\"{}\", module={}, records_count={}",
+            auto str=fmt::format("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, msg=\"{}\", module={}, records_count={}",
                                            logLevelName(level),
                                            ctx->taskCtx()->id().c_str(),
                                            start,
@@ -233,7 +235,7 @@ class TestLoggerHandler : public LoggerHandler
 #else
             auto start=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->startedAt());
 #endif
-            auto str=HATN_CTX_MSG_FORMAT("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, ec=\"{}\", msg=\"{}\", module={}, records_count={}",
+            auto str=fmt::format("level={}, ctx={}, start={:%Y%m%dT%H:%M:%S}, elapsed={}, ec=\"{}\", msg=\"{}\", module={}, records_count={}",
                                            logLevelName(level),
                                            ctx->taskCtx()->id().c_str(),
                                            start,
@@ -246,6 +248,7 @@ class TestLoggerHandler : public LoggerHandler
             BOOST_TEST_MESSAGE(str);
         }
 };
+#endif
 
 struct A1
 {
@@ -280,18 +283,19 @@ struct B1 : public TaskContext
     type fields;
 };
 
-BOOST_AUTO_TEST_CASE(Logger)
+BOOST_AUTO_TEST_CASE(TestStreamLogger)
 {
     B1<A1,A2> b1;
     std::ignore=b1;
 
-    auto handler=std::make_shared<TestLoggerHandler>();
+    auto handler=std::make_shared<StreamLogger>();
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
 
     auto& wrapper=ctx->get<ContextWrapper>();
     auto logCtx=wrapper.value();
+    logCtx->taskCtx()->setTz(3);
 
     ctx->beforeThreadProcessing();
 

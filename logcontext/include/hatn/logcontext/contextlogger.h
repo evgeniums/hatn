@@ -56,8 +56,6 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-#define HATN_CTX_MSG_FORMAT(Format,...) fmt::format(Format,__VA_ARGS__)
-
 #define HATN_CTX_EXPAND(x) x
 #define HATN_CTX_GET_ARG3(arg1, arg2, arg3, ...) arg3
 #define HATN_CTX_GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
