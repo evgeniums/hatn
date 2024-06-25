@@ -21,7 +21,8 @@
 #include <hatn/common/translate.h>
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
-#include <hatn/common/errorstack.h>
+
+#include <hatn/common/ipp/error.ipp>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -110,28 +111,6 @@ const boost::system::error_category* Error::nativeBoostCategory(const std::share
 
 //---------------------------------------------------------------
 
-void Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const
-{
-    if (nativeError->category()!=nullptr)
-    {
-        buf.append(nativeError->category()->message(m_code));
-        buf.append(lib::string_view(": "));
-    }
-    else if (nativeError->systemCategory()!=nullptr)
-    {
-        buf.append(nativeError->systemCategory()->message(m_code));
-        buf.append(lib::string_view(": "));
-    }
-    else if (nativeError->boostCategory()!=nullptr)
-    {        
-        buf.append(nativeError->boostCategory()->message(m_code));
-        buf.append(lib::string_view(": "));
-    }
-    nativeError->message(buf);
-}
-
-//---------------------------------------------------------------
-
 int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError) const noexcept
 {
     if (nativeError->prevError()!=nullptr)
@@ -155,25 +134,6 @@ int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError)
 
 //---------------------------------------------------------------
 
-void Error::nativeCodeString(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const
-{
-    if (nativeError->category()!=nullptr)
-    {
-        defaultCatCodeString(nativeError->category(),buf);
-    }
-    else if (nativeError->systemCategory()!=nullptr)
-    {
-        systemCatCodeString(nativeError->systemCategory(),buf);
-    }
-    else if (nativeError->boostCategory()!=nullptr)
-    {
-        boostCatCodeString(nativeError->boostCategory(),buf);
-    }
-    nativeError->codeString(buf);
-}
-
-//---------------------------------------------------------------
-
 void Error::stackWith(Error&& next)
 {
     auto nextNative=const_cast<NativeError*>(next.native());
@@ -191,6 +151,11 @@ void Error::stackWith(Error&& next)
     }
     *this=std::move(next);
 }
+
+//---------------------------------------------------------------
+
+template HATN_COMMON_EXPORT void Error::nativeMessage<FmtAllocatedBufferChar>(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
+template HATN_COMMON_EXPORT void Error::nativeCodeString<FmtAllocatedBufferChar>(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
 
 /********************** CommonErrorCategory **************************/
 

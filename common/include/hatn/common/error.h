@@ -137,7 +137,8 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
          *
          * String representation depends on the error type and in some cases may be nested.
          */
-        inline void codeString(FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        inline void codeString(BufT& buf) const
         {
             switch (type())
             {
@@ -189,7 +190,8 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
          * @brief Append error message to buffer.
          * @param buf Buffer to append to.
          */
-        inline void message(FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        inline void message(BufT& buf) const
         {
             switch (type())
             {
@@ -469,8 +471,12 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         const std::error_category* nativeSystemCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
         const boost::system::error_category* nativeBoostCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
         int nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError) const noexcept;
-        void nativeMessage(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
-        void nativeCodeString(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
+
+        template <typename BufT>
+        void nativeMessage(const std::shared_ptr<NativeError>& nativeError, BufT& buf) const;
+
+        template <typename BufT>
+        void nativeCodeString(const std::shared_ptr<NativeError>& nativeError, BufT& buf) const;
 
         int32_t m_code;
 
@@ -480,17 +486,20 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
                      std::shared_ptr<NativeError>
                      > m_data;
 
-        inline void defaultCatCodeString(const ErrorCategory* cat, FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        inline void defaultCatCodeString(const ErrorCategory* cat, BufT& buf) const
         {
             buf.append(lib::string_view(cat->codeString(m_code)));
         }
 
-        inline void systemCatCodeString(const std::error_category* cat, FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        inline void systemCatCodeString(const std::error_category* cat, BufT& buf) const
         {
             fmt::format_to(std::back_inserter(buf),"std-{}-{}({})",cat->name(),m_code,cat->message(m_code));
         }
 
-        inline void boostCatCodeString(const boost::system::error_category* cat, FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        inline void boostCatCodeString(const boost::system::error_category* cat, BufT& buf) const
         {
             fmt::format_to(std::back_inserter(buf),"boost-{}-{}({})",cat->name(),m_code,cat->message(m_code));
         }

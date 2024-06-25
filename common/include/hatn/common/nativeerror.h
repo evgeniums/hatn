@@ -95,7 +95,8 @@ class HATN_COMMON_EXPORT NativeError
             return fmtBufToString(buf);
         }
 
-        void message(FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        void message(BufT& buf) const
         {
             auto msg=nativeMessage();
             if (m_prevError)
@@ -117,7 +118,8 @@ class HATN_COMMON_EXPORT NativeError
             }
         }
 
-        void codeString(FmtAllocatedBufferChar& buf) const
+        template <typename BufT>
+        void codeString(BufT& buf) const
         {
             if (m_prevError)
             {

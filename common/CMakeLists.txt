@@ -163,6 +163,7 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
+    include/hatn/common/ipp/error.ipp
     include/hatn/common/ipp/threadq.ipp
     include/hatn/common/ipp/threadwithqueue.ipp
     include/hatn/common/ipp/threadcategoriespool.ipp

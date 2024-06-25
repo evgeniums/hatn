@@ -55,12 +55,13 @@ using Value=ValueT<>;
 
 namespace detail {
 
+template <typename BufT>
 struct ValueSerializer
 {
-    ValueSerializer(common::FmtAllocatedBufferChar &buf):buf(buf)
+    ValueSerializer(BufT &buf):buf(buf)
     {}
 
-    common::FmtAllocatedBufferChar &buf;
+    BufT &buf;
 
     void operator()(int8_t v)
     {
@@ -157,10 +158,10 @@ struct ValueSerializer
 
 }
 
-template <typename T>
-void serializeValue(common::FmtAllocatedBufferChar &buf, const T& v)
+template <typename BufT, typename T>
+void serializeValue(BufT &buf, const T& v)
 {
-    detail::ValueSerializer s(buf);
+    detail::ValueSerializer<BufT> s(buf);
     lib::variantVisit(s,v);
 }
 
