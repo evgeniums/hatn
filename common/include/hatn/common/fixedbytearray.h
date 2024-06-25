@@ -861,26 +861,26 @@ namespace std {
 template <size_t Length>
 struct less<HATN_COMMON_NAMESPACE::FixedByteArray<Length>>
 {
-    // bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
-    // {
-    //     return l<r;
-    // }
-
-    // bool operator()(const HATN_COMMON_NAMESPACE::lib::string_view& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
-    // {
-    //     return !(r>=l);
-    // }
-
-    // bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::lib::string_view& r) const
-    // {
-    //     return l<r;
-    // }
-
-    template <typename T1, typename T2>
-    bool operator()(const T1& l, const T2& r) const
+    bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
     {
         return l<r;
     }
+
+    bool operator()(const HATN_COMMON_NAMESPACE::lib::string_view& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
+    {
+        return !(r>=l);
+    }
+
+    bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::lib::string_view& r) const
+    {
+        return l<r;
+    }
+
+    // template <typename T1, typename T2>
+    // bool operator()(const T1& l, const T2& r) const
+    // {
+    //     return l<r;
+    // }
 
     template <typename T1>
     bool operator()(const T1& l, const char* r) const
