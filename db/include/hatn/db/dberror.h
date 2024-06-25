@@ -31,7 +31,7 @@
 HATN_DB_NAMESPACE_BEGIN
 
 //! Error category for hatndb.
-class HATN_DB_EXPORT DbErrorCategory : public std::error_category
+class HATN_DB_EXPORT DbErrorCategory : public common::ErrorCategory
 {
 public:
 
@@ -43,6 +43,9 @@ public:
 
     //! Get description for the code
     virtual std::string message(int code) const override;
+
+    //! Get string representation of the code.
+    virtual const char* codeString(int code) const override;
 
     //! Get category
     static const DbErrorCategory& getCategory() noexcept;

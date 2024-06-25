@@ -18,6 +18,7 @@
 #ifndef HATNERRORCODES_H
 #define HATNERRORCODES_H
 
+#include <cstddef>
 #include <hatn/common/common.h>
 
 #define HATN_ERROR_CODE(Enum,Code,Msg) Code,
@@ -31,10 +32,18 @@
 
 HATN_NAMESPACE_BEGIN
 
+template<class T, size_t N>
+constexpr size_t arraySize(T (&)[N]) { return N; }
+
 template <typename T, typename S>
 const char* errorString(T code, const S& strings)
 {
-    return strings[static_cast<int>(code)];
+    auto c=static_cast<size_t>(code);
+    if (c<arraySize(strings))
+    {
+        return strings[c];
+    }
+    return "";
 }
 
 HATN_NAMESPACE_END

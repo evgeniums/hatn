@@ -44,4 +44,12 @@ std::string DbErrorCategory::message(int code) const
     return result;
 }
 
+//---------------------------------------------------------------
+const char* DbErrorCategory::codeString(int code) const
+{
+    return errorString(code,DbErrorStrings);
+}
+
+//---------------------------------------------------------------
+
 HATN_DB_NAMESPACE_END

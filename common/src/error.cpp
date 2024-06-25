@@ -89,9 +89,16 @@ bool Error::compareNative(const Error& other) const noexcept
 
 //---------------------------------------------------------------
 
-const std::error_category* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+const ErrorCategory* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
 {
     return nativeError->category();
+}
+
+//---------------------------------------------------------------
+
+const std::error_category* Error::nativeSystemCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    return nativeError->systemCategory();
 }
 
 //---------------------------------------------------------------
@@ -107,14 +114,62 @@ void Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError, FmtAl
 {
     if (nativeError->category()!=nullptr)
     {
-        fmt::format_to(std::back_inserter(buf),"{}: ", nativeError->category()->message(m_code));
+        buf.append(nativeError->category()->message(m_code));
+        buf.append(lib::string_view(": "));
+    }
+    else if (nativeError->systemCategory()!=nullptr)
+    {
+        buf.append(nativeError->systemCategory()->message(m_code));
+        buf.append(lib::string_view(": "));
+    }
+    else if (nativeError->boostCategory()!=nullptr)
+    {        
+        buf.append(nativeError->boostCategory()->message(m_code));
+        buf.append(lib::string_view(": "));
+    }
+    nativeError->message(buf);
+}
+
+//---------------------------------------------------------------
+
+int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    if (nativeError->prevError()!=nullptr)
+    {
+        return nativeError->prevError()->errorCondition();
+    }
+    else if (nativeError->category()!=nullptr)
+    {
+        return nativeError->category()->default_error_condition(m_code).value();
+    }
+    else if (nativeError->systemCategory()!=nullptr)
+    {
+        return nativeError->systemCategory()->default_error_condition(m_code).value();
     }
     else if (nativeError->boostCategory()!=nullptr)
     {
-        fmt::format_to(std::back_inserter(buf),"{}: ", nativeError->boostCategory()->message(m_code));
+        return nativeError->boostCategory()->default_error_condition(m_code).value();
     }
+    return m_code;
+}
 
-    nativeError->message(buf);
+//---------------------------------------------------------------
+
+void Error::nativeCodeString(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const
+{
+    if (nativeError->category()!=nullptr)
+    {
+        defaultCatCodeString(nativeError->category(),buf);
+    }
+    else if (nativeError->systemCategory()!=nullptr)
+    {
+        systemCatCodeString(nativeError->systemCategory(),buf);
+    }
+    else if (nativeError->boostCategory()!=nullptr)
+    {
+        boostCatCodeString(nativeError->boostCategory(),buf);
+    }
+    nativeError->codeString(buf);
 }
 
 //---------------------------------------------------------------
@@ -160,6 +215,12 @@ std::string CommonErrorCategory::message(int code) const
             result=_TR("unknown error");
     }
     return result;
+}
+
+//---------------------------------------------------------------
+const char* CommonErrorCategory::codeString(int code) const
+{
+    return errorString(code,CommonErrorStrings);
 }
 
 //---------------------------------------------------------------

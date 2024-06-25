@@ -85,4 +85,10 @@ std::string DataunitErrorCategory::message(int code) const
 }
 
 //---------------------------------------------------------------
+const char* DataunitErrorCategory::codeString(int code) const
+{
+    return errorString(code,UnitErrorStrings);
+}
+
+//---------------------------------------------------------------
 HATN_DATAUNIT_NAMESPACE_END

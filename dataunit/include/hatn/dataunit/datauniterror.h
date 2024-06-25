@@ -81,7 +81,7 @@ class HATN_DATAUNIT_EXPORT UnitNativeError : public common::NativeError
 //--------------------------------------------------------------
 
 //! Error category for hatndataunit.
-class HATN_DATAUNIT_EXPORT DataunitErrorCategory : public std::error_category
+class HATN_DATAUNIT_EXPORT DataunitErrorCategory : public common::ErrorCategory
 {
 public:
 
@@ -93,6 +93,9 @@ public:
 
     //! Get description for the code
     virtual std::string message(int code) const override;
+
+    //! Get string representation of the code.
+    virtual const char* codeString(int code) const override;
 
     //! Get category
     static const DataunitErrorCategory& getCategory() noexcept;

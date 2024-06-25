@@ -26,21 +26,34 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! Error category for hatncommonlib.
-class HATN_COMMON_EXPORT CommonErrorCategory : public std::error_category
+//! Base error category.
+class ErrorCategory : public std::error_category
 {
     public:
 
-        //! Name of the category
+        //! Get string representation of the code.
+        virtual const char* codeString(int code) const=0;
+};
+
+
+//! Error category for hatncommonlib.
+class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
+{
+    public:
+
+        //! Name of the category.
         virtual const char *name() const noexcept override
         {
             return "hatn.common";
         }
 
-        //! Get description for the code
+        //! Get description for the code.
         virtual std::string message(int code) const override;
 
-        //! Get category
+        //! Get string representation of the code.
+        virtual const char* codeString(int code) const;
+
+        //! Get category.
         static const CommonErrorCategory& getCategory() noexcept;
 };
 

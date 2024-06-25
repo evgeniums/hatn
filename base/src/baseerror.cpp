@@ -47,4 +47,12 @@ std::string BaseErrorCategory::message(int code) const
     return result;
 }
 
+//---------------------------------------------------------------
+const char* BaseErrorCategory::codeString(int code) const
+{
+    return errorString(code,BaseErrorStrings);
+}
+
+//---------------------------------------------------------------
+
 HATN_BASE_NAMESPACE_END
