@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
 
     auto& wrapper=ctx->get<ContextWrapper>();
     auto logCtx=wrapper.value();
-    logCtx->taskCtx()->setTz(3);
+    logCtx->taskCtx()->setTz(DateTime::localTz());
 
     ctx->beforeThreadProcessing();
 
