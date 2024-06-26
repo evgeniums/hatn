@@ -63,6 +63,11 @@ class TextLogFormatterT
                            logLevelName(level)
                         );
             buf.append(ctx->taskCtx()->id());
+            if (!ctx->taskCtx()->name().empty())
+            {
+                buf.append(lib::string_view(" op="));
+                buf.append(ctx->taskCtx()->name());
+            }
 
             // check if it is a CLOSE request and add DONE with elapsed microseconds and api status if applicable
             hana::eval_if(

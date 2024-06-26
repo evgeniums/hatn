@@ -41,6 +41,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 struct TaskContextTag{};
 using TaskContextId=FixedByteArray20;
+using TaskContextName=FixedByteArray32;
 
 class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 {
@@ -160,8 +161,19 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             return m_started;
         }
 
+        void setName(const lib::string_view& name)
+        {
+            m_name=name;
+        }
+
+        const TaskContextName& name() const
+        {
+            return m_name;
+        }
+
     private:
 
+        TaskContextName m_name;
         TaskContextId m_id;
 
         std::chrono::time_point<Clock> m_started;
@@ -271,7 +283,9 @@ class TaskContextT : public BaseTaskContextT
             return hana::replicate<hana::tuple_tag>(self,hana::size(tupleToTupleCType<ContextWrappersT>{}));
         }
 
-        TaskContextT():
+        template <typename ...Args>
+        TaskContextT(Args&& ...args):
+            BaseTaskContextT(std::forward<Args>(args)...),
             m_wrappers(replicateThis(this)),
             m_refs(wrapperRefs())
         {}
@@ -410,17 +424,30 @@ struct TaskContextTraits
 }
 
 template <typename ...Types>
-auto makeTaskContext()
+struct makeTaskContextT
 {
-    using type=typename detail::TaskContextTraits<Types...>::type;
-    return makeShared<type>();
-}
+    template <typename ...Args>
+    auto operator()(Args&&... args) const
+    {
+        using type=typename detail::TaskContextTraits<Types...>::type;
+        return makeShared<type>(std::forward<Args>(args)...);
+    }
+};
+template <typename ...Types>
+constexpr makeTaskContextT<Types...> makeTaskContext{};
 
 template <typename ...Types>
-auto allocateTaskContext(const pmr::polymorphic_allocator<typename detail::TaskContextTraits<Types...>::type>& allocator)
+struct allocateTaskContextT
 {
-    return allocateShared<typename detail::TaskContextTraits<Types...>::type>(allocator);
-}
+    template <typename ...Args>
+    auto operator()(const pmr::polymorphic_allocator<typename detail::TaskContextTraits<Types...>::type>& allocator, Args&&... args) const
+    {
+        using type=typename detail::TaskContextTraits<Types...>::type;
+        return allocateShared<type>(allocator,std::forward<Args>(args)...);
+    }
+};
+template <typename ...Types>
+constexpr allocateTaskContextT<Types...> allocateTaskContext{};
 
 HATN_COMMON_NAMESPACE_END
 
