@@ -23,6 +23,7 @@
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/daterange.h>
 #include <hatn/common/fixedbytearray.h>
 
 #include <hatn/logcontext/logcontext.h>

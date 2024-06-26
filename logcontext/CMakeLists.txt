@@ -6,6 +6,7 @@ SET (HEADERS
     include/hatn/logcontext/context.h
     include/hatn/logcontext/logger.h
     include/hatn/logcontext/contextlogger.h
+    include/hatn/logcontext/buflogger.h
     include/hatn/logcontext/streamlogger.h
 )
 

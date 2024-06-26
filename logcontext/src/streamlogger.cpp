@@ -17,11 +17,12 @@
   */
 
 #include <hatn/logcontext/logcontext.h>
+#include <hatn/logcontext/buflogger.h>
 #include <hatn/logcontext/streamlogger.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template class HATN_LOGCONTEXT_EXPORT StreamLoggerT<Context>;
+template class HATN_LOGCONTEXT_EXPORT BufLoggerT<StreamLoggerTraits,Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 

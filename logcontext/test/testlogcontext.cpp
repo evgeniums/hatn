@@ -352,6 +352,13 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_TRACE_RECORDS("Trace with records without module",r1,r2,r3);
     HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
+    HATN_CTX_CLOSE(Error{},"Closing context");
+    HATN_CTX_CLOSE_API(Error{},"Closing context with API status");
+
+    Error ec1{CommonError::NOT_IMPLEMENTED};
+    HATN_CTX_CLOSE(ec1,"Closing context with error");
+    HATN_CTX_CLOSE_API(ec1,"Closing context with API status and error");
+
     ctx->afterThreadProcessing();
 }
 

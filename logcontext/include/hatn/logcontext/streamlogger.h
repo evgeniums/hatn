@@ -19,82 +19,34 @@
 #ifndef HATNCTXSTREAMLOGGER_H
 #define HATNCTXSTREAMLOGGER_H
 
-#include <fmt/chrono.h>
-
-#include <hatn/common/format.h>
-
 #include <hatn/logcontext/context.h>
-#include <hatn/logcontext/logger.h>
+#include <hatn/logcontext/buflogger.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template <typename ContextT=Context>
-class StreamLoggerT : public LoggerHandlerT<ContextT>
+class BufToStream
 {
     public:
 
-        StreamLoggerT(
+        BufToStream(
                 std::vector<std::ostream*> couts,
                 std::vector<std::ostream*> cerrs
             ) : m_couts(std::move(couts)),
                 m_cerrs(std::move(cerrs))
         {}
 
-        StreamLoggerT(
+        BufToStream(
             std::ostream* cout=&std::cout,
             std::ostream* cerr=&std::cerr
-            ) : StreamLoggerT(std::vector<std::ostream*>{cout},std::vector<std::ostream*>{cerr})
+            ) : BufToStream(std::vector<std::ostream*>{cout},std::vector<std::ostream*>{cerr})
         {}
 
-        void formatTo(
-            std::vector<std::ostream*>& streams,
-            LogLevel level,
-            const ContextT* ctx,
-            common::pmr::string msg,
-            const Error* ec,
-            lib::string_view module,
-            common::pmr::vector<Record> records
+        template <typename BufT>
+        void sendTo(
+            const BufT& buf,
+            std::vector<std::ostream*>& streams
         )
         {
-            common::FmtAllocatedBufferChar buf;
-
-#if __cplusplus >= 201703L
-            auto tp=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->now());
-#else
-            auto tp=ctx->taskCtx()->now();
-#endif
-            fmt::format_to(std::back_inserter(buf),"{:%Y%m%dT%H:%M:%S}"
-                                                    " lvl={}"
-                                                    " ctx=",
-                           tp,
-                           logLevelName(level)
-                        );
-            buf.append(ctx->taskCtx()->id());
-            if (ec!=nullptr)
-            {
-                buf.append(lib::string_view(" err=\""));
-                ec->codeString(buf);
-                buf.append(lib::string_view("\""));
-            }
-            if (!msg.empty())
-            {
-                buf.append(lib::string_view(" msg=\""));
-                buf.append(msg);
-                buf.append(lib::string_view("\""));
-            }
-            if (!module.empty())
-            {
-                buf.append(lib::string_view(" mdl="));
-                buf.append(module);
-            }
-            for (auto&& rec:records)
-            {
-                buf.append(lib::string_view(" "));
-                buf.append(rec.first);
-                buf.append(lib::string_view("="));
-                serializeValue(buf,rec.second);
-            }
-
             for (auto&& os: streams)
             {
                 std::copy(buf.begin(),buf.end(),std::ostream_iterator<char>(*os));
@@ -102,27 +54,20 @@ class StreamLoggerT : public LoggerHandlerT<ContextT>
             }
         }
 
+        template <typename BufT>
         void log(
-            LogLevel level,
-            const ContextT* ctx,
-            common::pmr::string msg,
-            lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
-        ) override
+            const BufT& buf
+        )
         {
-            formatTo(m_couts,level,ctx,msg,nullptr,std::move(module),std::move(records));
+            sendTo(buf,m_couts);
         }
 
+        template <typename BufT>
         void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            common::pmr::string msg,
-            lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
-        ) override
+            const BufT& buf
+        )
         {
-            formatTo(m_cerrs,level,ctx,msg,&ec,std::move(module),std::move(records));
+            sendTo(buf,m_cerrs);
         }
 
     private:
@@ -130,6 +75,50 @@ class StreamLoggerT : public LoggerHandlerT<ContextT>
         std::vector<std::ostream*> m_couts;
         std::vector<std::ostream*> m_cerrs;
 };
+
+class StreamLoggerTraits : public BufToStream
+{
+    public:
+
+        using BufToStream::BufToStream;
+
+        struct BufWrapper
+        {
+            BufWrapper()
+            {}
+
+            common::FmtAllocatedBufferChar& buf()
+            {
+                return m_buf;
+            }
+
+            const common::FmtAllocatedBufferChar& buf() const
+            {
+                return m_buf;
+            }
+
+            common::FmtAllocatedBufferChar m_buf;
+        };
+
+        static BufWrapper prepareBuf()
+        {
+            return BufWrapper{};
+        }
+
+        void logBuf(const BufWrapper& bufWrapper)
+        {
+            this->log(bufWrapper.buf());
+        }
+
+        void logBufError(const BufWrapper& bufWrapper)
+        {
+            this->logError(bufWrapper.buf());
+        }
+};
+
+template <typename ContextT=Context>
+using StreamLoggerT=BufLoggerT<StreamLoggerTraits,ContextT>;
+
 using StreamLogger=StreamLoggerT<>;
 
 HATN_LOGCONTEXT_NAMESPACE_END

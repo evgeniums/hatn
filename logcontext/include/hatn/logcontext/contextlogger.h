@@ -113,6 +113,28 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
                     ); \
     }
 
+#define HATN_CTX_CLOSE(Err,Msg) \
+    HATN_CTX_LOG_IF_0(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info) \
+    { \
+            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logClose( \
+                      HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
+                      Err, \
+                      HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      Msg \
+                    ); \
+    }
+
+#define HATN_CTX_CLOSE_API(Err,Msg) \
+    HATN_CTX_LOG_IF_0(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info) \
+    { \
+            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logCloseApi( \
+                           HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
+                           Err, \
+                           HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                           Msg \
+                    ); \
+    }
+
 #define HATN_CTX_LOG_ERR_0(Level,Err,Msg) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
