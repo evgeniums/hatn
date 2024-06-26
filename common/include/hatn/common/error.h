@@ -132,7 +132,23 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         }
 
         /**
-         * @brief Append to buffer string represetnation of error code.
+         * @brief Get single level code string if error is of default type.
+         * @return String representation of error code.
+         */
+        inline const char* error() const
+        {
+            if (isType(Type::Default))
+            {
+
+                auto cat=lib::variantGet<const ErrorCategory*>(m_data);
+                return cat->codeString(m_code);
+            }
+
+            return "";
+        }
+
+        /**
+         * @brief Append string represetnation of error code to the buffer.
          * @param buf Buffer to append to.
          *
          * String representation depends on the error type and in some cases may be nested.

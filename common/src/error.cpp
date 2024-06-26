@@ -26,7 +26,7 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-/********************** NativeError **************************/
+/********************** ApiError **************************/
 
 ApiError::~ApiError()=default;
 
@@ -39,6 +39,17 @@ int ApiError::apiCode() const noexcept
         return m_error->value();
     }
     return 0;
+}
+
+//---------------------------------------------------------------
+
+const char* ApiError::apiStatus() const noexcept
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->error();
+    }
+    return DefaultStatus;
 }
 
 //---------------------------------------------------------------
