@@ -42,7 +42,7 @@ template<typename _ForwardIterator, typename _Tp, typename _Compare>
 
     _DistanceType __len = std::distance(__first, __last);
 
-    while (__len > 0)
+  while (__len > 0)
   {
     _DistanceType __half = __len >> 1;
     _ForwardIterator __middle = __first;
@@ -355,12 +355,12 @@ class FlatContainer
 
         template <typename Arg>
         std::pair<iterator,bool> insert(Arg&& val,
-                    typename std::enable_if<
+                    typename std::enable_if_t<
                                         std::is_same<
-                                            typename std::decay<Arg>::type,ItemT
+                                            std::decay_t<Arg>,ItemT
                                             >::value,
                                         void*
-                                        >::type =nullptr
+                                        > =nullptr
                 )
         {
             auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),val,CompareItemT());
@@ -373,6 +373,25 @@ class FlatContainer
             else
             {
                 it=m_vec.insert(it,std::forward<Arg>(val));
+            }
+            auto idx=detail::vector_iterator_index(m_vec,it);
+            return std::make_pair(iterator(&m_vec,idx),created);
+        }
+
+        template <typename KeyT, typename ValueT>
+        std::pair<iterator,bool> emplace(KeyT&& key, ValueT&& val)
+        {
+            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),key,CompareKeyT{});
+            bool created=true;
+            if (it!=m_vec.end() && !CompareKeyT{}(key,it->first))
+            {
+                created=false;
+                it->first=std::forward<KeyT>(key);
+                it->second=std::forward<ValueT>(val);
+            }
+            else
+            {
+                it=m_vec.emplace(it,std::forward<KeyT>(key),std::forward<ValueT>(val));
             }
             auto idx=detail::vector_iterator_index(m_vec,it);
             return std::make_pair(iterator(&m_vec,idx),created);
@@ -414,20 +433,26 @@ struct FlatMapCompareItem
     constexpr bool operator() (const std::pair<KeyT,ValueT>& l,
                      const std::pair<KeyT,ValueT>& r) noexcept
     {
-        return CompareKeyT()(l.first,r.first);
+        return CompareKeyT{}(l.first,r.first);
     }
 
     template <typename T>
     constexpr bool operator() (const T& l,
                      const std::pair<KeyT,ValueT>& r) noexcept
     {
-        return CompareKeyT()(l,r.first);
+        return CompareKeyT{}(l,r.first);
     }
 
     template <typename T>
     constexpr bool operator() (const std::pair<KeyT,ValueT>& l,const T& r) noexcept
     {
-        return CompareKeyT()(l.first,r);
+        return CompareKeyT{}(l.first,r);
+    }
+
+    template <typename T1, typename T2>
+    constexpr bool operator() (const T1& l,const T2& r) noexcept
+    {
+        return std::less<KeyT>{}(l,r);
     }
 };
 }
@@ -464,12 +489,6 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
         std::pair<iterator,bool> insert_or_assign(ItemT&& val)
         {
             return this->insert(std::move(val));
-        }
-
-        template<class... Args >
-        std::pair<iterator, bool> emplace(Args&&... args)
-        {
-            return this->insert(std::make_pair(std::forward<Args>(args)...));
         }
 
         ValueT& operator[](const KeyT& key)

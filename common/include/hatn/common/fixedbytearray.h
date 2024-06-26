@@ -133,6 +133,13 @@ class FixedByteArray
             load(data,size);
         }
 
+        //! Ctor from buffer.
+        template <typename BufT>
+        FixedByteArray(
+                const BufT& buf
+            ) : FixedByteArray(buf.data(),buf.size())
+        {}
+
         //! Ctor from data buffer
         FixedByteArray(
             const char* data, //!< Data buffer
