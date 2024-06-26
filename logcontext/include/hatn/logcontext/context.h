@@ -170,19 +170,21 @@ class ContextT : public common::TaskContextValue
             {
                 m_lockStack=true;
             }
-            auto& scopeCursor=currentScope();
-            scopeCursor.second.error=err;
+            auto* scopeCursor=currentScope();
+            Assert(scopeCursor!=nullptr,"Forbidden in empty scope stack");
+            scopeCursor->second.error=err;
         }
 
         void leaveScope()
         {
-            const auto& scopeCursor=currentScope();
+            const auto* scopeCursor=currentScope();
+            Assert(scopeCursor!=nullptr,"Forbidden in empty scope stack");
             bool freeScope=true;
 
             if (!m_threadStack.empty())
             {
                 const auto& threadCursor=m_threadStack.back();
-                freeScope=scopeCursor.second.scopeStackOffset>threadCursor.second.scopeStackOffset;
+                freeScope=scopeCursor->second.scopeStackOffset>threadCursor.second.scopeStackOffset;
             }
             if (freeScope)
             {
@@ -191,7 +193,7 @@ class ContextT : public common::TaskContextValue
 
                 if (!m_lockStack)
                 {
-                    m_varStack.resize(scopeCursor.second.varStackOffset);
+                    m_varStack.resize(scopeCursor->second.varStackOffset);
                     m_scopeStack.pop_back();
                 }
             }
@@ -211,7 +213,9 @@ class ContextT : public common::TaskContextValue
         template <typename T>
         void setGlobalVar(const lib::string_view& key, T&& value)
         {
-            m_globalVarMap.emplace(key,std::forward<T>(value));
+            auto&& val=valueT{std::forward<T>(value)};
+            auto&& k=keyT{key};
+            m_globalVarMap.emplace(key,std::move(val));
         }
 
         void unsetGlobalVar(const lib::string_view& key)
@@ -251,6 +255,11 @@ class ContextT : public common::TaskContextValue
             m_lockStack=enable;
         }
 
+        bool stackLocked() const noexcept
+        {
+            return m_lockStack;
+        }
+
         void setTag(tagT tag)
         {
             m_tags.insert(std::move(tag));
@@ -277,19 +286,22 @@ class ContextT : public common::TaskContextValue
             m_logLevel=level;
         }
 
-        const std::vector<scopeCursorT,scopeStackAllocatorT>& scopeStack() const noexcept
+        const scopeCursorT* currentScope() const
         {
-            return m_scopeStack;
+            if (m_currentScopeIdx==0)
+            {
+                return nullptr;
+            }
+            return &m_scopeStack.at(m_currentScopeIdx-1);
         }
 
-        const scopeCursorT& currentScope() const
+        scopeCursorT* currentScope()
         {
-            return m_scopeStack.at(m_currentScopeIdx);
-        }
-
-        scopeCursorT& currentScope()
-        {
-            return m_scopeStack.at(m_currentScopeIdx);
+            if (m_currentScopeIdx==0)
+            {
+                return nullptr;
+            }
+            return &m_scopeStack.at(m_currentScopeIdx-1);
         }
 
         void resetStacks()
@@ -305,6 +317,26 @@ class ContextT : public common::TaskContextValue
             resetStacks();
             m_globalVarMap.clear();
             m_tags.clear();
+        }
+
+        const auto& scopeStack() const noexcept
+        {
+            return m_scopeStack;
+        }
+
+        const auto& stackVars() const noexcept
+        {
+            return m_varStack;
+        }
+
+        const auto& globalVars() const noexcept
+        {
+            return m_globalVarMap;
+        }
+
+        const auto& tags() const noexcept
+        {
+            return m_tags;
         }
 
     private:

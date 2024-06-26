@@ -82,13 +82,16 @@ class LoggerBaseT
             // figure out current level by stack function
             if (!ctx->scopeStack().empty())
             {
-                const auto& scope=ctx->currentScope();
-                auto it=logger.scopes().find(common::lib::string_view(scope.first));
-                if (it!=logger.scopes().end())
+                const auto* scope=ctx->currentScope();
+                if (scope!=nullptr)
                 {
-                    if (it->second>level)
+                    auto it=logger.scopes().find(common::lib::string_view(scope->first));
+                    if (it!=logger.scopes().end())
                     {
-                        level=it->second;
+                        if (it->second>level)
+                        {
+                            level=it->second;
+                        }
                     }
                 }
             }

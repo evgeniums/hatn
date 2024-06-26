@@ -50,6 +50,7 @@ class TextLogFormatterT
             WithApiStatusT =WithApiStatusT{}
         )
         {
+            // add time point and context ID
     #if __cplusplus >= 201703L
             auto tp=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->now());
     #else
@@ -63,9 +64,43 @@ class TextLogFormatterT
                         );
             buf.append(ctx->taskCtx()->id());
 
+            // check if it is a CLOSE request and add DONE with elapsed microseconds and api status if applicable
             hana::eval_if(
                 std::is_same<CloseT,hana::false_>{},
-                [](auto){},
+                [&](auto _){
+
+                    // add scope stack
+                    if (!_(ctx)->scopeStack().empty())
+                    {
+                        _(buf).append(lib::string_view(" stack=\""));
+                        size_t i=0;
+                        for (const auto& scope:_(ctx)->scopeStack())
+                        {
+                            if (i!=0)
+                            {
+                                _(buf).append(lib::string_view("."));
+                            }
+                            _(buf).append(scope.first);
+
+                            hana::eval_if(
+                                std::is_same<ErrorT,hana::false_>{},
+                                [](auto){},
+                                [&](auto _)
+                                {
+                                    if (_(ec) && !_(scope).second.error.empty())
+                                    {
+                                        _(buf).append(lib::string_view("("));
+                                        _(buf).append(_(scope).second.error);
+                                        _(buf).append(lib::string_view(")"));
+                                    }
+                                }
+                                );
+
+                            i++;
+                        }
+                        _(buf).append(lib::string_view("\""));
+                    }
+                },
                 [&](auto _){
                     fmt::format_to(std::back_inserter(_(buf))," DONE={}",_(ctx)->taskCtx()->finishMicroseconds());
                     hana::eval_if(
@@ -89,9 +124,12 @@ class TextLogFormatterT
                         },
                         [](auto){}
                     );
+                    auto* c=const_cast<ContextT*>(_(ctx));
+                    c->resetStacks();
                 }
             );
 
+            // add error string
             hana::eval_if(
                 std::is_same<ErrorT,hana::false_>{},
                 [](auto){},
@@ -102,23 +140,46 @@ class TextLogFormatterT
                 }
             );
 
+            // add message
             if (!msg.empty())
             {
                 buf.append(lib::string_view(" msg=\""));
                 buf.append(msg);
                 buf.append(lib::string_view("\""));
             }
+
+            // add module
             if (!module.empty())
             {
                 buf.append(lib::string_view(" mdl="));
                 buf.append(module);
             }
-            for (auto&& rec:records)
+
+            // handler for variable
+            auto appendRecord=[](BufT& buf, const typename ContextT::recordT& rec)
             {
                 buf.append(lib::string_view(" "));
                 buf.append(rec.first);
                 buf.append(lib::string_view("="));
                 serializeValue(buf,rec.second);
+            };
+
+            // add context's map vars
+            for (const auto& rec:ctx->globalVars())
+            {
+                appendRecord(buf,rec);
+            }
+
+            // add context's stack vars
+            for (const auto& rec:ctx->stackVars())
+            {
+                appendRecord(buf,rec);
+            }
+
+            // add extra records
+            for (auto&& rec:records)
+            {
+                appendRecord(buf,rec);
             }
         }
 };
