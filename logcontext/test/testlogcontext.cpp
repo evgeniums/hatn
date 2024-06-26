@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(FormatLogValue)
     serializeValue(buf,v2);
     str=fmtBufToString(buf);
     BOOST_TEST_MESSAGE(fmt::format("string value: {}",str));
-    BOOST_CHECK_EQUAL(str,"hello");
+    BOOST_CHECK_EQUAL(str,"\"hello\"");
 
     buf.clear();
     Value v3{int8_t{-10}};
@@ -370,6 +370,7 @@ BOOST_AUTO_TEST_CASE(ScopeOperations)
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
     auto taskCtx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    taskCtx->setName("test_task");
     auto& wrapper=taskCtx->get<ContextWrapper>();
     auto logCtx=wrapper.value();
 
