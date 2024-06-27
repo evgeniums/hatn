@@ -104,25 +104,25 @@ class FixedByteArray
         }
 
         //! Ctor from string
-        FixedByteArray(const std::string& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const std::string& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from std::vector
-        FixedByteArray(const std::vector<char>& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const std::vector<char>& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from ByteArray
-        FixedByteArray(const ByteArray& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const ByteArray& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
+
+        //! Ctor from string_view.
+        FixedByteArray(
+            const lib::string_view& buf
+            ) : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from data buffer
         FixedByteArray(
@@ -132,13 +132,6 @@ class FixedByteArray
         {
             load(data,size);
         }
-
-        //! Ctor from buffer.
-        template <typename BufT>
-        FixedByteArray(
-                const BufT& buf
-            ) : FixedByteArray(buf.data(),buf.size())
-        {}
 
         //! Ctor from data buffer
         FixedByteArray(
