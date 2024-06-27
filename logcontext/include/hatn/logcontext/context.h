@@ -410,4 +410,8 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     HATN_CTX_IF() \
         ScopeCtx->describeScopeError(Error);
 
+#define HATN_CTX_SCOPE_LOCK() \
+    HATN_CTX_IF() \
+        ScopeCtx->setStackLocked(true);
+
 #endif // HATNLOGCONTEXT_H
