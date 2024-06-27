@@ -1,1 +1,1 @@
-SET(HATN_MODULE_DEPS common validator dataunit base PARENT_SCOPE)
+SET(HATN_MODULE_DEPS common validator logcontext dataunit base PARENT_SCOPE)
