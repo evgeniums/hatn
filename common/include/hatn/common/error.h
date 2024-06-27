@@ -263,9 +263,11 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         }
 
         //! Set error code.
-        inline void setCode(int code) noexcept
+        template <typename T>
+        inline void setCode(T code, const ErrorCategory* category=&CommonErrorCategory::getCategory()) noexcept
         {
-            m_code=code;
+            m_code=static_cast<int>(code);
+            m_data=category;
         }
 
         //! Map to platform independent error code if applicable.
@@ -317,10 +319,27 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             return nullptr;
         }
 
-        //! Set native error.
-        inline void setNative(int code, std::shared_ptr<NativeError>&& error) noexcept
+        //! Get native error.
+        inline NativeError* native() noexcept
         {
-            m_code=code;
+            if (isType(Type::Native))
+            {
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_data).get();
+            }
+            return nullptr;
+        }
+
+        //! Set native error.
+        template <typename T>
+        inline void setNative(T code, std::shared_ptr<NativeError>&& error) noexcept
+        {
+            m_code=static_cast<int>(code);
+            m_data=std::move(error);
+        }
+
+        //! Set native error.
+        inline void setNative(std::shared_ptr<NativeError>&& error) noexcept
+        {
             m_data=std::move(error);
         }
 
@@ -480,6 +499,8 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
          */
         void stackWith(Error&& next);
 
+        void setPrevError(Error&& prev);
+
     private:
 
         bool compareNative(const Error& other) const noexcept;
@@ -590,7 +611,7 @@ inline common::Error makeBoostError(boost::system::errc::errc_t ec)
 template <typename T>
 inline void setError(Error& ec, T code) noexcept
 {
-    ec.setValue(static_cast<int>(code));
+    ec.setCode(static_cast<int>(code));
 }
 
 HATN_NAMESPACE_END

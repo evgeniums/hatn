@@ -145,21 +145,28 @@ int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError)
 
 //---------------------------------------------------------------
 
-void Error::stackWith(Error&& next)
+void Error::setPrevError(Error &&prev)
 {
-    auto nextNative=const_cast<NativeError*>(next.native());
-    if (nextNative!=nullptr)
+    auto n=native();
+    if (n==nullptr)
     {
-        nextNative->setPrevError(std::move(*this));
+        auto newNative=std::make_shared<NativeError>(category());
+        newNative->setBoostCategory(boostCategory());
+        newNative->setSystemCategory(systemCategory());
+        newNative->setPrevError(std::move(prev));
+        setNative(std::move(newNative));
     }
     else
     {
-        auto newNextNative=std::make_shared<NativeError>(next.category());
-        newNextNative->setBoostCategory(next.boostCategory());
-        newNextNative->setPrevError(std::move(*this));
-
-        next.setNative(next.value(),std::move(newNextNative));
+        n->setPrevError(std::move(prev));
     }
+}
+
+//---------------------------------------------------------------
+
+void Error::stackWith(Error&& next)
+{
+    next.setPrevError(std::move(*this));
     *this=std::move(next);
 }
 
