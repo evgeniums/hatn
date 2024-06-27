@@ -440,4 +440,76 @@ BOOST_AUTO_TEST_CASE(ScopeOperations)
     BOOST_CHECK(true);
 }
 
+BOOST_AUTO_TEST_CASE(ScopeMacros)
+{
+    auto handler=std::make_shared<StreamLogger>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
+
+    auto taskCtx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    taskCtx->setName("test_task");
+    taskCtx->beforeThreadProcessing();
+
+    {
+        HATN_CTX_SCOPE("scope1")
+
+        HATN_CTX_INFO("No vars");
+
+        HATN_CTX_SET_VAR("mapvar1","mapvar1 value")
+        HATN_CTX_INFO("With global var");
+
+        HATN_CTX_SCOPE_PUSH("stackvar1","stackvar1 value")
+        HATN_CTX_INFO("With global var and stack var");
+
+        HATN_CTX_UNSET_VAR("mapvar1")
+        HATN_CTX_INFO("With stack var when global var unset");
+
+        HATN_CTX_SCOPE_POP()
+        HATN_CTX_INFO("Without vars when stack var was popped out");
+
+        HATN_CTX_SCOPE_PUSH("stackvar1","stackvar1 value")
+        HATN_CTX_SET_VAR("mapvar1","mapvar1 value")
+
+        HATN_CTX_INFO("In scope1 before scope2");
+
+        {
+            HATN_CTX_SCOPE("scope2")
+            HATN_CTX_INFO("In scope 2 begin");
+
+            HATN_CTX_SET_VAR("mapvar2","mapvar2 value scope2")
+            HATN_CTX_INFO("In scope 2 with mapvar2");
+
+            HATN_CTX_SCOPE_PUSH("stackvar2","stackvar2 value scope2")
+            HATN_CTX_INFO("In scope 2 end: with mapvar2 and stackvar2");
+        }
+
+        HATN_CTX_INFO("In scope1 after scope2");
+    }
+
+    HATN_CTX_INFO("Out of scopes");
+
+    HATN_CTX_RESET()
+    Error ec1{CommonError::TIMEOUT};
+    {
+        HATN_CTX_SCOPE("scope1")
+        HATN_CTX_SCOPE_PUSH("stackvar1","stackvar1 value")
+
+        {
+            HATN_CTX_SCOPE("scope2")
+            HATN_CTX_SCOPE_PUSH("stackvar2","stackvar2 value")
+            HATN_CTX_SET_VAR("mapvar2","mapvar2 value scope2")
+
+            HATN_CTX_SCOPE_ERROR("something timeouted in scope2")
+        }
+
+        HATN_CTX_SCOPE_ERROR("specify error in scope1")
+    }
+
+    HATN_CTX_ERROR(ec1,"Error out of scopes");
+    HATN_CTX_CLOSE(ec1,"Closing context with error");
+
+    taskCtx->afterThreadProcessing();
+
+    BOOST_CHECK(true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

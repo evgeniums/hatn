@@ -378,8 +378,36 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE(Name) \
     auto ScopeCtx=HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(); \
-    HATN_SCOPE_IF() \
+    HATN_CTX_IF() \
     { ScopeCtx->enterScope(Name); } \
-    HATN_SCOPE_DEFER()
+    HATN_CTX_SCOPE_DEFER()
+
+#define HATN_CTX_SET_VAR(Name,Value) \
+    HATN_CTX_IF() \
+    ScopeCtx->setGlobalVar(Name,Value);
+
+#define HATN_CTX_UNSET_VAR(Name) \
+    HATN_CTX_IF() \
+        ScopeCtx->unsetGlobalVar(Name);
+
+#define HATN_CTX_SCOPE_PUSH(Name,Value) \
+    HATN_CTX_IF() \
+        ScopeCtx->pushStackVar(Name,Value);
+
+#define HATN_CTX_SCOPE_POP() \
+    HATN_CTX_IF() \
+        ScopeCtx->popStackVar();
+
+#define HATN_CTX_RESET() \
+    HATN_CTX_IF() \
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->reset();
+
+#define HATN_CTX_RESET_STACKS() \
+    HATN_CTX_IF() \
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->resetStacks();
+
+#define HATN_CTX_SCOPE_ERROR(Error) \
+    HATN_CTX_IF() \
+        ScopeCtx->describeScopeError(Error);
 
 #endif // HATNLOGCONTEXT_H
