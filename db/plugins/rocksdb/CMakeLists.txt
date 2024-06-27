@@ -21,6 +21,7 @@ ENDMACRO(LINK_ROCKSDB)
 # build library hatnrocksdbschema
 SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbschemadef.h
+    include/hatn/db/plugins/rocksdb/rocksdberror.h
     include/hatn/db/plugins/rocksdb/rocksdbmodel.h
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
@@ -35,6 +36,7 @@ SET(SCHEMA_DETAIL_HEADERS
 SET (SCHEMA_SOURCES
     src/rocksdbschema.cpp
     src/rocksdbhandler.cpp
+    src/rocksdberror.cpp
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})
