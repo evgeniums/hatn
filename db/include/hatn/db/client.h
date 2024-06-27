@@ -26,6 +26,9 @@
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/objectid.h>
 
+#include <hatn/logcontext/context.h>
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/base/configtree.h>
 #include <hatn/base/configobject.h>
 
@@ -66,9 +69,12 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error openDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
+            HATN_CTX_SCOPE("dbopendb")
+
             if (m_opened)
             {
-                return DbError::DB_ALREADY_OPEN;
+                HATN_CTX_SCOPE_LOCK()
+                return dbError(DbError::DB_ALREADY_OPEN);
             }
 
             Error ec;
@@ -86,6 +92,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error closeDb()
         {
+            HATN_CTX_SCOPE("dbclosedb")
             if (m_opened)
             {
                 Error ec;
@@ -98,20 +105,24 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error createDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
+            HATN_CTX_SCOPE("dbcreatedb")
             return doCreateDb(config,records);
         }
 
         Error destroyDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
+            HATN_CTX_SCOPE("dbdestroydb")
             return doDestroyDb(config,records);
         }
 
         Error addSchema(std::shared_ptr<DbSchema> schema)
         {
+            HATN_CTX_SCOPE("dbaddschema")
             if (m_opened)
             {
                 return doAddSchema(std::move(schema));
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
@@ -127,55 +138,67 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Result<std::vector<std::shared_ptr<DbSchema>>> listSchemas() const
         {
+            HATN_CTX_SCOPE("dblistschemas")
             if (m_opened)
             {
                 return doListSchemas();
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
         Result<std::shared_ptr<DbSchema>> schema(const common::lib::string_view& schemaName) const
         {
+            HATN_CTX_SCOPE("dbschema")
             if (m_opened)
             {
                 return doFindSchema(schemaName);
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
         Error checkSchemas()
         {
+            HATN_CTX_SCOPE("dbcheckschemas")
             if (m_opened)
             {
                 return doCheckSchemas();
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
         Error migrateSchemas()
         {
+            HATN_CTX_SCOPE("dbmigrateschemas")
             if (m_opened)
             {
                 return doMigrateSchemas();
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
         Error addDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
         {
+            HATN_CTX_SCOPE("dbadddatepartitions")
             if (m_opened)
             {
                 return doAddDatePartitions(models,datePartitionRanges(models,to,from));
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
         Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
         {
+            HATN_CTX_SCOPE("dbdeletedatepartitions")
             if (m_opened)
             {
                 return doDeleteDatePartitions(models,datePartitionRanges(models,to,from));
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
@@ -184,10 +207,12 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Error create(const db::Namespace& ns, const std::shared_ptr<ModelT>& model, dataunit::Unit* object)
         {
+            HATN_CTX_SCOPE("dbcreate")
             if (m_opened)
             {
                 return doCreate(ns,model->info,object);
             }
+            HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 

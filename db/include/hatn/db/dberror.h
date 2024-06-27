@@ -83,6 +83,11 @@ inline ErrorResult dbErrorResult(DbError code) noexcept
     return ErrorResult{dbError(code)};
 }
 
+inline void setDbErrorCode(Error& ec, DbError code)
+{
+    ec.setCode(code,&DbErrorCategory::getCategory());
+}
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNBASEERROR_H

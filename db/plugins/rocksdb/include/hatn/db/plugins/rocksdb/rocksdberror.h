@@ -21,6 +21,10 @@
 
 #include <hatn/common/nativeerror.h>
 
+#include <hatn/logcontext/context.h>
+
+#include <hatn/db/dberror.h>
+
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 namespace ROCKSDB_NAMESPACE {
@@ -29,7 +33,7 @@ class Status;
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-#define HATN_ROCKSDB_EXTENDED_ERROR
+// #define HATN_ROCKSDB_EXTENDED_ERROR
 #ifdef HATN_ROCKSDB_EXTENDED_ERROR
 
 class RocksdbError : public common::NativeError
@@ -41,7 +45,7 @@ class RocksdbError : public common::NativeError
             int code,
             int subcode,
             int severity
-        ) : NativeError(std::move(msg),code),
+        ) : NativeError(std::move(msg),code,&db::DbErrorCategory::getCategory()),
             m_subcode(subcode),
             m_severity(severity)
         {}
@@ -66,7 +70,20 @@ class RocksdbError : public common::NativeError
     using RocksdbError=common::NativeError;
 #endif
 
-std::shared_ptr<common::NativeError> HATN_ROCKSDB_SCHEMA_EXPORT makeError(const ROCKSDB_NAMESPACE::Status& status);
+std::shared_ptr<common::NativeError> HATN_ROCKSDB_SCHEMA_EXPORT makeRocksdbError(const ROCKSDB_NAMESPACE::Status& status);
+
+inline void setRocksdbError(Error& ec, db::DbError code, const ROCKSDB_NAMESPACE::Status& status)
+{
+    HATN_CTX_IF()
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
+
+    ec.setNative(code,makeRocksdbError(status));
+}
+
+inline Error makeError(db::DbError code, const ROCKSDB_NAMESPACE::Status& status)
+{
+    return Error{code,makeRocksdbError(status)};
+}
 
 HATN_ROCKSDB_NAMESPACE_END
 

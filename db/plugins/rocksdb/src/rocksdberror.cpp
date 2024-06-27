@@ -19,8 +19,6 @@
 
 #include <rocksdb/db.h>
 
-#include <hatn/db/dberror.h>
-
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -29,7 +27,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 #ifdef HATN_ROCKSDB_EXTENDED_ERROR
 
-std::shared_ptr<common::NativeError> makeError(const ROCKSDB_NAMESPACE::Status& status)
+std::shared_ptr<common::NativeError> makeRocksdbError(const ROCKSDB_NAMESPACE::Status& status)
 {
     auto err=std::make_shared<RocksdbError>(status.ToString(),
                                                       static_cast<int>(status.code()),
@@ -41,9 +39,9 @@ std::shared_ptr<common::NativeError> makeError(const ROCKSDB_NAMESPACE::Status& 
 
 #else
 
-std::shared_ptr<common::NativeError> makeError(const ROCKSDB_NAMESPACE::Status& status)
+std::shared_ptr<common::NativeError> makeRocksdbError(const ROCKSDB_NAMESPACE::Status& status)
 {
-    return std::make_shared<RocksdbError>(status.ToString(),static_cast<int>(status.code()));
+    return std::make_shared<RocksdbError>(status.ToString(),static_cast<int>(status.code()),&db::DbErrorCategory::getCategory());
 }
 
 #endif

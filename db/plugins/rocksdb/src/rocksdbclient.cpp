@@ -17,6 +17,9 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <hatn/logcontext/context.h>
+#include <hatn/logcontext/contextlogger.h>
+
 #include <rocksdb/db.h>
 #include <rocksdb/utilities/transaction_db.h>
 
@@ -25,6 +28,7 @@
 
 #include <hatn/base/configobject.h>
 
+#include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbclient.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
@@ -104,6 +108,7 @@ RocksdbClient::~RocksdbClient()
 
 void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
 {
+    HATN_CTX_SCOPE("rocksdbopen")
     invokeOpenDb(config,ec,records,false);
 }
 
@@ -111,6 +116,7 @@ void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config
 
 Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object::LogRecords& records)
 {
+    HATN_CTX_SCOPE("rocksdbcreatedb")
     Error ec;
     invokeOpenDb(config,ec,records,true);
     HATN_CHECK_EC(ec)
@@ -122,6 +128,8 @@ Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object:
 
 Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object::LogRecords& records)
 {
+    HATN_CTX_SCOPE("rocksdbdestroydb")
+
     // load config
     auto ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
     HATN_CHECK_EC(ec)
@@ -131,8 +139,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
     auto status = rocksdb::DestroyDB(d->cfg.config().field(rocksdb_config::dbpath).c_str(),options);
     if (!status.ok())
     {
-        //! @todo handle error
-        setError(ec,DbError::DB_DESTROY_FAILED);
+        setRocksdbError(ec,DbError::DB_DESTROY_FAILED,status);
     }
 
     // done
@@ -143,6 +150,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
 
 void RocksdbClient::doCloseDb(Error &ec)
 {
+    HATN_CTX_SCOPE("rocksdbclosedb")
     invokeCloseDb(ec);
 }
 
@@ -150,10 +158,13 @@ void RocksdbClient::doCloseDb(Error &ec)
 
 void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records, bool createIfMissing)
 {
+    HATN_CTX_SCOPE("rocksdbinvokeopen")
+
     // load config
     ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
     if (ec)
     {
+        HATN_CTX_SCOPE_ERROR("load-main-config")
         return;
     }
 
@@ -162,6 +173,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ec=d->opt.loadLogConfig(config.opt,config.optPath,records);
     if (ec)
     {
+        HATN_CTX_SCOPE_ERROR("load-opt-config")
         return;
     }
 
@@ -188,8 +200,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         createNew=!readOnly && status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kPathNotFound && createIfMissing;
         if (!createNew)
         {
-            //! @todo handle error
-            setError(ec,DbError::PARTITION_LIST_FAILED);
+            HATN_CTX_SCOPE_ERROR("list-column-families")
+            setRocksdbError(ec,DbError::PARTITION_LIST_FAILED,status);
             return;
         }
     }
@@ -216,13 +228,16 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         }
         else
         {
-            //! @todo Inform about unknown column family
-            setError(ec,DbError::PARTITION_LIST_FAILED);
+            HATN_CTX_SCOPE_ERROR("unknown-column-family-listed")
+            HATN_CTX_SCOPE_PUSH("cf",cfName)
+            db::setDbErrorCode(ec,DbError::PARTITION_LIST_FAILED);
             return;
         }
     }
 
     // open database
+    HATN_CTX_SCOPE_PUSH("dbpath",dbPath)
+    HATN_CTX_SCOPE_PUSH("create_db",createNew)
     std::vector<ROCKSDB_NAMESPACE::ColumnFamilyHandle*> cfHandles;
     if (createNew)
     {
@@ -233,6 +248,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     {
         if (d->opt.config().field(rocksdb_options::readonly).value())
         {
+            HATN_CTX_SCOPE_PUSH("readonly",true)
             status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&db);
         }
         else
@@ -245,14 +261,15 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     // check status
     if (!status.ok())
     {
-        //! @todo handle error
-        if (createIfMissing)
+        if (createNew)
         {
-            setError(ec,DbError::DB_CREATE_FAILED);
+            HATN_CTX_SCOPE_ERROR("create-db")
+            setRocksdbError(ec,DbError::DB_CREATE_FAILED,status);
         }
         else
         {
-            setError(ec,DbError::DB_OPEN_FAILED);
+            HATN_CTX_SCOPE_ERROR("open-db")
+            setRocksdbError(ec,DbError::DB_OPEN_FAILED,status);
         }
         return;
     }
@@ -282,16 +299,18 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         boost::split(parts,name,boost::is_any_of("_"));
         if (parts.size()!=2)
         {
-            //! @todo inform on error
-            setError(ec,DbError::PARTITION_LIST_FAILED);
+            HATN_CTX_SCOPE_ERROR("column-family-name")
+            HATN_CTX_SCOPE_PUSH("cf",name)
+            db::setDbErrorCode(ec,DbError::PARTITION_LIST_FAILED);
             break;
         }
 
         auto partitionDateRange=common::DateRange::fromString(parts[0]);
         if (partitionDateRange)
         {
-            //! @todo inform on error
-            setError(ec,DbError::PARTITION_LIST_FAILED);
+            HATN_CTX_SCOPE_ERROR("column-family-date-range")
+            HATN_CTX_SCOPE_PUSH("cf",name)
+            db::setDbErrorCode(ec,DbError::PARTITION_LIST_FAILED);
             break;
         }
 
@@ -316,8 +335,9 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         }
         else
         {
-            //! @todo Warn about unknown column family
-            setError(ec,DbError::PARTITION_LIST_FAILED);
+            HATN_CTX_SCOPE_ERROR("unknown-column-family-handle")
+            HATN_CTX_SCOPE_PUSH("cf",name)
+            db::setDbErrorCode(ec,DbError::PARTITION_LIST_FAILED);
             break;
         }
 
@@ -330,8 +350,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         auto r=d->handler->createPartition();
         if (r)
         {
-            //! @todo handle error
-            setError(ec,DbError::PARTITION_CREATE_FALIED);
+            HATN_CTX_SCOPE_ERROR("create-default-partition")
+            ec=r.takeError();
         }
         else
         {
@@ -359,7 +379,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         auto status=d->handler->p()->db->Close();
         if (!status.ok())
         {
-            //! @todo handle error
+            HATN_CTX_ERROR(makeError(DbError::DB_CLOSE_FAILED,status),"failed to close rocksdb after opening failed");
         }
 
         // done closing db on failure
@@ -371,6 +391,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
 void RocksdbClient::invokeCloseDb(Error &ec)
 {
+    HATN_CTX_SCOPE("rocksdbinvokeclose")
+
     ec.reset();
     if (d->handler)
     {
@@ -391,8 +413,7 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         // check status
         if (!status.ok())
         {
-            //! @todo handle error
-            setError(ec,DbError::DB_CLOSE_FAILED);
+            setRocksdbError(ec,DbError::DB_CLOSE_FAILED,status);
         }
 
         // done
@@ -404,9 +425,12 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 Error RocksdbClient::doAddSchema(std::shared_ptr<DbSchema> schema)
 {
+    HATN_CTX_SCOPE("rocksdbaddschema")
+
     auto rs=RocksdbSchemas::instance().schema(schema->name());
     if (!rs)
     {
+        HATN_CTX_SCOPE_LOCK()
         return dbError(DbError::SCHEMA_NOT_REGISTERED);
     }
 
@@ -418,9 +442,12 @@ Error RocksdbClient::doAddSchema(std::shared_ptr<DbSchema> schema)
 
 Result<std::shared_ptr<DbSchema>> RocksdbClient::doFindSchema(const lib::string_view &schemaName) const
 {
+    HATN_CTX_SCOPE("rocksdbfindschema")
+
     auto s=d->handler->schema(schemaName);
     if (!s)
     {
+        HATN_CTX_SCOPE_LOCK()
         return dbError(DbError::SCHEMA_NOT_FOUND);
     }
     return s->dbSchema();
@@ -458,6 +485,8 @@ Error RocksdbClient::doMigrateSchemas()
 
 Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
+    HATN_CTX_SCOPE("rocksdbaddpartitions")
+
     for (auto&& range: dateRanges)
     {
         auto r=d->handler->createPartition(range);
@@ -472,6 +501,8 @@ Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const st
 
 Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
+    HATN_CTX_SCOPE("rocksdbdeletepartitions")
+
     //! @todo test delete partition
     for (auto&& range: dateRanges)
     {
@@ -487,6 +518,8 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
 {
+    HATN_CTX_SCOPE("rocksdbcreate")
+
     ENSURE_MODEL_SCHEMA
 
     auto rdbModel=model.nativeModel<RocksdbModel>();
