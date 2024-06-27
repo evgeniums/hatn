@@ -21,6 +21,8 @@
 #ifndef HATNDATAUNITSIMPL_H
 #define HATNDATAUNITSIMPL_H
 
+#include <hatn/common/meta/replicatetotuple.h>
+
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/unittraits.h>
 
@@ -31,7 +33,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 template <typename ...Fields>
 UnitImpl<Fields...>::UnitImpl(Unit* self)
-    : m_fields(Fields{self}...)
+    : m_fields(common::replicateToTuple(self,hana::size(m_fields)))
 {}
 
 //---------------------------------------------------------------
