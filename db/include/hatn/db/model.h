@@ -22,6 +22,8 @@
 #include <type_traits>
 #include <set>
 
+#include <hatn/common/daterange.h>
+
 #include <hatn/db/db.h>
 #include <hatn/db/object.h>
 #include <hatn/db/index.h>
