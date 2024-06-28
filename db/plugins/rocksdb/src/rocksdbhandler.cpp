@@ -18,6 +18,9 @@
 
 #include <rocksdb/db.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
+#include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 
@@ -52,6 +55,8 @@ RocksdbHandler::~RocksdbHandler()
 
 Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTransaction)
 {
+    HATN_CTX_SCOPE("rocksdbtransaction")
+
     if (d->inTransaction)
     {
         if (relaxedIfInTransaction)
@@ -65,6 +70,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
     auto tx=d->transactionDb->BeginTransaction(d->writeOptions,d->transactionOptions);
     if (tx==nullptr)
     {
+        HATN_CTX_SCOPE_ERROR("begin-transaction")
         return dbError(DbError::TX_BEGIN_FAILED);
     }
     d->inTransaction=true;
@@ -75,7 +81,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
         auto status=tx->Rollback();
         if (!status.ok())
         {
-            //! @todo report error
+            HATN_CTX_ERROR(makeError(DbError::TX_ROLLBACK_FAILED,status),"");
         }
     }
     else
@@ -83,8 +89,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
         auto status=tx->Commit();
         if (!status.ok())
         {
-            //! @todo construct error
-            ec=dbError(DbError::TX_COMMIT_FAILED);
+            setRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
         }
     }
     return ec;
@@ -94,6 +99,9 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
 
 Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const common::DateRange& range)
 {
+    HATN_CTX_SCOPE("rocksdbcreatepartition")
+    HATN_CTX_SCOPE_PUSH("partition",range)
+
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
@@ -122,8 +130,8 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
                                                                          );
         if (!status.ok())
         {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
+            HATN_CTX_SCOPE_ERROR("collection-column-family")
+            return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
         if (partition)
         {
@@ -139,8 +147,8 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
                                                                     );
         if (!status.ok())
         {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
+            HATN_CTX_SCOPE_ERROR("index-column-family")
+            return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
         if (partition)
         {
@@ -148,7 +156,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
         }
     }
 
-    if (!partition || !partition->collectionCf)
+    if (!partition || !partition->ttlCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->ttlColumnFamilyOptions,
                                                                     RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Ttl,range),
@@ -156,8 +164,8 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
                                                                     );
         if (!status.ok())
         {
-            //! @todo handle error
-            return dbError(DbError::PARTITION_CREATE_FALIED);
+            HATN_CTX_SCOPE_ERROR("ttl-column-family")
+            return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
         if (partition)
         {
@@ -179,6 +187,9 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
 
 Error RocksdbHandler::deletePartition(const common::DateRange& range)
 {
+    HATN_CTX_SCOPE("rocksdbdeletepartition")
+    HATN_CTX_SCOPE_PUSH("partition",range)
+
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
@@ -195,8 +206,10 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
         auto status=d->transactionDb->DropColumnFamily(partition->indexCf.get());
         if (!status.ok())
         {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
+            //! @todo skip non-existent cf
+
+            HATN_CTX_SCOPE_ERROR("index-column-family")
+            return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
     }
 
@@ -205,8 +218,10 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
         auto status=d->transactionDb->DropColumnFamily(partition->collectionCf.get());
         if (!status.ok())
         {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
+            //! @todo skip non-existent cf
+
+            HATN_CTX_SCOPE_ERROR("collection-column-family")
+            return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
     }
 
@@ -215,8 +230,10 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
         auto status=d->transactionDb->DropColumnFamily(partition->ttlCf.get());
         if (!status.ok())
         {
-            //! @todo handle error, skip non-existent cf
-            return dbError(DbError::PARTITION_DELETE_FALIED);
+            //! @todo skip non-existent cf
+            //!
+            HATN_CTX_SCOPE_ERROR("ttl-column-family")
+            return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
     }
 

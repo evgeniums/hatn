@@ -391,6 +391,10 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     HATN_CTX_IF() \
         ScopeCtx->pushStackVar(Name,Value);
 
+#define HATN_CTX_SCOPE_PUSH_(Name,Value) \
+    HATN_CTX_IF() \
+    _(ScopeCtx)->pushStackVar(Name,Value);
+
 #define HATN_CTX_SCOPE_POP() \
     HATN_CTX_IF() \
         ScopeCtx->popStackVar();

@@ -27,6 +27,10 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
+#ifndef ROCKSDB_NAMESPACE
+    #define ROCKSDB_NAMESPACE rocksdb
+#endif
+
 namespace ROCKSDB_NAMESPACE {
 class Status;
 }

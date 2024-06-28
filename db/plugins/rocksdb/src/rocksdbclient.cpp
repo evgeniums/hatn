@@ -17,7 +17,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <hatn/logcontext/context.h>
 #include <hatn/logcontext/contextlogger.h>
 
 #include <rocksdb/db.h>
@@ -379,7 +378,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         auto status=d->handler->p()->db->Close();
         if (!status.ok())
         {
-            HATN_CTX_ERROR(makeError(DbError::DB_CLOSE_FAILED,status),"failed to close rocksdb after opening failed");
+            HATN_CTX_ERROR(makeError(DbError::DB_CLOSE_FAILED,status),"failed to close db after opening failed");
         }
 
         // done closing db on failure

@@ -25,6 +25,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/namespace.h>
 
+#include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 
@@ -55,6 +56,9 @@ Error CreateObjectT::operator ()(
         "Invalid type of object (UnitT)"
     );
 
+    HATN_CTX_SCOPE("rocksdbcreateobject")
+    HATN_CTX_SCOPE_PUSH("coll",ns.collection())
+
     if (handler.readOnly())
     {
         return db::dbError(db::DbError::DB_READ_ONLY);
@@ -66,6 +70,7 @@ Error CreateObjectT::operator ()(
         [&](auto _)
         {
             auto partitionRange=datePartition(*_(object),_(model));
+            HATN_CTX_SCOPE_PUSH_("partition",partitionRange)
             return _(handler).partition(partitionRange);
         },
         [&](auto _)
@@ -75,6 +80,7 @@ Error CreateObjectT::operator ()(
     );
     if (!partition)
     {
+        HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
 
@@ -84,7 +90,11 @@ Error CreateObjectT::operator ()(
     {
         Error ec;
         dataunit::io::serialize(*object,buf,ec);
-        HATN_CHECK_EC(ec)
+        if(ec)
+        {
+            HATN_CTX_SCOPE_ERROR("serialize");
+            return ec;
+        }
     }
     else
     {
@@ -109,8 +119,8 @@ Error CreateObjectT::operator ()(
         auto status=batch.Put(partition->collectionCf.get(),objectKey,objectValue);
         if (!status.ok())
         {
-            //! @todo construct error
-            return dbError(DbError::WRITE_OBJECT_FAILED);
+            HATN_CTX_SCOPE_ERROR("batch-object");
+            return makeError(DbError::WRITE_OBJECT_FAILED,status);
         }
 
         // put ordinary indexes to batch
@@ -121,8 +131,8 @@ Error CreateObjectT::operator ()(
         status=rdb->Write(handler.p()->writeOptions,&batch);
         if (!status.ok())
         {
-            //! @todo construct error
-            return dbError(DbError::WRITE_OBJECT_FAILED);
+            HATN_CTX_SCOPE_ERROR("write-batch");
+            return makeError(DbError::WRITE_OBJECT_FAILED,status);
         }
 
         // done

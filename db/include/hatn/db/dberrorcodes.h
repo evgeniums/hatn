@@ -40,6 +40,7 @@
     Do(DbError,DB_READ_ONLY,_TR("invalid request for read only database","db")) \
     Do(DbError,TX_BEGIN_FAILED,_TR("failed to validate configuration object","db")) \
     Do(DbError,TX_COMMIT_FAILED,_TR("failed to commit database transaction","db")) \
+    Do(DbError,TX_ROLLBACK_FAILED,_TR("failed to rollback database transaction","db")) \
     Do(DbError,WRITE_OBJECT_FAILED,_TR("failed to write object to database","db")) \
     Do(DbError,PARTITION_CREATE_FALIED,_TR("failed to create database partition","db")) \
     Do(DbError,PARTITION_DELETE_FALIED,_TR("failed to delete database partition","db")) \
