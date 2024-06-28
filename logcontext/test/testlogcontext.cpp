@@ -169,6 +169,8 @@ BOOST_AUTO_TEST_CASE(FormatLogValue)
 
 BOOST_AUTO_TEST_CASE(CreateLogContext)
 {
+    BOOST_TEST_MESSAGE(fmt::format("Context size {}",sizeof(Context)));
+
     HATN_COMMON_NAMESPACE::ThreadLocalContext<Context> tlCtx;
     BOOST_CHECK(tlCtx.value()==nullptr);
 

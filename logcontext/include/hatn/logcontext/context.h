@@ -68,26 +68,20 @@ inline const char* logLevelName(LogLevel level) noexcept
 
 constexpr size_t MaxVarStackSize=32;
 constexpr size_t MaxVarMapSize=16;
-constexpr size_t MaxScopeDepth=16;
-constexpr size_t MaxScopeNameLength=32;
+constexpr size_t MaxScopeDepth=32;
 constexpr size_t MaxThreadDepth=8;
 constexpr size_t MaxTagLength=16;
 constexpr size_t MaxTagSetSize=8;
-constexpr size_t MaxScopeErrorLength=32;
 
-template <size_t ErrorLength=MaxScopeErrorLength, typename ScopeErrorT=common::FixedByteArray<ErrorLength>>
-struct ScopeCursorDataT
+struct ScopeCursorData
 {
-    using errorT=ScopeErrorT;
-
     size_t scopeStackOffset=0;
     size_t varStackOffset=0;
     common::ThreadId threadId;
-    ScopeErrorT error;
+    const char* error;
 };
 
-template <typename ScopeCursorDataT, size_t NameLength=MaxScopeNameLength>
-using ScopeCursorT=std::pair<common::FixedByteArray<NameLength>,ScopeCursorDataT>;
+using ScopeCursor=std::pair<const char*,ScopeCursorData>;
 
 struct DefaultConfig
 {
@@ -96,14 +90,9 @@ struct DefaultConfig
     constexpr static const size_t VarStackSize=MaxVarStackSize;
     constexpr static const size_t VarMapSize=MaxVarMapSize;
     constexpr static const size_t ScopeDepth=MaxScopeDepth;
-    constexpr static const size_t ScopeNameLength=MaxScopeNameLength;
-    constexpr static const size_t ScopeErrorLength=MaxScopeErrorLength;
     constexpr static const size_t ThreadDepth=MaxThreadDepth;
     constexpr static const size_t TagLength=MaxTagLength;
     constexpr static const size_t TagSetSize=MaxTagSetSize;
-
-    using ScopeCursorData=ScopeCursorDataT<ScopeErrorLength>;
-    using ScopeCursor=ScopeCursorT<ScopeCursorData,ScopeNameLength>;
 };
 
 struct ThreadCursorData
@@ -125,9 +114,8 @@ class ContextT : public common::TaskContextValue
         using valueT=ValueT<config::ValueLength>;
         using keyT=KeyT<config::KeyLength>;
         using recordT=RecordT<valueT,keyT>;
-        using scopeCursorDataT=typename config::ScopeCursorData;
-        using scopeErrorT=typename scopeCursorDataT::errorT;
-        using scopeCursorT=typename config::ScopeCursor;
+        using scopeCursorDataT=ScopeCursorData;
+        using scopeCursorT=ScopeCursor;
         using threadCursorT=ThreadCursorT<ThreadCursorDataT>;
         using tagT=common::FixedByteArray<config::TagLength>;
         using tagRecordT=std::pair<tagT,LogLevel>;
@@ -156,15 +144,24 @@ class ContextT : public common::TaskContextValue
         ContextT& operator=(ContextT&&)=delete;
         ContextT& operator=(const ContextT&)=delete;
 
+        /**
+         * @brief Enter scope.
+         * @param name Name of the scope. Must be constexpr. Do not use temporary variable.
+         */
         void enterScope(const char* name)
         {
             m_currentScopeIdx++;
             Assert(m_currentScopeIdx<=config::ScopeDepth,"Reached depth of scope stack");
             m_scopeStack.emplace_back(
-                std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),scopeErrorT{}}));
+                std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
         }
 
-        void describeScopeError(lib::string_view err, bool lockStack=true)
+        /**
+         * @brief Describe scope error.
+         * @param err Error description. Must be constexpr. Do not use temporary variable.
+         * @param lockStack Do not pop scope stack when leavinf the scope.
+         */
+        void describeScopeError(const char* err, bool lockStack=true)
         {
             if (lockStack)
             {

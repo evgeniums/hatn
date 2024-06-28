@@ -23,6 +23,7 @@
 
 #include <hatn/common/apierror.h>
 #include <hatn/common/format.h>
+#include <hatn/common/meta/cstrlength.h>
 
 #include <hatn/logcontext/context.h>
 #include <hatn/logcontext/logger.h>
@@ -85,17 +86,17 @@ class TextLogFormatterT
                             {
                                 _(buf).append(lib::string_view("."));
                             }
-                            _(buf).append(scope.first);
+                            _(buf).append(lib::string_view(scope.first));
 
                             hana::eval_if(
                                 std::is_same<ErrorT,hana::false_>{},
                                 [](auto){},
                                 [&](auto _)
                                 {
-                                    if (_(ec) && !_(scope).second.error.empty())
+                                    if (_(ec) && !common::CStrEmpty(_(scope).second.error))
                                     {
                                         _(buf).append(lib::string_view("("));
-                                        _(buf).append(_(scope).second.error);
+                                        _(buf).append(lib::string_view(_(scope).second.error));
                                         _(buf).append(lib::string_view(")"));
                                     }
                                 }
