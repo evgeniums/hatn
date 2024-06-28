@@ -20,14 +20,33 @@
 
 #include <cstddef>
 
+#include <boost/hana.hpp>
+
 #include <hatn/common/common.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Get size of const char* at compilation time.
-size_t constexpr CStrLength(const char* str) noexcept
+constexpr size_t CStrLength(const char* str) noexcept
 {
     return *str ? 1 + hatn::common::CStrLength(str + 1) : 0;
+}
+
+//! Check if const char* is empty.
+template <typename T>
+constexpr bool CStrEmpty(T str) noexcept
+{
+    return boost::hana::eval_if(
+        std::is_same<T,std::nullptr_t>{},
+        []()
+        {
+            return true;
+        },
+        [&](auto _)
+        {
+            return CStrLength(_(str))==0;
+        }
+    );
 }
 
 HATN_COMMON_NAMESPACE_END
