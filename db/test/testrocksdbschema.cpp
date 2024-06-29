@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     rdb::RocksdbSchemas::free();
 
     auto midx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto mo1=unitModel<object::TYPE>(ModelConfig<>{},midx1);
+    auto mo1=unitModel<object::TYPE>(ModelConfig{},midx1);
     using mo1t=decltype(mo1);
     using t1=ModelWithInfo<mo1t>;
     using mt1=typename t1::ModelType;
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
-    auto m1=unitModel<nu1::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto m1=unitModel<nu1::TYPE>(ModelConfig{},idx1,idx2,idx3);
     static_assert(std::is_same<nu1::TYPE,decltype(m1)::UnitType>::value,"");
 
     auto mi1=makeModelWithInfo(m1);
@@ -128,11 +128,11 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
 
     auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig,idx1,idx2,idx3);
     BOOST_CHECK_EQUAL(mi2->info.collection(),"nu1");
-    BOOST_CHECK_EQUAL(mi2->info.modelId(),1);
+    BOOST_CHECK_EQUAL(mi2->info.modelId(),818672101);
 
     auto mi3=makeModel<object::TYPE>(ModelConfig{"obj"},idx1,idx2,idx3);
     BOOST_CHECK_EQUAL(mi3->info.collection(),"obj");
-    BOOST_CHECK_EQUAL(mi3->info.modelId(),2);
+    BOOST_CHECK_EQUAL(mi3->info.modelId(),3649981262);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

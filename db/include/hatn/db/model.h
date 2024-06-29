@@ -50,20 +50,31 @@ HDU_UNIT_WITH(model,(HDU_BASE(object)),
 struct ModelConfigTag{};
 
 template <DatePartitionMode PartitionMode=DatePartitionMode::Month>
-class ModelConfig
+class ModelConfigT
 {
     public:
 
         using hana_tag=ModelConfigTag;
 
-        ModelConfig()=default;
-
-        ModelConfig(std::string collection) : m_collection(std::move(collection))
+        ModelConfigT() : m_modelId(0)
         {}
+
+        ModelConfigT(std::string collection) : m_collection(std::move(collection))
+        {
+            updateModelId();
+        }
 
         constexpr static DatePartitionMode datePartitionMode()
         {
             return PartitionMode;
+        }
+
+        void setModelId(uint32_t id)
+        {
+            std::array<char,8> buf;
+            fmt::format_to_n(buf.data(),8,"{:08x}",id);
+            m_modelIdStr=common::fmtBufToString(buf);
+            m_modelId=id;
         }
 
         uint32_t modelId() const noexcept
@@ -71,24 +82,39 @@ class ModelConfig
             return m_modelId;
         }
 
+        const std::string& modelIdStr() const noexcept
+        {
+            return m_modelIdStr;
+        }
+
         const std::string& collection() const noexcept
         {
             return m_collection;
         }
 
-    private:
-
-        void setModelId(uint32_t modelId) noexcept
+        void setCollection(std::string collection)
         {
-            m_modelId=modelId;
+            m_collection=std::move(collection);
+            updateModelId();
         }
 
+    private:
+
         uint32_t m_modelId;
+        std::string m_modelIdStr;
         std::string m_collection;
 
         template <typename UnitType> friend struct unitModelT;
+
+        void updateModelId()
+        {
+            m_modelId=common::Crc32(m_collection);
+            m_modelIdStr=common::Crc32Hex(m_collection);
+        }
 };
-inline ModelConfig<> DefaultModelConfig{};
+
+using ModelConfig=ModelConfigT<>;
+inline ModelConfig DefaultModelConfig{};
 
 struct ModelTag{};
 
@@ -106,20 +132,25 @@ struct Model : public ConfigT
     template <typename CfgT,typename Ts>
     Model(
         CfgT&& config,
-        Ts&& indexes,
+        Ts&& indices,
           std::enable_if_t<
               decltype(hana::is_a<hana::tuple_tag,Ts>)::value,
               void*
               > =nullptr) :
                     ConfigT(std::forward<CfgT>(config)),
-                    indexes(std::forward<Ts>(indexes))
-    {}
+                    indexes(std::forward<Ts>(indices))
+    {
+        if (this->collection().empty())
+        {
+            this->setCollection(name());
+        }
 
-    ~Model()=default;
-    Model(const Model&)=default;
-    Model(Model&&)=default;
-    Model& operator=(const Model&)=default;
-    Model& operator=(Model&&)=default;
+        auto eachIndex=[this](auto& idx)
+        {
+            idx.setCollection(this->collection());
+        };
+        hana::for_each(indexes,eachIndex);
+    }
 
     constexpr static const char* name()
     {
@@ -197,8 +228,8 @@ struct unitModelT
         using indexesT=std::decay_t<decltype(xs)>;
 
         using type=Model<configT,UnitType,indexesT>;
-        auto m=type{config,xs};
-        m.setModelId(ModelRegistry::instance().registerModel(type::name()));
+        type m{config,xs};
+        ModelRegistry::instance().registerModel(m.collection(),m.modelId());
         return m;
     }
 };
@@ -235,17 +266,13 @@ class ModelInfo
                       void*
                       > =nullptr
                   )
-            : m_collection(std::decay_t<ModelT>::name()),
+            : m_collection(model.collection()),
               m_datePartitioned(model.isDatePartitioned()),
               m_datePartitionMode(model.datePartitionMode()),
               m_id(model.modelId()),
+              m_idStr(model.modelIdStr()),
               m_nativeModel(nullptr)
-        {
-            if (!model.collection().empty())
-            {
-                m_collection=model.collection();
-            }
-        }
+        {}
 
         const std::string& collection() const noexcept
         {
@@ -265,6 +292,17 @@ class ModelInfo
         uint32_t modelId() const noexcept
         {
             return m_id;
+        }
+
+        const std::string& modelIdStr() const noexcept
+        {
+            return m_idStr;
+        }
+
+        void setModelId(uint32_t id, std::string str)
+        {
+            m_id=id;
+            m_idStr=str;
         }
 
         bool operator <(const ModelInfo& other) const noexcept
@@ -309,6 +347,7 @@ class ModelInfo
         bool m_datePartitioned;
         DatePartitionMode m_datePartitionMode;
         uint32_t m_id;
+        std::string m_idStr;
 
         void* m_nativeModel;
         std::weak_ptr<DbSchema> m_schema;

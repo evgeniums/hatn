@@ -40,7 +40,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchema
 {
     public:
 
-        RocksdbSchema(std::shared_ptr<db::DbSchema> dbSchema) : m_dbSchema(std::move(dbSchema))
+        RocksdbSchema(std::shared_ptr<DbSchema> dbSchema) : m_dbSchema(std::move(dbSchema))
         {}
 
         RocksdbSchema(const RocksdbSchema&)=delete;
@@ -50,17 +50,17 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchema
 
         void addModel(std::shared_ptr<RocksdbModel> model);
 
-        std::shared_ptr<RocksdbModel> findModel(const db::ModelInfo& info) const;
+        std::shared_ptr<RocksdbModel> findModel(const ModelInfo& info) const;
 
-        std::shared_ptr<db::DbSchema> dbSchema() const noexcept
+        std::shared_ptr<DbSchema> dbSchema() const noexcept
         {
             return m_dbSchema;
         }
 
     private:
 
-        std::map<db::ModelInfo,std::shared_ptr<RocksdbModel>> m_models;
-        std::shared_ptr<db::DbSchema> m_dbSchema;
+        std::map<ModelInfo,std::shared_ptr<RocksdbModel>> m_models;
+        std::shared_ptr<DbSchema> m_dbSchema;
 };
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton

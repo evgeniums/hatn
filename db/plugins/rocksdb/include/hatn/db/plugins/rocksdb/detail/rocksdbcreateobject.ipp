@@ -19,6 +19,8 @@
 #ifndef HATNROCKSDBCREATEOBJECT_IPP
 #define HATNROCKSDBCREATEOBJECT_IPP
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
@@ -28,13 +30,14 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct CreateObjectT
 {
     template <typename ModelT, typename UnitT>
-    Error operator ()(const ModelT& model, RocksdbHandler& handler, const db::Namespace& ns, UnitT* object) const;
+    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, UnitT* object) const;
 };
 constexpr CreateObjectT CreateObject{};
 
@@ -42,7 +45,7 @@ template <typename ModelT, typename UnitT>
 Error CreateObjectT::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
-                               const db::Namespace& ns,
+                               const Namespace& ns,
                                UnitT* object
                                ) const
 {
@@ -57,11 +60,12 @@ Error CreateObjectT::operator ()(
     );
 
     HATN_CTX_SCOPE("rocksdbcreateobject")
-    HATN_CTX_SCOPE_PUSH("coll",ns.collection())
+    HATN_CTX_SCOPE_PUSH("coll",model.collection())
+    HATN_CTX_SCOPE_PUSH("topic",ns.topic())
 
     if (handler.readOnly())
     {
-        return db::dbError(db::DbError::DB_READ_ONLY);
+        return dbError(DbError::DB_READ_ONLY);
     }
 
     // handle partition
@@ -105,18 +109,21 @@ Error CreateObjectT::operator ()(
     auto transactionFn=[&]()
     {
         auto rdb=handler.p()->transactionDb;
-        auto objectId=object->field(db::object::_id).value().toString();
+        auto objectId=object->field(object::_id).value().toString();
+        ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
-        // prepare batch
+        // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
+        Keys keys;
 
         // put unique indexes to batch, uniqueness is provided by merge operation
 
         // put serialized object to batch
-        //! @todo handle keys in one place
-        auto objectKey=fmt::format("{}:{}:{}",ns.collection(),objectId);
-        ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        auto status=batch.Put(partition->collectionCf.get(),objectKey,objectValue);
+        auto objectKey=keys.makeObjectKey(model,ns,objectIdS);
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],objectKey.size()};
+        ROCKSDB_NAMESPACE::Slice value{buf.mainContainer()->data(),buf.mainContainer()->size()};
+        ROCKSDB_NAMESPACE::SliceParts valueSlices{&value,1};
+        auto status=batch.Put(partition->collectionCf.get(),keySlices,valueSlices);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("batch-object");

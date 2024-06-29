@@ -470,6 +470,7 @@ Result<std::vector<std::shared_ptr<DbSchema>>> RocksdbClient::doListSchemas() co
 
 Error RocksdbClient::doCheckSchemas()
 {
+    //! @todo Load ids of keys and collections from schema
     return common::CommonError::NOT_IMPLEMENTED;
 }
 
@@ -477,6 +478,7 @@ Error RocksdbClient::doCheckSchemas()
 
 Error RocksdbClient::doMigrateSchemas()
 {
+    //! @todo Save ids of keys and collections from schema
     return common::CommonError::NOT_IMPLEMENTED;
 }
 

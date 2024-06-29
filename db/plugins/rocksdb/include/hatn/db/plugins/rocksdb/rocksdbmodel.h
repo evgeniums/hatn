@@ -39,9 +39,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 {
     public:
 
-        RocksdbModel(db::ModelInfo& info);
+        RocksdbModel(ModelInfo& info);
 
-        const db::ModelInfo& info() const noexcept
+        const ModelInfo& info() const noexcept
         {
             return m_modelInfo;
         }
@@ -50,7 +50,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
     private:
 
-        db::ModelInfo& m_modelInfo;
+        ModelInfo& m_modelInfo;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

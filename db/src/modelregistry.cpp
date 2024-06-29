@@ -54,20 +54,6 @@ void ModelRegistry::free()
 
 //---------------------------------------------------------------
 
-uint32_t ModelRegistry::registerModel(std::string name)
-{
-    auto it=m_modelIds.find(name);
-    if (it!=m_modelIds.end())
-    {
-        return it->second;
-    }
-    m_modelIds.emplace(name,++ModelCounter);
-    m_modelNames.emplace(ModelCounter,std::move(name));
-    return ModelCounter;
-}
-
-//---------------------------------------------------------------
-
 uint32_t ModelRegistry::modelId(const lib::string_view &name) const
 {
     auto it=m_modelIds.find(name);

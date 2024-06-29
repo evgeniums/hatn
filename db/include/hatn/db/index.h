@@ -23,6 +23,7 @@
 
 #include <boost/hana.hpp>
 
+#include <hatn/common/crc32.h>
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/datetime.h>
 
@@ -239,14 +240,32 @@ struct Index : public ConfigT
         return m_name;
     }
 
+    const std::string& id() const
+    {
+        return m_id;
+    }
+
+    const std::string& collection() const
+    {
+        return m_collection;
+    }
+
     constexpr static decltype(auto) datePartitionField()
     {
         return hana::front(fields);
     }
 
+    void setCollection(std::string val)
+    {
+        m_collection=std::move(val);
+        m_id=common::Crc32Hex(m_collection,m_name);
+    }
+
     private:
 
         std::string m_name;
+        std::string m_collection;
+        std::string m_id;
 };
 
 struct makeIndexT

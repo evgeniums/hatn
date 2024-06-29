@@ -24,12 +24,14 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdberror.h
     include/hatn/db/plugins/rocksdb/rocksdbmodel.h
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
-    include/hatn/db/plugins/rocksdb/rocksdbhandler.h
+    include/hatn/db/plugins/rocksdb/rocksdbhandler.h    
 )
 
 SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/ipp/rocksdbschema.ipp
-    include/hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h    
+    include/hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp
+    include/hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h
     include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
 )
 

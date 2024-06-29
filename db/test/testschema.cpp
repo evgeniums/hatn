@@ -72,6 +72,8 @@ BOOST_AUTO_TEST_CASE(IndexField)
 
 BOOST_AUTO_TEST_CASE(MakeIndex)
 {
+    ModelRegistry::free();
+
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     BOOST_CHECK_EQUAL(idx1.name(),"idx_id");
     BOOST_CHECK(idx1.unique());
@@ -112,10 +114,17 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
 
 BOOST_AUTO_TEST_CASE(MakeModel)
 {
+    ModelRegistry::free();
+
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
-    auto model1=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model1=unitModel<object::TYPE>(ModelConfig{"object_collection"},idx1,idx2,idx3);
+    BOOST_CHECK_EQUAL(model1.collection(),"object_collection");
+    BOOST_CHECK_EQUAL(model1.modelIdStr(),"222153d8");
+    BOOST_CHECK_EQUAL(model1.modelId(),572609496);
+    BOOST_CHECK_EQUAL(hana::at(model1.indexes,hana::size_c<2>).collection(),"object_collection");
+    BOOST_CHECK_EQUAL(hana::at(model1.indexes,hana::size_c<2>).id(),"7aad584e");
     BOOST_CHECK(model1.isDatePartitioned());
     auto partitionField1=model1.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField1.name(),"created_at");
@@ -126,6 +135,11 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
     auto model2=unitModel<object::TYPE>(idx1,idx3);
+    BOOST_CHECK_EQUAL(model2.collection(),"object");
+    BOOST_CHECK_EQUAL(model2.modelIdStr(),"ebf0a7b7");
+    BOOST_CHECK_EQUAL(model2.modelId(),3958417335);
+    BOOST_CHECK_EQUAL(hana::at(model2.indexes,hana::size_c<1>).collection(),"object");
+    BOOST_CHECK_EQUAL(hana::at(model2.indexes,hana::size_c<1>).id(),"cf848495");
     BOOST_CHECK(!model2.isDatePartitioned());
     auto partitionField2=model2.datePartitionField();
     BOOST_CHECK(!partitionField2.value);
@@ -134,14 +148,15 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     auto partitionRange2=datePartition(o2,model2);
     BOOST_CHECK(!partitionRange2.isValid());
 
-    BOOST_CHECK_EQUAL(model1.modelId(),1);
-    BOOST_CHECK_EQUAL(model2.modelId(),1);
+    BOOST_CHECK_EQUAL(model1.modelId(),572609496);
+    BOOST_CHECK_EQUAL(model2.modelId(),3958417335);
 
-    auto model3=unitModel<n1::TYPE>(ModelConfig<>{});
-    BOOST_CHECK_EQUAL(model3.modelId(),2);
+    auto model3=unitModel<n1::TYPE>(ModelConfig{"object_collection2"});
+    BOOST_CHECK_EQUAL(model3.modelId(),3528016721);
 
     auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},indexField(object::created_at));
-    auto model4=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx4,idx3);
+    auto model4=unitModel<object::TYPE>(ModelConfig{"object_collection3"},idx1,idx4,idx3);
+    BOOST_CHECK_EQUAL(model4.modelId(),3432328208);
     BOOST_CHECK(model4.isDatePartitioned());
     auto partitionField4=model4.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField4.name(),"created_at");
@@ -154,6 +169,8 @@ BOOST_AUTO_TEST_CASE(MakeModel)
 
 BOOST_AUTO_TEST_CASE(NestedIndexField)
 {
+    ModelRegistry::free();
+
     auto nestedField1=nestedIndexField(nu1::nf1,n1::f1);
 
     constexpr auto isField=hana::or_(hana::is_a<FieldTag,decltype(nestedField1)>,hana::is_a<NestedFieldTag,decltype(nestedField1)>);
@@ -168,7 +185,7 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     BOOST_CHECK_EQUAL(idx2.name(),"idx_nf1__f1");
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
 
-    auto model1=unitModel<object::TYPE>(ModelConfig<>{},idx1,idx2,idx3);
+    auto model1=unitModel<object::TYPE>(ModelConfig{"model1"},idx1,idx2,idx3);
     BOOST_CHECK(model1.isDatePartitioned());
     auto partitionField1=model1.datePartitionField();
     BOOST_CHECK_EQUAL(partitionField1.name(),"nf1__f1");

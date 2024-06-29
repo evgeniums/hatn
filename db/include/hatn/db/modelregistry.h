@@ -24,6 +24,7 @@
 #include <hatn/common/singleton.h>
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/flatmap.h>
+#include <hatn/common/utils.h>
 
 #include <hatn/db/db.h>
 
@@ -38,7 +39,13 @@ class HATN_DB_EXPORT ModelRegistry : public common::Singleton
         static ModelRegistry& instance();
         static void free();
 
-        uint32_t registerModel(std::string name);
+        void registerModel(std::string name, uint32_t id)
+        {
+            Assert(m_modelIds.find(name)==m_modelIds.end(),"Model with this name already registered");
+            Assert(m_modelNames.find(id)==m_modelNames.end(),"Model with this ID already registered");
+            m_modelIds.emplace(name,id);
+            m_modelNames.emplace(id,std::move(name));
+        }
 
         uint32_t modelId(const common::lib::string_view& name) const;
 

@@ -40,16 +40,10 @@ class Namespace
             return m_topic;
         }
 
-        const lib::string_view& collection() const noexcept
-        {
-            return m_collection;
-        }
-
     private:
 
         lib::string_view m_tenancyName;
         lib::string_view m_topic;
-        lib::string_view m_collection;
 };
 
 HATN_DB_NAMESPACE_END
