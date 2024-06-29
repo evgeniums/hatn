@@ -120,7 +120,7 @@ Error CreateObjectT::operator ()(
 
         // put serialized object to batch
         auto objectKey=keys.makeObjectKey(model,ns,objectIdS);
-        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],objectKey.size()};
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],static_cast<int>(objectKey.size())};
         ROCKSDB_NAMESPACE::Slice value{buf.mainContainer()->data(),buf.mainContainer()->size()};
         ROCKSDB_NAMESPACE::SliceParts valueSlices{&value,1};
         auto status=batch.Put(partition->collectionCf.get(),keySlices,valueSlices);
