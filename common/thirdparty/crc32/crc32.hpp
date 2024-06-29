@@ -80,6 +80,7 @@ public:
 };
 
 static const uint32_t IEEE8023_CRC32_POLYNOMIAL = 0x04C11DB7UL;
+constexpr const uint32_t CRC32C_POLYNOMIAL = 0x1EDC6F41;
 
 template<uint32_t poly, typename iterator_t>
 static inline uint32_t crc32(uint32_t crc, const iterator_t head, const iterator_t tail)
