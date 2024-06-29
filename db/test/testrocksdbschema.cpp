@@ -13,6 +13,9 @@
 
 /****************************************************************************/
 
+#include <cmath>
+#include <cstdlib>
+
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
@@ -133,6 +136,39 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
     auto mi3=makeModel<object::TYPE>(ModelConfig{"obj"},idx1,idx2,idx3);
     BOOST_CHECK_EQUAL(mi3->info.collection(),"obj");
     BOOST_CHECK_EQUAL(mi3->info.modelId(),3649981262);
+}
+
+BOOST_AUTO_TEST_CASE(IndexKeys)
+{
+    int8_t i1=-1;
+    BOOST_TEST_MESSAGE(fmt::format("negative int8: {:x}",i1));
+    int8_t i2=1;
+    BOOST_TEST_MESSAGE(fmt::format("positive int8: {:x}",i2));
+
+    uint8_t i1_1=uint8_t(i1);
+    BOOST_TEST_MESSAGE(fmt::format("two's complement negative int8: {:x}",i1_1));
+
+    uint8_t i1_2=-10;
+    uint8_t i1_3=uint8_t(i1_2);
+    BOOST_TEST_MESSAGE(fmt::format("two's complement negative int8: {:x} -> {:x}",i1_2,i1_3));
+
+    int64_t i3=0x8000000000000000;
+    BOOST_TEST_MESSAGE(fmt::format("min negative int64: {:d} : {:016x}",i3,i3));
+    uint64_t i3_1=uint64_t(i3);
+    BOOST_TEST_MESSAGE(fmt::format("two's complement of min negative int64: {:d} : {:016x}",i3_1, i3_1));
+    uint64_t i3_2=0-i3;
+    BOOST_TEST_MESSAGE(fmt::format("two's complement of min negative int64: {:d} : {:016x} : {:016x}",i3_1, i3_1, i3_2));
+
+    int64_t i4=0xFFFFFFFFFFFFFFFF;
+    BOOST_TEST_MESSAGE(fmt::format("max negative int64: {:d} : {:016x}",i4,i4));
+    uint64_t i4_1=uint64_t(i4);
+    BOOST_TEST_MESSAGE(fmt::format("two's complement of max negative int64: {:d} : {:016x}",i4_1,i4_1));
+
+    BOOST_TEST_MESSAGE(fmt::format("positive float: {:a}",3.14));
+    BOOST_TEST_MESSAGE(fmt::format("negative float: {:a}",-3.14));
+    BOOST_TEST_MESSAGE(fmt::format("positive float: {:a}",3.11));
+    BOOST_TEST_MESSAGE(fmt::format("negative float: {:a}",-3.11));
+    BOOST_TEST_MESSAGE(fmt::format("negative float: {:a}",0-(-3.11)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

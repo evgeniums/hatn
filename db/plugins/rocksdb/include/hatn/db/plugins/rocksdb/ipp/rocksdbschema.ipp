@@ -27,14 +27,17 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename DbSchemaSharedPtrT>
-void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema)
+template <typename DbSchemaSharedPtrT,
+         typename BufT,
+         typename AllocatorT
+         >
+void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, const AllocatorT& alloc)
 {
     Assert(m_schemas.find(schema->name())==m_schemas.end(),"Trying to register duplicate database schema");
 
     auto rdbSchema=std::make_shared<RocksdbSchema>(schema);
 
-    auto addModel=[&rdbSchema](auto model)
+    auto addModel=[&rdbSchema,&alloc](auto model)
     {
         auto rdbModel=std::make_shared<RocksdbModel>(model->info);
 
@@ -42,10 +45,10 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema)
         using unitT=typename modelT::ModelType::UnitType;
         static typename unitT::type sample;
 
-        rdbModel->createObject=[model](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
+        rdbModel->createObject=[model,&alloc](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
         {
             auto* obj=sample.castToUnit(object);
-            return CreateObject(model->model,handler,ns,obj);
+            return CreateObject<BufT>(model->model,handler,ns,obj,alloc);
         };
 
         rdbSchema->addModel(std::move(rdbModel));

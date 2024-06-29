@@ -230,6 +230,8 @@ constexpr IndexConfig<> DefaultIndexConfig{};
 template <typename ConfigT, typename ...Fields>
 struct Index : public ConfigT
 {
+    //! @todo Disallow floaing point indexes.
+
     constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
 
     Index(std::string name):m_name(std::move(name))

@@ -31,22 +31,29 @@
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+template <typename BufT>
 struct CreateObjectT
 {
-    template <typename ModelT, typename UnitT>
-    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, UnitT* object) const;
+    template <typename ModelT, typename UnitT,
+             typename AllocatorT=common::FmtAllocator
+             >
+    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, UnitT* object, const AllocatorT& alloc=AllocatorT{}) const;
 };
-constexpr CreateObjectT CreateObject{};
+template <typename BufT>
+constexpr CreateObjectT<BufT> CreateObject{};
 
-template <typename ModelT, typename UnitT>
-Error CreateObjectT::operator ()(
+template <typename BufT>
+template <typename ModelT, typename UnitT, typename AllocatorT>
+Error CreateObjectT<BufT>::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
                                const Namespace& ns,
-                               UnitT* object
+                               UnitT* object,
+                               const AllocatorT& alloc
                                ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -114,9 +121,9 @@ Error CreateObjectT::operator ()(
 
         // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
-        Keys keys;
+        Keys<BufT> keys{alloc};
 
-        // put unique indexes to batch, uniqueness is provided by merge operation
+        //! @todo check unique indexes
 
         // put serialized object to batch
         auto objectKey=keys.makeObjectKey(model,ns,objectIdS);
@@ -130,9 +137,12 @@ Error CreateObjectT::operator ()(
             return makeError(DbError::WRITE_OBJECT_FAILED,status);
         }
 
-        // put ordinary indexes to batch
+        // put indexes to batch
+        Indexes<BufT> indexes{partition->indexCf.get(),keys};
+        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object);
+        HATN_CHECK_EC(ec)
 
-        // put ttl indexes to batch
+        //! @todo put ttl indexes to batch
 
         // write batch to rocksdb
         status=rdb->Write(handler.p()->writeOptions,&batch);

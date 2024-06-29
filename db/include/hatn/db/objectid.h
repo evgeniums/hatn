@@ -54,10 +54,10 @@ class HATN_DB_EXPORT ObjectId
         void generate();
 
         template <typename BufferT>
-        void serialize(BufferT& buf) const
+        void serialize(BufferT& buf, size_t offset=0) const
         {
-            Assert(buf.size()>=Length,"invalid buf size for ObjectId");
-            fmt::format_to_n(buf.data(),Length,"{:010x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
+            Assert((buf.size()-offset)>=Length,"invalid buf size for ObjectId");
+            fmt::format_to_n(buf.data()+offset,Length,"{:010x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
         }
 
         bool parse(const common::ConstDataBuf& buf) noexcept;

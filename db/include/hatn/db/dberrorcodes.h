@@ -42,6 +42,7 @@
     Do(DbError,TX_COMMIT_FAILED,_TR("failed to commit database transaction","db")) \
     Do(DbError,TX_ROLLBACK_FAILED,_TR("failed to rollback database transaction","db")) \
     Do(DbError,WRITE_OBJECT_FAILED,_TR("failed to write object to database","db")) \
+    Do(DbError,SAVE_INDEX_FAILED,_TR("failed to save index in database","db")) \
     Do(DbError,PARTITION_CREATE_FALIED,_TR("failed to create database partition","db")) \
     Do(DbError,PARTITION_DELETE_FALIED,_TR("failed to delete database partition","db")) \
     Do(DbError,PARTITION_LIST_FAILED,_TR("failed to list database partitions","db")) \
