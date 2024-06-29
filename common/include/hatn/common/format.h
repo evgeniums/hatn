@@ -29,12 +29,17 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-    template <typename T=char> using FormatAllocator=pmr::polymorphic_allocator<T>;
+    template <typename T=char>
+    using FormatAllocator=pmr::polymorphic_allocator<T>;
 
-    template <typename T=char,size_t SIZE=fmt::inline_buffer_size> using FmtAllocatedBuffer=fmt::basic_memory_buffer<T,SIZE,FormatAllocator<T>>;
+    template <size_t Size=fmt::inline_buffer_size,typename T=char>
+    using FmtAllocatedBuffer=fmt::basic_memory_buffer<T,Size,FormatAllocator<T>>;
+
     using FmtAllocatedBufferChar=FmtAllocatedBuffer<>;
+    using FmtAllocator=FormatAllocator<>;
 
-    inline std::string fmtBufToString(const FmtAllocatedBufferChar& buffer)
+    template <typename BufT>
+    std::string fmtBufToString(const BufT& buffer)
     {
         return std::string(buffer.data(),buffer.size());
     }
