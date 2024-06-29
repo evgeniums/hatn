@@ -1,0 +1,4 @@
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_LIST_DIR}/crc32.hpp
+)

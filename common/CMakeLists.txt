@@ -11,7 +11,7 @@ ENDIF()
 
 ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)
-INCLUDE(thirdparty/md5/md5.cmake)
+INCLUDE(thirdparty/crc32/crc32.cmake)
 INCLUDE(thirdparty/base64/base64.cmake)
 INCLUDE(thirdparty/fameta/fameta.cmake)
 
@@ -161,6 +161,8 @@ SET (HEADERS
     include/hatn/common/meta/replicatetotuple.h
 
     include/hatn/common/allocatoronstack.h
+
+    include/hatn/common/crc32.h
 
     include/hatn/common/experimental/stats/stats.h
 )
