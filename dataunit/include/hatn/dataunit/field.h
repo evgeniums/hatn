@@ -111,6 +111,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             m_set=enable;
         }
 
+        constexpr static bool fieldHasDefaultValue() noexcept
+        {
+            return false;
+        }
+
+        constexpr static bool fieldIsParseToSharedArrays() noexcept
+        {
+            return false;
+        }
+
         //! Check if field is required
         virtual bool isRequired() const noexcept =0;
         //! Get field ID
@@ -149,11 +159,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 
         void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
         {}
-
-        bool fieldIsParseToSharedArrays() const noexcept
-        {
-            return false;
-        }
 
         virtual void pushJsonParseHandler(Unit*)=0;
 
