@@ -123,8 +123,6 @@ Error CreateObjectT<BufT>::operator ()(
         ROCKSDB_NAMESPACE::WriteBatch batch;
         Keys<BufT> keys{alloc};
 
-        //! @todo check unique indexes
-
         // put serialized object to batch
         auto objectKey=keys.makeObjectKey(model,ns,objectIdS);
         ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],static_cast<int>(objectKey.size())};
@@ -142,6 +140,8 @@ Error CreateObjectT<BufT>::operator ()(
         auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object);
         HATN_CHECK_EC(ec)
 
+        //! @todo put unique reference index if aaplicable
+
         //! @todo put ttl indexes to batch
 
         // write batch to rocksdb
@@ -149,7 +149,13 @@ Error CreateObjectT<BufT>::operator ()(
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("write-batch");
-            return makeError(DbError::WRITE_OBJECT_FAILED,status);
+            auto ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
+            auto saveUniqueIdx=SaveUniqueKey::instance();
+            if (saveUniqueIdx && saveUniqueIdx->ec)
+            {
+                ec.setPrevError(std::move(saveUniqueIdx->ec));
+            }
+            return ec;
         }
 
         // done

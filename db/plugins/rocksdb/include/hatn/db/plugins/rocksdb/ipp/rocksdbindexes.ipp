@@ -20,6 +20,7 @@
 #define HATNROCKSDBINDEXES_IPP
 
 #include <rocksdb/db.h>
+#include <rocksdb/merge_operator.h>
 
 #include <hatn/common/format.h>
 #include <hatn/common/meta/errorpredicate.h>
@@ -34,6 +35,8 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
+#include <hatn/db/plugins/rocksdb/saveuniquekey.h>
+
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -50,6 +53,51 @@ class Indexes
               m_keys(keys)
         {}
 
+        template <typename IndexT, typename UnitT>
+        Error saveIndex(
+            const IndexT& idx,
+            ROCKSDB_NAMESPACE::WriteBatch& batch,
+            const Namespace& ns,
+            const ROCKSDB_NAMESPACE::Slice& objectId,
+            const ROCKSDB_NAMESPACE::SliceParts& objectKey,
+            UnitT* object,
+            bool replace=false
+            )
+        {
+            HATN_CTX_SCOPE("saveindex")
+
+            auto key=m_keys.makeIndexKey(ns,objectId,object,idx);
+            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+
+            ROCKSDB_NAMESPACE::Status status;
+
+            //! @todo Add timestamp to value
+
+            bool put=true;
+            if constexpr (std::decay_t<IndexT>::unique())
+            {
+                if (!replace)
+                {
+                    put=false;
+                    status=batch.Merge(m_cf,keySlices,objectKey);
+                }
+            }
+            if (put)
+            {
+                status=batch.Put(m_cf,keySlices,objectKey);
+            }
+
+            //! @todo Save index reference
+
+            if (!status.ok())
+            {
+                HATN_CTX_SCOPE_ERROR("batch-idx");
+                HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                return makeError(DbError::SAVE_INDEX_FAILED,status);
+            }
+            return Error{OK};
+        }
+
         template <typename ModelT, typename UnitT>
         Error saveIndexes(
                 ROCKSDB_NAMESPACE::WriteBatch& batch,
@@ -57,23 +105,15 @@ class Indexes
                 const Namespace& ns,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
                 const ROCKSDB_NAMESPACE::SliceParts& objectKey,
-                UnitT* object
+                UnitT* object,
+                bool replace=false
             )
         {
             HATN_CTX_SCOPE("saveindexes")
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                auto key=m_keys.makeIndexKey(ns,objectId,object,idx);
-                ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
-                auto status=batch.Put(keySlices,objectKey);
-                if (!status.ok())
-                {
-                    HATN_CTX_SCOPE_ERROR("batch-idx");
-                    HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
-                    return makeError(DbError::SAVE_INDEX_FAILED,status);
-                }
-                return Error{OK};
+                return saveIndex(idx,batch,ns,objectId,objectKey,object,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

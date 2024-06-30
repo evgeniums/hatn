@@ -25,6 +25,7 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbmodel.h
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
+    include/hatn/db/plugins/rocksdb/saveuniquekey.h
 )
 
 SET(SCHEMA_DETAIL_HEADERS
@@ -33,13 +34,14 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp
     include/hatn/db/plugins/rocksdb/ipp/fieldtostringbuf.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h
-    include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp    
+    include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
 )
 
 SET (SCHEMA_SOURCES
     src/rocksdbschema.cpp
     src/rocksdbhandler.cpp
     src/rocksdberror.cpp
+    src/saveuniquekey.cpp
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})

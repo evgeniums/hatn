@@ -26,6 +26,7 @@
 
 #define HATN_DB_ERRORS(Do) \
     Do(DbError,OK,_TR("OK")) \
+    Do(DbError,DUPLICATE_UNIQUE_KEY,_TR("duplicate unique key in database","db")) \
     Do(DbError,DB_ALREADY_OPEN,_TR("database connection already open","db")) \
     Do(DbError,DB_OPEN_FAILED,_TR("failed to open database connection","db")) \
     Do(DbError,DB_CLOSE_FAILED,_TR("failed to close database connection","db")) \
