@@ -26,6 +26,7 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
     include/hatn/db/plugins/rocksdb/saveuniquekey.h
+    include/hatn/db/plugins/rocksdb/ttlmark.h
 )
 
 SET(SCHEMA_DETAIL_HEADERS

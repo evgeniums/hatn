@@ -29,6 +29,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp>
@@ -41,7 +42,7 @@ struct CreateObjectT
     template <typename ModelT, typename UnitT,
              typename AllocatorT=common::FmtAllocator
              >
-    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, UnitT* object, const AllocatorT& alloc=AllocatorT{}) const;
+    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, const UnitT* object, const AllocatorT& alloc=AllocatorT{}) const;
 };
 template <typename BufT>
 constexpr CreateObjectT<BufT> CreateObject{};
@@ -52,7 +53,7 @@ Error CreateObjectT<BufT>::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
                                const Namespace& ns,
-                               UnitT* object,
+                               const UnitT* object,
                                const AllocatorT& alloc
                                ) const
 {
@@ -122,12 +123,18 @@ Error CreateObjectT<BufT>::operator ()(
         // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
         Keys<BufT> keys{alloc};
+        TtlMark ttlMarkObj{model,object};
+        auto ttlMark=ttlMarkObj.slice();
 
         // put serialized object to batch
-        auto objectKey=keys.makeObjectKey(model,ns,objectIdS);
-        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],static_cast<int>(objectKey.size())};
-        ROCKSDB_NAMESPACE::Slice value{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        ROCKSDB_NAMESPACE::SliceParts valueSlices{&value,1};
+        auto objectKey=keys.makeObjectKey(model,ns,objectIdS,ttlMark);
+        // -1 because the last element of objectKey is a ttl mark
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],static_cast<int>(objectKey.size()-1)};
+        std::array<ROCKSDB_NAMESPACE::Slice,2> valueParts{
+            ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
+            ttlMark
+        };
+        ROCKSDB_NAMESPACE::SliceParts valueSlices{&valueParts[0],static_cast<int>(valueParts.size())};
         auto status=batch.Put(partition->collectionCf.get(),keySlices,valueSlices);
         if (!status.ok())
         {
@@ -140,7 +147,7 @@ Error CreateObjectT<BufT>::operator ()(
         auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object);
         HATN_CHECK_EC(ec)
 
-        //! @todo put unique reference index if aaplicable
+        //! @todo put unique reference index if applicable
 
         //! @todo put ttl indexes to batch
 

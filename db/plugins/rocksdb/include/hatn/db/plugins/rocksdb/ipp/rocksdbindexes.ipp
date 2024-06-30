@@ -65,36 +65,35 @@ class Indexes
             )
         {
             HATN_CTX_SCOPE("saveindex")
+            ROCKSDB_NAMESPACE::Status status;
 
+            // make key
             auto key=m_keys.makeIndexKey(ns,objectId,object,idx);
             ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
-            ROCKSDB_NAMESPACE::Status status;
-
-            //! @todo Add timestamp to value
-
+            // put index to batch
             bool put=true;
             if constexpr (std::decay_t<IndexT>::unique())
             {
                 if (!replace)
                 {
+                    HATN_CTX_SCOPE_PUSH("idx_op","merge");
                     put=false;
                     status=batch.Merge(m_cf,keySlices,objectKey);
                 }
             }
             if (put)
             {
+                HATN_CTX_SCOPE_PUSH("idx_op","put");
                 status=batch.Put(m_cf,keySlices,objectKey);
             }
-
-            //! @todo Save index reference
-
             if (!status.ok())
             {
-                HATN_CTX_SCOPE_ERROR("batch-idx");
                 HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
                 return makeError(DbError::SAVE_INDEX_FAILED,status);
             }
+
+            // done
             return Error{OK};
         }
 

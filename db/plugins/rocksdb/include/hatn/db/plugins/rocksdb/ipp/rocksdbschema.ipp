@@ -45,7 +45,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, const AllocatorT&
         using unitT=typename modelT::ModelType::UnitType;
         static typename unitT::type sample;
 
-        rdbModel->createObject=[model,&alloc](RocksdbHandler& handler, const db::Namespace& ns, dataunit::Unit* object)
+        rdbModel->createObject=[model,&alloc](RocksdbHandler& handler, const db::Namespace& ns, const dataunit::Unit* object)
         {
             auto* obj=sample.castToUnit(object);
             return CreateObject<BufT>(model->model,handler,ns,obj,alloc);

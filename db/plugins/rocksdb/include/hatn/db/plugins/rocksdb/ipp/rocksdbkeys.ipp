@@ -27,6 +27,7 @@
 #include <hatn/db/namespace.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
+#include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/ipp/fieldtostringbuf.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -61,15 +62,18 @@ class Keys
         template <typename ModelT>
         auto makeObjectKey(const ModelT& model,
                            const Namespace& ns,
-                           const ROCKSDB_NAMESPACE::Slice& objectId)
+                           const ROCKSDB_NAMESPACE::Slice& objectId,
+                           const ROCKSDB_NAMESPACE::Slice& ttlMark
+                           )
         {
-            std::array<ROCKSDB_NAMESPACE::Slice,5> parts;
+            std::array<ROCKSDB_NAMESPACE::Slice,6> parts;
 
             parts[0]=ROCKSDB_NAMESPACE::Slice{ns.topic().data(),ns.topic().size()};
             parts[1]=ROCKSDB_NAMESPACE::Slice{NullCharStr.data(),NullCharStr.size()};
             parts[2]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
             parts[3]=ROCKSDB_NAMESPACE::Slice{NullCharStr.data(),NullCharStr.size()};
             parts[4]=objectId;
+            parts[5]=ttlMark;
 
             return parts;
         }
