@@ -23,26 +23,10 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-namespace {
-
-std::shared_ptr<SaveUniqueKey> SaveUniqueKeyInst;
-
-}
-
-std::shared_ptr<SaveUniqueKey> SaveUniqueKey::init()
+Error& RocksdbOpError::ec()
 {
-    SaveUniqueKeyInst=std::make_shared<SaveUniqueKey>();
-    return SaveUniqueKeyInst;
-}
-
-std::shared_ptr<SaveUniqueKey> SaveUniqueKey::instance()
-{
-    return SaveUniqueKeyInst;
-}
-
-void SaveUniqueKey::free()
-{
-    SaveUniqueKeyInst.reset();
+    static thread_local Error Ec;
+    return Ec;
 }
 
 //---------------------------------------------------------------
@@ -54,14 +38,14 @@ bool SaveUniqueKey::Merge(
     std::string* new_value,
     ROCKSDB_NAMESPACE::Logger*) const
 {
-    ec.reset();
+    RocksdbOpError::ec().reset();
     if (existing_value)
     {
         HATN_CTX_SCOPE("saveuniquekey")
         auto k=common::lib::string_view{key.data(),key.size()};
         HATN_CTX_SCOPE_PUSH("unique_key",k);
         HATN_CTX_SCOPE_ERROR("duplicate-key");
-        ec=dbError(DbError::DUPLICATE_UNIQUE_KEY);
+        RocksdbOpError::ec()=dbError(DbError::DUPLICATE_UNIQUE_KEY);
         return false;
     }
 

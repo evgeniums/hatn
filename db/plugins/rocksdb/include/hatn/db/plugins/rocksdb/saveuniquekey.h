@@ -30,6 +30,13 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbOpError
+{
+    public:
+
+        static Error& ec();
+};
+
 class HATN_ROCKSDB_SCHEMA_EXPORT SaveUniqueKey : public ROCKSDB_NAMESPACE::AssociativeMergeOperator
 {
     public:
@@ -45,12 +52,6 @@ class HATN_ROCKSDB_SCHEMA_EXPORT SaveUniqueKey : public ROCKSDB_NAMESPACE::Assoc
         {
             return "SaveUniqueKey";
         }
-
-        static std::shared_ptr<SaveUniqueKey> init();
-        static std::shared_ptr<SaveUniqueKey> instance();
-        static void free();
-
-        mutable Error ec;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

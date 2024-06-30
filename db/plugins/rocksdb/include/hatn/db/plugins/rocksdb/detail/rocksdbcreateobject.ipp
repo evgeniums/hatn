@@ -157,10 +157,9 @@ Error CreateObjectT<BufT>::operator ()(
         {
             HATN_CTX_SCOPE_ERROR("write-batch");
             auto ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
-            auto saveUniqueIdx=SaveUniqueKey::instance();
-            if (saveUniqueIdx && saveUniqueIdx->ec)
+            if (RocksdbOpError::ec())
             {
-                ec.setPrevError(std::move(saveUniqueIdx->ec));
+                ec.setPrevError(std::move(RocksdbOpError::ec()));
             }
             return ec;
         }
