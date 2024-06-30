@@ -43,6 +43,7 @@ SET (SCHEMA_SOURCES
     src/rocksdbhandler.cpp
     src/rocksdberror.cpp
     src/saveuniquekey.cpp
+    src/ttlmark.cpp
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})

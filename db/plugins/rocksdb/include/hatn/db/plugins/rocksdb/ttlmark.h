@@ -25,9 +25,11 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-class TtlMark
+class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 {
     public:
+
+        constexpr static size_t Size=5;
 
         template <typename ModelT, typename UnitT>
         TtlMark(
@@ -44,6 +46,18 @@ class TtlMark
         {
             return ROCKSDB_NAMESPACE::Slice{m_tp.data(),m_size};
         }
+
+        static uint32_t currentTimepoint() noexcept;
+
+        static ROCKSDB_NAMESPACE::Slice currentTimepointSlice() noexcept;
+
+        static void refreshCurrentTimepoint();
+
+        static bool isExpired(uint32_t tp) noexcept;
+
+        static bool isExpired(const char* data) noexcept;
+
+        static bool isExpired(const ROCKSDB_NAMESPACE::Slice* slice) noexcept;
 
     private:
 

@@ -34,7 +34,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbOpError
 {
     public:
 
-        static Error& ec();
+        static const Error& ec();
+
+        static void setEc(const Error& ec);
+
+        static void resetEc();
 };
 
 class HATN_ROCKSDB_SCHEMA_EXPORT SaveUniqueKey : public ROCKSDB_NAMESPACE::AssociativeMergeOperator

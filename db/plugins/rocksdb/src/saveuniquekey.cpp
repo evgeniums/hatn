@@ -17,16 +17,34 @@
 
 #include <hatn/logcontext/contextlogger.h>
 
+#include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+namespace {
+static thread_local Error Ec;
+}
+
 //---------------------------------------------------------------
 
-Error& RocksdbOpError::ec()
+const Error& RocksdbOpError::ec()
 {
-    static thread_local Error Ec;
     return Ec;
+}
+
+//---------------------------------------------------------------
+
+void RocksdbOpError::setEc(const Error& ec)
+{
+    Ec=ec;
+}
+
+//---------------------------------------------------------------
+
+void RocksdbOpError::resetEc()
+{
+    Ec.reset();
 }
 
 //---------------------------------------------------------------
@@ -38,14 +56,14 @@ bool SaveUniqueKey::Merge(
     std::string* new_value,
     ROCKSDB_NAMESPACE::Logger*) const
 {
-    RocksdbOpError::ec().reset();
-    if (existing_value)
-    {
+    RocksdbOpError::resetEc();
+    if (existing_value!=nullptr && !TtlMark::isExpired(existing_value))
+    {        
         HATN_CTX_SCOPE("saveuniquekey")
         auto k=common::lib::string_view{key.data(),key.size()};
         HATN_CTX_SCOPE_PUSH("unique_key",k);
         HATN_CTX_SCOPE_ERROR("duplicate-key");
-        RocksdbOpError::ec()=dbError(DbError::DUPLICATE_UNIQUE_KEY);
+        RocksdbOpError::setEc(dbError(DbError::DUPLICATE_UNIQUE_KEY));
         return false;
     }
 

@@ -123,6 +123,7 @@ Error CreateObjectT<BufT>::operator ()(
         // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
         Keys<BufT> keys{alloc};
+        TtlMark::refreshCurrentTimepoint();
         TtlMark ttlMarkObj{model,object};
         auto ttlMark=ttlMarkObj.slice();
 
@@ -159,7 +160,8 @@ Error CreateObjectT<BufT>::operator ()(
             auto ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
             if (RocksdbOpError::ec())
             {
-                ec.setPrevError(std::move(RocksdbOpError::ec()));
+                auto prevEc=RocksdbOpError::ec();
+                ec.setPrevError(std::move(prevEc));
             }
             return ec;
         }
