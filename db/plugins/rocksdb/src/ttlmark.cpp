@@ -26,7 +26,6 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 namespace
 {
 thread_local uint32_t CurrentTimepoint=0;
-thread_local std::array<char,TtlMark::Size> CurrentTimepointStr{0,0,0,0,0};
 }
 
 //---------------------------------------------------------------
@@ -38,21 +37,27 @@ uint32_t TtlMark::currentTimepoint() noexcept
 
 //---------------------------------------------------------------
 
-ROCKSDB_NAMESPACE::Slice TtlMark::currentTimepointSlice() noexcept
+void TtlMark::refreshCurrentTimepoint()
 {
-    return ROCKSDB_NAMESPACE::Slice{CurrentTimepointStr.data(),CurrentTimepointStr.size()};
+    CurrentTimepoint=common::DateTime::secondsSinceEpoch();
 }
 
 //---------------------------------------------------------------
 
-void TtlMark::refreshCurrentTimepoint()
+void TtlMark::fillExpireAt(uint32_t expireAt)
 {
-    CurrentTimepoint=common::DateTime::secondsSinceEpoch();
-
-    uint32_t tp=boost::endian::native_to_little(CurrentTimepoint);
-    memcpy(CurrentTimepointStr.data(),&tp,TtlMark::Size-1);
-
-    CurrentTimepointStr[TtlMark::Size-1]=1;
+    if (expireAt>0)
+    {
+        uint32_t exp=boost::endian::native_to_little(expireAt);
+        memcpy(m_expireAt.data(),&exp,TtlMark::Size-1);
+        m_expireAt[TtlMark::Size-1]=1;
+        m_size=5;
+    }
+    else
+    {
+        m_expireAt[0]=0;
+        m_size=1;
+    }
 }
 
 //---------------------------------------------------------------
@@ -64,29 +69,26 @@ bool TtlMark::isExpired(uint32_t tp) noexcept
 
 //---------------------------------------------------------------
 
-bool TtlMark::isExpired(const char *data) noexcept
+bool TtlMark::isExpired(const char *data, size_t size) noexcept
 {
-    if (data[TtlMark::Size-1]==0)
+    if (size==0)
+    {
+        return false;
+    }
+    if (data[size-1]==0)
+    {
+        return false;
+    }
+    if (size<TtlMark::Size)
     {
         return false;
     }
 
     uint32_t tp=0;
-    memcpy(&tp,data,TtlMark::Size-1);
+    memcpy(&tp,data+size-TtlMark::Size,TtlMark::Size-1);
     boost::endian::little_to_native_inplace(tp);
 
     return isExpired(tp);
-}
-
-//---------------------------------------------------------------
-
-bool TtlMark::isExpired(const ROCKSDB_NAMESPACE::Slice* slice) noexcept
-{
-    if (slice->size()>=TtlMark::Size)
-    {
-        return isExpired(slice->data()+slice->size()-TtlMark::Size);
-    }
-    return false;
 }
 
 //---------------------------------------------------------------

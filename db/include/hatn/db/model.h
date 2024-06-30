@@ -180,6 +180,18 @@ struct Model : public ConfigT
         );
     }
 
+    constexpr static auto ttlIndexes()
+    {
+        return hana::filter(common::tupleToTupleCType<Indexes>{},
+            [](auto x)
+            {
+                using typeC=std::decay_t<decltype(x)>;
+                using idxT=typename typeC::type;
+                return hana::bool_c<idxT::isTtl()>;
+            }
+        );
+    }
+
     private:
 
         constexpr static auto findPartitionIndex()

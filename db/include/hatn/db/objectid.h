@@ -74,6 +74,11 @@ class HATN_DB_EXPORT ObjectId
             return common::DateTime::fromEpochMs(m_timepoint);
         }
 
+        uint32_t toEpoch() const noexcept
+        {
+            return uint32_t(m_timepoint/1000);
+        }
+
         operator common::DateTime() const
         {
             return toDatetime();

@@ -181,13 +181,13 @@ struct indexFieldT
 constexpr indexFieldT indexField{};
 
 #define HDB_LENGTH(l) hana::size_t<l>{}
-#define HDB_TTL(ttl) hana::int_<ttl>
+#define HDB_TTL(ttl) hana::uint<ttl>
 
 using Unique=hana::true_;
 using NotUnique=hana::false_;
 using DatePartition=hana::true_;
 using NotDatePartition=hana::false_;
-using NotTtl=hana::int_<0>;
+using NotTtl=hana::uint<0>;
 using Topic=hana::true_;
 using NotTopic=hana::false_;
 
@@ -210,7 +210,7 @@ struct IndexConfig
         return DatePartitionT::value;
     }
 
-    constexpr static int ttl()
+    constexpr static uint32_t ttl()
     {
         return TtlT::value;
     }
@@ -393,6 +393,35 @@ struct getIndexFieldT
     }
 };
 constexpr getIndexFieldT getIndexField{};
+
+struct getPlainIndexFieldT
+{
+    template <typename UnitT, typename IndexT>
+    decltype(auto) operator()(UnitT&& unit, IndexT&& idx) const
+    {
+        return hana::eval_if(
+            hana::is_a<hana::type_tag,IndexT>,
+            [&](auto _)
+            {
+                const auto& _idx=_(idx);
+                using typeC=std::decay_t<decltype(_idx)>;
+                using idxT=typename typeC::type;
+                return getIndexField(_(unit),
+                                     hana::front(idxT::fields)
+                                     );
+            },
+            [&](auto _)
+            {
+                const auto& _idx=_(idx);
+                using idxT=std::decay_t<decltype(_idx)>;
+                return getIndexField(_(unit),
+                                     hana::front(idxT::fields)
+                                     );
+            }
+        );
+    }
+};
+constexpr getPlainIndexFieldT getPlainIndexField{};
 
 HATN_DB_NAMESPACE_END
 
