@@ -71,11 +71,23 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
                             using idxC=std::decay_t<decltype(idx)>;
                             using idxT=typename idxC::type;
                             const auto& field=getPlainIndexField(*_(object),idx);
+                            if (!field.isSet())
+                            {
+                                return prev;
+                            }
                             auto tp=field.value().toEpoch();
+                            if (tp==0)
+                            {
+                                return prev;
+                            }
                             auto exp=tp+idxT::ttl();
                             return (exp<prev)?exp:prev;
                         }
                     );
+                    if (expireAt==std::numeric_limits<uint32_t>::max())
+                    {
+                        expireAt=0;
+                    }
                     _(self)->fillExpireAt(expireAt);
                 }
             );
