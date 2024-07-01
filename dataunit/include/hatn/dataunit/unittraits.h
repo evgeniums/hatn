@@ -36,6 +36,9 @@
 #include <hatn/dataunit/fields/subunit.h>
 #include <hatn/dataunit/fields/repeated.h>
 #include <hatn/dataunit/fields/datetime.h>
+#include <hatn/dataunit/fields/date.h>
+#include <hatn/dataunit/fields/time.h>
+#include <hatn/dataunit/fields/daterange.h>
 
 #include <hatn/dataunit/unit.h>
 

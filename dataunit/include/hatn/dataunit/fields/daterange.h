@@ -108,7 +108,7 @@ struct FieldReader<TYPE,
 
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
-        auto r=common::DateRange::parse(common::lib::string_view(data,size));
+        auto r=common::DateRange::fromString(common::lib::string_view(data,size));
         if (!r)
         {
             this->m_field->set(r.takeValue());
