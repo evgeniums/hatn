@@ -149,7 +149,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         {
             // put to batch
             std::array<ROCKSDB_NAMESPACE::Slice,2> keyParts{ttlMark,objectIdSlice};
-            ROCKSDB_NAMESPACE::SliceParts keySlices{&keyParts[0],keyParts.size()};
+            ROCKSDB_NAMESPACE::SliceParts keySlices{&keyParts[0],static_cast<int>(keyParts.size())};
             ROCKSDB_NAMESPACE::Slice valueSlice{buf.mainContainer()->data(),buf.mainContainer()->size()};
             ROCKSDB_NAMESPACE::SliceParts valueSlices{&valueSlice,1};
             auto status=batch.Put(partition->ttlCf.get(),keySlices,valueSlices);
