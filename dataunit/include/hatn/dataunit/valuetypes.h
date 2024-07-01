@@ -54,6 +54,9 @@ enum class ValueType : int
     Bytes,
     Dataunit,
     DateTime,
+    Date,
+    Time,
+    DateRange,
 
     Custom=256
 };

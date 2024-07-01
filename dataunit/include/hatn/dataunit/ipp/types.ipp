@@ -24,6 +24,7 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/daterange.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/meta/constructwithargordefault.h>
 
@@ -344,6 +345,7 @@ template <int length> struct HATN_DATAUNIT_EXPORT TYPE_FIXED_STRING
             length==8 || \
             length==16 || \
             length==20 || \
+            length==24 || \
             length==32 || \
             length==40 || \
             length==64 || \
@@ -392,6 +394,24 @@ struct TYPE_ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
 
 //! Definition of DateTime type
 struct HATN_DATAUNIT_EXPORT TYPE_DATETIME : public BaseType<common::DateTime,std::true_type,ValueType::DateTime>
+{
+    using CustomType=std::true_type;
+};
+
+//! Definition of Date type
+struct HATN_DATAUNIT_EXPORT TYPE_DATE : public BaseType<common::Date,std::true_type,ValueType::Date>
+{
+    using CustomType=std::true_type;
+};
+
+//! Definition of Time type
+struct HATN_DATAUNIT_EXPORT TYPE_TIME : public BaseType<common::Time,std::true_type,ValueType::Time>
+{
+    using CustomType=std::true_type;
+};
+
+//! Definition of DateRange type
+struct HATN_DATAUNIT_EXPORT TYPE_DATE_RANGE : public BaseType<common::DateRange,std::true_type,ValueType::DateRange>
 {
     using CustomType=std::true_type;
 };

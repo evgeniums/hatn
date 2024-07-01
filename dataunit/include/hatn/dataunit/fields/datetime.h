@@ -34,6 +34,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace json {
 
+//! @todo Add repeated DateTime field
+
 //! JSON read handler for DateTime fields
 template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
