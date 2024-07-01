@@ -56,10 +56,23 @@ class ModelConfigT
 
         using hana_tag=ModelConfigTag;
 
-        ModelConfigT() : m_modelId(0)
+        ModelConfigT()
+            : m_modelId(0),
+              m_canBeTopic(false)
         {}
 
-        ModelConfigT(std::string collection) : m_collection(std::move(collection))
+        ModelConfigT(bool canBeTopic)
+                  : m_modelId(0),
+                    m_canBeTopic(canBeTopic)
+        {}
+
+        ModelConfigT(const char* collection, bool canBeTopic=false)
+            : ModelConfigT(std::string{collection},canBeTopic)
+        {}
+
+        ModelConfigT(std::string collection, bool canBeTopic=false)
+                : m_collection(std::move(collection)),
+                  m_canBeTopic(canBeTopic)
         {
             updateModelId();
         }
@@ -80,6 +93,11 @@ class ModelConfigT
         uint32_t modelId() const noexcept
         {
             return m_modelId;
+        }
+
+        bool canBeTopic() const noexcept
+        {
+            return m_canBeTopic;
         }
 
         const std::string& modelIdStr() const noexcept
@@ -103,6 +121,7 @@ class ModelConfigT
         uint32_t m_modelId;
         std::string m_modelIdStr;
         std::string m_collection;
+        bool m_canBeTopic;
 
         template <typename UnitType> friend struct unitModelT;
 
@@ -129,6 +148,9 @@ struct Model : public ConfigT
 
     Indexes indexes;
 
+    using IndexCount=decltype(hana::size(indexes));
+    std::array<std::string,IndexCount::value> indexIds;
+
     template <typename CfgT,typename Ts>
     Model(
         CfgT&& config,
@@ -145,9 +167,12 @@ struct Model : public ConfigT
             this->setCollection(name());
         }
 
-        auto eachIndex=[this](auto& idx)
+        size_t i=0;
+        auto eachIndex=[this,&i](auto& idx)
         {
             idx.setCollection(this->collection());
+            indexIds[i]=idx.id();
+            i++;
         };
         hana::for_each(indexes,eachIndex);
     }
@@ -190,6 +215,11 @@ struct Model : public ConfigT
                 return hana::bool_c<idxT::isTtl()>;
             }
         );
+    }
+
+    constexpr static auto isTtlEnabled()
+    {
+        return hana::not_(hana::is_empty(ttlIndexes()));
     }
 
     private:

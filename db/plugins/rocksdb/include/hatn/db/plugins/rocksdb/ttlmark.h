@@ -33,12 +33,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-HDU_UNIT_WITH(ttl_index,(HDU_BASE(object)),
-    HDU_FIELD(ref_id,TYPE_OBJECT_ID,1)
-    HDU_FIELD(ref_collection,HDU_TYPE_FIXED_STRING(8),2)
-    HDU_FIELD(date_range,TYPE_DATE_RANGE,3)
-)
-
 class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 {
     public:
@@ -108,9 +102,33 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 
         static bool isExpired(const char *data, size_t size) noexcept;
 
-        static bool isExpired(const ROCKSDB_NAMESPACE::Slice* slice) noexcept
+        static bool isExpired(const ROCKSDB_NAMESPACE::Slice& slice) noexcept
         {
-            return isExpired(slice->data(),slice->size());
+            return isExpired(slice.data(),slice.size());
+        }
+
+        static size_t ttlMarkOffset(const char *data, size_t size) noexcept
+        {
+            if (size==0)
+            {
+                return 0;
+            }
+            if (data[size-1]==0)
+            {
+                return 1;
+            }
+            if (size<Size)
+            {
+                return 0;
+            }
+
+            return Size;
+        }
+
+        static ROCKSDB_NAMESPACE::Slice stripTtlMark(const ROCKSDB_NAMESPACE::Slice& slice) noexcept
+        {
+            auto offset=ttlMarkOffset(slice.data(),slice.size());
+            return ROCKSDB_NAMESPACE::Slice{slice.data(),slice.size()-offset};
         }
 
     private:

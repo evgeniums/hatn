@@ -41,6 +41,8 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+using IndexKeyHandlerFn=std::function<void (const IndexKeyT&)>;
+
 template <typename BufT>
 class Indexes
 {
@@ -61,6 +63,7 @@ class Indexes
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const ROCKSDB_NAMESPACE::SliceParts& objectKey,
             UnitT* object,
+            IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
             bool replace=false
             )
         {
@@ -94,6 +97,10 @@ class Indexes
             }
 
             // done
+            if (keyCallback)
+            {
+                keyCallback(key);
+            }
             return Error{OK};
         }
 
@@ -105,6 +112,7 @@ class Indexes
                 const ROCKSDB_NAMESPACE::Slice& objectId,
                 const ROCKSDB_NAMESPACE::SliceParts& objectKey,
                 UnitT* object,
+                IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
                 bool replace=false
             )
         {
@@ -112,7 +120,7 @@ class Indexes
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                return saveIndex(idx,batch,ns,objectId,objectKey,object,replace);
+                return saveIndex(idx,batch,ns,objectId,objectKey,object,keyCallback,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

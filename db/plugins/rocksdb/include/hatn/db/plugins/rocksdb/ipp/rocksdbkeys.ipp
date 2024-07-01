@@ -35,6 +35,8 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 constexpr static const char* NullChar="\0";
 constexpr lib::string_view NullCharStr{"\0",1};
 
+using IndexKeyT=std::array<ROCKSDB_NAMESPACE::Slice,2>;
+
 template <typename BufT=common::FmtAllocatedBufferChar>
 class Keys
 {
@@ -73,6 +75,7 @@ class Keys
             parts[2]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
             parts[3]=ROCKSDB_NAMESPACE::Slice{NullCharStr.data(),NullCharStr.size()};
             parts[4]=objectId;
+            // ttl mark is used only for data of indexes, actual object key must use only [0:4] parts
             parts[5]=ttlMark;
 
             return parts;
@@ -89,7 +92,7 @@ class Keys
             size_t offset=m_buf.size();
             auto& buf=m_buf;
 
-            std::array<ROCKSDB_NAMESPACE::Slice,2> key;
+            IndexKeyT key;
 
             buf.append(ns.topic());
             buf.append(NullCharStr);

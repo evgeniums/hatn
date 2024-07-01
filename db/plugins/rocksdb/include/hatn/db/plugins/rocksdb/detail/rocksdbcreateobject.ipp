@@ -33,6 +33,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp>
+#include <hatn/db/plugins/rocksdb/ipp/ttlindexes.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -77,26 +78,29 @@ Error CreateObjectT<BufT>::operator ()(
     }
 
     // handle partition
-    auto&& partition=hana::eval_if(
+    auto partitionR=hana::eval_if(
         hana::bool_<modelType::isDatePartitioned()>{},
         [&](auto _)
         {
             auto partitionRange=datePartition(*_(object),_(model));
             HATN_CTX_SCOPE_PUSH_("partition",partitionRange)
-            return _(handler).partition(partitionRange);
+            return std::make_pair(_(handler).partition(partitionRange),partitionRange);
         },
         [&](auto _)
         {
-            return _(handler).defaultPartition();
+            return std::make_pair(_(handler).defaultPartition(),common::DateRange{});
         }
     );
+    const auto& partition=partitionR.first;
     if (!partition)
     {
         HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
+    const auto& dateRange=partitionR.second;
 
     // serialize object
+    //! @todo use allocator
     dataunit::WireBufSolid buf;
     if (!object->wireDataKeeper())
     {
@@ -104,7 +108,7 @@ Error CreateObjectT<BufT>::operator ()(
         dataunit::io::serialize(*object,buf,ec);
         if(ec)
         {
-            HATN_CTX_SCOPE_ERROR("serialize");
+            HATN_CTX_SCOPE_ERROR("serialize object");
             return ec;
         }
     }
@@ -143,21 +147,29 @@ Error CreateObjectT<BufT>::operator ()(
             return makeError(DbError::WRITE_OBJECT_FAILED,status);
         }
 
+        // prepare ttl index
+        using ttlIndexesT=TtlIndexes<modelType>;
+        using ttlIndexT=typename ttlIndexesT::ttlT;
+        ttlIndexT ttlIndex;
+        ttlIndexesT::prepareTtl(ttlIndex,model,object->field(object::_id).value(),dateRange);
+
         // put indexes to batch
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object);
+        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object,
+                                    ttlIndexesT::makeIndexKeyCb(ttlIndex)
+        );
         HATN_CHECK_EC(ec)
 
-        //! @todo put unique reference index if applicable
-
-        //! @todo put ttl indexes to batch
+        // put ttl index to batch
+        ttlIndexesT::putTtlToBatch(ec,buf,batch,ttlIndex,partition,objectIdS,ttlMark);
+        HATN_CHECK_EC(ec)
 
         // write batch to rocksdb
         status=rdb->Write(handler.p()->writeOptions,&batch);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("write-batch");
-            auto ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
+            ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
             if (RocksdbOpError::ec())
             {
                 auto prevEc=RocksdbOpError::ec();

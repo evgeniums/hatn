@@ -57,7 +57,7 @@ bool SaveUniqueKey::Merge(
     ROCKSDB_NAMESPACE::Logger*) const
 {
     RocksdbOpError::resetEc();
-    if (existing_value!=nullptr && !TtlMark::isExpired(existing_value))
+    if (existing_value!=nullptr && !TtlMark::isExpired(*existing_value))
     {        
         HATN_CTX_SCOPE("saveuniquekey")
         auto k=common::lib::string_view{key.data(),key.size()};
