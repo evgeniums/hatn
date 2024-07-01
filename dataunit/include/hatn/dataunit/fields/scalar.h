@@ -373,6 +373,24 @@ class VarInt : public Scalar<Type>
             return this->isSet();
         }
 
+        //! Get field size
+        virtual size_t size() const noexcept override
+        {
+            return fieldSize();
+        }
+
+        //! Get size of value
+        static size_t valueSize(const type&) noexcept
+        {
+            return fieldSize();
+        }
+
+        constexpr static size_t fieldSize() noexcept
+        {
+            // varint can take +1 byte more than size of value
+            return sizeof(type)+1;
+        }
+
     protected:
 
         //! Load field from wire
