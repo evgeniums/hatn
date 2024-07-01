@@ -424,6 +424,20 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return vector;
     }
 
+    /**  Get vector */
+    inline vectorType* mutableValue() noexcept
+    {
+        this->markSet();
+        return &vector;
+    }
+
+    /**  Get value by index */
+    inline type* mutableValue(size_t index)
+    {
+        this->markSet();
+        return &vector[index];
+    }
+
     /**  Set value by index */
     template <typename T>
     inline void setValue(size_t index, T&& val)
@@ -468,6 +482,11 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     inline size_t addValue(const std::string& str)
+    {
+        return addValue(str.data(),str.size());
+    }
+
+    inline size_t addValue(const lib::string_view& str)
     {
         return addValue(str.data(),str.size());
     }
