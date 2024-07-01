@@ -162,6 +162,13 @@ struct FieldToStringBufT
             buf.append(False);
         }
     }
+
+    template <typename BufT, typename T>
+    void operator ()(BufT&, const T&) const
+    {
+        // for any other type, is_same here is just to use templtae typenames for static assert
+        static_assert(std::is_same<T,BufT>::value,"Unsupported value type");
+    }
 };
 
 constexpr FieldToStringBufT fieldToStringBuf{};
