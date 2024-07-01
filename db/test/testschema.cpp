@@ -78,7 +78,6 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     BOOST_CHECK_EQUAL(idx1.name(),"idx_id");
     BOOST_CHECK(idx1.unique());
     BOOST_CHECK(!idx1.isDatePartitioned());
-    BOOST_CHECK(!idx1.topic());
     BOOST_CHECK_EQUAL(idx1.ttl(),0);
     BOOST_CHECK_EQUAL(hana::size(idx1.fields),1);
     BOOST_CHECK_EQUAL(hana::front(idx1.fields).name(),"_id");
@@ -87,7 +86,6 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     BOOST_CHECK_EQUAL(idx2.name(),"idx_created_at");
     BOOST_CHECK(!idx2.unique());
     BOOST_CHECK(idx2.isDatePartitioned());
-    BOOST_CHECK(!idx2.topic());
     BOOST_CHECK_EQUAL(idx2.ttl(),3600);
     BOOST_CHECK_EQUAL(hana::size(idx2.fields),1);
     BOOST_CHECK_EQUAL(hana::front(idx2.fields).name(),"created_at");

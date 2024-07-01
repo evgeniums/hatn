@@ -42,9 +42,7 @@ HDU_UNIT_WITH(index,(HDU_BASE(object)),
     HDU_REPEATED_FIELD(field_names,TYPE_STRING,3)
     HDU_FIELD(unique,TYPE_BOOL,4)
     HDU_FIELD(date_partition,TYPE_BOOL,5)
-    HDU_FIELD(prefix,TYPE_UINT32,6)
     HDU_FIELD(ttl,TYPE_UINT32,7)
-    HDU_FIELD(topic,TYPE_BOOL,8)
 )
 
 struct NestedFieldTag{};
@@ -188,14 +186,11 @@ using NotUnique=hana::false_;
 using DatePartition=hana::true_;
 using NotDatePartition=hana::false_;
 using NotTtl=hana::uint<0>;
-using Topic=hana::true_;
-using NotTopic=hana::false_;
 
 struct IndexConfigTag{};
 
 template <typename UniqueT=NotUnique,
-         typename DatePartitionT=NotDatePartition, typename TtlT=NotTtl,
-         typename TopicT=NotTopic>
+         typename DatePartitionT=NotDatePartition, typename TtlT=NotTtl>
 struct IndexConfig
 {
     using hana_tag=IndexConfigTag;
@@ -218,11 +213,6 @@ struct IndexConfig
     constexpr static bool isTtl()
     {
         return TtlT::value>0;
-    }
-
-    constexpr static bool topic()
-    {
-        return TopicT::value;
     }
 };
 constexpr IndexConfig<> DefaultIndexConfig{};
