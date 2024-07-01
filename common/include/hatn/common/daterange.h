@@ -86,6 +86,7 @@ class HATN_COMMON_EXPORT DateRange
 
         void set(uint32_t value) noexcept
         {
+            //! @todo Maybe validate.
             m_value=value;
         }
 
@@ -97,6 +98,11 @@ class HATN_COMMON_EXPORT DateRange
         void set(const DateTime& dt, Type type=Type::Month)
         {
             set(dt.date(),type);
+        }
+
+        void reset() noexcept
+        {
+            m_value=0;
         }
 
         /**
