@@ -16,27 +16,32 @@
 #include <hatn/common/pmr/allocatorfactory.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
-    namespace pmr {
 
+namespace pmr {
 
-std::shared_ptr<AllocatorFactory> DefaultFactory=std::make_shared<AllocatorFactory>();
+std::shared_ptr<AllocatorFactory>& defaultfactory()
+{
+    static std::shared_ptr<AllocatorFactory> inst=std::make_shared<AllocatorFactory>();
+    return inst;
+}
 
 //---------------------------------------------------------------
+//! @todo Use const AllocatorFactory*
 AllocatorFactory* AllocatorFactory::getDefault() noexcept
 {
-    return DefaultFactory.get();
+    return defaultfactory().get();
 }
 
 //---------------------------------------------------------------
 void AllocatorFactory::setDefault(std::shared_ptr<AllocatorFactory> instance) noexcept
 {
-    DefaultFactory=std::move(instance);
+    defaultfactory()=std::move(instance);
 }
 
 //---------------------------------------------------------------
 void AllocatorFactory::resetDefault()
 {
-    DefaultFactory=std::make_shared<AllocatorFactory>();
+    defaultfactory().reset();
 }
 
 //---------------------------------------------------------------
