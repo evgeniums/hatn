@@ -24,6 +24,7 @@
 
 #include <hatn/common/singleton.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/db/namespace.h>
 #include <hatn/db/model.h>
@@ -73,10 +74,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
         static void free() noexcept;
 
         template <typename DbSchemaSharedPtrT,
-                 typename BufT=common::FmtAllocatedBufferChar,
-                 typename AllocatorT=common::FmtAllocator
+                 typename BufT=common::FmtAllocatedBufferChar
                  >
-        void registerSchema(DbSchemaSharedPtrT schema, const AllocatorT& alloc=AllocatorT{});
+        void registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory* allocatorFactory=AllocatorFactory::getDefault());
 
         std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& name) const;
 

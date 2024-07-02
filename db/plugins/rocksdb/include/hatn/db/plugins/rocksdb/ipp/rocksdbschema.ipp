@@ -28,16 +28,15 @@
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename DbSchemaSharedPtrT,
-         typename BufT,
-         typename AllocatorT
+         typename BufT
          >
-void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, const AllocatorT& alloc)
+void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory* allocatorFactory)
 {
     Assert(m_schemas.find(schema->name())==m_schemas.end(),"Trying to register duplicate database schema");
 
     auto rdbSchema=std::make_shared<RocksdbSchema>(schema);
 
-    auto addModel=[&rdbSchema,&alloc](auto model)
+    auto addModel=[&rdbSchema,allocatorFactory](auto model)
     {
         auto rdbModel=std::make_shared<RocksdbModel>(model->info);
 
@@ -45,10 +44,13 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, const AllocatorT&
         using unitT=typename modelT::ModelType::UnitType;
         static typename unitT::type sample;
 
-        rdbModel->createObject=[model,&alloc](RocksdbHandler& handler, const db::Namespace& ns, const dataunit::Unit* object)
+        rdbModel->createObject=[model,allocatorFactory]
+            (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object)
         {
-            auto* obj=sample.castToUnit(object);
-            return CreateObject<BufT>(model->model,handler,ns,obj,alloc);
+            const auto* obj=sample.castToUnit(object);
+            Error ec=CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
+            return ec;
+            // return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
         };
 
         rdbSchema->addModel(std::move(rdbModel));

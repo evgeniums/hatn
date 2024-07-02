@@ -19,8 +19,10 @@
 #ifndef HATNROCKSDBSCHEMADEF_H
 #define HATNROCKSDBSCHEMADEF_H
 
-#include <hatn/common/classuid.h>
+#include <hatn/common/pmr/allocatorfactory.h>
+
 #include <hatn/db/db.h>
+
 #include <hatn/dataunit/dataunit.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbdriver.h>
@@ -41,7 +43,8 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 namespace db=HATN_DB_NAMESPACE;
-using CUID_TYPE=common::CUID_TYPE;
+
+using AllocatorFactory=common::pmr::AllocatorFactory;
 
 HATN_ROCKSDB_NAMESPACE_END
 

@@ -46,7 +46,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             return m_modelInfo;
         }
 
-        std::function<Error (RocksdbHandler& handler, const db::Namespace& ns, const dataunit::Unit* object)> createObject;
+        std::function<Error (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object)> createObject;
 
     private:
 

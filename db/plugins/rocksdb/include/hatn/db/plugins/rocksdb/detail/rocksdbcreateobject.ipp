@@ -19,6 +19,8 @@
 #ifndef HATNROCKSDBCREATEOBJECT_IPP
 #define HATNROCKSDBCREATEOBJECT_IPP
 
+#include <hatn/common/pmr/allocatorfactory.h>
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -40,33 +42,28 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 template <typename BufT>
 struct CreateObjectT
 {
-    template <typename ModelT, typename UnitT,
-             typename AllocatorT=common::FmtAllocator
-             >
-    Error operator ()(const ModelT& model, RocksdbHandler& handler, const Namespace& ns, const UnitT* object, const AllocatorT& alloc=AllocatorT{}) const;
+    template <typename ModelT>
+    Error operator ()(const ModelT& model,
+                     RocksdbHandler& handler,
+                     const Namespace& ns,
+                     const typename ModelT::UnitType::type* object,
+                     AllocatorFactory* allocatorFactory
+                     ) const;
 };
 template <typename BufT>
 constexpr CreateObjectT<BufT> CreateObject{};
 
 template <typename BufT>
-template <typename ModelT, typename UnitT, typename AllocatorT>
+template <typename ModelT>
 Error CreateObjectT<BufT>::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
                                const Namespace& ns,
-                               const UnitT* object,
-                               const AllocatorT& alloc
-                               ) const
+                               const typename ModelT::UnitType::type* object,
+                               AllocatorFactory* allocatorFactory
+                              ) const
 {
     using modelType=std::decay_t<ModelT>;
-    using unitType=typename modelType::UnitType;
-    static_assert(
-        std::is_same<
-            std::decay_t<UnitT>,
-            typename unitType::type
-            >::value,
-        "Invalid type of object (UnitT)"
-    );
 
     HATN_CTX_SCOPE("rocksdbcreateobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
@@ -100,8 +97,7 @@ Error CreateObjectT<BufT>::operator ()(
     const auto& dateRange=partitionR.second;
 
     // serialize object
-    //! @todo use allocator
-    dataunit::WireBufSolid buf;
+    dataunit::WireBufSolid buf{allocatorFactory};
     if (!object->wireDataKeeper())
     {
         Error ec;
@@ -126,7 +122,7 @@ Error CreateObjectT<BufT>::operator ()(
 
         // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
-        Keys<BufT> keys{alloc};
+        Keys<BufT> keys{allocatorFactory->bytesAllocator()};
         TtlMark::refreshCurrentTimepoint();
         TtlMark ttlMarkObj{model,object};
         auto ttlMark=ttlMarkObj.slice();
@@ -150,7 +146,7 @@ Error CreateObjectT<BufT>::operator ()(
         // prepare ttl index
         using ttlIndexesT=TtlIndexes<modelType>;
         using ttlIndexT=typename ttlIndexesT::ttlT;
-        ttlIndexT ttlIndex;
+        ttlIndexT ttlIndex{allocatorFactory};
         ttlIndexesT::prepareTtl(ttlIndex,model,object->field(object::_id).value(),dateRange);
 
         // put indexes to batch
