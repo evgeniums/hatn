@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/plugins/rocksdb/detail/rocksdbhandler_p.h
+/** @file db/plugins/rocksdb/detail/rocksdbhandler.ipp
   *
   *   RocksDB database handler pimpl header.
   *
@@ -16,8 +16,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNROCKSDBHANDLER_P_H
-#define HATNROCKSDBHANDLER_P_H
+#ifndef HATNROCKSDBHANDLER_IPP
+#define HATNROCKSDBHANDLER_IPP
 
 #include <map>
 #include <map>
@@ -138,4 +138,4 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
 HATN_ROCKSDB_NAMESPACE_END
 
-#endif // HATNROCKSDBHANDLER_P_H
+#endif // HATNROCKSDBHANDLER_IPP

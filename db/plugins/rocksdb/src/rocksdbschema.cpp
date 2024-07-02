@@ -20,7 +20,7 @@
 
 #include <hatn/db/dberror.h>
 
-#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
 HATN_DB_USING

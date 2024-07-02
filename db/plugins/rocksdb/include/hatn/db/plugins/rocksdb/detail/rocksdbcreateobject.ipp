@@ -30,10 +30,10 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
-#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp>
-#include <hatn/db/plugins/rocksdb/ipp/ttlindexes.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
+#include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 

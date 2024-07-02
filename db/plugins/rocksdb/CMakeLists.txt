@@ -31,11 +31,11 @@ SET(SCHEMA_HEADERS
 
 SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/ipp/rocksdbschema.ipp
-    include/hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp
-    include/hatn/db/plugins/rocksdb/ipp/rocksdbindexes.ipp
-    include/hatn/db/plugins/rocksdb/ipp/ttlindexes.ipp
-    include/hatn/db/plugins/rocksdb/ipp/fieldtostringbuf.ipp
-    include/hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h
+    include/hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp
+    include/hatn/db/plugins/rocksdb/detail/ttlindexes.ipp
+    include/hatn/db/plugins/rocksdb/detail/fieldtostringbuf.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
 )
 

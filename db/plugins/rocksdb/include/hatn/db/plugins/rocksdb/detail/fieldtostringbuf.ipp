@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file db/plugins/rocksdb/ipp/fieldtostringbuf.ipp
+/** @file db/plugins/rocksdb/detail/fieldtostringbuf.ipp
   *
   *  Defines field visitor for serialization field to string buffer for rocksdb indexes.
   *
@@ -18,8 +18,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNROCKSDBFIELDSTRINGBUF_H
-#define HATNROCKSDBFIELDSTRINGBUF_H
+#ifndef HATNROCKSDBFIELDSTRINGBUF_IPP
+#define HATNROCKSDBFIELDSTRINGBUF_IPP
 
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/datetime.h>
@@ -175,4 +175,4 @@ constexpr FieldToStringBufT fieldToStringBuf{};
 
 HATN_ROCKSDB_NAMESPACE_END
 
-#endif // HATNROCKSDBFIELDSTRINGBUF_H
+#endif // HATNROCKSDBFIELDSTRINGBUF_IPP

@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/plugins/rocksdb/ipp/rocksdbkeys.ipp
+/** @file db/plugins/rocksdb/detail/rocksdbkeys.ipp
   *
   *   RocksDB keys processing.
   *
@@ -28,7 +28,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
-#include <hatn/db/plugins/rocksdb/ipp/fieldtostringbuf.ipp>
+#include <hatn/db/plugins/rocksdb/detail/fieldtostringbuf.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 

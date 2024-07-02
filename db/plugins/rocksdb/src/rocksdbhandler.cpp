@@ -22,7 +22,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
-#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 

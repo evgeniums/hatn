@@ -37,7 +37,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbkeys.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 

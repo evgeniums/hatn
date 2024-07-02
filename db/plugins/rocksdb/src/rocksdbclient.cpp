@@ -31,7 +31,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbclient.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
-#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler_p.h>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 HATN_DB_USING
 
