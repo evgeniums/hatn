@@ -129,8 +129,7 @@ Error CreateObjectT<BufT>::operator ()(
 
         // put serialized object to batch
         auto objectKey=keys.makeObjectKey(model,ns,objectIdS,ttlMark);
-        // -1 because the last element of objectKey is a ttl mark
-        ROCKSDB_NAMESPACE::SliceParts keySlices{&objectKey[0],static_cast<int>(objectKey.size()-1)};
+        auto keySlices=keys.objectKeySlices(objectKey);
         std::array<ROCKSDB_NAMESPACE::Slice,2> valueParts{
             ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
             ttlMark

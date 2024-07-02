@@ -62,6 +62,13 @@ class HATN_DB_EXPORT ObjectId
 
         bool parse(const common::ConstDataBuf& buf) noexcept;
 
+        std::array<char,Length> toArray() const
+        {
+            std::array<char,Length> buf;
+            serialize(buf);
+            return buf;
+        }
+
         std::string toString() const
         {
             std::array<char,Length> buf;
@@ -72,6 +79,11 @@ class HATN_DB_EXPORT ObjectId
         common::DateTime toDatetime() const
         {
             return common::DateTime::fromEpochMs(m_timepoint);
+        }
+
+        common::Date toDate() const
+        {
+            return toDatetime().date();
         }
 
         uint32_t toEpoch() const noexcept
@@ -86,7 +98,7 @@ class HATN_DB_EXPORT ObjectId
 
         operator common::Date() const
         {
-            return toDatetime().date();
+            return toDate();
         }
 
         uint64_t timepoint() const noexcept

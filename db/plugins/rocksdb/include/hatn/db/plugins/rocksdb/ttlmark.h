@@ -107,6 +107,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
             return isExpired(slice.data(),slice.size());
         }
 
+        static bool isExpired(const ROCKSDB_NAMESPACE::PinnableSlice& slice) noexcept
+        {
+            return isExpired(slice.data(),slice.size());
+        }
+
         static size_t ttlMarkOffset(const char *data, size_t size) noexcept
         {
             if (size==0)
@@ -125,7 +130,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
             return Size;
         }
 
-        static ROCKSDB_NAMESPACE::Slice stripTtlMark(const ROCKSDB_NAMESPACE::Slice& slice) noexcept
+        template <typename T>
+        static ROCKSDB_NAMESPACE::Slice stripTtlMark(const T& slice) noexcept
         {
             auto offset=ttlMarkOffset(slice.data(),slice.size());
             return ROCKSDB_NAMESPACE::Slice{slice.data(),slice.size()-offset};

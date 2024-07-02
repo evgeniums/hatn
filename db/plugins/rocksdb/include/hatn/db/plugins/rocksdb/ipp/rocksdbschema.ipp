@@ -21,7 +21,10 @@
 
 #include <boost/hana.hpp>
 
+#include <hatn/common/sharedptr.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
@@ -48,9 +51,38 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object)
         {
             const auto* obj=sample.castToUnit(object);
-            Error ec=CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
-            return ec;
-            // return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
+            return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
+        };
+
+        rdbModel->readObject=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                const ObjectId& objectId
+            )
+        {
+            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        };
+
+        rdbModel->readObjectWithDate=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                const ObjectId& objectId,
+                const HATN_COMMON_NAMESPACE::Date& date
+            )
+        {
+            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
         };
 
         rdbSchema->addModel(std::move(rdbModel));

@@ -43,6 +43,9 @@
     Do(DbError,TX_COMMIT_FAILED,_TR("failed to commit database transaction","db")) \
     Do(DbError,TX_ROLLBACK_FAILED,_TR("failed to rollback database transaction","db")) \
     Do(DbError,WRITE_OBJECT_FAILED,_TR("failed to write object to database","db")) \
+    Do(DbError,READ_FAILED,_TR("failed to read object from database","db")) \
+    Do(DbError,NOT_FOUND,_TR("not found","db")) \
+    Do(DbError,EXPIRED,_TR("expired","db")) \
     Do(DbError,SAVE_INDEX_FAILED,_TR("failed to save index in database","db")) \
     Do(DbError,SAVE_TTL_INDEX_FAILED,_TR("failed to save ttl index in database","db")) \
     Do(DbError,PARTITION_CREATE_FALIED,_TR("failed to create database partition","db")) \

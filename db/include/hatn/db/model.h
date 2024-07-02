@@ -25,6 +25,7 @@
 #include <hatn/common/daterange.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/objectid.h>
 #include <hatn/db/object.h>
 #include <hatn/db/index.h>
 #include <hatn/db/modelregistry.h>
@@ -145,6 +146,10 @@ struct Model : public ConfigT
     using hana_tag=ModelTag;
 
     using UnitType=UnitT;
+
+    using Type=typename UnitType::type;
+    using ManagedType=typename UnitType::managed;
+    using SharedPtr=HATN_COMMON_NAMESPACE::SharedPtr<ManagedType>;
 
     Indexes indexes;
 
@@ -278,7 +283,7 @@ struct unitModelT
 template <typename UnitType> constexpr unitModelT<UnitType> unitModel{};
 
 template <typename UnitT, typename ModelT>
-common::DateRange datePartition(const UnitT& unit, const ModelT& model)
+HATN_COMMON_NAMESPACE::DateRange datePartition(const UnitT& unit, const ModelT& model)
 {
     return hana::eval_if(
         hana::bool_<std::decay_t<ModelT>::isDatePartitioned()>{},
@@ -286,13 +291,35 @@ common::DateRange datePartition(const UnitT& unit, const ModelT& model)
         {
             const auto& f=getIndexField(_(unit),_(model).datePartitionField());
             Assert(f.isSet(),"Partition field not set");
-            return common::DateRange{f.value(),_(model).datePartitionMode()};
+            return HATN_COMMON_NAMESPACE::DateRange{f.value(),_(model).datePartitionMode()};
+        },
+        [](auto)
+        {
+            return HATN_COMMON_NAMESPACE::DateRange{};
+        }
+    );
+}
+
+template <typename ModelT>
+HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::Date& date, const ModelT& model)
+{
+    return hana::eval_if(
+        hana::bool_<std::decay_t<ModelT>::isDatePartitioned()>{},
+        [&](auto _)
+        {
+            return common::DateRange{_(date),_(model).datePartitionMode()};
         },
         [](auto)
         {
             return common::DateRange{};
         }
-    );
+        );
+}
+
+template <typename ModelT>
+HATN_COMMON_NAMESPACE::DateRange datePartition(const ObjectId& id, const ModelT& model)
+{
+    return datePartition(id.toDate(),model);
 }
 
 class DbSchema;
