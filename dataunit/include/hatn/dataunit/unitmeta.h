@@ -639,6 +639,7 @@ template <typename traits, typename shared_traits>
 struct subunit : public types::TYPE_DATAUNIT
 {
         using type=typename traits::type;
+        using managed=typename traits::managed;
         using shared_type=common::SharedPtr<typename shared_traits::managed>;
         using base_shared_type=typename shared_traits::type;
         using Hatn=std::true_type;
