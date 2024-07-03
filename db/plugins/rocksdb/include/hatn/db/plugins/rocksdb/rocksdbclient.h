@@ -61,6 +61,9 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object) override;
 
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id) override;
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;

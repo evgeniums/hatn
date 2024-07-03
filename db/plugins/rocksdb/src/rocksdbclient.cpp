@@ -531,4 +531,32 @@ Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, d
 
 //---------------------------------------------------------------
 
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns, const ModelInfo &model, const ObjectId &id)
+{
+    HATN_CTX_SCOPE("rocksdbread")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->readObject(*d->handler,ns,id);
+}
+
+//---------------------------------------------------------------
+
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns, const ModelInfo &model, const ObjectId &id, const common::Date& date)
+{
+    HATN_CTX_SCOPE("rocksdbreaddate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->readObjectWithDate(*d->handler,ns,id,date);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

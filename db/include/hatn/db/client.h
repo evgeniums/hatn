@@ -205,13 +205,55 @@ class HATN_DB_EXPORT Client : public common::WithID
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
 
         template <typename ModelT>
-        Error create(const db::Namespace& ns, const std::shared_ptr<ModelT>& model, dataunit::Unit* object)
+        Error create(const Namespace& ns, const std::shared_ptr<ModelT>& model, dataunit::Unit* object)
         {
             HATN_CTX_SCOPE("dbcreate")
             if (m_opened)
             {
                 return doCreate(ns,model->info,object);
             }
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Result<typename ModelT::SharedPtr> read(const Namespace& ns, const std::shared_ptr<ModelT>& model, const ObjectId& id)
+        {
+            static typename ModelT::type sample;
+
+            HATN_CTX_SCOPE("dbread")
+            if (m_opened)
+            {
+                auto r=doRead(ns,model->info,id);
+                if (r)
+                {
+                    return r.takeError();
+                }
+                auto* obj=sample.castToUnit(r.value().get());
+                return obj->sharedFromThis();
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Result<typename ModelT::SharedPtr> read(const Namespace& ns, const std::shared_ptr<ModelT>& model, const ObjectId& id, const common::Date& date)
+        {
+            static typename ModelT::type sample;
+
+            HATN_CTX_SCOPE("dbreaddate")
+            if (m_opened)
+            {
+                auto r=doRead(ns,model->info,id,date);
+                if (r)
+                {
+                    return r.takeError();
+                }
+                auto* obj=sample.castToUnit(r.value().get());
+                return obj->sharedFromThis();
+            }
+
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
@@ -233,7 +275,10 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
 
-        virtual Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)=0;
+        virtual Error doCreate(const Namespace& ns, const ModelInfo& model, dataunit::Unit* object)=0;
+
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id)=0;
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date)=0;
 
         void setClosed() noexcept
         {
