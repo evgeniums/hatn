@@ -23,6 +23,7 @@
 #include <set>
 
 #include <hatn/common/daterange.h>
+#include <hatn/common/pmr/pmrtypes.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/objectid.h>
@@ -137,6 +138,34 @@ using ModelConfig=ModelConfigT<>;
 inline ModelConfig DefaultModelConfig{};
 
 struct ModelTag{};
+
+class UnitWrapper
+{
+    public:
+
+        template <typename T>
+        UnitWrapper(T&& sharedUnit) :
+            m_shared(sharedUnit.staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
+        {}
+
+        template <typename T>
+        T* unit()
+        {
+            static T sample;
+            sample.castToUnit(m_shared.get());
+        }
+
+        template <typename T>
+        const T* unit() const
+        {
+            static T sample;
+            sample.castToUnit(m_shared.get());
+        }
+
+    private:
+
+        HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> m_shared;
+};
 
 template <typename ConfigT, typename UnitT, typename Indexes>
 struct Model : public ConfigT

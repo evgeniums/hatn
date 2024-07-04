@@ -14,6 +14,7 @@ SET (HEADERS
     include/hatn/db/model.h
     include/hatn/db/schema.h
     include/hatn/db/modelregistry.h
+    include/hatn/db/query.h
 )
 
 SET (HEADERS

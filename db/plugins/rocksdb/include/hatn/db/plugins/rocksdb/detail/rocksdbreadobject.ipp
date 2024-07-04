@@ -62,7 +62,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rocksdreadobject")
+    HATN_CTX_SCOPE("rocksdbreadobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",ns.topic())
     auto idData=objectId.toArray();
