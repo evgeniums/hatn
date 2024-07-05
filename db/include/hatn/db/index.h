@@ -178,6 +178,52 @@ struct indexFieldT
 };
 constexpr indexFieldT indexField{};
 
+class IndexFieldInfo
+{
+    public:
+
+        IndexFieldInfo(std::string name, int id, bool nullable=false)
+            : m_name(std::move(name)),
+              m_id(id),
+              m_nested(false),
+              m_nullable(nullable)
+        {}
+
+        IndexFieldInfo(std::string nestedName, bool nullable=false)
+            : m_name(std::move(nestedName)),
+              m_id(-1),
+              m_nested(true),
+              m_nullable(nullable)
+        {}
+
+        const std::string& name() const noexcept
+        {
+            return m_name;
+        }
+
+        int id() const noexcept
+        {
+            return m_id;
+        }
+
+        bool nested() const noexcept
+        {
+            return m_nested;
+        }
+
+        bool nullable() const noexcept
+        {
+            return m_nullable;
+        }
+
+    private:
+
+        std::string m_name;
+        bool m_nested;
+        int m_id;
+        bool m_nullable;
+};
+
 #define HDB_LENGTH(l) hana::size_t<l>{}
 #define HDB_TTL(ttl) hana::uint<ttl>
 
@@ -217,47 +263,54 @@ struct IndexConfig
 };
 constexpr IndexConfig<> DefaultIndexConfig{};
 
-template <typename ConfigT, typename ...Fields>
-struct Index : public ConfigT
+class IndexBase
 {
-    //! @todo Disallow floaing point indexes.
+    public:
 
-    constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
+        IndexBase(std::string name):m_name(std::move(name))
+        {}
 
-    Index(std::string name):m_name(std::move(name))
-    {}
+        const std::string& name() const noexcept
+        {
+            return m_name;
+        }
 
-    const std::string& name() const
-    {
-        return m_name;
-    }
+        const std::string& id() const noexcept
+        {
+            return m_id;
+        }
 
-    const std::string& id() const
-    {
-        return m_id;
-    }
+        const std::string& collection() const noexcept
+        {
+            return m_collection;
+        }
 
-    const std::string& collection() const
-    {
-        return m_collection;
-    }
+        constexpr static decltype(auto) datePartitionField()
+        {
+            return hana::front(fields);
+        }
 
-    constexpr static decltype(auto) datePartitionField()
-    {
-        return hana::front(fields);
-    }
-
-    void setCollection(std::string val)
-    {
-        m_collection=std::move(val);
-        m_id=common::Crc32Hex(m_collection,m_name);
-    }
+        void setCollection(std::string val)
+        {
+            m_collection=std::move(val);
+            m_id=common::Crc32Hex(m_collection,m_name);
+        }
 
     private:
 
         std::string m_name;
         std::string m_collection;
         std::string m_id;
+};
+
+template <typename ConfigT, typename ...Fields>
+struct Index : public IndexBase, public ConfigT
+{
+    // Floaing point indexes are not allowed.
+
+    using IndexBase::IndexBase;
+
+    constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
 };
 
 struct makeIndexT
@@ -412,6 +465,58 @@ struct getPlainIndexFieldT
     }
 };
 constexpr getPlainIndexFieldT getPlainIndexField{};
+
+class IndexInfo : public IndexBase
+{
+    public:
+
+        IndexInfo(const IndexBase& base,
+              bool datePartitioned=false,
+              bool unique=false,
+              bool ttl=0
+            ) : IndexBase(base),
+                m_datePartitioned(datePartitioned),
+                m_unique(unique),
+                m_ttl(ttl)
+        {}
+
+        bool unique() const noexcept
+        {
+            return m_unique;
+        }
+
+        bool isDatePartitioned() const noexcept
+        {
+            return m_datePartitioned;
+        }
+
+        uint32_t ttl() const noexcept
+        {
+            return m_ttl;
+        }
+
+        bool isTtl() const noexcept
+        {
+            return m_ttl>0;
+        }
+
+        const std::vector<IndexFieldInfo>& fields() const noexcept
+        {
+            return m_fields;
+        }
+
+        void setFields(std::vector<IndexFieldInfo> fields)
+        {
+            m_fields=std::move(fields);
+        }
+
+    private:
+
+        std::vector<IndexFieldInfo> m_fields;
+        bool m_datePartitioned;
+        bool m_unique;
+        uint32_t m_ttl;
+};
 
 HATN_DB_NAMESPACE_END
 

@@ -185,6 +185,8 @@ struct Model : public ConfigT
     using IndexCount=decltype(hana::size(indexes));
     std::array<std::string,IndexCount::value> indexIds;
 
+    HATN_COMMON_NAMESPACE::FlatMap<std::string,IndexInfo> indexMap;
+
     template <typename CfgT,typename Ts>
     Model(
         CfgT&& config,
@@ -207,6 +209,8 @@ struct Model : public ConfigT
             idx.setCollection(this->collection());
             indexIds[i]=idx.id();
             i++;
+
+            //! @todo fill indexMap
         };
         hana::for_each(indexes,eachIndex);
     }
@@ -237,6 +241,12 @@ struct Model : public ConfigT
                 return type::datePartitionField();
             }
         );
+    }
+
+    static bool isDatePartitionField(const std::string& fieldName)
+    {
+        auto field=datePartitionField();
+        return field.name()==fieldName;
     }
 
     constexpr static auto ttlIndexes()
