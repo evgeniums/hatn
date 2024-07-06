@@ -692,4 +692,19 @@ void DateTime::serialize(BufT &buf, bool withMilliseconds) const
 
 HATN_COMMON_NAMESPACE_END
 
+namespace fmt
+{
+
+template <>
+struct formatter<HATN_COMMON_NAMESPACE::DateTime> : formatter<string_view>
+{
+    template <typename FormatContext>
+    auto format(const HATN_COMMON_NAMESPACE::DateTime& dt, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(),"{}",dt.toIsoString());
+    }
+};
+
+}
+
 #endif // HATNDATETIME_H
