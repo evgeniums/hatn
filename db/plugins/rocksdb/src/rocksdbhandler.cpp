@@ -39,6 +39,16 @@ RocksdbHandler_p::RocksdbHandler_p(
         inTransaction(false)
 {}
 
+//---------------------------------------------------------------
+
+RocksdbHandler_p::~RocksdbHandler_p()
+{
+    if (db!=nullptr)
+    {
+        delete db;
+    }
+}
+
 /********************** RocksdbHandler **************************/
 
 //---------------------------------------------------------------

@@ -98,6 +98,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
             ROCKSDB_NAMESPACE::TransactionDB* transactionDb=nullptr
         );
 
+        ~RocksdbHandler_p();
+
         common::FlatMap<std::string,std::shared_ptr<RocksdbSchema>,std::less<>> schemas;
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
