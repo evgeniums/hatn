@@ -553,6 +553,19 @@ void Time::serialize(BufT &buf, FormatPrecision precision, bool ampm) const
     }
 }
 
-
 HATN_COMMON_NAMESPACE_END
+
+namespace fmt
+{
+    template <>
+    struct formatter<HATN_COMMON_NAMESPACE::Time> : formatter<string_view>
+    {
+        template <typename FormatContext>
+        auto format(const HATN_COMMON_NAMESPACE::Time& t, FormatContext& ctx) const
+        {
+            return format_to(ctx.out(),"{}",t.toString());
+        }
+    };
+}
+
 #endif // HATNTIME_H

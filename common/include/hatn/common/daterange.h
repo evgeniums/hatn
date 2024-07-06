@@ -263,4 +263,17 @@ void DateRange::serialize(BufT &buf) const
 
 HATN_COMMON_NAMESPACE_END
 
+namespace fmt
+{
+    template <>
+    struct formatter<HATN_COMMON_NAMESPACE::DateRange> : formatter<string_view>
+    {
+        template <typename FormatContext>
+        auto format(const HATN_COMMON_NAMESPACE::DateRange& dr, FormatContext& ctx) const
+        {
+            return format_to(ctx.out(),"{}",dr.toString());
+        }
+    };
+}
+
 #endif // HATNDATERANGE_H

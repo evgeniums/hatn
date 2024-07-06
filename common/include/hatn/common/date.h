@@ -414,4 +414,19 @@ void Date::serialize(BufT &buf,Format format) const
 }
 
 HATN_COMMON_NAMESPACE_END
+
+namespace fmt
+{
+    template <>
+    struct formatter<HATN_COMMON_NAMESPACE::Date> : formatter<string_view>
+    {
+        template <typename FormatContext>
+        auto format(const HATN_COMMON_NAMESPACE::Date& dt, FormatContext& ctx) const
+        {
+            return format_to(ctx.out(),"{}",dt.toString(HATN_COMMON_NAMESPACE::Date::Format::Iso));
+        }
+    };
+
+}
+
 #endif // HATNDATE_H

@@ -283,4 +283,17 @@ struct Fieldwriter<T,std::enable_if_t<std::is_same<db::ObjectId,std::decay_t<T>>
 
 HATN_DATAUNIT_NAMESPACE_END
 
+namespace fmt
+{
+    template <>
+    struct formatter<HATN_DB_NAMESPACE::ObjectId> : formatter<string_view>
+    {
+        template <typename FormatContext>
+        auto format(const HATN_DB_NAMESPACE::ObjectId& id, FormatContext& ctx) const
+        {
+            return format_to(ctx.out(),"{}",id.toString());
+        }
+    };
+}
+
 #endif // HATNDBOBJECTID_H
