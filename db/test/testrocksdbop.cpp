@@ -252,10 +252,24 @@ BOOST_AUTO_TEST_CASE(RocksdDbIterator)
     putValue(false);
     putValue(std::string("how are you"));
     putValue(common::DateTime::currentUtc());
-    // putValue(common::Date::currentUtc());
-    // putValue(common::Time::currentUtc());
-    // putValue(common::DateRange{common::Date::currentUtc()});
-    // putValue(db::ObjectId::generateId());
+    putValue(common::Date::currentUtc());
+    putValue(common::Time::currentUtc());
+    putValue(common::DateRange{common::Date::currentUtc()});
+    putValue(db::ObjectId::generateId());
+
+    // iterate all
+    BOOST_TEST_MESSAGE("iterate all");
+    it = db->NewIterator(rocksdb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        BOOST_TEST_MESSAGE(it->key().ToString());
+    }
+    if (!it->status().ok())
+    {
+        BOOST_TEST_MESSAGE(it->status().ToString());
+    }
+    BOOST_REQUIRE(it->status().ok());
+    delete it;
 
     // close
     closeDatabase(db);

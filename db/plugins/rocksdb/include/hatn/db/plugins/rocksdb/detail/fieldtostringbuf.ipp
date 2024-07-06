@@ -50,7 +50,8 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const common::DateTime& val) const
     {
-        val.serialize(buf);
+        auto ms=val.toEpochMs();
+        fmt::format_to(std::back_inserter(buf),"{:010x}",ms);
     }
 
     template <typename BufT>
