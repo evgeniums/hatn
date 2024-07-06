@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     BOOST_CHECK_EQUAL(idx2.ttl(),3600);
     BOOST_CHECK_EQUAL(hana::size(idx2.fields),1);
     BOOST_CHECK_EQUAL(hana::front(idx2.fields).name(),"created_at");
-    BOOST_CHECK_EQUAL(idx2.datePartitionField().name(),"created_at");
+    BOOST_CHECK_EQUAL(idx2.frontField().name(),"created_at");
 
     auto idx3=makeIndex(IndexConfig<NotUnique,NotDatePartition>{},object::created_at,object::updated_at);
     BOOST_CHECK_EQUAL(idx3.name(),"idx_created_at_updated_at");

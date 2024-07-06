@@ -145,7 +145,7 @@ class UnitWrapper
 
         template <typename T>
         UnitWrapper(T&& sharedUnit) :
-            m_shared(sharedUnit.staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
+            m_shared(sharedUnit.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
         {}
 
         template <typename T>
@@ -238,7 +238,7 @@ struct Model : public ConfigT
             [&](auto _)
             {
                 using type=typename std::decay_t<decltype(_(found).value())>::type;
-                return type::datePartitionField();
+                return type::frontField();
             }
         );
     }

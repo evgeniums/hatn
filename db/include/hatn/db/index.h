@@ -219,8 +219,8 @@ class IndexFieldInfo
     private:
 
         std::string m_name;
-        bool m_nested;
         int m_id;
+        bool m_nested;
         bool m_nullable;
 };
 
@@ -285,11 +285,6 @@ class IndexBase
             return m_collection;
         }
 
-        constexpr static decltype(auto) datePartitionField()
-        {
-            return hana::front(fields);
-        }
-
         void setCollection(std::string val)
         {
             m_collection=std::move(val);
@@ -311,6 +306,11 @@ struct Index : public IndexBase, public ConfigT
     using IndexBase::IndexBase;
 
     constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
+
+    constexpr static decltype(auto) frontField()
+    {
+        return hana::front(fields);
+    }
 };
 
 struct makeIndexT
