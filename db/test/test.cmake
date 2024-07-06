@@ -5,6 +5,7 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testcreate.cpp
     ${DB_TEST_SRC}/testschema.cpp
     ${DB_TEST_SRC}/testrocksdbschema.cpp
+    ${DB_TEST_SRC}/testrocksdbop.cpp
 )
 
 SET (TEST_HEADERS
