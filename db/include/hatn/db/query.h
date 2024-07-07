@@ -25,46 +25,18 @@
 
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
-
-#include <hatn/dataunit/syntax.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/index.h>
+#include <hatn/db/model.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
 namespace query
 {
 
-HDU_UNIT(value,
-    HDU_FIELD(_int64,TYPE_INT64,1)
-    HDU_FIELD(_uint64,TYPE_UINT64,2)
-    HDU_FIELD(_float,TYPE_FLOAT,3)
-    HDU_FIELD(_double,TYPE_DOUBLE,4)
-    HDU_FIELD(_string,TYPE_STRING,5)
-)
-
-enum class ValueKind : uint8_t
-{
-    Value,
-    Interval,
-    Range
-};
-
-enum class IntervalType : uint8_t
-{
-    Closed,
-    Open,
-    LeftOpen,
-    LeftClosed
-};
-
-HDU_UNIT(operand,
-    HDU_FIELD(from,value::TYPE,1)
-    HDU_FIELD(to,value::TYPE,2)
-    HDU_REPEATED_FIELD(range,value::TYPE,3)
-    HDU_FIELD(kind,HDU_TYPE_ENUM(ValueKind),4,false,ValueKind::Value)
-    HDU_FIELD(interval_type,HDU_TYPE_ENUM(IntervalType),5,false,IntervalType::Closed)
-)
+struct Null{};
 
 enum class Operator : uint8_t
 {
@@ -74,88 +46,318 @@ enum class Operator : uint8_t
     lt,
     lte,
     in,
-    between,
-    neq
+    neq,
+    nin
 };
 
-enum class Sort : uint8_t
+enum class Order : uint8_t
 {
-    None,
     Asc,
     Desc
 };
 
-HDU_UNIT(field_op,
-    HDU_FIELD(field_id,TYPE_UINT32,1,true)
-    HDU_FIELD(op,HDU_TYPE_ENUM(Operator),2,true)
-    HDU_FIELD(value,operand::TYPE,3,true)
-    HDU_FIELD(sort,HDU_TYPE_ENUM(Sort),4,false,Sort::None)
-)
+template <typename T>
+struct Interval
+{
+    enum class Type : uint8_t
+    {
+        Closed,
+        Open
+    };
 
-HDU_UNIT(index_query,
-    HDU_FIELD(index_id,TYPE_UINT32,1,true)
-    HDU_REPEATED_FIELD(field_ops,field_op::TYPE,2,true)
-    HDU_FIELD(limit,TYPE_UINT32,3,false,0)
-)
+    struct Endpoint
+    {
+        T value;
+        Type type;
+    };
 
-}
+    Endpoint from;
+    Endpoint to;
+};
 
-// namespace query
-// {
-//
-//     using Value=lib::variant<
-//         int64_t,
-//         uint64_t,
-//         float,
-//         double,
-//         common::pmr::string
-//     >;
+#define HATN_DB_QUERY_VALUE_TYPES(DO) \
+        DO(Null), \
+        DO(bool), \
+        DO(int8_t), \
+        DO(int16_t), \
+        DO(int32_t), \
+        DO(int64_t), \
+        DO(uint8_t), \
+        DO(uint16_t), \
+        DO(uint32_t), \
+        DO(uint64_t), \
+        DO(common::pmr::string), \
+        DO(common::DateTime), \
+        DO(common::Date), \
+        DO(common::Time), \
+        DO(common::DateRange), \
+        DO(ObjectId)
 
-//     template <typename FieldT>
-//     struct Operand
-//     {
-//         enum Kind
-//         {
-//             Value,
-//             Interval,
-//             Range
-//         };
+#define HATN_DB_QUERY_VALUE_TYPE_IDS(DO) \
+        DO(Null), \
+        DO(Bool), \
+        DO(Int8_t), \
+        DO(Int16_t), \
+        DO(Int32_t), \
+        DO(Int64_t), \
+        DO(Uint8_t), \
+        DO(Uint16_t), \
+        DO(Uint32_t), \
+        DO(Uint64_t), \
+        DO(String), \
+        DO(DateTime), \
+        DO(Date), \
+        DO(Time), \
+        DO(DateRange), \
+        DO(ObjectId)
 
-//         using valueT=Value;
-//         using intervalT=std::pair<valueT,valueT>;
-//         using rangeT=common::pmr::vector<valueT>;
+#define HATN_DB_QUERY_VALUE_TYPE(Type) \
+        Type, \
+        Interval<Type>, \
+        common::pmr::vector<Type>, \
+        common::pmr::vector<Interval<Type>>
 
-//         using type=lib::variant<valueT,intervalT,rangeT>;
-//     };
+#define HATN_DB_QUERY_VALUE_TYPE_ID(Type) \
+        Type, \
+        Interval##Type, \
+        Vector##Type, \
+        VectorInterval##Type
 
-//     template <typename FieldT>
-//     struct Field
-//     {
-//         using valueT=Operand<FieldT>::type;
+class Value
+{
+    public:
 
-//         FieldT field;
-//         Operator op;
-//         valueT value;
-//         Sort sort;
-//     };
+        using type=lib::variant<
+            HATN_DB_QUERY_VALUE_TYPES(HATN_DB_QUERY_VALUE_TYPE)
+        >;
 
-//     template <typename IndexT>
-//     struct Fields
-//     {
-//         using type=boost::hana::tuple<>;
-//     };
-// }
+        enum class Type : uint8_t
+        {
+            HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
+        };
 
-// template <typename IndexT>
-// struct IndexQuery
-// {
-//     using fieldsT=typename query::Fields<IndexT>::type;
+        template <typename T>
+        Value(T&& val) : m_value(std::forward<T>(val))
+        {}
 
-//     IndexT index;
+        Type typeId() const noexcept
+        {
+            return static_cast<Type>(lib::variantIndex(m_value));
+        }
 
-//     fieldsT fields;
-//     uint32_t limit;
-// };
+        bool isType(Type t) const noexcept
+        {
+            return typeId()==t;
+        }
+
+        type& operator()() noexcept
+        {
+            return m_value;
+        }
+
+        const type& operator()() const noexcept
+        {
+            return m_value;
+        }
+
+    private:
+
+        type m_value;
+};
+
+using Operand=Value;
+
+struct Field
+{
+    template <typename T>
+    Field(
+        const IndexFieldInfo& fieldInfo,
+        Operator op,
+        T&& value,
+        Order order=Order::Asc
+      ) : fieldInfo(&fieldInfo),
+          op(op),
+          value(std::forward<T>(value)),
+          order(order)
+    {
+        checkOperator();
+    }
+
+    bool isScalarType() const noexcept
+    {
+        // scalar value type is each 4th in the type enum
+        return static_cast<int>(value.typeId())%4==0;
+    }
+
+    bool isScalarOp() const noexcept
+    {
+        return op!=Operator::in && op!=Operator::nin;
+    }
+
+    void checkOperator() const
+    {
+        bool ok=true;
+        if (isScalarType())
+        {
+            ok=isScalarOp();
+        }
+        else
+        {
+            ok=!isScalarOp();
+        }
+
+        Assert(ok,"Invalid combination of operator and operand");
+    }
+
+    bool matchOp(const Field& other) const noexcept
+    {
+        auto ok=op==other.op && order==other.order && isScalarOp();
+        return ok;
+    }
+
+    const IndexFieldInfo* fieldInfo;
+    Operator op;
+    Operand value;
+    Order order;
+};
+
+using TimePointInterval=Interval<uint32_t>;
+
+} // namespace query
+
+class HATN_DB_EXPORT IndexQuery
+{
+    public:
+
+        static common::pmr::AllocatorFactory* defaultAllocatorFactory() noexcept
+        {
+            if (DefaultAllocatorFactory!=nullptr)
+            {
+                return DefaultAllocatorFactory;
+            }
+            return common::pmr::AllocatorFactory::getDefault();
+        }
+
+        IndexQuery(
+                const IndexInfo& index,
+                common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
+           )  : m_index(&index),
+                m_fields(factory->dataAllocator<query::Field>()),
+                m_limit(DefaultLimit)
+        {}
+
+        IndexQuery(
+                const IndexInfo& index,
+                std::initializer_list<query::Field> list,
+                common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
+            ) : m_index(&index),
+                m_fields(std::move(list),factory->dataAllocator<query::Field>()),
+                m_limit(DefaultLimit)
+        {
+            checkFields();
+        }
+
+        IndexQuery(
+                const IndexInfo& index,
+                common::pmr::vector<query::Field> fields
+            ) : m_index(&index),
+                m_fields(std::move(fields)),
+                m_limit(DefaultLimit)
+        {
+            checkFields();
+        }
+
+        void setFields(common::pmr::vector<query::Field> fields)
+        {
+            m_fields=(std::move(fields));
+            checkFields();
+        }
+
+        void setFields(std::initializer_list<query::Field> fields)
+        {
+            m_fields=(std::move(fields));
+            checkFields();
+        }
+
+        const IndexInfo& index() const noexcept
+        {
+            return *m_index;
+        }
+
+        const auto& fields() const noexcept
+        {
+            return m_fields;
+        }
+
+        const auto& field(size_t pos) const
+        {
+            return m_fields[pos];
+        }
+
+        void setLimit(size_t limit) noexcept
+        {
+            m_limit=limit;
+        }
+
+        size_t limit() const noexcept
+        {
+            return m_limit;
+        }
+
+        void setFilterTimePoints(common::SharedPtr<common::pmr::vector<query::TimePointInterval>> filterTimepoints)
+        {
+            m_filterTimepoints=std::move(filterTimepoints);
+        }
+
+        const auto& filterTimepoints() const noexcept
+        {
+            return m_filterTimepoints;
+        }
+
+        static size_t defaultLimit() noexcept
+        {
+            return DefaultLimit;
+        }
+
+        static void setDefaultLimit(size_t limit) noexcept
+        {
+            DefaultLimit=limit;
+        }
+
+        static void setDefaultAllocatorFactory(common::pmr::AllocatorFactory* factory) noexcept
+        {
+            DefaultAllocatorFactory=factory;
+        }
+
+    private:
+
+        static size_t DefaultLimit;
+        static common::pmr::AllocatorFactory* DefaultAllocatorFactory;
+
+        void checkFields() const
+        {
+            Assert(m_fields.size()<=m_index->fields().size(),"Number of fields must be less or equal to number of fields in the index");
+
+            for (size_t i=0;i<m_fields.size();i++)
+            {
+                const auto& qF=m_fields[i];
+                const auto& iF=m_index->fields()[i];
+                if (iF.nested())
+                {
+                    Assert(iF.name()==qF.fieldInfo->name(),"Field name mismatches name of corresponding index field");
+                }
+                else
+                {
+                    Assert(iF.id()==qF.fieldInfo->id(),"Field ID mismatches ID of corresponding index field");
+                }
+            }
+        }
+
+        const IndexInfo* m_index;
+        common::pmr::vector<query::Field> m_fields;
+        size_t m_limit;
+        common::SharedPtr<common::pmr::vector<query::TimePointInterval>> m_filterTimepoints;
+};
 
 HATN_DB_NAMESPACE_END
 

@@ -30,6 +30,7 @@ SET (SOURCES
     src/object.cpp
     src/objectid.cpp
     src/modelregistry.cpp
+    src/query.cpp
 )
 
 BUILD_HATN_MODULE()
