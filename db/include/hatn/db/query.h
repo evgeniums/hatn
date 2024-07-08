@@ -215,6 +215,18 @@ struct Field
         return ok;
     }
 
+    bool isIntervalLeftOpen() const noexcept
+    {
+        //! @todo implement
+        return false;
+    }
+
+    bool isIntervalRightOpen() const noexcept
+    {
+        //! @todo implement
+        return false;
+    }
+
     const IndexFieldInfo* fieldInfo;
     Operator op;
     Operand value;

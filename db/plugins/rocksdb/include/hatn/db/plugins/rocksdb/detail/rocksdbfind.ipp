@@ -28,6 +28,7 @@
 #include <hatn/db/namespace.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
+#include <hatn/db/query.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -143,13 +144,211 @@ using PartitionsKeys=common::pmr::vector<PartitionKeys>;
 
 } // namespace detail
 
-
 template <typename BufT>
+struct valueToBuf
+{
+    BufT& buf;
+
+    //! @todo implement operators
+};
+
+template <typename BufT, typename KeyHandlerT>
+Error eachIndexKeyFieldItem(
+        detail::FindCursor<BufT>& cursor,
+        RocksdbHandler& handler,
+        const IndexQuery& idxQuery,
+        const KeyHandlerT& keyCallback,
+        ROCKSDB_NAMESPACE::Snapshot* snapshot,
+        size_t pos,
+        const query::Field& field,
+        AllocatorFactory* allocatorFactory
+    )
+{
+    size_t count=0;
+
+    // prepare read options
+    ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
+    readOptions.snapshot=snapshot;
+    bool iterateForward=field.order==query::Order::Asc;
+
+    BufT fromBuf{allocatorFactory->bytesAllocator()};
+    ROCKSDB_NAMESPACE::Slice fromS;
+    BufT toBuf{allocatorFactory->bytesAllocator()};
+    ROCKSDB_NAMESPACE::Slice toS;
+    switch(field.op)
+    {
+        case (query::Operator::gt):
+        {
+            fromBuf.append(cursor.partialKey);
+            fromBuf.append(NullCharStr);
+            valueToBuf(fromBuf,field);
+            fromBuf.append(OneCharStr);
+            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromS;
+        }
+        break;
+        case (query::Operator::gte):
+        {
+            fromBuf.append(cursor.partialKey);
+            fromBuf.append(NullCharStr);
+            valueToBuf(fromBuf,field);
+            fromBuf.append(NullCharStr);
+            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromS;
+        }
+        break;
+        case (query::Operator::lt):
+        {
+            toBuf.append(cursor.partialKey);
+            toBuf.append(NullCharStr);
+            valueToBuf(toBuf,field);
+            toBuf.append(NullCharStr);
+            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+            readOptions.iterate_upper_bound=&toS;
+        }
+        break;
+        case (query::Operator::lte):
+        {
+            toBuf.append(cursor.partialKey);
+            toBuf.append(NullCharStr);
+            valueToBuf(toBuf,field);
+            toBuf.append(OneCharStr);
+            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+            readOptions.iterate_upper_bound=&toS;
+        }
+        break;
+        case (query::Operator::eq):
+        {
+            fromBuf.append(cursor.partialKey);
+            fromBuf.append(NullCharStr);
+            valueToBuf(fromBuf,field);
+            fromBuf.append(NullCharStr);
+            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromS;
+
+            toBuf.append(cursor.partialKey);
+            toBuf.append(NullCharStr);
+            valueToBuf(toBuf,field);
+            toBuf.append(OneCharStr);
+            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+            readOptions.iterate_upper_bound=&toS;
+        }
+        break;
+        case (query::Operator::in):
+        {
+            fromBuf.append(cursor.partialKey);
+            fromBuf.append(NullCharStr);
+            valueToBuf(fromBuf,field,false);
+            if (field.isIntervalLeftOpen())
+            {
+                fromBuf.append(OneCharStr);
+            }
+            else
+            {
+                fromBuf.append(NullCharStr);
+            }
+            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromS;
+
+            toBuf.append(cursor.partialKey);
+            toBuf.append(NullCharStr);
+            valueToBuf(toBuf,field,true);
+            if (field.isIntervalRightOpen())
+            {
+                toBuf.append(NullCharStr);
+            }
+            else
+            {
+                toBuf.append(OneCharStr);
+            }
+            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+            readOptions.iterate_upper_bound=&toS;
+        }
+        break;
+
+        default:
+        {
+            Assert(false,"Invalid operand");
+        }
+        break;
+    }
+
+    // create iterator
+    std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(readOptions,cursor.partition->indexCf.get())};
+
+    // set start position of the iterator
+    if (iterateForward)
+    {
+        it->SeekToFirst();
+    }
+    else
+    {
+        it->SeekToLast();
+    }
+
+    // iterate
+    while (it.Valid())
+    {
+        // check if value expired
+        const auto keyValue=it.Slice();
+        //! @todo Filter key by timestamp range
+        if (!TtlMark::isExpired(keyValue))
+        {
+            // construct key prefix
+            auto key=it.Key();
+            auto currentKey=detail::keyPrefix(key,pos);
+            cursor.resetPartial(currentKey,pos);
+
+            // append final keys to result
+            if (pos==query.fields().size())
+            {
+                keyCallback(key);
+                // result.emplace_back(common::pmr::string{key.data(),key.size()});
+            }
+            else
+            {
+                auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot);
+                if (ec)
+                {
+                    return ec;
+                }
+            }
+
+            // check limit
+            if ((idxQuery.limit()>0) && (count==idxQuery.limit()))
+            {
+                break;
+            }
+        }
+
+        // get the next/prev key
+        if (iterateForward)
+        {
+            it.Next();
+        }
+        else
+        {
+            it.Prev();
+        }
+    }
+    // check iterator status
+    if (!it.status().ok())
+    {
+        HATN_CTX_SCOPE_ERROR("index-find")
+        return makeError(DbError::READ_FAILED,it.status());
+    }
+
+    // done
+    return OK;
+}
+
+template <typename BufT, typename KeyHandlerT>
 Error nextKeyField(
                    detail::FindCursor<BufT>& cursor,
-                   detail::FindKeys& result,
                    RocksdbHandler& handler,
-                   const IndexQuery& query
+                   const IndexQuery& query,
+                   const KeyHandlerT& keyCallback,
+                   ROCKSDB_NAMESPACE::Snapshot* snapshot
                 )
 {
     // check if all fields procesed
@@ -164,7 +363,7 @@ Error nextKeyField(
             query.field(cursor.pos-1).matchOp(queryField)
         )
     {
-        //! @todo append field to cursor
+        // append field to cursor
         cursor.partialKey.append(
                 fieldToStringBuf(detail::PartialFindKey.buf,queryField.value()())
             );
@@ -173,7 +372,7 @@ Error nextKeyField(
         // go to next field
         if (cursor.pos<query.fields().size())
         {
-            return nextKeyField(cursor,result,handler,query);
+            return nextKeyField(cursor,result,handler,query,keyCallback,snapshot);
         }
     }
     else
@@ -181,61 +380,9 @@ Error nextKeyField(
         ++cursor.pos;
     }
 
-    //! @todo read keys with partial query for current field
-    ROCKSDB_NAMESPACE::Iterator it;
-    // ...
-    size_t pos=cursor.pos;
-    while (it.Valid())
-    {
-        // check if value expired
-        const auto keyValue=it.Slice();
-        if (!TtlMark::isExpired(keyValue))
-        {
-            // construct key prefix
-            auto key=it.Key();
-            auto currentKey=detail::keyPrefix(key,pos);
-            cursor.resetPartial(currentKey,pos);
-
-            // append final keys to result
-            if (pos==query.fields().size())
-            {
-                result.emplace_back(common::pmr::string{key.data(),key.size()});
-            }
-            else
-            {
-                auto ec=nextKeyField(cursor,result,handler,query);
-                if (ec)
-                {
-                    //! @todo Log error
-                    return ec;
-                }
-            }
-
-            // check limit
-            if ((query.limit()>0) && (result.size()==query.limit()))
-            {
-                break;
-            }
-        }
-
-        // get the next/prev key
-        if (queryField.order==query::Order::Desc)
-        {
-            it.Prev();
-        }
-        else
-        {
-            it.Next();
-        }
-    }
-    //! @todo check iterator status
-
     // done
     return OK;
 }
-
-
-//! @todo Split in/nin/neq queries to sets of queries
 
 template <typename BufT>
 template <typename ModelT>

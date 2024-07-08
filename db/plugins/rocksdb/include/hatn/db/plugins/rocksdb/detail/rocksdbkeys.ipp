@@ -34,6 +34,8 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 constexpr static const char* NullChar="\0";
 constexpr lib::string_view NullCharStr{"\0",1};
+constexpr static const char* OneChar="\1";
+constexpr lib::string_view OneCharStr{"\1",1};
 
 using IndexKeyT=std::array<ROCKSDB_NAMESPACE::Slice,2>;
 
