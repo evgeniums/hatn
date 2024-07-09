@@ -73,7 +73,7 @@ struct PartialFindKey
         offsets.push_back(buf.size());
         if (!buf.empty())
         {
-            buf.append(NullCharStr);
+            buf.append(SeparatorCharStr);
         }
         buf.append(str);
     }
@@ -112,9 +112,9 @@ struct FindCursor
             partition(std::move(partition))
     {
         partialKey.append(topic);
-        partialKey.append(NullCharStr);
+        partialKey.append(SeparatorCharStr);
         partialKey.append(indexId);
-        partialKey.append(NullCharStr);
+        partialKey.append(SeparatorCharStr);
     }
 
     void resetPartial(const lib::string_view& prefixKey, size_t p)
@@ -155,27 +155,39 @@ struct valueVisitor
             fieldToStringBuf(buf,value.from),
             fieldToStringBuf(buf,value.to)
         );
+        buf.append(sep);
     }
 
     template <typename T>
     void operator()(const T& value) const
     {
         fieldToStringBuf(buf,value);
+        buf.append(sep);
     }
 
-    valueVisitor(BufT& buf):buf(buf)
+    void operator()(const query::Last&) const
+    {
+        // replace previous separator with SeparatorCharPlusStr
+        buf[buf.size()-1]=SeparatorCharPlusStr[0];
+    }
+
+    void operator()(const query::First&) const
+    {}
+
+    valueVisitor(BufT& buf, const lib::string_view& sep):buf(buf),sep(sep)
     {}
 
     BufT& buf;
+    const lib::string_view& sep;
 };
 
 template <typename EndpointT=hana::true_>
 struct fieldValueToBufT
 {
     template <typename BufT>
-    void operator()(BufT& buf, const query::Field& field) const
+    void operator()(BufT& buf, const query::Field& field, const lib::string_view& sep) const
     {
-        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf},field.value());
+        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf,sep},field.value());
     }
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
@@ -213,9 +225,8 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::gt):
         {
             fromBuf.append(cursor.partialKey);
-            fromBuf.append(NullCharStr);
-            fieldValueToBuf(fromBuf,field);
-            fromBuf.append(OneCharStr);
+            fromBuf.append(SeparatorCharStr);
+            fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
         }
@@ -223,9 +234,8 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::gte):
         {
             fromBuf.append(cursor.partialKey);
-            fromBuf.append(NullCharStr);
-            fieldValueToBuf(fromBuf,field);
-            fromBuf.append(NullCharStr);
+            fromBuf.append(SeparatorCharStr);
+            fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
         }
@@ -233,9 +243,8 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::lt):
         {
             toBuf.append(cursor.partialKey);
-            toBuf.append(NullCharStr);
-            fieldValueToBuf(toBuf,field);
-            toBuf.append(NullCharStr);
+            toBuf.append(SeparatorCharStr);
+            fieldValueToBuf(toBuf,field,SeparatorCharStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
         }
@@ -243,9 +252,8 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::lte):
         {
             toBuf.append(cursor.partialKey);
-            toBuf.append(NullCharStr);
-            fieldValueToBuf(toBuf,field);
-            toBuf.append(OneCharStr);
+            toBuf.append(SeparatorCharStr);
+            fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
         }
@@ -253,16 +261,14 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::eq):
         {
             fromBuf.append(cursor.partialKey);
-            fromBuf.append(NullCharStr);
-            fieldValueToBuf(fromBuf,field);
-            fromBuf.append(NullCharStr);
+            fromBuf.append(SeparatorCharStr);
+            fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
 
             toBuf.append(cursor.partialKey);
-            toBuf.append(NullCharStr);
-            fieldValueToBuf(toBuf,field);
-            toBuf.append(OneCharStr);
+            toBuf.append(SeparatorCharStr);
+            fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
         }
@@ -270,30 +276,28 @@ Error eachIndexKeyFieldItem(
         case (query::Operator::in):
         {
             fromBuf.append(cursor.partialKey);
-            fromBuf.append(NullCharStr);
-            fieldValueToBuf(fromBuf,field);
+            fromBuf.append(SeparatorCharStr);
             if (field.value.fromIntervalType()==query::IntervalType::Open)
             {
-                fromBuf.append(OneCharStr);
+                fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
             }
             else
             {
-                fromBuf.append(NullCharStr);
+                fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             }
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
 
             toBuf.append(cursor.partialKey);
-            toBuf.append(NullCharStr);
-            constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};
-            toValueToBuf(toBuf,field);
+            toBuf.append(SeparatorCharStr);
+            constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};            
             if (field.value.toIntervalType()==query::IntervalType::Open)
             {
-                toBuf.append(NullCharStr);
+                toValueToBuf(toBuf,field,SeparatorCharStr);
             }
             else
             {
-                toBuf.append(OneCharStr);
+                toValueToBuf(toBuf,field,SeparatorCharPlusStr);
             }
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
@@ -392,7 +396,7 @@ Error nextKeyField(
     if (cursor.pos<idxQuery.fields().size() && idxQuery.field(cursor.pos).matchScalarOp(queryField))
     {
         // append field to cursor
-        cursor.partialKey.append(NullCharStr);
+        cursor.partialKey.append(SeparatorCharStr);
         fieldValueToBuf(cursor.partialKey,queryField.value());
 
         // go to next field

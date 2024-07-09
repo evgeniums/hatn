@@ -32,11 +32,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-constexpr static const char* NullChar="\0";
-constexpr lib::string_view NullCharStr{"\0",1};
-constexpr static const char* OneChar="\1";
-constexpr lib::string_view OneCharStr{"\1",1};
-
 using IndexKeyT=std::array<ROCKSDB_NAMESPACE::Slice,2>;
 
 template <typename BufT=common::FmtAllocatedBufferChar>
@@ -73,9 +68,9 @@ class Keys
             std::array<ROCKSDB_NAMESPACE::Slice,6> parts;
 
             parts[0]=ROCKSDB_NAMESPACE::Slice{ns.topic().data(),ns.topic().size()};
-            parts[1]=ROCKSDB_NAMESPACE::Slice{NullCharStr.data(),NullCharStr.size()};
+            parts[1]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
             parts[2]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
-            parts[3]=ROCKSDB_NAMESPACE::Slice{NullCharStr.data(),NullCharStr.size()};
+            parts[3]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
             parts[4]=objectId;
 
             // ttl mark is used only for data of indexes, actual object key must use only [0:4] parts
@@ -114,9 +109,9 @@ class Keys
             IndexKeyT key;
 
             buf.append(ns.topic());
-            buf.append(NullCharStr);
+            buf.append(SeparatorCharStr);
             buf.append(index.id());
-            buf.append(NullCharStr);
+            buf.append(SeparatorCharStr);
 
             auto eachField=[&object,&buf](auto&& fieldId)
             {
@@ -125,7 +120,7 @@ class Keys
                 {
                     fieldToStringBuf(buf,field.value());
                 }
-                buf.append(NullCharStr);
+                buf.append(SeparatorCharStr);
             };
             hana::for_each(index.fields,eachField);
 

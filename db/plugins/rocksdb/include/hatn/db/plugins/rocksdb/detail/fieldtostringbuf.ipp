@@ -26,17 +26,32 @@
 #include <hatn/common/daterange.h>
 
 #include <hatn/db/objectid.h>
+#include <hatn/db/query.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
+
+constexpr static const char* SeparatorChar="\0";
+constexpr lib::string_view SeparatorCharStr{SeparatorChar,1};
+constexpr static const char* SeparatorCharPlus="\1";
+constexpr lib::string_view SeparatorCharPlusStr{SeparatorCharPlus,1};
+constexpr static const char* EmptyChar="\2";
+constexpr lib::string_view EmptyCharStr{EmptyChar,1};
 
 struct FieldToStringBufT
 {
     template <typename BufT>
     void operator ()(BufT& buf, const lib::string_view& val) const
     {
-        buf.append(val);
+        if (val.empty())
+        {
+            buf.append(EmptyCharStr);
+        }
+        else
+        {
+            buf.append(val);
+        }
     }
 
     template <typename BufT>
@@ -154,6 +169,10 @@ struct FieldToStringBufT
             buf.append(False);
         }
     }
+
+    template <typename BufT>
+    void operator ()(BufT&, const query::Null&) const
+    {}
 
     template <typename BufT, typename T>
     void operator ()(BufT& buf, const T& val) const

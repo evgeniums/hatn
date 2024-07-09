@@ -37,6 +37,8 @@ namespace query
 {
 
 struct Null{};
+struct First{};
+struct Last{};
 
 enum class Operator : uint8_t
 {
@@ -83,6 +85,8 @@ struct Interval
 
 #define HATN_DB_QUERY_VALUE_TYPES(DO) \
         DO(Null), \
+        DO(First), \
+        DO(Last), \
         DO(bool), \
         DO(int8_t), \
         DO(int16_t), \
@@ -101,6 +105,8 @@ struct Interval
 
 #define HATN_DB_QUERY_VALUE_TYPE_IDS(DO) \
         DO(Null), \
+        DO(First), \
+        DO(Last), \
         DO(Bool), \
         DO(Int8_t), \
         DO(Int16_t), \
