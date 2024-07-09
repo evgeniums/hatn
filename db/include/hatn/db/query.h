@@ -56,14 +56,20 @@ enum class Order : uint8_t
     Desc
 };
 
+struct IntervalTag{};
+
+enum class IntervalType : uint8_t
+{
+    Closed,
+    Open
+};
+
 template <typename T>
 struct Interval
 {
-    enum class Type : uint8_t
-    {
-        Closed,
-        Open
-    };
+    using hana_tag=IntervalTag;
+
+    using Type=IntervalType;
 
     struct Endpoint
     {
@@ -123,6 +129,33 @@ struct Interval
         Vector##Type, \
         VectorInterval##Type
 
+namespace detail
+{
+
+template <typename EndpointT>
+struct IntervalTypeVisitor
+{
+    constexpr static const EndpointT endpoint{};
+
+    template <typename T>
+    IntervalType operator()(const query::Interval<T>& value) const
+    {
+        return hana::if_(
+            endpoint,
+            value.from.type,
+            value.to.type
+        );
+    }
+
+    template <typename T>
+    IntervalType operator()(const T&) const
+    {
+        return IntervalType::Open;
+    }
+};
+
+}
+
 class Value
 {
     public:
@@ -160,6 +193,30 @@ class Value
             return m_value;
         }
 
+        bool isScalarType() const noexcept
+        {
+            // scalar value type is each 4th in the type enum
+            return static_cast<int>(typeId())%4==0;
+        }
+
+        bool isIntervalType() const noexcept
+        {
+            // scalar value type is each 2th in the type enum
+            return static_cast<int>(typeId()-1)%4==0;
+        }
+
+        IntervalType fromIntervalType() const noexcept
+        {
+            constexpr static const detail::IntervalTypeVisitor<hana::true_> v{};
+            return v(m_value);
+        }
+
+        IntervalType toIntervalType() const noexcept
+        {
+            constexpr static const detail::IntervalTypeVisitor<hana::false_> v{};
+            return v(m_value);
+        }
+
     private:
 
         type m_value;
@@ -183,12 +240,6 @@ struct Field
         checkOperator();
     }
 
-    bool isScalarType() const noexcept
-    {
-        // scalar value type is each 4th in the type enum
-        return static_cast<int>(value.typeId())%4==0;
-    }
-
     bool isScalarOp() const noexcept
     {
         return op!=Operator::in && op!=Operator::nin;
@@ -197,7 +248,7 @@ struct Field
     void checkOperator() const
     {
         bool ok=true;
-        if (isScalarType())
+        if (value.isScalarType())
         {
             ok=isScalarOp();
         }
@@ -213,18 +264,6 @@ struct Field
     {
         auto ok=op==other.op && order==other.order && isScalarOp();
         return ok;
-    }
-
-    bool isIntervalLeftOpen() const noexcept
-    {
-        //! @todo implement
-        return false;
-    }
-
-    bool isIntervalRightOpen() const noexcept
-    {
-        //! @todo implement
-        return false;
     }
 
     const IndexFieldInfo* fieldInfo;

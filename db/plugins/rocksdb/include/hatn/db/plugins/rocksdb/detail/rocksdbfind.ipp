@@ -142,15 +142,49 @@ using PartitionKeys=std::pair<std::shared_ptr<RocksdbPartition>,
 
 using PartitionsKeys=common::pmr::vector<PartitionKeys>;
 
-} // namespace detail
-
-template <typename BufT>
-struct valueToBuf
+template <typename BufT, typename EndpointT=hana::true_>
+struct valueVisitor
 {
-    BufT& buf;
+    constexpr static const EndpointT endpoint{};
 
-    //! @todo implement operators
+    template <typename T>
+    void operator()(const query::Interval<T>& value) const
+    {
+        hana::if_(
+            endpoint,
+            fieldToStringBuf(buf,value.from),
+            fieldToStringBuf(buf,value.to)
+        );
+    }
+
+    template <typename T>
+    void operator()(const T& value) const
+    {
+        fieldToStringBuf(buf,value);
+    }
+
+    valueVisitor(BufT& buf):buf(buf)
+    {}
+
+    BufT& buf;
 };
+
+template <typename EndpointT=hana::true_>
+struct fieldValueToBufT
+{
+    template <typename BufT>
+    void operator()(BufT& buf, const query::Field& field) const
+    {
+        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf},field.value());
+    }
+};
+constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
+
+bool indexFiltered(const IndexQuery& idxQuery, size_t pos, const ROCKSDB_NAMESPACE::Slice* key, const ROCKSDB_NAMESPACE::Slice* value)
+{
+    //! @todo Implement index filtering
+    return false;
+}
 
 template <typename BufT, typename KeyHandlerT>
 Error eachIndexKeyFieldItem(
@@ -164,8 +198,6 @@ Error eachIndexKeyFieldItem(
         AllocatorFactory* allocatorFactory
     )
 {
-    size_t count=0;
-
     // prepare read options
     ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
     readOptions.snapshot=snapshot;
@@ -181,7 +213,7 @@ Error eachIndexKeyFieldItem(
         {
             fromBuf.append(cursor.partialKey);
             fromBuf.append(NullCharStr);
-            valueToBuf(fromBuf,field);
+            fieldValueToBuf(fromBuf,field);
             fromBuf.append(OneCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
@@ -191,7 +223,7 @@ Error eachIndexKeyFieldItem(
         {
             fromBuf.append(cursor.partialKey);
             fromBuf.append(NullCharStr);
-            valueToBuf(fromBuf,field);
+            fieldValueToBuf(fromBuf,field);
             fromBuf.append(NullCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
@@ -201,7 +233,7 @@ Error eachIndexKeyFieldItem(
         {
             toBuf.append(cursor.partialKey);
             toBuf.append(NullCharStr);
-            valueToBuf(toBuf,field);
+            fieldValueToBuf(toBuf,field);
             toBuf.append(NullCharStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
@@ -211,7 +243,7 @@ Error eachIndexKeyFieldItem(
         {
             toBuf.append(cursor.partialKey);
             toBuf.append(NullCharStr);
-            valueToBuf(toBuf,field);
+            fieldValueToBuf(toBuf,field);
             toBuf.append(OneCharStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
@@ -221,14 +253,14 @@ Error eachIndexKeyFieldItem(
         {
             fromBuf.append(cursor.partialKey);
             fromBuf.append(NullCharStr);
-            valueToBuf(fromBuf,field);
+            fieldValueToBuf(fromBuf,field);
             fromBuf.append(NullCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
 
             toBuf.append(cursor.partialKey);
             toBuf.append(NullCharStr);
-            valueToBuf(toBuf,field);
+            fieldValueToBuf(toBuf,field);
             toBuf.append(OneCharStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
@@ -238,8 +270,8 @@ Error eachIndexKeyFieldItem(
         {
             fromBuf.append(cursor.partialKey);
             fromBuf.append(NullCharStr);
-            valueToBuf(fromBuf,field,false);
-            if (field.isIntervalLeftOpen())
+            fieldValueToBuf(fromBuf,field);
+            if (field.value.fromIntervalType()==query::IntervalType::Open)
             {
                 fromBuf.append(OneCharStr);
             }
@@ -252,8 +284,9 @@ Error eachIndexKeyFieldItem(
 
             toBuf.append(cursor.partialKey);
             toBuf.append(NullCharStr);
-            valueToBuf(toBuf,field,true);
-            if (field.isIntervalRightOpen())
+            constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};
+            toValueToBuf(toBuf,field);
+            if (field.value.toIntervalType()==query::IntervalType::Open)
             {
                 toBuf.append(NullCharStr);
             }
@@ -287,23 +320,28 @@ Error eachIndexKeyFieldItem(
     }
 
     // iterate
-    while (it.Valid())
+    Error ec;
+    while (it->Valid())
     {
-        // check if value expired
-        const auto keyValue=it.Slice();
-        //! @todo Filter key by timestamp range
-        if (!TtlMark::isExpired(keyValue))
+        const auto* key=it->Key();
+        const auto* keyValue=it->Slice();
+
+        // check if key must be filtered
+        if (!TtlMark::isExpired(keyValue)
+            && !indexFiltered(idxQuery,pos,key,keyValue)
+            )
         {
             // construct key prefix
-            auto key=it.Key();
             auto currentKey=detail::keyPrefix(key,pos);
             cursor.resetPartial(currentKey,pos);
 
-            // append final keys to result
-            if (pos==query.fields().size())
+            // call result callback for finally assembled key
+            if (pos==idxQuery.fields().size())
             {
-                keyCallback(key);
-                // result.emplace_back(common::pmr::string{key.data(),key.size()});
+                if (!keyCallback(key,ec))
+                {
+                    return ec;
+                }
             }
             else
             {
@@ -313,29 +351,23 @@ Error eachIndexKeyFieldItem(
                     return ec;
                 }
             }
-
-            // check limit
-            if ((idxQuery.limit()>0) && (count==idxQuery.limit()))
-            {
-                break;
-            }
         }
 
         // get the next/prev key
         if (iterateForward)
         {
-            it.Next();
+            it->Next();
         }
         else
         {
-            it.Prev();
+            it->Prev();
         }
     }
     // check iterator status
-    if (!it.status().ok())
+    if (!it->status().ok())
     {
         HATN_CTX_SCOPE_ERROR("index-find")
-        return makeError(DbError::READ_FAILED,it.status());
+        return makeError(DbError::READ_FAILED,it->status());
     }
 
     // done
@@ -383,6 +415,8 @@ Error nextKeyField(
     // done
     return OK;
 }
+
+} // namespace detail
 
 template <typename BufT>
 template <typename ModelT>
