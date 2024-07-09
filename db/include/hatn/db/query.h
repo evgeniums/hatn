@@ -260,7 +260,7 @@ struct Field
         Assert(ok,"Invalid combination of operator and operand");
     }
 
-    bool matchOp(const Field& other) const noexcept
+    bool matchScalarOp(const Field& other) const noexcept
     {
         auto ok=op==other.op && order==other.order && isScalarOp();
         return ok;

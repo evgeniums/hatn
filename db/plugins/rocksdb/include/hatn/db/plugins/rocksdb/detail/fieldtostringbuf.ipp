@@ -167,7 +167,7 @@ struct FieldToStringBufT
             },
             [&](auto _)
             {
-                // for any other type, is_same here is just to use templtae typenames for static assert
+                // for any other type, is_same here is just to use template typenames for static assert
                 static_assert(std::is_same<T,BufT>::value,"Unsupported value type");
             }
         );

@@ -193,11 +193,12 @@ Error eachIndexKeyFieldItem(
         const IndexQuery& idxQuery,
         const KeyHandlerT& keyCallback,
         ROCKSDB_NAMESPACE::Snapshot* snapshot,
-        size_t pos,
         const query::Field& field,
         AllocatorFactory* allocatorFactory
     )
 {
+    size_t pos=cursor.pos;
+
     // prepare read options
     ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
     readOptions.snapshot=snapshot;
@@ -345,11 +346,8 @@ Error eachIndexKeyFieldItem(
             }
             else
             {
-                auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot);
-                if (ec)
-                {
-                    return ec;
-                }
+                auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+                HATN_CHECK_EC(ec)
             }
         }
 
@@ -378,38 +376,53 @@ template <typename BufT, typename KeyHandlerT>
 Error nextKeyField(
                    detail::FindCursor<BufT>& cursor,
                    RocksdbHandler& handler,
-                   const IndexQuery& query,
+                   const IndexQuery& idxQuery,
                    const KeyHandlerT& keyCallback,
-                   ROCKSDB_NAMESPACE::Snapshot* snapshot
+                   ROCKSDB_NAMESPACE::Snapshot* snapshot,
+                   AllocatorFactory* allocatorFactory
                 )
 {
-    // check if all fields procesed
-    if (cursor.pos==query.fields().size())
-    {
-        return OK;
-    }
+    Assert(cursor.pos<idxQuery.fields().size(),"Out of range of cursor position of index query");
 
-    // glue key fields if operators and orders match
-    const auto& queryField=query.field(cursor.pos);
-    if (cursor.pos==0 ||
-            query.field(cursor.pos-1).matchOp(queryField)
-        )
+    // extract query field
+    const auto& queryField=idxQuery.field(cursor.pos);
+    ++cursor.pos;
+
+    // glue scalar fields if operators and orders match
+    if (cursor.pos<idxQuery.fields().size() && idxQuery.field(cursor.pos).matchScalarOp(queryField))
     {
         // append field to cursor
-        cursor.partialKey.append(
-                fieldToStringBuf(detail::PartialFindKey.buf,queryField.value()())
-            );
-        ++cursor.pos;
+        cursor.partialKey.append(NullCharStr);
+        fieldValueToBuf(cursor.partialKey,queryField.value());
 
         // go to next field
-        if (cursor.pos<query.fields().size())
-        {
-            return nextKeyField(cursor,result,handler,query,keyCallback,snapshot);
-        }
+        return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+    }
+
+    // iterate
+    if ((queryField.value.isScalarType() || queryField.value.isIntervalType()) && queryField.op!=query::Operator::neq)
+    {
+        // process scalar or interval fields
+        auto ec=eachIndexKeyFieldItem(cursor,
+                                        idxQuery,
+                                        handler,
+                                        keyCallback,
+                                        snapshot,
+                                        queryField,
+                                        allocatorFactory
+                                    );
+        HATN_CHECK_EC(ec)
+    }
+    else if (queryField.op==query::Operator::neq)
+    {
+        //! @todo process neq operator
+        // split to lt and gt queries
     }
     else
     {
-        ++cursor.pos;
+        //! @todo process vector
+        // split to queries for each vector item
+        // only in and nin operators supported
     }
 
     // done
