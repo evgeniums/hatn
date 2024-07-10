@@ -190,6 +190,11 @@ class FlatContainerIteratorBase
             return it;
         }
 
+        size_t index() const noexcept
+        {
+            return m_idx;
+        }
+
     protected:
 
         VectorT* m_vec;
@@ -197,8 +202,7 @@ class FlatContainerIteratorBase
 
         template <typename ContainerItemT,
                   typename AllocT,
-                  typename CompareItemT,
-                  typename CompareKeyT
+                  typename CompareItemT
                   >
         friend class FlatContainer;
 };
@@ -261,8 +265,7 @@ class FlatContainerIteratorConst : public FlatContainerIteratorBase<VectorT,Item
 
 template <typename ItemT,
           typename AllocT=std::allocator<ItemT>,
-          typename CompareItemT=std::less<ItemT>,
-          typename CompareKeyT=CompareItemT
+          typename CompareItemT=std::less<ItemT>
           >
 class FlatContainer
 {
@@ -272,14 +275,33 @@ class FlatContainer
         using iterator=FlatContainerIterator<vector_type,ItemT>;
         using const_iterator=FlatContainerIteratorConst<const vector_type,ItemT>;
 
-        FlatContainer()
+        FlatContainer(CompareItemT comp=CompareItemT{}):m_comp(std::move(comp))
         {}
-        FlatContainer(const AllocT& alloc) : m_vec(alloc)
+
+        FlatContainer(const AllocT& alloc,CompareItemT comp=CompareItemT{}) : m_vec(alloc),m_comp(std::move(comp))
         {}
-        FlatContainer(size_t reserveSize,const AllocT& alloc=AllocT()) : m_vec(alloc)
+
+        FlatContainer(size_t reserveSize,const AllocT& alloc=AllocT(),CompareItemT comp=CompareItemT{})
+            : m_vec(alloc),
+              m_comp(std::move(comp))
         {
             m_vec.reserve(reserveSize);
         }
+
+        FlatContainer(
+                std::initializer_list<ItemT> list,
+                CompareItemT comp=CompareItemT{}
+            ) : m_vec(std::move(list)),
+                m_comp(std::move(comp))
+        {}
+
+        FlatContainer(
+            std::initializer_list<ItemT> list,
+            const AllocT& alloc,
+            CompareItemT comp=CompareItemT{}
+            ) : m_vec(std::move(list),alloc),
+                m_comp(std::move(comp))
+        {}
 
         void reserve(size_t n)
         {
@@ -292,6 +314,10 @@ class FlatContainer
         size_t size() const noexcept
         {
             return m_vec.size();
+        }
+        void resize(size_t size)
+        {
+            return m_vec.resize(size);
         }
         size_t capacity() const noexcept
         {
@@ -324,16 +350,17 @@ class FlatContainer
             return const_iterator(&m_vec,m_vec.size());
         }
 
-        template <typename KeyT, typename CompareT=CompareKeyT>
+        template <typename KeyT>
         iterator find(const KeyT& item)
         {
-            auto it=detail::binary_find(m_vec.begin(),m_vec.end(),item,CompareT());
+            auto it=detail::binary_find(m_vec.begin(),m_vec.end(),item,m_comp);
             return iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
         }
-        template <typename KeyT, typename CompareT=CompareKeyT>
+
+        template <typename KeyT>
         const_iterator find(const KeyT& item) const
         {
-            auto it=detail::binary_find(m_vec.begin(),m_vec.end(),item,CompareT());
+            auto it=detail::binary_find(m_vec.begin(),m_vec.end(),item,m_comp);
             return const_iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
         }
 
@@ -342,6 +369,7 @@ class FlatContainer
             auto it=m_vec.erase(m_vec.begin()+position.m_idx);
             return iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
         }
+
         template <typename KeyT>
         iterator erase(const KeyT& item)
         {
@@ -363,9 +391,9 @@ class FlatContainer
                                         > =nullptr
                 )
         {
-            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),val,CompareItemT());
+            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),val,m_comp);
             bool created=true;
-            if (it!=m_vec.end() && !CompareItemT()(val,*it))
+            if (it!=m_vec.end() && !m_comp(val,*it))
             {
                 created=false;
                 *it=std::forward<Arg>(val);
@@ -378,12 +406,13 @@ class FlatContainer
             return std::make_pair(iterator(&m_vec,idx),created);
         }
 
+        //! @todo move it to map part
         template <typename KeyT, typename ValueT>
         std::pair<iterator,bool> emplace(KeyT&& key, ValueT&& val)
         {
-            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),key,CompareKeyT{});
+            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),key,m_comp);
             bool created=true;
-            if (it!=m_vec.end() && !CompareKeyT{}(key,it->first))
+            if (it!=m_vec.end() && !m_comp(key,it->first))
             {
                 created=false;
                 it->first=std::forward<KeyT>(key);
@@ -414,12 +443,13 @@ class FlatContainer
         }
         void endRawInsert()
         {
-            std::sort(m_vec.begin(),m_vec.end(),CompareItemT());
+            std::sort(m_vec.begin(),m_vec.end(),m_comp);
         }
 
     private:
 
         vector_type m_vec;
+        CompareItemT m_comp;
 };
 
 //---------------------------------------------------------------
@@ -431,14 +461,14 @@ template <typename KeyT, typename ValueT, typename CompareKeyT=std::less<KeyT>>
 struct FlatMapCompareItem
 {
     constexpr bool operator() (const std::pair<KeyT,ValueT>& l,
-                     const std::pair<KeyT,ValueT>& r) noexcept
+                              const std::pair<KeyT,ValueT>& r) noexcept
     {
         return CompareKeyT{}(l.first,r.first);
     }
 
     template <typename T>
     constexpr bool operator() (const T& l,
-                     const std::pair<KeyT,ValueT>& r) noexcept
+                              const std::pair<KeyT,ValueT>& r) noexcept
     {
         return CompareKeyT{}(l,r.first);
     }
