@@ -198,12 +198,12 @@ struct Model : public ConfigT
                     ConfigT(std::forward<CfgT>(config)),
                     indexes(std::forward<Ts>(indices))
     {
+        size_t i=0;
         if (this->collection().empty())
         {
             this->setCollection(name());
         }
 
-        size_t i=0;
         auto eachIndex=[this,&i](auto& idx)
         {
             idx.setCollection(this->collection());

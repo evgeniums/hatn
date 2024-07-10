@@ -24,8 +24,10 @@
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/flatmap.h>
+#include <hatn/common/fixedbytearray.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/objectid.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -49,7 +51,8 @@ class Namespace
         lib::string_view m_topic;
 };
 
-using Topics=common::pmr::FlatSet<common::pmr::string>;
+using Topic=common::pmr::string;
+using Topics=common::pmr::FlatSet<Topic>;
 
 HATN_DB_NAMESPACE_END
 
