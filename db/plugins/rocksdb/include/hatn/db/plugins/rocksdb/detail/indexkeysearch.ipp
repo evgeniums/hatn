@@ -21,6 +21,8 @@
 
 #include <cstddef>
 
+#include "rocksdb/comparator.h"
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -43,6 +45,104 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 namespace index_key_search
 {
 
+struct IndexKey
+{
+    constexpr static const size_t FieldsOffset=ObjectId::Length+2*sizeof(SeparatorCharC)+common::Crc32HexLength;
+
+    IndexKey(
+        ROCKSDB_NAMESPACE::Slice* k,
+        ROCKSDB_NAMESPACE::Slice* v,
+        RocksdbPartition* p,
+        AllocatorFactory* allocatorFactory
+        ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
+        value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
+        partition(p),
+        keyParts(allocatorFactory->dataAllocator<lib::string_view>())
+    {
+        fillKeyParts();
+    }
+
+    inline void fillKeyParts()
+    {
+        // split key to key parts
+        size_t offset=FieldsOffset;
+        for (size_t i=FieldsOffset;i<key.size();i++)
+        {
+            if (key[i]==SeparatorCharC)
+            {
+                keyParts.push_back(ROCKSDB_NAMESPACE::Slice{key.data()+offset,i-offset});
+                offset=i;
+            }
+        }
+    }
+
+    static lib::string_view keyPrefix(const lib::string_view& key, size_t pos) noexcept
+    {
+        size_t idx=0;
+
+        for (size_t i=FieldsOffset;i<key.size();i++)
+        {
+            if (key[i]==SeparatorCharC)
+            {
+                if (idx==pos)
+                {
+                    return lib::string_view{key.data(),i};
+                }
+                idx++;
+            }
+        }
+
+        return lib::string_view{};
+    }
+
+    common::pmr::string key;
+    common::pmr::string value;
+    RocksdbPartition* partition;
+
+    common::pmr::vector<ROCKSDB_NAMESPACE::Slice> keyParts;
+};
+
+struct IndexKeyCompare
+{
+    IndexKeyCompare(const IndexQuery& idxQuery) : idxQuery(&idxQuery)
+    {}
+
+    inline operator bool()(const IndexKey& l, const IndexKey& r) const noexcept
+    {
+        // compare key parts according to ordering of query fields
+        for (size_t i=0;i<idxQuery->fields().size();i++)
+        {
+            if (i>=l.keyParts.size() || i>=r.keyParts.size())
+            {
+                return false;
+            }
+
+            const auto& field=idxQuery->field(i);
+            const auto& leftPart=l.keyParts[i];
+            const auto& rightPart=r.keyParts[i];
+            int cmp{0};
+            if (field.order==query::Order::Desc)
+            {
+                cmp=rightPart.compare(leftPart);
+            }
+            else
+            {
+                cmp=leftPart.compare(rightPart)<0;
+            }
+            if (cmp!=0)
+            {
+                return cmp<0;
+            }
+        }
+
+        return false;
+    }
+
+    const IndexQuery* idxQuery;
+};
+
+using IndexKeys=common::pmr::FlatSet<IndexKey,IndexKeyCompare>;
+
 template <typename BufT>
 struct Cursor
 {
@@ -53,7 +153,7 @@ struct Cursor
             common::pmr::AllocatorFactory* allocatorfactory
         ) : partialKey(allocatorfactory->bytesAllocator()),
             pos(0),
-            partition(std::move(partition))
+            partition(partition)
     {
         partialKey.append(topic);
         partialKey.append(SeparatorCharStr);
@@ -72,12 +172,6 @@ struct Cursor
 
     RocksdbPartition* partition;
 };
-
-lib::string_view keyPrefix(const lib::string_view& key, size_t pos) const noexcept
-{
-    //! @todo Implement extraction of key prefix
-    return key;
-}
 
 template <typename BufT, typename EndpointT=hana::true_>
 struct valueVisitor
@@ -276,7 +370,7 @@ Error iterateFieldVariant(
             )
         {
             // construct key prefix
-            auto currentKey=keyPrefix(key,pos);
+            auto currentKey=IndexKey::keyPrefix(key,pos);
             cursor.resetPartial(currentKey,pos);
 
             // call result callback for finally assembled key

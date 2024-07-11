@@ -53,53 +53,6 @@ struct FindT
 template <typename BufT>
 constexpr FindT<BufT> Find{};
 
-namespace detail {
-
-struct IndexKey
-{
-    IndexKey(
-            ROCKSDB_NAMESPACE::Slice* k,
-            ROCKSDB_NAMESPACE::Slice* v,
-            RocksdbPartition* p,
-            AllocatorFactory* allocatorFactory
-        ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
-            value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
-            partition(p),
-            keyParts(allocatorFactory->dataAllocator<lib::string_view>())
-    {
-        fillKeyParts();
-    }
-
-    void fillKeyParts()
-    {
-        //! @todo split key to key parts
-    }
-
-    common::pmr::string key;
-    common::pmr::string value;
-    RocksdbPartition* partition;
-
-    common::pmr::vector<lib::string_view> keyParts;
-};
-
-struct IndexKeyCompare
-{
-    IndexKeyCompare(const IndexQuery& idxQuery) : idxQuery(&idxQuery)
-    {}
-
-    operator bool()(const IndexKey& l, const IndexKey& r) const noexcept
-    {
-        //! @todo compare key parts according to ordering of query fields
-        return lib::string_view{l.key.data(),l.key.size()}<lib::string_view{r.key.data(),r.key.size()};
-    }
-
-    const IndexQuery* idxQuery;
-};
-
-using IndexKeys=common::pmr::FlatSet<IndexKey,IndexKeyCompare>;
-
-} // namespace detail
-
 template <typename BufT>
 template <typename ModelT>
 Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
@@ -137,10 +90,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     );
 
     // collect matching keys ordered according to index query
-#if 0
-    size_t topicKeys=0;
-#endif
-    detail::IndexKeys indexKeys{allocatorFactory->dataAllocator(),detail::IndexKeyCompare{idxQuery}};
+    index_key_search::IndexKeys indexKeys{allocatorFactory->dataAllocator(),index_key_search::IndexKeyCompare{idxQuery}};
     auto keyCallback=[&indexKeys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
                                                           ROCKSDB_NAMESPACE::Slice* key,
                                                           ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -167,40 +117,42 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
             }
         }
 
-#if 0
-        //! @todo Check if it is needed. Seems like the condition above will cover the case below.
-        // limit number of iterations for each topic
-        ++topicKeys;
-        return (idxQuery.limit()==0) || (topicKeys<idxQuery.limit());
-#else
         return true;
-#endif
     };
 
     // get rocksdb snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
     const auto* snapshot=managedSnapchot.snapshot();
 
-    // process all partitions
-    //! @todo if query starts with partition field then pre-sort partitons by order of that field
-    for (const auto& partition: partitions)
+    // collect index keys
     {
-        // process all topics
-        for (const auto& topic: idxQuery.topics())
-        {
-#if 0
-            topicKeys=0;
-#endif
-            index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
-            auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
-            if (ec)
-            {
-                //! @todo log error
-                return ec;
-            }
-        }
+        HATN_CTX_SCOPE("indexkeys")
 
-        //! @todo if query starts with partition field then break if limit reached
+        //! @todo optimization: if query starts with partition field then pre-sort partitons by order of that field
+
+        // process all partitions
+        for (const auto& partition: partitions)
+        {
+            HATN_CTX_SCOPE_PUSH("partition",partition->range())
+
+            // process all topics
+            for (const auto& topic: idxQuery.topics())
+            {
+                HATN_CTX_SCOPE_PUSH("topic",topic)
+                HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
+
+                index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
+                auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+                HATN_CHECK_EC(ec)
+
+                HATN_CTX_SCOPE_POP()
+                HATN_CTX_SCOPE_POP()
+            }
+
+            HATN_CTX_SCOPE_POP()
+
+            //! @todo optimization: if query starts with partition field then break if limit reached
+        }
     }
 
     // prepare result
@@ -213,18 +165,60 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     }
 
     // fill result
-    ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
-    readOptions.snapshot=snapshot;
-    objects.reserve(indexKeys.size());
-    for (auto&& key:indexKeys)
     {
-        //! @todo get object from rockdb
+        HATN_CTX_SCOPE("readobjects")
 
-        //! @todo create unit
+        Error ec;
+        dataunit::WireBufSolid buf;
+        ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
+        readOptions.snapshot=snapshot;
+        objects.reserve(indexKeys.size());
+        for (auto&& key: indexKeys)
+        {
+            // get object from rocksdb
+            ROCKSDB_NAMESPACE::PinnableSlice value;
+            auto k=KeysBase::objectKeyFromIndexValue(key.value.data(),key.value.size());
 
-        //! @todo deserialize object
+            auto pushLogKey=[&k,&key]()
+            {
+                HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(k))
+                HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(key.key))
+                HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range())
+            };
 
-        //! @todo push wrapped unit to result vector
+            auto status=handler.p()->db->Get(readOptions,key.partition->collectionCf.get(),k,&value);
+            if (!status.ok())
+            {
+                pushLogKey();
+                if (status.code()!=ROCKSDB_NAMESPACE::Status::Code::kNotFound)
+                {
+                    HATN_CTX_SCOPE_ERROR("get-object")
+                    return makeError(DbError::READ_FAILED,status);
+                }
+                HATN_CTX_WARN("missing object in rocksdb")
+
+                HATN_CTX_SCOPE_POP()
+                HATN_CTX_SCOPE_POP()
+                HATN_CTX_SCOPE_POP()
+                continue;
+            }
+
+            // create unit
+            auto sharedUnit=allocatorFactory->createObject<typename modelType::ManagedType>(allocatorFactory);
+
+            // deserialize object
+            buf.mainContainer()->loadInline(value.data(),value.size());
+            dataunit::io::deserialize(*sharedUnit,buf,ec);
+            if (ec)
+            {
+                pushLogKey();
+                HATN_CTX_SCOPE_ERROR("deserialize-object")
+                return ec;
+            }
+
+            // emplace wrapped unit to result vector
+            objects.emplace_back(sharedUnit);
+        }
     }
 
     // done

@@ -186,7 +186,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     // keep partition
     if (!partition)
     {
-        partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf);
+        partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf,range);
         d->partitions.emplace(range,std::move(partition));
     }
 

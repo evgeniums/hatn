@@ -50,22 +50,27 @@ struct RocksdbPartition
     constexpr static const char* IndexSuffix="indexes";
     constexpr static const char* TtlSuffix="ttl";
 
-    RocksdbPartition()
+    RocksdbPartition(
+            const common::DateRange& range=common::DateRange{}
+        ) : range(range)
     {}
 
     RocksdbPartition(
             ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf,
             ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf,
-            ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf
+            ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf,
+            const common::DateRange& range=common::DateRange{}
         ) :
             collectionCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{collectionCf}),
             indexCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{indexCf}),
-            ttlCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{ttlCf})
+            ttlCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{ttlCf}),
+            range(range)
     {}
 
     std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> collectionCf;
     std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> indexCf;
     std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> ttlCf;
+    common::DateRange range;
 
     static std::string columnFamilyName(CfType cfType, const common::DateRange& range)
     {
@@ -86,7 +91,7 @@ struct RocksdbPartition
 
         Assert(false,"Unknown column family type");
         return std::string{};
-    }
+    }        
 };
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
