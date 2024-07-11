@@ -204,7 +204,10 @@ class ContextT : public common::TaskContextValue
 
         void popStackVar() noexcept
         {
-            m_varStack.pop_back();
+            if (!m_lockStack)
+            {
+                m_varStack.pop_back();
+            }
         }
 
         template <typename T>
