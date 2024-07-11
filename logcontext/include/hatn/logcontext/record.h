@@ -33,6 +33,7 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 constexpr size_t MaxKeyLength=16;
 constexpr size_t MaxValueLength=64;
 
+//! @todo Use expandable buffer instead of FixedByteArray
 template <size_t Length=MaxValueLength>
 using ValueT=common::lib::variant<
         int8_t,
