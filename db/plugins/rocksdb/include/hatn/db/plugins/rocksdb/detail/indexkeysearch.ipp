@@ -436,33 +436,284 @@ Error nextKeyField(
         return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
     }
 
-    // iterate
-    if ((queryField.value.isScalarType() || queryField.value.isIntervalType()) && queryField.op!=query::Operator::neq)
+    // for neq operation split to lt and gt queries
+    auto doNeq=[&](const auto& val)
     {
-        // process scalar or interval fields
+        query::Field fieldLt{*queryField.fieldInfo,query::Operator::lt,val,queryField.order};
         auto ec=iterateFieldVariant(cursor,
-                                    idxQuery,
-                                    handler,
-                                    keyCallback,
-                                    snapshot,
-                                    queryField,
-                                    allocatorFactory
-                                    );
+                                      idxQuery,
+                                      handler,
+                                      keyCallback,
+                                      snapshot,
+                                      fieldLt,
+                                      allocatorFactory
+                                      );
         HATN_CHECK_EC(ec)
-    }
-    else if (queryField.op==query::Operator::neq)
+
+        query::Field fieldGt{*queryField.fieldInfo,query::Operator::gt,val,queryField.order};
+        ec=iterateFieldVariant(cursor,
+                                 idxQuery,
+                                 handler,
+                                 keyCallback,
+                                 snapshot,
+                                 fieldGt,
+                                 allocatorFactory
+                                 );
+        HATN_CHECK_EC(ec)
+
+        return Error{};
+    };
+
+    // iterate
+    if (queryField.value.isScalarType())
     {
-        //! @todo process neq operator
-        // split to lt and gt queries
+        // process scalar fields
+        if (queryField.op!=query::Operator::neq)
+        {
+            auto ec=iterateFieldVariant(cursor,
+                                          idxQuery,
+                                          handler,
+                                          keyCallback,
+                                          snapshot,
+                                          queryField,
+                                          allocatorFactory
+                                          );
+            HATN_CHECK_EC(ec)
+        }
+        else
+        {
+            // neq
+            auto ec=doNeq(queryField.value);
+            HATN_CHECK_EC(ec)
+        }
     }
-    else
+    else if (queryField.value.isIntervalType())
     {
-        //! @todo process vector
+        // process interval fields
+        if (queryField.op!=query::Operator::in)
+        {
+            // in
+            auto ec=iterateFieldVariant(cursor,
+                                          idxQuery,
+                                          handler,
+                                          keyCallback,
+                                          snapshot,
+                                          queryField,
+                                          allocatorFactory
+                                          );
+            HATN_CHECK_EC(ec)
+        }
+        else
+        {
+            // nin
+            auto doNin=[&](const auto& val)
+            {
+                const auto &beforeVal=val.from.value;
+                query::Operator beforeOp=val.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+
+                query::Field fieldBefore{*queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
+                auto ec=iterateFieldVariant(cursor,
+                                              idxQuery,
+                                              handler,
+                                              keyCallback,
+                                              snapshot,
+                                              fieldBefore,
+                                              allocatorFactory
+                                              );
+                HATN_CHECK_EC(ec)
+
+                const auto &afterVal=val.to.value;
+                query::Operator afterOp=val.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
+
+                query::Field fieldAfter{*queryField.fieldInfo,afterOp,afterVal,queryField.order};
+                ec=iterateFieldVariant(cursor,
+                                         idxQuery,
+                                         handler,
+                                         keyCallback,
+                                         snapshot,
+                                         fieldAfter,
+                                         allocatorFactory
+                                         );
+                HATN_CHECK_EC(ec)
+
+                return Error{};
+            };
+            auto ec=queryField.value.handleInterval(doNin);
+            HATN_CHECK_EC(ec)
+        }
+    }
+    else if (queryField.value.isVectorType())
+    {
+        // sort vector
+        auto sortVector=[&queryField](const auto& vec)
+        {
+            using vectorType=std::decay_t<decltype(vec)>;
+            auto& v=const_cast<vectorType&>(vec);
+            std::sort(
+                    v.begin(),
+                    v.end(),
+                    [&queryField](const auto& l, const auto& r)
+                    {
+                        using type=std::decay_t<decltype(l)>;
+                        if (queryField.order==query::Order::Desc)
+                        {
+                            return !std::less<type>{}(l,r);
+                        }
+                        return std::less<type>{}(l,r);
+                    }
+                );
+        };
+        queryField.value.handleVector(sortVector);
+
         // split to queries for each vector item
-        // only in and nin operators supported
+        if (queryField.op==query::Operator::in)
+        {
+            // in
+            auto doEq=[&](const auto& val)
+            {
+                query::Field field{*queryField.fieldInfo,query::Operator::eq,val,queryField.order};
+                return iterateFieldVariant(cursor,
+                                           idxQuery,
+                                           handler,
+                                           keyCallback,
+                                           snapshot,
+                                           field,
+                                           allocatorFactory
+                                           );
+            };
+            auto ec=queryField.value.eachVectorItem(doEq);
+            HATN_CHECK_EC(ec)
+        }
+        else
+        {
+            // nin
+            auto ec=queryField.value.eachVectorItem(doNeq);
+            HATN_CHECK_EC(ec)
+        }
+    }
+    else if (queryField.value.isVectorIntervalType())
+    {
+        // sort vector
+        auto sortVector=[&queryField](const auto& vec)
+        {
+            using vectorType=std::decay_t<decltype(vec)>;
+            auto& v=const_cast<vectorType&>(vec);
+            std::sort(
+                v.begin(),
+                v.end(),
+                [&queryField](const auto& l, const auto& r)
+                {
+                    using type=std::decay_t<decltype(l)>;
+                    if (queryField.order==query::Order::Desc)
+                    {
+                        return !std::less<type>{}(l,r);
+                    }
+                    return std::less<type>{}(l,r);
+                }
+                );
+        };
+        queryField.value.handleVector(sortVector);
+
+        // handler for intermediate intervals
+        auto doIn=[&](const auto& val)
+        {
+            query::Field fieldLt{*queryField.fieldInfo,query::Operator::in,val,queryField.order};
+            return iterateFieldVariant(cursor,
+                                       idxQuery,
+                                       handler,
+                                       keyCallback,
+                                       snapshot,
+                                       fieldLt,
+                                       allocatorFactory
+                                       );
+        };
+
+        // split to queries for each vector item
+        if (queryField.op==query::Operator::in)
+        {
+            // in
+            auto ec=queryField.value.eachVectorItem(doIn);
+            HATN_CHECK_EC(ec)
+        }
+        else
+        {
+            // nin
+            auto doNin=[&](const auto& vec)
+            {
+                using intervalType=typename std::decay_t<decltype(vec)>::value_type;
+                using valueType=typename intervalType::Valuetype;
+
+                for (size_t i=0;i<vec.size();i++)
+                {
+                    const auto& interval=vec[i];
+
+                    if (i==0)
+                    {
+                        // before first interval use lt/lte
+                        query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+                        query::Field fieldBefore{*queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      idxQuery,
+                                                      handler,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      fieldBefore,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
+                    }
+                    else
+                    {
+                        // use in for intermediate intervals
+                        const auto& prevInterval=vec[i-1];
+                        intervalType tmpInterval{
+                            prevInterval.to.value,
+                            query::reverseIntervalType(prevInterval.to.type),
+                            interval.from.value,
+                            query::reverseIntervalType(interval.from.type)
+                        };
+                        query::Field field{*queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      idxQuery,
+                                                      handler,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      field,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
+                    }
+
+                    // after last interval
+                    if (i==vec.size()-1)
+                    {
+                        // use lt/lte
+                        query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
+                        query::Field fieldAfter{*queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      idxQuery,
+                                                      handler,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      fieldAfter,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
+                    }
+                }
+
+                return Error{};
+            };
+
+
+            // inverse intervals and invoke in or lt/lte for first and gt/gte for last intervals
+            auto ec=queryField.value.handleVector(doNin);
+            HATN_CHECK_EC(ec)
+        }
     }
 
     // done
+    --cursor.pos;
     return OK;
 }
 

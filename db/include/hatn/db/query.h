@@ -67,18 +67,34 @@ enum class IntervalType : uint8_t
     Open
 };
 
+inline IntervalType reverseIntervalType(IntervalType type)
+{
+    return (type==IntervalType::Closed) ? IntervalType::Open : IntervalType::Closed;
+}
+
 template <typename T>
 struct Interval
 {
     using hana_tag=IntervalTag;
 
     using Type=IntervalType;
+    using ValueType=T;
 
     struct Endpoint
     {
         T value;
         Type type;
     };
+
+    template <typename T1, typename T2>
+    Interval(
+            T1&& from,
+            IntervalType fromType,
+            T1&& to,
+            IntervalType toType
+        ):from(std::forward<T1>(from),fromType),
+          to(std::forward<T2>(to),toType)
+    {}
 
     Endpoint from;
     Endpoint to;
@@ -161,6 +177,77 @@ struct IntervalTypeVisitor
     }
 };
 
+template <typename HandlerT>
+struct IntervalVisitor
+{
+    HandlerT handler;
+
+    template <typename T>
+    Error operator()(const query::Interval<T>& interval) const
+    {
+        return handler(interval);
+    }
+
+    template <typename T>
+    Error operator()(const T&) const
+    {
+        return CommonError::INVALID_ARGUMENT;
+    }
+
+    template <typename T>
+    IntervalVisitor(T&& fn):handler(std::forward<T>(fn))
+    {}
+};
+
+template <typename HandlerT>
+struct VectorVisitor
+{
+    template <typename T>
+    Error operator()(const common::pmr::vector<T>& vec) const
+    {
+        return handler(vec);
+    }
+
+    template <typename T>
+    Error operator()(const T&) const
+    {
+        return CommonError::INVALID_ARGUMENT;
+    }
+
+    template <typename T>
+    VectorVisitor(T&& fn):handler(std::forward<T>(fn))
+    {}
+
+    HandlerT handler;
+};
+
+template <typename HandlerT>
+struct VectorItemVisitor
+{
+    template <typename T>
+    Error operator()(const common::pmr::vector<T>& vec) const
+    {
+        for (auto&& it: vec)
+        {
+            auto ec=handler(it);
+            HATN_CHECK_EC(ec)
+        }
+        return OK;
+    }
+
+    template <typename T>
+    Error operator()(const T&) const
+    {
+        return CommonError::INVALID_ARGUMENT;
+    }
+
+    template <typename T>
+    VectorItemVisitor(T&& fn):handler(std::forward<T>(fn))
+    {}
+
+    HandlerT handler;
+};
+
 }
 
 class Value
@@ -208,20 +295,53 @@ class Value
 
         bool isIntervalType() const noexcept
         {
-            // scalar value type is each 2th in the type enum
+            // scalar value type is each 1st in the type enum
             return (static_cast<int>(typeId())-1)%4==0;
+        }
+
+        bool isVectorType() const noexcept
+        {
+            // scalar value type is each 2nd in the type enum
+            return (static_cast<int>(typeId())-2)%4==0;
+        }
+
+        bool isVectorIntervalType() const noexcept
+        {
+            // scalar value type is each 3th in the type enum
+            return (static_cast<int>(typeId())-3)%4==0;
         }
 
         IntervalType fromIntervalType() const noexcept
         {
             constexpr static const detail::IntervalTypeVisitor<hana::true_> v{};
-            return v(m_value);
+            return common::lib::variantVisit(v,m_value);
         }
 
         IntervalType toIntervalType() const noexcept
         {
             constexpr static const detail::IntervalTypeVisitor<hana::false_> v{};
-            return v(m_value);
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error eachVectorItem(const HandlerT& handler)
+        {
+            detail::VectorItemVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error handleInterval(const HandlerT& handler)
+        {
+            detail::IntervalVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error handleVector(const HandlerT& handler)
+        {
+            detail::VectorVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
         }
 
     private:
@@ -255,7 +375,11 @@ struct Field
     void checkOperator() const
     {
         bool ok=true;
-        if (value.isScalarType())
+        if (value.isVectorType())
+        {
+            ok=!isScalarOp() || op==Operator::neq;
+        }
+        else if (value.isScalarType())
         {
             ok=isScalarOp();
         }
@@ -466,5 +590,83 @@ class HATN_DB_EXPORT IndexQuery
 };
 
 HATN_DB_NAMESPACE_END
+
+namespace std {
+
+template <typename T>
+struct less<HATN_DB_NAMESPACE::query::Interval<T>>
+{
+    bool operator() (const HATN_DB_NAMESPACE::query::Interval<T>& l, const HATN_DB_NAMESPACE::query::Interval<T>& r) const noexcept
+    {
+        // if left from less than right from then result is less
+        if (std::less<T>{}(l.from.value,r.from.value))
+        {
+            return true;
+        }
+
+        // if right from less than left from then result is not less
+        if (std::less<T>{}(r.from.value,l.from.value))
+        {
+            return false;
+        }
+
+        // left and right from values are equal
+
+        // if left from is open then less if right from is closed
+        if (l.from.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
+        {
+            if (r.from.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            // if left from is closed then not less if right from is open
+            if (r.from.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
+            {
+                return false;
+            }
+        }
+
+        // left and right from are equivalent
+
+        // if left to less than right to then result is less
+        if (std::less<T>{}(l.to.value,r.to.value))
+        {
+            return true;
+        }
+
+        // if right to less than left to then result is not less
+        if (std::less<T>{}(r.to.value,l.to.value))
+        {
+            return false;
+        }
+
+        // left and right to values are equal
+
+        // if left to type is closed then less if right to type is open
+        if (r.to.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
+        {
+            if (l.to.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            // if left to type is open then not less if right to type is closed
+            if (l.to.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
+            {
+                return false;
+            }
+        }
+
+        // equal or not less
+        return false;
+    }
+};
+
+} // namespace std
 
 #endif // HATNDBQUERY_H
