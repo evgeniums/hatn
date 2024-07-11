@@ -593,26 +593,15 @@ Error nextKeyField(
     }
     else if (queryField.value.isVectorIntervalType())
     {
-        // sort vector
-        auto sortVector=[&queryField](const auto& vec)
+        // sort/merge vector of intervals
+        auto sortMergeVector=[&queryField](const auto& vec)
         {
             using vectorType=std::decay_t<decltype(vec)>;
+            using intervalType=typename vectorType::value_type;
             auto& v=const_cast<vectorType&>(vec);
-            std::sort(
-                v.begin(),
-                v.end(),
-                [&queryField](const auto& l, const auto& r)
-                {
-                    using type=std::decay_t<decltype(l)>;
-                    if (queryField.order==query::Order::Desc)
-                    {
-                        return !std::less<type>{}(l,r);
-                    }
-                    return std::less<type>{}(l,r);
-                }
-                );
+            intervalType::sortAndMerge(v,queryField.order);
         };
-        queryField.value.handleVector(sortVector);
+        queryField.value.handleVector(sortMergeVector);
 
         // handler for intermediate intervals
         auto doIn=[&](const auto& val)
@@ -704,7 +693,6 @@ Error nextKeyField(
 
                 return Error{};
             };
-
 
             // inverse intervals and invoke in or lt/lte for first and gt/gte for last intervals
             auto ec=queryField.value.handleVector(doNin);

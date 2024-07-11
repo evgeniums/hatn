@@ -84,6 +84,72 @@ struct Interval
     {
         T value;
         Type type;
+
+        bool less(const Endpoint& other, bool selfFrom, bool otherFrom) const noexcept
+        {
+            static std::less<T> lt{};
+
+            if (lt(value,other.value()))
+            {
+                return true;
+            }
+
+            if (lt(other.value(),value))
+            {
+                return false;
+            }
+
+            // values are equal
+
+            if (type==other.type)
+            {
+                return false;
+            }
+
+            // types are not equal
+
+            if (selfFrom)
+            {
+                if (otherFrom)
+                {
+                    if (type==IntervalType::Closed)
+                    {
+                        // other is open which means that other will be always greater than this
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (other.type==IntervalType::Closed)
+                    {
+                        // other is closed which means that other will be always greater than this
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                if (!otherFrom)
+                {
+                    if (other.type==IntervalType::Closed)
+                    {
+                        // other is closed which means that other will be always greater than this
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (type==IntervalType::Closed)
+                    {
+                        // other is open which means that other will be always greater than this
+                        return true;
+                    }
+                }
+            }
+
+            // done
+            return false;
+        }
     };
 
     template <typename T1, typename T2>
@@ -98,6 +164,10 @@ struct Interval
 
     Endpoint from;
     Endpoint to;
+
+    static void sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order order);
+
+    bool intersects(const Interval<T>& other) const noexcept;
 };
 
 #define HATN_DB_QUERY_VALUE_TYPES(DO) \
@@ -599,74 +669,107 @@ struct less<HATN_DB_NAMESPACE::query::Interval<T>>
     bool operator() (const HATN_DB_NAMESPACE::query::Interval<T>& l, const HATN_DB_NAMESPACE::query::Interval<T>& r) const noexcept
     {
         // if left from less than right from then result is less
-        if (std::less<T>{}(l.from.value,r.from.value))
+        if (l.from.less(r.from,true,true))
         {
             return true;
         }
 
         // if right from less than left from then result is not less
-        if (std::less<T>{}(r.from.value,l.from.value))
+        if (r.from.less(l.from.value,true,true))
         {
             return false;
         }
 
-        // left and right from values are equal
-
-        // if left from is open then less if right from is closed
-        if (l.from.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
-        {
-            if (r.from.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
-            {
-                return true;
-            }
-        }
-        else
-        {
-            // if left from is closed then not less if right from is open
-            if (r.from.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
-            {
-                return false;
-            }
-        }
-
-        // left and right from are equivalent
+        // left and right from are equal
 
         // if left to less than right to then result is less
-        if (std::less<T>{}(l.to.value,r.to.value))
+        if (l.to.less(r.to,false,false))
         {
             return true;
         }
 
         // if right to less than left to then result is not less
-        if (std::less<T>{}(r.to.value,l.to.value))
-        {
-            return false;
-        }
+        // if (r.to.less(l.to.value,false,false))
+        // {
+        //     return false;
+        // }
 
-        // left and right to values are equal
-
-        // if left to type is closed then less if right to type is open
-        if (r.to.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
-        {
-            if (l.to.type==HATN_DB_NAMESPACE::query::IntervalType::Open)
-            {
-                return true;
-            }
-        }
-        else
-        {
-            // if left to type is open then not less if right to type is closed
-            if (l.to.type==HATN_DB_NAMESPACE::query::IntervalType::Closed)
-            {
-                return false;
-            }
-        }
-
-        // equal or not less
+        // result is equal or not less
         return false;
     }
 };
 
 } // namespace std
+
+HATN_DB_NAMESPACE_BEGIN
+
+namespace query
+{
+
+template <typename T>
+bool Interval<T>::intersects(const Interval<T>& other) const noexcept
+{
+    if (to.less(other.from,false,true) || other.to.less(from,false,true))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+template <typename T>
+void Interval<T>::sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order order)
+{
+    // sort vector
+    std::sort(
+        vec.begin(),
+        vec.end(),
+        std::less<Interval<T>>{}
+    );
+
+    // merge intervals
+    auto it=vec.begin();
+    for (;;)
+    {
+        auto it1=it;
+        ++it1;
+        if (it1==vec.end())
+        {
+            break;
+        }
+
+        if (it->intersects(*it1))
+        {
+            if (it1->from.less(it->from,true,true))
+            {
+                it->from=std::move(it1->from);
+            }
+            if (it->to.less(it1->to,false,false))
+            {
+                it->to=std::move(it1->to);
+            }
+            vec.erase(it1);
+        }
+        else
+        {
+            ++it;
+        }
+
+        if (it==vec.end())
+        {
+            break;
+        }
+    }
+
+    // reverse vector if order is descending
+    if (order==query::Order::Desc)
+    {
+        std::reverse(vec.begin(),vec.end());
+    }
+}
+
+} // namespace query
+
+HATN_DB_NAMESPACE_END
 
 #endif // HATNDBQUERY_H
