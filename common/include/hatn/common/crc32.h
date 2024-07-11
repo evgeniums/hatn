@@ -50,6 +50,8 @@ std::string Crc32Hex(const ContainerT& ...data)
     return fmtBufToString(buf);
 }
 
+constexpr const size_t Crc32HexLength=8;
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNCRC32_H
