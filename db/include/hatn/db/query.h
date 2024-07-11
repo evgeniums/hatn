@@ -37,9 +37,29 @@ HATN_DB_NAMESPACE_BEGIN
 namespace query
 {
 
-struct Null{};
-struct First{};
-struct Last{};
+struct Null
+{
+    bool operator < (const Null&) const noexcept
+    {
+        return false;
+    }
+};
+
+struct First
+{
+    bool operator < (const First&) const noexcept
+    {
+        return false;
+    }
+};
+
+struct Last
+{
+    bool operator < (const Last&) const noexcept
+    {
+        return false;
+    }
+};
 
 enum class Operator : uint8_t
 {
@@ -85,16 +105,25 @@ struct Interval
         T value;
         Type type;
 
+        Endpoint() : type(IntervalType::Open)
+        {}
+
+        template <typename T1>
+        Endpoint(T1&& v, Type t)
+            : value(std::forward<T1>(v)),
+              type(t)
+        {}
+
         bool less(const Endpoint& other, bool selfFrom, bool otherFrom) const noexcept
         {
             static std::less<T> lt{};
 
-            if (lt(value,other.value()))
+            if (lt(value,other.value))
             {
                 return true;
             }
 
-            if (lt(other.value(),value))
+            if (lt(other.value,value))
             {
                 return false;
             }
@@ -156,7 +185,7 @@ struct Interval
     Interval(
             T1&& from,
             IntervalType fromType,
-            T1&& to,
+            T2&& to,
             IntervalType toType
         ):from(std::forward<T1>(from),fromType),
           to(std::forward<T2>(to),toType)
@@ -394,6 +423,27 @@ class Value
         }
 
         template <typename HandlerT>
+        Error eachVectorItem(const HandlerT& handler) const
+        {
+            detail::VectorItemVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error handleInterval(const HandlerT& handler) const
+        {
+            detail::IntervalVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error handleVector(const HandlerT& handler) const
+        {
+            detail::VectorVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
         Error eachVectorItem(const HandlerT& handler)
         {
             detail::VectorItemVisitor<HandlerT> v{handler};
@@ -413,7 +463,6 @@ class Value
             detail::VectorVisitor<HandlerT> v{handler};
             return common::lib::variantVisit(v,m_value);
         }
-
     private:
 
         type m_value;
@@ -675,7 +724,7 @@ struct less<HATN_DB_NAMESPACE::query::Interval<T>>
         }
 
         // if right from less than left from then result is not less
-        if (r.from.less(l.from.value,true,true))
+        if (r.from.less(l.from,true,true))
         {
             return false;
         }
@@ -689,7 +738,8 @@ struct less<HATN_DB_NAMESPACE::query::Interval<T>>
         }
 
         // if right to less than left to then result is not less
-        // if (r.to.less(l.to.value,false,false))
+        // not needed
+        // if (r.to.less(l.to,false,false))
         // {
         //     return false;
         // }

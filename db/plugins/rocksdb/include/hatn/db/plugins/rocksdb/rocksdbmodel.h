@@ -26,6 +26,7 @@
 
 #include <hatn/db/namespace.h>
 #include <hatn/db/model.h>
+#include <hatn/db/query.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
@@ -61,6 +62,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             const Namespace& ns,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date)> readObjectWithDate;
+
+        std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> (
+            RocksdbHandler& handler,
+            IndexQuery& query
+            )> find;
 
     private:
 

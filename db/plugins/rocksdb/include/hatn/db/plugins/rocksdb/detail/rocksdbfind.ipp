@@ -46,7 +46,7 @@ struct FindT
     Result<common::pmr::vector<UnitWrapper>> operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const IndexQuery& query,
+        IndexQuery& query,
         AllocatorFactory* allocatorFactory
     ) const;
 };
@@ -58,7 +58,7 @@ template <typename ModelT>
 Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const IndexQuery& idxQuery,
+        IndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory
     ) const
 {
@@ -68,13 +68,13 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // figure out partitions for processing
-    common::pmr::vector<std::shared_ptr<RocksdbPartition>> partitions{1,allocatorFactory->dataAllocator()};
+    common::pmr::vector<std::shared_ptr<RocksdbPartition>> partitions{1,allocatorFactory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
     const auto& field0=idxQuery.field(0);
     hana::eval_if(
         hana::bool_<modelType::isDatePartitioned()>{},
         [&](auto _)
         {
-            if (modelType::isDatePartitionField(_(field0).fieldInfo.name()))
+            if (modelType::isDatePartitionField(_(field0).fieldInfo->name()))
             {
                 //! @todo collect partitions matching query expression for the first field
             }
@@ -90,7 +90,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     );
 
     // collect matching keys ordered according to index query
-    index_key_search::IndexKeys indexKeys{allocatorFactory->dataAllocator(),index_key_search::IndexKeyCompare{idxQuery}};
+    index_key_search::IndexKeys indexKeys{allocatorFactory->dataAllocator<index_key_search::IndexKey>(),index_key_search::IndexKeyCompare{idxQuery}};
     auto keyCallback=[&indexKeys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
                                                           ROCKSDB_NAMESPACE::Slice* key,
                                                           ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -101,7 +101,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         //! or in case of first topic of each partition if partitions are ordered
 
         // insert found key
-        auto it=indexKeys.insert(detail::IndexKey{key,keyValue,partition,allocatorFactory});
+        auto it=indexKeys.insert(index_key_search::IndexKey{key,keyValue,partition,allocatorFactory});
         auto insertedIdx=it.first.index();
 
         // cut keys number to limit
@@ -133,14 +133,16 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         // process all partitions
         for (const auto& partition: partitions)
         {
-            HATN_CTX_SCOPE_PUSH("partition",partition->range())
+            HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
             // process all topics
             for (const auto& topic: idxQuery.topics())
             {
+//! @todo implement
+#if 0
                 HATN_CTX_SCOPE_PUSH("topic",topic)
                 HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
-
+#endif
                 index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
                 auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
                 HATN_CHECK_EC(ec)
@@ -183,7 +185,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
             {
                 HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(k))
                 HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(key.key))
-                HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range())
+                HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range)
             };
 
             auto status=handler.p()->db->Get(readOptions,key.partition->collectionCf.get(),k,&value);

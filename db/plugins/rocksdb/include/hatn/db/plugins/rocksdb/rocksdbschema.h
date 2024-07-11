@@ -94,9 +94,7 @@ HATN_ROCKSDB_NAMESPACE_END
 /*
  * 1. Ttl-aware column families with timestamp suffix. Use in filter, check on reads, add ttl thread.
  *
- * 2. Parts of keys are of fixed size. Nullable key parts are prepended with NULL-flag.
- *
- * 3. Think of prefix filter.
+ * 3. Think of prefix filter. Prefix is topic + sep + collection/index.
  *
  *
  *

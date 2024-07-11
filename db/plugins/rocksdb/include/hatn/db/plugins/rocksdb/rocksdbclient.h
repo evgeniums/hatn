@@ -64,6 +64,12 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id) override;
         Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date) override;
 
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query
+        ) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;

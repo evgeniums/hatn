@@ -49,6 +49,9 @@ struct IndexKey
 {
     constexpr static const size_t FieldsOffset=ObjectId::Length+2*sizeof(SeparatorCharC)+common::Crc32HexLength;
 
+    IndexKey():partition(nullptr)
+    {}
+
     IndexKey(
         ROCKSDB_NAMESPACE::Slice* k,
         ROCKSDB_NAMESPACE::Slice* v,
@@ -107,7 +110,7 @@ struct IndexKeyCompare
     IndexKeyCompare(const IndexQuery& idxQuery) : idxQuery(&idxQuery)
     {}
 
-    inline operator bool()(const IndexKey& l, const IndexKey& r) const noexcept
+    inline bool operator ()(const IndexKey& l, const IndexKey& r) const noexcept
     {
         // compare key parts according to ordering of query fields
         for (size_t i=0;i<idxQuery->fields().size();i++)
@@ -181,19 +184,36 @@ struct valueVisitor
     template <typename T>
     void operator()(const query::Interval<T>& value) const
     {
-        hana::if_(
+        auto self=this;
+        hana::eval_if(
             endpoint,
-            fieldToStringBuf(buf,value.from),
-            fieldToStringBuf(buf,value.to)
-            );
-        buf.append(sep);
+            [&](auto _)
+            {
+                fieldToStringBuf(_(self)->buf,_(value).from.value);
+            },
+            [&](auto _)
+            {
+                fieldToStringBuf(_(self)->buf,_(value).to.value);
+            }
+        );
+        if (sep!=nullptr)
+        {
+            buf.append(*sep);
+        }
     }
+
+    template <typename T>
+    void operator()(const common::pmr::vector<T>&) const
+    {}
 
     template <typename T>
     void operator()(const T& value) const
     {
         fieldToStringBuf(buf,value);
-        buf.append(sep);
+        if (sep!=nullptr)
+        {
+            buf.append(*sep);
+        }
     }
 
     void operator()(const query::Last&) const
@@ -205,11 +225,14 @@ struct valueVisitor
     void operator()(const query::First&) const
     {}
 
-    valueVisitor(BufT& buf, const lib::string_view& sep):buf(buf),sep(sep)
+    valueVisitor(BufT& buf, const lib::string_view& sep):buf(buf),sep(&sep)
+    {}
+
+    valueVisitor(BufT& buf):buf(buf),sep(nullptr)
     {}
 
     BufT& buf;
-    const lib::string_view& sep;
+    const lib::string_view* sep;
 };
 
 template <typename EndpointT=hana::true_>
@@ -219,6 +242,12 @@ struct fieldValueToBufT
     void operator()(BufT& buf, const query::Field& field, const lib::string_view& sep) const
     {
         lib::variantVisit(valueVisitor<BufT,EndpointT>{buf,sep},field.value());
+    }
+
+    template <typename BufT>
+    void operator()(BufT& buf, const query::Field& field) const
+    {
+        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf},field.value());
     }
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
@@ -361,22 +390,22 @@ Error iterateFieldVariant(
     Error ec;
     while (it->Valid())
     {
-        const auto* key=it->Key();
-        const auto* keyValue=it->Slice();
+        auto key=it->key();
+        auto keyValue=it->value();
 
         // check if key must be filtered
         if (!TtlMark::isExpired(keyValue)
-            && !filterIndex(idxQuery,pos,key,keyValue)
+            && !filterIndex(idxQuery,pos,&key,&keyValue)
             )
         {
             // construct key prefix
-            auto currentKey=IndexKey::keyPrefix(key,pos);
+            auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);
             cursor.resetPartial(currentKey,pos);
 
             // call result callback for finally assembled key
             if (pos==idxQuery.fields().size())
             {
-                if (!keyCallback(cursor.partition,key,keyValue,ec))
+                if (!keyCallback(cursor.partition,&key,&keyValue,ec))
                 {
                     return ec;
                 }
@@ -430,7 +459,7 @@ Error nextKeyField(
     {
         // append field to cursor
         cursor.partialKey.append(SeparatorCharStr);
-        fieldValueToBuf(cursor.partialKey,queryField.value());
+        fieldValueToBuf(cursor.partialKey,queryField);
 
         // go to next field
         return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
@@ -441,8 +470,8 @@ Error nextKeyField(
     {
         query::Field fieldLt{*queryField.fieldInfo,query::Operator::lt,val,queryField.order};
         auto ec=iterateFieldVariant(cursor,
-                                      idxQuery,
                                       handler,
+                                      idxQuery,
                                       keyCallback,
                                       snapshot,
                                       fieldLt,
@@ -452,8 +481,8 @@ Error nextKeyField(
 
         query::Field fieldGt{*queryField.fieldInfo,query::Operator::gt,val,queryField.order};
         ec=iterateFieldVariant(cursor,
-                                 idxQuery,
                                  handler,
+                                 idxQuery,
                                  keyCallback,
                                  snapshot,
                                  fieldGt,
@@ -471,8 +500,8 @@ Error nextKeyField(
         if (queryField.op!=query::Operator::neq)
         {
             auto ec=iterateFieldVariant(cursor,
-                                          idxQuery,
                                           handler,
+                                          idxQuery,
                                           keyCallback,
                                           snapshot,
                                           queryField,
@@ -494,8 +523,8 @@ Error nextKeyField(
         {
             // in
             auto ec=iterateFieldVariant(cursor,
-                                          idxQuery,
                                           handler,
+                                          idxQuery,
                                           keyCallback,
                                           snapshot,
                                           queryField,
@@ -513,8 +542,8 @@ Error nextKeyField(
 
                 query::Field fieldBefore{*queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
                 auto ec=iterateFieldVariant(cursor,
-                                              idxQuery,
                                               handler,
+                                              idxQuery,
                                               keyCallback,
                                               snapshot,
                                               fieldBefore,
@@ -527,8 +556,8 @@ Error nextKeyField(
 
                 query::Field fieldAfter{*queryField.fieldInfo,afterOp,afterVal,queryField.order};
                 ec=iterateFieldVariant(cursor,
-                                         idxQuery,
                                          handler,
+                                         idxQuery,
                                          keyCallback,
                                          snapshot,
                                          fieldAfter,
@@ -548,22 +577,24 @@ Error nextKeyField(
         auto sortVector=[&queryField](const auto& vec)
         {
             using vectorType=std::decay_t<decltype(vec)>;
+            using type=typename vectorType::value_type;
+            static const std::less<type> less{};
             auto& v=const_cast<vectorType&>(vec);
             std::sort(
                     v.begin(),
                     v.end(),
-                    [&queryField](const auto& l, const auto& r)
-                    {
-                        using type=std::decay_t<decltype(l)>;
+                    [&queryField](const type& l, const type& r)
+                    {                        
                         if (queryField.order==query::Order::Desc)
                         {
-                            return !std::less<type>{}(l,r);
+                            return !less(l,r);
                         }
-                        return std::less<type>{}(l,r);
+                        return less(l,r);
                     }
                 );
+            return Error{};
         };
-        queryField.value.handleVector(sortVector);
+        std::ignore=queryField.value.handleVector(sortVector);
 
         // split to queries for each vector item
         if (queryField.op==query::Operator::in)
@@ -573,8 +604,8 @@ Error nextKeyField(
             {
                 query::Field field{*queryField.fieldInfo,query::Operator::eq,val,queryField.order};
                 return iterateFieldVariant(cursor,
-                                           idxQuery,
                                            handler,
+                                           idxQuery,
                                            keyCallback,
                                            snapshot,
                                            field,
@@ -598,18 +629,24 @@ Error nextKeyField(
         {
             using vectorType=std::decay_t<decltype(vec)>;
             using intervalType=typename vectorType::value_type;
-            auto& v=const_cast<vectorType&>(vec);
-            intervalType::sortAndMerge(v,queryField.order);
+
+            if constexpr (decltype(hana::is_a<query::IntervalTag,intervalType>)::value)
+            {
+                auto& v=const_cast<vectorType&>(vec);
+                intervalType::sortAndMerge(v,queryField.order);
+            }
+
+            return Error{};
         };
-        queryField.value.handleVector(sortMergeVector);
+        std::ignore=queryField.value.handleVector(sortMergeVector);
 
         // handler for intermediate intervals
         auto doIn=[&](const auto& val)
         {
             query::Field fieldLt{*queryField.fieldInfo,query::Operator::in,val,queryField.order};
             return iterateFieldVariant(cursor,
-                                       idxQuery,
                                        handler,
+                                       idxQuery,
                                        keyCallback,
                                        snapshot,
                                        fieldLt,
@@ -630,64 +667,65 @@ Error nextKeyField(
             auto doNin=[&](const auto& vec)
             {
                 using intervalType=typename std::decay_t<decltype(vec)>::value_type;
-                using valueType=typename intervalType::Valuetype;
-
-                for (size_t i=0;i<vec.size();i++)
+                if constexpr (decltype(hana::is_a<query::IntervalTag,intervalType>)::value)
                 {
-                    const auto& interval=vec[i];
+                    for (size_t i=0;i<vec.size();i++)
+                    {
+                        const auto& interval=vec[i];
 
-                    if (i==0)
-                    {
-                        // before first interval use lt/lte
-                        query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
-                        query::Field fieldBefore{*queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
-                        auto ec=iterateFieldVariant(cursor,
-                                                      idxQuery,
-                                                      handler,
-                                                      keyCallback,
-                                                      snapshot,
-                                                      fieldBefore,
-                                                      allocatorFactory
-                                                      );
-                        HATN_CHECK_EC(ec)
-                    }
-                    else
-                    {
-                        // use in for intermediate intervals
-                        const auto& prevInterval=vec[i-1];
-                        intervalType tmpInterval{
-                            prevInterval.to.value,
-                            query::reverseIntervalType(prevInterval.to.type),
-                            interval.from.value,
-                            query::reverseIntervalType(interval.from.type)
-                        };
-                        query::Field field{*queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
-                        auto ec=iterateFieldVariant(cursor,
-                                                      idxQuery,
-                                                      handler,
-                                                      keyCallback,
-                                                      snapshot,
-                                                      field,
-                                                      allocatorFactory
-                                                      );
-                        HATN_CHECK_EC(ec)
-                    }
+                        if (i==0)
+                        {
+                            // before first interval use lt/lte
+                            query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+                            query::Field fieldBefore{*queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
+                            auto ec=iterateFieldVariant(cursor,
+                                                          handler,
+                                                          idxQuery,
+                                                          keyCallback,
+                                                          snapshot,
+                                                          fieldBefore,
+                                                          allocatorFactory
+                                                          );
+                            HATN_CHECK_EC(ec)
+                        }
+                        else
+                        {
+                            // use in for intermediate intervals
+                            const auto& prevInterval=vec[i-1];
+                            intervalType tmpInterval{
+                                prevInterval.to.value,
+                                query::reverseIntervalType(prevInterval.to.type),
+                                interval.from.value,
+                                query::reverseIntervalType(interval.from.type)
+                            };
+                            query::Field field{*queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
+                            auto ec=iterateFieldVariant(cursor,
+                                                          handler,
+                                                          idxQuery,
+                                                          keyCallback,
+                                                          snapshot,
+                                                          field,
+                                                          allocatorFactory
+                                                          );
+                            HATN_CHECK_EC(ec)
+                        }
 
-                    // after last interval
-                    if (i==vec.size()-1)
-                    {
-                        // use lt/lte
-                        query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
-                        query::Field fieldAfter{*queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
-                        auto ec=iterateFieldVariant(cursor,
-                                                      idxQuery,
-                                                      handler,
-                                                      keyCallback,
-                                                      snapshot,
-                                                      fieldAfter,
-                                                      allocatorFactory
-                                                      );
-                        HATN_CHECK_EC(ec)
+                        // after last interval
+                        if (i==vec.size()-1)
+                        {
+                            // use lt/lte
+                            query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
+                            query::Field fieldAfter{*queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
+                            auto ec=iterateFieldVariant(cursor,
+                                                          handler,
+                                                          idxQuery,
+                                                          keyCallback,
+                                                          snapshot,
+                                                          fieldAfter,
+                                                          allocatorFactory
+                                                          );
+                            HATN_CHECK_EC(ec)
+                        }
                     }
                 }
 

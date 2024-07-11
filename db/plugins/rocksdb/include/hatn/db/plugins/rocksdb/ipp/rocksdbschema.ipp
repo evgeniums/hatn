@@ -25,6 +25,7 @@
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
@@ -83,6 +84,15 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
             }
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        };
+
+        rdbModel->find=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                IndexQuery& query
+            )
+        {
+            return Find<BufT>(model->model,handler,query,allocatorFactory);
         };
 
         rdbSchema->addModel(std::move(rdbModel));

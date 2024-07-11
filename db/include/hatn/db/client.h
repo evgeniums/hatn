@@ -36,8 +36,8 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
 #include <hatn/db/schema.h>
-
 #include <hatn/db/namespace.h>
+#include <hatn/db/query.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -258,6 +258,23 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        template <typename ModelT>
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
+            const Namespace& ns,
+            const std::shared_ptr<ModelT>& model,
+            IndexQuery& query
+        )
+        {
+            HATN_CTX_SCOPE("dbfind")
+            if (m_opened)
+            {
+                return doFind(ns,model->info,query);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
@@ -279,6 +296,12 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id)=0;
         virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date)=0;
+
+        virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query
+        ) =0;
 
         void setClosed() noexcept
         {

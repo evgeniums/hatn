@@ -175,6 +175,14 @@ struct FieldToStringBufT
     void operator ()(BufT&, const query::Null&) const
     {}
 
+    template <typename BufT>
+    void operator ()(BufT&, const query::First&) const
+    {}
+
+    template <typename BufT>
+    void operator ()(BufT&, const query::Last&) const
+    {}
+
     template <typename BufT, typename T>
     void operator ()(BufT& buf, const T& val) const
     {
@@ -187,8 +195,9 @@ struct FieldToStringBufT
             },
             [&](auto _)
             {
-                // for any other type, is_same here is just to use template typenames for static assert
-                static_assert(std::is_same<T,BufT>::value,"Unsupported value type");
+                auto&& v=_(val);
+                using type=decltype(v);
+                static_assert(std::is_same<std::decay_t<type>,BufT>::value,"Unsupported value type");
             }
         );
     }

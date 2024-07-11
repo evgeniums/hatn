@@ -143,9 +143,12 @@ class UnitWrapper
 {
     public:
 
+        UnitWrapper()
+        {}
+
         template <typename T>
-        UnitWrapper(T&& sharedUnit) :
-            m_shared(sharedUnit.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
+        UnitWrapper(const HATN_COMMON_NAMESPACE::SharedPtr<T>& sharedUnit) :
+                m_shared(sharedUnit.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
         {}
 
         template <typename T>
