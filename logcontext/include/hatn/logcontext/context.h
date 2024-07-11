@@ -392,7 +392,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE_PUSH(Name,Value) \
     HATN_CTX_IF() \
-        ScopeCtx->pushStackVar(Name,Value);
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->pushStackVar(Name,Value);
 
 #define HATN_CTX_SCOPE_PUSH_(Name,Value) \
     HATN_CTX_IF() \
@@ -412,7 +412,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE_ERROR(Error) \
     HATN_CTX_IF() \
-        ScopeCtx->describeScopeError(Error);
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
 
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
