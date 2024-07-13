@@ -275,7 +275,10 @@ class FlatContainer
         using iterator=FlatContainerIterator<vector_type,ItemT>;
         using const_iterator=FlatContainerIteratorConst<const vector_type,ItemT>;
 
-        FlatContainer(CompareItemT comp=CompareItemT{}):m_comp(std::move(comp))
+        FlatContainer()
+        {}
+
+        FlatContainer(CompareItemT comp):m_comp(std::move(comp))
         {}
 
         FlatContainer(const AllocT& alloc,CompareItemT comp=CompareItemT{}) : m_vec(alloc),m_comp(std::move(comp))
@@ -330,6 +333,16 @@ class FlatContainer
         void clear() noexcept
         {
             m_vec.clear();
+        }
+
+        const ItemT& at(size_t i) const
+        {
+            return m_vec.at(i);
+        }
+
+        ItemT& at(size_t i)
+        {
+            return m_vec.at(i);
         }
 
         iterator begin() noexcept
@@ -406,26 +419,6 @@ class FlatContainer
             return std::make_pair(iterator(&m_vec,idx),created);
         }
 
-        //! @todo move it to map part
-        template <typename KeyT, typename ValueT>
-        std::pair<iterator,bool> emplace(KeyT&& key, ValueT&& val)
-        {
-            auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),key,m_comp);
-            bool created=true;
-            if (it!=m_vec.end() && !m_comp(key,it->first))
-            {
-                created=false;
-                it->first=std::forward<KeyT>(key);
-                it->second=std::forward<ValueT>(val);
-            }
-            else
-            {
-                it=m_vec.emplace(it,std::forward<KeyT>(key),std::forward<ValueT>(val));
-            }
-            auto idx=detail::vector_iterator_index(m_vec,it);
-            return std::make_pair(iterator(&m_vec,idx),created);
-        }
-
         void beginRawInsert(size_t itemCount=0)
         {
             if (itemCount!=0)
@@ -446,7 +439,7 @@ class FlatContainer
             std::sort(m_vec.begin(),m_vec.end(),m_comp);
         }
 
-    private:
+    protected:
 
         vector_type m_vec;
         CompareItemT m_comp;
@@ -540,6 +533,25 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
                 it=ret.first;
             }
             return it->second;
+        }
+
+        template <typename KeyT1, typename ValueT1>
+        std::pair<iterator,bool> emplace(KeyT1&& key, ValueT1&& val)
+        {
+            auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
+            bool created=true;
+            if (it!=this->m_vec.end() && !this->m_comp(key,it->first))
+            {
+                created=false;
+                it->first=std::forward<KeyT1>(key);
+                it->second=std::forward<ValueT1>(val);
+            }
+            else
+            {
+                it=this->m_vec.emplace(it,std::forward<KeyT1>(key),std::forward<ValueT1>(val));
+            }
+            auto idx=detail::vector_iterator_index(this->m_vec,it);
+            return std::make_pair(iterator(&this->m_vec,idx),created);
         }
 };
 
