@@ -97,8 +97,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         objects.reserve(indexKeys->size());
         for (auto&& key: indexKeys.value())
         {
-            // get object from rocksdb
-            ROCKSDB_NAMESPACE::PinnableSlice value;
+            // get object from rocksdb            
             auto k=KeysBase::objectKeyFromIndexValue(key.value.data(),key.value.size());
 
             auto pushLogKey=[&k,&key]()
@@ -108,6 +107,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
                 HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range)
             };
 
+            ROCKSDB_NAMESPACE::PinnableSlice value;
             auto status=handler.p()->db->Get(readOptions,key.partition->collectionCf.get(),k,&value);
             if (!status.ok())
             {
