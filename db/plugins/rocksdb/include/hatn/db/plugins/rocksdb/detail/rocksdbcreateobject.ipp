@@ -128,14 +128,14 @@ Error CreateObjectT<BufT>::operator ()(
         auto ttlMark=ttlMarkObj.slice();
 
         // put serialized object to batch
-        auto objectKey=keys.makeObjectKey(model,ns,objectIdS,ttlMark);
-        auto keySlices=keys.objectKeySlices(objectKey);
-        std::array<ROCKSDB_NAMESPACE::Slice,2> valueParts{
+        auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,ttlMark);
+        auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
+        std::array<ROCKSDB_NAMESPACE::Slice,2> objectValueParts{
             ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
             ttlMark
         };
-        ROCKSDB_NAMESPACE::SliceParts valueSlices{&valueParts[0],static_cast<int>(valueParts.size())};
-        auto status=batch.Put(partition->collectionCf.get(),keySlices,valueSlices);
+        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
+        auto status=batch.Put(partition->collectionCf.get(),objectKeySlices,objectValueSlices);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("batch-object");
@@ -149,8 +149,9 @@ Error CreateObjectT<BufT>::operator ()(
         ttlIndexesT::prepareTtl(ttlIndex,model,object->field(object::_id).value(),dateRange);
 
         // put indexes to batch
+        auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,keySlices,object,
+        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,indexValueSlices,object,
                                     ttlIndexesT::makeIndexKeyCb(ttlIndex)
         );
         HATN_CHECK_EC(ec)

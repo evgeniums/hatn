@@ -61,7 +61,7 @@ class Indexes
             ROCKSDB_NAMESPACE::WriteBatch& batch,
             const Namespace& ns,
             const ROCKSDB_NAMESPACE::Slice& objectId,
-            const ROCKSDB_NAMESPACE::SliceParts& objectKey,
+            const ROCKSDB_NAMESPACE::SliceParts& indexValue,
             UnitT* object,
             IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
             bool replace=false
@@ -84,13 +84,13 @@ class Indexes
                        {
                            HATN_CTX_SCOPE_PUSH("idx_op","merge");
                            put=false;
-                           status=batch.Merge(m_cf,keySlices,objectKey);
+                           status=batch.Merge(m_cf,keySlices,indexValue);
                        }
                    }
                    if (put)
                    {
                        HATN_CTX_SCOPE_PUSH("idx_op","put");
-                       status=batch.Put(m_cf,keySlices,objectKey);
+                       status=batch.Put(m_cf,keySlices,indexValue);
                    }
                    if (!status.ok())
                    {
@@ -115,7 +115,7 @@ class Indexes
                 const ModelT& model,
                 const Namespace& ns,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
-                const ROCKSDB_NAMESPACE::SliceParts& objectKey,
+                const ROCKSDB_NAMESPACE::SliceParts& indexValue,
                 UnitT* object,
                 IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
                 bool replace=false
@@ -125,7 +125,7 @@ class Indexes
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                return saveIndex(idx,batch,ns,objectId,objectKey,object,keyCallback,replace);
+                return saveIndex(idx,batch,ns,objectId,indexValue,object,keyCallback,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

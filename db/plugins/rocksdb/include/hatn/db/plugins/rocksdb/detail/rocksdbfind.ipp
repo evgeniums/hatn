@@ -68,9 +68,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     // figure out partitions for processing
     auto partitions=index_key_search::partitions(model,handler,idxQuery,allocatorFactory);
 
-    // get rocksdb snapshot
+    // make snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
     const auto* snapshot=managedSnapchot.snapshot();
+    TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
     auto indexKeys=index_key_search::template indexKeys<BufT>(snapshot,handler,idxQuery,partitions,allocatorFactory);
@@ -123,12 +124,24 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
                 HATN_CTX_SCOPE_POP()
                 continue;
             }
+            if (TtlMark::isExpired(value))
+            {
+                //! @todo Do we need it? All object indexes must have the same timestamp,
+                //! so they would be already filtered.
+                pushLogKey();
+                HATN_CTX_WARN("object expired in rocksdb")
+                HATN_CTX_SCOPE_POP()
+                HATN_CTX_SCOPE_POP()
+                HATN_CTX_SCOPE_POP()
+                continue;
+            }
 
             // create unit
             auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
 
             // deserialize object
-            buf.mainContainer()->loadInline(value.data(),value.size());
+            auto objSlice=TtlMark::stripTtlMark(value);
+            buf.mainContainer()->loadInline(objSlice.data(),objSlice.size());
             dataunit::io::deserialize(*sharedUnit,buf,ec);
             if (ec)
             {

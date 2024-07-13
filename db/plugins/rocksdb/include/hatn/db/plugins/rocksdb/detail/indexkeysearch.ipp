@@ -255,11 +255,29 @@ struct fieldValueToBufT
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
 
-inline bool filterIndex(const IndexQuery& idxQuery, size_t pos,
-                        const ROCKSDB_NAMESPACE::Slice* key,
-                        const ROCKSDB_NAMESPACE::Slice* value)
+inline bool filterIndex(const IndexQuery& idxQuery,
+                        size_t pos,
+                        const ROCKSDB_NAMESPACE::Slice& key,
+                        const ROCKSDB_NAMESPACE::Slice& value
+                        )
 {
-    //! @todo Implement index filtering
+    std::ignore=key;
+
+    // filter by timestamp
+    if (pos==0 && idxQuery.filterTimepoints())
+    {
+        auto timestamp=KeysBase::timestampFromIndexValue(value.data(),value.size());
+        for (const auto& tpInterval : *idxQuery.filterTimepoints())
+        {
+            if (tpInterval.contains(timestamp))
+            {
+                // filtered
+                return true;
+            }
+        }
+    }
+
+    // passed
     return false;
 }
 
@@ -397,9 +415,7 @@ Error iterateFieldVariant(
         auto keyValue=it->value();
 
         // check if key must be filtered
-        if (!TtlMark::isExpired(keyValue)
-            && !filterIndex(idxQuery,pos,&key,&keyValue)
-            )
+        if (!TtlMark::isExpired(keyValue) && !filterIndex(idxQuery,pos,key,keyValue))
         {
             // construct key prefix
             auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);

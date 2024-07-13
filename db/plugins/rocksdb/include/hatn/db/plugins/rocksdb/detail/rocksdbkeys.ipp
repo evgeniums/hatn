@@ -19,9 +19,12 @@
 #ifndef HATNROCKSDBKEYS_IPP
 #define HATNROCKSDBKEYS_IPP
 
+#include <boost/endian/conversion.hpp>
+
 #include <rocksdb/db.h>
 
 #include <hatn/common/format.h>
+#include <hatn/common/datetime.h>
 
 #include <hatn/db/objectid.h>
 #include <hatn/db/namespace.h>
@@ -38,40 +41,73 @@ class KeysBase
 {
     public:
 
+        constexpr static const size_t ObjectKeySliceCount=5;
+        constexpr static const size_t TimestampSize=4;
+
+        inline static const char ObjectIndexVersion{0x1};
+
         template <typename ModelT>
-        static auto makeObjectKey(const ModelT& model,
+        static auto makeObjectKeyValue(const ModelT& model,
                                   const Namespace& ns,
                                   const ROCKSDB_NAMESPACE::Slice& objectId,
                                   const ROCKSDB_NAMESPACE::Slice& ttlMark=ROCKSDB_NAMESPACE::Slice{}
                                   ) noexcept
         {
-            //! @todo add timestamp
-            std::array<ROCKSDB_NAMESPACE::Slice,6> parts;
+            std::array<ROCKSDB_NAMESPACE::Slice,8> parts;
 
-            parts[0]=ROCKSDB_NAMESPACE::Slice{ns.topic().data(),ns.topic().size()};
-            parts[1]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
-            parts[2]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
-            parts[3]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
-            parts[4]=objectId;
+            // first byte is version of index format
+            parts[0]=ROCKSDB_NAMESPACE::Slice{&ObjectIndexVersion,sizeof(ObjectIndexVersion)};
 
-            // ttl mark is used only for data of indexes, actual object key must use only [0:4] parts
-            parts[5]=ttlMark;
+            // actual index
+            parts[1]=ROCKSDB_NAMESPACE::Slice{ns.topic().data(),ns.topic().size()};
+            parts[2]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
+            parts[3]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
+            parts[4]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
+            parts[5]=objectId;
 
+            // ttl mark is empty when key is generated for search
+            if (!ttlMark.empty())
+            {
+                // 4 bytes for current timestamp
+                uint32_t timestamp=common::DateTime::secondsSinceEpoch();
+                boost::endian::native_to_little_inplace(timestamp);
+                parts[6]=ROCKSDB_NAMESPACE::Slice{reinterpret_cast<const char*>(&timestamp),TimestampSize};
+
+                // ttl mark is the last slice
+                parts[7]=ttlMark;
+            }
+
+            // done
             return parts;
         }
 
         static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size)
         {
-            Assert(size>TtlMark::Size,"Invalid size of index value");
-            //! @todo omit timestamp
-            ROCKSDB_NAMESPACE::Slice r{ptr,size-TtlMark::Size};
-            return r;
+            auto extraSize=sizeof(ObjectIndexVersion)
+                             + TimestampSize
+                             + TtlMark::ttlMarkOffset(ptr,size);
+            Assert(size>extraSize,"Invalid size of index value");
+            ROCKSDB_NAMESPACE::Slice result{ptr+sizeof(ObjectIndexVersion),size - extraSize};
+            return result;
         }
 
-        static ROCKSDB_NAMESPACE::SliceParts objectKeySlices(const std::array<ROCKSDB_NAMESPACE::Slice,6>& parts) noexcept
+        template <size_t Size>
+        static ROCKSDB_NAMESPACE::SliceParts objectKeySlices(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts) noexcept
         {
-            // -1 because the last element of objectKey is a ttl mark
-            return ROCKSDB_NAMESPACE::SliceParts{&parts[0],static_cast<int>(parts.size()-1)};
+            return ROCKSDB_NAMESPACE::SliceParts{&parts[1],ObjectKeySliceCount};
+        }
+
+        static uint32_t timestampFromIndexValue(const char* ptr, size_t size)
+        {
+            auto extraSize=TimestampSize
+                           + TtlMark::ttlMarkOffset(ptr,size);
+            Assert(size>extraSize,"Invalid size of index value");
+
+            size_t offset=size-extraSize;
+            uint32_t timestamp{0};
+            memcpy(&timestamp,ptr+offset,sizeof(uint32_t));
+            boost::endian::little_to_native_inplace(timestamp);
+            return timestamp;
         }
 };
 
@@ -99,10 +135,11 @@ class Keys : public KeysBase
             return m_buf;
         }
 
-        ROCKSDB_NAMESPACE::Slice objectKeySlice(const std::array<ROCKSDB_NAMESPACE::Slice,6>& parts)
+        template <size_t Size>
+        ROCKSDB_NAMESPACE::Slice objectKeySolid(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts)
         {
             reset();
-            for (size_t i=0;i<parts.size()-2;i++)
+            for (size_t i=1;i<ObjectKeySliceCount+1;i++)
             {
                 m_buf.append(parts[i]);
             }

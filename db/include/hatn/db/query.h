@@ -202,6 +202,26 @@ struct Interval
     static void sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order order);
 
     bool intersects(const Interval<T>& other) const noexcept;
+
+    bool contains(const T& value) const noexcept
+    {
+        if (
+            ((from.type==IntervalType::Open) && (value > from.value))
+             ||
+            ((from.type==IntervalType::Closed) && (value >= from.value))
+            )
+        {
+            if (
+                ((to.type==IntervalType::Open) && (value < to.value))
+                ||
+                ((to.type==IntervalType::Closed) && (value <= from.value))
+                )
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 #define HATN_DB_QUERY_VALUE_TYPES(DO) \
