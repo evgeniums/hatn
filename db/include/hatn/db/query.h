@@ -463,6 +463,13 @@ class Value
             detail::VectorVisitor<HandlerT> v{handler};
             return common::lib::variantVisit(v,m_value);
         }
+
+        template <typename T>
+        const T& as() const
+        {
+            return common::lib::variantGet<T>(m_value);
+        }
+
     private:
 
         type m_value;

@@ -364,6 +364,13 @@ HATN_COMMON_NAMESPACE::DateRange datePartition(const ObjectId& id, const ModelT&
     return datePartition(id.toDate(),model);
 }
 
+template <typename ModelT>
+HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::DatTime& dt, const ModelT& model)
+{
+    return datePartition(dt.date(),model);
+}
+
+
 class DbSchema;
 
 class ModelInfo

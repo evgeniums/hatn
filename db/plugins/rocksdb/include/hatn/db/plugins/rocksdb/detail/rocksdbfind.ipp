@@ -62,104 +62,25 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         AllocatorFactory* allocatorFactory
     ) const
 {
-    using modelType=std::decay_t<ModelT>;
-
     HATN_CTX_SCOPE("rocksdbfind")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // figure out partitions for processing
-    common::pmr::vector<std::shared_ptr<RocksdbPartition>> partitions{1,allocatorFactory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
-    const auto& field0=idxQuery.field(0);
-    hana::eval_if(
-        hana::bool_<modelType::isDatePartitioned()>{},
-        [&](auto _)
-        {
-            if (modelType::isDatePartitionField(_(field0).fieldInfo->name()))
-            {
-                //! @todo collect partitions matching query expression for the first field
-            }
-            else
-            {
-                //! @todo use all partitions
-            }
-        },
-        [&](auto _)
-        {
-            _(partitions)[0]=_(handler).defaultPartition();
-        }
-    );
-
-    // collect matching keys ordered according to index query
-    index_key_search::IndexKeys indexKeys{allocatorFactory->dataAllocator<index_key_search::IndexKey>(),index_key_search::IndexKeyCompare{idxQuery}};
-    auto keyCallback=[&indexKeys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
-                                                          ROCKSDB_NAMESPACE::Slice* key,
-                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
-                                                          Error&
-                                                    )
-    {
-        //! @todo optimization: append presorted keys in case of first topic of first partition
-        //! or in case of first topic of each partition if partitions are ordered
-
-        // insert found key
-        auto it=indexKeys.insert(index_key_search::IndexKey{key,keyValue,partition,allocatorFactory});
-        auto insertedIdx=it.first.index();
-
-        // cut keys number to limit
-        if (idxQuery.limit()!=0 && indexKeys.size()>idxQuery.limit())
-        {
-            indexKeys.resize(idxQuery.limit());
-
-            // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
-            // and all next keys will be dropped anyway
-            if (insertedIdx==idxQuery.limit())
-            {
-                return false;
-            }
-        }
-
-        return true;
-    };
+    auto partitions=index_key_search::partitions(model,handler,idxQuery,allocatorFactory);
 
     // get rocksdb snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
     const auto* snapshot=managedSnapchot.snapshot();
 
     // collect index keys
-    {
-        HATN_CTX_SCOPE("indexkeys")
-
-        //! @todo optimization: if query starts with partition field then pre-sort partitons by order of that field
-
-        // process all partitions
-        for (const auto& partition: partitions)
-        {
-            HATN_CTX_SCOPE_PUSH("partition",partition->range)
-
-            // process all topics
-            for (const auto& topic: idxQuery.topics())
-            {
-                HATN_CTX_SCOPE_PUSH("topic",topic)
-                HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
-
-                index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
-                auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
-                HATN_CHECK_EC(ec)
-
-                HATN_CTX_SCOPE_POP()
-                HATN_CTX_SCOPE_POP()
-            }
-
-            HATN_CTX_SCOPE_POP()
-
-            //! @todo optimization: if query starts with partition field then break if limit reached
-        }
-    }
+    auto indexKeys=index_key_search::template indexKeys<BufT>(snapshot,handler,idxQuery,partitions,allocatorFactory);
+    HATN_CHECK_RESULT(indexKeys)
 
     // prepare result
     common::pmr::vector<UnitWrapper> objects{allocatorFactory->dataAllocator<UnitWrapper>()};
 
     // if keys not found then return empty result
-    if (indexKeys.empty())
+    if (indexKeys->empty())
     {
         return objects;
     }
@@ -172,8 +93,8 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         dataunit::WireBufSolid buf;
         ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
         readOptions.snapshot=snapshot;
-        objects.reserve(indexKeys.size());
-        for (auto&& key: indexKeys)
+        objects.reserve(indexKeys->size());
+        for (auto&& key: indexKeys.value())
         {
             // get object from rocksdb
             ROCKSDB_NAMESPACE::PinnableSlice value;
@@ -204,7 +125,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
             }
 
             // create unit
-            auto sharedUnit=allocatorFactory->createObject<typename modelType::ManagedType>(allocatorFactory);
+            auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
 
             // deserialize object
             buf.mainContainer()->loadInline(value.data(),value.size());

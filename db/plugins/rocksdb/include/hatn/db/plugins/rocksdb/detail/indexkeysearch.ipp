@@ -107,6 +107,9 @@ struct IndexKey
 
 struct IndexKeyCompare
 {
+    IndexKeyCompare() : idxQuery(nullptr)
+    {}
+
     IndexKeyCompare(const IndexQuery& idxQuery) : idxQuery(&idxQuery)
     {}
 
@@ -741,6 +744,152 @@ Error nextKeyField(
     // done
     --cursor.pos;
     return OK;
+}
+
+template <typename ModelT>
+const std::vector<std::shared_ptr<RocksdbPartition>>& partitions(
+        const ModelT& model,
+        RocksdbHandler& handler,
+        const IndexQuery& idxQuery,
+        AllocatorFactory* factory
+    )
+{
+    static thread_local std::vector<std::shared_ptr<RocksdbPartition>> partitions{1,factory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
+    const auto& field0=idxQuery.field(0);
+    hana::eval_if(
+        hana::bool_<ModelT::isDatePartitioned()>{},
+        [&](auto _)
+        {
+            const auto& allPartitions=_(handler).p()->partitions;
+            _(partitions).reserve(allPartitions.size());
+            if (ModelT::isDatePartitionField(_(field0).fieldInfo->name()))
+            {
+                // collect partitions matching query expression for the first field
+
+                // extract range from query field
+                common::DateRange range{};
+                switch (_(field0).value.typeId())
+                {
+                    case(query::Value::Type::DateTime):
+                    {
+                        range=datePartition(_(field0).value.as<common::DateTime>(),_(model));
+                    }
+                    break;
+
+                    case(query::Value::Type::Date):
+                    {
+                        range=datePartition(_(field0).value.as<common::Date>(),_(model));
+                    }
+                    break;
+
+                    case(query::Value::Type::DateRange):
+                    {
+                        range=_(field0).value.as<common::DateRange>();
+                    }
+                    break;
+
+                    case(query::Value::Type::ObjectId):
+                    {
+                        range=datePartition(_(field0).value.as<ObjectId>(),_(model));
+                    }
+                    break;
+
+                    default:
+                    {
+                        //! @todo Handle vectors and intervals
+                        Assert(false,"Invalid partition field");
+                    }
+                    break;
+                }
+
+                //
+            }
+            else
+            {
+                // use all partitions pre-sorted by range
+                _(partitions).resize(allPartitions.size());
+                for (size_t i=0;i<partitions.size();i++)
+                {
+                    _(partitions)[i]=allPartitions.at(i);
+                }
+            }
+        },
+        [&](auto _)
+        {
+            _(partitions)[0]=_(handler).defaultPartition();
+        }
+    );
+    return partitions;
+}
+
+template <typename BufT>
+Result<IndexKeys> indexKeys(
+        const ROCKSDB_NAMESPACE::Snapshot* snapshot,
+        RocksdbHandler& handler,
+        IndexQuery& idxQuery,
+        const common::pmr::vector<std::shared_ptr<RocksdbPartition>>& partitions,
+        AllocatorFactory* allocatorFactory
+    )
+{
+    HATN_CTX_SCOPE("indexkeys")
+
+    IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
+    auto keyCallback=[&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
+                                                                 ROCKSDB_NAMESPACE::Slice* key,
+                                                                 ROCKSDB_NAMESPACE::Slice* keyValue,
+                                                                 Error&
+                                                                 )
+    {
+        //! @todo optimization: append presorted keys in case of first topic of first partition
+        //! or in case of first topic of each partition if partitions are ordered
+
+        // insert found key
+        auto it=keys.insert(IndexKey{key,keyValue,partition,allocatorFactory});
+        auto insertedIdx=it.first.index();
+
+        // cut keys number to limit
+        if (idxQuery.limit()!=0 && keys.size()>idxQuery.limit())
+        {
+            keys.resize(idxQuery.limit());
+
+            // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
+            // and all next keys will be dropped anyway
+            if (insertedIdx==idxQuery.limit())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    //! @todo optimization: if query starts with partition field then pre-sort partitons by order of that field
+
+    // process all partitions
+    for (const auto& partition: partitions)
+    {
+        HATN_CTX_SCOPE_PUSH("partition",partition->range)
+
+        // process all topics
+        for (const auto& topic: idxQuery.topics())
+        {
+            HATN_CTX_SCOPE_PUSH("topic",topic)
+            HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
+
+            Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
+            auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+            HATN_CHECK_EC(ec)
+
+            HATN_CTX_SCOPE_POP()
+            HATN_CTX_SCOPE_POP()
+        }
+
+        HATN_CTX_SCOPE_POP()
+
+        //! @todo optimization: if query starts with partition field then break if limit reached
+    }
+
+    return keys;
 }
 
 } // namespace index_key_search

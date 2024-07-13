@@ -119,7 +119,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     auto it=d->partitions.find(range);
     if (it!=d->partitions.end())
     {
-        partition=it->second;
+        partition=*it;
         if (partition->collectionCf && partition->indexCf && partition->ttlCf)
         {
             return partition;
@@ -187,7 +187,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     if (!partition)
     {
         partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf,range);
-        d->partitions.emplace(range,std::move(partition));
+        d->partitions.insert(std::move(partition));
     }
 
     return partition;
@@ -208,7 +208,7 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
     {
         return OK;
     }
-    auto partition=it->second;
+    auto partition=*it;
 
     // drop column families
     if (partition->indexCf)
@@ -263,7 +263,7 @@ std::shared_ptr<RocksdbPartition> RocksdbHandler::partition(const common::DateRa
     auto it=d->partitions.find(range);
     if (it!=d->partitions.end())
     {
-        return it->second;
+        return *it;
     }
     return std::shared_ptr<RocksdbPartition>{};
 }
@@ -280,7 +280,7 @@ std::shared_ptr<RocksdbPartition> RocksdbHandler::defaultPartition() const noexc
 void RocksdbHandler::insertPartition(const common::DateRange &range, std::shared_ptr<RocksdbPartition> partition)
 {
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
-    d->partitions.emplace(range,std::move(partition));
+    d->partitions.insert(std::move(partition));
 }
 
 //---------------------------------------------------------------

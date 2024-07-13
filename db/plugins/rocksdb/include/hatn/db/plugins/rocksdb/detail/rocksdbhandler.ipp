@@ -27,6 +27,7 @@
 
 #include <hatn/common/result.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/daterange.h>
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/flatmap.h>
 
@@ -91,8 +92,45 @@ struct RocksdbPartition
 
         Assert(false,"Unknown column family type");
         return std::string{};
-    }        
+    }
 };
+
+HATN_ROCKSDB_NAMESPACE_END
+
+namespace std
+{
+
+template <>
+struct less<shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>>
+{
+    bool operator()(const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& l, const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& r) const noexcept
+    {
+        return l->range < r->range;
+    }
+
+    bool operator()(const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& l, uint32_t r) const noexcept
+    {
+        return l->range.value() < r;
+    }
+
+    bool operator()(uint32_t l, const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& r) const noexcept
+    {
+        return l < r->range.value();
+    }
+
+    bool operator()(const HATN_COMMON_NAMESPACE::DateRange& l, const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& r) const noexcept
+    {
+        return l < r->range;
+    }
+
+    bool operator()(const shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>& l, const HATN_COMMON_NAMESPACE::DateRange& r) const noexcept
+    {
+        return l->range < r;
+    }
+};
+}
+
+HATN_ROCKSDB_NAMESPACE_BEGIN
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 {
@@ -123,7 +161,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
         bool readOnly;
 
-        std::map<common::DateRange,std::shared_ptr<RocksdbPartition>> partitions;
+        common::FlatSet<std::shared_ptr<RocksdbPartition>> partitions;
         std::shared_ptr<RocksdbPartition> defaultPartition;
         std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 
@@ -139,7 +177,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
             {
                 return dbError(DbError::PARTITION_NOT_FOUND);
             }
-            return it->second;
+            return *it;
         }
 };
 
