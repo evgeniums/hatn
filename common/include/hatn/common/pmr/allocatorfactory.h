@@ -88,6 +88,12 @@ class HATN_COMMON_EXPORT AllocatorFactory final
         //! Set default allocation factory instance
         static void setDefault(std::shared_ptr<AllocatorFactory> instance) noexcept;
 
+        //! Get default memory resource
+        static pmr::memory_resource* defaultDataMemoryResource() noexcept
+        {
+            return getDefault()->dataMemoryResource();
+        }
+
         /**
          * @brief Reset default factory instance
          */
