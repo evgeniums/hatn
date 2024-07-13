@@ -470,10 +470,17 @@ class IndexInfo : public IndexBase
 {
     public:
 
-        IndexInfo(const IndexBase& base,
+        template <typename IndexT>
+        IndexInfo(
+                    const IndexT& idx
+                  ) : IndexInfo(idx,idx.isDatePartitioned(),idx.unique(),idx.ttl())
+        {}
+
+        IndexInfo(
+              const IndexBase& base,
               bool datePartitioned=false,
               bool unique=false,
-              bool ttl=0
+              uint32_t ttl=0
             ) : IndexBase(base),
                 m_datePartitioned(datePartitioned),
                 m_unique(unique),
