@@ -365,7 +365,7 @@ HATN_COMMON_NAMESPACE::DateRange datePartition(const ObjectId& id, const ModelT&
 }
 
 template <typename ModelT>
-HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::DatTime& dt, const ModelT& model)
+HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::DateTime& dt, const ModelT& model)
 {
     return datePartition(dt.date(),model);
 }

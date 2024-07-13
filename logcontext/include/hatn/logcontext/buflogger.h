@@ -43,7 +43,7 @@ class TextLogFormatterT
             BufT& buf,
             LogLevel level,
             const ContextT* ctx,
-            const common::pmr::string& msg,
+            const char* msg,
             const lib::string_view& module,
             const common::pmr::vector<Record>& records,
             ErrorT ec=ErrorT{},
@@ -147,10 +147,10 @@ class TextLogFormatterT
             );
 
             // add message
-            if (!msg.empty())
+            if (!common::CStrEmpty(msg))
             {
-                buf.append(lib::string_view(" msg=\""));
-                buf.append(msg);
+                buf.append(lib::string_view(" msg=\"{}\""));
+                buf.append(lib::string_view(msg));
                 buf.append(lib::string_view("\""));
             }
 
@@ -202,7 +202,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
         void log(
             LogLevel level,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             ) override
@@ -218,7 +218,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             ) override
@@ -235,7 +235,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             ) override
@@ -253,7 +253,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             ) override

@@ -85,7 +85,7 @@ using ScopeCursor=std::pair<const char*,ScopeCursorData>;
 
 struct DefaultConfig
 {
-    constexpr static const size_t ValueLength=MaxValueLength;
+    constexpr static const size_t ValueLength=PreallocatedValueSize;
     constexpr static const size_t KeyLength=MaxKeyLength;
     constexpr static const size_t VarStackSize=MaxVarStackSize;
     constexpr static const size_t VarMapSize=MaxVarMapSize;

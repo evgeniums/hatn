@@ -747,25 +747,25 @@ Error nextKeyField(
 }
 
 template <typename ModelT>
-const std::vector<std::shared_ptr<RocksdbPartition>>& partitions(
+common::pmr::vector<std::shared_ptr<RocksdbPartition>> partitions(
         const ModelT& model,
         RocksdbHandler& handler,
         const IndexQuery& idxQuery,
         AllocatorFactory* factory
     )
 {
-    static thread_local std::vector<std::shared_ptr<RocksdbPartition>> partitions{1,factory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
+    common::pmr::vector<std::shared_ptr<RocksdbPartition>> ps{1,factory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
     const auto& field0=idxQuery.field(0);
     hana::eval_if(
         hana::bool_<ModelT::isDatePartitioned()>{},
         [&](auto _)
         {
             const auto& allPartitions=_(handler).p()->partitions;
-            _(partitions).reserve(allPartitions.size());
+            _(ps).reserve(allPartitions.size());
             if (ModelT::isDatePartitionField(_(field0).fieldInfo->name()))
             {
                 // collect partitions matching query expression for the first field
-
+#if 0
                 // extract range from query field
                 common::DateRange range{};
                 switch (_(field0).value.typeId())
@@ -801,25 +801,35 @@ const std::vector<std::shared_ptr<RocksdbPartition>>& partitions(
                     }
                     break;
                 }
+#endif
+                //! @todo eq - one exact partition
 
-                //
+                //! @todo lt/lte - partitions before
+
+                //! @todo gt/gte - partitions after
+
+                //! @todo in interval - partitions in interval
+
+                //! @todo in vector - exact partitions in vector
+
+                //! @todo in vector of intervals - partitions in intervals of vector elements
             }
             else
             {
                 // use all partitions pre-sorted by range
-                _(partitions).resize(allPartitions.size());
-                for (size_t i=0;i<partitions.size();i++)
+                _(ps).resize(allPartitions.size());
+                for (size_t i=0;i<ps.size();i++)
                 {
-                    _(partitions)[i]=allPartitions.at(i);
+                    _(ps)[i]=allPartitions.at(i);
                 }
             }
         },
         [&](auto _)
         {
-            _(partitions)[0]=_(handler).defaultPartition();
+            _(ps)[0]=_(handler).defaultPartition();
         }
     );
-    return partitions;
+    return ps;
 }
 
 template <typename BufT>

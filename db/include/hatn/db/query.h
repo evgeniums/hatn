@@ -26,6 +26,7 @@
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/pmr/string.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>
@@ -60,6 +61,10 @@ struct Last
         return false;
     }
 };
+
+constexpr size_t StringPreallocatedSize=HATN_COMMON_NAMESPACE::pmr::StringPreallocatedSize;
+
+using String=HATN_COMMON_NAMESPACE::pmr::StringT<StringPreallocatedSize>;
 
 enum class Operator : uint8_t
 {
@@ -212,7 +217,7 @@ struct Interval
         DO(uint16_t), \
         DO(uint32_t), \
         DO(uint64_t), \
-        DO(common::pmr::string), \
+        DO(String), \
         DO(common::DateTime), \
         DO(common::Date), \
         DO(common::Time), \

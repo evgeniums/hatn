@@ -254,7 +254,7 @@ class LoggerHandlerT
         virtual void log(
             LogLevel level,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )=0;
@@ -263,7 +263,7 @@ class LoggerHandlerT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )=0;
@@ -272,7 +272,7 @@ class LoggerHandlerT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )=0;
@@ -281,7 +281,7 @@ class LoggerHandlerT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )=0;
@@ -300,7 +300,7 @@ class LoggerHandlerTraitsT
         void log(
             LogLevel level,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
@@ -312,7 +312,7 @@ class LoggerHandlerTraitsT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
@@ -324,7 +324,7 @@ class LoggerHandlerTraitsT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
@@ -336,7 +336,7 @@ class LoggerHandlerTraitsT
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
@@ -365,7 +365,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
         void log(
             LogLevel level,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
@@ -377,7 +377,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
@@ -389,7 +389,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
@@ -401,7 +401,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            common::pmr::string msg,
+            const char* msg,
             lib::string_view module=lib::string_view{},
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )

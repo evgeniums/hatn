@@ -28,6 +28,7 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/fixedbytearray.h>
 #include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/pmr/string.h>
 
 #include <hatn/logcontext/logcontext.h>
 
@@ -41,116 +42,19 @@ class HATN_LOGCONTEXT_EXPORT ContextAllocatorFactory
 
         static void setDefaultFactory(common::pmr::AllocatorFactory*) noexcept;
 
-        static common::pmr::memory_resource* defaultMemoryResource() noexcept
+        static common::pmr::memory_resource* defaultDataMemoryResource() noexcept
         {
             return defaultFactory()->dataMemoryResource();
         }
 };
 
-class Allocator
-{
-    public:
-
-        using value_type=char;
-
-        Allocator(
-                common::pmr::memory_resource* resource=ContextAllocatorFactory::defaultMemoryResource()
-            ) : m_resource(resource)
-        {}
-
-        ~Allocator()=default;
-        Allocator(const Allocator& other)=default;
-        Allocator& operator =(const Allocator& other)=default;
-        Allocator(Allocator&& other)=default;
-        Allocator& operator =(Allocator&& other)=default;
-
-        HATN_NODISCARD
-        char* allocate(size_t n)
-        {
-            return static_cast<char*>(m_resource->allocate(n));
-        }
-
-        void deallocate(char* p, size_t n) noexcept
-        {
-            m_resource->deallocate(p, n);
-        }
-
-    private:
-
-        common::pmr::memory_resource* m_resource;
-};
-
 constexpr size_t MaxKeyLength=16;
-constexpr size_t MaxValueLength=64;
+constexpr size_t PreallocatedValueSize=64;
 
-template <size_t Length=MaxValueLength>
-struct StringT : public fmt::basic_memory_buffer<char,Length,Allocator>
-{
-    using BaseT=fmt::basic_memory_buffer<char,Length,Allocator>;
+template <size_t PreallocatedSize=PreallocatedValueSize>
+using StringT=common::pmr::StringT<PreallocatedSize, common::pmr::ByteAllocator<ContextAllocatorFactory>>;
 
-    StringT(
-                const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {}
-
-    StringT(const lib::string_view& container,
-            const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {
-        this->append(container);
-    }
-
-    StringT(const common::pmr::string& str,
-            const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {
-        this->append(str);
-    }
-
-    StringT(const common::ByteArray& container,
-            const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {
-        this->append(container);
-    }
-
-    StringT(const std::string& str,
-            const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {
-        this->append(str);
-    }
-
-    StringT(const char* str,
-            const Allocator& alloc=Allocator{}
-            )
-        : StringT(
-            lib::string_view{str},
-            alloc)
-    {}
-
-    template <size_t Size>
-    StringT(const common::FixedByteArray<Size>& container,
-            const Allocator& alloc=Allocator{}
-            )
-        : BaseT(alloc)
-    {
-        this->append(container);
-    }
-
-    ~StringT()=default;
-    StringT(const StringT& other)=default;
-    StringT& operator=(const StringT& other)=default;
-    StringT(StringT&& other)=default;
-    StringT& operator=(StringT&& other)=default;
-};
-
-template <size_t Length=MaxValueLength>
+template <size_t PreallocatedSize=PreallocatedValueSize>
 using ValueT=common::lib::variant<
         int8_t,
         uint8_t,
@@ -166,7 +70,7 @@ using ValueT=common::lib::variant<
         common::Date,
         common::Time,
         common::DateRange,
-        StringT<Length>
+        StringT<PreallocatedSize>
     >;
 
 using Value=ValueT<>;
