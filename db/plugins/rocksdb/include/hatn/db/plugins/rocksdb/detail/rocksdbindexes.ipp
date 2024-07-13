@@ -41,7 +41,7 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-using IndexKeyHandlerFn=std::function<void (const IndexKeyT&)>;
+using IndexKeyHandlerFn=std::function<Error (const IndexKeyT&)>;
 
 template <typename BufT>
 class Indexes
@@ -71,37 +71,42 @@ class Indexes
             ROCKSDB_NAMESPACE::Status status;
 
             // make key
-            auto key=m_keys.makeIndexKey(ns,objectId,object,idx);
-            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+            return m_keys.makeIndexKey(ns,objectId,object,idx,
+                [&](auto&& key){
 
-            // put index to batch
-            bool put=true;
-            if constexpr (std::decay_t<IndexT>::unique())
-            {
-                if (!replace)
-                {
-                    HATN_CTX_SCOPE_PUSH("idx_op","merge");
-                    put=false;
-                    status=batch.Merge(m_cf,keySlices,objectKey);
+                   ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+
+                   // put index to batch
+                   bool put=true;
+                   if constexpr (std::decay_t<IndexT>::unique())
+                   {
+                       if (!replace)
+                       {
+                           HATN_CTX_SCOPE_PUSH("idx_op","merge");
+                           put=false;
+                           status=batch.Merge(m_cf,keySlices,objectKey);
+                       }
+                   }
+                   if (put)
+                   {
+                       HATN_CTX_SCOPE_PUSH("idx_op","put");
+                       status=batch.Put(m_cf,keySlices,objectKey);
+                   }
+                   if (!status.ok())
+                   {
+                       HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                       return makeError(DbError::SAVE_INDEX_FAILED,status);
+                   }
+
+                   // done
+                   if (keyCallback)
+                   {
+                       auto ec=keyCallback(key);
+                       HATN_CHECK_EC(ec)
+                   }
+                   return Error{OK};
                 }
-            }
-            if (put)
-            {
-                HATN_CTX_SCOPE_PUSH("idx_op","put");
-                status=batch.Put(m_cf,keySlices,objectKey);
-            }
-            if (!status.ok())
-            {
-                HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
-                return makeError(DbError::SAVE_INDEX_FAILED,status);
-            }
-
-            // done
-            if (keyCallback)
-            {
-                keyCallback(key);
-            }
-            return Error{OK};
+            );
         }
 
         template <typename ModelT, typename UnitT>

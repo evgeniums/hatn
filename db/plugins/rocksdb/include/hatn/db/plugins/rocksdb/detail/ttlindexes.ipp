@@ -182,6 +182,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         return [&ttlIndex](const IndexKeyT& idxKey)
         {
             addIndexKeyToTtl(ttlIndex,idxKey);
+            return Error{OK};
         };
     }
 };

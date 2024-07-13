@@ -109,39 +109,109 @@ class Keys : public KeysBase
             return ROCKSDB_NAMESPACE::Slice{m_buf.data(),m_buf.size()};
         }
 
-        template <typename UnitT, typename IndexT>
-        auto makeIndexKey(
+        template <typename UnitT, typename IndexT, typename KeyHandlerT, typename PosT>
+        Error iterateIndexFields(
+                const ROCKSDB_NAMESPACE::Slice& objectId,
+                const UnitT* object,
+                const IndexT& index,
+                const KeyHandlerT& handler,
+                size_t offset,
+                const PosT& pos
+            )
+        {
+            auto self=this;
+            return hana::eval_if(
+                hana::equal(pos,hana::size(index.fields)),
+                [&](auto _)
+                {
+                    IndexKeyT key;
+                    key[0]=ROCKSDB_NAMESPACE::Slice{_(self)->m_buf.data()+_(offset),_(self)->m_buf.size()-_(offset)};
+                    key[1]=_(objectId);
+                    return handler(key);
+                },
+                [&](auto _)
+                {
+                    const auto& fieldId=hana::at(_(index).fields,_(pos));
+                    const auto& field=getIndexField(*_(object),fieldId);
+
+                    using fieldT=std::decay_t<decltype(field)>;
+                    using repeatedT=typename fieldT::isRepeatedType;
+
+                    return hana::eval_if(
+                        repeatedT{},
+                        [&](auto _)
+                        {
+                            if (_(field).isSet())
+                            {
+                                auto fieldOffset=_(self)->m_buf.size();
+                                for (size_t i=0;i<_(field).count();i++)
+                                {
+                                    _(self)->m_buf.resize(fieldOffset);
+                                    const auto& val=_(field).at(i);
+                                    fieldToStringBuf(_(self)->m_buf,val);
+                                    _(self)->m_buf.append(SeparatorCharStr);
+                                    auto ec=_(self)->iterateIndexFields(
+                                        _(objectId),
+                                        _(object),
+                                        _(index),
+                                        _(handler),
+                                        _(offset),
+                                        hana::plus(_(pos),hana::size_c<1>)
+                                        );
+                                    HATN_CHECK_EC(ec)
+                                }
+                            }
+                            else
+                            {
+                                _(self)->m_buf.append(SeparatorCharStr);
+                                return _(self)->iterateIndexFields(
+                                    _(objectId),
+                                    _(object),
+                                    _(index),
+                                    _(handler),
+                                    _(offset),
+                                    hana::plus(_(pos),hana::size_c<1>)
+                                    );
+                            }
+                        },
+                        [&](auto _)
+                        {
+                            if (_(field).fieldHasDefaultValue() || _(field).isSet())
+                            {
+                                fieldToStringBuf(_(self)->m_buf,_(field).value());
+                            }
+                            _(self)->m_buf.append(SeparatorCharStr);
+                            return _(self)->iterateIndexFields(
+                                _(objectId),
+                                _(object),
+                                _(index),
+                                _(handler),
+                                _(offset),
+                                hana::plus(_(pos),hana::size_c<1>)
+                                );
+                        }
+                    );
+                }
+            );
+        }
+
+        template <typename UnitT, typename IndexT, typename KeyHandlerT>
+        Error makeIndexKey(
             const Namespace& ns,
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const UnitT* object,
-            const IndexT& index
+            const IndexT& index,
+            const KeyHandlerT& handler
             )
         {
             size_t offset=m_buf.size();
-            auto& buf=m_buf;
 
-            IndexKeyT key;
+            m_buf.append(ns.topic());
+            m_buf.append(SeparatorCharStr);
+            m_buf.append(index.id());
+            m_buf.append(SeparatorCharStr);
 
-            buf.append(ns.topic());
-            buf.append(SeparatorCharStr);
-            buf.append(index.id());
-            buf.append(SeparatorCharStr);
-
-            auto eachField=[&object,&buf](auto&& fieldId)
-            {
-                const auto& field=getIndexField(*object,fieldId);
-                if (field.fieldHasDefaultValue() || field.isSet())
-                {
-                    fieldToStringBuf(buf,field.value());
-                }
-                buf.append(SeparatorCharStr);
-            };
-            hana::for_each(index.fields,eachField);
-
-            key[0]=ROCKSDB_NAMESPACE::Slice{buf.data()+offset,buf.size()-offset};
-            key[1]=objectId;
-
-            return key;
+            return iterateIndexFields(objectId,object,index,handler,offset,hana::size_c<0>);
         }
 
     private:
