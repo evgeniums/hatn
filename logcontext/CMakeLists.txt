@@ -15,6 +15,7 @@ SET (HEADERS
 )
 
 SET (SOURCES
+    src/record.cpp
     src/context.cpp
     src/contextlogger.cpp
     src/streamlogger.cpp
