@@ -80,8 +80,21 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
                 std::is_same<dateT,hana::false_>{},
                 [&](auto _)
                 {
-                    //! @todo check if partition field is _id
-                    return datePartition(_(objectId),_(model));
+                    // check if partition field is _id
+                    using modelType=std::decay_t<decltype(_(model))>;
+                    using eqT=std::is_same<
+                        std::decay_t<decltype(object::_id)>,
+                        std::decay_t<decltype(modelType::datePartitionField())>
+                        >;
+                    if constexpr (eqT::value)
+                    {
+                        return datePartition(_(objectId),_(model));
+                    }
+                    else
+                    {
+                        Assert(eqT::value,"Object ID must be a date partition index field");
+                        return HATN_COMMON_NAMESPACE::DateRange{};
+                    }
                 },
                 [&](auto _)
                 {
