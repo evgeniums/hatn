@@ -138,11 +138,9 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
             // process all topics
             for (const auto& topic: idxQuery.topics())
             {
-//! @todo implement
-#if 0
                 HATN_CTX_SCOPE_PUSH("topic",topic)
                 HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
-#endif
+
                 index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
                 auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
                 HATN_CHECK_EC(ec)
