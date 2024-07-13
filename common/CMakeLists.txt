@@ -97,6 +97,7 @@ SET (HEADERS
     include/hatn/common/pmr/withstaticallocator.h
     include/hatn/common/pmr/withstaticallocator.ipp
     include/hatn/common/pmr/singlepoolmemoryresource.h
+    include/hatn/common/pmr/string.h
 
     include/hatn/common/format.h
     include/hatn/common/threadcategory.h
