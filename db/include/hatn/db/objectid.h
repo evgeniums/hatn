@@ -86,6 +86,11 @@ class HATN_DB_EXPORT ObjectId
             return toDatetime().date();
         }
 
+        common::DateRange toDateRange() const
+        {
+            return common::DateRange{toDatetime()};
+        }
+
         uint32_t toEpoch() const noexcept
         {
             return uint32_t(m_timepoint/1000);
@@ -99,6 +104,11 @@ class HATN_DB_EXPORT ObjectId
         operator common::Date() const
         {
             return toDate();
+        }
+
+        operator common::DateRange() const
+        {
+            return toDateRange();
         }
 
         uint64_t timepoint() const noexcept

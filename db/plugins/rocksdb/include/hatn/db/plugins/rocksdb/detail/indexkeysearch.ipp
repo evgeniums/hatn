@@ -193,11 +193,49 @@ struct valueVisitor
             endpoint,
             [&](auto _)
             {
-                fieldToStringBuf(_(self)->buf,_(value).from.value);
+                switch (_(value).from.type)
+                {
+                    case(query::IntervalType::Last):
+                    {
+                        (*_(self))(query::Last{});
+                    }
+                    break;
+
+                    case(query::IntervalType::First):
+                    {
+                        (*_(self))(query::First{});
+                    }
+                    break;
+
+                    default:
+                    {
+                        fieldToStringBuf(_(self)->buf,_(value).from.value);
+                    }
+                    break;
+                }
             },
             [&](auto _)
             {
-                fieldToStringBuf(_(self)->buf,_(value).to.value);
+                switch (_(value).to.type)
+                {
+                    case(query::IntervalType::Last):
+                    {
+                        (*_(self))(query::Last{});
+                    }
+                    break;
+
+                    case(query::IntervalType::First):
+                    {
+                        (*_(self))(query::First{});
+                    }
+                    break;
+
+                    default:
+                    {
+                        fieldToStringBuf(_(self)->buf,_(value).to.value);
+                    }
+                    break;
+                }
             }
         );
         if (sep!=nullptr)
@@ -754,92 +792,6 @@ Error nextKeyField(
     // done
     --cursor.pos;
     return OK;
-}
-
-template <typename ModelT>
-common::pmr::vector<std::shared_ptr<RocksdbPartition>> partitions(
-        const ModelT& model,
-        RocksdbHandler& handler,
-        const IndexQuery& idxQuery,
-        AllocatorFactory* factory
-    )
-{
-    common::pmr::vector<std::shared_ptr<RocksdbPartition>> ps{1,factory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
-    const auto& field0=idxQuery.field(0);
-    hana::eval_if(
-        hana::bool_<ModelT::isDatePartitioned()>{},
-        [&](auto _)
-        {
-            const auto& allPartitions=_(handler).p()->partitions;
-            _(ps).reserve(allPartitions.size());
-            if (ModelT::isDatePartitionField(_(field0).fieldInfo->name()))
-            {
-                // collect partitions matching query expression for the first field
-#if 0
-                // extract range from query field
-                common::DateRange range{};
-                switch (_(field0).value.typeId())
-                {
-                    case(query::Value::Type::DateTime):
-                    {
-                        range=datePartition(_(field0).value.as<common::DateTime>(),_(model));
-                    }
-                    break;
-
-                    case(query::Value::Type::Date):
-                    {
-                        range=datePartition(_(field0).value.as<common::Date>(),_(model));
-                    }
-                    break;
-
-                    case(query::Value::Type::DateRange):
-                    {
-                        range=_(field0).value.as<common::DateRange>();
-                    }
-                    break;
-
-                    case(query::Value::Type::ObjectId):
-                    {
-                        range=datePartition(_(field0).value.as<ObjectId>(),_(model));
-                    }
-                    break;
-
-                    default:
-                    {
-                        //! @todo Handle vectors and intervals
-                        Assert(false,"Invalid partition field");
-                    }
-                    break;
-                }
-#endif
-                //! @todo eq - one exact partition
-
-                //! @todo lt/lte - partitions before
-
-                //! @todo gt/gte - partitions after
-
-                //! @todo in interval - partitions in interval
-
-                //! @todo in vector - exact partitions in vector
-
-                //! @todo in vector of intervals - partitions in intervals of vector elements
-            }
-            else
-            {
-                // use all partitions pre-sorted by range
-                _(ps).resize(allPartitions.size());
-                for (size_t i=0;i<ps.size();i++)
-                {
-                    _(ps)[i]=allPartitions.at(i);
-                }
-            }
-        },
-        [&](auto _)
-        {
-            _(ps)[0]=_(handler).defaultPartition();
-        }
-    );
-    return ps;
 }
 
 template <typename BufT>

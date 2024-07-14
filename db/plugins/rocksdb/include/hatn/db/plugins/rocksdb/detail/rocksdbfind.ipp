@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp>
+#include <hatn/db/plugins/rocksdb/detail/querypartitions.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
