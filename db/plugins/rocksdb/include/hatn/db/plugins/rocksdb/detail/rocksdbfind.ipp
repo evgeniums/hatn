@@ -28,7 +28,7 @@
 #include <hatn/db/namespace.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
-#include <hatn/db/query.h>
+#include <hatn/db/indexquery.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -126,7 +126,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
             }
             if (TtlMark::isExpired(value))
             {
-                //! @todo Do we need it? All object indexes must have the same timestamp,
+                //! @todo Do we need it? All object indexes must have the same ttl mark,
                 //! so they would be already filtered.
                 pushLogKey();
                 HATN_CTX_WARN("object expired in rocksdb")

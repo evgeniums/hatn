@@ -15,6 +15,8 @@ SET (HEADERS
     include/hatn/db/schema.h
     include/hatn/db/modelregistry.h
     include/hatn/db/query.h
+    include/hatn/db/indexquery.h
+    include/hatn/db/timepointfilter.h
 )
 
 SET (HEADERS

@@ -46,7 +46,7 @@ struct CreateObjectT
     Error operator ()(const ModelT& model,
                      RocksdbHandler& handler,
                      const Namespace& ns,
-                     const typename ModelT::UnitType::type* object,
+                     const typename ModelT::UnitType::type* obj,
                      AllocatorFactory* allocatorFactory
                      ) const;
 };
@@ -59,7 +59,7 @@ Error CreateObjectT<BufT>::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
                                const Namespace& ns,
-                               const typename ModelT::UnitType::type* object,
+                               const typename ModelT::UnitType::type* obj,
                                AllocatorFactory* allocatorFactory
                               ) const
 {
@@ -79,7 +79,7 @@ Error CreateObjectT<BufT>::operator ()(
         hana::bool_<modelType::isDatePartitioned()>{},
         [&](auto _)
         {
-            auto partitionRange=datePartition(*_(object),_(model));
+            auto partitionRange=datePartition(*_(obj),_(model));
             HATN_CTX_SCOPE_PUSH_("partition",partitionRange)
             return std::make_pair(_(handler).partition(partitionRange),partitionRange);
         },
@@ -98,10 +98,10 @@ Error CreateObjectT<BufT>::operator ()(
 
     // serialize object
     dataunit::WireBufSolid buf{allocatorFactory};
-    if (!object->wireDataKeeper())
+    if (!obj->wireDataKeeper())
     {
         Error ec;
-        dataunit::io::serialize(*object,buf,ec);
+        dataunit::io::serialize(*obj,buf,ec);
         if(ec)
         {
             HATN_CTX_SCOPE_ERROR("serialize object");
@@ -110,25 +110,26 @@ Error CreateObjectT<BufT>::operator ()(
     }
     else
     {
-        buf=object->wireDataKeeper()->toSolidWireBuf();
+        buf=obj->wireDataKeeper()->toSolidWireBuf();
     }
 
     // transaction fn
     auto transactionFn=[&]()
     {
         auto rdb=handler.p()->transactionDb;
-        auto objectId=object->field(object::_id).value().toString();
+        auto objectId=obj->field(object::_id).value().toString();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // prepare
         ROCKSDB_NAMESPACE::WriteBatch batch;
         Keys<BufT> keys{allocatorFactory->bytesAllocator()};
         TtlMark::refreshCurrentTimepoint();
-        TtlMark ttlMarkObj{model,object};
+        TtlMark ttlMarkObj{model,obj};
         auto ttlMark=ttlMarkObj.slice();
 
         // put serialized object to batch
-        auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,ttlMark);
+        const auto& objectCreatedAt=obj->field(object::created_at).value();
+        auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
         std::array<ROCKSDB_NAMESPACE::Slice,2> objectValueParts{
             ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
@@ -146,12 +147,12 @@ Error CreateObjectT<BufT>::operator ()(
         using ttlIndexesT=TtlIndexes<modelType>;
         using ttlIndexT=typename ttlIndexesT::ttlT;
         ttlIndexT ttlIndex{allocatorFactory};
-        ttlIndexesT::prepareTtl(ttlIndex,model,object->field(object::_id).value(),dateRange);
+        ttlIndexesT::prepareTtl(ttlIndex,model,obj->field(object::_id).value(),dateRange);
 
         // put indexes to batch
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,indexValueSlices,object,
+        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,indexValueSlices,obj,
                                     ttlIndexesT::makeIndexKeyCb(ttlIndex)
         );
         HATN_CHECK_EC(ec)

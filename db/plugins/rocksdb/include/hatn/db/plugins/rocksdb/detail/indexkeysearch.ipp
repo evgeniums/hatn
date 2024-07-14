@@ -33,6 +33,7 @@
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
 #include <hatn/db/query.h>
+#include <hatn/db/indexquery.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -264,17 +265,10 @@ inline bool filterIndex(const IndexQuery& idxQuery,
     std::ignore=key;
 
     // filter by timestamp
-    if (pos==0 && idxQuery.filterTimepoints())
+    if (pos==0)
     {
         auto timestamp=KeysBase::timestampFromIndexValue(value.data(),value.size());
-        for (const auto& tpInterval : *idxQuery.filterTimepoints())
-        {
-            if (tpInterval.contains(timestamp))
-            {
-                // filtered
-                return true;
-            }
-        }
+        return idxQuery.filterTimePoint(timestamp);
     }
 
     // passed

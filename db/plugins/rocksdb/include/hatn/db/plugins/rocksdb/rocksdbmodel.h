@@ -26,7 +26,7 @@
 
 #include <hatn/db/namespace.h>
 #include <hatn/db/model.h>
-#include <hatn/db/query.h>
+#include <hatn/db/indexquery.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 

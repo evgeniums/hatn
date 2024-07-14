@@ -15,6 +15,7 @@
 /****************************************************************************/
 
 #include <hatn/db/query.h>
+#include <hatn/db/indexquery.h>
 
 HATN_DB_NAMESPACE_BEGIN
 

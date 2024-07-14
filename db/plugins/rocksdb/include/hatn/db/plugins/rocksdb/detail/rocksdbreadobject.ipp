@@ -141,11 +141,8 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
     TtlMark::refreshCurrentTimepoint();
     if (TtlMark::isExpired(readSlice))
     {
-        //! @todo Delete object?
         return dbError(DbError::EXPIRED);
     }
-
-    //! @todo Check datetime index?
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);

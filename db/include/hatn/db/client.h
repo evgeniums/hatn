@@ -37,7 +37,7 @@
 #include <hatn/db/model.h>
 #include <hatn/db/schema.h>
 #include <hatn/db/namespace.h>
-#include <hatn/db/query.h>
+#include <hatn/db/indexquery.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -217,7 +217,10 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> read(const Namespace& ns, const std::shared_ptr<ModelT>& model, const ObjectId& id)
+        Result<typename ModelT::SharedPtr> read(const Namespace& ns,
+                                                const std::shared_ptr<ModelT>& model,
+                                                const ObjectId& id,
+                                                const TimePointFilter& tpFilter=TimePointFilter{})
         {
             static typename ModelT::type sample;
 
@@ -230,6 +233,11 @@ class HATN_DB_EXPORT Client : public common::WithID
                     return r.takeError();
                 }
                 auto* obj=sample.castToUnit(r.value().get());
+                if (!tpFilter.filterTimePoint(*obj))
+                {
+                    HATN_CTX_SCOPE_ERROR("filter-timepoint")
+                    return dbError(DbError::NOT_FOUND);
+                }
                 return obj->sharedFromThis();
             }
 
@@ -238,7 +246,11 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> read(const Namespace& ns, const std::shared_ptr<ModelT>& model, const ObjectId& id, const common::Date& date)
+        Result<typename ModelT::SharedPtr> read(const Namespace& ns,
+                                                const std::shared_ptr<ModelT>& model,
+                                                const ObjectId& id,
+                                                const common::Date& date,
+                                                const TimePointFilter& tpFilter=TimePointFilter{})
         {
             static typename ModelT::type sample;
 
@@ -251,6 +263,11 @@ class HATN_DB_EXPORT Client : public common::WithID
                     return r.takeError();
                 }
                 auto* obj=sample.castToUnit(r.value().get());
+                if (!tpFilter.filterTimePoint(*obj))
+                {
+                    HATN_CTX_SCOPE_ERROR("filter-timepoint")
+                    return dbError(DbError::NOT_FOUND);
+                }
                 return obj->sharedFromThis();
             }
 

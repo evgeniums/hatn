@@ -50,6 +50,7 @@ class KeysBase
         static auto makeObjectKeyValue(const ModelT& model,
                                   const Namespace& ns,
                                   const ROCKSDB_NAMESPACE::Slice& objectId,
+                                  const common::DateTime& timepoint=common::DateTime{},
                                   const ROCKSDB_NAMESPACE::Slice& ttlMark=ROCKSDB_NAMESPACE::Slice{}
                                   ) noexcept
         {
@@ -65,11 +66,11 @@ class KeysBase
             parts[4]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
             parts[5]=objectId;
 
-            // ttl mark is empty when key is generated for search
-            if (!ttlMark.empty())
+            // timepoint and ttl mark are empty when key is generated for search
+            if (!timepoint.isNull() && !ttlMark.empty())
             {
                 // 4 bytes for current timestamp
-                uint32_t timestamp=common::DateTime::secondsSinceEpoch();
+                uint32_t timestamp=timepoint.toEpoch();
                 boost::endian::native_to_little_inplace(timestamp);
                 parts[6]=ROCKSDB_NAMESPACE::Slice{reinterpret_cast<const char*>(&timestamp),TimestampSize};
 
