@@ -89,7 +89,9 @@ struct IntervalTag{};
 enum class IntervalType : uint8_t
 {
     Closed,
-    Open
+    Open,
+    First,
+    Last
 };
 
 inline IntervalType reverseIntervalType(IntervalType type)
@@ -122,6 +124,26 @@ struct Interval
         bool less(const Endpoint& other, bool selfFrom, bool otherFrom) const noexcept
         {
             static std::less<T> lt{};
+
+            if (type==IntervalType::First && other.type!=IntervalType::First)
+            {
+                return true;
+            }
+
+            if (type==IntervalType::Last && other.type!=IntervalType::Last)
+            {
+                return false;
+            }
+
+            if (other.type==IntervalType::First)
+            {
+                return false;
+            }
+
+            if (other.type==IntervalType::Last)
+            {
+                return true;
+            }
 
             if (lt(value,other.value))
             {
@@ -206,12 +228,16 @@ struct Interval
     bool contains(const T& value) const noexcept
     {
         if (
+            (from.type==IntervalType::First)
+            ||
             ((from.type==IntervalType::Open) && (value > from.value))
              ||
             ((from.type==IntervalType::Closed) && (value >= from.value))
             )
         {
             if (
+                (to.type==IntervalType::Last)
+                ||
                 ((to.type==IntervalType::Open) && (value < to.value))
                 ||
                 ((to.type==IntervalType::Closed) && (value <= from.value))
