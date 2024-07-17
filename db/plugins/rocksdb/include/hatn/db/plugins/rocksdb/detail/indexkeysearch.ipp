@@ -799,7 +799,7 @@ Result<IndexKeys> indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
         IndexQuery& idxQuery,
-        const common::pmr::vector<std::shared_ptr<RocksdbPartition>>& partitions,
+        const common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions,
         AllocatorFactory* allocatorFactory
     )
 {

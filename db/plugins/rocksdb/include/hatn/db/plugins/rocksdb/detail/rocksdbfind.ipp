@@ -21,6 +21,8 @@
 
 #include <hatn/logcontext/contextlogger.h>
 
+#include <hatn/common/runonscopeexit.h>
+
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
@@ -66,8 +68,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     HATN_CTX_SCOPE("rocksdbfind")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
-    // figure out partitions for processing
-    auto partitions=index_key_search::partitions(model,handler,idxQuery,allocatorFactory);
+    // collect partitions for processing
+    thread_local static common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>> partitions{1, allocatorFactory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
+    HATN_SCOPE_GUARD([](){partitions.clear();})
+    index_key_search::queryPartitions(partitions,model,handler,idxQuery);
 
     // make snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
