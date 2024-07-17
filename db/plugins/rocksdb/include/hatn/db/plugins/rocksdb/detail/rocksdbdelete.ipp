@@ -64,7 +64,7 @@ struct DeleteObjectT
         HATN_CTX_SCOPE_PUSH("topic",topic)
 
         // read object from db
-        auto rdb=handler.p()->db;
+        auto rdb=handler.p()->transactionDb;
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
         auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
         if (!status.ok())
@@ -204,7 +204,7 @@ Error DeleteObjectT<BufT>::operator ()(
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
 
-    // construct key
+    // construct object key
     Keys<BufT> keys{factory->bytesAllocator()};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
@@ -212,11 +212,15 @@ Error DeleteObjectT<BufT>::operator ()(
     // delete object
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
-    auto ec=doDelete(model,handler,partition.get(),ns.topic(),key,keys,ttlIndexes);
-    HATN_CHECK_EC(ec)
 
-    // done
-    return OK;
+    // transaction fn
+    auto transactionFn=[&]()
+    {
+        return doDelete(model,handler,partition.get(),ns.topic(),key,keys,ttlIndexes);
+    };
+
+    // invoke transaction
+    return handler.transaction(transactionFn,true);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

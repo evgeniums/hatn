@@ -180,7 +180,7 @@ Error CreateObjectT<BufT>::operator ()(
     };
 
     // invoke transaction
-    return handler.transaction(transactionFn,false);
+    return handler.transaction(transactionFn,true);
 }
 
 HATN_ROCKSDB_NAMESPACE_END
