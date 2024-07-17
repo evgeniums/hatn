@@ -79,6 +79,8 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                              const ModelInfo& model,
                              const ObjectId& id) override;
 
+        Error doTransaction(const TransactionFn& fn) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;

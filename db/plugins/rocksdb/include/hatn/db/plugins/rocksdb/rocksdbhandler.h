@@ -20,18 +20,16 @@
 #define HATNROCKSDBHANDLER_H
 
 #include <memory>
-#include <functional>
 
 #include <hatn/common/datetime.h>
 
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
+#include <hatn/db/namespace.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
-
-using TransactionFn=std::function<Error ()>;
 
 class RocksdbHandler_p;
 struct RocksdbPartition;

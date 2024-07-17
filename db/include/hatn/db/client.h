@@ -323,6 +323,11 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        Error transaction(const TransactionFn& fn)
+        {
+            return doTransaction(fn);
+        }
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
@@ -359,6 +364,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             const ModelInfo& model,
             IndexQuery& query
         ) =0;
+
+        virtual Error doTransaction(const TransactionFn& fn)=0;
 
         void setClosed() noexcept
         {

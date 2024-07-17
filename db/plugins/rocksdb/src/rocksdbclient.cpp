@@ -610,4 +610,11 @@ Error RocksdbClient::doDeleteObject(
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doTransaction(const TransactionFn &fn)
+{
+    return d->handler->transaction(fn);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END
