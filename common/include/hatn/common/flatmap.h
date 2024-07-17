@@ -439,6 +439,19 @@ class FlatContainer
             std::sort(m_vec.begin(),m_vec.end(),m_comp);
         }
 
+        void beginRawSet(size_t newSize)
+        {
+            resize(newSize);
+        }
+        void rawSet(const ItemT& val, size_t idx)
+        {
+            m_vec[idx]=val;
+        }
+        void rawSet(ItemT&& val, size_t idx)
+        {
+            m_vec[idx]=std::move(val);
+        }
+
     protected:
 
         vector_type m_vec;
