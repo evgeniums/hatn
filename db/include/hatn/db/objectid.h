@@ -86,9 +86,9 @@ class HATN_DB_EXPORT ObjectId
             return toDatetime().date();
         }
 
-        common::DateRange toDateRange() const
+        common::DateRange toDateRange(common::DateRange::Type type=common::DateRange::Type::Month) const
         {
-            return common::DateRange{toDatetime()};
+            return common::DateRange{toDatetime(),type};
         }
 
         uint32_t toEpoch() const noexcept

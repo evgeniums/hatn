@@ -692,6 +692,37 @@ void Interval<T>::sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order orde
     }
 }
 
+struct valueToDateRangeT
+{
+    common::DateRange operator()(const common::DateRange& range, DatePartitionMode) const
+    {
+        return range;
+    }
+
+    common::DateRange operator()(const common::DateTime& dt, DatePartitionMode mode) const
+    {
+        return common::DateRange{dt,mode};
+    }
+
+    common::DateRange operator()(const common::Date& dt, DatePartitionMode mode) const
+    {
+        return common::DateRange{dt,mode};
+    }
+
+    common::DateRange operator()(const ObjectId& id, DatePartitionMode mode) const
+    {
+        return id.toDateRange(mode);
+    }
+
+    template <typename T>
+    common::DateRange operator()(const T&, DatePartitionMode) const
+    {
+        Assert(false,"Invalid type for conversion to DateRange");
+        return common::DateRange{};
+    }
+};
+constexpr valueToDateRangeT toDateRange{};
+
 } // namespace query
 
 HATN_DB_NAMESPACE_END
