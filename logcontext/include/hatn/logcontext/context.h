@@ -370,11 +370,11 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     if (HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()!=nullptr)
 
 #define HATN_CTX_SCOPE_DEFER() \
-    auto _onExit=[ScopeCtx]{ \
+    auto _ctxOnExit=[ScopeCtx]{ \
         ScopeCtx->leaveScope();\
     }; \
-    auto _scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_onExit),ScopeCtx!=nullptr);\
-    std::ignore=_scopeGuard;
+    auto _ctxScopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_ctxOnExit),ScopeCtx!=nullptr);\
+    std::ignore=_ctxScopeGuard;
 
 #define HATN_CTX_SCOPE(Name) \
     auto ScopeCtx=HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(); \
