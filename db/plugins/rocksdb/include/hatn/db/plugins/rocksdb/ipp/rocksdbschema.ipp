@@ -26,6 +26,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
@@ -93,6 +94,27 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             )
         {
             return Find<BufT>(model->model,handler,query,allocatorFactory);
+        };
+
+        rdbModel->deleteObject=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                const ObjectId& objectId
+            )
+        {
+            return DeleteObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory);
+        };
+
+        rdbModel->deleteObjectWithDate=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                const ObjectId& objectId,
+                const HATN_COMMON_NAMESPACE::Date& date
+            )
+        {
+            return DeleteObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory);
         };
 
         rdbSchema->addModel(std::move(rdbModel));

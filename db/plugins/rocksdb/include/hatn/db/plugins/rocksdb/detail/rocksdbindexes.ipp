@@ -70,8 +70,8 @@ class Indexes
             HATN_CTX_SCOPE("saveindex")
             ROCKSDB_NAMESPACE::Status status;
 
-            // make key
-            return m_keys.makeIndexKey(ns,objectId,object,idx,
+            // make and handle key
+            return m_keys.makeIndexKey(ns.topic(),objectId,object,idx,
                 [&](auto&& key){
 
                    ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
@@ -126,6 +126,54 @@ class Indexes
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
                 return saveIndex(idx,batch,ns,objectId,indexValue,object,keyCallback,replace);
+            };
+            return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
+        }
+
+        template <typename IndexT, typename UnitT>
+        Error deleteIndex(
+                const IndexT& idx,
+                ROCKSDB_NAMESPACE::WriteBatch& batch,
+                const lib::string_view& topic,
+                const ROCKSDB_NAMESPACE::Slice& objectId,
+                UnitT* object
+            )
+        {
+            HATN_CTX_SCOPE("deleteindex")
+
+            // make and handle key
+            return m_keys.makeIndexKey(topic,objectId,object,idx,
+                                       [&](auto&& key){
+
+                                           ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+
+                                           // put index to batch
+                                           auto status=batch.Delete(m_cf,keySlices);
+                                           if (!status.ok())
+                                           {
+                                               HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                                               return makeError(DbError::DELETE_INDEX_FAILED,status);
+                                           }
+
+                                           return Error{OK};
+                                       }
+                                       );
+        }
+
+        template <typename ModelT, typename UnitT>
+        Error deleteIndexes(
+                ROCKSDB_NAMESPACE::WriteBatch& batch,
+                const ModelT& model,
+                const lib::string_view& topic,
+                const ROCKSDB_NAMESPACE::Slice& objectId,
+                UnitT* object
+            )
+        {
+            HATN_CTX_SCOPE("deleteindexes")
+
+            auto eachIndex=[&,this](auto&& idx, auto&&)
+            {
+                return deleteIndex(idx,batch,topic,objectId,object);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

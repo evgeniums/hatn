@@ -235,7 +235,7 @@ class Keys : public KeysBase
 
         template <typename UnitT, typename IndexT, typename KeyHandlerT>
         Error makeIndexKey(
-            const Namespace& ns,
+            const lib::string_view& topic,
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const UnitT* object,
             const IndexT& index,
@@ -244,7 +244,7 @@ class Keys : public KeysBase
         {
             size_t offset=m_buf.size();
 
-            m_buf.append(ns.topic());
+            m_buf.append(topic);
             m_buf.append(SeparatorCharStr);
             m_buf.append(index.id());
             m_buf.append(SeparatorCharStr);

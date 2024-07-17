@@ -276,6 +276,37 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
+        Error deleteObject(const Namespace& ns,
+                            const std::shared_ptr<ModelT>& model,
+                            const ObjectId& id,
+                            const common::Date& date)
+        {
+            HATN_CTX_SCOPE("dbdelete")
+            if (m_opened)
+            {
+                return doDeleteObject(ns,model->info,id,date);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Error deleteObject(const Namespace& ns,
+                            const std::shared_ptr<ModelT>& model,
+                            const ObjectId& id)
+        {
+            HATN_CTX_SCOPE("dbdelete")
+            if (m_opened)
+            {
+                return doDeleteObject(ns,model->info,id);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
             const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
@@ -313,6 +344,15 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id)=0;
         virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date)=0;
+
+        virtual Error doDeleteObject(const Namespace& ns,
+                           const ModelInfo& model,
+                           const ObjectId& id,
+                           const common::Date& date)=0;
+
+        virtual Error doDeleteObject(const Namespace& ns,
+                                     const ModelInfo& model,
+                                     const ObjectId& id)=0;
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,

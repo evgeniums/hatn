@@ -41,6 +41,7 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp
     include/hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp
     include/hatn/db/plugins/rocksdb/detail/querypartitions.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp
 )
 
 SET (SCHEMA_SOURCES

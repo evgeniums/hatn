@@ -68,6 +68,18 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             IndexQuery& query
             )> find;
 
+        std::function<Error (
+            RocksdbHandler& handler,
+            const Namespace& ns,
+            const ObjectId& objectId)> deleteObject;
+
+        std::function<Error (
+            RocksdbHandler& handler,
+            const Namespace& ns,
+            const ObjectId& objectId,
+            const HATN_COMMON_NAMESPACE::Date& date
+            )> deleteObjectWithDate;
+
     private:
 
         ModelInfo& m_modelInfo;

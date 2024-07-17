@@ -573,4 +573,41 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(co
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doDeleteObject(
+        const Namespace &ns,
+        const ModelInfo &model,
+        const ObjectId &id,
+        const common::Date& date
+    )
+{
+    HATN_CTX_SCOPE("rocksdbdelete")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->deleteObjectWithDate(*d->handler,ns,id,date);
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doDeleteObject(
+        const Namespace &ns,
+        const ModelInfo &model,
+        const ObjectId &id
+    )
+{
+    HATN_CTX_SCOPE("rocksdbdelete")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->deleteObject(*d->handler,ns,id);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

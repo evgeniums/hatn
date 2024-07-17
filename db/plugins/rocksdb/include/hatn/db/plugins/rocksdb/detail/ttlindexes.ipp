@@ -67,7 +67,7 @@ struct TtlIndexes
     }
 
     static void putTtlToBatch(
-        Error,
+        Error&,
         dataunit::WireBufSolid&,
         ROCKSDB_NAMESPACE::WriteBatch&,
         const ttlT&,
@@ -89,6 +89,15 @@ struct TtlIndexes
     {
         return IndexKeyHandlerFn{};
     }
+
+    static void deleteTtlWithBatch(
+            Error&,
+            ROCKSDB_NAMESPACE::WriteBatch&,
+            RocksdbPartition* partition,
+            const ROCKSDB_NAMESPACE::Slice&,
+            const ROCKSDB_NAMESPACE::Slice&
+        )
+    {}
 };
 
 template <typename ModelT>
@@ -128,7 +137,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
     }
 
     static void putTtlToBatch(
-            Error ec,
+            Error& ec,
             dataunit::WireBufSolid& buf,
             ROCKSDB_NAMESPACE::WriteBatch& batch,
             const ttl_index::type& ttlIndex,
@@ -158,6 +167,24 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
                 HATN_CTX_SCOPE_ERROR("batch-ttl-index");
                 setRocksdbError(ec,DbError::SAVE_TTL_INDEX_FAILED,status);
             }
+        }
+    }
+
+    static void deleteTtlWithBatch(
+            Error& ec,
+            ROCKSDB_NAMESPACE::WriteBatch& batch,
+            RocksdbPartition* partition,
+            const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
+            const ROCKSDB_NAMESPACE::Slice& ttlMark
+        )
+    {
+        std::array<ROCKSDB_NAMESPACE::Slice,2> keyParts{ttlMark,objectIdSlice};
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&keyParts[0],static_cast<int>(keyParts.size())};
+        auto status=batch.Delete(partition->ttlCf.get(),keySlices);
+        if (!status.ok())
+        {
+            HATN_CTX_SCOPE_ERROR("batch-ttl-index");
+            setRocksdbError(ec,DbError::DELETE_TTL_INDEX_FAILED,status);
         }
     }
 

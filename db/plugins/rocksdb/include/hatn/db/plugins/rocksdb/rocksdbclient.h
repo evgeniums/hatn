@@ -70,6 +70,15 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             IndexQuery& query
         ) override;
 
+        Error doDeleteObject(const Namespace& ns,
+                             const ModelInfo& model,
+                             const ObjectId& id,
+                             const common::Date& date) override;
+
+        Error doDeleteObject(const Namespace& ns,
+                             const ModelInfo& model,
+                             const ObjectId& id) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;

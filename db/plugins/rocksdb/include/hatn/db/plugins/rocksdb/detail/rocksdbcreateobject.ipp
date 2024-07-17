@@ -117,7 +117,7 @@ Error CreateObjectT<BufT>::operator ()(
     auto transactionFn=[&]()
     {
         auto rdb=handler.p()->transactionDb;
-        auto objectId=obj->field(object::_id).value().toString();
+        auto objectId=obj->field(object::_id).value().toArray();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // prepare
