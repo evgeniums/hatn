@@ -323,6 +323,23 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        template <typename ModelT>
+        Error deleteMany(
+                const Namespace& ns,
+                const std::shared_ptr<ModelT>& model,
+                IndexQuery& query
+            )
+        {
+            HATN_CTX_SCOPE("dbdeletemany")
+            if (m_opened)
+            {
+                return doDeleteMany(ns,model->info,query);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         Error transaction(const TransactionFn& fn)
         {
             return doTransaction(fn);
@@ -360,6 +377,12 @@ class HATN_DB_EXPORT Client : public common::WithID
                                      const ObjectId& id)=0;
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query
+        ) =0;
+
+        virtual Error doDeleteMany(
             const Namespace& ns,
             const ModelInfo& model,
             IndexQuery& query

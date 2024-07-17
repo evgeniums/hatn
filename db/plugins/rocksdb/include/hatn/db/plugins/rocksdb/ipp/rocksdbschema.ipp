@@ -27,6 +27,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
@@ -115,6 +116,15 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             )
         {
             return DeleteObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory);
+        };
+
+        rdbModel->deleteMany=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                IndexQuery& query
+            )
+        {
+            return DeleteMany<BufT>(model->model,handler,query,allocatorFactory);
         };
 
         rdbSchema->addModel(std::move(rdbModel));

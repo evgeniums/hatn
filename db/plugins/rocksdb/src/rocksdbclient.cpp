@@ -617,4 +617,18 @@ Error RocksdbClient::doTransaction(const TransactionFn &fn)
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doDeleteMany(const Namespace &, const ModelInfo &model, IndexQuery &query)
+{
+    HATN_CTX_SCOPE("rocksdbdeletemany")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->deleteMany(*d->handler,query);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

@@ -79,6 +79,12 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                              const ModelInfo& model,
                              const ObjectId& id) override;
 
+        Error doDeleteMany(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query
+            ) override;
+
         Error doTransaction(const TransactionFn& fn) override;
 
     private:

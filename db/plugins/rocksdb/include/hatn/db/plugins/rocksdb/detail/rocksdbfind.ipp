@@ -65,7 +65,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         AllocatorFactory* allocatorFactory
     ) const
 {
-    HATN_CTX_SCOPE("rocksdbfind")
+    HATN_CTX_SCOPE("find")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // collect partitions for processing

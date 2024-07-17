@@ -155,11 +155,12 @@ struct Cursor
 {
     Cursor(
             const lib::string_view& indexId,
-            const lib::string_view& topic,
+            const lib::string_view& topic_,
             RocksdbPartition* partition,
             common::pmr::AllocatorFactory* allocatorfactory
         ) : partialKey(allocatorfactory->bytesAllocator()),
             pos(0),
+            topic(topic_),
             partition(partition)
     {
         partialKey.append(topic);
@@ -176,6 +177,7 @@ struct Cursor
 
     BufT partialKey;
     size_t pos;
+    lib::string_view topic;
 
     RocksdbPartition* partition;
 };
@@ -456,7 +458,7 @@ Error iterateFieldVariant(
             // call result callback for finally assembled key
             if (pos==idxQuery.fields().size())
             {
-                if (!keyCallback(cursor.partition,&key,&keyValue,ec))
+                if (!keyCallback(cursor.partition,cursor.topic,&key,&keyValue,ec))
                 {
                     return ec;
                 }
@@ -807,10 +809,11 @@ Result<IndexKeys> indexKeys(
 
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
     auto keyCallback=[&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
-                                                                 ROCKSDB_NAMESPACE::Slice* key,
-                                                                 ROCKSDB_NAMESPACE::Slice* keyValue,
-                                                                 Error&
-                                                                 )
+                                                         const lib::string_view& /*topic*/,
+                                                         ROCKSDB_NAMESPACE::Slice* key,
+                                                         ROCKSDB_NAMESPACE::Slice* keyValue,
+                                                         Error&
+                                                       )
     {
         //! @todo optimization: append presorted keys in case of first topic of first partition
         //! or in case of first topic of each partition if partitions are ordered

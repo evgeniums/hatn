@@ -80,6 +80,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             const HATN_COMMON_NAMESPACE::Date& date
             )> deleteObjectWithDate;
 
+        std::function<Error (
+            RocksdbHandler& handler,
+            IndexQuery& query
+            )> deleteMany;
+
     private:
 
         ModelInfo& m_modelInfo;
