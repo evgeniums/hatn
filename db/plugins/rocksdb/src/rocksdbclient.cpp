@@ -631,4 +631,25 @@ Error RocksdbClient::doDeleteMany(const Namespace &, const ModelInfo &model, Ind
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doUpdateObject(const Namespace &ns, const ModelInfo &model, const update::Request &request, const ObjectId &id, const common::Date &date)
+{
+    return CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doUpdateObject(const Namespace &ns, const ModelInfo &model, const update::Request &request, const ObjectId &id)
+{
+    return CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doUpdateMany(const Namespace &, const ModelInfo &model, IndexQuery &query, const update::Request& request)
+{
+    return CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

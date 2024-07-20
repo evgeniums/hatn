@@ -400,21 +400,16 @@ struct VectorItemVisitor
 
 }
 
-class Value
+template <typename VariantT, typename EnumT>
+class ValueT
 {
     public:
 
-        using type=lib::variant<
-            HATN_DB_QUERY_VALUE_TYPES(HATN_DB_QUERY_VALUE_TYPE)
-        >;
-
-        enum class Type : uint8_t
-        {
-            HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
-        };
+        using type=VariantT;
+        using Type=EnumT;
 
         template <typename T>
-        Value(T&& val) : m_value(std::forward<T>(val))
+        ValueT(T&& val) : m_value(std::forward<T>(val))
         {}
 
         Type typeId() const noexcept
@@ -526,7 +521,16 @@ class Value
         type m_value;
 };
 
-using Operand=Value;
+using ValueVariant=lib::variant<
+    HATN_DB_QUERY_VALUE_TYPES(HATN_DB_QUERY_VALUE_TYPE)
+>;
+
+enum class ValueEnum : uint8_t
+{
+    HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
+};
+
+using Operand=ValueT<ValueVariant,ValueEnum>;
 
 struct Field
 {

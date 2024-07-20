@@ -38,6 +38,7 @@
 #include <hatn/db/schema.h>
 #include <hatn/db/namespace.h>
 #include <hatn/db/indexquery.h>
+#include <hatn/db/update.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -276,6 +277,39 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
+        Error updateObject(const Namespace& ns,
+                       const std::shared_ptr<ModelT>& model,
+                       const update::Request& request,
+                       const ObjectId& id,
+                       const common::Date& date)
+        {
+            HATN_CTX_SCOPE("dbupdate")
+            if (m_opened)
+            {
+                return doUpdateObject(ns,model->info,request,id,date);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Error updateObject(const Namespace& ns,
+                     const std::shared_ptr<ModelT>& model,
+                     const update::Request& request,
+                     const ObjectId& id)
+        {
+            HATN_CTX_SCOPE("dbupdate")
+            if (m_opened)
+            {
+                return doUpdateObject(ns,model->info,request,id);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
         Error deleteObject(const Namespace& ns,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
@@ -340,6 +374,24 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        template <typename ModelT>
+        Error updateMany(
+                const Namespace& ns,
+                const std::shared_ptr<ModelT>& model,
+                IndexQuery& query,
+                const update::Request& request
+            )
+        {
+            HATN_CTX_SCOPE("dbupdatemany")
+            if (m_opened)
+            {
+                return doUpdateMany(ns,model->info,query,request);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         Error transaction(const TransactionFn& fn)
         {
             return doTransaction(fn);
@@ -376,10 +428,28 @@ class HATN_DB_EXPORT Client : public common::WithID
                                      const ModelInfo& model,
                                      const ObjectId& id)=0;
 
+        virtual Error doUpdateObject(const Namespace& ns,
+                             const ModelInfo& model,
+                             const update::Request& request,
+                             const ObjectId& id,
+                             const common::Date& date)=0;
+
+        virtual Error doUpdateObject(const Namespace& ns,
+                               const ModelInfo& model,
+                               const update::Request& request,
+                               const ObjectId& id)=0;
+
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,
             const ModelInfo& model,
             IndexQuery& query
+        ) =0;
+
+        virtual Error doUpdateMany(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query,
+            const update::Request& request
         ) =0;
 
         virtual Error doDeleteMany(

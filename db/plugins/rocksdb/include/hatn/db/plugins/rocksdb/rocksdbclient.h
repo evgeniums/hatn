@@ -87,6 +87,24 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doTransaction(const TransactionFn& fn) override;
 
+        Error doUpdateObject(const Namespace& ns,
+                       const ModelInfo& model,
+                       const update::Request& request,
+                       const ObjectId& id,
+                       const common::Date& date) override;
+
+        Error doUpdateObject(const Namespace& ns,
+                       const ModelInfo& model,
+                       const update::Request& request,
+                       const ObjectId& id) override;
+
+        Error doUpdateMany(
+            const Namespace& ns,
+            const ModelInfo& model,
+            IndexQuery& query,
+            const update::Request& request
+        ) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;
