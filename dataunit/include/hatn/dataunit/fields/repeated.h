@@ -216,21 +216,54 @@ struct RepeatedGetterSetter<Type,
     using valueType=typename Type::type;
 
     template <typename T>
-    constexpr static void setVal(valueType& arrayVal,const T& val) noexcept
+    constexpr static void setVal(valueType& arrayVal,const T& val)
     {
-        arrayVal=static_cast<valueType>(val);
+        hana::eval_if(
+            std::is_convertible<T,valueType>{},
+            [&](auto _)
+            {
+                _(arrayVal)=static_cast<valueType>(_(val));
+            },
+            [&](auto _)
+            {
+                Assert(false,"Invalid operation for field of this type");
+            }
+        );
     }
+
     template <typename T>
     constexpr static void getVal(const valueType& arrayVal,T &val) noexcept
     {
-        val=static_cast<T>(arrayVal);
+        hana::eval_if(
+            std::is_convertible<valueType,T>{},
+            [&](auto _)
+            {
+                _(val)=static_cast<T>(_(arrayVal));
+            },
+            [&](auto _)
+            {
+                Assert(false,"Invalid operation for field of this type");
+            }
+        );
     }
+
     template <typename ArrayT,typename T>
     constexpr static void addVal(ArrayT& array,const T& val) noexcept
     {
-        array.push_back(static_cast<valueType>(val));
+        hana::eval_if(
+            std::is_convertible<T,valueType>{},
+            [&](auto _)
+            {
+                _(array).push_back(static_cast<valueType>(_(val)));
+            },
+            [&](auto _)
+            {
+                Assert(false,"Invalid operation for field of this type");
+            }
+        );
     }
 };
+
 template <typename Type>
 struct RepeatedGetterSetter<Type,
                             std::enable_if_t<Type::isBytesType::value>
@@ -818,6 +851,10 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arraySet(size_t idx,int64_t val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
     virtual void arraySet(size_t idx,float val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
     virtual void arraySet(size_t idx,double val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
+    virtual void arraySet(size_t idx,const common::DateTime& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
+    virtual void arraySet(size_t idx,const common::Date& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
+    virtual void arraySet(size_t idx,const common::Time& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
+    virtual void arraySet(size_t idx,const common::DateRange& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
 
     virtual void arrayGet(size_t idx,bool& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
     virtual void arrayGet(size_t idx,uint8_t& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
@@ -829,7 +866,11 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayGet(size_t idx,int32_t& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
     virtual void arrayGet(size_t idx,int64_t& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
     virtual void arrayGet(size_t idx,float& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
-    virtual void arrayGet(size_t idx,double& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
+    virtual void arrayGet(size_t idx,double& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}    
+    virtual void arrayGet(size_t idx,common::DateTime& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
+    virtual void arrayGet(size_t idx,common::Date& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
+    virtual void arrayGet(size_t idx,common::Time& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
+    virtual void arrayGet(size_t idx,common::DateRange& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
 
     virtual void arrayAdd(bool val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
     virtual void arrayAdd(uint8_t val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
@@ -842,6 +883,10 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayAdd(int64_t val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
     virtual void arrayAdd(float val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
     virtual void arrayAdd(double val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
+    virtual void arrayAdd(const common::DateTime& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
+    virtual void arrayAdd(const common::Date& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
+    virtual void arrayAdd(const common::Time& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
+    virtual void arrayAdd(const common::DateRange& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
 
     virtual void arrayBufResize(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufResize(vector,idx,size);}
     virtual void arrayBufReserve(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufReserve(vector,idx,size);}
