@@ -85,6 +85,26 @@ template <>
 struct FieldTmpl<TYPE_DATE> : public DateField
 {
     using DateField::DateField;
+
+    void setV(const common::Date& val) override
+    {
+        this->set(val);
+    }
+
+    void getV(common::Date& val) const override
+    {
+        val=m_value;
+    }
+
+    bool less(const common::Date& val) const override
+    {
+        return m_value<val;
+    }
+
+    bool equals(const common::Date& val) const override
+    {
+        return m_value==val;
+    }
 };
 
 //---------------------------------------------------------------

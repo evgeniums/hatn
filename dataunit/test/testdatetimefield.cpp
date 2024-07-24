@@ -19,7 +19,12 @@ struct f0_name
 
 HDU_UNIT(u1,
     HDU_FIELD(f1,TYPE_DATETIME,1)
+    HDU_FIELD(f2,TYPE_DATE,2)
+    HDU_FIELD(f3,TYPE_TIME,3)
+    HDU_FIELD(f4,TYPE_DATE_RANGE,4)
 )
+
+//! @todo Test get/set of date and time fields
 
 }
 

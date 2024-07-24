@@ -85,6 +85,26 @@ template <>
 struct FieldTmpl<TYPE_DATE_RANGE> : public DateRangeField
 {
     using DateRangeField::DateRangeField;
+
+    void setV(const common::DateRange& val) override
+    {
+        this->set(val);
+    }
+
+    void getV(common::DateRange& val) const override
+    {
+        val=m_value;
+    }
+
+    bool less(const common::DateRange& val) const override
+    {
+        return m_value<val;
+    }
+
+    bool equals(const common::DateRange& val) const override
+    {
+        return m_value==val;
+    }
 };
 
 //---------------------------------------------------------------

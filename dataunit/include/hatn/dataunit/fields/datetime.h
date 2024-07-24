@@ -117,10 +117,10 @@ class DateTime : public Field
         }
 
         //! Set field
-        void set(type val)
+        void set(const type& val)
         {
             this->markSet(true);
-            m_value=std::move(val);
+            m_value=val;
         }
 
         //! Copy field
@@ -249,6 +249,26 @@ class DateTime : public Field
         {
             this->markSet(deserialize(this->m_value,wired));
             return this->isSet();
+        }
+
+        void setV(const common::DateTime& val) override
+        {
+            set(val);
+        }
+
+        void getV(common::DateTime& val) const override
+        {
+            val=m_value;
+        }
+
+        bool less(const common::DateTime& val) const override
+        {
+            return m_value<val;
+        }
+
+        bool equals(const common::DateTime& val) const override
+        {
+            return m_value==val;
         }
 
     protected:

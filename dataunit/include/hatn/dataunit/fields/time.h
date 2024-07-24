@@ -85,6 +85,26 @@ template <>
 struct FieldTmpl<TYPE_TIME> : public TimeField
 {
     using TimeField::TimeField;
+
+    void setV(const common::Time& val) override
+    {
+        this->set(val);
+    }
+
+    void getV(common::Time& val) const override
+    {
+        val=m_value;
+    }
+
+    bool less(const common::Time& val) const override
+    {
+        return m_value<val;
+    }
+
+    bool equals(const common::Time& val) const override
+    {
+        return m_value==val;
+    }
 };
 
 //---------------------------------------------------------------
