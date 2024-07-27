@@ -87,7 +87,9 @@ enum class Operator : uint32_t
     inc,
     push,
     pop,
-    push_unique
+    push_unique,
+    replace_element,
+    erase_element
 };
 
 using ValueVariant=lib::variant<

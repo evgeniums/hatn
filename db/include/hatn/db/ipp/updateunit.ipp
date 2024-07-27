@@ -30,9 +30,40 @@ HATN_DB_NAMESPACE_BEGIN
 namespace update
 {
 
+template <typename ScalarFnT, typename VectorFnT>
+struct FieldVisitorT
+{
+    template <typename T>
+    void operator()(const T& val) const
+    {
+        scalarFn(val);
+    }
+
+    template <typename T>
+    void operator()(const common::pmr::vector<T>& val) const
+    {
+        vectorFn(val);
+    }
+
+    template <typename T1, typename T2>
+    FieldVisitorT(T1&& scalar, T2&& vector):
+        scalarFn(std::forward<T1>(scalar)),
+        vectorFn(std::forward<T2>(vector))
+    {}
+
+    ScalarFnT scalarFn;
+    VectorFnT vectorFn;
+};
+
+template <typename T1, typename T2>
+auto FieldVisitor(T1&& scalar, T2&& vector)
+{
+    return FieldVisitorT<std::decay_t<T1>,std::decay_t<T2>>{std::forward<T1>(scalar),std::forward<T2>(vector)};
+}
+
 struct HandleFieldT
 {
-    static dataunit::Field* getUnitField(dataunit::Unit* unit, const FieldInfo* fieldInfo)
+    static dataunit::Field* getUnitField(dataunit::Unit* unit, const FieldInfo* fieldInfo, const std::vector<std::string>* path=nullptr)
     {
         dataunit::Field* field{nullptr};
 
@@ -42,18 +73,35 @@ struct HandleFieldT
         }
         else
         {
-            auto* u=unit;
-            auto depth=fieldInfo.path().size();
-            auto lastUnit=depth-1;
-            for (size_t i=0;i<fieldInfo.path().size();i++)
+            if (path==nullptr)
             {
-                //! @todo Implement getting element of repeated field
+                path=&fieldInfo->path();
+            }
 
-                field=u->fieldByName(fieldInfo.path().at(i));
-                if (field!=nullptr && i!=lastUnit)
+            auto* u=unit;
+            auto depth=path->size();
+            for (size_t i=0;i<depth;i++)
+            {
+                if (field!=nullptr)
                 {
-                    u=field->subunit();
+                    if (field->isArray())
+                    {
+                        const auto& name=path->at(i);
+                        size_t idx=std::stoul(name);
+                        u=field->arraySubunit(idx);
+                        i++;
+                        if (i==depth)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        u=field->subunit();
+                    }
                 }
+                const auto& name=path->at(i);
+                field=u->fieldByName(name);
             }
         }
 
@@ -63,7 +111,7 @@ struct HandleFieldT
 
     void operator() (dataunit::Unit* unit, const Field& updateField) const
     {
-        //! @todo Handle element of repeated field
+        //! @todo Add operations for repeated fields: replace vector element by index, erase vector element by index.
 
         auto* field=getUnitField(unit,updateField.fieldInfo);
 
@@ -71,11 +119,23 @@ struct HandleFieldT
         {
             case (Operator::set):
             {
-                updateField.value.handleValue(
-                    [&field](const auto& val)
+                auto scalarSet=[&field](const auto& val)
+                {
+                    field->setV(val);
+                };
+
+                auto vectorSet=[&field](const auto& val)
+                {
+                    field->arrayResize(val.size());
+                    for (size_t i=0;i<val.size();i++)
                     {
-                        field->setV(val);
-                    });
+                        field->arraySet(i,val[i]);
+                    }
+                };
+
+                updateField.value.handleValue(
+                    FieldVisitor(std::move(scalarSet),std::move(vectorSet));
+                );
             }
             break;
 
