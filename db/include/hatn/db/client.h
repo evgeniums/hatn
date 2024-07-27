@@ -217,6 +217,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        //! @todo Add Read for update.
+
         template <typename ModelT>
         Result<typename ModelT::SharedPtr> read(const Namespace& ns,
                                                 const std::shared_ptr<ModelT>& model,
