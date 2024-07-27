@@ -284,6 +284,12 @@ class Scalar : public Field
             val=static_cast<T>(m_value);
         }
 
+        template <typename T>
+        inline void incVal(const T &val) noexcept
+        {
+            m_value=static_cast<T>(m_value+val);
+        }
+
         virtual bool less(bool val) const override {return lessThan(val);}
         virtual bool less(uint8_t val) const override {return lessThan(val);}
         virtual bool less(uint16_t val) const override {return lessThan(val);}
@@ -331,6 +337,28 @@ class Scalar : public Field
         virtual void getV(int64_t& val) const override {getVal(val);}
         virtual void getV(float& val) const override {getVal(val);}
         virtual void getV(double& val) const override {getVal(val);}
+
+        virtual void incV(uint8_t val) const {incVal(val);}
+        virtual void incV(uint16_t val) const {incVal(val);}
+        virtual void incV(uint32_t val) const {incVal(val);}
+        virtual void incV(uint64_t val) const {incVal(val);}
+        virtual void incV(int8_t val) const {incVal(val);}
+        virtual void incV(int16_t val) const {incVal(val);}
+        virtual void incV(int32_t val) const {incVal(val);}
+        virtual void incV(int64_t val) const {incVal(val);}
+        virtual void incV(float val) const {incVal(val);}
+        virtual void incV(double val) const {incVal(val);}
+
+
+        virtual bool isFloatingPoint() const noexcept override
+        {
+            return std::is_floating_point<type>::value;
+        }
+
+        virtual bool isUnsigned() const noexcept override
+        {
+            return std::is_unsigned<type>::value;
+        }
 
     protected:
 

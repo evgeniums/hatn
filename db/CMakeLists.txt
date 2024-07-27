@@ -23,6 +23,7 @@ SET (HEADERS
 SET (HEADERS
     ${HEADERS}
     include/hatn/db/ipp/objectid.ipp
+    include/hatn/db/ipp/updateunit.ipp
 )
 
 SET (SOURCES

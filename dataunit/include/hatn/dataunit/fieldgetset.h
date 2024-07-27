@@ -119,6 +119,17 @@ class FieldGetSet
         virtual void getV(common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void getV(common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
 
+        virtual void incV(uint8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(uint16_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(uint32_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(uint64_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(int8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(int16_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(int32_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(int64_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(float val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void incV(double val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+
         // byte fields
 
         virtual bool less(const char* val,size_t length) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=length;return false;}

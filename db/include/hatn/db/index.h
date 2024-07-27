@@ -22,6 +22,7 @@
 #include <string>
 
 #include <boost/hana.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <hatn/common/crc32.h>
 #include <hatn/common/meta/tupletypec.h>
@@ -187,13 +188,12 @@ class IndexFieldInfo
               m_id(id),
               m_nested(false),
               m_nullable(nullable)
-        {}
+        {
+            boost::split(m_path,name,boost::is_any_of("."));
+        }
 
         IndexFieldInfo(std::string nestedName, bool nullable=false)
-            : m_name(std::move(nestedName)),
-              m_id(-1),
-              m_nested(true),
-              m_nullable(nullable)
+            : IndexFieldInfo(std::move(nestedName),-1,nullable)
         {}
 
         const std::string& name() const noexcept
@@ -216,12 +216,18 @@ class IndexFieldInfo
             return m_nullable;
         }
 
+        const std::vector<std::string>& path() const noexcept
+        {
+            return m_path;
+        }
+
     private:
 
         std::string m_name;
         int m_id;
         bool m_nested;
         bool m_nullable;
+        std::vector<std::string> m_path;
 };
 
 #define HDB_LENGTH(l) hana::size_t<l>{}

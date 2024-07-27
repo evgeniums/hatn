@@ -101,6 +101,8 @@ enum class ValueEnum : uint8_t
 
 using Operand=query::ValueT<ValueVariant,ValueEnum>;
 
+using FieldInfo=IndexFieldInfo;
+
 struct Field
 {
     template <typename T>
@@ -122,12 +124,12 @@ struct Field
         Assert(ok,"Invalid combination of operator and operand");
     }
 
-    const IndexFieldInfo* fieldInfo;
+    const FieldInfo* fieldInfo;
     Operator op;
     Operand value;
 };
 
-using Request=common::pmr::vector<query::Field>;
+using Request=common::pmr::vector<Field>;
 
 } // namespace update
 

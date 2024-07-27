@@ -510,6 +510,12 @@ class ValueT
             return common::lib::variantVisit(v,m_value);
         }
 
+        template <typename VisitorT>
+        Error handleValue(const VisitorT& v)
+        {
+            return common::lib::variantVisit(v,m_value);
+        }
+
         template <typename T>
         const T& as() const
         {

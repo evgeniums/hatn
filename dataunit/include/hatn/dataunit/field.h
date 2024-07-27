@@ -185,6 +185,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return m_array;
         }
 
+        virtual bool isFloatingPoint() const noexcept
+        {
+            return false;
+        }
+
+        virtual bool isUnsigned() const noexcept
+        {
+            return false;
+        }
+
     protected:
 
         //! Load field from wire
