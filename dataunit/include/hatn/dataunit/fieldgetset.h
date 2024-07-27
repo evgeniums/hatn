@@ -166,6 +166,7 @@ class FieldGetSet
         virtual void arrayResize(size_t size) {Assert(false,"Invalid operation for field of this type");std::ignore=size;}
         virtual void arrayReserve(size_t size) {Assert(false,"Invalid operation for field of this type");std::ignore=size;}
         virtual void arrayClear() {Assert(false,"Invalid operation for field of this type");}
+        virtual void arrayErase(size_t idx) {Assert(false,"Invalid operation for field of this type");std::ignore=idx;}
 
         virtual void arrayAdd(bool val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void arrayAdd(uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
@@ -217,6 +218,17 @@ class FieldGetSet
         virtual void arrayGet(size_t idx,common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayGet(size_t idx,common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayGet(size_t idx,common::DataBuf& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+
+        virtual void arrayInc(size_t idx,uint8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,uint16_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,uint32_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,uint64_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,int8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,int16_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,int32_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,int64_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,float val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayInc(size_t idx,double val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
 
         void arrayBufClear(size_t idx) {arrayBufResize(idx,0);}
         virtual void arrayBufResize(size_t idx,size_t size) {Assert(false,"Invalid operation for field of this type");std::ignore=idx;std::ignore=size;}

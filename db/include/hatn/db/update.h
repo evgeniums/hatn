@@ -80,7 +80,7 @@ namespace update
 
 using String=query::String;
 
-enum class Operator : uint32_t
+enum class Operator : uint8_t
 {
     set,
     unset,
@@ -89,7 +89,8 @@ enum class Operator : uint32_t
     pop,
     push_unique,
     replace_element,
-    erase_element
+    erase_element,
+    inc_element
 };
 
 using ValueVariant=lib::variant<
@@ -109,7 +110,7 @@ struct Field
 {
     template <typename T>
     Field(
-            const IndexFieldInfo& fieldInfo,
+            const FieldInfo& fieldInfo,
             Operator op,
             T&& value
         ) : fieldInfo(&fieldInfo),

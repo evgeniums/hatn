@@ -63,7 +63,7 @@ auto FieldVisitor(T1&& scalar, T2&& vector)
 
 struct HandleFieldT
 {
-    static dataunit::Field* getUnitField(dataunit::Unit* unit, const FieldInfo* fieldInfo, const std::vector<std::string>* path=nullptr)
+    static dataunit::Field* getUnitField(dataunit::Unit* unit, const FieldInfo* fieldInfo, size_t depth=0)
     {
         dataunit::Field* field{nullptr};
 
@@ -73,13 +73,12 @@ struct HandleFieldT
         }
         else
         {
-            if (path==nullptr)
-            {
-                path=&fieldInfo->path();
-            }
-
+            const auto* path=&fieldInfo->path();
             auto* u=unit;
-            auto depth=path->size();
+            if (depth==0)
+            {
+                depth=path->size();
+            }
             for (size_t i=0;i<depth;i++)
             {
                 if (field!=nullptr)
@@ -111,10 +110,67 @@ struct HandleFieldT
 
     void operator() (dataunit::Unit* unit, const Field& updateField) const
     {
-        //! @todo Add operations for repeated fields: replace vector element by index, erase vector element by index.
+        // special cases for operations on repeated fields: replace vector element by index, erase vector element by index, increment vector element by index
+        if (updateField.op==Operator::replace_element || updateField.op==Operator::erase_element || updateField.op==Operator::inc_element)
+        {
+            auto depth=updateField.fieldInfo->path().size();
+            Assert(depth>1,"Invalid field path for update operation");
+            auto* field=getUnitField(unit,updateField.fieldInfo,depth-1);
+            const auto& name=updateField.fieldInfo->path().back();
+            size_t idx=std::stoul(name);
 
+            switch (updateField.op)
+            {
+                case (Operator::replace_element):
+                {
+                    updateField.value.handleValue(
+                        [idx,&field](const auto& val)
+                        {
+                            field->arraySet(idx,val);
+                        });
+                }
+                break;
+
+                case (Operator::erase_element):
+                {
+                    field->arrayErase(idx);
+                }
+                break;
+
+                case (Operator::inc_element):
+                {
+                    updateField.value.handleValue(
+                        [&field](const auto& val)
+                        {
+                            using type=std::decay_t<decltype(val)>;
+                            hana::eval_if(
+                                std::is_arithmetic<type>{},
+                                [&](auto _)
+                                {
+                                    field->arrayInc(_(idx),_(val));
+                                },
+                                [&](auto )
+                                {
+                                    Assert(false,"Increment operation not applicable for this value type");
+                                }
+                            );
+                        });
+                }
+                break;
+
+                case (Operator::set):break;
+                case (Operator::unset):break;
+                case (Operator::inc):break;
+                case (Operator::push):break;
+                case (Operator::pop):break;
+                case (Operator::push_unique):break;
+            }
+
+            return;
+        }
+
+        // normal operations on the field
         auto* field=getUnitField(unit,updateField.fieldInfo);
-
         switch (updateField.op)
         {
             case (Operator::set):
@@ -211,6 +267,10 @@ struct HandleFieldT
                     });
             }
             break;
+
+            case (Operator::replace_element): break;
+            case (Operator::erase_element): break;
+            case (Operator::inc_element): break;
         }
     }
 };
