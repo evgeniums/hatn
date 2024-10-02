@@ -165,7 +165,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         std::shared_ptr<RocksdbPartition> defaultPartition;
         std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 
-        bool inTransaction;
+        std::unique_ptr<ROCKSDB_NAMESPACE::Transaction> transaction;
         mutable common::lib::shared_mutex partitionMutex;
 
         Result<std::shared_ptr<RocksdbPartition>> partition(uint32_t partitionKey) const noexcept

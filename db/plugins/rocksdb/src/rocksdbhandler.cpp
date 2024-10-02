@@ -35,8 +35,7 @@ RocksdbHandler_p::RocksdbHandler_p(
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb
     ) : db(db),
         transactionDb(transactionDb),
-        readOnly(transactionDb==nullptr),
-        inTransaction(false)
+        readOnly(transactionDb==nullptr)
 {}
 
 //---------------------------------------------------------------
@@ -67,7 +66,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
 {
     HATN_CTX_SCOPE("rocksdbtransaction")
 
-    if (d->inTransaction)
+    if (d->transaction)
     {
         if (relaxedIfInTransaction)
         {
@@ -77,18 +76,16 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
         return commonError(CommonError::UNSUPPORTED);
     }
 
-    auto tx=d->transactionDb->BeginTransaction(d->writeOptions,d->transactionOptions);
-    if (tx==nullptr)
+    d->transaction.reset(d->transactionDb->BeginTransaction(d->writeOptions,d->transactionOptions));
+    if (!d->transaction)
     {
         HATN_CTX_SCOPE_ERROR("begin-transaction")
         return dbError(DbError::TX_BEGIN_FAILED);
     }
-    d->inTransaction=true;
     auto ec=fn();
-    d->inTransaction=false;
     if (ec)
     {
-        auto status=tx->Rollback();
+        auto status=d->transaction->Rollback();
         if (!status.ok())
         {
             HATN_CTX_ERROR(makeError(DbError::TX_ROLLBACK_FAILED,status),"");
@@ -96,7 +93,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
     }
     else
     {
-        auto status=tx->Commit();
+        auto status=d->transaction->Commit();
         if (!status.ok())
         {
             setRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
