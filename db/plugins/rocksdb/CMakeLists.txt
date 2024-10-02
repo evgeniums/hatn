@@ -22,11 +22,13 @@ ENDMACRO(LINK_ROCKSDB)
 SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbschemadef.h
     include/hatn/db/plugins/rocksdb/rocksdberror.h
+    include/hatn/db/plugins/rocksdb/rocksdboperror.h
     include/hatn/db/plugins/rocksdb/rocksdbmodel.h
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
     include/hatn/db/plugins/rocksdb/saveuniquekey.h
     include/hatn/db/plugins/rocksdb/ttlmark.h
+    include/hatn/db/plugins/rocksdb/mergeupdate.h
 )
 
 SET(SCHEMA_DETAIL_HEADERS
@@ -43,15 +45,19 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/querypartitions.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp
+    # include/hatn/db/plugins/rocksdb/detail/updateobject.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp
+    include/hatn/db/plugins/rocksdb/detail/objectpartition.ipp
 )
 
 SET (SCHEMA_SOURCES
     src/rocksdbschema.cpp
     src/rocksdbhandler.cpp
     src/rocksdberror.cpp
+    src/rocksdboperror.cpp
     src/saveuniquekey.cpp
     src/ttlmark.cpp
+    src/mergeupdate.cpp
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})

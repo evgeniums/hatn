@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
+#include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -74,27 +75,14 @@ Error CreateObjectT<BufT>::operator ()(
         return dbError(DbError::DB_READ_ONLY);
     }
 
-    // handle partition
-    auto partitionR=hana::eval_if(
-        hana::bool_<modelType::isDatePartitioned()>{},
-        [&](auto _)
-        {
-            auto partitionRange=datePartition(*_(obj),_(model));
-            HATN_CTX_SCOPE_PUSH_("partition",partitionRange)
-            return std::make_pair(_(handler).partition(partitionRange),partitionRange);
-        },
-        [&](auto _)
-        {
-            return std::make_pair(_(handler).defaultPartition(),common::DateRange{});
-        }
-    );
-    const auto& partition=partitionR.first;
+    // eval partition
+    const auto partition=objectPartition(handler,model,obj);
     if (!partition)
     {
         HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
-    const auto& dateRange=partitionR.second;
+    const auto& dateRange=partition->range;
 
     // serialize object
     dataunit::WireBufSolid buf{allocatorFactory};

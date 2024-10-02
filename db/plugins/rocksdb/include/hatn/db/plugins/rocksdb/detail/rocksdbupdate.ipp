@@ -33,6 +33,7 @@
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
+#include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -72,49 +73,8 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     auto idDataStr=lib::string_view{idData.data(),idData.size()};
     HATN_CTX_SCOPE_PUSH("object",idDataStr)
 
-    // handle partition
-    //! @todo move to separate helper
-    auto partitionR=hana::eval_if(
-        hana::bool_<modelType::isDatePartitioned()>{},
-        [&](auto _)
-        {
-            using dateT=std::decay_t<decltype(_(date))>;
-            std::pair<std::shared_ptr<RocksdbPartition>,common::DateRange> r;
-            r.second=hana::eval_if(
-                std::is_same<dateT,hana::false_>{},
-                [&](auto _)
-                {
-                    // check if partition field is _id
-                    using modelType=std::decay_t<decltype(_(model))>;
-                    using eqT=std::is_same<
-                        std::decay_t<decltype(object::_id)>,
-                        std::decay_t<decltype(modelType::datePartitionField())>
-                        >;
-                    if constexpr (eqT::value)
-                    {
-                        return datePartition(_(objectId),_(model));
-                    }
-                    else
-                    {
-                        Assert(eqT::value,"Object ID must be a date partition index field");
-                        return HATN_COMMON_NAMESPACE::DateRange{};
-                    }
-                },
-                [&](auto _)
-                {
-                    return datePartition(_(date),_(model));
-                }
-                );
-            HATN_CTX_SCOPE_PUSH_("partition",r.second)
-            r.first=_(handler).partition(r.second);
-            return r;
-        },
-        [&](auto _)
-        {
-            return std::make_pair(_(handler).defaultPartition(),common::DateRange{});
-        }
-    );
-    const auto& partition=partitionR.first;
+    // eval partition
+    const auto partition=objectPartition(handler,model,objectId,date);
     if (!partition)
     {
         HATN_CTX_SCOPE_ERROR("find-partition");
