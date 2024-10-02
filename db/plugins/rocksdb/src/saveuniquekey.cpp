@@ -18,33 +18,13 @@
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
+#include <hatn/db/plugins/rocksdb/rocksdboperror.h>
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace {
 static thread_local Error Ec;
-}
-
-//---------------------------------------------------------------
-
-const Error& RocksdbOpError::ec()
-{
-    return Ec;
-}
-
-//---------------------------------------------------------------
-
-void RocksdbOpError::setEc(const Error& ec)
-{
-    Ec=ec;
-}
-
-//---------------------------------------------------------------
-
-void RocksdbOpError::resetEc()
-{
-    Ec.reset();
 }
 
 //---------------------------------------------------------------
