@@ -276,7 +276,7 @@ struct HandleFieldT
 };
 constexpr HandleFieldT HandleField{};
 
-struct HandleRequestT
+struct ApplyRequestT
 {
     void operator() (dataunit::Unit* unit, const Request& request) const
     {
@@ -286,7 +286,7 @@ struct HandleRequestT
         }
     }
 };
-constexpr HandleRequestT HandleRequest{};
+constexpr ApplyRequestT ApplyRequest{};
 
 } // namespace update
 
