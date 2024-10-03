@@ -324,7 +324,7 @@ struct RepeatedGetterSetter<Type,
         return array[idx].buf()->size();
     }
     template <typename ArrayT>
-    constexpr static size_t bufGet(const ArrayT& array,size_t idx, common::DataBuf& result)
+    constexpr static void bufGet(const ArrayT& array,size_t idx, common::DataBuf& result)
     {
         const auto* buf=array[idx].buf();
         result.set(*buf);
@@ -918,18 +918,18 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayAdd(const common::Date& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
     virtual void arrayAdd(const common::Time& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
     virtual void arrayAdd(const common::DateRange& val) override {RepeatedGetterSetter<Type>::addVal(vector,val);}
-    virtual void arrayAdd(const common::ConstDataBuf& val) {RepeatedGetterSetter<Type>::bufAddValue(this,val.data(),val.size());}
+    virtual void arrayAdd(const common::ConstDataBuf& val) override {RepeatedGetterSetter<Type>::bufAddValue(this,val.data(),val.size());}
 
-    virtual void arrayInc(size_t idx,uint8_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,uint16_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,uint32_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,uint64_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,int8_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,int16_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,int32_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,int64_t val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,float val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
-    virtual void arrayInc(size_t idx,double val) const {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,uint8_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,uint16_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,uint32_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,uint64_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,int8_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,int16_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,int32_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,int64_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,float val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+    virtual void arrayInc(size_t idx,double val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
 
     virtual void arrayBufResize(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufResize(vector,idx,size);}
     virtual void arrayBufReserve(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufReserve(vector,idx,size);}

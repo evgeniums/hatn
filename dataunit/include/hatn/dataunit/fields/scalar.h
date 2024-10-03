@@ -338,16 +338,16 @@ class Scalar : public Field
         virtual void getV(float& val) const override {getVal(val);}
         virtual void getV(double& val) const override {getVal(val);}
 
-        virtual void incV(uint8_t val) const {incVal(val);}
-        virtual void incV(uint16_t val) const {incVal(val);}
-        virtual void incV(uint32_t val) const {incVal(val);}
-        virtual void incV(uint64_t val) const {incVal(val);}
-        virtual void incV(int8_t val) const {incVal(val);}
-        virtual void incV(int16_t val) const {incVal(val);}
-        virtual void incV(int32_t val) const {incVal(val);}
-        virtual void incV(int64_t val) const {incVal(val);}
-        virtual void incV(float val) const {incVal(val);}
-        virtual void incV(double val) const {incVal(val);}
+        virtual void incV(uint8_t val) override {incVal(val);}
+        virtual void incV(uint16_t val) override {incVal(val);}
+        virtual void incV(uint32_t val) override {incVal(val);}
+        virtual void incV(uint64_t val) override {incVal(val);}
+        virtual void incV(int8_t val) override {incVal(val);}
+        virtual void incV(int16_t val) override {incVal(val);}
+        virtual void incV(int32_t val) override {incVal(val);}
+        virtual void incV(int64_t val) override {incVal(val);}
+        virtual void incV(float val) override {incVal(val);}
+        virtual void incV(double val) override {incVal(val);}
 
 
         virtual bool isFloatingPoint() const noexcept override
