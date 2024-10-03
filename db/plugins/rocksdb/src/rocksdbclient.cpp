@@ -276,6 +276,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     // create handler
     d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
     d->handler->p()->collColumnFamilyOptions=collCfOptions;
+    //! @todo Set SaveUniqueKey as merge operator for unique indexes
     d->handler->p()->indexColumnFamilyOptions=indexCfOptions;
     d->handler->p()->ttlColumnFamilyOptions=ttlCfOptions;
     //! @todo set other options
@@ -517,7 +518,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object)
+Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbcreate")
 
@@ -526,7 +527,7 @@ Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, d
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->createObject(*d->handler,ns,object);
+    return rdbModel->createObject(*d->handler,ns,object,tx);
 }
 
 //---------------------------------------------------------------
@@ -577,7 +578,8 @@ Error RocksdbClient::doDeleteObject(
         const Namespace &ns,
         const ModelInfo &model,
         const ObjectId &id,
-        const common::Date& date
+        const common::Date& date,
+        Transaction* tx
     )
 {
     HATN_CTX_SCOPE("rocksdbdelete")
@@ -587,7 +589,7 @@ Error RocksdbClient::doDeleteObject(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteObjectWithDate(*d->handler,ns,id,date);
+    return rdbModel->deleteObjectWithDate(*d->handler,ns,id,date,tx);
 }
 
 //---------------------------------------------------------------
@@ -595,7 +597,8 @@ Error RocksdbClient::doDeleteObject(
 Error RocksdbClient::doDeleteObject(
         const Namespace &ns,
         const ModelInfo &model,
-        const ObjectId &id
+        const ObjectId &id,
+        Transaction* tx
     )
 {
     HATN_CTX_SCOPE("rocksdbdelete")
@@ -605,7 +608,7 @@ Error RocksdbClient::doDeleteObject(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteObject(*d->handler,ns,id);
+    return rdbModel->deleteObject(*d->handler,ns,id,tx);
 }
 
 //---------------------------------------------------------------
@@ -617,7 +620,10 @@ Error RocksdbClient::doTransaction(const TransactionFn &fn)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doDeleteMany(const Namespace &, const ModelInfo &model, IndexQuery &query)
+Error RocksdbClient::doDeleteMany(const Namespace &,
+                                  const ModelInfo &model,
+                                  IndexQuery &query,
+                                  Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbdeletemany")
 
@@ -626,26 +632,39 @@ Error RocksdbClient::doDeleteMany(const Namespace &, const ModelInfo &model, Ind
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteMany(*d->handler,query);
+    return rdbModel->deleteMany(*d->handler,query,tx);
 }
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Namespace &ns, const ModelInfo &model, const update::Request &request, const ObjectId &id, const common::Date &date)
+Error RocksdbClient::doUpdateObject(const Namespace &ns,
+                                    const ModelInfo &model,
+                                    const update::Request &request,
+                                    const ObjectId &id,
+                                    const common::Date &date,
+                                    Transaction* tx)
 {
     return CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Namespace &ns, const ModelInfo &model, const update::Request &request, const ObjectId &id)
+Error RocksdbClient::doUpdateObject(const Namespace &ns,
+                                    const ModelInfo &model,
+                                    const update::Request &request,
+                                    const ObjectId &id,
+                                    Transaction* tx)
 {
     return CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateMany(const Namespace &, const ModelInfo &model, IndexQuery &query, const update::Request& request)
+Error RocksdbClient::doUpdateMany(const Namespace &,
+                                  const ModelInfo &model,
+                                  IndexQuery &query,
+                                  const update::Request& request,
+                                  Transaction* tx)
 {
     return CommonError::NOT_IMPLEMENTED;
 }

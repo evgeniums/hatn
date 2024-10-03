@@ -26,6 +26,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
 #include <hatn/db/namespace.h>
+#include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
@@ -52,7 +53,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
             return d.get();
         }
 
-        Error transaction(const TransactionFn& fn, bool relaxedIfInTransaction=false);
+        Error transaction(const TransactionFn& fn, Transaction* tx=nullptr, bool relaxedIfInTransaction=false);
 
         Result<std::shared_ptr<RocksdbPartition>> createPartition(const common::DateRange& range=common::DateRange{});
 

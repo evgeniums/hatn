@@ -27,6 +27,7 @@
 #include <hatn/db/namespace.h>
 #include <hatn/db/model.h>
 #include <hatn/db/indexquery.h>
+#include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
@@ -50,7 +51,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
         std::function<Error (
             RocksdbHandler& handler,
             const Namespace& ns,
-            const dataunit::Unit* object)> createObject;
+            const dataunit::Unit* object,
+            Transaction* tx
+            )> createObject;
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
@@ -71,18 +74,21 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
         std::function<Error (
             RocksdbHandler& handler,
             const Namespace& ns,
-            const ObjectId& objectId)> deleteObject;
+            const ObjectId& objectId,
+            Transaction* tx)> deleteObject;
 
         std::function<Error (
             RocksdbHandler& handler,
             const Namespace& ns,
             const ObjectId& objectId,
-            const HATN_COMMON_NAMESPACE::Date& date
+            const HATN_COMMON_NAMESPACE::Date& date,
+            Transaction* tx
             )> deleteObjectWithDate;
 
         std::function<Error (
             RocksdbHandler& handler,
-            IndexQuery& query
+            IndexQuery& query,
+            Transaction* tx
             )> deleteMany;
 
     private:

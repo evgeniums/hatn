@@ -23,6 +23,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -62,30 +63,34 @@ RocksdbHandler::~RocksdbHandler()
 
 //---------------------------------------------------------------
 
-Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTransaction)
+Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool relaxedIfInTransaction)
 {
     HATN_CTX_SCOPE("rocksdbtransaction")
 
-    if (d->transaction)
+    // check for nested transaction
+    if (tx!=nullptr)
     {
         if (relaxedIfInTransaction)
         {
-            return fn();
+            return fn(tx);
         }
         Assert(false,"Nested transactions not allowed");
         return commonError(CommonError::UNSUPPORTED);
     }
 
-    d->transaction.reset(d->transactionDb->BeginTransaction(d->writeOptions,d->transactionOptions));
-    if (!d->transaction)
+    // create rocksdb tx
+    RocksdbTransaction rocksdbTx{this};
+    if (!rocksdbTx.m_native)
     {
         HATN_CTX_SCOPE_ERROR("begin-transaction")
         return dbError(DbError::TX_BEGIN_FAILED);
     }
-    auto ec=fn();
+
+    // invoke transaction
+    auto ec=fn(&rocksdbTx);
     if (ec)
     {
-        auto status=d->transaction->Rollback();
+        auto status=rocksdbTx.m_native->Rollback();
         if (!status.ok())
         {
             HATN_CTX_ERROR(makeError(DbError::TX_ROLLBACK_FAILED,status),"");
@@ -93,7 +98,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, bool relaxedIfInTrans
     }
     else
     {
-        auto status=d->transaction->Commit();
+        auto status=rocksdbTx.m_native->Commit();
         if (!status.ok())
         {
             setRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);

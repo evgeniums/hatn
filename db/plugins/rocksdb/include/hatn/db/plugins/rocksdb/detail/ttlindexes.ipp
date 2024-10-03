@@ -66,10 +66,10 @@ struct TtlIndexes
         return ttlT{};
     }
 
-    static void putTtlToBatch(
+    static void putTtlToTransaction(
         Error&,
         dataunit::WireBufSolid&,
-        ROCKSDB_NAMESPACE::WriteBatch&,
+        ROCKSDB_NAMESPACE::Transaction*,
         const ttlT&,
         const std::shared_ptr<RocksdbPartition>&,
         const ROCKSDB_NAMESPACE::Slice&,
@@ -90,10 +90,10 @@ struct TtlIndexes
         return IndexKeyHandlerFn{};
     }
 
-    static void deleteTtlWithBatch(
+    static void deleteTtlWithTransaction(
             Error&,
-            ROCKSDB_NAMESPACE::WriteBatch&,
-            RocksdbPartition* partition,
+            ROCKSDB_NAMESPACE::Transaction*,
+            RocksdbPartition*,
             const ROCKSDB_NAMESPACE::Slice&,
             const ROCKSDB_NAMESPACE::Slice&
         )
@@ -136,10 +136,10 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         ttlIndex.field(ttl_index::topic).set(model.canBeTopic());
     }
 
-    static void putTtlToBatch(
+    static void putTtlToTransaction(
             Error& ec,
             dataunit::WireBufSolid& buf,
-            ROCKSDB_NAMESPACE::WriteBatch& batch,
+            ROCKSDB_NAMESPACE::Transaction* tx,
             const ttl_index::type& ttlIndex,
             const std::shared_ptr<RocksdbPartition>& partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
@@ -156,23 +156,23 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         }
         else
         {
-            // put to batch
+            // put to transaction
             std::array<ROCKSDB_NAMESPACE::Slice,2> keyParts{ttlMark,objectIdSlice};
             ROCKSDB_NAMESPACE::SliceParts keySlices{&keyParts[0],static_cast<int>(keyParts.size())};
             ROCKSDB_NAMESPACE::Slice valueSlice{buf.mainContainer()->data(),buf.mainContainer()->size()};
             ROCKSDB_NAMESPACE::SliceParts valueSlices{&valueSlice,1};
-            auto status=batch.Put(partition->ttlCf.get(),keySlices,valueSlices);
+            auto status=tx->Put(partition->ttlCf.get(),keySlices,valueSlices);
             if (!status.ok())
             {
-                HATN_CTX_SCOPE_ERROR("batch-ttl-index");
+                HATN_CTX_SCOPE_ERROR("tx-ttl-index");
                 setRocksdbError(ec,DbError::SAVE_TTL_INDEX_FAILED,status);
             }
         }
     }
 
-    static void deleteTtlWithBatch(
+    static void deleteTtlWithTransaction(
             Error& ec,
-            ROCKSDB_NAMESPACE::WriteBatch& batch,
+            ROCKSDB_NAMESPACE::Transaction* tx,
             RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
             const ROCKSDB_NAMESPACE::Slice& ttlMark
@@ -180,10 +180,10 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
     {
         std::array<ROCKSDB_NAMESPACE::Slice,2> keyParts{ttlMark,objectIdSlice};
         ROCKSDB_NAMESPACE::SliceParts keySlices{&keyParts[0],static_cast<int>(keyParts.size())};
-        auto status=batch.Delete(partition->ttlCf.get(),keySlices);
+        auto status=tx->Delete(partition->ttlCf.get(),keySlices);
         if (!status.ok())
         {
-            HATN_CTX_SCOPE_ERROR("batch-ttl-index");
+            HATN_CTX_SCOPE_ERROR("tx-ttl-index");
             setRocksdbError(ec,DbError::DELETE_TTL_INDEX_FAILED,status);
         }
     }

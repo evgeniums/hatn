@@ -59,7 +59,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
         Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
 
-        Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object) override;
+        Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
         Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id) override;
         Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date) override;
@@ -73,16 +73,19 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doDeleteObject(const Namespace& ns,
                              const ModelInfo& model,
                              const ObjectId& id,
-                             const common::Date& date) override;
+                             const common::Date& date,
+                             Transaction* tx) override;
 
         Error doDeleteObject(const Namespace& ns,
                              const ModelInfo& model,
-                             const ObjectId& id) override;
+                             const ObjectId& id,
+                             Transaction* tx) override;
 
         Error doDeleteMany(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query
+            IndexQuery& query,
+            Transaction* tx
             ) override;
 
         Error doTransaction(const TransactionFn& fn) override;
@@ -91,18 +94,21 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                        const ModelInfo& model,
                        const update::Request& request,
                        const ObjectId& id,
-                       const common::Date& date) override;
+                       const common::Date& date,
+                       Transaction* tx) override;
 
         Error doUpdateObject(const Namespace& ns,
                        const ModelInfo& model,
                        const update::Request& request,
-                       const ObjectId& id) override;
+                       const ObjectId& id,
+                       Transaction* tx) override;
 
         Error doUpdateMany(
             const Namespace& ns,
             const ModelInfo& model,
             IndexQuery& query,
-            const update::Request& request
+            const update::Request& request,
+            Transaction* tx
         ) override;
 
     private:

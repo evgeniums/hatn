@@ -32,11 +32,16 @@
 #include <hatn/common/flatmap.h>
 
 #include <hatn/db/dberror.h>
+#include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
-HATN_ROCKSDB_NAMESPACE_BEGIN    
+HATN_ROCKSDB_NAMESPACE_BEGIN
+
+/********************** RocksdbPartition **************************/
+
+//---------------------------------------------------------------
 
 struct RocksdbPartition
 {
@@ -95,6 +100,8 @@ struct RocksdbPartition
     }
 };
 
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END
 
 namespace std
@@ -132,6 +139,10 @@ struct less<shared_ptr<HATN_ROCKSDB_NAMESPACE::RocksdbPartition>>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+/********************** RocksdbHandler_p **************************/
+
+//---------------------------------------------------------------
+
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 {
     public:
@@ -165,7 +176,6 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         std::shared_ptr<RocksdbPartition> defaultPartition;
         std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 
-        std::unique_ptr<ROCKSDB_NAMESPACE::Transaction> transaction;
         mutable common::lib::shared_mutex partitionMutex;
 
         Result<std::shared_ptr<RocksdbPartition>> partition(uint32_t partitionKey) const noexcept
@@ -180,6 +190,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
             return *it;
         }
 };
+
+//---------------------------------------------------------------
 
 HATN_ROCKSDB_NAMESPACE_END
 

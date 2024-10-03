@@ -20,7 +20,7 @@
 #define HATNROCKSDBINDEXES_IPP
 
 #include <rocksdb/db.h>
-#include <rocksdb/merge_operator.h>
+#include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/common/format.h>
 #include <hatn/common/meta/errorpredicate.h>
@@ -58,7 +58,7 @@ class Indexes
         template <typename IndexT, typename UnitT>
         Error saveIndex(
             const IndexT& idx,
-            ROCKSDB_NAMESPACE::WriteBatch& batch,
+            ROCKSDB_NAMESPACE::Transaction* tx,
             const Namespace& ns,
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const ROCKSDB_NAMESPACE::SliceParts& indexValue,
@@ -76,7 +76,7 @@ class Indexes
 
                    ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
-                   // put index to batch
+                   // put index to transaction
                    bool put=true;
                    if constexpr (std::decay_t<IndexT>::unique())
                    {
@@ -84,13 +84,17 @@ class Indexes
                        {
                            HATN_CTX_SCOPE_PUSH("idx_op","merge");
                            put=false;
-                           status=batch.Merge(m_cf,keySlices,indexValue);
+                           std::string bufk;
+                           ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
+                           std::string bufv;
+                           ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
+                           status=tx->Merge(m_cf,k,v);
                        }
                    }
                    if (put)
                    {
                        HATN_CTX_SCOPE_PUSH("idx_op","put");
-                       status=batch.Put(m_cf,keySlices,indexValue);
+                       status=tx->Put(m_cf,keySlices,indexValue);
                    }
                    if (!status.ok())
                    {
@@ -111,7 +115,7 @@ class Indexes
 
         template <typename ModelT, typename UnitT>
         Error saveIndexes(
-                ROCKSDB_NAMESPACE::WriteBatch& batch,
+                ROCKSDB_NAMESPACE::Transaction* tx,
                 const ModelT& model,
                 const Namespace& ns,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
@@ -125,7 +129,7 @@ class Indexes
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                return saveIndex(idx,batch,ns,objectId,indexValue,object,keyCallback,replace);
+                return saveIndex(idx,tx,ns,objectId,indexValue,object,keyCallback,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }
@@ -133,7 +137,7 @@ class Indexes
         template <typename IndexT, typename UnitT>
         Error deleteIndex(
                 const IndexT& idx,
-                ROCKSDB_NAMESPACE::WriteBatch& batch,
+                ROCKSDB_NAMESPACE::Transaction* tx,
                 const lib::string_view& topic,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
                 UnitT* object
@@ -147,8 +151,8 @@ class Indexes
 
                                            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
-                                           // put index to batch
-                                           auto status=batch.Delete(m_cf,keySlices);
+                                           // put index to transaction
+                                           auto status=tx->Delete(m_cf,keySlices);
                                            if (!status.ok())
                                            {
                                                HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
@@ -162,7 +166,7 @@ class Indexes
 
         template <typename ModelT, typename UnitT>
         Error deleteIndexes(
-                ROCKSDB_NAMESPACE::WriteBatch& batch,
+                ROCKSDB_NAMESPACE::Transaction* tx,
                 const ModelT& model,
                 const lib::string_view& topic,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
@@ -173,7 +177,7 @@ class Indexes
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                return deleteIndex(idx,batch,topic,objectId,object);
+                return deleteIndex(idx,tx,topic,objectId,object);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

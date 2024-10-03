@@ -28,6 +28,7 @@
 
 #include <hatn/db/dberror.h>
 #include <hatn/db/namespace.h>
+#include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -37,6 +38,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -48,7 +50,8 @@ struct CreateObjectT
                      RocksdbHandler& handler,
                      const Namespace& ns,
                      const typename ModelT::UnitType::type* obj,
-                     AllocatorFactory* allocatorFactory
+                     AllocatorFactory* allocatorFactory,
+                     Transaction* tx
                      ) const;
 };
 template <typename BufT>
@@ -61,7 +64,8 @@ Error CreateObjectT<BufT>::operator ()(
                                RocksdbHandler& handler,
                                const Namespace& ns,
                                const typename ModelT::UnitType::type* obj,
-                               AllocatorFactory* allocatorFactory
+                               AllocatorFactory* allocatorFactory,
+                               Transaction* tx
                               ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -102,20 +106,19 @@ Error CreateObjectT<BufT>::operator ()(
     }
 
     // transaction fn
-    auto transactionFn=[&]()
+    auto transactionFn=[&](Transaction* tx)
     {
-        auto rdb=handler.p()->transactionDb;
+        auto rdbTx=RocksdbTransaction::native(tx);
         auto objectId=obj->field(object::_id).value().toArray();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // prepare
-        ROCKSDB_NAMESPACE::WriteBatch batch;
         Keys<BufT> keys{allocatorFactory->bytesAllocator()};
         TtlMark::refreshCurrentTimepoint();
         TtlMark ttlMarkObj{model,obj};
         auto ttlMark=ttlMarkObj.slice();
 
-        // put serialized object to batch
+        // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
         auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
@@ -124,7 +127,7 @@ Error CreateObjectT<BufT>::operator ()(
             ttlMark
         };
         ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
-        auto status=batch.Put(partition->collectionCf.get(),objectKeySlices,objectValueSlices);
+        auto status=rdbTx->Put(partition->collectionCf.get(),objectKeySlices,objectValueSlices);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("batch-object");
@@ -140,35 +143,21 @@ Error CreateObjectT<BufT>::operator ()(
         // put indexes to batch
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(batch,model,ns,objectIdS,indexValueSlices,obj,
+        auto ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj,
                                     ttlIndexesT::makeIndexKeyCb(ttlIndex)
         );
         HATN_CHECK_EC(ec)
 
-        // put ttl index to batch
-        ttlIndexesT::putTtlToBatch(ec,buf,batch,ttlIndex,partition,objectIdS,ttlMark);
+        // put ttl index to transaction
+        ttlIndexesT::putTtlToTransaction(ec,buf,rdbTx,ttlIndex,partition,objectIdS,ttlMark);
         HATN_CHECK_EC(ec)
-
-        // write batch to rocksdb
-        status=rdb->Write(handler.p()->writeOptions,&batch);
-        if (!status.ok())
-        {
-            HATN_CTX_SCOPE_ERROR("write-batch");
-            ec=makeError(DbError::WRITE_OBJECT_FAILED,status);
-            if (RocksdbOpError::ec())
-            {
-                auto prevEc=RocksdbOpError::ec();
-                ec.setPrevError(std::move(prevEc));
-            }
-            return ec;
-        }
 
         // done
         return Error{OK};
     };
 
     // invoke transaction
-    return handler.transaction(transactionFn,true);
+    return handler.transaction(transactionFn,tx,true);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

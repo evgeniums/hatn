@@ -29,12 +29,12 @@
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename ModelT, typename ObjectDateT, typename DateT=hana::false_>
-HATN_COMMON_NAMESPACE::DateRange objectPartition(
+std::shared_ptr<RocksdbPartition> objectPartition(
         RocksdbHandler& handler,
         const ModelT& model,
         const ObjectDateT& objectId,
         const DateT& date=DateT{}
-    ) const
+    )
 {
     using modelType=std::decay_t<ModelT>;
 
@@ -69,7 +69,7 @@ HATN_COMMON_NAMESPACE::DateRange objectPartition(
                     return datePartition(_(date),_(model));
                 }
                 );
-            HATN_CTX_SCOPE_PUSH_("partition",r.second)
+            HATN_CTX_SCOPE_PUSH("partition",r.second)
             r.first=_(handler).partition(r.second);
             return r;
         },

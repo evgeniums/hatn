@@ -40,6 +40,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -54,7 +55,8 @@ struct DeleteObjectT
             const lib::string_view& topic,
             const ROCKSDB_NAMESPACE::Slice& objectKey,
             Keys<BufT>& keys,
-            ttlIndexesT& ttlIndexes
+            ttlIndexesT& ttlIndexes,
+            Transaction* tx
         ) const
     {
         using modelType=std::decay_t<ModelT>;
@@ -65,9 +67,9 @@ struct DeleteObjectT
         HATN_CTX_SCOPE_PUSH("topic",topic)
 
         // read object from db
-        auto rdb=handler.p()->transactionDb;
+        auto rdbTx=RocksdbTransaction::native(tx);
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-        auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
+        auto status=rdbTx->Get(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
         if (!status.ok())
         {
             if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
@@ -93,33 +95,24 @@ struct DeleteObjectT
         auto objectId=unit.field(object::_id).value().toArray();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
-        // prepare batch
-        ROCKSDB_NAMESPACE::WriteBatch batch;
-        status=batch.Delete(partition->collectionCf.get(),objectKey);
+        // delete object
+        status=rdbTx->Delete(partition->collectionCf.get(),objectKey);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("delete-object");
             return makeError(DbError::DELETE_OBJECT_FAILED,status);
         }
 
-        // append index deletions to batch
+        // append index deletions to transaction
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        ec=indexes.deleteIndexes(batch,model,topic,objectIdS,&unit);
+        ec=indexes.deleteIndexes(rdbTx,model,topic,objectIdS,&unit);
         HATN_CHECK_EC(ec)
 
-        // append ttl index deletion to batch
+        // append ttl index deletion to transaction
         TtlMark ttlMarkObj{model,&unit};
         auto ttlMark=ttlMarkObj.slice();
-        ttlIndexes.deleteTtlWithBatch(ec,batch,partition,objectIdS,ttlMark);
+        ttlIndexes.deleteTtlWithTransaction(ec,rdbTx,partition,objectIdS,ttlMark);
         HATN_CHECK_EC(ec)
-
-        // write batch to rocksdb
-        status=rdb->Write(handler.p()->writeOptions,&batch);
-        if (!status.ok())
-        {
-            HATN_CTX_SCOPE_ERROR("write-batch");
-            return makeError(DbError::DELETE_OBJECT_FAILED,status);
-        }
 
         // done
         return OK;
@@ -131,7 +124,8 @@ struct DeleteObjectT
                       const Namespace& ns,
                       const ObjectId& objectId,
                       const DateT& date,
-                      AllocatorFactory* allocatorFactory) const;
+                      AllocatorFactory* allocatorFactory,
+                      Transaction* tx) const;
 };
 template <typename BufT>
 constexpr DeleteObjectT<BufT> DeleteObject{};
@@ -144,7 +138,8 @@ Error DeleteObjectT<BufT>::operator ()(
         const Namespace& ns,
         const ObjectId& objectId,
         const DateT& date,
-        AllocatorFactory* factory
+        AllocatorFactory* factory,
+        Transaction* tx
     ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -174,13 +169,13 @@ Error DeleteObjectT<BufT>::operator ()(
     static ttlIndexesT ttlIndexes{};
 
     // transaction fn
-    auto transactionFn=[&]()
+    auto transactionFn=[&](Transaction* tx)
     {
-        return doDelete(model,handler,partition.get(),ns.topic(),key,keys,ttlIndexes);
+        return doDelete(model,handler,partition.get(),ns.topic(),key,keys,ttlIndexes,tx);
     };
 
     // invoke transaction
-    return handler.transaction(transactionFn,true);
+    return handler.transaction(transactionFn,tx,true);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

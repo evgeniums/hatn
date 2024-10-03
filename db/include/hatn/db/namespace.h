@@ -21,8 +21,6 @@
 #ifndef HATNDBNAMESPACE_H
 #define HATNDBNAMESPACE_H
 
-#include <functional>
-
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/flatmap.h>
@@ -55,8 +53,6 @@ class Namespace
 
 using Topic=common::pmr::string;
 using Topics=common::pmr::FlatSet<Topic>;
-
-using TransactionFn=std::function<Error ()>;
 
 HATN_DB_NAMESPACE_END
 

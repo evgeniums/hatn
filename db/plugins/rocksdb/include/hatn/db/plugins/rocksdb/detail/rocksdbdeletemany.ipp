@@ -52,7 +52,8 @@ struct DeleteManyT
         const ModelT& model,
         RocksdbHandler& handler,
         IndexQuery& query,
-        AllocatorFactory* allocatorFactory
+        AllocatorFactory* allocatorFactory,
+        Transaction* tx
     ) const;
 };
 template <typename BufT>
@@ -64,7 +65,8 @@ Error DeleteManyT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         IndexQuery& idxQuery,
-        AllocatorFactory* allocatorFactory
+        AllocatorFactory* allocatorFactory,
+        Transaction* tx
     ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -87,14 +89,14 @@ Error DeleteManyT<BufT>::operator ()(
     static ttlIndexesT ttlIndexes{};
 
     // callback on each key that deletes object with indexes
-    auto keyCallback=[&model,&handler,&keys](RocksdbPartition* partition,
+    auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
                                                 const lib::string_view& topic,
                                                 ROCKSDB_NAMESPACE::Slice* key,
                                                 ROCKSDB_NAMESPACE::Slice*,
                                                 Error& ec
                                             )
     {
-        ec=DeleteObject<BufT>.doDelete(model,handler,partition,topic,*key,keys,ttlIndexes);
+        ec=DeleteObject<BufT>.doDelete(model,handler,partition,topic,*key,keys,ttlIndexes,tx);
         return !ec;
     };
 

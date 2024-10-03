@@ -23,6 +23,8 @@
 
 #include <hatn/common/sharedptr.h>
 
+#include <hatn/db/transaction.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
@@ -51,10 +53,10 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         static typename unitT::type sample;
 
         rdbModel->createObject=[model,allocatorFactory]
-            (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object)
+            (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object, Transaction* tx)
         {
             const auto* obj=sample.castToUnit(object);
-            return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory);
+            return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory,tx);
         };
 
         rdbModel->readObject=[model,allocatorFactory]
@@ -101,10 +103,11 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             (
                 RocksdbHandler& handler,
                 const Namespace& ns,
-                const ObjectId& objectId
+                const ObjectId& objectId,
+                Transaction* tx
             )
         {
-            return DeleteObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory);
+            return DeleteObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx);
         };
 
         rdbModel->deleteObjectWithDate=[model,allocatorFactory]
@@ -112,19 +115,21 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 RocksdbHandler& handler,
                 const Namespace& ns,
                 const ObjectId& objectId,
-                const HATN_COMMON_NAMESPACE::Date& date
+                const HATN_COMMON_NAMESPACE::Date& date,
+                Transaction* tx
             )
         {
-            return DeleteObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory);
+            return DeleteObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory,tx);
         };
 
         rdbModel->deleteMany=[model,allocatorFactory]
             (
                 RocksdbHandler& handler,
-                IndexQuery& query
+                IndexQuery& query,
+                Transaction* tx
             )
         {
-            return DeleteMany<BufT>(model->model,handler,query,allocatorFactory);
+            return DeleteMany<BufT>(model->model,handler,query,allocatorFactory,tx);
         };
 
         rdbSchema->addModel(std::move(rdbModel));
