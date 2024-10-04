@@ -31,6 +31,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbclient.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
+#include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 HATN_DB_USING
@@ -183,6 +184,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
+    indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
+
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     options.create_if_missing = createIfMissing;
 
@@ -276,10 +279,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     // create handler
     d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
     d->handler->p()->collColumnFamilyOptions=collCfOptions;
-    //! @todo Set SaveUniqueKey as merge operator for unique indexes
     d->handler->p()->indexColumnFamilyOptions=indexCfOptions;
     d->handler->p()->ttlColumnFamilyOptions=ttlCfOptions;
-    //! @todo set other options
 
     // fill partitions
     std::set<size_t> cfIndexes;
