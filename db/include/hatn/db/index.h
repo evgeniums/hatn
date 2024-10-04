@@ -80,9 +80,14 @@ struct NestedField
         static std::string str=fillName();
         return str;
     }
+
+    constexpr static int id()
+    {
+        return -1;
+    }
 };
 
-struct nestedIndexFieldT
+struct nestedFieldT
 {
     template <typename ...PathT>
     constexpr auto operator()(PathT ...path) const
@@ -90,7 +95,7 @@ struct nestedIndexFieldT
         return NestedField<decltype(hana::make_tuple(path...))>{};
     }
 };
-constexpr nestedIndexFieldT nestedIndexField{};
+constexpr nestedFieldT nestedField{};
 
 struct AutoSizeTag{};
 
@@ -148,6 +153,11 @@ struct IndexField
     static auto name()
     {
         return std::decay_t<field_type>::name();
+    }
+
+    static auto id()
+    {
+        return std::decay_t<field_type>::id();
     }
 };
 
@@ -478,15 +488,33 @@ class IndexInfo : public IndexBase
 
         template <typename IndexT>
         IndexInfo(
-                    const IndexT& idx
-                  ) : IndexInfo(idx,idx.isDatePartitioned(),idx.unique(),idx.ttl())
-        {}
+                const IndexT& idx
+            ) : IndexInfo(idx,idx.isDatePartitioned(),idx.unique(),idx.ttl())
+        {
+            auto eachField=[this](const auto& field)
+            {
+                bool nullable=hana::eval_if(
+                    hana::is_a<IndexFieldTag,decltype(field)>,
+                    [&](auto _)
+                    {
+                        return _(field).nullable();
+                    },
+                    [&](auto _)
+                    {
+                        return false;
+                    }
+                );
+                auto f=IndexFieldInfo{field.name(),field.id(),nullable};
+                m_fields.push_back(std::move(f));
+            };
+            hana::for_each(idx.fields,eachField);
+        }
 
         IndexInfo(
-              const IndexBase& base,
-              bool datePartitioned=false,
-              bool unique=false,
-              uint32_t ttl=0
+                const IndexBase& base,
+                bool datePartitioned,
+                bool unique,
+                uint32_t ttl
             ) : IndexBase(base),
                 m_datePartitioned(datePartitioned),
                 m_unique(unique),

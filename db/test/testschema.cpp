@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
 {
     ModelRegistry::free();
 
-    auto nestedField1=nestedIndexField(nu1::nf1,n1::f1);
+    auto nestedField1=nestedField(nu1::nf1,n1::f1);
 
     constexpr auto isField=hana::or_(hana::is_a<FieldTag,decltype(nestedField1)>,hana::is_a<NestedFieldTag,decltype(nestedField1)>);
     static_assert(decltype(isField)::value,"");

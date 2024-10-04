@@ -159,6 +159,7 @@ class Indexes
                                                return makeError(DbError::DELETE_INDEX_FAILED,status);
                                            }
 
+                                           // done
                                            return Error{OK};
                                        }
                                        );

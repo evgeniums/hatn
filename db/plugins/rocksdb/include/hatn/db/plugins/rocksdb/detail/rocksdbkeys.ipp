@@ -165,7 +165,7 @@ class Keys : public KeysBase
                     IndexKeyT key;
                     key[0]=ROCKSDB_NAMESPACE::Slice{_(self)->m_buf.data()+_(offset),_(self)->m_buf.size()-_(offset)};
                     key[1]=_(objectId);
-                    return handler(key);
+                    return _(handler)(key);
                 },
                 [&](auto _)
                 {
