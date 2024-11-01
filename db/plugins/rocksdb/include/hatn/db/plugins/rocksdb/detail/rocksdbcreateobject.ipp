@@ -42,6 +42,54 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+template <typename ObjectT>
+Error serializeObject(const ObjectT* obj, dataunit::WireBufSolid& buf)
+{
+    if (!obj->wireDataKeeper())
+    {
+        Error ec;
+        dataunit::io::serialize(*obj,buf,ec);
+        if(ec)
+        {
+            HATN_CTX_SCOPE_ERROR("serialize object");
+            return ec;
+        }
+    }
+    else
+    {
+        buf=obj->wireDataKeeper()->toSolidWireBuf();
+    }
+    return Error{OK};
+}
+
+template <typename KeyT>
+Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* partition, const KeyT& key, dataunit::WireBufSolid& buf, const ROCKSDB_NAMESPACE::Slice& ttlMark)
+{
+    ROCKSDB_NAMESPACE::Status status;
+    if (ttlMark.size()==0)
+    {
+        ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
+        status=tx->Put(partition->collectionCf.get(),key,objectValue);
+    }
+    else
+    {
+        std::array<ROCKSDB_NAMESPACE::Slice,2> objectValueParts{
+            ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
+            ttlMark
+        };
+        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
+        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
+    }
+
+    if (!status.ok())
+    {
+        HATN_CTX_SCOPE_ERROR("save-object");
+        return makeError(DbError::WRITE_OBJECT_FAILED,status);
+    }
+
+    return Error{OK};
+}
+
 template <typename BufT>
 struct CreateObjectT
 {
@@ -90,20 +138,8 @@ Error CreateObjectT<BufT>::operator ()(
 
     // serialize object
     dataunit::WireBufSolid buf{allocatorFactory};
-    if (!obj->wireDataKeeper())
-    {
-        Error ec;
-        dataunit::io::serialize(*obj,buf,ec);
-        if(ec)
-        {
-            HATN_CTX_SCOPE_ERROR("serialize object");
-            return ec;
-        }
-    }
-    else
-    {
-        buf=obj->wireDataKeeper()->toSolidWireBuf();
-    }
+    auto ec=serializeObject(obj,buf);
+    HATN_CHECK_EC(ec)
 
     // transaction fn
     auto transactionFn=[&](Transaction* tx)
@@ -122,17 +158,8 @@ Error CreateObjectT<BufT>::operator ()(
         const auto& objectCreatedAt=obj->field(object::created_at).value();
         auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
-        std::array<ROCKSDB_NAMESPACE::Slice,2> objectValueParts{
-            ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
-            ttlMark
-        };
-        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
-        auto status=rdbTx->Put(partition->collectionCf.get(),objectKeySlices,objectValueSlices);
-        if (!status.ok())
-        {
-            HATN_CTX_SCOPE_ERROR("batch-object");
-            return makeError(DbError::WRITE_OBJECT_FAILED,status);
-        }
+        auto ec=saveObject(rdbTx,partition,objectKeySlices,buf,ttlMark);
+        HATN_CHECK_EC(ec)
 
         // prepare ttl index
         using ttlIndexesT=TtlIndexes<modelType>;

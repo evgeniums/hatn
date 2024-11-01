@@ -31,6 +31,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
 
+#include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -49,7 +50,8 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         auto rdbModel=std::make_shared<RocksdbModel>(model->info);
 
         using modelT=typename std::decay_t<decltype(model)>::element_type;
-        using unitT=typename modelT::ModelType::UnitType;
+        using modelType=typename modelT::ModelType;
+        using unitT=typename modelType::UnitType;
         static typename unitT::type sample;
 
         rdbModel->createObject=[model,allocatorFactory]
@@ -132,28 +134,8 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             return DeleteMany<BufT>(model->model,handler,query,allocatorFactory,tx);
         };
 
-
-        auto eachIndex=[&rdbModel](const auto& idx)
-        {
-            auto eachField=[&rdbModel](const auto& field)
-            {
-                auto handler=std::make_shared<UpdateIndexKeyExtractor>();
-                handler->fn=[&idx](
-                     const lib::string_view& topic,
-                     const ROCKSDB_NAMESPACE::Slice& objectId,
-                     const dataunit::Unit* oldObject,
-                     const dataunit::Unit* newObject,
-                     IndexKeyUpdateSet& oldKeys,
-                     IndexKeyUpdateSet& newKeys
-                    )
-                {
-                    //! @todo implement keys extraction
-                };
-                rdbModel->m_updateIndexKeyExtractors[field.name()]=handler;
-            };
-            hana::for_each(fields,eachField);
-        };
-        hana::for_each(model->model.indexes,eachIndex);
+        using mType=std::decay_t<decltype(model->model)>;
+        RocksdbModelT<mType>::init(model->model);
 
         rdbSchema->addModel(std::move(rdbModel));
     };

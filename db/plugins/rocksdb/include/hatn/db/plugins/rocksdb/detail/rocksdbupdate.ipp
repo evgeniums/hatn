@@ -36,6 +36,8 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
+#include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -94,71 +96,87 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         Error ec;
         auto rdbTx=RocksdbTransaction::native(tx);
 
-        //! @todo get for update
+        // get for update
+        ROCKSDB_NAMESPACE::PinnableSlice readSlice;
         typename modelType::Type obj{factory};
         auto getForUpdate=[&]()
         {
-            // ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-            // auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
-            // if (!status.ok())
-            // {
-            //     if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
-            //     {
-            //         return dbError(DbError::NOT_FOUND);
-            //     }
+            auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+            if (!status.ok())
+            {
+                if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+                {
+                    return false;
+                }
 
-            //     HATN_CTX_SCOPE_ERROR("get");
-            //     return makeError(DbError::READ_FAILED,status);
-            // }
+                HATN_CTX_SCOPE_ERROR("get");
+                ec=makeError(DbError::READ_FAILED,status);
+                return false;
+            }
+
             // check if object expired
-            // TtlMark::refreshCurrentTimepoint();
-            // if (TtlMark::isExpired(readSlice))
-            // {
-            //     return dbError(DbError::EXPIRED);
-            // }
+            TtlMark::refreshCurrentTimepoint();
+            if (TtlMark::isExpired(readSlice))
+            {
+                return false;
+            }
 
             // deserialize object
-            // auto objSlice=TtlMark::stripTtlMark(readSlice);
-            // dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
-            // Error ec;
-            // if (!dataunit::io::deserialize(obj,buf,ec))
-            // {
-            //     HATN_CTX_SCOPE_ERROR("deserialize");
-            //     return ec;
-            // }
+            auto objSlice=TtlMark::stripTtlMark(readSlice);
+            dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
+            if (!dataunit::io::deserialize(&obj,buf,ec))
+            {
+                HATN_CTX_SCOPE_ERROR("deserialize");
+                return false;
+            }
+
+            // done
+            return true;
         };
         auto found=getForUpdate();
+        HATN_CHECK_EC(ec)
 
         // if not found then call not found callback
         if (!found)
         {
-            auto tryUpdate=notFoundCb(ec);
-            HATN_CHECK_EC(ec)
-            if (tryUpdate)
-            {
-                found=getForUpdate();
-                if (!found)
-                {
-                    //! @todo Report error
-                    return ec;
-                }
-            }
-            else
+            //! @todo Special processing when not found
+            // auto tryUpdate=notFoundCb(ec);
+            // HATN_CHECK_EC(ec)
+            // if (tryUpdate)
+            // {
+            //     HATN_CTX_SCOPE("tryupdate");
+            //     found=getForUpdate();
+            //     if (!found)
+            //     {
+            //         return ec;
+            //     }
+            // }
+            // else
             {
                 return Error{OK};
             }
         }
 
-        //! @todo extract old keys for updated fields
+        // extract old keys for updated fields
         IndexKeyUpdateSet oldKeys;
+        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectId,obj,oldKeys);
 
         // apply request to object
         update::ApplyRequest(&obj,request);
 
-        //! @todo save object
+        // serialize object
+        dataunit::WireBufSolid buf{allocatorFactory};
+        auto ec=serializeObject(obj,buf);
+        HATN_CHECK_EC(ec)
 
-        //! @todo extract new keys for updated fields
+        // save object
+        auto ttlMark=TtlMark::ttlMark(readSlice);
+        ec=saveObject(rdbTx,partition,key,buf,ttlMark);
+        HATN_CHECK_EC(ec)
+
+        // extract new keys for updated fields
         IndexKeyUpdateSet newKeys;
+        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectId,obj,newKeys);
 
         // find keys difference
         for (auto& newKey : newKeys)
@@ -171,21 +189,33 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             }
         }
 
+        auto indexCf=partition->indexCf.get();
+
         // delete old keys
-        for (auto& oldKey : oldKeys)
+        for (auto&& oldKey : oldKeys)
         {
             if (!oldKey.exists)
             {
-                //! @todo delete old key
+                // delete old key
+                auto status=rdbTx->Delete(indexCf,oldKey.key);
+                if (!status.ok())
+                {
+                    HATN_CTX_SCOPE_PUSH("idx_key",oldKey.key);
+                    return makeError(DbError::DELETE_INDEX_FAILED,status);
+                }
             }
         }
 
-        // save new keys
-        for (auto& newKey : newKeys)
+        // save new keys        
+        ROCKSDB_NAMESPACE::SliceParts indexValue{&key,1};
+        for (auto&& newKey : newKeys)
         {
             if (!newKey.exists)
-            {
-                //! @todo save new key
+            {                
+                // save new key
+                ec=SaveSingleIndex(newKey,rdbTx,indexValue);
+                HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
+                return makeError(DbError::SAVE_INDEX_FAILED,status);
             }
         }
 

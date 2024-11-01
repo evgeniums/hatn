@@ -94,11 +94,10 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> deleteMany;
 
-        std::multimap<std::string,std::shared_ptr<UpdateIndexKeyExtractor>> m_updateIndexKeyExtractors;
-
     private:
 
         ModelInfo& m_modelInfo;
+        std::multimap<std::string,std::shared_ptr<UpdateIndexKeyExtractor>> m_updateIndexKeyExtractors;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

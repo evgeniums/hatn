@@ -137,6 +137,13 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
             return ROCKSDB_NAMESPACE::Slice{slice.data(),slice.size()-offset};
         }
 
+        template <typename T>
+        static ROCKSDB_NAMESPACE::Slice ttlMark(const T& slice) noexcept
+        {
+            auto offset=ttlMarkOffset(slice.data(),slice.size());
+            return ROCKSDB_NAMESPACE::Slice{slice.data()+slice.size()-offset,offset};
+        }
+
     private:
 
         size_t m_size;

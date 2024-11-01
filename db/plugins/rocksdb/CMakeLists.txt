@@ -24,6 +24,7 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdberror.h
     include/hatn/db/plugins/rocksdb/rocksdboperror.h
     include/hatn/db/plugins/rocksdb/rocksdbmodel.h
+    include/hatn/db/plugins/rocksdb/rocksdbmodelt.h
     include/hatn/db/plugins/rocksdb/rocksdbschema.h
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
     include/hatn/db/plugins/rocksdb/saveuniquekey.h
@@ -48,6 +49,7 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp
     include/hatn/db/plugins/rocksdb/detail/objectpartition.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp
+    include/hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp
 )
 
 SET (SCHEMA_SOURCES

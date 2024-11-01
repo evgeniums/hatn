@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -43,7 +44,7 @@ struct UpdateObject
 {
     template <typename ModelT, typename NotFoundCbT>
     Error operator()(const ModelT&,
-                     RocksdbModel* rdbModel,
+                     RocksdbModel*,
                      RocksdbHandler& handler,
                      RocksdbPartition* partition,
                      const ROCKSDB_NAMESPACE::Slice& key,
@@ -53,6 +54,7 @@ struct UpdateObject
                      Transaction* tx
                     ) const
     {
+        HATN_CTX_SCOPE("rocksdbupdateobject")
         using modelType=std::decay_t<ModelT>;
 
         // transaction fn
@@ -61,13 +63,41 @@ struct UpdateObject
             Error ec;
             auto rdbTx=RocksdbTransaction::native(tx);
 
-            //! @todo get for update
-            typename modelType::Type obj{factory};
+            // get for update
+            ROCKSDB_NAMESPACE::PinnableSlice readSlice;
+            typename modelType::Type oldObj{factory};
             auto getForUpdate=[&]()
             {
-                // handler.p()->transaction->GetForUpdate();
+                auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+                if (!status.ok())
+                {
+                    if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+                    {
+                        return false;
+                    }
+
+                    HATN_CTX_SCOPE_ERROR("get");
+                    return makeError(DbError::READ_FAILED,status);
+                }
+
+                // check if object expired
+                TtlMark::refreshCurrentTimepoint();
+                if (TtlMark::isExpired(readSlice))
+                {
+                    return false;
+                }
+
+                // deserialize object
+                auto objSlice=TtlMark::stripTtlMark(readSlice);
+                dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
+                if (!dataunit::io::deserialize(&obj,buf,ec))
+                {
+                    HATN_CTX_SCOPE_ERROR("deserialize");
+                    return ec;
+                }
             };
             auto found=getForUpdate();
+            HATN_CHECK_EC(ec)
 
             // if not found then call not found callback
             if (!found)
@@ -76,10 +106,10 @@ struct UpdateObject
                 HATN_CHECK_EC(ec)
                 if (tryUpdate)
                 {
+                    HATN_CTX_SCOPE("tryupdate");
                     found=getForUpdate();
                     if (!found)
                     {
-                        //! @todo Report error
                         return ec;
                     }
                 }
@@ -92,12 +122,19 @@ struct UpdateObject
             // apply request to object
             update::ApplyRequest(&obj,request);
 
-            //! @todo save object
+            // serialize object
+            dataunit::WireBufSolid buf{allocatorFactory};
+            auto ec=serializeObject(obj,buf);
+            HATN_CHECK_EC(ec)
+
+            // save object
+            auto ttlMark=TtlMark::ttlMark(readSlice);
+            ec=saveObject(rdbTx,partition,key,buf,ttlMark);
+            HATN_CHECK_EC(ec)
 
             //! @todo update indexes
             IndexKeyUpdateSet oldKeys;
             IndexKeyUpdateSet newKeys;
-
 
             // done
             return Error{OK};

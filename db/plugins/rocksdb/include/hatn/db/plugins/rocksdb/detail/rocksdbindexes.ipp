@@ -44,6 +44,52 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 using IndexKeyHandlerFn=std::function<Error (const IndexKeyT&)>;
 
+Error SaveSingleIndex(
+        const IndexKeyT& key,
+        ROCKSDB_NAMESPACE::Transaction* tx,
+        const ROCKSDB_NAMESPACE::SliceParts& indexValue,
+        IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
+        bool replace=false
+    )
+{
+    ROCKSDB_NAMESPACE::Status status;
+    ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+
+    // put index to transaction
+    bool put=true;
+    if constexpr (std::decay_t<IndexT>::unique())
+    {
+        if (!replace)
+        {
+            HATN_CTX_SCOPE_PUSH("idx_op","merge");
+            put=false;
+            std::string bufk;
+            ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
+            std::string bufv;
+            ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
+            status=tx->Merge(m_cf,k,v);
+        }
+    }
+    if (put)
+    {
+        HATN_CTX_SCOPE_PUSH("idx_op","put");
+        status=tx->Put(m_cf,keySlices,indexValue);
+    }
+    if (!status.ok())
+    {
+        HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+        return makeError(DbError::SAVE_INDEX_FAILED,status);
+    }
+
+    // done
+    if (keyCallback)
+    {
+        auto ec=keyCallback(key);
+        HATN_CHECK_EC(ec)
+    }
+    return Error{OK};
+}
+
 template <typename BufT>
 class Indexes
 {
@@ -69,49 +115,12 @@ class Indexes
             )
         {
             HATN_CTX_SCOPE("saveindex")
-            ROCKSDB_NAMESPACE::Status status;
 
             // make and handle key
             return m_keys.makeIndexKey(ns.topic(),objectId,object,idx,
                 [&](auto&& key){
-
-                   ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
-
-                   // put index to transaction
-                   bool put=true;
-                   if constexpr (std::decay_t<IndexT>::unique())
-                   {
-                       if (!replace)
-                       {
-                           HATN_CTX_SCOPE_PUSH("idx_op","merge");
-                           put=false;
-                           std::string bufk;
-                           ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
-                           std::string bufv;
-                           ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
-                           status=tx->Merge(m_cf,k,v);
-                       }
-                   }
-                   if (put)
-                   {
-                       HATN_CTX_SCOPE_PUSH("idx_op","put");
-                       status=tx->Put(m_cf,keySlices,indexValue);
-                   }
-                   if (!status.ok())
-                   {
-                       HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
-                       return makeError(DbError::SAVE_INDEX_FAILED,status);
-                   }
-
-                   // done
-                   if (keyCallback)
-                   {
-                       auto ec=keyCallback(key);
-                       HATN_CHECK_EC(ec)
-                   }
-                   return Error{OK};
-                }
-            );
+                    return SaveSingleIndex(key,tx,indexValue,keyCallback,replace);
+                });
         }
 
         template <typename ModelT, typename UnitT>
@@ -152,7 +161,7 @@ class Indexes
 
                                            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
-                                           // put index to transaction
+                                           // put op to transaction
                                            auto status=tx->Delete(m_cf,keySlices);
                                            if (!status.ok())
                                            {
@@ -188,28 +197,6 @@ class Indexes
 
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* m_cf;
         Keys<BufT>& m_keys;
-};
-
-struct IndexKeyUpdate
-{
-    IndexKeyT key;
-    bool exists;
-
-    IndexKeyUpdate(IndexKeyT key)
-        : key(key),exists(false)
-    {}
-};
-
-using IndexKeyUpdateSet=common::FlatSet<IndexKeyT>;
-
-struct UpdateIndexKeyExtractor
-{
-    std::function<Error(
-        const lib::string_view& topic,
-        const ROCKSDB_NAMESPACE::Slice& objectId,
-        const dataunit::Unit* object,
-        IndexKeyUpdateSet& keys
-    )> fn;
 };
 
 HATN_ROCKSDB_NAMESPACE_END
