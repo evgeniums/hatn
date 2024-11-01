@@ -28,12 +28,15 @@
 #include <hatn/db/model.h>
 #include <hatn/db/indexquery.h>
 #include <hatn/db/transaction.h>
+#include <hatn/db/update.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace dataunit=HATN_DATAUNIT_NAMESPACE;
+
+struct UpdateIndexKeyExtractor;
 
 class RocksdbHandler;
 
@@ -90,6 +93,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             IndexQuery& query,
             Transaction* tx
             )> deleteMany;
+
+        std::multimap<std::string,std::shared_ptr<UpdateIndexKeyExtractor>> m_updateIndexKeyExtractors;
 
     private:
 

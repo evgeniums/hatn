@@ -32,6 +32,7 @@
 #include <hatn/db/namespace.h>
 #include <hatn/db/objectid.h>
 #include <hatn/db/dberror.h>
+#include <hatn/db/update.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
@@ -187,6 +188,28 @@ class Indexes
 
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* m_cf;
         Keys<BufT>& m_keys;
+};
+
+struct IndexKeyUpdate
+{
+    IndexKeyT key;
+    bool exists;
+
+    IndexKeyUpdate(IndexKeyT key)
+        : key(key),exists(false)
+    {}
+};
+
+using IndexKeyUpdateSet=common::FlatSet<IndexKeyT>;
+
+struct UpdateIndexKeyExtractor
+{
+    std::function<Error(
+        const lib::string_view& topic,
+        const ROCKSDB_NAMESPACE::Slice& objectId,
+        const dataunit::Unit* object,
+        IndexKeyUpdateSet& keys
+    )> fn;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

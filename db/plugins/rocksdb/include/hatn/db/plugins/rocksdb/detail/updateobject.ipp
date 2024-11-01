@@ -43,6 +43,7 @@ struct UpdateObject
 {
     template <typename ModelT, typename NotFoundCbT>
     Error operator()(const ModelT&,
+                     RocksdbModel* rdbModel,
                      RocksdbHandler& handler,
                      RocksdbPartition* partition,
                      const ROCKSDB_NAMESPACE::Slice& key,
@@ -94,6 +95,9 @@ struct UpdateObject
             //! @todo save object
 
             //! @todo update indexes
+            IndexKeyUpdateSet oldKeys;
+            IndexKeyUpdateSet newKeys;
+
 
             // done
             return Error{OK};

@@ -33,7 +33,9 @@
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -86,43 +88,115 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
 
-    // read object from db
-    auto rdb=handler.p()->db;
-    ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-    auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
-    if (!status.ok())
+    // transaction fn
+    auto transactionFn=[&](Transaction* tx)
     {
-        if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+        Error ec;
+        auto rdbTx=RocksdbTransaction::native(tx);
+
+        //! @todo get for update
+        typename modelType::Type obj{factory};
+        auto getForUpdate=[&]()
         {
-            return dbError(DbError::NOT_FOUND);
+            // ROCKSDB_NAMESPACE::PinnableSlice readSlice;
+            // auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+            // if (!status.ok())
+            // {
+            //     if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+            //     {
+            //         return dbError(DbError::NOT_FOUND);
+            //     }
+
+            //     HATN_CTX_SCOPE_ERROR("get");
+            //     return makeError(DbError::READ_FAILED,status);
+            // }
+            // check if object expired
+            // TtlMark::refreshCurrentTimepoint();
+            // if (TtlMark::isExpired(readSlice))
+            // {
+            //     return dbError(DbError::EXPIRED);
+            // }
+
+            // deserialize object
+            // auto objSlice=TtlMark::stripTtlMark(readSlice);
+            // dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
+            // Error ec;
+            // if (!dataunit::io::deserialize(obj,buf,ec))
+            // {
+            //     HATN_CTX_SCOPE_ERROR("deserialize");
+            //     return ec;
+            // }
+        };
+        auto found=getForUpdate();
+
+        // if not found then call not found callback
+        if (!found)
+        {
+            auto tryUpdate=notFoundCb(ec);
+            HATN_CHECK_EC(ec)
+            if (tryUpdate)
+            {
+                found=getForUpdate();
+                if (!found)
+                {
+                    //! @todo Report error
+                    return ec;
+                }
+            }
+            else
+            {
+                return Error{OK};
+            }
         }
 
-        HATN_CTX_SCOPE_ERROR("get");
-        return makeError(DbError::READ_FAILED,status);
-    }
+        //! @todo extract old keys for updated fields
+        IndexKeyUpdateSet oldKeys;
 
-    // check if object expired
-    TtlMark::refreshCurrentTimepoint();
-    if (TtlMark::isExpired(readSlice))
-    {
-        return dbError(DbError::EXPIRED);
-    }
+        // apply request to object
+        update::ApplyRequest(&obj,request);
 
-    // create object
-    auto obj=factory->createObject<typename modelType::ManagedType>(factory);
+        //! @todo save object
 
-    // deserialize object
-    auto objSlice=TtlMark::stripTtlMark(readSlice);
-    dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
-    Error ec;
-    if (!dataunit::io::deserialize(*obj,buf,ec))
-    {
-        HATN_CTX_SCOPE_ERROR("deserialize");
-        return ec;
-    }
+        //! @todo extract new keys for updated fields
+        IndexKeyUpdateSet newKeys;
 
-    // done
-    return obj;
+        // find keys difference
+        for (auto& newKey : newKeys)
+        {
+            auto oldKeyIt=oldKeys.find(newKey);
+            if (oldKeyIt!=oldKeys.end())
+            {
+                newKey.exists=true;
+                oldKeyIt->exists=true;
+            }
+        }
+
+        // delete old keys
+        for (auto& oldKey : oldKeys)
+        {
+            if (!oldKey.exists)
+            {
+                //! @todo delete old key
+            }
+        }
+
+        // save new keys
+        for (auto& newKey : newKeys)
+        {
+            if (!newKey.exists)
+            {
+                //! @todo save new key
+            }
+        }
+
+        //! @todo update ttl index if actual
+
+        // done
+        return Error{OK};
+    };
+
+    // invoke transaction
+    return handler.transaction(transactionFn,tx,true);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

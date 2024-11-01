@@ -132,6 +132,29 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             return DeleteMany<BufT>(model->model,handler,query,allocatorFactory,tx);
         };
 
+
+        auto eachIndex=[&rdbModel](const auto& idx)
+        {
+            auto eachField=[&rdbModel](const auto& field)
+            {
+                auto handler=std::make_shared<UpdateIndexKeyExtractor>();
+                handler->fn=[&idx](
+                     const lib::string_view& topic,
+                     const ROCKSDB_NAMESPACE::Slice& objectId,
+                     const dataunit::Unit* oldObject,
+                     const dataunit::Unit* newObject,
+                     IndexKeyUpdateSet& oldKeys,
+                     IndexKeyUpdateSet& newKeys
+                    )
+                {
+                    //! @todo implement keys extraction
+                };
+                rdbModel->m_updateIndexKeyExtractors[field.name()]=handler;
+            };
+            hana::for_each(fields,eachField);
+        };
+        hana::for_each(model->model.indexes,eachIndex);
+
         rdbSchema->addModel(std::move(rdbModel));
     };
 
