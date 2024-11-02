@@ -412,6 +412,10 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doTransaction(fn);
         }
 
+        //! @todo Add read and update
+
+        //! @todo Add update or create
+
     protected:
 
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
