@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
+#include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
 
@@ -140,18 +141,20 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         if (!found)
         {
             //! @todo Special processing when not found
-            // auto tryUpdate=notFoundCb(ec);
-            // HATN_CHECK_EC(ec)
-            // if (tryUpdate)
-            // {
-            //     HATN_CTX_SCOPE("tryupdate");
-            //     found=getForUpdate();
-            //     if (!found)
-            //     {
-            //         return ec;
-            //     }
-            // }
-            // else
+#if 0
+            auto tryUpdate=notFoundCb(ec);
+            HATN_CHECK_EC(ec)
+            if (tryUpdate)
+            {
+                HATN_CTX_SCOPE("tryupdate");
+                found=getForUpdate();
+                if (!found)
+                {
+                    return ec;
+                }
+            }
+            else
+#endif
             {
                 return Error{OK};
             }
@@ -219,7 +222,20 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             }
         }
 
-        //! @todo update ttl index if actual
+        // update ttl index if actual
+        if (RocksdbModelT<modelType>::checkTtlFieldUpdated(request))
+        {
+            using ttlIndexesT=TtlIndexes<modelType>;
+            ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
+
+            // delete old ttl index
+            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
+            HATN_CHECK_EC(ec)
+
+            // save new ttl index
+            ttlIndexesT::saveTtlIndex(ec,model,obj,buf,rdbTx,partition,objectIdS,factory);
+            HATN_CHECK_EC(ec)
+        }
 
         // done
         return Error{OK};

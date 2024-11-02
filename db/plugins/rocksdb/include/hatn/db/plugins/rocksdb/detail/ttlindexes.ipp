@@ -40,7 +40,7 @@ HDU_UNIT_WITH(ttl_index,(HDU_BASE(object)),
     HDU_FIELD(ref_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(ref_model_id,HDU_TYPE_FIXED_STRING(8),2)
     HDU_FIELD(date_range,TYPE_DATE_RANGE,3)
-    HDU_REPEATED_FIELD(ref_indexes,TYPE_STRING,4)
+    // HDU_REPEATED_FIELD(ref_indexes,TYPE_STRING,4)
     HDU_FIELD(topic,TYPE_BOOL,5)
 )
 
@@ -77,6 +77,7 @@ struct TtlIndexes
         )
     {}
 
+#if 0
     static void addIndexKeyToTtl(
         ttlT&,
         const IndexKeyT&
@@ -89,8 +90,9 @@ struct TtlIndexes
     {
         return IndexKeyHandlerFn{};
     }
+#endif
 
-    static void deleteTtlWithTransaction(
+    static void deleteTtlIndex(
             Error&,
             ROCKSDB_NAMESPACE::Transaction*,
             RocksdbPartition*,
@@ -98,6 +100,41 @@ struct TtlIndexes
             const ROCKSDB_NAMESPACE::Slice&
         )
     {}
+
+    static ROCKSDB_NAMESPACE::Slice makeTtlMark(
+            const ModelT&,
+            const objectT*
+        )
+    {
+        return ROCKSDB_NAMESPACE::Slice{};
+    }
+
+    static void saveTtlIndex(
+            Error&,
+            const ModelT&,
+            const objectT*,
+            dataunit::WireBufSolid&,
+            ROCKSDB_NAMESPACE::Transaction*,
+            const std::shared_ptr<RocksdbPartition>&,
+            const ROCKSDB_NAMESPACE::Slice&,
+            AllocatorFactory*
+        )
+    {
+    }
+
+    static void saveTtlIndex(
+        const ROCKSDB_NAMESPACE::Slice&,
+        Error&,
+        const ModelT&,
+        const objectT*,
+        dataunit::WireBufSolid&,
+        ROCKSDB_NAMESPACE::Transaction*,
+        const std::shared_ptr<RocksdbPartition>&,
+        const ROCKSDB_NAMESPACE::Slice&,
+        AllocatorFactory*
+        )
+    {
+    }
 };
 
 template <typename ModelT>
@@ -105,6 +142,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
 {
     using ttlT=ttl_index::type;
     using modelType=ModelT;
+    using objectT=typename ModelT::UnitType::type;
 
     static void prepareTtl(
             ttl_index::type& ttlIndex,
@@ -129,9 +167,10 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             ttlIndex.field(ttl_index::date_range).set(dateRange);
         }
 
+#if 0
         // reserve space for indexes
         ttlIndex.field(ttl_index::ref_indexes).reserve(model.indexIds.size());
-
+#endif
         // set topic flag
         ttlIndex.field(ttl_index::topic).set(model.canBeTopic());
     }
@@ -170,7 +209,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         }
     }
 
-    static void deleteTtlWithTransaction(
+    static void deleteTtlIndex(
             Error& ec,
             ROCKSDB_NAMESPACE::Transaction* tx,
             RocksdbPartition* partition,
@@ -188,6 +227,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         }
     }
 
+#if 0
     static void addIndexKeyToTtl(
             ttl_index::type& ttlIndex,
             const IndexKeyT& key
@@ -211,6 +251,48 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             addIndexKeyToTtl(ttlIndex,idxKey);
             return Error{OK};
         };
+    }
+#endif
+
+    static ROCKSDB_NAMESPACE::Slice makeTtlMark(
+        const ModelT& model,
+        const objectT* obj
+        )
+    {
+        TtlMark::refreshCurrentTimepoint();
+        TtlMark ttlMarkObj{model,obj};
+        return ttlMarkObj.slice();
+    }
+
+    static void saveTtlIndex(
+            Error& ec,
+            const ModelT& model,
+            const objectT* obj,
+            dataunit::WireBufSolid& buf,
+            ROCKSDB_NAMESPACE::Transaction* tx,
+            const std::shared_ptr<RocksdbPartition>& partition,
+            const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
+            AllocatorFactory* allocatorFactory
+        )
+    {
+        saveTtlIndex(makeTtlMark(model,obj),ec,buf,tx,partition,objectIdSlice,allocatorFactory);
+    }
+
+    static void saveTtlIndex(
+            const ROCKSDB_NAMESPACE::Slice& ttlMark,
+            Error& ec,
+            const ModelT& model,
+            const objectT* obj,
+            dataunit::WireBufSolid& buf,
+            ROCKSDB_NAMESPACE::Transaction* tx,
+            const std::shared_ptr<RocksdbPartition>& partition,
+            const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
+            AllocatorFactory* allocatorFactory
+        )
+    {
+        ttlT ttlIndex{allocatorFactory};
+        prepareTtl(ttlIndex,model,obj->field(object::_id).value(),partition->range());
+        putTtlToTransaction(ec,buf,tx,ttlIndex,partition,objectIdSlice,ttlMark);
     }
 };
 

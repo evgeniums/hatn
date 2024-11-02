@@ -86,4 +86,19 @@ void RocksdbModelT<ModelT>::updatingKeys(
 
 //---------------------------------------------------------------
 
+template <typename ModelT>
+bool RocksdbModelT<ModelT>::checkTtlFieldUpdated(const update::Request& request) noexcept
+{
+    for (auto&& field : request)
+    {
+        if (ttlFields.find(field.fieldInfo->name())!=ttlFields.end())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

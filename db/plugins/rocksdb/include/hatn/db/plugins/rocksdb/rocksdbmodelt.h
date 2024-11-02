@@ -23,6 +23,8 @@
 #include <memory>
 #include <functional>
 
+#include <hatn/common/flatmap.h>
+
 #include <hatn/db/model.h>
 #include <hatn/db/update.h>
 
@@ -71,9 +73,12 @@ class RocksdbModelT
             IndexKeyUpdateSet& keys
         );
 
+        static bool checkTtlFieldUpdated(const update::Request& request) noexcept;
+
     private:
 
         static std::multimap<std::string,UpdateIndexKeyExtractor<ObjectT>> updateIndexKeyExtractors;
+        static common::FlatSet<std::string> ttlFields;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

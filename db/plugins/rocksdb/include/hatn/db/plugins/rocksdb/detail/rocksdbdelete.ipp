@@ -111,7 +111,7 @@ struct DeleteObjectT
         // append ttl index deletion to transaction
         TtlMark ttlMarkObj{model,&unit};
         auto ttlMark=ttlMarkObj.slice();
-        ttlIndexes.deleteTtlWithTransaction(ec,rdbTx,partition,objectIdS,ttlMark);
+        ttlIndexes.deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
         HATN_CHECK_EC(ec)
 
         // done

@@ -134,7 +134,6 @@ Error CreateObjectT<BufT>::operator ()(
         HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
-    const auto& dateRange=partition->range;
 
     // serialize object
     dataunit::WireBufSolid buf{allocatorFactory};
@@ -150,9 +149,8 @@ Error CreateObjectT<BufT>::operator ()(
 
         // prepare
         Keys<BufT> keys{allocatorFactory->bytesAllocator()};
-        TtlMark::refreshCurrentTimepoint();
-        TtlMark ttlMarkObj{model,obj};
-        auto ttlMark=ttlMarkObj.slice();
+        using ttlIndexesT=TtlIndexes<modelType>;
+        auto ttlMark=ttlIndexesT::makeTtlMark(model,obj);
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
@@ -161,22 +159,14 @@ Error CreateObjectT<BufT>::operator ()(
         auto ec=saveObject(rdbTx,partition,objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
 
-        // prepare ttl index
-        using ttlIndexesT=TtlIndexes<modelType>;
-        using ttlIndexT=typename ttlIndexesT::ttlT;
-        ttlIndexT ttlIndex{allocatorFactory};
-        ttlIndexesT::prepareTtl(ttlIndex,model,obj->field(object::_id).value(),dateRange);
-
-        // put indexes to batch
+        // put indexes to transaction
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj,
-                                    ttlIndexesT::makeIndexKeyCb(ttlIndex)
-        );
+        auto ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction
-        ttlIndexesT::putTtlToTransaction(ec,buf,rdbTx,ttlIndex,partition,objectIdS,ttlMark);
+        ttlIndexesT::saveTtlIndex(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS);
         HATN_CHECK_EC(ec)
 
         // done
