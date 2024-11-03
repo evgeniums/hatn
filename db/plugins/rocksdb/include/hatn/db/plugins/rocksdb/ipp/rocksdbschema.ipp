@@ -30,11 +30,10 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
-
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -134,6 +133,43 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             )
         {
             return DeleteMany<BufT>(model->model,handler,query,allocatorFactory,tx);
+        };
+
+        rdbModel->updateObjectWithDate=[model,allocatorFactory]
+            (
+                 RocksdbHandler& handler,
+                 const Namespace& ns,
+                 const ObjectId& objectId,
+                 const update::Request& request,
+                 const HATN_COMMON_NAMESPACE::Date& date,
+                 db::update::ModifyReturn modifyReturn,
+                 Transaction* tx
+            )
+        {
+            auto r=UpdateObject<BufT>(model->model,handler,ns,objectId,request,date,modifyReturn,allocatorFactory,tx);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        };
+
+        rdbModel->updateObject=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                const ObjectId& objectId,
+                const update::Request& request,
+                db::update::ModifyReturn modifyReturn,
+                Transaction* tx
+                )
+        {
+            auto r=UpdateObject<BufT>(model->model,handler,ns,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
         };
 
         using mType=std::decay_t<decltype(model->model)>;

@@ -134,6 +134,13 @@ struct Field
 
 using Request=common::pmr::vector<Field>;
 
+enum class ModifyReturn : int
+{
+    None=0,
+    Before=1,
+    After=2
+};
+
 } // namespace update
 
 HATN_DB_NAMESPACE_END

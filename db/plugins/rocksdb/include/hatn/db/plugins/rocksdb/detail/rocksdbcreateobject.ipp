@@ -39,56 +39,9 @@
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
+#include <hatn/db/plugins/rocksdb/detail/saveobject.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
-
-template <typename ObjectT>
-Error serializeObject(const ObjectT* obj, dataunit::WireBufSolid& buf)
-{
-    if (!obj->wireDataKeeper())
-    {
-        Error ec;
-        dataunit::io::serialize(*obj,buf,ec);
-        if(ec)
-        {
-            HATN_CTX_SCOPE_ERROR("serialize object");
-            return ec;
-        }
-    }
-    else
-    {
-        buf=obj->wireDataKeeper()->toSolidWireBuf();
-    }
-    return Error{OK};
-}
-
-Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* partition, const ROCKSDB_NAMESPACE::SliceParts& key, dataunit::WireBufSolid& buf, const ROCKSDB_NAMESPACE::Slice& ttlMark)
-{
-    ROCKSDB_NAMESPACE::Status status;
-    if (ttlMark.size()==0)
-    {        
-        ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValue,1};
-        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
-    }
-    else
-    {
-        std::array<ROCKSDB_NAMESPACE::Slice,2> objectValueParts{
-            ROCKSDB_NAMESPACE::Slice{buf.mainContainer()->data(),buf.mainContainer()->size()},
-            ttlMark
-        };
-        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
-        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
-    }
-
-    if (!status.ok())
-    {
-        HATN_CTX_SCOPE_ERROR("save-object");
-        return makeError(DbError::WRITE_OBJECT_FAILED,status);
-    }
-
-    return Error{OK};
-}
 
 template <typename BufT>
 struct CreateObjectT
@@ -166,7 +119,7 @@ Error CreateObjectT<BufT>::operator ()(
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction
-        ttlIndexesT::saveTtlIndex(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS,allocatorFactory);
+        ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 
         // done

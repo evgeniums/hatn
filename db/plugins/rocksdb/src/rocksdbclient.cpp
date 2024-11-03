@@ -645,7 +645,19 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
                                     const common::Date &date,
                                     Transaction* tx)
 {
-    return CommonError::NOT_IMPLEMENTED;
+    HATN_CTX_SCOPE("rocksdbupdate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->updateObjectWithDate(*d->handler,ns,id,request,date,db::update::ModifyReturn::None,tx);
+    if (r)
+    {
+        return r.takeError();
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -656,7 +668,19 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
                                     const ObjectId &id,
                                     Transaction* tx)
 {
-    return CommonError::NOT_IMPLEMENTED;
+    HATN_CTX_SCOPE("rocksdbupdate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->updateObject(*d->handler,ns,id,request,db::update::ModifyReturn::None,tx);
+    if (r)
+    {
+        return r.takeError();
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------

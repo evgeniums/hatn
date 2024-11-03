@@ -30,6 +30,9 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 template <typename ModelT>
 std::multimap<std::string,UpdateIndexKeyExtractor<typename ModelT::Type>> RocksdbModelT<ModelT>::updateIndexKeyExtractors;
 
+template <typename ModelT>
+common::FlatSet<std::string> RocksdbModelT<ModelT>::ttlFields;
+
 //---------------------------------------------------------------
 
 template <typename ModelT>

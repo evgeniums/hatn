@@ -27,6 +27,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/namespace.h>
 #include <hatn/db/update.h>
+// #include <hatn/db/ipp/updateunit.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -39,6 +40,7 @@
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
+#include <hatn/db/plugins/rocksdb/detail/saveobject.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -52,7 +54,10 @@ struct UpdateObjectT
                                                   const ObjectId& objectId,
                                                   const update::Request& request,
                                                   const DateT& date,
-                                                  AllocatorFactory* allocatorFactory) const;
+                                                  db::update::ModifyReturn modifyReturn,
+                                                  AllocatorFactory* allocatorFactory,
+                                                  Transaction* tx
+                                                  ) const;
 };
 template <typename BufT>
 constexpr UpdateObjectT<BufT> UpdateObject{};
@@ -66,7 +71,9 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     const ObjectId& objectId,
     const update::Request& request,
     const DateT& date,
-    AllocatorFactory* factory
+    db::update::ModifyReturn modifyReturn,
+    AllocatorFactory* factory,
+    Transaction* intx
     ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -91,6 +98,10 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
 
+    // create object
+    auto obj=factory->createObject<typename modelType::ManagedType>(factory);
+    decltype(obj) objBefore;
+
     // transaction fn
     auto transactionFn=[&](Transaction* tx)
     {
@@ -98,8 +109,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         auto rdbTx=RocksdbTransaction::native(tx);
 
         // get for update
-        ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-        typename modelType::Type obj{factory};
+        ROCKSDB_NAMESPACE::PinnableSlice readSlice;        
         auto getForUpdate=[&]()
         {
             auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
@@ -125,7 +135,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             // deserialize object
             auto objSlice=TtlMark::stripTtlMark(readSlice);
             dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
-            if (!dataunit::io::deserialize(&obj,buf,ec))
+            if (!dataunit::io::deserialize(*obj,buf,ec))
             {
                 HATN_CTX_SCOPE_ERROR("deserialize");
                 return false;
@@ -159,27 +169,34 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
                 return Error{OK};
             }
         }
+        if (modifyReturn==db::update::ModifyReturn::Before)
+        {
+            objBefore=factory->createObject<typename modelType::ManagedType>(factory);
+            //! @todo Copy object
+            // *objBefore=*obj;
+        }
 
         // extract old keys for updated fields
         IndexKeyUpdateSet oldKeys;
-        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectId,obj,oldKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectIdS,obj.get(),oldKeys);
 
         // apply request to object
-        update::ApplyRequest(&obj,request);
+        // update::ApplyRequest(obj.get(),request);
 
         // serialize object
-        dataunit::WireBufSolid buf{allocatorFactory};
-        auto ec=serializeObject(obj,buf);
+        dataunit::WireBufSolid buf{factory};
+        ec=serializeObject(obj.get(),buf);
         HATN_CHECK_EC(ec)
 
         // save object
         auto ttlMark=TtlMark::ttlMark(readSlice);
-        ec=saveObject(rdbTx,partition,key,buf,ttlMark);
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&key,1};
+        ec=saveObject(rdbTx,partition.get(),keySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
         IndexKeyUpdateSet newKeys;
-        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectId,obj,newKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectIdS,obj.get(),newKeys);
 
         // find keys difference
         for (auto& newKey : newKeys)
@@ -200,10 +217,12 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             if (!oldKey.exists)
             {
                 // delete old key
-                auto status=rdbTx->Delete(indexCf,oldKey.key);
+                ROCKSDB_NAMESPACE::SliceParts keySlices{oldKey.key.data(),static_cast<int>(oldKey.key.size())};
+                auto status=rdbTx->Delete(indexCf,keySlices);
                 if (!status.ok())
                 {
-                    HATN_CTX_SCOPE_PUSH("idx_key",oldKey.key);
+                    //! @todo Log key
+                    // HATN_CTX_SCOPE_PUSH("idx_key",oldKey.key);
                     return makeError(DbError::DELETE_INDEX_FAILED,status);
                 }
             }
@@ -217,8 +236,12 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             {                
                 // save new key
                 ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
-                HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
-                return makeError(DbError::SAVE_INDEX_FAILED,status);
+                if (ec)
+                {
+                    //! @todo Log key
+                    // HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
+                }
+                return ec;
             }
         }
 
@@ -226,14 +249,14 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         if (RocksdbModelT<modelType>::checkTtlFieldUpdated(request))
         {
             using ttlIndexesT=TtlIndexes<modelType>;
-            ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
+            ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
 
             // delete old ttl index
-            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
+            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition.get(),objectIdS,ttlMark);
             HATN_CHECK_EC(ec)
 
             // save new ttl index
-            ttlIndexesT::saveTtlIndex(ec,model,obj,buf,rdbTx,partition,objectIdS,factory);
+            ttlIndexesT::saveTtlIndex(ec,model,obj.get(),buf,rdbTx,partition,objectIdS,factory);
             HATN_CHECK_EC(ec)
         }
 
@@ -242,7 +265,15 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     };
 
     // invoke transaction
-    return handler.transaction(transactionFn,tx,true);
+    auto ec=handler.transaction(transactionFn,intx,true);
+    HATN_CHECK_EC(ec)
+
+    // done
+    if (modifyReturn==db::update::ModifyReturn::Before)
+    {
+        return objBefore;
+    }
+    return obj;
 }
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -124,7 +124,7 @@ struct TtlIndexes
     {
     }
 
-    static void saveTtlIndex(
+    static void saveTtlIndexWithMark(
         const ROCKSDB_NAMESPACE::Slice&,
         Error&,
         const ModelT&,
@@ -277,10 +277,10 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             AllocatorFactory* allocatorFactory
         )
     {
-        saveTtlIndex(makeTtlMark(model,obj),ec,buf,tx,partition,objectIdSlice,allocatorFactory);
+        saveTtlIndexWithMark(makeTtlMark(model,obj),ec,model,obj,buf,tx,partition,objectIdSlice,allocatorFactory);
     }
 
-    static void saveTtlIndex(
+    static void saveTtlIndexWithMark(
             const ROCKSDB_NAMESPACE::Slice& ttlMark,
             Error& ec,
             const ModelT& model,
