@@ -55,6 +55,8 @@ template <typename ModelT, typename =hana::when<true>>
 struct TtlIndexes
 {
     using ttlT=TtlIndexStub;
+    using modelType=ModelT;
+    using objectT=typename ModelT::UnitType::type;
 
     static ttlT prepareTtl(
         ttlT&,
@@ -291,7 +293,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         )
     {
         ttlT ttlIndex{allocatorFactory};
-        prepareTtl(ttlIndex,model,obj->field(object::_id).value(),partition->range());
+        prepareTtl(ttlIndex,model,obj->field(object::_id).value(),partition->range);
         putTtlToTransaction(ec,buf,tx,ttlIndex,partition,objectIdSlice,ttlMark);
     }
 };

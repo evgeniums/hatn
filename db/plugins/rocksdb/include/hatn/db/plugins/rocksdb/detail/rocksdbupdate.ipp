@@ -216,7 +216,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             if (!newKey.exists)
             {                
                 // save new key
-                ec=SaveSingleIndex(newKey,rdbTx,indexValue);
+                ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
                 HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
                 return makeError(DbError::SAVE_INDEX_FAILED,status);
             }

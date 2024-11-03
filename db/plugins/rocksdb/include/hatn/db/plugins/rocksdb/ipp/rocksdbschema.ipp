@@ -34,6 +34,8 @@
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
+
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename DbSchemaSharedPtrT,

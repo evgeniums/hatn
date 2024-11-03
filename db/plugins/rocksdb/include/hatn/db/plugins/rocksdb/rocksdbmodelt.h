@@ -37,22 +37,64 @@ struct IndexKeyUpdate
 {
     IndexKeyT key;
     bool exists;
+    bool unique;
 
     IndexKeyUpdate(IndexKeyT key)
-        : key(key),exists(false)
+        : key(key),exists(false),unique(false)
     {}
+
+    bool operator < (const IndexKeyUpdate& other) const noexcept
+    {
+        if (key.size()<other.key.size())
+        {
+            return true;
+        }
+        if (key.size()>other.key.size())
+        {
+            return false;
+        }
+
+        if (key.size()>0)
+        {
+            int cmp0=key[0].compare(other.key[0]);
+            if (cmp0<0)
+            {
+                return true;
+            }
+            if (cmp0>0)
+            {
+                return false;
+            }
+
+            if (key.size()>1)
+            {
+                int cmp1=key[1].compare(other.key[1]);
+                if (cmp1<0)
+                {
+                    return true;
+                }
+                if (cmp1>0)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
 };
 
 using IndexKeyUpdateSet=common::FlatSet<IndexKeyUpdate>;
 
 template <typename ObjectT>
 using UpdateIndexKeyExtractor=
-    std::function<Error(
-        const lib::string_view& topic,
-        const ROCKSDB_NAMESPACE::Slice& objectId,
-        const ObjectT* object,
-        IndexKeyUpdateSet& keys
-        )>;
+            std::function<void (
+                    Keys<>& keysHandler,
+                    const lib::string_view& topic,
+                    const ROCKSDB_NAMESPACE::Slice& objectId,
+                    const ObjectT* obj,
+                    IndexKeyUpdateSet& keys
+            )>;
 
 template <typename ModelT>
 class RocksdbModelT

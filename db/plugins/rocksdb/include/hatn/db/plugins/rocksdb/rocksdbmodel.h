@@ -36,8 +36,6 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace dataunit=HATN_DATAUNIT_NAMESPACE;
 
-struct UpdateIndexKeyExtractor;
-
 class RocksdbHandler;
 
 class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
@@ -97,7 +95,6 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
     private:
 
         ModelInfo& m_modelInfo;
-        std::multimap<std::string,std::shared_ptr<UpdateIndexKeyExtractor>> m_updateIndexKeyExtractors;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

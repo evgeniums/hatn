@@ -62,14 +62,14 @@ Error serializeObject(const ObjectT* obj, dataunit::WireBufSolid& buf)
     return Error{OK};
 }
 
-template <typename KeyT>
-Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* partition, const KeyT& key, dataunit::WireBufSolid& buf, const ROCKSDB_NAMESPACE::Slice& ttlMark)
+Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* partition, const ROCKSDB_NAMESPACE::SliceParts& key, dataunit::WireBufSolid& buf, const ROCKSDB_NAMESPACE::Slice& ttlMark)
 {
     ROCKSDB_NAMESPACE::Status status;
     if (ttlMark.size()==0)
-    {
+    {        
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
-        status=tx->Put(partition->collectionCf.get(),key,objectValue);
+        ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValue,1};
+        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
     }
     else
     {
@@ -156,17 +156,17 @@ Error CreateObjectT<BufT>::operator ()(
         const auto& objectCreatedAt=obj->field(object::created_at).value();
         auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
-        auto ec=saveObject(rdbTx,partition,objectKeySlices,buf,ttlMark);
+        auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
 
         // put indexes to transaction
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
-        auto ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
+        ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction
-        ttlIndexesT::saveTtlIndex(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS);
+        ttlIndexesT::saveTtlIndex(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 
         // done

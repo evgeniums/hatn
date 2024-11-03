@@ -46,6 +46,8 @@ using IndexKeyHandlerFn=std::function<Error (const IndexKeyT&)>;
 
 Error SaveSingleIndex(
         const IndexKeyT& key,
+        bool unique,
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
         ROCKSDB_NAMESPACE::Transaction* tx,
         const ROCKSDB_NAMESPACE::SliceParts& indexValue,
         IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
@@ -57,7 +59,7 @@ Error SaveSingleIndex(
 
     // put index to transaction
     bool put=true;
-    if constexpr (std::decay_t<IndexT>::unique())
+    if (unique)
     {
         if (!replace)
         {
@@ -67,17 +69,16 @@ Error SaveSingleIndex(
             ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
             std::string bufv;
             ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
-            status=tx->Merge(m_cf,k,v);
+            status=tx->Merge(cf,k,v);
         }
     }
     if (put)
     {
         HATN_CTX_SCOPE_PUSH("idx_op","put");
-        status=tx->Put(m_cf,keySlices,indexValue);
+        status=tx->Put(cf,keySlices,indexValue);
     }
     if (!status.ok())
     {
-        HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
         return makeError(DbError::SAVE_INDEX_FAILED,status);
     }
 
@@ -119,7 +120,12 @@ class Indexes
             // make and handle key
             return m_keys.makeIndexKey(ns.topic(),objectId,object,idx,
                 [&](auto&& key){
-                    return SaveSingleIndex(key,tx,indexValue,keyCallback,replace);
+                    auto ec=SaveSingleIndex(key,idx.unique(),m_cf,tx,indexValue,keyCallback,replace);
+                    if (ec)
+                    {
+                        HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                    }
+                    return ec;
                 });
         }
 
