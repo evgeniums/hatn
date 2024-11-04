@@ -696,4 +696,55 @@ Error RocksdbClient::doUpdateMany(const Namespace &,
 
 //---------------------------------------------------------------
 
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Namespace &ns,
+                                    const ModelInfo &model,
+                                    const update::Request &request,
+                                    const ObjectId &id,
+                                    const common::Date &date,
+                                    update::ModifyReturn returnType,
+                                    Transaction* tx)
+{
+    HATN_CTX_SCOPE("rocksdbreadupdate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->updateObjectWithDate(*d->handler,ns,id,request,date,returnType,tx);
+    HATN_CHECK_RESULT(r)
+    if (r.value().isNull())
+    {
+        return dbError(DbError::NOT_FOUND);
+    }
+    return r;
+}
+
+//---------------------------------------------------------------
+
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Namespace &ns,
+                                                                      const ModelInfo &model,
+                                                                      const update::Request &request,
+                                                                      const ObjectId &id,
+                                                                      update::ModifyReturn returnType,
+                                                                      Transaction* tx)
+{
+    HATN_CTX_SCOPE("rocksdbreadupdate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->updateObject(*d->handler,ns,id,request,returnType,tx);
+    HATN_CHECK_RESULT(r)
+    if (r.value().isNull())
+    {
+        return dbError(DbError::NOT_FOUND);
+    }
+    return r;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

@@ -103,6 +103,21 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                        const ObjectId& id,
                        Transaction* tx) override;
 
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+                                                                       const ModelInfo& model,
+                                                                       const update::Request& request,
+                                                                       const ObjectId& id,
+                                                                       const common::Date& date,
+                                                                       update::ModifyReturn returnType,
+                                                                       Transaction* tx) override;
+
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+                                                                       const ModelInfo& model,
+                                                                       const update::Request& request,
+                                                                       const ObjectId& id,
+                                                                       update::ModifyReturn returnType,
+                                                                       Transaction* tx) override;
+
         Error doUpdateMany(
             const Namespace& ns,
             const ModelInfo& model,

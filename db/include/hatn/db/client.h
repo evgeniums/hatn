@@ -321,6 +321,43 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
+        Result<typename ModelT::SharedPtr> readUpdate(const Namespace& ns,
+                           const std::shared_ptr<ModelT>& model,
+                           const update::Request& request,
+                           const ObjectId& id,
+                           const common::Date& date,
+                           update::ModifyReturn returnType=update::ModifyReturn::After,
+                           Transaction* tx=nullptr)
+        {
+            HATN_CTX_SCOPE("dbreadupdate")
+            if (m_opened)
+            {
+                return doReadUpdate(ns,model->info,request,id,date,returnType,tx);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Result<typename ModelT::SharedPtr> readUpdate(const Namespace& ns,
+                                                      const std::shared_ptr<ModelT>& model,
+                                                      const update::Request& request,
+                                                      const ObjectId& id,
+                                                      update::ModifyReturn returnType=update::ModifyReturn::After,
+                                                      Transaction* tx=nullptr)
+        {
+            HATN_CTX_SCOPE("dbreadupdate")
+            if (m_opened)
+            {
+                return doReadUpdate(ns,model->info,request,id,returnType,tx);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
         Error deleteObject(const Namespace& ns,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
@@ -461,6 +498,21 @@ class HATN_DB_EXPORT Client : public common::WithID
                                const update::Request& request,
                                const ObjectId& id,
                                Transaction* tx)=0;
+
+        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+                                     const ModelInfo& model,
+                                     const update::Request& request,
+                                     const ObjectId& id,
+                                     const common::Date& date,
+                                     update::ModifyReturn returnType,
+                                     Transaction* tx)=0;
+
+        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+                                                                       const ModelInfo& model,
+                                                                       const update::Request& request,
+                                                                       const ObjectId& id,
+                                                                       update::ModifyReturn returnType,
+                                                                       Transaction* tx)=0;
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,
