@@ -264,6 +264,28 @@ struct FieldTmpl<TYPE_OBJECT_ID> : public ObjectIdField
     {
         return m_value<val;
     }
+
+    bool less(const char* val,size_t length) const override
+    {
+        ObjectId v;
+        common::ConstDataBuf buf{val,length};
+        if (!v.parse(buf))
+        {
+            return false;
+        }
+        return less(v);
+    }
+
+    bool equals(const char* val,size_t length) const override
+    {
+        ObjectId v;
+        common::ConstDataBuf buf{val,length};
+        if (!v.parse(buf))
+        {
+            return false;
+        }
+        return equals(v);
+    }
 };
 
 //---------------------------------------------------------------

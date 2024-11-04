@@ -72,8 +72,6 @@ class FieldGetSet
         virtual bool less(const common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool less(const common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool less(const ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
-        //! @todo Implement
-        virtual bool less(const lib::string_view& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
 
         virtual bool equals(bool val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(uint8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
@@ -91,8 +89,6 @@ class FieldGetSet
         virtual bool equals(const common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(const common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(const ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
-        //! @todo Implement
-        virtual bool equals(const lib::string_view& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
 
         virtual void setV(bool val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void setV(uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
@@ -147,6 +143,9 @@ class FieldGetSet
         virtual bool lexLessI(const char* val,size_t length) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=length;return false;}
         virtual bool lexEquals(const char* val,size_t length) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=length;return false;}
         virtual bool lexEqualsI(const char* val,size_t length) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=length;return false;}
+
+        bool less(const lib::string_view& val) const {return less(val.data(),val.size());}
+        bool equals(const lib::string_view& val) const {return equals(val.data(),val.size());}
 
         virtual void setV(const char* data,size_t length) {Assert(false,"Invalid operation for field of this type");std::ignore=data;std::ignore=length;}
         inline void setV(const common::ConstDataBuf& data) {setV(data.data(),data.size());}
