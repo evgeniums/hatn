@@ -26,7 +26,7 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
 #include <hatn/db/schema.h>
-#include <hatn/db/ipp/objectid.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include "hatn_test_config.h"
 #include "initdbplugins.h"

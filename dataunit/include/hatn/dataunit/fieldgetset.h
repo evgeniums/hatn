@@ -33,6 +33,7 @@
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 class Unit;
+class ObjectId;
 
 class FieldGetSet
 {
@@ -70,6 +71,9 @@ class FieldGetSet
         virtual bool less(const common::Date& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool less(const common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool less(const common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
+        virtual bool less(const ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
+        //! @todo Implement
+        virtual bool less(const lib::string_view& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
 
         virtual bool equals(bool val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(uint8_t val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
@@ -86,6 +90,9 @@ class FieldGetSet
         virtual bool equals(const common::Date& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(const common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
         virtual bool equals(const common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
+        virtual bool equals(const ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
+        //! @todo Implement
+        virtual bool equals(const lib::string_view& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;return false;}
 
         virtual void setV(bool val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void setV(uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
@@ -102,6 +109,7 @@ class FieldGetSet
         virtual void setV(const common::Date& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void setV(const common::Time& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void setV(const common::DateRange& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void setV(const ObjectId& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
 
         virtual void getV(bool& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void getV(uint8_t& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
@@ -118,6 +126,7 @@ class FieldGetSet
         virtual void getV(common::Date& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void getV(common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void getV(common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void getV(ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
 
         virtual void incV(uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void incV(uint16_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
@@ -184,6 +193,7 @@ class FieldGetSet
         virtual void arrayAdd(const common::Time& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void arrayAdd(const common::DateRange& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
         virtual void arrayAdd(const common::ConstDataBuf& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
+        virtual void arrayAdd(const ObjectId& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;}
 
         virtual void arraySet(size_t idx,bool val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arraySet(size_t idx,uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
@@ -200,7 +210,8 @@ class FieldGetSet
         virtual void arraySet(size_t idx,const common::Date& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arraySet(size_t idx,const common::Time& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arraySet(size_t idx,const common::DateRange& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
-        virtual void arraySet(size_t idx,common::ConstDataBuf& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arraySet(size_t idx,const common::ConstDataBuf& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arraySet(size_t idx,const ObjectId& val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
 
         virtual void arrayGet(size_t idx,bool& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayGet(size_t idx,uint8_t& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
@@ -218,6 +229,7 @@ class FieldGetSet
         virtual void arrayGet(size_t idx,common::Time& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayGet(size_t idx,common::DateRange& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayGet(size_t idx,common::DataBuf& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
+        virtual void arrayGet(size_t idx,ObjectId& val) const {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
 
         virtual void arrayInc(size_t idx,uint8_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}
         virtual void arrayInc(size_t idx,uint16_t val) {Assert(false,"Invalid operation for field of this type");std::ignore=val;std::ignore=idx;}

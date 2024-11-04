@@ -27,7 +27,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/namespace.h>
 #include <hatn/db/update.h>
-// #include <hatn/db/ipp/updateunit.ipp>
+#include <hatn/db/ipp/updateunit.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -181,7 +181,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectIdS,obj.get(),oldKeys);
 
         // apply request to object
-        // update::ApplyRequest(obj.get(),request);
+        update::ApplyRequest(obj.get(),request);
 
         // serialize object
         dataunit::WireBufSolid buf{factory};

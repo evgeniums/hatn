@@ -34,15 +34,17 @@ template <typename ScalarFnT, typename VectorFnT>
 struct FieldVisitorT
 {
     template <typename T>
-    void operator()(const T& val) const
+    Error operator()(const T& val) const
     {
         scalarFn(val);
+        return OK;
     }
 
     template <typename T>
-    void operator()(const common::pmr::vector<T>& val) const
+    Error operator()(const common::pmr::vector<T>& val) const
     {
         vectorFn(val);
+        return OK;
     }
 
     template <typename T1, typename T2>
@@ -123,11 +125,15 @@ struct HandleFieldT
             {
                 case (Operator::replace_element):
                 {
-                    updateField.value.handleValue(
-                        [idx,&field](const auto& val)
-                        {
-                            field->arraySet(idx,val);
-                        });
+                    auto elementSet=[idx,&field](const auto& val)
+                    {
+                        field->arraySet(idx,val);
+                    };
+                    auto vectorSet=[](const auto&)
+                    {
+                    };
+                    auto vis=FieldVisitor(std::move(elementSet),std::move(vectorSet));
+                    updateField.value.handleValue(vis);
                 }
                 break;
 
@@ -140,7 +146,7 @@ struct HandleFieldT
                 case (Operator::inc_element):
                 {
                     updateField.value.handleValue(
-                        [&field](const auto& val)
+                        [idx,&field](const auto& val)
                         {
                             using type=std::decay_t<decltype(val)>;
                             hana::eval_if(
@@ -154,6 +160,7 @@ struct HandleFieldT
                                     Assert(false,"Increment operation not applicable for this value type");
                                 }
                             );
+                            return Error{OK};
                         });
                 }
                 break;
@@ -179,7 +186,6 @@ struct HandleFieldT
                 {
                     field->setV(val);
                 };
-
                 auto vectorSet=[&field](const auto& val)
                 {
                     field->arrayResize(val.size());
@@ -188,10 +194,8 @@ struct HandleFieldT
                         field->arraySet(i,val[i]);
                     }
                 };
-
-                updateField.value.handleValue(
-                    FieldVisitor(std::move(scalarSet),std::move(vectorSet));
-                );
+                auto vis=FieldVisitor(std::move(scalarSet),std::move(vectorSet));
+                updateField.value.handleValue(vis);
             }
             break;
 
@@ -218,17 +222,22 @@ struct HandleFieldT
                                 Assert(false,"Increment operation not applicable for this value type");
                             }
                         );
+                        return Error{OK};
                     });
             }
             break;
 
             case (Operator::push):
             {
-                updateField.value.handleValue(
-                    [&field](const auto& val)
-                    {
-                        field->arrayAdd(val);
-                    });
+                auto elementAdd=[&field](const auto& val)
+                {
+                    field->arrayAdd(val);
+                };
+                auto vectorSet=[](const auto&)
+                {
+                };
+                auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
+                updateField.value.handleValue(vis);
             }
             break;
 
@@ -243,28 +252,51 @@ struct HandleFieldT
             break;
 
             case (Operator::push_unique):
-            {
-                updateField.value.handleValue(
-                    [&field](const auto& val)
+            {                
+                auto elementAdd=[&field](const auto& val)
+                {
+                    bool unique=true;
+                    for (size_t i=0;i<field->arraySize();i++)
                     {
-                        using type=std::decay_t<decltype(val)>;
-                        type v{};
+                        if (field->equals(val))
+                        {
+                            unique=false;
+                            break;
+                        }
+                    }
+                    if (unique)
+                    {
+                        field->arrayAdd(val);
+                    }
+                };
+                auto vectorSet=[](const auto&)
+                {
+                };
+                auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
+                updateField.value.handleValue(vis);
 
-                        bool unique=true;
-                        for (size_t i=0;i<field->arraySize();i++)
-                        {
-                            field->arrayGet(i,v);
-                            if (v==value)
-                            {
-                                unique=false;
-                                break;
-                            }
-                        }
-                        if (unique)
-                        {
-                            field->arrayAdd(val);
-                        }
-                    });
+                // updateField.value.handleValue(
+                //     [&field](const auto& val)
+                //     {
+                //         using type=std::decay_t<decltype(val)>;
+                //         type v{};
+
+                //         bool unique=true;
+                //         for (size_t i=0;i<field->arraySize();i++)
+                //         {
+                //             field->arrayGet(i,v);
+                //             if (v==val)
+                //             {
+                //                 unique=false;
+                //                 break;
+                //             }
+                //         }
+                //         if (unique)
+                //         {
+                //             field->arrayAdd(val);
+                //         }
+                //         return Error{OK};
+                //     });
             }
             break;
 

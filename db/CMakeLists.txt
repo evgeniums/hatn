@@ -23,7 +23,6 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
-    include/hatn/db/ipp/objectid.ipp
     include/hatn/db/ipp/updateunit.ipp
 )
 
@@ -33,7 +32,6 @@ SET (SOURCES
     src/client.cpp
     src/schema.cpp
     src/object.cpp
-    src/objectid.cpp
     src/modelregistry.cpp
     src/query.cpp
 )

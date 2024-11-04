@@ -24,7 +24,7 @@
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/db/object.h>
-#include <hatn/db/ipp/objectid.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/db/schema.h>
 

@@ -59,6 +59,9 @@ SET (HEADERS
     include/hatn/dataunit/unitmacros.h
     include/hatn/dataunit/datauniterror.h
     include/hatn/dataunit/datauniterrorcodes.h
+
+    include/hatn/dataunit/objectid.h
+    include/hatn/dataunit/ipp/objectid.ipp
 )
 
 SET (SOURCES
@@ -69,6 +72,7 @@ SET (SOURCES
     src/field.cpp
     src/unitstrings.cpp
     src/datauniterror.cpp
+    src/objectid.cpp
 )
 
 # check if string literals are suuported by compiler
