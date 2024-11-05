@@ -107,7 +107,7 @@ Error CreateObjectT<BufT>::operator ()(
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
-        auto objectKeyFull=keys.makeObjectKeyValue(model,ns,objectIdS,objectCreatedAt,ttlMark);
+        auto objectKeyFull=keys.makeObjectKeyValue(model,ns.topic(),objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
         auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
@@ -119,7 +119,7 @@ Error CreateObjectT<BufT>::operator ()(
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction
-        ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition,objectIdS,allocatorFactory);
+        ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition.get(),objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 
         // done

@@ -10,7 +10,7 @@
 
 /** @file db/plugins/rocksdb/detail/rocksdbupdate.ipp
   *
-  *   RocksDB database template for updating objects.
+  *   RocksDB database template for updating object.
   *
   */
 
@@ -62,41 +62,22 @@ struct UpdateObjectT
 template <typename BufT>
 constexpr UpdateObjectT<BufT> UpdateObject{};
 
-template <typename BufT>
-template <typename ModelT, typename DateT>
-Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
+template <typename BufT, typename ModelT>
+Result<typename ModelT::SharedPtr> updateSingle(
+    Keys<BufT>& keys,
+    ROCKSDB_NAMESPACE::Slice objectIdS,
+    const ROCKSDB_NAMESPACE::Slice& key,
     const ModelT& model,
     RocksdbHandler& handler,
-    const Namespace& ns,
-    const ObjectId& objectId,
+    RocksdbPartition* partition,
+    const lib::string_view& topic,
     const update::Request& request,
-    const DateT& date,
     db::update::ModifyReturn modifyReturn,
     AllocatorFactory* factory,
     Transaction* intx
-    ) const
+    )
 {
     using modelType=std::decay_t<ModelT>;
-
-    HATN_CTX_SCOPE("rocksdbupdateobject")
-    HATN_CTX_SCOPE_PUSH("coll",model.collection())
-    HATN_CTX_SCOPE_PUSH("topic",ns.topic())
-    auto idData=objectId.toArray();
-    auto idDataStr=lib::string_view{idData.data(),idData.size()};
-    HATN_CTX_SCOPE_PUSH("object",idDataStr)
-
-    // eval partition
-    const auto partition=objectPartition(handler,model,objectId,date);
-    if (!partition)
-    {
-        HATN_CTX_SCOPE_ERROR("find-partition");
-        return dbError(DbError::PARTITION_NOT_FOUND);
-    }
-
-    // construct key
-    Keys<BufT> keys{factory->bytesAllocator()};
-    ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
@@ -109,7 +90,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         auto rdbTx=RocksdbTransaction::native(tx);
 
         // get for update
-        ROCKSDB_NAMESPACE::PinnableSlice readSlice;        
+        ROCKSDB_NAMESPACE::PinnableSlice readSlice;
         auto getForUpdate=[&]()
         {
             auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
@@ -178,7 +159,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
 
         // extract old keys for updated fields
         IndexKeyUpdateSet oldKeys;
-        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectIdS,obj.get(),oldKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
 
         // apply request to object
         update::ApplyRequest(obj.get(),request);
@@ -191,12 +172,12 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         // save object
         auto ttlMark=TtlMark::ttlMark(readSlice);
         ROCKSDB_NAMESPACE::SliceParts keySlices{&key,1};
-        ec=saveObject(rdbTx,partition.get(),keySlices,buf,ttlMark);
+        ec=saveObject(rdbTx,partition,keySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
         IndexKeyUpdateSet newKeys;
-        RocksdbModelT<modelType>::updatingKeys(keys,request,ns.topic(),objectIdS,obj.get(),newKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys);
 
         // find keys difference
         for (auto& newKey : newKeys)
@@ -228,12 +209,12 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
             }
         }
 
-        // save new keys        
+        // save new keys
         ROCKSDB_NAMESPACE::SliceParts indexValue{&key,1};
         for (auto&& newKey : newKeys)
         {
             if (!newKey.exists)
-            {                
+            {
                 // save new key
                 ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
                 if (ec)
@@ -249,10 +230,9 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         if (RocksdbModelT<modelType>::checkTtlFieldUpdated(request))
         {
             using ttlIndexesT=TtlIndexes<modelType>;
-            ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
 
             // delete old ttl index
-            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition.get(),objectIdS,ttlMark);
+            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
             HATN_CHECK_EC(ec)
 
             // save new ttl index
@@ -274,6 +254,44 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
         return objBefore;
     }
     return obj;
+}
+
+template <typename BufT>
+template <typename ModelT, typename DateT>
+Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
+        const ModelT& model,
+        RocksdbHandler& handler,
+        const Namespace& ns,
+        const ObjectId& objectId,
+        const update::Request& request,
+        const DateT& date,
+        db::update::ModifyReturn modifyReturn,
+        AllocatorFactory* factory,
+        Transaction* intx
+    ) const
+{
+    HATN_CTX_SCOPE("rocksdbupdateobject")
+    HATN_CTX_SCOPE_PUSH("coll",model.collection())
+    HATN_CTX_SCOPE_PUSH("topic",ns.topic())
+    auto idData=objectId.toArray();
+    auto idDataStr=lib::string_view{idData.data(),idData.size()};
+    HATN_CTX_SCOPE_PUSH("object",idDataStr)
+
+    // eval partition
+    const auto partition=objectPartition(handler,model,objectId,date);
+    if (!partition)
+    {
+        HATN_CTX_SCOPE_ERROR("find-partition");
+        return dbError(DbError::PARTITION_NOT_FOUND);
+    }
+
+    // construct key
+    Keys<BufT> keys{factory->bytesAllocator()};
+    ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
+    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
+
+    // do
+    return updateSingle(keys,objectIdS,key,model,handler,partition.get(),ns.topic(),request,modifyReturn,factory,intx);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -31,6 +31,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbupdatemany.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
@@ -165,6 +166,23 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 )
         {
             auto r=UpdateObject<BufT>(model->model,handler,ns,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        };
+
+        rdbModel->updateMany=[model,allocatorFactory]
+            (
+               RocksdbHandler& handler,
+               IndexQuery& query,
+               const update::Request& request,
+               db::update::ModifyReturn modifyReturnFirst,
+               Transaction* tx
+            )
+        {
+            auto r=UpdateMany<BufT>(model->model,handler,query,request,modifyReturnFirst,allocatorFactory,tx);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};

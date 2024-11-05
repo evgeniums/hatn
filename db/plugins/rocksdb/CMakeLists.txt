@@ -44,12 +44,13 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp
     include/hatn/db/plugins/rocksdb/detail/querypartitions.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp
-    include/hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp
-    include/hatn/db/plugins/rocksdb/detail/updateobject.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp    
     include/hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbupdatemany.ipp
     include/hatn/db/plugins/rocksdb/detail/objectpartition.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp
     include/hatn/db/plugins/rocksdb/detail/saveobject.ipp
+    include/hatn/db/plugins/rocksdb/detail/findmodifymany.ipp
     include/hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp
 )
 

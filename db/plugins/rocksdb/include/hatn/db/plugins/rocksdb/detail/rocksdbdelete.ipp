@@ -162,7 +162,7 @@ Error DeleteObjectT<BufT>::operator ()(
     // construct object key
     Keys<BufT> keys{factory->bytesAllocator()};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
+    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
 
     // delete object
     using ttlIndexesT=TtlIndexes<modelType>;

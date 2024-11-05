@@ -81,7 +81,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
     // construct key
     Keys<BufT> keys{factory->bytesAllocator()};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns,objectIdS));
+    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
 
     // read object from db
     auto rdb=handler.p()->db;

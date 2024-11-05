@@ -48,7 +48,7 @@ class KeysBase
 
         template <typename ModelT>
         static auto makeObjectKeyValue(const ModelT& model,
-                                  const Namespace& ns,
+                                  const lib::string_view& topic,
                                   const ROCKSDB_NAMESPACE::Slice& objectId,
                                   const common::DateTime& timepoint=common::DateTime{},
                                   const ROCKSDB_NAMESPACE::Slice& ttlMark=ROCKSDB_NAMESPACE::Slice{}
@@ -60,7 +60,7 @@ class KeysBase
             parts[0]=ROCKSDB_NAMESPACE::Slice{&ObjectIndexVersion,sizeof(ObjectIndexVersion)};
 
             // actual index
-            parts[1]=ROCKSDB_NAMESPACE::Slice{ns.topic().data(),ns.topic().size()};
+            parts[1]=ROCKSDB_NAMESPACE::Slice{topic.data(),topic.size()};
             parts[2]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
             parts[3]=ROCKSDB_NAMESPACE::Slice{model.modelIdStr().data(),model.modelIdStr().size()};
             parts[4]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
@@ -84,12 +84,18 @@ class KeysBase
 
         static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size)
         {
+            //! @todo Case without TTL
             auto extraSize=sizeof(ObjectIndexVersion)
                              + TimestampSize
                              + TtlMark::ttlMarkOffset(ptr,size);
-            Assert(size>extraSize,"Invalid size of index value");
             ROCKSDB_NAMESPACE::Slice result{ptr+sizeof(ObjectIndexVersion),size - extraSize};
             return result;
+        }
+
+        static ROCKSDB_NAMESPACE::Slice objectIdFromIndexValue(const char* ptr, size_t size)
+        {
+            //! @todo Implement
+            return ROCKSDB_NAMESPACE::Slice{};
         }
 
         template <size_t Size>
@@ -100,6 +106,7 @@ class KeysBase
 
         static uint32_t timestampFromIndexValue(const char* ptr, size_t size)
         {
+            //! @todo Case without TTL
             auto extraSize=TimestampSize
                            + TtlMark::ttlMarkOffset(ptr,size);
             Assert(size>extraSize,"Invalid size of index value");

@@ -117,7 +117,7 @@ struct TtlIndexes
             const objectT*,
             dataunit::WireBufSolid&,
             ROCKSDB_NAMESPACE::Transaction*,
-            const std::shared_ptr<RocksdbPartition>&,
+            RocksdbPartition*,
             const ROCKSDB_NAMESPACE::Slice&,
             AllocatorFactory*
         )
@@ -131,7 +131,7 @@ struct TtlIndexes
         const objectT*,
         dataunit::WireBufSolid&,
         ROCKSDB_NAMESPACE::Transaction*,
-        const std::shared_ptr<RocksdbPartition>&,
+        RocksdbPartition*,
         const ROCKSDB_NAMESPACE::Slice&,
         AllocatorFactory*
         )
@@ -182,7 +182,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             dataunit::WireBufSolid& buf,
             ROCKSDB_NAMESPACE::Transaction* tx,
             const ttl_index::type& ttlIndex,
-            const std::shared_ptr<RocksdbPartition>& partition,
+            RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
             const ROCKSDB_NAMESPACE::Slice& ttlMark
         )
@@ -272,7 +272,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             const objectT* obj,
             dataunit::WireBufSolid& buf,
             ROCKSDB_NAMESPACE::Transaction* tx,
-            const std::shared_ptr<RocksdbPartition>& partition,
+            RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
             AllocatorFactory* allocatorFactory
         )
@@ -287,7 +287,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             const objectT* obj,
             dataunit::WireBufSolid& buf,
             ROCKSDB_NAMESPACE::Transaction* tx,
-            const std::shared_ptr<RocksdbPartition>& partition,
+            RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
             AllocatorFactory* allocatorFactory
         )

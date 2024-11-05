@@ -691,7 +691,19 @@ Error RocksdbClient::doUpdateMany(const Namespace &,
                                   const update::Request& request,
                                   Transaction* tx)
 {
-    return CommonError::NOT_IMPLEMENTED;
+    HATN_CTX_SCOPE("rocksdbupdatemany")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->updateMany(*d->handler,query,request,db::update::ModifyReturn::None,tx);
+    if (r)
+    {
+        return r.takeError();
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
