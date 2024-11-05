@@ -66,7 +66,7 @@ class KeysBase
             parts[4]=ROCKSDB_NAMESPACE::Slice{SeparatorCharStr.data(),SeparatorCharStr.size()};
             parts[5]=objectId;
 
-            // timepoint and ttl mark are empty when key is generated for search
+            //! @note timepoint and ttl mark are empty ONLY when key is generated for search
             if (!timepoint.isNull() && !ttlMark.empty())
             {
                 // 4 bytes for current timestamp
@@ -82,34 +82,47 @@ class KeysBase
             return parts;
         }
 
-        static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size)
-        {
-            //! @todo Case without TTL
-            auto extraSize=sizeof(ObjectIndexVersion)
-                             + TimestampSize
-                             + TtlMark::ttlMarkOffset(ptr,size);
-            ROCKSDB_NAMESPACE::Slice result{ptr+sizeof(ObjectIndexVersion),size - extraSize};
-            return result;
-        }
-
-        static ROCKSDB_NAMESPACE::Slice objectIdFromIndexValue(const char* ptr, size_t size)
-        {
-            //! @todo Implement
-            return ROCKSDB_NAMESPACE::Slice{};
-        }
-
         template <size_t Size>
         static ROCKSDB_NAMESPACE::SliceParts objectKeySlices(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts) noexcept
         {
             return ROCKSDB_NAMESPACE::SliceParts{&parts[1],ObjectKeySliceCount};
         }
 
+        static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size)
+        {
+            auto extraSize=sizeof(ObjectIndexVersion)
+                             + TimestampSize
+                             + TtlMark::ttlMarkOffset(ptr,size);
+            if (size<extraSize)
+            {
+                return ROCKSDB_NAMESPACE::Slice{};
+            }
+
+            ROCKSDB_NAMESPACE::Slice result{ptr+sizeof(ObjectIndexVersion),size - extraSize};
+            return result;
+        }
+
+        static ROCKSDB_NAMESPACE::Slice objectIdFromIndexValue(const char* ptr, size_t size)
+        {
+            auto extraSize=TimestampSize
+                             + TtlMark::ttlMarkOffset(ptr,size);
+            if (size<(extraSize+ObjectId::Length))
+            {
+                return ROCKSDB_NAMESPACE::Slice{};
+            }
+
+            ROCKSDB_NAMESPACE::Slice result{ptr+size-extraSize-ObjectId::Length,ObjectId::Length};
+            return result;
+        }
+
         static uint32_t timestampFromIndexValue(const char* ptr, size_t size)
         {
-            //! @todo Case without TTL
             auto extraSize=TimestampSize
                            + TtlMark::ttlMarkOffset(ptr,size);
-            Assert(size>extraSize,"Invalid size of index value");
+            if (size<extraSize)
+            {
+                return ROCKSDB_NAMESPACE::Slice{};
+            }
 
             size_t offset=size-extraSize;
             uint32_t timestamp{0};
