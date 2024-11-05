@@ -91,6 +91,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // get for update
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
+        ROCKSDB_NAMESPACE::Slice objSlice;
         auto getForUpdate=[&]()
         {
             auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
@@ -114,7 +115,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
             }
 
             // deserialize object
-            auto objSlice=TtlMark::stripTtlMark(readSlice);
+            objSlice=TtlMark::stripTtlMark(readSlice);
             dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
             if (!dataunit::io::deserialize(*obj,buf,ec))
             {
@@ -153,8 +154,9 @@ Result<typename ModelT::SharedPtr> updateSingle(
         if (modifyReturn==db::update::ModifyReturn::Before)
         {
             objBefore=factory->createObject<typename modelType::ManagedType>(factory);
-            //! @todo Copy object
-            // *objBefore=*obj;
+            dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
+            dataunit::io::deserialize(*objBefore,buf,ec);
+            // ignore ec because this object was already deserialized
         }
 
         // extract old keys for updated fields
