@@ -121,7 +121,7 @@ class KeysBase
                            + TtlMark::ttlMarkOffset(ptr,size);
             if (size<extraSize)
             {
-                return ROCKSDB_NAMESPACE::Slice{};
+                return 0;
             }
 
             size_t offset=size-extraSize;
