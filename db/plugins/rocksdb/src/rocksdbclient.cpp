@@ -184,8 +184,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
-    indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
-
+    indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();        
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     options.create_if_missing = createIfMissing;
 
@@ -386,6 +385,9 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         // done closing db on failure
         d->handler.reset();
     }
+
+    //! @todo Compaction filter using ttl marks.
+    //! @todo Ttl indexes background worker.
 }
 
 //---------------------------------------------------------------
