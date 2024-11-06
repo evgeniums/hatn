@@ -34,7 +34,8 @@ struct UpdateManyT
                                                   const update::Request& request,
                                                   db::update::ModifyReturn modifyReturnFirst,
                                                   AllocatorFactory* allocatorFactory,
-                                                  Transaction* tx
+                                                  Transaction* tx,
+                                                  bool single=false
                                                   ) const;
 };
 template <typename BufT>
@@ -49,7 +50,8 @@ Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
         const update::Request& request,
         db::update::ModifyReturn modifyReturnFirst,
         AllocatorFactory* allocatorFactory,
-        Transaction* tx
+        Transaction* tx,
+        bool single
     ) const
 {
     HATN_CTX_SCOPE("updatemany")
@@ -81,6 +83,11 @@ Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
             result=r.takeValue();
         }
         i++;
+
+        if (single)
+        {
+            return false;
+        }
 
         // done
         return true;

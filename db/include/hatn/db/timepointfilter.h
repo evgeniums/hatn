@@ -76,6 +76,11 @@ class TimePointFilter
             return filterTimepoint(createdAt.toEpoch());
         }
 
+        operator bool() const noexcept
+        {
+            return static_cast<bool>(m_intervals);
+        }
+
     private:
 
         TimepointIntervalsPtr m_intervals;

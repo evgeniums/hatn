@@ -759,4 +759,24 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
 
 //---------------------------------------------------------------
 
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(const Namespace& ns,
+                                                                            const ModelInfo& model,
+                                                                            IndexQuery& query,
+                                                                            const update::Request& request,
+                                                                            const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+                                                                            update::ModifyReturn returnType,
+                                                                            Transaction* tx)
+{
+    HATN_CTX_SCOPE("rocksdbreadupdatecreate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->readUpdateCreate(*d->handler,ns,query,request,object,returnType,tx);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

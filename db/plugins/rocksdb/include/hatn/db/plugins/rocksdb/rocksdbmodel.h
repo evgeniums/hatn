@@ -112,12 +112,22 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             )> updateObject;
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
-                RocksdbHandler& handler,
-                IndexQuery& query,
-                const update::Request& request,
-                db::update::ModifyReturn modifyReturnFirst,
-                Transaction* tx
+            RocksdbHandler& handler,
+            IndexQuery& query,
+            const update::Request& request,
+            db::update::ModifyReturn modifyReturnFirst,
+            Transaction* tx
             )> updateMany;
+
+        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+            RocksdbHandler& handler,
+            const Namespace& ns,
+            IndexQuery& query,
+            const update::Request& request,
+            const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+            db::update::ModifyReturn modifyReturn,
+            Transaction* tx
+            )> readUpdateCreate;
 
     private:
 

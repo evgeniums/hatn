@@ -190,6 +190,43 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
         };
 
+        rdbModel->readUpdateCreate=[model,allocatorFactory]
+            (
+                RocksdbHandler& handler,
+                const Namespace& ns,
+                IndexQuery& query,
+                const update::Request& request,
+                const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+                db::update::ModifyReturn modifyReturn,
+                Transaction* tx
+            )
+        {
+            if (modifyReturn==db::update::ModifyReturn::None)
+            {
+                modifyReturn=db::update::ModifyReturn::Before;
+            }
+
+            // try update
+            auto r=UpdateMany<BufT>(model->model,handler,query,request,modifyReturn,allocatorFactory,tx,true);
+            if (r)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            }
+            if (r.value())
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+            }
+
+            // create if not found
+            const auto* obj=sample.castToUnit(object.get());
+            auto&& ec=CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory,tx);
+            if (ec)
+            {
+                return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(ec)};
+            }
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{object};
+        };
+
         using mType=std::decay_t<decltype(model->model)>;
         RocksdbModelT<mType>::init(model->model);
 

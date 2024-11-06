@@ -132,24 +132,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         // if not found then call not found callback
         if (!found)
         {
-            //! @todo Special processing when not found
-#if 0
-            auto tryUpdate=notFoundCb(ec);
-            HATN_CHECK_EC(ec)
-            if (tryUpdate)
-            {
-                HATN_CTX_SCOPE("tryupdate");
-                found=getForUpdate();
-                if (!found)
-                {
-                    return ec;
-                }
-            }
-            else
-#endif
-            {
-                return Error{OK};
-            }
+            return Error{OK};
         }
         if (modifyReturn==db::update::ModifyReturn::Before)
         {

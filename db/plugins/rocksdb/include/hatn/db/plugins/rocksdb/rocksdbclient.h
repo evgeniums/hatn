@@ -126,6 +126,14 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             Transaction* tx
         ) override;
 
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(const Namespace& ns,
+                                                                     const ModelInfo& model,
+                                                                     IndexQuery& query,
+                                                                     const update::Request& request,
+                                                                     const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+                                                                     update::ModifyReturn returnType,
+                                                                     Transaction* tx) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;
