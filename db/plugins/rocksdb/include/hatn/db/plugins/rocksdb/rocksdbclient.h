@@ -61,8 +61,19 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id) override;
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date) override;
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+                                                         const ModelInfo& model,
+                                                         const ObjectId& id,
+                                                         Transaction* tx,
+                                                         bool forUpdate
+                                                         ) override;
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+                                                         const ModelInfo& model,
+                                                         const ObjectId& id,
+                                                         const common::Date& date,
+                                                         Transaction* tx,
+                                                         bool forUpdate
+                                                         ) override;
 
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,

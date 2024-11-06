@@ -222,10 +222,6 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        //! @todo Add Read for update.
-
-        //! @todo Read from transaction
-
         template <typename ModelT>
         Result<typename ModelT::SharedPtr> afterRead(
             Result<common::SharedPtr<dataunit::Unit>>&& r,
@@ -250,12 +246,14 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<typename ModelT::SharedPtr> read(const Namespace& ns,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
+                                                Transaction* tx=nullptr,
+                                                bool forUpdate=false,
                                                 const TimePointFilter& tpFilter=TimePointFilter{})
         {
             HATN_CTX_SCOPE("dbread")
             if (m_opened)
             {
-                return afterRead(doRead(ns,model->info,id),tpFilter);
+                return afterRead(doRead(ns,model->info,id,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -267,12 +265,14 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
                                                 const common::Date& date,
+                                                Transaction* tx=nullptr,
+                                                bool forUpdate=false,
                                                 const TimePointFilter& tpFilter=TimePointFilter{})
         {
             HATN_CTX_SCOPE("dbreaddate")
             if (m_opened)
             {
-                afterRead(doRead(ns,model->info,id,date),tpFilter);
+                afterRead(doRead(ns,model->info,id,date,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -501,8 +501,19 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Error doCreate(const Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id)=0;
-        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns, const ModelInfo& model, const ObjectId& id, const common::Date& date)=0;
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+                                                                 const ModelInfo& model,
+                                                                 const ObjectId& id,
+                                                                 Transaction* tx,
+                                                                 bool forUpdate
+        )=0;
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+                                                                 const ModelInfo& model,
+                                                                 const ObjectId& id,
+                                                                 const common::Date& date,
+                                                                 Transaction* tx,
+                                                                 bool forUpdate
+                                                                 )=0;
 
         virtual Error doDeleteObject(const Namespace& ns,
                            const ModelInfo& model,

@@ -67,10 +67,12 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             (
                 RocksdbHandler& handler,
                 const Namespace& ns,
-                const ObjectId& objectId
+                const ObjectId& objectId,
+                Transaction* tx,
+                bool forUpdate
             )
         {
-            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory);
+            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -83,10 +85,12 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 RocksdbHandler& handler,
                 const Namespace& ns,
                 const ObjectId& objectId,
-                const HATN_COMMON_NAMESPACE::Date& date
+                const HATN_COMMON_NAMESPACE::Date& date,
+                Transaction* tx,
+                bool forUpdate
             )
         {
-            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory);
+            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory,tx,forUpdate);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};

@@ -33,6 +33,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -45,7 +46,10 @@ struct ReadObjectT
                                                   const Namespace& ns,
                                                   const ObjectId& objectId,
                                                   const DateT& date,
-                                                  AllocatorFactory* allocatorFactory) const;
+                                                  AllocatorFactory* allocatorFactory,
+                                                  Transaction* tx,
+                                                  bool forUpdate
+                                                  ) const;
 };
 template <typename BufT>
 constexpr ReadObjectT<BufT> ReadObject{};
@@ -58,7 +62,9 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
         const Namespace& ns,
         const ObjectId& objectId,
         const DateT& date,
-        AllocatorFactory* factory
+        AllocatorFactory* factory,
+        Transaction* tx,
+        bool forUpdate
     ) const
 {
     using modelType=std::decay_t<ModelT>;
@@ -86,7 +92,27 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
     // read object from db
     auto rdb=handler.p()->db;
     ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-    auto status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+    ROCKSDB_NAMESPACE::Status status;
+    if (tx==nullptr)
+    {
+        // read directly from db
+        status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+    }
+    else
+    {
+        // read from transaction
+        auto rdbTx=RocksdbTransaction::native(tx);
+        if (forUpdate)
+        {
+            status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+        }
+        else
+        {
+            status=rdbTx->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+        }
+    }
+
+    // check status
     if (!status.ok())
     {
         if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)

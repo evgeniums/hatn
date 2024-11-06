@@ -533,7 +533,12 @@ Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, d
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns, const ModelInfo &model, const ObjectId &id)
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns,
+                                                                const ModelInfo &model,
+                                                                const ObjectId &id,
+                                                                Transaction* tx,
+                                                                bool forUpdate
+                                                                )
 {
     HATN_CTX_SCOPE("rocksdbread")
 
@@ -542,12 +547,18 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readObject(*d->handler,ns,id);
+    return rdbModel->readObject(*d->handler,ns,id,tx,forUpdate);
 }
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns, const ModelInfo &model, const ObjectId &id, const common::Date& date)
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns,
+                                                                const ModelInfo &model,
+                                                                const ObjectId &id,
+                                                                const common::Date& date,
+                                                                Transaction* tx,
+                                                                bool forUpdate
+                                                                )
 {
     HATN_CTX_SCOPE("rocksdbreaddate")
 
@@ -556,7 +567,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readObjectWithDate(*d->handler,ns,id,date);
+    return rdbModel->readObjectWithDate(*d->handler,ns,id,date,tx,forUpdate);
 }
 
 //---------------------------------------------------------------

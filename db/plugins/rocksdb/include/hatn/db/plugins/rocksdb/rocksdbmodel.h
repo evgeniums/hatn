@@ -59,13 +59,19 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
             const Namespace& ns,
-            const ObjectId& objectId)> readObject;
+            const ObjectId& objectId,
+            Transaction* tx,
+            bool forUpdate
+            )> readObject;
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
             const Namespace& ns,
             const ObjectId& objectId,
-            const HATN_COMMON_NAMESPACE::Date& date)> readObjectWithDate;
+            const HATN_COMMON_NAMESPACE::Date& date,
+            Transaction* tx,
+            bool forUpdate
+            )> readObjectWithDate;
 
         std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> (
             RocksdbHandler& handler,

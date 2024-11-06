@@ -213,8 +213,6 @@ struct Model : public ConfigT
             indexIds[i]=idx.id();
             i++;
 
-            //! @todo Remove comment
-            // IndexInfo idxInfo{idx};
             indexMap.emplace(idx.id(),idx);
         };
         hana::for_each(indexes,eachIndex);
