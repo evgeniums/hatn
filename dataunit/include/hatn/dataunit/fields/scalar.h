@@ -278,16 +278,16 @@ class Scalar : public Field
         {
             m_value=static_cast<decltype(m_value)>(val);
         }
-        template <typename T>
-        inline void getVal(T &val) const noexcept
+        template <typename T1>
+        inline void getVal(T1 &val) const noexcept
         {
-            val=static_cast<T>(m_value);
+            val=static_cast<T1>(m_value);
         }
 
-        template <typename T>
-        inline void incVal(const T &val) noexcept
+        template <typename T1>
+        inline void incVal(const T1 &val) noexcept
         {
-            m_value=static_cast<T>(m_value+val);
+            m_value=static_cast<decltype(m_value)>(m_value+val);
         }
 
         virtual bool less(bool val) const override {return lessThan(val);}

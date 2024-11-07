@@ -50,7 +50,10 @@ class AllocatorOnStack
         };
 
         template <class U>
-        AllocatorOnStack(const AllocatorOnStack<U,Size>&)=delete;
+        AllocatorOnStack(const AllocatorOnStack<U,Size>&)
+        {
+            Assert(other.m_occupied==0,"Do not call copy constructor for AllocatorOnStack that is already in use");
+        }
 
         // Move constructor is defined only in order to compile it.
         // You must never call it explicitly with allocator that is already in use.
