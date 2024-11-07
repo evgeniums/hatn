@@ -102,8 +102,7 @@ Error CreateObjectT<BufT>::operator ()(
 
         // prepare
         Keys<BufT> keys{allocatorFactory->bytesAllocator()};
-        using ttlIndexesT=TtlIndexes<modelType>;
-        auto ttlMark=ttlIndexesT::makeTtlMark(model,obj);
+        auto ttlMark=makeTtlMark(model,obj);
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
@@ -119,6 +118,7 @@ Error CreateObjectT<BufT>::operator ()(
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction
+        using ttlIndexesT=TtlIndexes<modelType>;
         ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition.get(),objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 

@@ -195,4 +195,36 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 }
 
+BOOST_AUTO_TEST_CASE(DynamicCast)
+{
+    n1::managed sample;
+
+    auto samplePtr=static_cast<dataunit::Unit*>(&sample);
+    auto samplePtr1=common::dynamicCastWithSample(samplePtr,&sample);
+
+    auto offset=reinterpret_cast<uintptr_t>(static_cast<dataunit::Unit*>(const_cast<n1::managed*>(&sample)))-reinterpret_cast<uintptr_t>(&sample);
+
+    std::cerr << fmt::format("sample=0x{:x}, samplePtr=0x{:x}, offset=0x{:x}, diff=0x{:x}, samplePtr1=0x{:x}",
+                             reinterpret_cast<uintptr_t>(&sample),
+                             reinterpret_cast<uintptr_t>(samplePtr),
+                             offset,
+                             reinterpret_cast<uintptr_t>(samplePtr)-reinterpret_cast<uintptr_t>(&sample),
+                             reinterpret_cast<uintptr_t>(samplePtr1)
+                             ) << std::endl;
+
+    BOOST_CHECK_EQUAL(reinterpret_cast<uintptr_t>(&sample),reinterpret_cast<uintptr_t>(samplePtr1));
+
+    auto objShared=common::makeShared<n1::managed>();
+    BOOST_CHECK(static_cast<bool>(objShared));
+    auto unitPtr=objShared.staticCast<dataunit::Unit>();
+    BOOST_CHECK(static_cast<bool>(unitPtr));
+
+    auto obj1=common::dynamicCastWithSample(unitPtr.get(),&sample);
+
+    auto objShared1=obj1->sharedFromThis();
+    BOOST_CHECK(static_cast<bool>(objShared1));
+
+    BOOST_CHECK_EQUAL(reinterpret_cast<uintptr_t>(objShared.get()),reinterpret_cast<uintptr_t>(objShared1.get()));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

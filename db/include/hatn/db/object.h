@@ -55,6 +55,15 @@ void initObject(ObjectT& obj)
     obj.resetWireDataKeeper();
 }
 
+template <typename ObjectT>
+ObjectT makeInitObject()
+{
+    ObjectT obj;
+    initObject(obj);
+    return obj;
+}
+
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBOBJECT_H

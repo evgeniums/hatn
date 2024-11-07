@@ -40,7 +40,6 @@ HDU_UNIT_WITH(ttl_index,(HDU_BASE(object)),
     HDU_FIELD(ref_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(ref_model_id,HDU_TYPE_FIXED_STRING(8),2)
     HDU_FIELD(date_range,TYPE_DATE_RANGE,3)
-    // HDU_REPEATED_FIELD(ref_indexes,TYPE_STRING,4)
     HDU_FIELD(topic,TYPE_BOOL,5)
 )
 
@@ -50,6 +49,17 @@ struct TtlIndexStub : public hana::false_
     TtlIndexStub(Args&&...)
     {}
 };
+
+template <typename ModelT, typename ObjectT>
+ROCKSDB_NAMESPACE::Slice makeTtlMark(
+    const ModelT& model,
+    const ObjectT* obj
+    )
+{
+    TtlMark::refreshCurrentTimepoint();
+    TtlMark ttlMarkObj{model,obj};
+    return ttlMarkObj.slice();
+}
 
 template <typename ModelT, typename =hana::when<true>>
 struct TtlIndexes
@@ -79,21 +89,6 @@ struct TtlIndexes
         )
     {}
 
-#if 0
-    static void addIndexKeyToTtl(
-        ttlT&,
-        const IndexKeyT&
-        )
-    {}
-
-    static IndexKeyHandlerFn makeIndexKeyCb(
-            ttlT&
-        )
-    {
-        return IndexKeyHandlerFn{};
-    }
-#endif
-
     static void deleteTtlIndex(
             Error&,
             ROCKSDB_NAMESPACE::Transaction*,
@@ -102,14 +97,6 @@ struct TtlIndexes
             const ROCKSDB_NAMESPACE::Slice&
         )
     {}
-
-    static ROCKSDB_NAMESPACE::Slice makeTtlMark(
-            const ModelT&,
-            const objectT*
-        )
-    {
-        return ROCKSDB_NAMESPACE::Slice{};
-    }
 
     static void saveTtlIndex(
             Error&,
@@ -169,10 +156,6 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             ttlIndex.field(ttl_index::date_range).set(dateRange);
         }
 
-#if 0
-        // reserve space for indexes
-        ttlIndex.field(ttl_index::ref_indexes).reserve(model.indexIds.size());
-#endif
         // set topic flag
         ttlIndex.field(ttl_index::topic).set(model.canBeTopic());
     }
@@ -227,43 +210,6 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             HATN_CTX_SCOPE_ERROR("tx-ttl-index");
             setRocksdbError(ec,DbError::DELETE_TTL_INDEX_FAILED,status);
         }
-    }
-
-#if 0
-    static void addIndexKeyToTtl(
-            ttl_index::type& ttlIndex,
-            const IndexKeyT& key
-        )
-    {
-        auto& indexes=ttlIndex.field(ttl_index::ref_indexes);
-        indexes.resize(indexes.size()+1);
-        auto buf=indexes.at(indexes.size()-1).buf();
-        for (auto&& keyPart: key)
-        {
-            buf->append(keyPart);
-        }
-    }
-
-    static IndexKeyHandlerFn makeIndexKeyCb(
-            ttlT& ttlIndex
-        )
-    {
-        return [&ttlIndex](const IndexKeyT& idxKey)
-        {
-            addIndexKeyToTtl(ttlIndex,idxKey);
-            return Error{OK};
-        };
-    }
-#endif
-
-    static ROCKSDB_NAMESPACE::Slice makeTtlMark(
-        const ModelT& model,
-        const objectT* obj
-        )
-    {
-        TtlMark::refreshCurrentTimepoint();
-        TtlMark ttlMarkObj{model,obj};
-        return ttlMarkObj.slice();
     }
 
     static void saveTtlIndex(

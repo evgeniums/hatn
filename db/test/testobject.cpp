@@ -43,6 +43,31 @@ HDU_UNIT_WITH(u1,(HDU_BASE(object)),
 
 BOOST_AUTO_TEST_SUITE(TestDbObject)
 
+BOOST_AUTO_TEST_CASE(TestObjectId)
+{
+    ObjectId id1;
+    id1.generate();
+    BOOST_TEST_MESSAGE(fmt::format("tp1={:x}",id1.timepoint()));
+    BOOST_TEST_MESSAGE(fmt::format("seq1={:x}",id1.seq()));
+    BOOST_TEST_MESSAGE(fmt::format("rand1={:x}",id1.rand()));
+
+    auto id2=id1;
+    BOOST_CHECK(id2==id1);
+    BOOST_CHECK_EQUAL(id2.toString(),id1.toString());
+
+    ObjectId id3;
+    auto str=id1.toString();
+    BOOST_TEST_MESSAGE(str);
+    BOOST_CHECK(id3.parse(str));
+    BOOST_TEST_MESSAGE(fmt::format("tp3={:x}",id3.timepoint()));
+    BOOST_TEST_MESSAGE(fmt::format("seq3={:x}",id3.seq()));
+    BOOST_TEST_MESSAGE(fmt::format("rand3={:x}",id3.rand()));
+    BOOST_CHECK_EQUAL(id3.timepoint(),id1.timepoint());
+    BOOST_CHECK_EQUAL(id3.rand(),id1.rand());
+    BOOST_CHECK_EQUAL(id3.seq(),id1.seq());
+    BOOST_CHECK(id3==id1);
+}
+
 BOOST_AUTO_TEST_CASE(BaseObjectInit)
 {
     object::type o1;

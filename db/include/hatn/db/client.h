@@ -224,16 +224,17 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT>
         Result<typename ModelT::SharedPtr> afterRead(
+            const std::shared_ptr<ModelT>&,
             Result<common::SharedPtr<dataunit::Unit>>&& r,
             const TimePointFilter& tpFilter
             )
         {
-            static typename ModelT::type sample;
+            static typename ModelT::ManagedType sample;
             if (r)
             {
                 return r.takeError();
             }
-            auto* obj=sample.castToUnit(r.value().get());
+            auto* obj=common::dynamicCastWithSample(r.value().get(),&sample);
             if (tpFilter && !tpFilter.filterTimePoint(*obj))
             {
                 HATN_CTX_SCOPE_ERROR("filter-timepoint")
@@ -253,7 +254,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbread")
             if (m_opened)
             {
-                return afterRead(doRead(ns,model->info,id,tx,forUpdate),tpFilter);
+                return afterRead(model,doRead(ns,model->info,id,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -272,7 +273,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreaddate")
             if (m_opened)
             {
-                afterRead(doRead(ns,model->info,id,date,tx,forUpdate),tpFilter);
+                afterRead(model,doRead(ns,model->info,id,date,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -327,7 +328,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatedate")
             if (m_opened)
             {
-                return afterRead(doReadUpdate(ns,model->info,request,id,date,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(ns,model->info,request,id,date,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -346,7 +347,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_opened)
             {
-                return afterRead(doReadUpdate(ns,model->info,request,id,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(ns,model->info,request,id,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -391,25 +392,24 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
             const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
-            IndexQuery& query,
-            const TimePointFilter& tpFilter=TimePointFilter{}
+            IndexQuery& query
         )
         {
             HATN_CTX_SCOPE("dbfind")
             if (m_opened)
             {
-                if (!tpFilter)
-                {
-                    return doFind(ns,model->info,query);
-                }
-
                 auto r=doFind(ns,model->info,query);
                 HATN_CHECK_RESULT(r)
+                if (!query.hasFilterTimePoints())
+                {
+                    return r;
+                }
+                using unitT=typename ModelT::Type;
                 HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper> v{r.value().get_allocator()};
-                v.reserve(r.value().count());
+                v.reserve(r.value().size());
                 for (auto&& it:r.value())
                 {
-                    if (tpFilter.filterTimePoint(*(it.unit())))
+                    if (query.filterTimePoint(*(it.template unit<unitT>())))
                     {
                         v.push_back(it);
                     }
@@ -470,7 +470,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatecreate")
             if (m_opened)
             {
-                return afterRead(doReadUpdateCreate(ns,model->info,query,request,object,returnType,tx),TimePointFilter{});
+                return afterRead(model,doReadUpdateCreate(ns,model->info,query,request,object,returnType,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()

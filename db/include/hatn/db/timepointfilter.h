@@ -73,10 +73,15 @@ class TimePointFilter
         bool filterTimePoint(const UnitT& unit) const noexcept
         {
             const auto& createdAt=unit.field(object::created_at).value();
-            return filterTimepoint(createdAt.toEpoch());
+            return filterTimePoint(createdAt.toEpoch());
         }
 
         operator bool() const noexcept
+        {
+            return static_cast<bool>(m_intervals);
+        }
+
+        bool hasFilterTimePoints() const noexcept
         {
             return static_cast<bool>(m_intervals);
         }

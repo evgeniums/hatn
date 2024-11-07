@@ -155,14 +155,14 @@ class UnitWrapper
         T* unit()
         {
             static T sample;
-            sample.castToUnit(m_shared.get());
+            return sample.castToUnit(m_shared.get());
         }
 
         template <typename T>
         const T* unit() const
         {
             static T sample;
-            sample.castToUnit(m_shared.get());
+            return sample.castToUnit(m_shared.get());
         }
 
     private:
@@ -475,6 +475,9 @@ template <typename ModelT>
 struct ModelWithInfo
 {
     using ModelType=ModelT;
+    using Type=typename ModelType::Type;
+    using ManagedType=typename ModelType::ManagedType;
+    using SharedPtr=typename ModelType::SharedPtr;
 
     template <typename T>
     ModelWithInfo(T&& model,

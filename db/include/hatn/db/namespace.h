@@ -35,6 +35,11 @@ class Namespace
 {
     public:
 
+    Namespace(lib::string_view topic, lib::string_view tenancy=lib::string_view{})
+            : m_topic(topic),
+              m_tenancyName(tenancy)
+        {}
+
         const lib::string_view& tenancyName() const noexcept
         {
             return m_tenancyName;
@@ -47,8 +52,8 @@ class Namespace
 
     private:
 
-        lib::string_view m_tenancyName;
         lib::string_view m_topic;
+        lib::string_view m_tenancyName;
 };
 
 using Topic=common::pmr::string;

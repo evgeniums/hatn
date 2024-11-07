@@ -53,7 +53,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
                 hana::is_empty(ttlIndexes),
                 [&](auto _)
                 {
-                    _(self)->m_expireAt[0]=0;
+                    _(self)->fillExpireAt(0);
                 },
                 [&](auto _)
                 {

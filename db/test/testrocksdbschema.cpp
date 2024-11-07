@@ -34,7 +34,6 @@
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbschema.ipp>
-#endif
 
 HATN_USING
 HATN_DATAUNIT_USING
@@ -172,3 +171,5 @@ BOOST_AUTO_TEST_CASE(IndexKeys)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+#endif
