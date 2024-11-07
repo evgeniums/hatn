@@ -50,7 +50,7 @@ class AllocatorOnStack
         };
 
         template <class U>
-        AllocatorOnStack(const AllocatorOnStack<U,Size>&)
+        AllocatorOnStack(const AllocatorOnStack<U,Size>& other)
         {
             Assert(other.m_occupied==0,"Do not call copy constructor for AllocatorOnStack that is already in use");
         }

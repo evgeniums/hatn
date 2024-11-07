@@ -542,11 +542,11 @@ struct Field
 {
     template <typename T>
     Field(
-        const IndexFieldInfo& fieldInfo,
+        const IndexFieldInfo* fieldInfo,
         Operator op,
         T&& value,
         Order order=Order::Asc
-      ) : fieldInfo(&fieldInfo),
+      ) : fieldInfo(fieldInfo),
           op(op),
           value(std::forward<T>(value)),
           order(order)

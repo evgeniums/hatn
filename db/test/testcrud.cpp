@@ -70,6 +70,8 @@ auto initSimpleSchema() -> decltype(auto)
     rdb::RocksdbSchemas::instance().registerSchema(simpleSchema1);
 #endif
 
+    BOOST_TEST_MESSAGE(fmt::format("idx4 ID={}",idx4.id()));
+
     return std::make_tuple(simpleModel1,simpleSchema1,idx4);
 }
 
@@ -157,7 +159,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
 
         // find object
         IndexQuery q1{idx4,ns.topic()};
-        query::Field qf1{IndexFieldInfo{"f1",1},query::Operator::eq,100};
+        query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
         q1.setField(qf1);
         auto r3=client->find(ns,m1,q1);
         if (r3)

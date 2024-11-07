@@ -521,7 +521,7 @@ Error nextKeyField(
     // for neq operation split to lt and gt queries
     auto doNeq=[&](const auto& val)
     {
-        query::Field fieldLt{*queryField.fieldInfo,query::Operator::lt,val,queryField.order};
+        query::Field fieldLt{queryField.fieldInfo,query::Operator::lt,val,queryField.order};
         auto ec=iterateFieldVariant(cursor,
                                       handler,
                                       idxQuery,
@@ -532,7 +532,7 @@ Error nextKeyField(
                                       );
         HATN_CHECK_EC(ec)
 
-        query::Field fieldGt{*queryField.fieldInfo,query::Operator::gt,val,queryField.order};
+        query::Field fieldGt{queryField.fieldInfo,query::Operator::gt,val,queryField.order};
         ec=iterateFieldVariant(cursor,
                                  handler,
                                  idxQuery,
@@ -593,7 +593,7 @@ Error nextKeyField(
                 const auto &beforeVal=val.from.value;
                 query::Operator beforeOp=val.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
 
-                query::Field fieldBefore{*queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
+                query::Field fieldBefore{queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
                 auto ec=iterateFieldVariant(cursor,
                                               handler,
                                               idxQuery,
@@ -607,7 +607,7 @@ Error nextKeyField(
                 const auto &afterVal=val.to.value;
                 query::Operator afterOp=val.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
 
-                query::Field fieldAfter{*queryField.fieldInfo,afterOp,afterVal,queryField.order};
+                query::Field fieldAfter{queryField.fieldInfo,afterOp,afterVal,queryField.order};
                 ec=iterateFieldVariant(cursor,
                                          handler,
                                          idxQuery,
@@ -655,7 +655,7 @@ Error nextKeyField(
             // in
             auto doEq=[&](const auto& val)
             {
-                query::Field field{*queryField.fieldInfo,query::Operator::eq,val,queryField.order};
+                query::Field field{queryField.fieldInfo,query::Operator::eq,val,queryField.order};
                 return iterateFieldVariant(cursor,
                                            handler,
                                            idxQuery,
@@ -696,7 +696,7 @@ Error nextKeyField(
         // handler for intermediate intervals
         auto doIn=[&](const auto& val)
         {
-            query::Field fieldLt{*queryField.fieldInfo,query::Operator::in,val,queryField.order};
+            query::Field fieldLt{queryField.fieldInfo,query::Operator::in,val,queryField.order};
             return iterateFieldVariant(cursor,
                                        handler,
                                        idxQuery,
@@ -730,7 +730,7 @@ Error nextKeyField(
                         {
                             // before first interval use lt/lte
                             query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
-                            query::Field fieldBefore{*queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
+                            query::Field fieldBefore{queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
                             auto ec=iterateFieldVariant(cursor,
                                                           handler,
                                                           idxQuery,
@@ -751,7 +751,7 @@ Error nextKeyField(
                                 interval.from.value,
                                 query::reverseIntervalType(interval.from.type)
                             };
-                            query::Field field{*queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
+                            query::Field field{queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
                             auto ec=iterateFieldVariant(cursor,
                                                           handler,
                                                           idxQuery,
@@ -768,7 +768,7 @@ Error nextKeyField(
                         {
                             // use lt/lte
                             query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
-                            query::Field fieldAfter{*queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
+                            query::Field fieldAfter{queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
                             auto ec=iterateFieldVariant(cursor,
                                                           handler,
                                                           idxQuery,

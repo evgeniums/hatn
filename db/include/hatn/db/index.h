@@ -206,6 +206,11 @@ class IndexFieldInfo
             : IndexFieldInfo(std::move(nestedName),-1,nullable)
         {}
 
+        template <typename FieldT>
+        IndexFieldInfo(const FieldT& field, bool nullable=false)
+            : IndexFieldInfo(field.name(),field.id(),nullable)
+        {}
+
         const std::string& name() const noexcept
         {
             return m_name;
@@ -314,6 +319,50 @@ class IndexBase
         std::string m_id;
 };
 
+template <typename Fields>
+auto makeIndexFieldInfos(Fields&& fs)
+{
+    return hana::fold(
+        fs,
+        hana::make_tuple(),
+        [](auto&& finfs, auto&& field)
+        {
+            bool nullable=hana::eval_if(
+                hana::is_a<IndexFieldTag,decltype(field)>,
+                [&](auto _)
+                {
+                    return _(field).nullable();
+                },
+                [&](auto _)
+                {
+                    return false;
+                }
+                );
+            return hana::append(finfs,IndexFieldInfo{field,nullable});
+        }
+    );
+}
+
+template <typename Fields>
+constexpr auto makeIndexFieldInfoIdx(Fields&& fs)
+{
+    return hana::first(hana::fold(
+        fs,
+        hana::make_pair(hana::make_map(),hana::int_c<0>),
+            [](auto&& state, auto&& field)
+            {
+                return hana::make_pair(hana::insert(    hana::first(state),
+                                                        hana::make_pair(
+                                                            hana::type_c<std::decay_t<decltype(field)>>,
+                                                            hana::second(state)
+                                                        )
+                                                    ),
+                                       hana::plus(hana::second(state),hana::int_c<1>)
+                                       );
+            }
+        ));
+}
+
 template <typename ConfigT, typename ...Fields>
 struct Index : public IndexBase, public ConfigT
 {
@@ -322,6 +371,21 @@ struct Index : public IndexBase, public ConfigT
     using IndexBase::IndexBase;
 
     constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
+    constexpr static const auto fieldIdx=makeIndexFieldInfoIdx(fields);
+
+    static const auto& fieldInfos()
+    {
+        static const auto fieldInfos_=makeIndexFieldInfos(fields);
+        return fieldInfos_;
+    }
+
+    template <typename FieldT>
+    static const IndexFieldInfo* fieldInfo(const FieldT&)
+    {
+        constexpr static const auto idx=hana::find(fieldIdx,hana::type_c<std::decay_t<FieldT>>);
+        const auto& finfs=fieldInfos();
+        return &(hana::at(finfs,idx.value()));
+    }
 
     constexpr static decltype(auto) frontField()
     {
@@ -504,7 +568,7 @@ class IndexInfo : public IndexBase
                         return false;
                     }
                 );
-                auto f=IndexFieldInfo{field.name(),field.id(),nullable};
+                auto f=IndexFieldInfo{field,nullable};
                 m_fields.push_back(std::move(f));
             };
             hana::for_each(idx.fields,eachField);
