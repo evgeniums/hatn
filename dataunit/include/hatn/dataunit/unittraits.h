@@ -475,7 +475,7 @@ template <typename Conf,typename ...Fields> using DataUnit=UnitConcat<Conf,Field
 
 /**  Managed variant of the DataUnit */
 template <typename UnitType>
-class ManagedUnit : public common::EnableManaged<ManagedUnit<UnitType>>, public UnitType
+class ManagedUnit : public common::EnableSharedFromThis<ManagedUnit<UnitType>>, public UnitType
 {
     public:
 
