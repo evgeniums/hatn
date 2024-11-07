@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
             BOOST_TEST_MESSAGE(r3.error().message());
         }
         BOOST_CHECK(!r3);
-        BOOST_CHECK_EQUAL(r3->size(),1);
+        BOOST_REQUIRE_EQUAL(r3->size(),1);
         // BOOST_CHECK_EQUAL(r3.value()->fieldValue(simple1::f1),o1.fieldValue(simple1::f1));
         // BOOST_CHECK(r3.value()->fieldValue(object::_id)==o1.fieldValue(object::_id));
         // BOOST_CHECK(r3.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
