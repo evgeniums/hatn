@@ -163,6 +163,9 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     auto partitionRange4=datePartition(o4,model4);
     BOOST_REQUIRE(partitionRange4.isValid());
     BOOST_CHECK_EQUAL(partitionRange4.value(),32024006);
+
+    BOOST_CHECK_EQUAL(idx4.id(),std::string());
+    BOOST_CHECK_EQUAL(model4.indexId(idx4),std::string("7b1ded1b"));
 }
 
 BOOST_AUTO_TEST_CASE(NestedIndexField)

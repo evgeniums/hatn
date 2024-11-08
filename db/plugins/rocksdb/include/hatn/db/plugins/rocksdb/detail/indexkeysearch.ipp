@@ -111,20 +111,20 @@ struct IndexKeyCompare
     IndexKeyCompare() : idxQuery(nullptr)
     {}
 
-    IndexKeyCompare(const IndexQuery& idxQuery) : idxQuery(&idxQuery)
+    IndexKeyCompare(const ModelIndexQuery& idxQuery) : idxQuery(&idxQuery)
     {}
 
     inline bool operator ()(const IndexKey& l, const IndexKey& r) const noexcept
     {
         // compare key parts according to ordering of query fields
-        for (size_t i=0;i<idxQuery->fields().size();i++)
+        for (size_t i=0;i<idxQuery->query.fields().size();i++)
         {
             if (i>=l.keyParts.size() || i>=r.keyParts.size())
             {
                 return false;
             }
 
-            const auto& field=idxQuery->field(i);
+            const auto& field=idxQuery->query.field(i);
             const auto& leftPart=l.keyParts[i];
             const auto& rightPart=r.keyParts[i];
             int cmp{0};
@@ -145,7 +145,7 @@ struct IndexKeyCompare
         return false;
     }
 
-    const IndexQuery* idxQuery;
+    const ModelIndexQuery* idxQuery;
 };
 
 using IndexKeys=common::pmr::FlatSet<IndexKey,IndexKeyCompare>;
@@ -296,7 +296,7 @@ struct fieldValueToBufT
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
 
-inline bool filterIndex(const IndexQuery& idxQuery,
+inline bool filterIndex(const ModelIndexQuery& idxQuery,
                         size_t pos,
                         const ROCKSDB_NAMESPACE::Slice& key,
                         const ROCKSDB_NAMESPACE::Slice& value
@@ -308,7 +308,7 @@ inline bool filterIndex(const IndexQuery& idxQuery,
     if (pos==0)
     {
         auto timestamp=KeysBase::timestampFromIndexValue(value.data(),value.size());
-        return idxQuery.filterTimePoint(timestamp);
+        return idxQuery.query.filterTimePoint(timestamp);
     }
 
     // passed
@@ -319,7 +319,7 @@ template <typename BufT, typename KeyHandlerT>
 Error iterateFieldVariant(
     Cursor<BufT>& cursor,
     RocksdbHandler& handler,
-    const IndexQuery& idxQuery,
+    const ModelIndexQuery& idxQuery,
     const KeyHandlerT& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     const query::Field& field,
@@ -449,14 +449,17 @@ Error iterateFieldVariant(
         auto keyValue=it->value();
 
         // check if key must be filtered
+//! @todo Check expiration
+#if 1
         if (!TtlMark::isExpired(keyValue) && !filterIndex(idxQuery,pos,key,keyValue))
+#endif
         {
             // construct key prefix
             auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);
             cursor.resetPartial(currentKey,pos);
 
             // call result callback for finally assembled key
-            if (pos==idxQuery.fields().size())
+            if (pos==idxQuery.query.fields().size())
             {
                 if (!keyCallback(cursor.partition,cursor.topic,&key,&keyValue,ec))
                 {
@@ -495,20 +498,20 @@ template <typename BufT, typename KeyHandlerT>
 Error nextKeyField(
     Cursor<BufT>& cursor,
     RocksdbHandler& handler,
-    const IndexQuery& idxQuery,
+    const ModelIndexQuery& idxQuery,
     const KeyHandlerT& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     AllocatorFactory* allocatorFactory
     )
 {
-    Assert(cursor.pos<idxQuery.fields().size(),"Out of range of cursor position of index query");
+    Assert(cursor.pos<idxQuery.query.fields().size(),"Out of range of cursor position of index query");
 
     // extract query field
-    const auto& queryField=idxQuery.field(cursor.pos);
+    const auto& queryField=idxQuery.query.field(cursor.pos);
     ++cursor.pos;
 
     // glue scalar fields if operators and orders match
-    if (cursor.pos<idxQuery.fields().size() && idxQuery.field(cursor.pos).matchScalarOp(queryField))
+    if (cursor.pos<idxQuery.query.fields().size() && idxQuery.query.field(cursor.pos).matchScalarOp(queryField))
     {
         // append field to cursor
         cursor.partialKey.append(SeparatorCharStr);
@@ -800,7 +803,7 @@ template <typename BufT>
 Result<IndexKeys> indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
-        IndexQuery& idxQuery,
+        const ModelIndexQuery& idxQuery,
         const common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions,
         AllocatorFactory* allocatorFactory
     )
@@ -823,13 +826,13 @@ Result<IndexKeys> indexKeys(
         auto insertedIdx=it.first.index();
 
         // cut keys number to limit
-        if (idxQuery.limit()!=0 && keys.size()>idxQuery.limit())
+        if (idxQuery.query.limit()!=0 && keys.size()>idxQuery.query.limit())
         {
-            keys.resize(idxQuery.limit());
+            keys.resize(idxQuery.query.limit());
 
             // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
             // and all next keys will be dropped anyway
-            if (insertedIdx==idxQuery.limit())
+            if (insertedIdx==idxQuery.query.limit())
             {
                 return false;
             }
@@ -846,12 +849,12 @@ Result<IndexKeys> indexKeys(
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
         // process all topics
-        for (const auto& topic: idxQuery.topics())
+        for (const auto& topic: idxQuery.query.topics())
         {
             HATN_CTX_SCOPE_PUSH("topic",topic)
-            HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
+            HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
+            Cursor<BufT> cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
             auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

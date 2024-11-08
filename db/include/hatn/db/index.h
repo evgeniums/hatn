@@ -363,12 +363,92 @@ constexpr auto makeIndexFieldInfoIdx(Fields&& fs)
         ));
 }
 
+class IndexInfo : public IndexBase
+{
+    public:
+
+        template <typename IndexT>
+        IndexInfo(
+            const IndexT& idx
+            ) : IndexInfo(idx,idx.isDatePartitioned(),idx.unique(),idx.ttl())
+        {
+            auto eachField=[this](const auto& field)
+            {
+                bool nullable=hana::eval_if(
+                    hana::is_a<IndexFieldTag,decltype(field)>,
+                    [&](auto _)
+                    {
+                        return _(field).nullable();
+                    },
+                    [&](auto _)
+                    {
+                        return false;
+                    }
+                    );
+                auto f=IndexFieldInfo{field,nullable};
+                m_fields.push_back(std::move(f));
+            };
+            hana::for_each(idx.fields,eachField);
+        }
+
+        IndexInfo(
+            const IndexBase& base,
+            bool datePartitioned,
+            bool unique,
+            uint32_t ttl
+            ) : IndexBase(base),
+            m_datePartitioned(datePartitioned),
+            m_unique(unique),
+            m_ttl(ttl)
+        {}
+
+        bool unique() const noexcept
+        {
+            return m_unique;
+        }
+
+        bool isDatePartitioned() const noexcept
+        {
+            return m_datePartitioned;
+        }
+
+        uint32_t ttl() const noexcept
+        {
+            return m_ttl;
+        }
+
+        bool isTtl() const noexcept
+        {
+            return m_ttl>0;
+        }
+
+        const std::vector<IndexFieldInfo>& fields() const noexcept
+        {
+            return m_fields;
+        }
+
+        void setFields(std::vector<IndexFieldInfo> fields)
+        {
+            m_fields=std::move(fields);
+        }
+
+    private:
+
+        std::vector<IndexFieldInfo> m_fields;
+        bool m_datePartitioned;
+        bool m_unique;
+        uint32_t m_ttl;
+};
+
 template <typename ConfigT, typename ...Fields>
 struct Index : public IndexBase, public ConfigT
 {
-    // Floaing point indexes are not allowed.
+    //! @note Floaing point indexes are not allowed.
 
-    using IndexBase::IndexBase;
+    Index(std::string name)
+        : IndexBase(std::move(name)),
+          m_indexInfo(*this)
+    {}
 
     constexpr static const hana::tuple<std::decay_t<Fields>...> fields{};
     constexpr static const auto fieldIdx=makeIndexFieldInfoIdx(fields);
@@ -391,6 +471,15 @@ struct Index : public IndexBase, public ConfigT
     {
         return hana::front(fields);
     }
+
+    const IndexInfo* indexInfo() const noexcept
+    {
+        return &m_indexInfo;
+    }
+
+    private:
+
+        const IndexInfo m_indexInfo;
 };
 
 struct makeIndexT
@@ -545,83 +634,6 @@ struct getPlainIndexFieldT
     }
 };
 constexpr getPlainIndexFieldT getPlainIndexField{};
-
-class IndexInfo : public IndexBase
-{
-    public:
-
-        template <typename IndexT>
-        IndexInfo(
-                const IndexT& idx
-            ) : IndexInfo(idx,idx.isDatePartitioned(),idx.unique(),idx.ttl())
-        {
-            auto eachField=[this](const auto& field)
-            {
-                bool nullable=hana::eval_if(
-                    hana::is_a<IndexFieldTag,decltype(field)>,
-                    [&](auto _)
-                    {
-                        return _(field).nullable();
-                    },
-                    [&](auto _)
-                    {
-                        return false;
-                    }
-                );
-                auto f=IndexFieldInfo{field,nullable};
-                m_fields.push_back(std::move(f));
-            };
-            hana::for_each(idx.fields,eachField);
-        }
-
-        IndexInfo(
-                const IndexBase& base,
-                bool datePartitioned,
-                bool unique,
-                uint32_t ttl
-            ) : IndexBase(base),
-                m_datePartitioned(datePartitioned),
-                m_unique(unique),
-                m_ttl(ttl)
-        {}
-
-        bool unique() const noexcept
-        {
-            return m_unique;
-        }
-
-        bool isDatePartitioned() const noexcept
-        {
-            return m_datePartitioned;
-        }
-
-        uint32_t ttl() const noexcept
-        {
-            return m_ttl;
-        }
-
-        bool isTtl() const noexcept
-        {
-            return m_ttl>0;
-        }
-
-        const std::vector<IndexFieldInfo>& fields() const noexcept
-        {
-            return m_fields;
-        }
-
-        void setFields(std::vector<IndexFieldInfo> fields)
-        {
-            m_fields=std::move(fields);
-        }
-
-    private:
-
-        std::vector<IndexFieldInfo> m_fields;
-        bool m_datePartitioned;
-        bool m_unique;
-        uint32_t m_ttl;
-};
 
 HATN_DB_NAMESPACE_END
 

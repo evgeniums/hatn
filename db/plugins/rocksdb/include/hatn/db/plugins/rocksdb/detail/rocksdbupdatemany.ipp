@@ -30,7 +30,7 @@ struct UpdateManyT
     template <typename ModelT>
     Result<typename ModelT::SharedPtr> operator ()(const ModelT& model,
                                                   RocksdbHandler& handler,
-                                                  IndexQuery& query,
+                                                  const ModelIndexQuery& query,
                                                   const update::Request& request,
                                                   db::update::ModifyReturn modifyReturnFirst,
                                                   AllocatorFactory* allocatorFactory,
@@ -46,7 +46,7 @@ template <typename ModelT>
 Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& query,
+        const ModelIndexQuery& query,
         const update::Request& request,
         db::update::ModifyReturn modifyReturnFirst,
         AllocatorFactory* allocatorFactory,

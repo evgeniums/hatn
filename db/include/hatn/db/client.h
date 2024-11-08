@@ -388,17 +388,19 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        template <typename ModelT>
+        template <typename ModelT, typename IndexT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
             const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
-            IndexQuery& query
+            const Query<IndexT>& query
         )
         {
             HATN_CTX_SCOPE("dbfind")
             if (m_opened)
             {
-                auto r=doFind(ns,model->info,query);
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+
+                auto r=doFind(ns,model->info,q);
                 HATN_CHECK_RESULT(r)
                 if (!query.hasFilterTimePoints())
                 {
@@ -421,29 +423,32 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        template <typename ModelT>
+        template <typename ModelT, typename QueryT>
         Error deleteMany(
                 const Namespace& ns,
                 const std::shared_ptr<ModelT>& model,
-                IndexQuery& query,
+                const QueryT& query,
                 Transaction* tx=nullptr
             )
         {
             HATN_CTX_SCOPE("dbdeletemany")
             if (m_opened)
             {
-                return doDeleteMany(ns,model->info,query,tx);
+                ModelIndexQuery q{hana::first(query),
+                    model.indexId(hana::second(query))
+                };
+                return doDeleteMany(ns,model->info,q,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        template <typename ModelT>
+        template <typename ModelT, typename QueryT>
         Error updateMany(
                 const Namespace& ns,
                 const std::shared_ptr<ModelT>& model,
-                IndexQuery& query,
+                const QueryT& query,
                 const update::Request& request,
                 Transaction* tx=nullptr
             )
@@ -451,17 +456,20 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdatemany")
             if (m_opened)
             {
-                return doUpdateMany(ns,model->info,query,request,tx);
+                ModelIndexQuery q{hana::first(query),
+                    model.indexId(hana::second(query))
+                };
+                return doUpdateMany(ns,model->info,q,request,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        template <typename ModelT>
+        template <typename ModelT, typename QueryT>
         Result<typename ModelT::SharedPtr> readUpdateCreate(const Namespace& ns,
                                                       const std::shared_ptr<ModelT>& model,
-                                                      IndexQuery& query,
+                                                      const QueryT& query,
                                                       const update::Request& request,
                                                       const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
                                                       update::ModifyReturn returnType=update::ModifyReturn::After,
@@ -470,7 +478,10 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatecreate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdateCreate(ns,model->info,query,request,object,returnType,tx),TimePointFilter{});
+                ModelIndexQuery q{hana::first(query),
+                    model.indexId(hana::second(query))
+                };
+                return afterRead(model,doReadUpdateCreate(ns,model->info,q,request,object,returnType,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -557,20 +568,20 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query
+            const ModelIndexQuery& query
         ) =0;
 
         virtual Error doUpdateMany(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             const update::Request& request,
             Transaction* tx
         ) =0;
 
         virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(const Namespace& ns,
                                                             const ModelInfo& model,
-                                                            IndexQuery& query,
+                                                            const ModelIndexQuery& query,
                                                             const update::Request& request,
                                                             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
                                                             update::ModifyReturn returnType,
@@ -579,7 +590,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doDeleteMany(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             Transaction* tx
         ) =0;
 

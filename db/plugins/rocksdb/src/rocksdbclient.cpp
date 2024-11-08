@@ -574,7 +574,9 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
 
 //---------------------------------------------------------------
 
-Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(const Namespace &, const ModelInfo &model, IndexQuery &query)
+Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(const Namespace &,
+                                                                              const ModelInfo &model,
+                                                                              const ModelIndexQuery &query)
 {
     HATN_CTX_SCOPE("rocksdbfind")
 
@@ -636,7 +638,7 @@ Error RocksdbClient::doTransaction(const TransactionFn &fn)
 
 Error RocksdbClient::doDeleteMany(const Namespace &,
                                   const ModelInfo &model,
-                                  IndexQuery &query,
+                                  const ModelIndexQuery &query,
                                   Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbdeletemany")
@@ -700,7 +702,7 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
 
 Error RocksdbClient::doUpdateMany(const Namespace &,
                                   const ModelInfo &model,
-                                  IndexQuery &query,
+                                  const ModelIndexQuery &query,
                                   const update::Request& request,
                                   Transaction* tx)
 {
@@ -774,7 +776,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
 
 Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(const Namespace& ns,
                                                                             const ModelInfo& model,
-                                                                            IndexQuery& query,
+                                                                            const ModelIndexQuery& query,
                                                                             const update::Request& request,
                                                                             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
                                                                             update::ModifyReturn returnType,

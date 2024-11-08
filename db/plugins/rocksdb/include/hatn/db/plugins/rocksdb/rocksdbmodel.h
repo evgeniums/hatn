@@ -75,7 +75,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> (
             RocksdbHandler& handler,
-            IndexQuery& query
+            const ModelIndexQuery& query
             )> find;
 
         std::function<Error (
@@ -94,7 +94,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Error (
             RocksdbHandler& handler,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             Transaction* tx
             )> deleteMany;
 
@@ -119,7 +119,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             const update::Request& request,
             db::update::ModifyReturn modifyReturnFirst,
             Transaction* tx
@@ -128,7 +128,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
             const Namespace& ns,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             const update::Request& request,
             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
             db::update::ModifyReturn modifyReturn,

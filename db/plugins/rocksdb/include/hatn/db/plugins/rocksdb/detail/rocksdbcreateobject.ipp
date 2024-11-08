@@ -113,6 +113,7 @@ Error CreateObjectT<BufT>::operator ()(
 
         // put indexes to transaction
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
+        std::cout<<"indexValueSlices.num_parts="<<indexValueSlices.num_parts<<",ttl="<<int(objectKeyFull[7][0])<<std::endl;
         Indexes<BufT> indexes{partition->indexCf.get(),keys};
         ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)

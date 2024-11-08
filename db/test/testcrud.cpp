@@ -19,6 +19,10 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
+
+#include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/streamlogger.h>
+
 #include <hatn/base/configtreeloader.h>
 #include <hatn/test/multithreadfixture.h>
 
@@ -53,6 +57,8 @@ namespace rdb=HATN_ROCKSDB_NAMESPACE;
 
 auto initSimpleSchema() -> decltype(auto)
 {
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+
     ModelRegistry::free();
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbSchemas::free();
@@ -158,10 +164,46 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r2.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // find object
+#if 0
+        auto w1=query::where(simple1::f1,query::Operator::eq,100);
+        const auto& wf1=hana::at(w1.conditions,hana::size_c<0>);
+        query::Field qf1{idx4.fieldInfo(hana::at(wf1,hana::size_c<0>)),
+                           hana::at(wf1,hana::size_c<1>),
+                           hana::at(wf1,hana::size_c<2>),
+                           hana::at(wf1,hana::size_c<3>)
+                        };
+        common::pmr::vector<query::Field> fs1;
+
+        fs1.emplace_back(idx4.fieldInfo(hana::at(wf1,hana::size_c<0>)),
+                         hana::at(wf1,hana::size_c<1>),
+                         hana::at(wf1,hana::size_c<2>),
+                         hana::at(wf1,hana::size_c<3>)
+                         );
+
+        auto emplaceField=[&fs1,&idx4](const auto& cond)
+        {
+            fs1.emplace_back(
+                idx4.fieldInfo(hana::at(cond,hana::size_c<0>)),
+                hana::at(cond,hana::size_c<1>),
+                hana::at(cond,hana::size_c<2>),
+                hana::at(cond,hana::size_c<3>)
+                );
+        };
+
+        emplaceField(hana::at(w1.conditions,hana::size_c<0>));
+
+        fs1.reserve(w1.size());
+        hana::for_each(
+            w1.conditions,
+            emplaceField
+        );
+
         IndexQuery q1{idx4,ns.topic()};
         query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
         q1.setField(qf1);
-        auto r3=client->find(ns,m1,q1);
+#endif
+        auto q3=makeQuery(idx4,ns.topic(),query::where(simple1::f1,query::Operator::eq,100));
+        auto r3=client->find(ns,m1,q3);
         if (r3)
         {
             BOOST_TEST_MESSAGE(r3.error().message());

@@ -30,7 +30,7 @@ struct DeleteManyT
     Error operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& query,
+        const ModelIndexQuery& query,
         AllocatorFactory* allocatorFactory,
         Transaction* tx
     ) const;
@@ -43,7 +43,7 @@ template <typename ModelT>
 Error DeleteManyT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& idxQuery,
+        const ModelIndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory,
         Transaction* tx
     ) const

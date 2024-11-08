@@ -101,7 +101,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         rdbModel->find=[model,allocatorFactory]
             (
                 RocksdbHandler& handler,
-                IndexQuery& query
+                const ModelIndexQuery& query
             )
         {
             return Find<BufT>(model->model,handler,query,allocatorFactory);
@@ -133,7 +133,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         rdbModel->deleteMany=[model,allocatorFactory]
             (
                 RocksdbHandler& handler,
-                IndexQuery& query,
+                const ModelIndexQuery& query,
                 Transaction* tx
             )
         {
@@ -180,7 +180,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         rdbModel->updateMany=[model,allocatorFactory]
             (
                RocksdbHandler& handler,
-               IndexQuery& query,
+               const ModelIndexQuery& query,
                const update::Request& request,
                db::update::ModifyReturn modifyReturnFirst,
                Transaction* tx
@@ -198,7 +198,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             (
                 RocksdbHandler& handler,
                 const Namespace& ns,
-                IndexQuery& query,
+                const ModelIndexQuery& query,
                 const update::Request& request,
                 const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
                 db::update::ModifyReturn modifyReturn,

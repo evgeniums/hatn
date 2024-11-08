@@ -50,21 +50,21 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         }
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 const lib::string_view& topic,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
                 m_fields(factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
         {}
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 const lib::string_view& topic,
                 std::initializer_list<query::Field> list,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
                 m_fields(std::move(list),factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
@@ -73,11 +73,11 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         }
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 const lib::string_view& topic,
                 common::pmr::vector<query::Field> fields,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
                 m_fields(std::move(fields)),
                 m_limit(DefaultLimit)
@@ -86,21 +86,21 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         }
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 Topics topics,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics(std::move(topics)),
                 m_fields(factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
         {}
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 Topics topics,
                 std::initializer_list<query::Field> list,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics(std::move(topics)),
                 m_fields(std::move(list),factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
@@ -109,10 +109,10 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         }
 
         IndexQuery(
-                const IndexInfo& index,
+                const IndexInfo* index,
                 Topics topics,
                 common::pmr::vector<query::Field> fields
-            ) : m_index(&index),
+            ) : m_index(index),
                 m_topics(std::move(topics)),
                 m_fields(std::move(fields)),
                 m_limit(DefaultLimit)
@@ -140,9 +140,9 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             // checkFields();
         }
 
-        const IndexInfo& index() const noexcept
+        const IndexInfo* index() const noexcept
         {
-            return *m_index;
+            return m_index;
         }
 
         const auto& fields() const noexcept
@@ -214,6 +214,57 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         common::pmr::vector<query::Field> m_fields;
         size_t m_limit;
 };
+
+struct ModelIndexQuery
+{
+    const IndexQuery& query;
+    const std::string& modelIndexId;
+};
+
+template <typename IndexT>
+class Query : public IndexQuery
+{
+    public:
+
+        Query(IndexQuery&& query, const IndexT& index)
+            : IndexQuery(std::move(query)),
+              m_indexT(index)
+        {}
+
+        const IndexT& indexT() const noexcept
+        {
+            return m_indexT;
+        }
+
+    private:
+
+        const IndexT& m_indexT;
+};
+
+struct makeQueryT
+{
+    template <typename IndexT, typename WhereT, typename TopicsT>
+    auto operator() (const IndexT& index,TopicsT&& topics, WhereT&& where, common::pmr::AllocatorFactory* factory=IndexQuery::defaultAllocatorFactory()) const
+    {
+        common::pmr::vector<query::Field> fields{factory->dataAllocator<query::Field>()};
+        fields.reserve(where.size());
+        hana::for_each(
+            where.conditions,
+            [&](const auto& cond)
+            {
+                fields.emplace_back(
+                    index.fieldInfo(hana::at(cond,hana::size_c<0>)),
+                    hana::at(cond,hana::size_c<1>),
+                    hana::at(cond,hana::size_c<2>),
+                    hana::at(cond,hana::size_c<3>)
+                );
+            }
+        );
+        //! @todo optimization: Create Query directly without IndexQuery adding corresponding constructors
+        return Query<IndexT>{IndexQuery{index.indexInfo(),std::forward<TopicsT>(topics),std::move(fields)},index};
+    }
+};
+constexpr makeQueryT makeQuery{};
 
 HATN_DB_NAMESPACE_END
 

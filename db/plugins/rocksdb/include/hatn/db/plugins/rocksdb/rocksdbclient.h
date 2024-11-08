@@ -78,7 +78,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query
+            const ModelIndexQuery& query
         ) override;
 
         Error doDeleteObject(const Namespace& ns,
@@ -95,7 +95,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doDeleteMany(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             Transaction* tx
             ) override;
 
@@ -132,14 +132,14 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doUpdateMany(
             const Namespace& ns,
             const ModelInfo& model,
-            IndexQuery& query,
+            const ModelIndexQuery& query,
             const update::Request& request,
             Transaction* tx
         ) override;
 
         Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(const Namespace& ns,
                                                                      const ModelInfo& model,
-                                                                     IndexQuery& query,
+                                                                     const ModelIndexQuery& query,
                                                                      const update::Request& request,
                                                                      const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
                                                                      update::ModifyReturn returnType,

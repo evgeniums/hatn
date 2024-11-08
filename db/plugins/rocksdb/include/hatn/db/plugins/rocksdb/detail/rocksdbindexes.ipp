@@ -57,6 +57,8 @@ Error SaveSingleIndex(
     ROCKSDB_NAMESPACE::Status status;
     ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
+    std::cout<<"SaveSingleIndex: indexValue.num_parts="<<indexValue.num_parts<<",ttl="<<int(indexValue.parts[7][0])<<std::endl;
+
     // put index to transaction
     bool put=true;
     if (unique)

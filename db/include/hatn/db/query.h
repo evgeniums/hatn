@@ -733,6 +733,35 @@ struct valueToDateRangeT
 };
 constexpr valueToDateRangeT toDateRange{};
 
+template <typename Ts>
+struct whereT
+{
+    template <typename FieldT, typename ValueT>
+    auto and_(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
+    {
+        return hana::append(std::move(conditions),hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+    }
+
+    template <typename Ys>
+    whereT(Ys&& cond) : conditions(std::forward<Ys>(cond))
+    {}
+
+    constexpr static size_t size() noexcept
+    {
+        using count=decltype(hana::size(conditions));
+        return count::value;
+    }
+
+    Ts conditions;
+};
+
+template <typename FieldT, typename ValueT>
+auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
+{
+    auto ts=hana::make_tuple(hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+    return whereT<decltype(ts)>{std::move(ts)};
+}
+
 } // namespace query
 
 HATN_DB_NAMESPACE_END

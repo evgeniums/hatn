@@ -51,7 +51,7 @@ struct FindModifyManyT
     Error operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& query,
+        const ModelIndexQuery& query,
         AllocatorFactory* allocatorFactory,
         const KeyCallbackT& keyCallback
     ) const;
@@ -64,7 +64,7 @@ template <typename ModelT, typename KeyCallbackT>
 Error FindModifyManyT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& idxQuery,
+        const ModelIndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory,
         const KeyCallbackT& keyCallback
     ) const
@@ -87,12 +87,12 @@ Error FindModifyManyT<BufT>::operator ()(
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
         // process all topics
-        for (const auto& topic: idxQuery.topics())
+        for (const auto& topic: idxQuery.query.topics())
         {
             HATN_CTX_SCOPE_PUSH("topic",topic)
-            HATN_CTX_SCOPE_PUSH("index",idxQuery.index().name())
+            HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            index_key_search::Cursor<BufT> cursor(idxQuery.index().id(),topic,partition.get(),allocatorFactory);
+            index_key_search::Cursor<BufT> cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
             auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

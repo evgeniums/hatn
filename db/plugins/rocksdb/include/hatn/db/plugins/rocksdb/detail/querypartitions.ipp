@@ -292,11 +292,11 @@ void queryPartitions(
         common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& ps,
         const ModelT& model,
         RocksdbHandler& handler,
-        const IndexQuery& idxQuery
+        const ModelIndexQuery& idxQuery
     )
 {
     ps.clear();
-    const auto& field0=idxQuery.field(0);
+    const auto& field0=idxQuery.query.field(0);
     hana::eval_if(
         hana::bool_<ModelT::isDatePartitioned()>{},
         [&](auto _)

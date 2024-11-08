@@ -269,6 +269,19 @@ struct Model : public ConfigT
         return hana::not_(hana::is_empty(ttlIndexes()));
     }
 
+    template <typename IndexT>
+    const std::string& indexId(IndexT) const noexcept
+    {
+        auto pred=[](auto&& index)
+        {
+            using type1=std::decay_t<decltype(index)>;
+            using type2=std::decay_t<IndexT>;
+            return std::is_same<type1,type2>{};
+        };
+        auto idx=hana::find_if(indexes,pred);
+        return idx.value().id();
+    }
+
     private:
 
         constexpr static auto findPartitionIndex()

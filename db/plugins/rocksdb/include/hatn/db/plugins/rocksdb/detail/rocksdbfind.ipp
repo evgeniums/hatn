@@ -49,7 +49,7 @@ struct FindT
     Result<common::pmr::vector<UnitWrapper>> operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& query,
+        const ModelIndexQuery& query,
         AllocatorFactory* allocatorFactory
     ) const;
 };
@@ -61,7 +61,7 @@ template <typename ModelT>
 Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        IndexQuery& idxQuery,
+        const ModelIndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory
     ) const
 {
@@ -122,7 +122,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
                     HATN_CTX_SCOPE_ERROR("get-object")
                     return makeError(DbError::READ_FAILED,status);
                 }
+//! @todo Fix context logger
+#if 0
                 HATN_CTX_WARN("missing object in rocksdb")
+#endif
 
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
