@@ -292,7 +292,7 @@ struct Model : public ConfigT
             using type2=std::decay_t<IndexT>;
             return std::is_same<type1,type2>{};
         };
-        auto idx=hana::find_if(indexes,pred);
+        const auto& idx=hana::find_if(indexes,pred);
         return idx.value().id();
     }
 

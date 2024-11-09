@@ -51,7 +51,7 @@ void RocksdbModelT<ModelT>::init(const T& model)
                       IndexKeyUpdateSet& keys
                     )
             {
-                keysHandler.makeIndexKey(topic,objectId,obj,idx,
+                std::ignore=keysHandler.makeIndexKey(topic,objectId,obj,idx,
                     [&keys,&idx](auto&& key)
                     {
                         IndexKeyUpdate k{key};

@@ -133,7 +133,7 @@ struct HandleFieldT
                     {
                     };
                     auto vis=FieldVisitor(std::move(elementSet),std::move(vectorSet));
-                    updateField.value.handleValue(vis);
+                    std::ignore=updateField.value.handleValue(vis);
                 }
                 break;
 
@@ -145,7 +145,7 @@ struct HandleFieldT
 
                 case (Operator::inc_element):
                 {
-                    updateField.value.handleValue(
+                    std::ignore=updateField.value.handleValue(
                         [idx,&field](const auto& val)
                         {
                             using type=std::decay_t<decltype(val)>;
@@ -195,7 +195,7 @@ struct HandleFieldT
                     }
                 };
                 auto vis=FieldVisitor(std::move(scalarSet),std::move(vectorSet));
-                updateField.value.handleValue(vis);
+                std::ignore=updateField.value.handleValue(vis);
             }
             break;
 
@@ -207,7 +207,7 @@ struct HandleFieldT
 
             case (Operator::inc):
             {
-                updateField.value.handleValue(
+                std::ignore=updateField.value.handleValue(
                     [&field](const auto& val)
                     {
                         using type=std::decay_t<decltype(val)>;
@@ -237,7 +237,7 @@ struct HandleFieldT
                 {
                 };
                 auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
-                updateField.value.handleValue(vis);
+                std::ignore=updateField.value.handleValue(vis);
             }
             break;
 
@@ -273,7 +273,7 @@ struct HandleFieldT
                 {
                 };
                 auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
-                updateField.value.handleValue(vis);
+                std::ignore=updateField.value.handleValue(vis);
             }
             break;
 
