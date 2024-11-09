@@ -62,6 +62,11 @@ class HATN_COMMON_EXPORT ByteArray
             pmr::memory_resource* resource=pmr::get_default_resource() //!< Memory resource for allocator
         ) noexcept;
 
+        ByteArray(
+            const common::pmr::polymorphic_allocator<char>& alloc
+        ) noexcept : ByteArray(alloc.resource())
+        {}
+
         //! Ctor from null-terminated const char* string
         ByteArray(
             const char* data //!< Null-terminated char string
