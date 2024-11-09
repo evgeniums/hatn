@@ -278,6 +278,23 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r6.value()->fieldValue(object::_id)==id);
         BOOST_CHECK(r6.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r6.value()->fieldValue(object::updated_at)==r5.value()->fieldValue(object::updated_at));
+
+        // delete object
+        ec=client->deleteObject(ns,m1,id);
+        BOOST_REQUIRE(!ec);
+        auto r7=client->read(ns,m1,id);
+        if (r7)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Expected read after delete: {}",r7.error().message()));
+        }
+        BOOST_CHECK(r7);
+        auto r7_=client->findOne(ns,m1,q4);
+        if (r7_)
+        {
+            BOOST_TEST_MESSAGE(r7_.error().message());
+        }
+        BOOST_REQUIRE(!r7_);
+        BOOST_CHECK(r7_.value().isNull());
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
