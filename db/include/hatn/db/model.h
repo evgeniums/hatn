@@ -165,6 +165,20 @@ class UnitWrapper
             return sample.castToUnit(m_shared.get());
         }
 
+        template <typename T>
+        T* managedUnit()
+        {
+            static T sample;
+            return sample.castToManagedUnit(m_shared.get());
+        }
+
+        template <typename T>
+        const T* managedUnit() const
+        {
+            static T sample;
+            return sample.castToManagedUnit(m_shared.get());
+        }
+
     private:
 
         HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> m_shared;

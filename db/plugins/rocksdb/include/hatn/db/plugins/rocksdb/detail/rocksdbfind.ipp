@@ -49,6 +49,7 @@ struct FindT
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
+        bool single,
         AllocatorFactory* allocatorFactory
     ) const;
 };
@@ -59,6 +60,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
+        bool single,
         AllocatorFactory* allocatorFactory
     ) const
 {
@@ -76,7 +78,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
-    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory);
+    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single);
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result

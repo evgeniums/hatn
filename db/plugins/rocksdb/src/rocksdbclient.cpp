@@ -576,7 +576,9 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
 
 Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(const Namespace &,
                                                                               const ModelInfo &model,
-                                                                              const ModelIndexQuery &query)
+                                                                              const ModelIndexQuery &query,
+                                                                              bool single
+                                                                              )
 {
     HATN_CTX_SCOPE("rocksdbfind")
 
@@ -585,7 +587,7 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(co
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->find(*d->handler,query);
+    return rdbModel->find(*d->handler,query,single);
 }
 
 //---------------------------------------------------------------

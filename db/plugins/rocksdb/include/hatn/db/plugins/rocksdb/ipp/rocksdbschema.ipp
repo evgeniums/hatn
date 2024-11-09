@@ -99,10 +99,11 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
         rdbModel->find=[model,allocatorFactory]
             (
                 RocksdbHandler& handler,
-                const ModelIndexQuery& query
+                const ModelIndexQuery& query,
+                bool single
             )
         {
-            return Find(model->model,handler,query,allocatorFactory);
+            return Find(model->model,handler,query,single,allocatorFactory);
         };
 
         rdbModel->deleteObject=[model,allocatorFactory]

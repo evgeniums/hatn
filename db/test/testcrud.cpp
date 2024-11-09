@@ -215,6 +215,33 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(o3->fieldValue(object::_id)==o1.fieldValue(object::_id));
         BOOST_CHECK(o3->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(o3->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
+        auto r3_=client->findOne(ns,m1,q3);
+        if (r3_)
+        {
+            BOOST_TEST_MESSAGE(r3_.error().message());
+        }
+        BOOST_REQUIRE(!r3_);
+        BOOST_CHECK_EQUAL(r3_.value()->fieldValue(simple1::f1),o1.fieldValue(simple1::f1));
+        BOOST_CHECK(r3_.value()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r3_.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
+        BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
+
+        // try to find unknown object
+        auto q4=makeQuery(idx4,ns.topic(),query::where(simple1::f1,query::Operator::eq,101));
+        auto r4=client->find(ns,m1,q4);
+        if (r4)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Expected: {}",r4.error().message()));
+        }
+        BOOST_REQUIRE(!r4);
+        BOOST_CHECK(r4->empty());
+        auto r4_=client->findOne(ns,m1,q4);
+        if (r4_)
+        {
+            BOOST_TEST_MESSAGE(r4_.error().message());
+        }
+        BOOST_REQUIRE(!r4_);
+        BOOST_REQUIRE(r4_.value().isNull());
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }

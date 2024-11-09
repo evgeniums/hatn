@@ -798,13 +798,15 @@ Result<IndexKeys> indexKeys(
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         const common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions,
-        AllocatorFactory* allocatorFactory
+        AllocatorFactory* allocatorFactory,
+        bool single
     )
 {
     HATN_CTX_SCOPE("indexkeys")
+    auto limit=single?1:idxQuery.query.limit();
 
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
-    auto keyCallback=[&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
+    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
                                                          const lib::string_view& /*topic*/,
                                                          ROCKSDB_NAMESPACE::Slice* key,
                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -819,13 +821,13 @@ Result<IndexKeys> indexKeys(
         auto insertedIdx=it.first.index();
 
         // cut keys number to limit
-        if (idxQuery.query.limit()!=0 && keys.size()>idxQuery.query.limit())
+        if (limit!=0 && keys.size()>limit)
         {
-            keys.resize(idxQuery.query.limit());
+            keys.resize(limit);
 
             // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
             // and all next keys will be dropped anyway
-            if (insertedIdx==idxQuery.query.limit())
+            if (insertedIdx==limit)
             {
                 return false;
             }

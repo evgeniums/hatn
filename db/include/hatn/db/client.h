@@ -392,7 +392,8 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
             const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query
+            const Query<IndexT>& query,
+            bool single=false
         )
         {
             HATN_CTX_SCOPE("dbfind")
@@ -400,7 +401,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                auto r=doFind(ns,model->info,q);
+                auto r=doFind(ns,model->info,q,single);
                 HATN_CHECK_RESULT(r)
                 if (!query.hasFilterTimePoints())
                 {
@@ -421,6 +422,23 @@ class HATN_DB_EXPORT Client : public common::WithID
 
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT, typename IndexT>
+        Result<typename ModelT::SharedPtr> findOne(
+            const Namespace& ns,
+            const std::shared_ptr<ModelT>& model,
+            const Query<IndexT>& query
+            )
+        {
+            HATN_CTX_SCOPE("dbfindone")
+            auto r=find(ns,model,query,true);
+            HATN_CHECK_RESULT(r)
+            if (r->empty())
+            {
+                return typename ModelT::SharedPtr{};
+            }
+            return r->at(0).template managedUnit<typename ModelT::ManagedType>()->sharedFromThis();
         }
 
         template <typename ModelT, typename QueryT>
@@ -568,7 +586,8 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
             const Namespace& ns,
             const ModelInfo& model,
-            const ModelIndexQuery& query
+            const ModelIndexQuery& query,
+            bool single
         ) =0;
 
         virtual Error doUpdateMany(
