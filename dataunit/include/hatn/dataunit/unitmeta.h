@@ -561,6 +561,15 @@ class managed_unit : public ManagedUnit<UnitT>,
 {
     public:
         using ManagedUnit<UnitT>::ManagedUnit;
+
+        inline managed_unit<UnitT>* castToManagedUnit(Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
+        inline const managed_unit<UnitT>* castToManagedUnit(const Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
 };
 
 template <typename SharedUnitT>
@@ -569,6 +578,15 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
 {
     public:
         using ManagedUnit<SharedUnitT>::ManagedUnit;
+
+        inline shared_managed_unit<SharedUnitT>* castToManagedUnit(Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
+        inline const shared_managed_unit<SharedUnitT>* castToManagedUnit(const Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
 };
 
 //---------------------------------------------------------------
@@ -577,6 +595,8 @@ template <typename BaseT, typename UniqueType=void>
 class unit_t : public BaseT
 {
         public:
+
+            using unit_type=unit_t<BaseT,UniqueType>;
 
             unit_t(AllocatorFactory* factory=AllocatorFactory::getDefault());
 
@@ -605,6 +625,7 @@ class unit_t : public BaseT
             {
                 return common::dynamicCastWithSample(unit,this);
             }
+
             virtual int serialize(WireData& wired,bool topLevel=true) const override;
 #if 0
             // Maybe implement virtual serialization
