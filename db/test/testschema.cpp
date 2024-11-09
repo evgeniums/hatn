@@ -27,6 +27,7 @@
 #include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/db/schema.h>
+#include <hatn/db/update.h>
 
 #include "hatn_test_config.h"
 
@@ -196,6 +197,10 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     auto partitionRange1=datePartition(o1,model1);
     BOOST_REQUIRE(partitionRange1.isValid());
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
+
+    std::ignore=update::Request{
+        {nestedField(nu1::nf1,n1::f1),update::Operator::set,common::DateTime::currentUtc()}
+    };
 }
 
 BOOST_AUTO_TEST_CASE(DynamicCast)

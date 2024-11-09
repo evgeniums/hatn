@@ -108,9 +108,7 @@ using FieldInfo=IndexFieldInfo;
 
 struct Field
 {
-    //! @todo optimization: keep somewhere field infos
-
-    //! @todo FieldInfo for nested field
+    //! @note optimization: Use prepared FieldInfo for often used fields in order not to make it on each constructor call.
 
     template <typename T>
     Field(
