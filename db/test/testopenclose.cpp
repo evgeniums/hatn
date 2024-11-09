@@ -134,7 +134,7 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
 
 } // anonymous namespace
 
-BOOST_AUTO_TEST_SUITE(DbOpenClose, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
+BOOST_AUTO_TEST_SUITE(OpenClose, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
 BOOST_AUTO_TEST_CASE(DbCreateOpenCloseDestroy)
 {

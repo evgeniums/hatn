@@ -18,7 +18,7 @@
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 
-BOOST_AUTO_TEST_SUITE(DbPluginsInit, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
+BOOST_AUTO_TEST_SUITE(PluginsInit, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
 BOOST_AUTO_TEST_CASE(DbPluginLoad)
 {
