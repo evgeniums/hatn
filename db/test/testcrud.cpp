@@ -37,7 +37,7 @@
 #include "preparedb.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbschema.ipp>
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 
 HATN_USING
@@ -62,6 +62,7 @@ auto initSimpleSchema() -> decltype(auto)
     ModelRegistry::free();
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbSchemas::free();
+    rdb::RocksdbModels::free();
 #endif
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
@@ -73,6 +74,7 @@ auto initSimpleSchema() -> decltype(auto)
     auto simpleSchema1=makeSchema("schema_simple1",simpleModel1);
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    rdb::RocksdbModels::instance().registerModel(simpleModel1);
     rdb::RocksdbSchemas::instance().registerSchema(simpleSchema1);
 #endif
 
@@ -82,17 +84,13 @@ auto initSimpleSchema() -> decltype(auto)
 }
 
 template <typename T>
-void addSchemaToClient(std::shared_ptr<Client> client, const T& schema)
+void setSchemaToClient(std::shared_ptr<Client> client, const T& schema)
 {
-    auto ec=client->addSchema(schema);
+    auto ec=client->setSchema(schema);
     BOOST_REQUIRE(!ec);
-    auto s=client->schema(schema->name());
+    auto s=client->schema();
     BOOST_REQUIRE(!s);
     BOOST_CHECK_EQUAL(s->get()->name(),schema->name());
-    auto sl=client->listSchemas();
-    BOOST_REQUIRE(!sl);
-    BOOST_REQUIRE(!sl->empty());
-    BOOST_CHECK_EQUAL(sl->at(0)->name(),schema->name());
 }
 
 } // anonymous namespace
@@ -110,7 +108,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         auto& idx4=std::get<2>(s);
 
         std::ignore=plugin;
-        addSchemaToClient(client,s1);
+        setSchemaToClient(client,s1);
 
         Namespace ns{"topic1"};
         BOOST_CHECK_EQUAL(std::string("topic1"),std::string(ns.topic()));

@@ -23,6 +23,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
+#include <hatn/db/plugins/rocksdb/rocksdbmodels.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
 HATN_DB_USING
@@ -53,8 +54,7 @@ void RocksdbSchemas::free() noexcept
 //---------------------------------------------------------------
 
 RocksdbSchemas::RocksdbSchemas()
-{
-}
+{}
 
 //---------------------------------------------------------------
 
@@ -75,31 +75,24 @@ std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &na
 
 void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
 {
-    Assert(m_models.find(model->info())==m_models.end(),"duplicate model");
-    m_models.emplace(model->info(),std::move(model));
+    m_models[model->info()->modelId()]=std::move(model);
 }
 
 //---------------------------------------------------------------
 
-std::shared_ptr<RocksdbModel> RocksdbSchema::findModel(const db::ModelInfo& info) const
+void RocksdbSchemas::registerSchema(std::shared_ptr<Schema> schema)
 {
-    auto it=m_models.find(info);
-    if (it==m_models.end())
+    Assert(m_schemas.find(schema->name())==m_schemas.end(),"Failed to register duplicate database schema");
+
+    auto rdbSchema=std::make_shared<RocksdbSchema>(schema);
+    for (auto&& it:schema->models())
     {
-        return std::shared_ptr<RocksdbModel>{};
+        auto rdbModel=RocksdbModels::instance().model(it.second);
+        Assert(static_cast<bool>(rdbModel),"RocksDB model is not registered, register it first with RocksdbModels::instance().registerModel()");
+
+        rdbSchema->addModel(rdbModel);
     }
-
-    return it->second;
-}
-
-/********************** RocksdbModel **************************/
-
-//---------------------------------------------------------------
-
-RocksdbModel::RocksdbModel(db::ModelInfo& info)
-    :m_modelInfo(info)
-{
-    m_modelInfo.setNativeModel(this);
+    m_schemas[schema->name()]=std::move(rdbSchema);
 }
 
 //---------------------------------------------------------------

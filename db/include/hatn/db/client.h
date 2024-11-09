@@ -117,66 +117,45 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doDestroyDb(config,records);
         }
 
-        Error addSchema(std::shared_ptr<DbSchema> schema)
+        Error setSchema(std::shared_ptr<Schema> schema)
         {
-            HATN_CTX_SCOPE("dbaddschema")
+            HATN_CTX_SCOPE("dbsetschema")
             if (m_opened)
             {
-                return doAddSchema(std::move(schema));
+                return doSetSchema(std::move(schema));
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        template <typename T>
-        Error addSchema(std::shared_ptr<T> schema,
-                        std::enable_if_t<
-                            !std::is_same<T,DbSchema>::value,void*
-                            > =nullptr
-            )
-        {
-            return addSchema(std::static_pointer_cast<DbSchema>(schema));
-        }
-
-        Result<std::vector<std::shared_ptr<DbSchema>>> listSchemas() const
-        {
-            HATN_CTX_SCOPE("dblistschemas")
-            if (m_opened)
-            {
-                return doListSchemas();
-            }
-            HATN_CTX_SCOPE_LOCK()
-            return dbError(DbError::DB_NOT_OPEN);
-        }
-
-        Result<std::shared_ptr<DbSchema>> schema(const common::lib::string_view& schemaName) const
+        Result<std::shared_ptr<Schema>> schema() const
         {
             HATN_CTX_SCOPE("dbschema")
             if (m_opened)
             {
-                return doFindSchema(schemaName);
+                return doGetSchema();
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error checkSchemas()
+        Error checkSchema()
         {
-            HATN_CTX_SCOPE("dbcheckschemas")
+            HATN_CTX_SCOPE("dbcheckschema")
             if (m_opened)
             {
-                return doCheckSchemas();
+                return doCheckSchema();
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error migrateSchemas()
+        Error migrateSchema()
         {
-            HATN_CTX_SCOPE("dbmigrateschemas")
+            HATN_CTX_SCOPE("dbmigrateschema")
             if (m_opened)
             {
-                return doMigrateSchemas();
+                return doMigrateSchema();
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
@@ -216,7 +195,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbcreate")
             if (m_opened)
             {
-                return doCreate(ns,model->info,object,tx);
+                return doCreate(ns,*model->info,object,tx);
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
@@ -254,7 +233,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbread")
             if (m_opened)
             {
-                return afterRead(model,doRead(ns,model->info,id,tx,forUpdate),tpFilter);
+                return afterRead(model,doRead(ns,*model->info,id,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -273,7 +252,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreaddate")
             if (m_opened)
             {
-                afterRead(model,doRead(ns,model->info,id,date,tx,forUpdate),tpFilter);
+                afterRead(model,doRead(ns,*model->info,id,date,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -291,7 +270,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdatedate")
             if (m_opened)
             {
-                return doUpdateObject(ns,model->info,request,id,date,tx);
+                return doUpdateObject(ns,*model->info,request,id,date,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -308,7 +287,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdate")
             if (m_opened)
             {
-                return doUpdateObject(ns,model->info,request,id,tx);
+                return doUpdateObject(ns,*model->info,request,id,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -328,7 +307,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatedate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(ns,model->info,request,id,date,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(ns,*model->info,request,id,date,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -347,7 +326,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(ns,model->info,request,id,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(ns,*model->info,request,id,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -365,7 +344,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbdelete")
             if (m_opened)
             {
-                return doDeleteObject(ns,model->info,id,date,tx);
+                return doDeleteObject(ns,*model->info,id,date,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -381,7 +360,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbdelete")
             if (m_opened)
             {
-                return doDeleteObject(ns,model->info,id,tx);
+                return doDeleteObject(ns,*model->info,id,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -401,7 +380,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                auto r=doFind(ns,model->info,q,single);
+                auto r=doFind(ns,*model->info,q,single);
                 HATN_CHECK_RESULT(r)
                 if (!query.hasFilterTimePoints())
                 {
@@ -453,7 +432,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             if (m_opened)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return doDeleteMany(ns,model->info,q,tx);
+                return doDeleteMany(ns,*model->info,q,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -473,7 +452,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             if (m_opened)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return doUpdateMany(ns,model->info,q,request,tx);
+                return doUpdateMany(ns,*model->info,q,request,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -494,7 +473,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 //! @todo doReadUpdateCreate single
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return afterRead(model,doReadUpdateCreate(ns,model->info,q,request,object,returnType,tx),TimePointFilter{});
+                return afterRead(model,doReadUpdateCreate(ns,*model->info,q,request,object,returnType,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -514,11 +493,10 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
         virtual void doCloseDb(Error& ec)=0;
 
-        virtual Error doAddSchema(std::shared_ptr<DbSchema> schema)=0;
-        virtual Result<std::shared_ptr<DbSchema>> doFindSchema(const common::lib::string_view& schemaName) const=0;
-        virtual Result<std::vector<std::shared_ptr<DbSchema>>> doListSchemas() const=0;
-        virtual Error doCheckSchemas()=0;
-        virtual Error doMigrateSchemas()=0;
+        virtual Error doSetSchema(std::shared_ptr<Schema> schema)=0;
+        virtual Result<std::shared_ptr<Schema>> doGetSchema() const=0;
+        virtual Error doCheckSchema()=0;
+        virtual Error doMigrateSchema()=0;
 
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;

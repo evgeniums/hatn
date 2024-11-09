@@ -397,8 +397,6 @@ HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::Date
     return datePartition(dt.date(),model);
 }
 
-class DbSchema;
-
 class ModelInfo
 {
     public:
@@ -475,16 +473,6 @@ class ModelInfo
             return reinterpret_cast<T*>(m_nativeModel);
         }
 
-        void setSchema(const std::shared_ptr<DbSchema>& schema) noexcept
-        {
-            m_schema=schema;
-        }
-
-        std::shared_ptr<DbSchema> schema() const noexcept
-        {
-            return m_schema.lock();
-        }
-
     private:
 
         std::string m_collection;
@@ -494,7 +482,6 @@ class ModelInfo
         std::string m_idStr;
 
         void* m_nativeModel;
-        std::weak_ptr<DbSchema> m_schema;
 };
 
 template <typename ModelT>
@@ -512,11 +499,11 @@ struct ModelWithInfo
                       void*
                       > =nullptr
                   )
-        : info(model),
+        : info(std::make_shared<ModelInfo>(model)),
           model(std::forward<T>(model))
     {}
 
-    ModelInfo info;
+    std::shared_ptr<ModelInfo> info;
     ModelT model;
 };
 

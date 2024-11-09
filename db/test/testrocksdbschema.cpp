@@ -33,7 +33,7 @@
 #include "preparedb.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbschema.ipp>
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 
 HATN_USING
 HATN_DATAUNIT_USING
@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
 {
     ModelRegistry::free();
     rdb::RocksdbSchemas::free();
+    rdb::RocksdbModels::free();
 
     auto midx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto mo1=unitModel<object::TYPE>(ModelConfig{},midx1);
@@ -78,16 +79,15 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     static_assert(std::is_same<nu1::TYPE,decltype(m1)::UnitType>::value,"");
 
     auto mi1=makeModelWithInfo(m1);
-    BOOST_CHECK(mi1->info.nativeModelV()==nullptr);
-    BOOST_CHECK(!mi1->info.schema());
+    BOOST_CHECK(mi1->info->nativeModelV()==nullptr);
     std::string s1Name{"schema1"};
     auto s1=makeSchema(s1Name,mi1);
-    BOOST_CHECK(mi1->info.nativeModelV()==nullptr);
-    BOOST_REQUIRE(mi1->info.schema());
-    BOOST_CHECK_EQUAL(mi1->info.schema()->name(),s1Name);
+    BOOST_CHECK(mi1->info->nativeModelV()==nullptr);
 
+    rdb::RocksdbModels::instance().registerModel(mi1);
     rdb::RocksdbSchemas::instance().registerSchema(s1);
-    BOOST_CHECK(mi1->info.nativeModelV()!=nullptr);
+
+    BOOST_CHECK(mi1->info->nativeModelV()!=nullptr);
     auto rs1=rdb::RocksdbSchemas::instance().schema(s1Name);
     BOOST_REQUIRE(rs1);
     auto rm1=rs1->findModel(mi1->info);
@@ -96,20 +96,15 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
 
     auto handler=[&s1Name,s1,&mi1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
     {
-        auto ec=client->addSchema(s1);
+        auto ec=client->setSchema(s1);
         BOOST_REQUIRE(!ec);
-        auto s1_=client->schema(s1->name());
+        auto s1_=client->schema();
         BOOST_REQUIRE(!s1_);
-        BOOST_CHECK_EQUAL(s1_->get()->name(),s1->name());
-        auto sl=client->listSchemas();
-        BOOST_REQUIRE(!sl);
-        BOOST_REQUIRE(!sl->empty());
-        BOOST_CHECK_EQUAL(sl->at(0)->name(),s1->name());
 
         std::string s2Name{"schema2"};
         auto s2=makeSchema(s2Name,mi1);
-        auto s2_=client->schema(s2->name());
-        BOOST_REQUIRE(s2_);
+        auto s2_=client->schema();
+        BOOST_REQUIRE(!s2_);
     };
     std::vector<ModelInfo> models{mo1};
     auto today=common::Date::currentUtc();
@@ -123,18 +118,19 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
 {
     rdb::RocksdbSchemas::free();
     ModelRegistry::free();
+    rdb::RocksdbModels::free();
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
 
     auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig,idx1,idx2,idx3);
-    BOOST_CHECK_EQUAL(mi2->info.collection(),"nu1");
-    BOOST_CHECK_EQUAL(mi2->info.modelId(),818672101);
+    BOOST_CHECK_EQUAL(mi2->info->collection(),"nu1");
+    BOOST_CHECK_EQUAL(mi2->info->modelId(),818672101);
 
     auto mi3=makeModel<object::TYPE>(ModelConfig{"obj"},idx1,idx2,idx3);
-    BOOST_CHECK_EQUAL(mi3->info.collection(),"obj");
-    BOOST_CHECK_EQUAL(mi3->info.modelId(),3649981262);
+    BOOST_CHECK_EQUAL(mi3->info->collection(),"obj");
+    BOOST_CHECK_EQUAL(mi3->info->modelId(),3649981262);
 }
 
 BOOST_AUTO_TEST_CASE(IndexKeys)
@@ -168,6 +164,8 @@ BOOST_AUTO_TEST_CASE(IndexKeys)
     BOOST_TEST_MESSAGE(fmt::format("positive float: {:a}",3.11));
     BOOST_TEST_MESSAGE(fmt::format("negative float: {:a}",-3.11));
     BOOST_TEST_MESSAGE(fmt::format("negative float: {:a}",0-(-3.11)));
+
+    BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

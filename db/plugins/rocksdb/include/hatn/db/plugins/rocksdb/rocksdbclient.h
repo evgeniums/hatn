@@ -47,11 +47,10 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
         Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
 
-        Error doAddSchema(std::shared_ptr<DbSchema> schema) override;
-        Result<std::shared_ptr<DbSchema>> doFindSchema(const common::lib::string_view& schemaName) const override;
-        Result<std::vector<std::shared_ptr<DbSchema>>> doListSchemas() const override;
-        Error doCheckSchemas() override;
-        Error doMigrateSchemas() override;
+        Error doSetSchema(std::shared_ptr<Schema> schema) override;
+        Result<std::shared_ptr<Schema>> doGetSchema() const override;
+        Error doCheckSchema() override;
+        Error doMigrateSchema() override;
 
         void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
         void doCloseDb(Error& ec) override;

@@ -26,58 +26,43 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-class HATN_DB_EXPORT DbSchema
+class HATN_DB_EXPORT Schema
 {
     public:
 
-        DbSchema(
-            std::string name
+        Schema(
+                std::string name
             ) : m_name(std::move(name))
         {}
 
-        virtual ~DbSchema();
+        virtual ~Schema();
 
-        DbSchema()=default;
-        DbSchema(const DbSchema&)=delete;
-        DbSchema(DbSchema&&)=default;
-        DbSchema& operator=(const DbSchema&)=delete;
-        DbSchema& operator=(DbSchema&&)=default;
+        Schema()=default;
+        Schema(const Schema&)=delete;
+        Schema(Schema&&)=default;
+        Schema& operator=(const Schema&)=delete;
+        Schema& operator=(Schema&&)=default;
 
         std::string name() const noexcept
         {
             return m_name;
         }
 
+        void addModel(std::shared_ptr<ModelInfo> model)
+        {
+            std::string coll=model->collection();
+            m_models[coll]=std::move(model);
+        }
+
+        const std::map<std::string,std::shared_ptr<ModelInfo>>& models() const noexcept
+        {
+            return m_models;
+        }
+
     private:
 
         std::string m_name;
-};
-
-template <typename ModelsWithInfoT>
-class Schema : public DbSchema
-{
-    public:
-
-        Schema(
-                std::string name,
-                ModelsWithInfoT models
-            ) : DbSchema(std::move(name)),
-                m_models(std::move(models))
-        {}
-
-        const ModelsWithInfoT& models() const noexcept
-        {
-            return m_models;
-        }
-
-        ModelsWithInfoT& models() noexcept
-        {
-            return m_models;
-        }
-
-    private:
-
-        ModelsWithInfoT m_models;
+        std::map<std::string,std::shared_ptr<ModelInfo>> m_models;
 };
 
 struct makeSchemaT
@@ -86,9 +71,8 @@ struct makeSchemaT
     auto operator ()(std::string name, ModelsWithInfoT&& ...models) const
     {
         auto xs=hana::make_tuple(std::forward<ModelsWithInfoT>(models)...);
-        using modelsType=common::decayTuple<decltype(xs)>;
-        auto s=std::make_shared<Schema<modelsType>>(std::move(name),std::move(xs));
-        hana::for_each(s->models(),[s](auto&& model) {model->info.setSchema(s);});
+        auto s=std::make_shared<Schema>(std::move(name));
+        hana::for_each(xs,[&s](auto&& model) {s->addModel(model->info);});
         return s;
     }
 };

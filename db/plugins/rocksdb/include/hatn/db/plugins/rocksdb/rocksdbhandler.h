@@ -68,9 +68,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         void resetCf();
 
-        void addSchema(std::shared_ptr<RocksdbSchema> schema);
+        void setSchema(std::shared_ptr<RocksdbSchema> schema) noexcept;
 
-        std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& schemaName) const;
+        std::shared_ptr<RocksdbSchema> schema() const noexcept;
 
         Error ensureModelSchema(const ModelInfo &model) const;
 

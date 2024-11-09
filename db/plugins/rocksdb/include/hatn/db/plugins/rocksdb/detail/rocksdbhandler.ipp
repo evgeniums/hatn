@@ -154,7 +154,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
         ~RocksdbHandler_p();
 
-        common::FlatMap<std::string,std::shared_ptr<RocksdbSchema>,std::less<>> schemas;
+        std::shared_ptr<RocksdbSchema> schema;
         ROCKSDB_NAMESPACE::DB* db;
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb;
 

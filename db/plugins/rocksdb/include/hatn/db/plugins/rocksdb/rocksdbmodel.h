@@ -42,9 +42,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 {
     public:
 
-        RocksdbModel(ModelInfo& info);
+        RocksdbModel(std::shared_ptr<ModelInfo> info);
 
-        const ModelInfo& info() const noexcept
+        const std::shared_ptr<ModelInfo>& info() const noexcept
         {
             return m_modelInfo;
         }
@@ -138,7 +138,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
     private:
 
-        ModelInfo& m_modelInfo;
+        std::shared_ptr<ModelInfo> m_modelInfo;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

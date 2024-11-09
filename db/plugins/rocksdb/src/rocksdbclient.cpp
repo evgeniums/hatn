@@ -426,7 +426,7 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doAddSchema(std::shared_ptr<DbSchema> schema)
+Error RocksdbClient::doSetSchema(std::shared_ptr<Schema> schema)
 {
     HATN_CTX_SCOPE("rocksdbaddschema")
 
@@ -437,17 +437,17 @@ Error RocksdbClient::doAddSchema(std::shared_ptr<DbSchema> schema)
         return dbError(DbError::SCHEMA_NOT_REGISTERED);
     }
 
-    d->handler->addSchema(std::move(rs));
+    d->handler->setSchema(std::move(rs));
     return OK;
 }
 
 //---------------------------------------------------------------
 
-Result<std::shared_ptr<DbSchema>> RocksdbClient::doFindSchema(const lib::string_view &schemaName) const
+Result<std::shared_ptr<Schema>> RocksdbClient::doGetSchema() const
 {
     HATN_CTX_SCOPE("rocksdbfindschema")
 
-    auto s=d->handler->schema(schemaName);
+    auto s=d->handler->schema();
     if (!s)
     {
         HATN_CTX_SCOPE_LOCK()
@@ -458,21 +458,7 @@ Result<std::shared_ptr<DbSchema>> RocksdbClient::doFindSchema(const lib::string_
 
 //---------------------------------------------------------------
 
-Result<std::vector<std::shared_ptr<DbSchema>>> RocksdbClient::doListSchemas() const
-{
-    std::vector<std::shared_ptr<DbSchema>> r;
-
-    for (auto&& it:d->handler->p()->schemas)
-    {
-        r.push_back(it.second->dbSchema());
-    }
-
-    return r;
-}
-
-//---------------------------------------------------------------
-
-Error RocksdbClient::doCheckSchemas()
+Error RocksdbClient::doCheckSchema()
 {
     //! @todo Load ids of keys and collections from schema
     return common::CommonError::NOT_IMPLEMENTED;
@@ -480,7 +466,7 @@ Error RocksdbClient::doCheckSchemas()
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doMigrateSchemas()
+Error RocksdbClient::doMigrateSchema()
 {
     //! @todo Save ids of keys and collections from schema
     return common::CommonError::NOT_IMPLEMENTED;

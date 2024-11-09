@@ -303,32 +303,30 @@ void RocksdbHandler::resetCf()
 
 //---------------------------------------------------------------
 
-void RocksdbHandler::addSchema(std::shared_ptr<RocksdbSchema> schema)
+void RocksdbHandler::setSchema(std::shared_ptr<RocksdbSchema> schema) noexcept
 {
-    auto name=schema->dbSchema()->name();
-    d->schemas[std::move(name)]=std::move(schema);
+    d->schema=std::move(schema);
 }
 
 //---------------------------------------------------------------
 
-std::shared_ptr<RocksdbSchema> RocksdbHandler::schema(const lib::string_view &schemaName) const
+std::shared_ptr<RocksdbSchema> RocksdbHandler::schema() const noexcept
 {
-    auto it=d->schemas.find(schemaName);
-    if (it!=d->schemas.end())
-    {
-        return it->second;
-    }
-    return std::shared_ptr<RocksdbSchema>{};
+    return d->schema;
 }
 
 //---------------------------------------------------------------
 
 Error RocksdbHandler::ensureModelSchema(const ModelInfo &model) const
 {
-    auto s=schema(model.schema()->name());
-    if (!s)
+    if (!d->schema)
     {
         return dbError(DbError::SCHEMA_NOT_FOUND);
+    }
+    auto m=d->schema->findModel(model);
+    if (!m)
+    {
+        return dbError(DbError::MODEL_NOT_FOUND);
     }
     return OK;
 }
