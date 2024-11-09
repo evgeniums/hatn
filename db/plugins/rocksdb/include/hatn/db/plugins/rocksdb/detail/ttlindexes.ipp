@@ -55,8 +55,7 @@ TtlMark makeTtlMark(
     const ModelT& model,
     const ObjectT* obj
     )
-{
-    TtlMark::refreshCurrentTimepoint();
+{    
     return TtlMark{model,obj};
 }
 

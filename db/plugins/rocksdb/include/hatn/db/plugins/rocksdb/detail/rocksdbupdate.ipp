@@ -146,6 +146,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // apply request to object
         update::ApplyRequest(obj.get(),request);
+        obj->field(object::updated_at).set(common::DateTime::currentUtc());
+        auto ttlUpdated=RocksdbModelT<modelType>::checkTtlFieldUpdated(request);
 
         // serialize object
         dataunit::WireBufSolid buf{factory};
@@ -153,9 +155,16 @@ Result<typename ModelT::SharedPtr> updateSingle(
         HATN_CHECK_EC(ec)
 
         // save object
-        auto ttlMark=TtlMark::ttlMark(readSlice);
         ROCKSDB_NAMESPACE::SliceParts keySlices{&key,1};
-        ec=saveObject(rdbTx,partition,keySlices,buf,ttlMark);
+        TtlMark ttlMark;
+        auto oldTtlMarkSlice=TtlMark::ttlMark(readSlice);
+        auto ttlMarkSlice=oldTtlMarkSlice;
+        if (ttlUpdated)
+        {
+            ttlMark.fill(model,obj.get());
+            ttlMarkSlice=ttlMark.slice();
+        }
+        ec=saveObject(rdbTx,partition,keySlices,buf,ttlMarkSlice);
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
@@ -193,33 +202,38 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
         // save new keys
-        ROCKSDB_NAMESPACE::SliceParts indexValue{&key,1};
-        for (auto&& newKey : newKeys)
+        if (!newKeys.empty())
         {
-            if (!newKey.exists)
+            const auto& objectCreatedAt=obj->field(object::created_at).value();
+            auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model,topic,objectIdS,objectCreatedAt,ttlMarkSlice);
+            auto indexValue=Keys::indexValueSlices(objectKeyFull);
+            for (auto&& newKey : newKeys)
             {
-                // save new key
-                ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
-                if (ec)
+                if (!newKey.exists)
                 {
-                    //! @todo Log key
-                    // HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
+                    // save new key
+                    ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
+                    if (ec)
+                    {
+                        //! @todo Log key
+                        // HATN_CTX_SCOPE_PUSH("idx_key",newKey.key);
+                        return ec;
+                    }
                 }
-                return ec;
             }
         }
 
         // update ttl index if actual
-        if (RocksdbModelT<modelType>::checkTtlFieldUpdated(request))
+        if (ttlUpdated)
         {
             using ttlIndexesT=TtlIndexes<modelType>;
 
             // delete old ttl index
-            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
+            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,oldTtlMarkSlice);
             HATN_CHECK_EC(ec)
 
             // save new ttl index
-            ttlIndexesT::saveTtlIndex(ec,model,obj.get(),buf,rdbTx,partition,objectIdS,factory);
+            ttlIndexesT::saveTtlIndexWithMark(ttlMarkSlice,ec,model,obj.get(),buf,rdbTx,partition,objectIdS,factory);
             HATN_CHECK_EC(ec)
         }
 

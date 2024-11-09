@@ -39,12 +39,17 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 
         constexpr static size_t Size=5;
 
+        TtlMark(): m_size(0)
+        {}
+
         template <typename ModelT, typename UnitT>
-        TtlMark(
+        void fill(
                 const ModelT&,
                 const UnitT* object
-            ) : m_size(1)
+            )
         {
+            TtlMark::refreshCurrentTimepoint();
+            m_size=1;
             using modelT=std::decay_t<ModelT>;
             constexpr static auto ttlIndexes=modelT::ttlIndexes();
 
@@ -77,7 +82,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
                             auto exp=tp+idxT::ttl();
                             return (exp<prev)?exp:prev;
                         }
-                    );
+                        );
                     if (expireAt==std::numeric_limits<uint32_t>::max())
                     {
                         expireAt=0;
@@ -85,6 +90,15 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
                     _(self)->fillExpireAt(expireAt);
                 }
             );
+        }
+
+        template <typename ModelT, typename UnitT>
+        TtlMark(
+                const ModelT& model,
+                const UnitT* object
+            ) : m_size(1)
+        {
+            fill(model,object);
         }
 
         void fillExpireAt(uint32_t expireAt);

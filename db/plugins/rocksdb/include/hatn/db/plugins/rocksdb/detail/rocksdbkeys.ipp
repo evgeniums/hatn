@@ -96,9 +96,15 @@ class KeysBase
         }
 
         template <size_t Size>
-        static ROCKSDB_NAMESPACE::SliceParts objectKeySlices(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts) noexcept
+        static ROCKSDB_NAMESPACE::SliceParts objectKeySlices(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& objectKeyFull) noexcept
         {
-            return ROCKSDB_NAMESPACE::SliceParts{&parts[1],ObjectKeySliceCount};
+            return ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[1],ObjectKeySliceCount};
+        }
+
+        template <size_t Size>
+        static ROCKSDB_NAMESPACE::SliceParts indexValueSlices(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& objectKeyFull) noexcept
+        {
+            return ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
         }
 
         static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size)

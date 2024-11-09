@@ -274,29 +274,6 @@ struct HandleFieldT
                 };
                 auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
                 updateField.value.handleValue(vis);
-
-                // updateField.value.handleValue(
-                //     [&field](const auto& val)
-                //     {
-                //         using type=std::decay_t<decltype(val)>;
-                //         type v{};
-
-                //         bool unique=true;
-                //         for (size_t i=0;i<field->arraySize();i++)
-                //         {
-                //             field->arrayGet(i,v);
-                //             if (v==val)
-                //             {
-                //                 unique=false;
-                //                 break;
-                //             }
-                //         }
-                //         if (unique)
-                //         {
-                //             field->arrayAdd(val);
-                //         }
-                //         return Error{OK};
-                //     });
             }
             break;
 

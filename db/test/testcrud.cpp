@@ -242,6 +242,42 @@ BOOST_AUTO_TEST_CASE(Simple1)
         }
         BOOST_REQUIRE(!r4_);
         BOOST_REQUIRE(r4_.value().isNull());
+
+        // update object
+        auto update1=update::Request{
+            {simple1::f1,update::Operator::set,101}
+        };
+        ec=client->update(ns,m1,update1,id);
+        BOOST_REQUIRE(!ec);
+        auto r5=client->read(ns,m1,id);
+        if (r5)
+        {
+            BOOST_TEST_MESSAGE(r5.error().message());
+        }
+        BOOST_REQUIRE(!r5);
+        BOOST_TEST_MESSAGE(fmt::format("Read r5: {}",r5.value()->toString(true)));
+        BOOST_CHECK_EQUAL(r5.value()->fieldValue(simple1::f1),101);
+        BOOST_CHECK(r5.value()->fieldValue(object::_id)==id);
+        BOOST_CHECK(r5.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
+        BOOST_CHECK(r5.value()->fieldValue(object::updated_at)>=o1.fieldValue(object::updated_at));
+        auto r6_=client->findOne(ns,m1,q3);
+        if (r6_)
+        {
+            BOOST_TEST_MESSAGE(r6_.error().message());
+        }
+        BOOST_REQUIRE(!r6_);
+        BOOST_CHECK(r6_.value().isNull());
+        auto r6=client->findOne(ns,m1,q4);
+        if (r6)
+        {
+            BOOST_TEST_MESSAGE(r6.error().message());
+        }
+        BOOST_REQUIRE(!r6);
+        BOOST_REQUIRE(!r6.value().isNull());
+        BOOST_CHECK_EQUAL(r6.value()->fieldValue(simple1::f1),101);
+        BOOST_CHECK(r6.value()->fieldValue(object::_id)==id);
+        BOOST_CHECK(r6.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
+        BOOST_CHECK(r6.value()->fieldValue(object::updated_at)==r5.value()->fieldValue(object::updated_at));
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }

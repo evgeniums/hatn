@@ -343,6 +343,12 @@ auto makeIndexFieldInfos(Fields&& fs)
     );
 }
 
+template <typename ...Fields>
+auto makeFieldInfos(Fields&& ...fields)
+{
+    return makeIndexFieldInfos(hana::make_tuple(std::forward<Fields>(fields)...));
+}
+
 template <typename Fields>
 constexpr auto makeIndexFieldInfoIdx(Fields&& fs)
 {

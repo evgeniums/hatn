@@ -452,9 +452,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbdeletemany")
             if (m_opened)
             {
-                ModelIndexQuery q{hana::first(query),
-                    model.indexId(hana::second(query))
-                };
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 return doDeleteMany(ns,model->info,q,tx);
             }
 
@@ -474,9 +472,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdatemany")
             if (m_opened)
             {
-                ModelIndexQuery q{hana::first(query),
-                    model.indexId(hana::second(query))
-                };
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 return doUpdateMany(ns,model->info,q,request,tx);
             }
 
@@ -496,9 +492,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatecreate")
             if (m_opened)
             {
-                ModelIndexQuery q{hana::first(query),
-                    model.indexId(hana::second(query))
-                };
+                //! @todo doReadUpdateCreate single
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 return afterRead(model,doReadUpdateCreate(ns,model->info,q,request,object,returnType,tx),TimePointFilter{});
             }
 

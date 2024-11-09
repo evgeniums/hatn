@@ -397,7 +397,6 @@ HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::Date
     return datePartition(dt.date(),model);
 }
 
-
 class DbSchema;
 
 class ModelInfo

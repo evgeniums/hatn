@@ -109,7 +109,7 @@ Error CreateObjectT::operator ()(
         HATN_CHECK_EC(ec)
 
         // put indexes to transaction
-        auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
+        auto indexValueSlices=Keys::indexValueSlices(objectKeyFull);
         Indexes indexes{partition->indexCf.get(),keys};
         ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
