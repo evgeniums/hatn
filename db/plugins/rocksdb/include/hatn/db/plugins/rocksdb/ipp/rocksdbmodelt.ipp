@@ -33,8 +33,6 @@ std::multimap<std::string,UpdateIndexKeyExtractor<typename ModelT::Type>> Rocksd
 template <typename ModelT>
 common::FlatSet<std::string> RocksdbModelT<ModelT>::ttlFields;
 
-inline static std::string _updatedAtFieldName{"updated_at"};
-
 //---------------------------------------------------------------
 
 template <typename ModelT>
@@ -97,7 +95,7 @@ void RocksdbModelT<ModelT>::updatingKeys(
 template <typename ModelT>
 bool RocksdbModelT<ModelT>::checkTtlFieldUpdated(const update::Request& request) noexcept
 {
-    if (ttlFields.find(_updatedAtFieldName)!=ttlFields.end())
+    if (ttlFields.find(UpdatedAtFieldName)!=ttlFields.end())
     {
         return true;
     }

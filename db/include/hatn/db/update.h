@@ -108,6 +108,10 @@ using FieldInfo=IndexFieldInfo;
 
 struct Field
 {
+    //! @todo optimization: keep somewhere field infos
+
+    //! @todo FieldInfo for nested field
+
     template <typename T>
     Field(
             const FieldInfo& fieldInfo,
@@ -123,7 +127,12 @@ struct Field
     void checkOperator() const
     {
         //! @todo Check combination of operator and operand
-        bool ok=true;
+        bool ok=fieldInfo->name()!=ObjectIdFieldName
+            &&
+            fieldInfo->name()!=CreatedAtFieldName
+            &&
+            fieldInfo->name()!=UpdatedAtFieldName
+            ;
         Assert(ok,"Invalid combination of operator and operand");
     }
 
