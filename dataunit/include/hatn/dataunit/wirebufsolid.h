@@ -195,6 +195,24 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
             setUseInlineBuffers(inlineBuffer);
         }
 
+        void load(
+            const char* data,
+            size_t size
+            )
+        {
+            setSize(size);
+            mainContainer()->load(data,size);
+        }
+
+        void loadInline(
+            const char* data,
+            size_t size
+            )
+        {
+            setSize(size);
+            mainContainer()->loadInline(data,size);
+        }
+
         ~WireBufSolid()=default;
         WireBufSolid(const WireBufSolid&)=default;
         WireBufSolid(WireBufSolid&&)=default;
