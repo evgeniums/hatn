@@ -45,6 +45,7 @@ namespace common=HATN_COMMON_NAMESPACE;
 namespace db=HATN_DB_NAMESPACE;
 
 using AllocatorFactory=common::pmr::AllocatorFactory;
+using BufT=common::ByteArray;
 
 HATN_ROCKSDB_NAMESPACE_END
 

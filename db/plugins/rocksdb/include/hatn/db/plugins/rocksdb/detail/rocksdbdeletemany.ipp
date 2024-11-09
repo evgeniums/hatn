@@ -23,7 +23,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct DeleteManyT
 {
     template <typename ModelT>
@@ -35,12 +34,10 @@ struct DeleteManyT
         Transaction* tx
     ) const;
 };
-template <typename BufT>
-constexpr DeleteManyT<BufT> DeleteMany{};
+constexpr DeleteManyT DeleteMany{};
 
-template <typename BufT>
 template <typename ModelT>
-Error DeleteManyT<BufT>::operator ()(
+Error DeleteManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -52,7 +49,7 @@ Error DeleteManyT<BufT>::operator ()(
 
     HATN_CTX_SCOPE("deletemany")
     TtlMark::refreshCurrentTimepoint();
-    Keys<BufT> keys{allocatorFactory->bytesAllocator()};
+    Keys keys{allocatorFactory};
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 
@@ -63,11 +60,11 @@ Error DeleteManyT<BufT>::operator ()(
                                                 Error& ec
                                             )
     {
-        ec=DeleteObject<BufT>.doDelete(model,handler,partition,topic,*key,keys,ttlIndexes,tx);
+        ec=DeleteObject.doDelete(model,handler,partition,topic,*key,keys,ttlIndexes,tx);
         return !ec;
     };
 
-    return FindModifyMany<BufT>(model,handler,idxQuery,allocatorFactory,keyCallback);
+    return FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

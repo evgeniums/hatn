@@ -150,7 +150,6 @@ struct IndexKeyCompare
 
 using IndexKeys=common::pmr::FlatSet<IndexKey,IndexKeyCompare>;
 
-template <typename BufT>
 struct Cursor
 {
     Cursor(
@@ -182,7 +181,7 @@ struct Cursor
     RocksdbPartition* partition;
 };
 
-template <typename BufT, typename EndpointT=hana::true_>
+template <typename EndpointT=hana::true_>
 struct valueVisitor
 {
     constexpr static const EndpointT endpoint{};
@@ -282,16 +281,14 @@ struct valueVisitor
 template <typename EndpointT=hana::true_>
 struct fieldValueToBufT
 {
-    template <typename BufT>
     void operator()(BufT& buf, const query::Field& field, const lib::string_view& sep) const
     {
-        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf,sep},field.value());
+        lib::variantVisit(valueVisitor<EndpointT>{buf,sep},field.value());
     }
 
-    template <typename BufT>
     void operator()(BufT& buf, const query::Field& field) const
     {
-        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf},field.value());
+        lib::variantVisit(valueVisitor<EndpointT>{buf},field.value());
     }
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
@@ -315,9 +312,9 @@ inline bool filterIndex(const ModelIndexQuery& idxQuery,
     return false;
 }
 
-template <typename BufT, typename KeyHandlerT>
+template <typename KeyHandlerT>
 Error iterateFieldVariant(
-    Cursor<BufT>& cursor,
+    Cursor& cursor,
     RocksdbHandler& handler,
     const ModelIndexQuery& idxQuery,
     const KeyHandlerT& keyCallback,
@@ -449,10 +446,7 @@ Error iterateFieldVariant(
         auto keyValue=it->value();
 
         // check if key must be filtered
-//! @todo Check expiration
-#if 1
         if (!TtlMark::isExpired(keyValue) && !filterIndex(idxQuery,pos,key,keyValue))
-#endif
         {
             // construct key prefix
             auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);
@@ -494,9 +488,9 @@ Error iterateFieldVariant(
     return OK;
 }
 
-template <typename BufT, typename KeyHandlerT>
+template <typename KeyHandlerT>
 Error nextKeyField(
-    Cursor<BufT>& cursor,
+    Cursor& cursor,
     RocksdbHandler& handler,
     const ModelIndexQuery& idxQuery,
     const KeyHandlerT& keyCallback,
@@ -799,7 +793,6 @@ Error nextKeyField(
     return OK;
 }
 
-template <typename BufT>
 Result<IndexKeys> indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
@@ -854,7 +847,7 @@ Result<IndexKeys> indexKeys(
             HATN_CTX_SCOPE_PUSH("topic",topic)
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            Cursor<BufT> cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
+            Cursor cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
             auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

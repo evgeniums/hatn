@@ -35,7 +35,7 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-using IndexKeyT=std::array<ROCKSDB_NAMESPACE::Slice,2>;
+using IndexKeySlice=std::array<ROCKSDB_NAMESPACE::Slice,2>;
 
 class KeysBase
 {
@@ -48,13 +48,25 @@ class KeysBase
 
         template <typename ModelT>
         static auto makeObjectKeyValue(const ModelT& model,
+                                       const lib::string_view& topic,
+                                       const ROCKSDB_NAMESPACE::Slice& objectId,
+                                       const common::DateTime& timepoint,
+                                       const TtlMark& ttlMark
+                                       ) noexcept
+        {
+            return makeObjectKeyValue(model,topic,objectId,timepoint,ttlMark.slice());
+        }
+
+        template <typename ModelT>
+        static auto makeObjectKeyValue(const ModelT& model,
                                   const lib::string_view& topic,
                                   const ROCKSDB_NAMESPACE::Slice& objectId,
                                   const common::DateTime& timepoint=common::DateTime{},
                                   const ROCKSDB_NAMESPACE::Slice& ttlMark=ROCKSDB_NAMESPACE::Slice{}
                                   ) noexcept
         {
-            std::array<ROCKSDB_NAMESPACE::Slice,8> parts;
+            auto r=std::make_tuple(std::array<ROCKSDB_NAMESPACE::Slice,8>{},uint32_t{0});
+            auto& parts=std::get<0>(r);
 
             // first byte is version of index format
             parts[0]=ROCKSDB_NAMESPACE::Slice{&ObjectIndexVersion,sizeof(ObjectIndexVersion)};
@@ -70,7 +82,8 @@ class KeysBase
             if (!timepoint.isNull() && !ttlMark.empty())
             {
                 // 4 bytes for current timestamp
-                uint32_t timestamp=timepoint.toEpoch();
+                uint32_t& timestamp=std::get<1>(r);
+                timestamp=timepoint.toEpoch();
                 boost::endian::native_to_little_inplace(timestamp);
                 parts[6]=ROCKSDB_NAMESPACE::Slice{reinterpret_cast<const char*>(&timestamp),TimestampSize};
 
@@ -79,7 +92,7 @@ class KeysBase
             }
 
             // done
-            return parts;
+            return r;
         }
 
         template <size_t Size>
@@ -132,49 +145,72 @@ class KeysBase
         }
 };
 
-template <typename BufT=common::FmtAllocatedBufferChar>
 class Keys : public KeysBase
 {
     public:
 
-        using bufT=BufT;
+        constexpr static const size_t PreallocatedBufferSize=512;
 
-        Keys()
-        {}
-
-        template <typename AllocatorT>
-        Keys(const AllocatorT& alloc):m_buf(alloc)
+        Keys(AllocatorFactory* allocatorFactory=common::pmr::AllocatorFactory::getDefault())
+            : m_allocatorFactory(allocatorFactory),
+              m_bufs(allocatorFactory->dataAllocator<BufT>())
         {}
 
         void reset()
         {
-            m_buf.clear();
+            m_bufs.clear();
         }
 
-        const bufT& buf() const noexcept
+        BufT& addBuf()
         {
-            return m_buf;
+            m_bufs.emplace_back(m_allocatorFactory->bytesAllocator());
+            m_bufs.back().reserve(PreallocatedBufferSize);
+            return m_bufs.back();
         }
 
         template <size_t Size>
         ROCKSDB_NAMESPACE::Slice objectKeySolid(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts)
         {
-            reset();
+            auto& buf=addBuf();
             for (size_t i=1;i<ObjectKeySliceCount+1;i++)
             {
-                m_buf.append(parts[i]);
+                buf.append(parts[i]);
             }
-            return ROCKSDB_NAMESPACE::Slice{m_buf.data(),m_buf.size()};
+            return ROCKSDB_NAMESPACE::Slice{buf.data(),buf.size()};
         }
+
+        template <typename UnitT, typename IndexT, typename KeyHandlerT>
+        Error makeIndexKey(
+            const lib::string_view& topic,
+            const ROCKSDB_NAMESPACE::Slice& objectId,
+            const UnitT* object,
+            const IndexT& index,
+            const KeyHandlerT& handler
+            )
+        {
+            auto& buf=addBuf();
+
+            buf.append(topic);
+            buf.append(SeparatorCharStr);
+            buf.append(index.id());
+            buf.append(SeparatorCharStr);
+
+            return iterateIndexFields(buf,objectId,object,index,handler,hana::size_c<0>);
+        }
+
+    private:
+
+        AllocatorFactory* m_allocatorFactory;
+        common::pmr::vector<BufT> m_bufs;
 
         template <typename UnitT, typename IndexT, typename KeyHandlerT, typename PosT>
         Error iterateIndexFields(
-                const ROCKSDB_NAMESPACE::Slice& objectId,
-                const UnitT* object,
-                const IndexT& index,
-                const KeyHandlerT& handler,
-                size_t offset,
-                const PosT& pos
+            BufT& buf,
+            const ROCKSDB_NAMESPACE::Slice& objectId,
+            const UnitT* object,
+            const IndexT& index,
+            const KeyHandlerT& handler,
+            const PosT& pos
             )
         {
             auto self=this;
@@ -182,8 +218,8 @@ class Keys : public KeysBase
                 hana::equal(pos,hana::size(index.fields)),
                 [&](auto _)
                 {
-                    IndexKeyT key;
-                    key[0]=ROCKSDB_NAMESPACE::Slice{_(self)->m_buf.data()+_(offset),_(self)->m_buf.size()-_(offset)};
+                    IndexKeySlice key;
+                    key[0]=ROCKSDB_NAMESPACE::Slice{_(buf).data(),_(buf).size()};
                     key[1]=_(objectId);
                     return _(handler)(key);
                 },
@@ -201,19 +237,17 @@ class Keys : public KeysBase
                         {
                             if (_(field).isSet())
                             {
-                                auto fieldOffset=_(self)->m_buf.size();
                                 for (size_t i=0;i<_(field).count();i++)
                                 {
-                                    _(self)->m_buf.resize(fieldOffset);
                                     const auto& val=_(field).at(i);
-                                    fieldToStringBuf(_(self)->m_buf,val);
-                                    _(self)->m_buf.append(SeparatorCharStr);
+                                    fieldToStringBuf(_(buf),val);
+                                    _(buf).append(SeparatorCharStr);
                                     auto ec=_(self)->iterateIndexFields(
+                                        _(buf),
                                         _(objectId),
                                         _(object),
                                         _(index),
                                         _(handler),
-                                        _(offset),
                                         hana::plus(_(pos),hana::size_c<1>)
                                         );
                                     HATN_CHECK_EC(ec)
@@ -221,13 +255,13 @@ class Keys : public KeysBase
                             }
                             else
                             {
-                                _(self)->m_buf.append(SeparatorCharStr);
+                                _(buf).append(SeparatorCharStr);
                                 return _(self)->iterateIndexFields(
+                                    _(buf),
                                     _(objectId),
                                     _(object),
                                     _(index),
                                     _(handler),
-                                    _(offset),
                                     hana::plus(_(pos),hana::size_c<1>)
                                     );
                             }
@@ -236,45 +270,22 @@ class Keys : public KeysBase
                         {
                             if (_(field).fieldHasDefaultValue() || _(field).isSet())
                             {
-                                fieldToStringBuf(_(self)->m_buf,_(field).value());
+                                fieldToStringBuf(_(buf),_(field).value());
                             }
-                            _(self)->m_buf.append(SeparatorCharStr);
+                            _(buf).append(SeparatorCharStr);
                             return _(self)->iterateIndexFields(
+                                _(buf),
                                 _(objectId),
                                 _(object),
                                 _(index),
                                 _(handler),
-                                _(offset),
                                 hana::plus(_(pos),hana::size_c<1>)
                                 );
                         }
-                    );
+                        );
                 }
             );
         }
-
-        template <typename UnitT, typename IndexT, typename KeyHandlerT>
-        Error makeIndexKey(
-            const lib::string_view& topic,
-            const ROCKSDB_NAMESPACE::Slice& objectId,
-            const UnitT* object,
-            const IndexT& index,
-            const KeyHandlerT& handler
-            )
-        {
-            size_t offset=m_buf.size();
-
-            m_buf.append(topic);
-            m_buf.append(SeparatorCharStr);
-            m_buf.append(index.id());
-            m_buf.append(SeparatorCharStr);
-
-            return iterateIndexFields(objectId,object,index,handler,offset,hana::size_c<0>);
-        }
-
-    private:
-
-        BufT m_buf;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

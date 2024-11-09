@@ -43,7 +43,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct CreateObjectT
 {
     template <typename ModelT>
@@ -55,12 +54,10 @@ struct CreateObjectT
                      Transaction* tx
                      ) const;
 };
-template <typename BufT>
-constexpr CreateObjectT<BufT> CreateObject{};
+constexpr CreateObjectT CreateObject{};
 
-template <typename BufT>
 template <typename ModelT>
-Error CreateObjectT<BufT>::operator ()(
+Error CreateObjectT::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
                                const Namespace& ns,
@@ -101,20 +98,19 @@ Error CreateObjectT<BufT>::operator ()(
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // prepare
-        Keys<BufT> keys{allocatorFactory->bytesAllocator()};
+        Keys keys{allocatorFactory};
         auto ttlMark=makeTtlMark(model,obj);
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
-        auto objectKeyFull=keys.makeObjectKeyValue(model,ns.topic(),objectIdS,objectCreatedAt,ttlMark);
-        auto objectKeySlices=keys.objectKeySlices(objectKeyFull);
+        auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model,ns.topic(),objectIdS,objectCreatedAt,ttlMark);
+        auto objectKeySlices=Keys::objectKeySlices(objectKeyFull);
         auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
 
         // put indexes to transaction
         auto indexValueSlices=ROCKSDB_NAMESPACE::SliceParts{&objectKeyFull[0],static_cast<int>(objectKeyFull.size())};
-        std::cout<<"indexValueSlices.num_parts="<<indexValueSlices.num_parts<<",ttl="<<int(objectKeyFull[7][0])<<std::endl;
-        Indexes<BufT> indexes{partition->indexCf.get(),keys};
+        Indexes indexes{partition->indexCf.get(),keys};
         ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
 

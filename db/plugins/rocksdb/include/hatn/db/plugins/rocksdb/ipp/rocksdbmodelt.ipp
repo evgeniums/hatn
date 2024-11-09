@@ -44,7 +44,7 @@ void RocksdbModelT<ModelT>::init(const T& model)
         auto eachField=[&idx](const auto& field)
         {
             auto handler=[&idx](
-                      Keys<>& keysHandler,
+                      Keys& keysHandler,
                       const lib::string_view& topic,
                       const ROCKSDB_NAMESPACE::Slice& objectId,
                       const ObjectT* obj,
@@ -72,7 +72,7 @@ void RocksdbModelT<ModelT>::init(const T& model)
 
 template <typename ModelT>
 void RocksdbModelT<ModelT>::updatingKeys(
-        Keys<>& keysHandler,
+        Keys& keysHandler,
         const update::Request& request,
         const lib::string_view& topic,
         const ROCKSDB_NAMESPACE::Slice& objectId,

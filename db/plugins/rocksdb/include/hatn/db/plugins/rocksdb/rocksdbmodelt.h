@@ -35,11 +35,11 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct IndexKeyUpdate
 {
-    IndexKeyT key;
+    IndexKeySlice key;
     bool exists;
     bool unique;
 
-    IndexKeyUpdate(IndexKeyT key)
+    IndexKeyUpdate(IndexKeySlice key)
         : key(key),exists(false),unique(false)
     {}
 
@@ -89,7 +89,7 @@ using IndexKeyUpdateSet=common::FlatSet<IndexKeyUpdate>;
 template <typename ObjectT>
 using UpdateIndexKeyExtractor=
             std::function<void (
-                    Keys<>& keysHandler,
+                    Keys& keysHandler,
                     const lib::string_view& topic,
                     const ROCKSDB_NAMESPACE::Slice& objectId,
                     const ObjectT* obj,
@@ -107,7 +107,7 @@ class RocksdbModelT
         static void init(const T& model);
 
         static void updatingKeys(
-            Keys<>& keysHandler,
+            Keys& keysHandler,
             const update::Request& request,
             const lib::string_view& topic,
             const ROCKSDB_NAMESPACE::Slice& objectId,

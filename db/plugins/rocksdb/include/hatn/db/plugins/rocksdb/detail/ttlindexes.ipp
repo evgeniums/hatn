@@ -51,14 +51,13 @@ struct TtlIndexStub : public hana::false_
 };
 
 template <typename ModelT, typename ObjectT>
-ROCKSDB_NAMESPACE::Slice makeTtlMark(
+TtlMark makeTtlMark(
     const ModelT& model,
     const ObjectT* obj
     )
 {
     TtlMark::refreshCurrentTimepoint();
-    TtlMark ttlMarkObj{model,obj};
-    return ttlMarkObj.slice();
+    return TtlMark{model,obj};
 }
 
 template <typename ModelT, typename =hana::when<true>>
@@ -107,6 +106,20 @@ struct TtlIndexes
             RocksdbPartition*,
             const ROCKSDB_NAMESPACE::Slice&,
             AllocatorFactory*
+        )
+    {
+    }
+
+    static void saveTtlIndexWithMark(
+        const TtlMark&,
+        Error&,
+        const ModelT&,
+        const objectT*,
+        dataunit::WireBufSolid&,
+        ROCKSDB_NAMESPACE::Transaction*,
+        RocksdbPartition*,
+        const ROCKSDB_NAMESPACE::Slice&,
+        AllocatorFactory*
         )
     {
     }
@@ -241,6 +254,21 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         ttlT ttlIndex{allocatorFactory};
         prepareTtl(ttlIndex,model,obj->field(object::_id).value(),partition->range);
         putTtlToTransaction(ec,buf,tx,ttlIndex,partition,objectIdSlice,ttlMark);
+    }
+
+    static void saveTtlIndexWithMark(
+        const TtlMark& ttlMark,
+        Error& ec,
+        const ModelT& model,
+        const objectT* obj,
+        dataunit::WireBufSolid& buf,
+        ROCKSDB_NAMESPACE::Transaction* tx,
+        RocksdbPartition* partition,
+        const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
+        AllocatorFactory* allocatorFactory
+        )
+    {
+        return saveTtlIndexWithMark(ttlMark.slice(),ec,model,obj,buf,tx,partition,objectIdSlice,allocatorFactory);
     }
 };
 

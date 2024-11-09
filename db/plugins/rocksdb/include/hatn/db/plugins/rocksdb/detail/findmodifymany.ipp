@@ -44,7 +44,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct FindModifyManyT
 {
     template <typename ModelT, typename KeyCallbackT>
@@ -56,12 +55,10 @@ struct FindModifyManyT
         const KeyCallbackT& keyCallback
     ) const;
 };
-template <typename BufT>
-constexpr FindModifyManyT<BufT> FindModifyMany{};
+constexpr FindModifyManyT FindModifyMany{};
 
-template <typename BufT>
 template <typename ModelT, typename KeyCallbackT>
-Error FindModifyManyT<BufT>::operator ()(
+Error FindModifyManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -92,7 +89,7 @@ Error FindModifyManyT<BufT>::operator ()(
             HATN_CTX_SCOPE_PUSH("topic",topic)
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            index_key_search::Cursor<BufT> cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
+            index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
             auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

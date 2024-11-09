@@ -73,9 +73,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
         static RocksdbSchemas& instance();
         static void free() noexcept;
 
-        template <typename DbSchemaSharedPtrT,
-                 typename BufT=common::FmtAllocatedBufferChar
-                 >
+        template <typename DbSchemaSharedPtrT>
         void registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory* allocatorFactory=AllocatorFactory::getDefault());
 
         std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& name) const;

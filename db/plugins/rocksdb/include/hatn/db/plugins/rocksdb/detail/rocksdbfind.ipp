@@ -42,7 +42,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct FindT
 {
     template <typename ModelT>
@@ -53,12 +52,10 @@ struct FindT
         AllocatorFactory* allocatorFactory
     ) const;
 };
-template <typename BufT>
-constexpr FindT<BufT> Find{};
+constexpr FindT Find{};
 
-template <typename BufT>
 template <typename ModelT>
-Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
+Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -74,12 +71,12 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
     index_key_search::queryPartitions(partitions,model,handler,idxQuery);
 
     // make snapshot
-    ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
-    const auto* snapshot=managedSnapchot.snapshot();
+    ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapshot{handler.p()->db};
+    const auto* snapshot=managedSnapshot.snapshot();
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
-    auto indexKeys=index_key_search::template indexKeys<BufT>(snapshot,handler,idxQuery,partitions,allocatorFactory);
+    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory);
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result
@@ -149,7 +146,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT<BufT>::operator ()(
 
             // deserialize object
             auto objSlice=TtlMark::stripTtlMark(value);
-            buf.mainContainer()->loadInline(objSlice.data(),objSlice.size());
+            buf.loadInline(objSlice.data(),objSlice.size());
             dataunit::io::deserialize(*sharedUnit,buf,ec);
             if (ec)
             {

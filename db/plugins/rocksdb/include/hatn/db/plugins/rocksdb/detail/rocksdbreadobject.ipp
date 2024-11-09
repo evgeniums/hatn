@@ -37,7 +37,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct ReadObjectT
 {
     template <typename ModelT, typename DateT>
@@ -51,12 +50,10 @@ struct ReadObjectT
                                                   bool forUpdate
                                                   ) const;
 };
-template <typename BufT>
-constexpr ReadObjectT<BufT> ReadObject{};
+constexpr ReadObjectT ReadObject{};
 
-template <typename BufT>
 template <typename ModelT, typename DateT>
-Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
+Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const Namespace& ns,
@@ -85,9 +82,10 @@ Result<typename ModelT::SharedPtr> ReadObjectT<BufT>::operator ()(
     }
 
     // construct key
-    Keys<BufT> keys{factory->bytesAllocator()};
+    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
+    auto [objKeyVal,_]=keys.makeObjectKeyValue(model,ns.topic(),objectIdS);
+    auto key=keys.objectKeySolid(objKeyVal);
 
     // read object from db
     auto rdb=handler.p()->db;

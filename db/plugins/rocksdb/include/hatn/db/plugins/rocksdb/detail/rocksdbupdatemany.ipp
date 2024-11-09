@@ -24,7 +24,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct UpdateManyT
 {
     template <typename ModelT>
@@ -38,12 +37,10 @@ struct UpdateManyT
                                                   bool single=false
                                                   ) const;
 };
-template <typename BufT>
-constexpr UpdateManyT<BufT> UpdateMany{};
+constexpr UpdateManyT UpdateMany{};
 
-template <typename BufT>
 template <typename ModelT>
-Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
+Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
@@ -55,7 +52,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
     ) const
 {
     HATN_CTX_SCOPE("updatemany")
-    Keys<BufT> keys{allocatorFactory->bytesAllocator()};
+    Keys keys{allocatorFactory};
     typename ModelT::SharedPtr result;
 
     size_t i=0;
@@ -94,7 +91,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT<BufT>::operator ()(
     };
 
     // iterate
-    auto ec=FindModifyMany<BufT>(model,handler,query,allocatorFactory,keyCallback);
+    auto ec=FindModifyMany(model,handler,query,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)
 
     // done

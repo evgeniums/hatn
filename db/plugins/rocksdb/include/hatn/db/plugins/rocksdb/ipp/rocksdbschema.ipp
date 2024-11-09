@@ -38,9 +38,7 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename DbSchemaSharedPtrT,
-         typename BufT
-         >
+template <typename DbSchemaSharedPtrT>
 void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory* allocatorFactory)
 {
     Assert(m_schemas.find(schema->name())==m_schemas.end(),"Trying to register duplicate database schema");
@@ -60,7 +58,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object, Transaction* tx)
         {
             const auto* obj=sample.castToUnit(object);
-            return CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory,tx);
+            return CreateObject(model->model,handler,ns,obj,allocatorFactory,tx);
         };
 
         rdbModel->readObject=[model,allocatorFactory]
@@ -72,7 +70,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 bool forUpdate
             )
         {
-            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
+            auto r=ReadObject(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -90,7 +88,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 bool forUpdate
             )
         {
-            auto r=ReadObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory,tx,forUpdate);
+            auto r=ReadObject(model->model,handler,ns,objectId,date,allocatorFactory,tx,forUpdate);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -104,7 +102,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 const ModelIndexQuery& query
             )
         {
-            return Find<BufT>(model->model,handler,query,allocatorFactory);
+            return Find(model->model,handler,query,allocatorFactory);
         };
 
         rdbModel->deleteObject=[model,allocatorFactory]
@@ -115,7 +113,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 Transaction* tx
             )
         {
-            return DeleteObject<BufT>(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx);
+            return DeleteObject(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx);
         };
 
         rdbModel->deleteObjectWithDate=[model,allocatorFactory]
@@ -127,7 +125,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 Transaction* tx
             )
         {
-            return DeleteObject<BufT>(model->model,handler,ns,objectId,date,allocatorFactory,tx);
+            return DeleteObject(model->model,handler,ns,objectId,date,allocatorFactory,tx);
         };
 
         rdbModel->deleteMany=[model,allocatorFactory]
@@ -137,7 +135,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 Transaction* tx
             )
         {
-            return DeleteMany<BufT>(model->model,handler,query,allocatorFactory,tx);
+            return DeleteMany(model->model,handler,query,allocatorFactory,tx);
         };
 
         rdbModel->updateObjectWithDate=[model,allocatorFactory]
@@ -151,7 +149,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                  Transaction* tx
             )
         {
-            auto r=UpdateObject<BufT>(model->model,handler,ns,objectId,request,date,modifyReturn,allocatorFactory,tx);
+            auto r=UpdateObject(model->model,handler,ns,objectId,request,date,modifyReturn,allocatorFactory,tx);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -169,7 +167,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                 Transaction* tx
                 )
         {
-            auto r=UpdateObject<BufT>(model->model,handler,ns,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
+            auto r=UpdateObject(model->model,handler,ns,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -186,7 +184,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
                Transaction* tx
             )
         {
-            auto r=UpdateMany<BufT>(model->model,handler,query,request,modifyReturnFirst,allocatorFactory,tx);
+            auto r=UpdateMany(model->model,handler,query,request,modifyReturnFirst,allocatorFactory,tx);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -211,7 +209,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
             }
 
             // try update
-            auto r=UpdateMany<BufT>(model->model,handler,query,request,modifyReturn,allocatorFactory,tx,true);
+            auto r=UpdateMany(model->model,handler,query,request,modifyReturn,allocatorFactory,tx,true);
             if (r)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -223,7 +221,7 @@ void RocksdbSchemas::registerSchema(DbSchemaSharedPtrT schema, AllocatorFactory*
 
             // create if not found
             const auto* obj=sample.castToUnit(object.get());
-            auto&& ec=CreateObject<BufT>(model->model,handler,ns,obj,allocatorFactory,tx);
+            auto&& ec=CreateObject(model->model,handler,ns,obj,allocatorFactory,tx);
             if (ec)
             {
                 return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(ec)};

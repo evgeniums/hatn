@@ -42,22 +42,19 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-using IndexKeyHandlerFn=std::function<Error (const IndexKeyT&)>;
+using IndexKeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
 
 Error SaveSingleIndex(
-        const IndexKeyT& key,
+        const IndexKeySlice& key,
         bool unique,
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
         ROCKSDB_NAMESPACE::Transaction* tx,
         const ROCKSDB_NAMESPACE::SliceParts& indexValue,
-        IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
         bool replace=false
     )
 {
     ROCKSDB_NAMESPACE::Status status;
     ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
-
-    std::cout<<"SaveSingleIndex: indexValue.num_parts="<<indexValue.num_parts<<",ttl="<<int(indexValue.parts[7][0])<<std::endl;
 
     // put index to transaction
     bool put=true;
@@ -85,22 +82,16 @@ Error SaveSingleIndex(
     }
 
     // done
-    if (keyCallback)
-    {
-        auto ec=keyCallback(key);
-        HATN_CHECK_EC(ec)
-    }
     return Error{OK};
 }
 
-template <typename BufT>
 class Indexes
 {
     public:
 
         using bufT=BufT;
 
-        Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys<BufT>& keys)
+        Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys& keys)
             : m_cf(cf),
               m_keys(keys)
         {}
@@ -113,7 +104,6 @@ class Indexes
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const ROCKSDB_NAMESPACE::SliceParts& indexValue,
             UnitT* object,
-            IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
             bool replace=false
             )
         {
@@ -122,7 +112,7 @@ class Indexes
             // make and handle key
             return m_keys.makeIndexKey(ns.topic(),objectId,object,idx,
                 [&](auto&& key){
-                    auto ec=SaveSingleIndex(key,idx.unique(),m_cf,tx,indexValue,keyCallback,replace);
+                    auto ec=SaveSingleIndex(key,idx.unique(),m_cf,tx,indexValue,replace);
                     if (ec)
                     {
                         HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
@@ -139,7 +129,6 @@ class Indexes
                 const ROCKSDB_NAMESPACE::Slice& objectId,
                 const ROCKSDB_NAMESPACE::SliceParts& indexValue,
                 UnitT* object,
-                IndexKeyHandlerFn keyCallback=IndexKeyHandlerFn{},
                 bool replace=false
             )
         {
@@ -147,7 +136,7 @@ class Indexes
 
             auto eachIndex=[&,this](auto&& idx, auto&&)
             {
-                return saveIndex(idx,tx,ns,objectId,indexValue,object,keyCallback,replace);
+                return saveIndex(idx,tx,ns,objectId,indexValue,object,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }
@@ -204,7 +193,7 @@ class Indexes
     private:
 
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* m_cf;
-        Keys<BufT>& m_keys;
+        Keys& m_keys;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -44,7 +44,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct UpdateObjectT
 {
     template <typename ModelT, typename DateT>
@@ -59,12 +58,11 @@ struct UpdateObjectT
                                                   Transaction* tx
                                                   ) const;
 };
-template <typename BufT>
-constexpr UpdateObjectT<BufT> UpdateObject{};
+constexpr UpdateObjectT UpdateObject{};
 
-template <typename BufT, typename ModelT>
+template <typename ModelT>
 Result<typename ModelT::SharedPtr> updateSingle(
-    Keys<BufT>& keys,
+    Keys& keys,
     ROCKSDB_NAMESPACE::Slice objectIdS,
     const ROCKSDB_NAMESPACE::Slice& key,
     const ModelT& model,
@@ -241,9 +239,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
     return obj;
 }
 
-template <typename BufT>
 template <typename ModelT, typename DateT>
-Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
+Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const Namespace& ns,
@@ -271,9 +268,10 @@ Result<typename ModelT::SharedPtr> UpdateObjectT<BufT>::operator ()(
     }
 
     // construct key
-    Keys<BufT> keys{factory->bytesAllocator()};
+    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
+    auto [objKeyVal,_]=keys.makeObjectKeyValue(model,ns.topic(),objectIdS);
+    auto key=keys.objectKeySolid(objKeyVal);
 
     // do
     return updateSingle(keys,objectIdS,key,model,handler,partition.get(),ns.topic(),request,modifyReturn,factory,intx);

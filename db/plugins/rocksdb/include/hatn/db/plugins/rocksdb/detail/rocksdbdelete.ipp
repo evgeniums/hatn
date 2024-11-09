@@ -44,7 +44,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename BufT>
 struct DeleteObjectT
 {
     template <typename ModelT, typename ttlIndexesT>
@@ -54,7 +53,7 @@ struct DeleteObjectT
             RocksdbPartition* partition,
             const lib::string_view& topic,
             const ROCKSDB_NAMESPACE::Slice& objectKey,
-            Keys<BufT>& keys,
+            Keys& keys,
             ttlIndexesT& ttlIndexes,
             Transaction* tx
         ) const
@@ -104,7 +103,7 @@ struct DeleteObjectT
         }
 
         // append index deletions to transaction
-        Indexes<BufT> indexes{partition->indexCf.get(),keys};
+        Indexes indexes{partition->indexCf.get(),keys};
         ec=indexes.deleteIndexes(rdbTx,model,topic,objectIdS,&unit);
         HATN_CHECK_EC(ec)
 
@@ -127,12 +126,10 @@ struct DeleteObjectT
                       AllocatorFactory* allocatorFactory,
                       Transaction* tx) const;
 };
-template <typename BufT>
-constexpr DeleteObjectT<BufT> DeleteObject{};
+constexpr DeleteObjectT DeleteObject{};
 
-template <typename BufT>
 template <typename ModelT, typename DateT>
-Error DeleteObjectT<BufT>::operator ()(
+Error DeleteObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const Namespace& ns,
@@ -160,9 +157,10 @@ Error DeleteObjectT<BufT>::operator ()(
     }
 
     // construct object key
-    Keys<BufT> keys{factory->bytesAllocator()};
+    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto key=keys.objectKeySolid(keys.makeObjectKeyValue(model,ns.topic(),objectIdS));
+    auto [objKeyVal,_]=keys.makeObjectKeyValue(model,ns.topic(),objectIdS);
+    auto key=keys.objectKeySolid(objKeyVal);
 
     // delete object
     using ttlIndexesT=TtlIndexes<modelType>;

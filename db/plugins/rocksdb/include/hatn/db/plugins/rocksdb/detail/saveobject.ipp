@@ -62,7 +62,11 @@ Error serializeObject(const ObjectT* obj, dataunit::WireBufSolid& buf)
     return Error{OK};
 }
 
-inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* partition, const ROCKSDB_NAMESPACE::SliceParts& key, dataunit::WireBufSolid& buf, const ROCKSDB_NAMESPACE::Slice& ttlMark)
+inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx,
+                        RocksdbPartition* partition,
+                        const ROCKSDB_NAMESPACE::SliceParts& key,
+                        dataunit::WireBufSolid& buf,
+                        const ROCKSDB_NAMESPACE::Slice& ttlMark)
 {
     ROCKSDB_NAMESPACE::Status status;
     if (ttlMark.size()==0)
@@ -88,6 +92,15 @@ inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx, RocksdbPartition* pa
     }
 
     return Error{OK};
+}
+
+inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx,
+                        RocksdbPartition* partition,
+                        const ROCKSDB_NAMESPACE::SliceParts& key,
+                        dataunit::WireBufSolid& buf,
+                        const TtlMark& ttlMark)
+{
+    return saveObject(tx,partition,key,buf,ttlMark.slice());
 }
 
 HATN_ROCKSDB_NAMESPACE_END
