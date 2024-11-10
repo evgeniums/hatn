@@ -195,9 +195,19 @@ struct FieldToStringBufT
             },
             [&](auto _)
             {
-                auto&& v=_(val);
-                using type=decltype(v);
-                static_assert(std::is_same<std::decay_t<type>,BufT>::value,"Unsupported value type");
+                hana::eval_if(
+                    std::is_enum<std::decay_t<T>>{},
+                    [&](auto _)
+                    {
+                        uint64_(_(buf),static_cast<uint64_t>(_(val)));
+                    },
+                    [&](auto _)
+                    {
+                        auto&& v=_(val);
+                        using type=decltype(v);
+                        static_assert(std::is_same<std::decay_t<type>,BufT>::value,"Unsupported value type");
+                    }
+                );
             }
         );
     }
