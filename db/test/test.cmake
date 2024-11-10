@@ -6,6 +6,7 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testrocksdbschema.cpp
     ${DB_TEST_SRC}/testrocksdbop.cpp
     ${DB_TEST_SRC}/testcrud.cpp
+    ${DB_TEST_SRC}/testfind.cpp    
 )
 
 SET (TEST_HEADERS
@@ -17,6 +18,7 @@ SET(MODULE_TEST_LIB dbtestlib)
 SET(TEST_LIB_SOURCES
     ${DB_TEST_SRC}/initdbplugins.cpp
     ${DB_TEST_SRC}/preparedb.cpp
+    # ${DB_TEST_SRC}/model1.cpp
 )
 
 SET(TEST_LIB_HEADERS
@@ -47,6 +49,12 @@ IF (MINGW AND BUILD_DEBUG)
     # Fix string table overflow when compiling in debug mode
     SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
     SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Os)
+ENDIF ()
+
+IF (MSVC)
+    # Fix string table overflow when compiling in debug mode
+    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS /bigobj)
+    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS /bigobj)
 ENDIF ()
 
 ADD_CUSTOM_TARGET(dbtest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
