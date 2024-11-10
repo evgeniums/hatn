@@ -67,7 +67,6 @@ ObjectT makeInitObject()
     return obj;
 }
 
-
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBOBJECT_H

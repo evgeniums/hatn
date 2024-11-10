@@ -386,7 +386,7 @@ class IndexInfo : public IndexBase
                     {
                         return _(field).nullable();
                     },
-                    [&](auto _)
+                    [&](auto)
                     {
                         return false;
                     }
@@ -572,6 +572,23 @@ struct makeIndexT
 };
 constexpr makeIndexT makeIndex{};
 
+struct makePlainIndexesT
+{
+    template <typename ConfigT, typename ...Fields>
+    auto operator()(ConfigT&& cfg, Fields&& ...fields) const
+    {
+        return hana::fold(
+            hana::make_tuple(fields...),
+            hana::make_tuple(),
+            [&cfg](auto&& ts, auto&& field)
+            {
+                return hana::append(ts,makeIndex(cfg,field));
+            }
+        );
+    }
+};
+constexpr makePlainIndexesT makePlainIndexes{};
+
 struct getIndexFieldT
 {
     template <typename UnitT, typename FieldT>
@@ -640,6 +657,14 @@ struct getPlainIndexFieldT
     }
 };
 constexpr getPlainIndexFieldT getPlainIndexField{};
+
+inline auto objectIndexes()
+{
+    return hana::make_tuple(makeIndex(IndexConfig<Unique>{},object::_id),
+                            makeIndex(DefaultIndexConfig,object::created_at),
+                            makeIndex(DefaultIndexConfig,object::updated_at)
+                            );
+}
 
 HATN_DB_NAMESPACE_END
 
