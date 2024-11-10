@@ -793,6 +793,7 @@ Error nextKeyField(
     return OK;
 }
 
+//! @todo Move it to cpp
 Result<IndexKeys> indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
