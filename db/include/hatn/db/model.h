@@ -324,11 +324,9 @@ struct Model : public ConfigT
 template <typename UnitType>
 struct unitModelT
 {
-    template <typename ConfigT, typename ...Indexes>
-    auto operator()(ConfigT&& cfg, Indexes ...indexes) const
+    template <typename ConfigT, typename Xs>
+    auto make(ConfigT&& cfg, Xs&& xs1) const
     {
-        auto xs1=hana::make_tuple(indexes...);
-
         auto args=hana::eval_if(
             hana::is_a<ModelConfigTag,ConfigT>,
             [&](auto _)
@@ -349,6 +347,13 @@ struct unitModelT
         type m{config,xs};
         ModelRegistry::instance().registerModel(m.collection(),m.modelId());
         return m;
+    }
+
+    template <typename ConfigT, typename ...Indexes>
+    auto operator()(ConfigT&& cfg, Indexes ...indexes) const
+    {
+        auto xs1=hana::make_tuple(indexes...);
+        return make(std::forward<ConfigT>(cfg),xs1);
     }
 };
 template <typename UnitType> constexpr unitModelT<UnitType> unitModel{};
@@ -530,6 +535,26 @@ struct makeModelT
     }
 };
 template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
+
+template <typename UnitType>
+struct makeModelWithIdxT
+{
+    template <typename ConfigT, typename ...Indexes>
+    auto operator()(ConfigT&& config, Indexes ...indexes) const
+    {
+        auto xs=hana::fold(
+            hana::make_tuple(indexes...),
+            objectIndexes(),
+            [](auto&& ts, auto&& idx)
+            {
+                return hana::concat(ts,idx);
+            }
+        );
+        auto m=unitModel<UnitType>.make(std::forward<ConfigT>(config),xs);
+        return makeModelWithInfo(std::move(m));
+    }
+};
+template <typename UnitType> constexpr makeModelWithIdxT<UnitType> makeModelWithIdx{};
 
 HATN_DB_NAMESPACE_END
 
