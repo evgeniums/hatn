@@ -32,14 +32,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-constexpr static const char SeparatorCharC=0;
-constexpr static const char* SeparatorChar=&SeparatorCharC;
-constexpr lib::string_view SeparatorCharStr{SeparatorChar,1};
-constexpr static const char* SeparatorCharPlus="\1";
-constexpr lib::string_view SeparatorCharPlusStr{SeparatorCharPlus,1};
-constexpr static const char* EmptyChar="\2";
-constexpr lib::string_view EmptyCharStr{EmptyChar,1};
-
 struct FieldToStringBufT
 {
     template <typename BufT>

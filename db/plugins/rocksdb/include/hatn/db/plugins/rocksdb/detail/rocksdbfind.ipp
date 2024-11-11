@@ -35,9 +35,10 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
+#include <hatn/db/plugins/rocksdb/indexkeysearch.h>
+#include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
-#include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
-#include <hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp>
 #include <hatn/db/plugins/rocksdb/detail/querypartitions.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -102,7 +103,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
         for (auto&& key: indexKeys.value())
         {
             // get object from rocksdb            
-            auto k=KeysBase::objectKeyFromIndexValue(key.value.data(),key.value.size());
+            auto k=Keys::objectKeyFromIndexValue(key.value.data(),key.value.size());
 
             auto pushLogKey=[&k,&key]()
             {

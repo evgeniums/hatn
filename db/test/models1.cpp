@@ -29,12 +29,13 @@
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
 
-void registerModels()
+void registerModels1()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 
     rdb::RocksdbModels::instance().registerModel(m1_bool());
     rdb::RocksdbModels::instance().registerModel(m1_int8());
+#if 0
     rdb::RocksdbModels::instance().registerModel(m1_int16());
     rdb::RocksdbModels::instance().registerModel(m1_int32());
     rdb::RocksdbModels::instance().registerModel(m1_int64());
@@ -51,13 +52,13 @@ void registerModels()
     rdb::RocksdbModels::instance().registerModel(m1_date());
     rdb::RocksdbModels::instance().registerModel(m1_time());
     rdb::RocksdbModels::instance().registerModel(m1_oid());
-
+#endif
 #endif
 }
 
 BOOST_AUTO_TEST_SUITE(TestFind)
 
-BOOST_AUTO_TEST_CASE(Skip)
+BOOST_AUTO_TEST_CASE(Skip1)
 {
     BOOST_CHECK(true);
 }

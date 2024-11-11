@@ -35,9 +35,10 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
+#include <hatn/db/plugins/rocksdb/indexkeysearch.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
-#include <hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp>
 #include <hatn/db/plugins/rocksdb/detail/querypartitions.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
@@ -46,24 +47,24 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct FindModifyManyT
 {
-    template <typename ModelT, typename KeyCallbackT>
+    template <typename ModelT>
     Error operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
         AllocatorFactory* allocatorFactory,
-        const KeyCallbackT& keyCallback
+        const index_key_search::KeyHandlerFn& keyCallback
     ) const;
 };
 constexpr FindModifyManyT FindModifyMany{};
 
-template <typename ModelT, typename KeyCallbackT>
+template <typename ModelT>
 Error FindModifyManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory,
-        const KeyCallbackT& keyCallback
+        const index_key_search::KeyHandlerFn& keyCallback
     ) const
 {
     HATN_CTX_SCOPE("findmodifymany")

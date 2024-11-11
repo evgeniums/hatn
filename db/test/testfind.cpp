@@ -26,17 +26,17 @@
 #include <hatn/base/configtreeloader.h>
 #include <hatn/test/multithreadfixture.h>
 
-// #include <hatn/dataunit/ipp/syntax.ipp>
-// #include <hatn/dataunit/ipp/wirebuf.ipp>
-
 #include <hatn/db/schema.h>
-// #include <hatn/dataunit/ipp/objectid.ipp>
 
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 #include "preparedb.h"
 
 #include "models1.h"
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
+#endif
 
 HATN_USING
 HATN_DATAUNIT_USING
@@ -56,8 +56,17 @@ void init()
     ModelRegistry::free();
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbSchemas::free();
-    // rdb::RocksdbModels::free();
+    rdb::RocksdbModels::free();
 #endif
+
+    registerModels1();
+    registerModels2();
+    registerModels3();
+    registerModels4();
+    registerModels5();
+    registerModels6();
+    registerModels7();
+    registerModels8();
 }
 
 template <typename ...Models>

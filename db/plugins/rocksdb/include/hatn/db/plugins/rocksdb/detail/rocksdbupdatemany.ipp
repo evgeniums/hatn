@@ -19,6 +19,8 @@
 #ifndef HATNROCKSDBUPDATEMANY_IPP
 #define HATNROCKSDBUPDATEMANY_IPP
 
+#include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
 #include <hatn/db/plugins/rocksdb/detail/findmodifymany.ipp>
 
@@ -64,7 +66,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
                                                       )
     {
         // construct object ID
-        auto objectIdS=KeysBase::objectIdFromIndexValue(val->data(),val->size());
+        auto objectIdS=Keys::objectIdFromIndexValue(val->data(),val->size());
 
         // update
         auto r=updateSingle(keys,objectIdS,*key,model,handler,partition,topic,request,modifyReturnFirst,allocatorFactory,tx);

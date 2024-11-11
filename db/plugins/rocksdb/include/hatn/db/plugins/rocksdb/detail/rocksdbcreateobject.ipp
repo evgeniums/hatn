@@ -103,7 +103,7 @@ Error CreateObjectT::operator ()(
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
-        auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model,ns.topic(),objectIdS,objectCreatedAt,ttlMark);
+        auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=Keys::objectKeySlices(objectKeyFull);
         auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)

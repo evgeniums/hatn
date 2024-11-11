@@ -32,6 +32,8 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
+#include <hatn/db/plugins/rocksdb/savesingleindex.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
@@ -205,7 +207,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         if (!newKeys.empty())
         {
             const auto& objectCreatedAt=obj->field(object::created_at).value();
-            auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model,topic,objectIdS,objectCreatedAt,ttlMarkSlice);
+            auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,objectCreatedAt,ttlMarkSlice);
             auto indexValue=Keys::indexValueSlices(objectKeyFull);
             for (auto&& newKey : newKeys)
             {
@@ -284,7 +286,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
     // construct key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto [objKeyVal,_]=keys.makeObjectKeyValue(model,ns.topic(),objectIdS);
+    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
 
     // do

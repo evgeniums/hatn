@@ -30,6 +30,8 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbhandler.h
     include/hatn/db/plugins/rocksdb/saveuniquekey.h
     include/hatn/db/plugins/rocksdb/ttlmark.h
+    include/hatn/db/plugins/rocksdb/indexkeysearch.h
+    include/hatn/db/plugins/rocksdb/rocksdbkeys.h
 )
 
 SET(SCHEMA_DETAIL_HEADERS
@@ -40,8 +42,7 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp
-    include/hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp
-    include/hatn/db/plugins/rocksdb/detail/indexkeysearch.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp    
     include/hatn/db/plugins/rocksdb/detail/querypartitions.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp    
@@ -61,7 +62,10 @@ SET (SCHEMA_SOURCES
     src/rocksdbhandler.cpp
     src/rocksdberror.cpp
     src/rocksdboperror.cpp
+    src/rocksdbkeys.cpp
     src/saveuniquekey.cpp
+    src/savesingleindex.cpp
+    src/indexkeysearch.cpp
     src/ttlmark.cpp
 )
 

@@ -152,4 +152,13 @@ HATN_DB_MODEL(m1_oid,u1_oid,u1_oid_f1_idx())
 
 HATN_TEST_NAMESPACE_END
 
+void registerModels1();
+void registerModels2();
+void registerModels3();
+void registerModels4();
+void registerModels5();
+void registerModels6();
+void registerModels7();
+void registerModels8();
+
 #endif // HATNDBTESTMODELS1_H

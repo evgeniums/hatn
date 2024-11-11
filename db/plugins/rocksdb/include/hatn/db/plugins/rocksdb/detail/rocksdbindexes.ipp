@@ -37,54 +37,13 @@
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
+#include <hatn/db/plugins/rocksdb/savesingleindex.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 using IndexKeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
-
-Error SaveSingleIndex(
-        const IndexKeySlice& key,
-        bool unique,
-        ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
-        ROCKSDB_NAMESPACE::Transaction* tx,
-        const ROCKSDB_NAMESPACE::SliceParts& indexValue,
-        bool replace=false
-    )
-{
-    ROCKSDB_NAMESPACE::Status status;
-    ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
-
-    // put index to transaction
-    bool put=true;
-    if (unique)
-    {
-        if (!replace)
-        {
-            HATN_CTX_SCOPE_PUSH("idx_op","merge");
-            put=false;
-            std::string bufk;
-            ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
-            std::string bufv;
-            ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
-            status=tx->Merge(cf,k,v);
-        }
-    }
-    if (put)
-    {
-        HATN_CTX_SCOPE_PUSH("idx_op","put");
-        status=tx->Put(cf,keySlices,indexValue);
-    }
-    if (!status.ok())
-    {
-        return makeError(DbError::SAVE_INDEX_FAILED,status);
-    }
-
-    // done
-    return Error{OK};
-}
-
 class Indexes
 {
     public:
