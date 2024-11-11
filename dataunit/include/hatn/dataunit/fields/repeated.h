@@ -41,6 +41,7 @@ struct RepeatedTraits
 {
     using fieldType=FieldTmpl<Type>;
     using valueType=typename Type::type;
+    using type=valueType;
     constexpr static const bool isSizeIterateNeeded=Type::isSizeIterateNeeded;
     constexpr static const ValueType typeId=Type::typeId;
     using isUnitType=typename Type::isUnitType;
@@ -79,6 +80,7 @@ struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
 {
     using fieldType=SharedUnitFieldTmpl<Type>;
     using valueType=typename Type::shared_type;
+    using type=valueType;
     constexpr static const bool isSizeIterateNeeded=true;
     constexpr static const ValueType typeId=Type::typeId;
 
@@ -99,6 +101,7 @@ struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
 {
     using fieldType=EmbeddedUnitFieldTmpl<Type>;
     using valueType=typename Type::type;
+    using type=valueType;
     constexpr static const bool isSizeIterateNeeded=true;
     constexpr static const ValueType typeId=Type::typeId;
 
@@ -170,6 +173,12 @@ struct RepeatedGetterSetterNoBytes
     }
     template <typename RepeatedT>
     constexpr static void bufAddValue(RepeatedT*,const char*, size_t)
+    {
+        Assert(false,"Invalid operation for field of this type");
+    }
+
+    template <typename ArrayT>
+    constexpr static void bufGet(const ArrayT&,size_t, common::DataBuf&)
     {
         Assert(false,"Invalid operation for field of this type");
     }
