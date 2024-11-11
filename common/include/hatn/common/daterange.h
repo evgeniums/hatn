@@ -47,7 +47,7 @@ class HATN_COMMON_EXPORT DateRange
          * @brief Ctor from number.
          * @param value Number.
          */
-        DateRange(uint32_t value=0) : m_value(value)
+        explicit DateRange(uint32_t value=0) : m_value(value)
         {
             //! @todo Maybe validate.
         }

@@ -87,7 +87,7 @@ class HATN_COMMON_EXPORT Time
          * @brief Ctor from single number.
          * @param value Number in format (hour*10000000 + minute*100000 + second*1000 + millisecond).
          */
-        Time(uint64_t value)
+        explicit Time(uint64_t value)
         {
             auto ec=set(value);
             if (ec)

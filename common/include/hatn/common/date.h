@@ -80,7 +80,7 @@ class HATN_COMMON_EXPORT Date
          * @brief Ctor from single number.
          * @param value Number in format (year*10000 + month*100 + day).
          */
-        Date(uint32_t value)
+        explicit Date(uint32_t value)
         {
             HATN_CHECK_THROW(set(value));
         }
