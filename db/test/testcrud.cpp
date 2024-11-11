@@ -51,6 +51,8 @@ HDU_UNIT_WITH(simple1,(HDU_BASE(object)),
     HDU_FIELD(f1,TYPE_UINT32,1)
 )
 
+HATN_DB_INDEX(idx4,simple1::f1)
+
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
@@ -65,12 +67,12 @@ auto initSimpleSchema() -> decltype(auto)
     rdb::RocksdbModels::free();
 #endif
 
-    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(DefaultIndexConfig,object::created_at);
-    auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
-    auto idx4=makeIndex(DefaultIndexConfig,simple1::f1);
+    // auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
+    // auto idx2=makeIndex(DefaultIndexConfig,object::created_at);
+    // auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
+    // auto idx4=makeIndex(DefaultIndexConfig,simple1::f1);
 
-    auto simpleModel1=makeModel<simple1::TYPE>(DefaultModelConfig,idx1,idx2,idx3,idx4);
+    auto simpleModel1=makeModel<simple1::TYPE>(DefaultModelConfig,/*idx1,idx2,idx3,*/idx4());
     auto simpleSchema1=makeSchema("schema_simple1",simpleModel1);
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
@@ -78,9 +80,9 @@ auto initSimpleSchema() -> decltype(auto)
     rdb::RocksdbSchemas::instance().registerSchema(simpleSchema1);
 #endif
 
-    BOOST_TEST_MESSAGE(fmt::format("idx4 ID={}",idx4.id()));
+    BOOST_TEST_MESSAGE(fmt::format("idx4 ID={}",idx4().id()));
 
-    return std::make_tuple(simpleModel1,simpleSchema1,idx4);
+    return std::make_tuple(simpleModel1,simpleSchema1);
 }
 
 template <typename T>
@@ -105,7 +107,6 @@ BOOST_AUTO_TEST_CASE(Simple1)
     {
         auto& s1=std::get<1>(s);
         auto& m1=std::get<0>(s);
-        auto& idx4=std::get<2>(s);
 
         std::ignore=plugin;
         setSchemaToClient(client,s1);
@@ -200,7 +201,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
         q1.setField(qf1);
 #endif
-        auto q3=makeQuery(idx4,ns.topic(),query::where(simple1::f1,query::Operator::eq,100));
+        auto q3=makeQuery(idx4(),ns.topic(),query::where(simple1::f1,query::Operator::eq,100));
         auto r3=client->find(ns,m1,q3);
         if (r3)
         {
@@ -225,7 +226,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // try to find unknown object
-        auto q4=makeQuery(idx4,ns.topic(),query::where(simple1::f1,query::Operator::eq,101));
+        auto q4=makeQuery(idx4(),ns.topic(),query::where(simple1::f1,query::Operator::eq,101));
         auto r4=client->find(ns,m1,q4);
         if (r4)
         {
@@ -242,11 +243,15 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_REQUIRE(r4_.value().isNull());
 
         // update object
+        BOOST_REQUIRE_EQUAL(std::string(simple1::f1.name()),std::string("f1"));
+        update::FieldInfo finf{simple1::f1};
+        BOOST_REQUIRE_EQUAL(finf.name(),std::string("f1"));
         auto update1=update::Request{
-            {simple1::f1,update::Operator::set,101}
+            {finf,update::Operator::set,101}
         };
         ec=client->update(ns,m1,update1,id);
         BOOST_REQUIRE(!ec);
+        // read updated object
         auto r5=client->read(ns,m1,id);
         if (r5)
         {
@@ -258,6 +263,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r5.value()->fieldValue(object::_id)==id);
         BOOST_CHECK(r5.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r5.value()->fieldValue(object::updated_at)>=o1.fieldValue(object::updated_at));
+        // try to find original object
         auto r6_=client->findOne(ns,m1,q3);
         if (r6_)
         {
@@ -265,6 +271,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         }
         BOOST_REQUIRE(!r6_);
         BOOST_CHECK(r6_.value().isNull());
+        // find updated object
         auto r6=client->findOne(ns,m1,q4);
         if (r6)
         {

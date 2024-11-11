@@ -122,6 +122,14 @@ struct Field
         checkOperator();
     }
 
+    //! @todo Do something with field info from field.
+    template <typename T>
+    Field(
+        FieldInfo&& fieldInfo,
+        Operator op,
+        T&& value
+    ) = delete;
+
     void checkOperator() const
     {
         //! @todo Check combination of operator and operand

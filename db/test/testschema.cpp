@@ -198,8 +198,9 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     BOOST_REQUIRE(partitionRange1.isValid());
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
+    auto finf=update::FieldInfo{nestedField(nu1::nf1,n1::f1)};
     std::ignore=update::Request{
-        {nestedField(nu1::nf1,n1::f1),update::Operator::set,common::DateTime::currentUtc()}
+        {finf,update::Operator::set,common::DateTime::currentUtc()}
     };
 }
 

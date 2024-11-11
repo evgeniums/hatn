@@ -530,7 +530,7 @@ struct makeModelT
     template <typename ConfigT, typename ...Indexes>
     auto operator()(ConfigT&& config, Indexes ...indexes) const
     {
-        auto m=unitModel<UnitType>(std::forward<ConfigT>(config),std::forward<Indexes>(indexes)...);
+        auto m=unitModel<UnitType>.make(std::forward<ConfigT>(config),hana::concat(objectIndexes(),hana::make_tuple(indexes...)));
         return makeModelWithInfo(std::move(m));
     }
 };
@@ -557,5 +557,24 @@ struct makeModelWithIdxT
 template <typename UnitType> constexpr makeModelWithIdxT<UnitType> makeModelWithIdx{};
 
 HATN_DB_NAMESPACE_END
+
+#define HATN_DB_INDEX(idx,...) \
+    struct _index_##idx { \
+        auto operator()() const \
+        { \
+                return makeIndex(DefaultIndexConfig,__VA_ARGS__); \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
+#define HATN_DB_MODEL(m,type,...) \
+    struct _model_##m { \
+        auto operator()() const \
+        { \
+                return makeModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
+        } \
+    }; \
+    constexpr _model_##m m{};
+
 
 #endif // HATNDBMODEL_H

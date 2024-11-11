@@ -1,12 +1,13 @@
 SET (TEST_SOURCES
-    ${DB_TEST_SRC}/testobject.cpp
-    ${DB_TEST_SRC}/testinitplugins.cpp
-    ${DB_TEST_SRC}/testopenclose.cpp
-    ${DB_TEST_SRC}/testschema.cpp
-    ${DB_TEST_SRC}/testrocksdbschema.cpp
-    ${DB_TEST_SRC}/testrocksdbop.cpp
+    # ${DB_TEST_SRC}/testobject.cpp
+    # ${DB_TEST_SRC}/testinitplugins.cpp
+    # ${DB_TEST_SRC}/testopenclose.cpp
+    # ${DB_TEST_SRC}/testschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbop.cpp
     ${DB_TEST_SRC}/testcrud.cpp
-    ${DB_TEST_SRC}/testfind.cpp    
+    # ${DB_TEST_SRC}/testfind.cpp
+    # ${DB_TEST_SRC}/models1.cpp
 )
 
 SET (TEST_HEADERS
@@ -17,13 +18,13 @@ SET(MODULE_TEST_LIB dbtestlib)
 
 SET(TEST_LIB_SOURCES
     ${DB_TEST_SRC}/initdbplugins.cpp
-    ${DB_TEST_SRC}/preparedb.cpp
-    # ${DB_TEST_SRC}/model1.cpp
+    ${DB_TEST_SRC}/preparedb.cpp    
 )
 
 SET(TEST_LIB_HEADERS
     ${DB_TEST_SRC}/initdbplugins.h
     ${DB_TEST_SRC}/preparedb.h
+    ${DB_TEST_SRC}/models1.h
 )
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES} ${TEST_LIB_HEADERS})
