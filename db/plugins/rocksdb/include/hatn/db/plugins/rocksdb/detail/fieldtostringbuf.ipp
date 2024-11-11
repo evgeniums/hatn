@@ -183,7 +183,7 @@ struct FieldToStringBufT
             [&](auto _)
             {
                 static FieldToStringBufT f{};
-                f(_(buf),std::string_view{_(val)});
+                f(_(buf),lib::string_view{_(val)});
             },
             [&](auto _)
             {

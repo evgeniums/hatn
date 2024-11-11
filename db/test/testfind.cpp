@@ -33,6 +33,8 @@
 #include "preparedb.h"
 
 #include "models1.h"
+#include "models9.h"
+#include "models10.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
@@ -67,6 +69,8 @@ void init()
     registerModels6();
     registerModels7();
     registerModels8();
+    registerModels9();
+    registerModels10();
 }
 
 template <typename ...Models>
@@ -113,7 +117,9 @@ BOOST_AUTO_TEST_CASE(OneLevel)
                 m1_dt(),
                 m1_date(),
                 m1_time(),
-                m1_oid()
+                m1_oid(),
+                m2(),
+                m3()
             );
 
     auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)

@@ -15,6 +15,8 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/models6.cpp
     ${DB_TEST_SRC}/models7.cpp
     ${DB_TEST_SRC}/models8.cpp
+    ${DB_TEST_SRC}/models9.cpp
+    ${DB_TEST_SRC}/models10.cpp
 )
 
 SET (TEST_HEADERS
@@ -32,6 +34,8 @@ SET(TEST_LIB_HEADERS
     ${DB_TEST_SRC}/initdbplugins.h
     ${DB_TEST_SRC}/preparedb.h
     ${DB_TEST_SRC}/models1.h
+    ${DB_TEST_SRC}/models9.h
+    ${DB_TEST_SRC}/models10.h
 )
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES} ${TEST_LIB_HEADERS})

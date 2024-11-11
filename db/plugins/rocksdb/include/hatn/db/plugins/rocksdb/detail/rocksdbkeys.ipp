@@ -84,6 +84,7 @@ Error Keys::iterateIndexFields(
                                 );
                             HATN_CHECK_EC(ec)
                         }
+                        return Error{OK};
                     }
                     else
                     {
