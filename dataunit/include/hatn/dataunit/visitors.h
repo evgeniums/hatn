@@ -40,17 +40,8 @@
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
-HATN_DATAUNIT_NAMESPACE_BEGIN
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
-#ifndef HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
-    #define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
-#else
-    extern bool TestRelaxMissingFieldSerializing;
-#endif
-
-//---------------------------------------------------------------
-
-namespace meta {
 struct true_predicate_t
 {
     template <typename T>
@@ -60,7 +51,18 @@ struct true_predicate_t
     }
 };
 constexpr true_predicate_t true_predicate{};
-}
+
+HATN_DATAUNIT_META_NAMESPACE_END
+
+HATN_DATAUNIT_NAMESPACE_BEGIN
+
+#ifndef HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
+    #define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
+#else
+    extern bool TestRelaxMissingFieldSerializing;
+#endif
+
+//---------------------------------------------------------------
 
 struct HATN_DATAUNIT_EXPORT visitors
 {

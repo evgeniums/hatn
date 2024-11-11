@@ -103,7 +103,9 @@ constexpr auto IsString=hana::bool_c<
 
 }
 
-namespace meta {
+HATN_DATAUNIT_NAMESPACE_END
+
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
 template <typename Type>
 constexpr auto is_custom_type()
@@ -117,8 +119,6 @@ constexpr auto is_custom_type()
     return hana::equal(ok,hana::just(hana::true_c));
 }
 
-}
-
-HATN_DATAUNIT_NAMESPACE_END
+HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNFIELDVALUETYPES_H

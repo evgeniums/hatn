@@ -24,9 +24,7 @@
 #include <hatn/dataunit/unitmeta.h>
 #include <hatn/common/pmr/withstaticallocator.ipp>
 
-HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace meta {
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
@@ -148,9 +146,6 @@ std::pair<int,const char*> unit_t<BaseT,UniqueType>::checkRequiredFields() noexc
     return io::checkRequiredFields(*this);
 }
 
-//---------------------------------------------------------------
-} // namespace meta
-
-HATN_DATAUNIT_NAMESPACE_END
+HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNDATAUNITMETA_IPP

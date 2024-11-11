@@ -37,9 +37,7 @@ namespace hana=boost::hana;
 #include <hatn/dataunit/fields/repeated.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
-HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace meta {
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
 #ifdef HATN_STRING_LITERAL
 
@@ -726,8 +724,7 @@ constexpr auto is_basic_type()
 }
 
 //---------------------------------------------------------------
-} // namespace meta
 
-HATN_DATAUNIT_NAMESPACE_END
+HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNDATAUNITMETA_H
