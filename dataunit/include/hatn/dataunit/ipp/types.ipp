@@ -268,6 +268,11 @@ struct BytesTraits
         return buf()->size();
     }
 
+    inline operator lib::string_view() const noexcept
+    {
+        return lib::string_view{dataPtr(),dataSize()};
+    }
+
     private:
 
         sharedType shared;
