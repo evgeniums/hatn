@@ -35,9 +35,6 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-namespace types
-{
-
 template <typename Type, typename isBasic, ValueType valueType>
 struct BaseType
 {
@@ -57,63 +54,63 @@ struct BaseType
 };
 
 //! Definition of bool field type
-struct HATN_DATAUNIT_EXPORT TYPE_BOOL : public BaseType<bool,std::true_type,ValueType::Bool>
+struct HATN_DATAUNIT_EXPORT Bool : public BaseType<bool,std::true_type,ValueType::Bool>
 {
 };
 //! Definition of signed int8 type
-struct HATN_DATAUNIT_EXPORT TYPE_INT8 : public BaseType<int8_t,std::true_type,ValueType::Int8>
+struct HATN_DATAUNIT_EXPORT Int8 : public BaseType<int8_t,std::true_type,ValueType::Int8>
 {
 };
 //! Definition of signed int16 type
-struct HATN_DATAUNIT_EXPORT TYPE_INT16 : public BaseType<int16_t,std::true_type,ValueType::Int16>
+struct HATN_DATAUNIT_EXPORT Int16 : public BaseType<int16_t,std::true_type,ValueType::Int16>
 {
 };
 //! Definition of signed int32 type
-struct HATN_DATAUNIT_EXPORT TYPE_INT32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
+struct HATN_DATAUNIT_EXPORT Int32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
 {
 };
 //! Definition of signed int32 type with fixed wire size
-struct HATN_DATAUNIT_EXPORT TYPE_FIXED_INT32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
+struct HATN_DATAUNIT_EXPORT FInt32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
 {
 };
 //! Definition of signed int64 type
-struct HATN_DATAUNIT_EXPORT TYPE_INT64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
+struct HATN_DATAUNIT_EXPORT Int64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
 {
 };
 //! Definition of signed int64 type with fixed wire size
-struct HATN_DATAUNIT_EXPORT TYPE_FIXED_INT64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
+struct HATN_DATAUNIT_EXPORT FInt64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
 {
 };
 //! Definition of unsigned int8 type
-struct HATN_DATAUNIT_EXPORT TYPE_UINT8 : public BaseType<uint8_t,std::true_type,ValueType::UInt8>
+struct HATN_DATAUNIT_EXPORT UInt8 : public BaseType<uint8_t,std::true_type,ValueType::UInt8>
 {
 };
 //! Definition of unsigned int16 type
-struct HATN_DATAUNIT_EXPORT TYPE_UINT16 : public BaseType<uint16_t,std::true_type,ValueType::UInt16>
+struct HATN_DATAUNIT_EXPORT UInt16 : public BaseType<uint16_t,std::true_type,ValueType::UInt16>
 {
 };
 //! Definition of unsigned int32 type
-struct HATN_DATAUNIT_EXPORT TYPE_UINT32 : public BaseType<uint32_t,std::true_type,ValueType::UInt32>
+struct HATN_DATAUNIT_EXPORT UInt32 : public BaseType<uint32_t,std::true_type,ValueType::UInt32>
 {
 };
 //! Definition of unsigned int32 type
-struct HATN_DATAUNIT_EXPORT TYPE_FIXED_UINT32 : public BaseType<uint32_t,std::true_type,ValueType::UInt32>
+struct HATN_DATAUNIT_EXPORT FUInt32 : public BaseType<uint32_t,std::true_type,ValueType::UInt32>
 {
 };
 //! Definition of unsigned int64 type
-struct HATN_DATAUNIT_EXPORT TYPE_UINT64 : public BaseType<uint64_t,std::true_type,ValueType::UInt64>
+struct HATN_DATAUNIT_EXPORT UInt64 : public BaseType<uint64_t,std::true_type,ValueType::UInt64>
 {
 };
 //! Definition of unsigned int64 type with fixed wire size
-struct HATN_DATAUNIT_EXPORT TYPE_FIXED_UINT64 : public BaseType<uint64_t,std::true_type,ValueType::UInt64>
+struct HATN_DATAUNIT_EXPORT FUInt64 : public BaseType<uint64_t,std::true_type,ValueType::UInt64>
 {
 };
 //! Definition of float type
-struct HATN_DATAUNIT_EXPORT TYPE_FLOAT : public BaseType<float,std::true_type,ValueType::Float>
+struct HATN_DATAUNIT_EXPORT Float : public BaseType<float,std::true_type,ValueType::Float>
 {
 };
 //! Definition of double type
-struct HATN_DATAUNIT_EXPORT TYPE_DOUBLE : public BaseType<double,std::true_type,ValueType::Double>
+struct HATN_DATAUNIT_EXPORT Dbl : public BaseType<double,std::true_type,ValueType::Double>
 {
 };
 
@@ -318,7 +315,7 @@ template <size_t length> struct FixedString : public BytesTraits<common::SharedP
 }
 
 //! Definition of bytes type
-struct HATN_DATAUNIT_EXPORT TYPE_BYTES : public BaseType<detail::BytesType,std::true_type,ValueType::Bytes>
+struct HATN_DATAUNIT_EXPORT BYTES : public BaseType<detail::BytesType,std::true_type,ValueType::Bytes>
 {
     using isBytesType=std::true_type;
 
@@ -327,14 +324,14 @@ struct HATN_DATAUNIT_EXPORT TYPE_BYTES : public BaseType<detail::BytesType,std::
 };
 
 //! Definition of string type
-struct HATN_DATAUNIT_EXPORT TYPE_STRING : public TYPE_BYTES
+struct HATN_DATAUNIT_EXPORT STR : public BYTES
 {
     using isStringType=std::true_type;
     constexpr static const ValueType typeId=ValueType::String;
 };
 
 //! Definition of fixed string type
-template <int length> struct HATN_DATAUNIT_EXPORT TYPE_FIXED_STRING
+template <int length> struct HATN_DATAUNIT_EXPORT FIX_STR
         : public BaseType<
                         detail::FixedString<length>,
                         std::true_type,
@@ -370,7 +367,7 @@ template <int length> struct HATN_DATAUNIT_EXPORT TYPE_FIXED_STRING
  * This DataUnit type must be used as alias of outer unit's type.
  *
  */
-struct HATN_DATAUNIT_EXPORT TYPE_DATAUNIT : public BaseType<Unit,std::false_type,ValueType::Dataunit>
+struct HATN_DATAUNIT_EXPORT DATAUNIT : public BaseType<Unit,std::false_type,ValueType::Dataunit>
 {
     using isUnitType=std::true_type;
     using isPackedProtoBufCompatible=std::false_type;
@@ -386,35 +383,67 @@ struct HATN_DATAUNIT_EXPORT TYPE_DATAUNIT : public BaseType<Unit,std::false_type
 
 //! Definition of enum type
 template <typename EnumT>
-struct TYPE_ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
+struct ENUM : public BaseType<uint32_t,std::true_type,ValueType::Int8>
 {
     using isEnum=std::true_type;
     using Enum=EnumT;
 };
 
 //! Definition of DateTime type
-struct HATN_DATAUNIT_EXPORT TYPE_DATETIME : public BaseType<common::DateTime,std::true_type,ValueType::DateTime>
+struct HATN_DATAUNIT_EXPORT DATETIME : public BaseType<common::DateTime,std::true_type,ValueType::DateTime>
 {
     using CustomType=std::true_type;
 };
 
 //! Definition of Date type
-struct HATN_DATAUNIT_EXPORT TYPE_DATE : public BaseType<common::Date,std::true_type,ValueType::Date>
+struct HATN_DATAUNIT_EXPORT DATE : public BaseType<common::Date,std::true_type,ValueType::Date>
 {
     using CustomType=std::true_type;
 };
 
 //! Definition of Time type
-struct HATN_DATAUNIT_EXPORT TYPE_TIME : public BaseType<common::Time,std::true_type,ValueType::Time>
+struct HATN_DATAUNIT_EXPORT TIME : public BaseType<common::Time,std::true_type,ValueType::Time>
 {
     using CustomType=std::true_type;
 };
 
 //! Definition of DateRange type
-struct HATN_DATAUNIT_EXPORT TYPE_DATE_RANGE : public BaseType<common::DateRange,std::true_type,ValueType::DateRange>
+struct HATN_DATAUNIT_EXPORT DATE_RANGE : public BaseType<common::DateRange,std::true_type,ValueType::DateRange>
 {
     using CustomType=std::true_type;
 };
+
+namespace types
+{
+
+using TYPE_BOOL=Bool;
+
+using TYPE_INT8=Int8;
+using TYPE_INT16=Int16;
+using TYPE_INT32=Int32;
+using TYPE_INT64=Int64;
+using TYPE_FIXED_INT32=FInt32;
+using TYPE_FIXED_INT64=FInt64;
+
+using TYPE_UINT8=UInt8;
+using TYPE_UINT16=UInt16;
+using TYPE_UINT32=UInt32;
+using TYPE_UINT64=UInt64;
+using TYPE_FIXED_UINT32=FUInt32;
+using TYPE_FIXED_UINT64=FUInt64;
+
+using TYPE_FLOAT=Float;
+using TYPE_DOUBLE=Dbl;
+
+using TYPE_STRING=STR;
+using TYPE_BYTES=BYTES;
+template <int length> using TYPE_FIXED_STRING=FIX_STR<length>;
+using TYPE_DATAUNIT=DATAUNIT;
+template <typename EnumT> using TYPE_ENUM = ENUM<EnumT>;
+using TYPE_DATETIME=DATETIME;
+using TYPE_DATE=DATE;
+using TYPE_TIME=TIME;
+using TYPE_DATE_RANGE=DATE_RANGE;
 
 }
 

@@ -202,16 +202,16 @@ class HATN_DATAUNIT_EXPORT ObjectId
 };
 
 //! Definition of DateTime type
-struct HATN_DATAUNIT_EXPORT TYPE_OBJECT_ID : public types::BaseType<ObjectId,std::true_type,ValueType::Custom>
+struct HATN_DATAUNIT_EXPORT Oid : public BaseType<ObjectId,std::true_type,ValueType::Custom>
 {
     using CustomType=std::true_type;
 };
 
-class ObjectIdTraits
+class OidTraits
 {
     public:
 
-        using TYPE=TYPE_OBJECT_ID;
+        using TYPE=Oid;
         using type=ObjectId;
 
         using maxSize=std::integral_constant<int,ObjectId::Length>;
@@ -238,12 +238,12 @@ class ObjectIdTraits
         }
 };
 
-using ObjectIdField=CustomField<ObjectIdTraits>;
+using OidField=CustomField<OidTraits>;
 
 template <>
-struct FieldTmpl<TYPE_OBJECT_ID> : public ObjectIdField
+struct FieldTmpl<Oid> : public OidField
 {
-    using ObjectIdField::ObjectIdField;
+    using OidField::OidField;
 
     void setV(const ObjectId& val) override
     {
@@ -299,7 +299,7 @@ struct FieldReader<TYPE,
                    std::enable_if_t<
                        !FieldType::isRepeatedType::value
                        &&
-                       std::is_same<TYPE,TYPE_OBJECT_ID>::value
+                       std::is_same<TYPE,Oid>::value
                        >
                    > : public FieldReaderBase<FieldType>
 {
@@ -328,6 +328,11 @@ struct Fieldwriter<T,std::enable_if_t<std::is_same<ObjectId,std::decay_t<T>>::va
 };
 
 } // namespace json
+
+namespace types
+{
+using TYPE_OBJECT_ID=Oid;
+}
 
 HATN_DATAUNIT_NAMESPACE_END
 

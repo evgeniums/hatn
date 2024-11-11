@@ -45,8 +45,6 @@ HATN_DATAUNIT_USING
 HATN_DB_USING
 HATN_TEST_USING
 
-namespace {
-
 HDU_UNIT_WITH(simple1,(HDU_BASE(object)),
     HDU_FIELD(f1,TYPE_UINT32,1)
 )
@@ -94,8 +92,6 @@ void setSchemaToClient(std::shared_ptr<Client> client, const T& schema)
     BOOST_REQUIRE(!s);
     BOOST_CHECK_EQUAL(s->get()->name(),schema->name());
 }
-
-} // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(TestCrud, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 

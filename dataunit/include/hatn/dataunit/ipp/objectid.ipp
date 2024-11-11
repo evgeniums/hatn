@@ -29,7 +29,7 @@
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 template <typename BufferT>
-bool ObjectIdTraits::serialize(const ObjectId& val, BufferT& wired)
+bool OidTraits::serialize(const ObjectId& val, BufferT& wired)
 {
     auto buf=AsBytesSer::serializePrepare(wired,ObjectId::Length);
     val.serialize(buf);
@@ -37,7 +37,7 @@ bool ObjectIdTraits::serialize(const ObjectId& val, BufferT& wired)
 }
 
 template <typename BufferT>
-bool ObjectIdTraits::deserialize(ObjectId& val, BufferT& wired, AllocatorFactory*)
+bool OidTraits::deserialize(ObjectId& val, BufferT& wired, AllocatorFactory*)
 {
     return HATN_DATAUNIT_NAMESPACE::AsBytesSer::deserialize(wired,
         [&val](const char* data, size_t size)

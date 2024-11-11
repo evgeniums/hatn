@@ -31,11 +31,13 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-HDU_UNIT(object,
+HDU_UNIT(obj,
     HDU_FIELD(_id,TYPE_OBJECT_ID,100)
-    HDU_FIELD(created_at,TYPE_DATETIME,101)
-    HDU_FIELD(updated_at,TYPE_DATETIME,102)
+    HDU_FIELD(c,TYPE_DATETIME,101)
+    HDU_FIELD(u,TYPE_DATETIME,102)
 )
+
+namespace object=obj;
 
 inline std::string ObjectIdFieldName{object::_id.name()};
 inline std::string CreatedAtFieldName{object::created_at.name()};
