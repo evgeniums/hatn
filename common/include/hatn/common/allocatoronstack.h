@@ -52,7 +52,7 @@ class AllocatorOnStack
         template <class U>
         AllocatorOnStack(const AllocatorOnStack<U,Size>& other)
         {
-            Assert(other.m_occupied==0,"Do not call copy constructor for AllocatorOnStack that is already in use");
+            Assert(other.occupied()==0,"Do not call copy constructor for AllocatorOnStack that is already in use");
         }
 
         // Move constructor is defined only in order to compile it.
@@ -90,6 +90,11 @@ class AllocatorOnStack
                 throw std::runtime_error("Only last elements can be deallocated");
             }
             m_occupied-=n;
+        }
+
+        size_t occupied() const noexcept
+        {
+            return m_occupied;
         }
 
     private:
