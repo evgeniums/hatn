@@ -19,6 +19,8 @@
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/context.h>
 
+HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
+
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 template class HATN_LOGCONTEXT_EXPORT ContextT<DefaultConfig,ThreadCursorData>;
@@ -26,4 +28,3 @@ template class HATN_LOGCONTEXT_EXPORT ContextWrapperT<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)

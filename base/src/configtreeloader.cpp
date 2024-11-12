@@ -396,7 +396,7 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
     HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain))
     HATN_CHECK_RETURN(target.merge(std::move(next),root))
 
-    auto handleSubstitution=[this,&target](const std::string& prefix, const std::string& substitute)
+    auto handleSubstitution=[&target](const std::string& prefix, const std::string& substitute)
     {
         auto handler=[&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
         {

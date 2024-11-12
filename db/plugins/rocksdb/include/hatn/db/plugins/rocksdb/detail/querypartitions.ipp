@@ -125,7 +125,7 @@ struct partitionFieldVisitor
                 // iterate to greatest partition
                 for (auto i=it.index();i<handler.p()->partitions.size();i++)
                 {
-                    const auto* partition=handler.p()->partitions.at(i);
+                    const auto& partition=handler.p()->partitions.at(i);
                     if (partition->range>rangeTo)
                     {
                         break;
