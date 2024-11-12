@@ -19,7 +19,7 @@ set with_iostats_context=0
 
 if ! [[ "$platform" == "windows" ]]; then
 
-    export CXXFLAGS=-fPIC
+    export CXXFLAGS=-fPIC USE_RTTI=1 DEBUG_LEVEL=0
     
     set GFLAGS_INCLUDE=$root_dir/include
     set GFLAGS_LIB_RELEASE=$root_dir/lib/libgflags.a
