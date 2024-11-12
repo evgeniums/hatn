@@ -292,7 +292,6 @@ struct FieldTmpl<Oid> : public OidField
 
 namespace json {
 
-//! JSON read handler for DateTime fields
 template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                    FieldType,
@@ -313,6 +312,44 @@ struct FieldReader<TYPE,
             this->m_field->markSet(false);
         }
         return ok;
+    }
+};
+
+//! JSON read handler for repeatable ObjectId fields
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                   FieldType,
+                   std::enable_if_t<
+                       FieldType::isRepeatedType::value
+                       &&
+                       std::is_same<TYPE,Oid>::value
+                       >
+                   > : public FieldReaderBase<FieldType>
+{
+    using json::FieldReaderBase<FieldType>::FieldReaderBase;
+
+    bool StartArray()
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        return true;
+    }
+
+    bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        ObjectId oid;
+        auto ok=oid.parse(common::ConstDataBuf{data,size});
+        if (!ok)
+        {
+            return false;
+        }
+        this->m_field->addValue(oid);
+        return true;
+    }
+
+    bool EndArray(SizeType)
+    {
+        return true;
     }
 };
 

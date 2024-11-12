@@ -48,11 +48,11 @@ HDU_UNIT_WITH(u3,(HDU_BASE(object)),
               HDU_REPEATED_FIELD(f10,TYPE_STRING,10)
               HDU_REPEATED_FIELD(f11,HDU_TYPE_ENUM(MyEnum),11)
               HDU_REPEATED_FIELD(f12,HDU_TYPE_FIXED_STRING(8),12)
-              // HDU_REPEATED_FIELD(f13,TYPE_DATETIME,13)
-              // HDU_REPEATED_FIELD(f14,TYPE_DATE,14)
-              // HDU_REPEATED_FIELD(f15,TYPE_TIME,15)
-              // HDU_REPEATED_FIELD(f16,TYPE_OBJECT_ID,16)
-              // HDU_REPEATED_FIELD(f17,TYPE_DATE_RANGE,17)
+              HDU_REPEATED_FIELD(f13,TYPE_DATETIME,13)
+              HDU_REPEATED_FIELD(f14,TYPE_DATE,14)
+              HDU_REPEATED_FIELD(f15,TYPE_TIME,15)
+              HDU_REPEATED_FIELD(f16,TYPE_OBJECT_ID,16)
+              HDU_REPEATED_FIELD(f17,TYPE_DATE_RANGE,17)
               HDU_REPEATED_FIELD(f18,TYPE_BYTES,18)
               HDU_REPEATED_FIELD(f19,TYPE_FLOAT,19)
               HDU_REPEATED_FIELD(f20,TYPE_DOUBLE,20)
@@ -73,21 +73,31 @@ HATN_DB_INDEX(u3_f10_idx,u3::f10)
 HATN_DB_INDEX(u3_f11_idx,u3::f11)
 HATN_DB_INDEX(u3_f12_idx,u3::f12)
 
+HATN_DB_INDEX(u3_f13_idx,u3::f13)
+HATN_DB_INDEX(u3_f14_idx,u3::f14)
+HATN_DB_INDEX(u3_f15_idx,u3::f15)
+HATN_DB_INDEX(u3_f16_idx,u3::f16)
+HATN_DB_INDEX(u3_f17_idx,u3::f17)
+
 HATN_DB_MODEL(m3,
-              u3,
-              // u3_f1_idx(),
-              u3_f2_idx()
-              ,
-          u3_f3_idx(),
-          u3_f4_idx(),
-          u3_f5_idx(),
-          u3_f6_idx(),
-          u3_f7_idx(),
-          u3_f8_idx(),
-          u3_f9_idx()
-          ,u3_f10_idx()
-          ,u3_f11_idx()
-          ,u3_f12_idx()
+              u3
+              // ,u3_f1_idx()
+            ,u3_f2_idx()
+            ,u3_f3_idx()
+            ,u3_f4_idx()
+            ,u3_f5_idx()
+            ,u3_f6_idx()
+            ,u3_f7_idx()
+            ,u3_f8_idx()
+            ,u3_f9_idx()
+            ,u3_f10_idx()
+            ,u3_f11_idx()
+            ,u3_f12_idx()
+            ,u3_f13_idx()
+            ,u3_f14_idx()
+            ,u3_f15_idx()
+            ,u3_f16_idx()
+            ,u3_f17_idx()
 )
 
 void registerModels10();

@@ -589,6 +589,15 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return vector.back();
     }
 
+    /**  Emplace value */
+    template <typename ...Args>
+    type& emplaceValue(Args&&... args)
+    {
+        this->markSet();
+        vector.emplace_back(std::forward<Args>(args)...);
+        return vector.back();
+    }
+
     /**  Add number of values */
     void addValues(size_t n, bool onlySizeIterate=false)
     {

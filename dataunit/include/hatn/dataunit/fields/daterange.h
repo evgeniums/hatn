@@ -111,8 +111,6 @@ struct FieldTmpl<TYPE_DATE_RANGE> : public DateRangeField
 
 namespace json {
 
-//! @todo Add repeated DateRange field
-
 //! JSON read handler for DateRangeTime fields
 template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
@@ -129,12 +127,43 @@ struct FieldReader<TYPE,
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
         auto r=common::DateRange::fromString(common::lib::string_view(data,size));
-        if (!r)
-        {
-            this->m_field->set(r.takeValue());
-            return true;
-        }
-        return false;
+        HATN_BOOL_RESULT(r)
+        this->m_field->set(r.takeValue());
+        return true;
+    }
+};
+
+//! JSON read handler for repeatable DateRange fields
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                   FieldType,
+                   std::enable_if_t<
+                       FieldType::isRepeatedType::value
+                       &&
+                       std::is_same<TYPE,types::TYPE_DATE_RANGE>::value
+                       >
+                   > : public FieldReaderBase<FieldType>
+{
+    using json::FieldReaderBase<FieldType>::FieldReaderBase;
+
+    bool StartArray()
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        return true;
+    }
+
+    bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        auto r=common::DateRange::fromString(common::lib::string_view(data,size));
+        HATN_BOOL_RESULT(r)
+        this->m_field->addValue(r.takeValue());
+        return true;
+    }
+
+    bool EndArray(SizeType)
+    {
+        return true;
     }
 };
 

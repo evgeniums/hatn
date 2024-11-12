@@ -51,13 +51,44 @@ struct FieldReader<TYPE,
 
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
-        auto r=common::DateTime::parseIsoString(common::lib::string_view(data,size));
-        if (!r)
-        {
-            this->m_field->set(r.takeValue());
-            return true;
-        }
-        return false;
+        auto r=common::DateTime::parseIsoString(common::lib::string_view{data,size});
+        HATN_BOOL_RESULT(r)
+        this->m_field->set(r.takeValue());
+        return true;
+    }
+};
+
+//! JSON read handler for repeatable DateTime fields
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                   FieldType,
+                   std::enable_if_t<
+                       FieldType::isRepeatedType::value
+                       &&
+                       std::is_same<TYPE,types::TYPE_DATETIME>::value
+                       >
+                   > : public FieldReaderBase<FieldType>
+{
+    using json::FieldReaderBase<FieldType>::FieldReaderBase;
+
+    bool StartArray()
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        return true;
+    }
+
+    bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
+    {
+        pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
+        auto r=common::DateTime::parseIsoString(lib::string_view{data,size});
+        HATN_BOOL_RESULT(r)
+        this->m_field->addValue(r.takeValue());
+        return true;
+    }
+
+    bool EndArray(SizeType)
+    {
+        return true;
     }
 };
 
