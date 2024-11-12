@@ -451,10 +451,10 @@ constexpr allocateTaskContextT<Types...> allocateTaskContext{};
 
 HATN_COMMON_NAMESPACE_END
 
-#define HATN_TASK_CONTEXT_DECLARE(Type) \
+#define HATN_TASK_CONTEXT_DECLARE(Type,Export) \
     HATN_COMMON_NAMESPACE_BEGIN \
     template <> \
-    class ThreadLocalContext<Type> \
+    class Export ThreadLocalContext<Type> \
     { \
         public: \
             static Type* value() noexcept; \
