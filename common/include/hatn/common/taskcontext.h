@@ -466,6 +466,7 @@ HATN_COMMON_NAMESPACE_END
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
 #define HATN_TASK_CONTEXT_DEFINE(Type) \
+    HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
     namespace { \
         thread_local static Type* ThreadLocalContextValue{nullptr}; \
     } \
@@ -483,6 +484,7 @@ HATN_COMMON_NAMESPACE_END
             ThreadLocalContextValue=nullptr; \
     } \
     template class ThreadLocalContext<Type>; \
-    HATN_COMMON_NAMESPACE_END
+    HATN_COMMON_NAMESPACE_END \
+    HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
 #endif // HATNTASKCONTEXT_H
