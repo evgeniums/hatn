@@ -136,8 +136,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         {
             m_fields.clear();
             m_fields.emplace_back(std::move(field));
-            //! @todo Check fields
-            // checkFields();
+            checkFields();
         }
 
         const IndexInfo* index() const noexcept
