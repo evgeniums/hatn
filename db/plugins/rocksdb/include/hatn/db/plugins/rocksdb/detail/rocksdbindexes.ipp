@@ -144,7 +144,7 @@ class Indexes
             HATN_CTX_SCOPE("deleteindexes")
 
             auto self=this;
-            auto eachIndex=[&,&self](auto&& idx, auto&&)
+            auto eachIndex=[&,self](auto&& idx, auto&&)
             {
                 return self->deleteIndex(idx,tx,topic,objectId,object);
             };
