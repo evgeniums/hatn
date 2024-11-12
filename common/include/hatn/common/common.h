@@ -70,6 +70,9 @@
     #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
         _Pragma("GCC diagnostic pop")
 
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
+
     #if defined(__clang__)
 
     #define HATN_IGNORE_STRING_LITERAL_BEGIN \
@@ -77,6 +80,13 @@
         _Pragma("GCC diagnostic ignored \"-Wgnu-string-literal-operator-template\"")
 
     #define HATN_IGNORE_STRING_LITERAL_END \
+        _Pragma("GCC diagnostic pop")
+
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Winstantiation-after-specialization\"")
+
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END \
         _Pragma("GCC diagnostic pop")
 
     #else
@@ -105,6 +115,8 @@
     #define HATN_IGNORE_STRING_LITERAL_END
     #define HATN_IGNORE_UNINITIALIZED_BEGIN
     #define HATN_IGNORE_UNINITIALIZED_END
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN
+    #define HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
 #endif
 

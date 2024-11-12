@@ -452,6 +452,7 @@ constexpr allocateTaskContextT<Types...> allocateTaskContext{};
 HATN_COMMON_NAMESPACE_END
 
 #define HATN_TASK_CONTEXT_DECLARE(Type,Export) \
+    HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
     HATN_COMMON_NAMESPACE_BEGIN \
     template <> \
     class Export ThreadLocalContext<Type> \
@@ -461,7 +462,8 @@ HATN_COMMON_NAMESPACE_END
             static void setValue(Type* val) noexcept; \
             static void reset() noexcept; \
     }; \
-    HATN_COMMON_NAMESPACE_END
+    HATN_COMMON_NAMESPACE_END \
+    HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
 #define HATN_TASK_CONTEXT_DEFINE(Type) \
     namespace { \
@@ -482,5 +484,9 @@ HATN_COMMON_NAMESPACE_END
     } \
     template class ThreadLocalContext<Type>; \
     HATN_COMMON_NAMESPACE_END
+
+#if defined(__clang__)
+    _Pragma("GCC diagnostic pop")
+#endif
 
 #endif // HATNTASKCONTEXT_H
