@@ -122,11 +122,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
                     HATN_CTX_SCOPE_ERROR("get-object")
                     return makeError(DbError::READ_FAILED,status);
                 }
-//! @todo Fix context logger
-#if 0
                 HATN_CTX_WARN("missing object in rocksdb")
-#endif
-
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()

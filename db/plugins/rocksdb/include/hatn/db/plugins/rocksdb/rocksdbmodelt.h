@@ -24,6 +24,7 @@
 #include <functional>
 
 #include <hatn/common/flatmap.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/db/model.h>
 #include <hatn/db/update.h>
@@ -81,6 +82,12 @@ struct IndexKeyUpdate
         }
 
         return false;
+    }
+
+    lib::string_view keyStringView() const noexcept
+    {
+        const auto& k=key[0];
+        return lib::string_view{k.data(),k.size()};
     }
 };
 
