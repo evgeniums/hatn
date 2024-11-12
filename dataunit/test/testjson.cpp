@@ -727,4 +727,6 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
     BOOST_CHECK_EQUAL(json,jsonCheck);
 }
 
+//! @todo Test Object ID, DateTime, Date, Time, DateRange
+
 BOOST_AUTO_TEST_SUITE_END()

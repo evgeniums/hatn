@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
 
-*/
 /** @file datauint/detail/unittraits.ipp
   *
   *      Implementations of DataUnit templates

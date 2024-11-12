@@ -39,6 +39,7 @@
 #include <hatn/dataunit/fields/date.h>
 #include <hatn/dataunit/fields/time.h>
 #include <hatn/dataunit/fields/daterange.h>
+#include <hatn/dataunit/objectid.h>
 
 #include <hatn/dataunit/unit.h>
 

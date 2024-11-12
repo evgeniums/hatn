@@ -608,7 +608,7 @@ class WriterTmpl : public Writer
 };
 
 //! Field write handlers
-template <typename T,typename=void>
+template <typename T,typename Type,typename=void>
 struct Fieldwriter
 {
     static bool write(const T&,json::Writer*)
@@ -616,48 +616,48 @@ struct Fieldwriter
         return false;
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_signed<T>::value && !std::is_floating_point<T>::value && !std::is_same<int64_t,T>::value && !std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_signed<T>::value && !std::is_floating_point<T>::value && !std::is_same<int64_t,T>::value && !std::is_same<Bool,Type>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_unsigned<T>::value && !std::is_same<uint64_t,T>::value && !std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_unsigned<T>::value && !std::is_same<uint64_t,T>::value && !std::is_same<Bool,Type>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<uint64_t,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<uint64_t,T>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint64(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<int64_t,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<int64_t,T>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int64(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<Bool,Type>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
         return writer->Bool(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_floating_point<T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_floating_point<T>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {

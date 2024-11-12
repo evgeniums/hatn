@@ -54,7 +54,7 @@ struct BaseType
 };
 
 //! Definition of bool field type
-struct HATN_DATAUNIT_EXPORT Bool : public BaseType<bool,std::true_type,ValueType::Bool>
+struct HATN_DATAUNIT_EXPORT Bool : public BaseType<uint8_t,std::true_type,ValueType::Bool>
 {
 };
 //! Definition of signed int8 type
@@ -327,6 +327,8 @@ struct HATN_DATAUNIT_EXPORT BYTES : public BaseType<detail::BytesType,std::true_
     using isPackedProtoBufCompatible=std::false_type;
     constexpr static const bool isSizeIterateNeeded=true;
 };
+
+//! @todo Use pmr String for strings
 
 //! Definition of string type
 struct HATN_DATAUNIT_EXPORT STR : public BYTES

@@ -156,7 +156,7 @@ class CustomField : public Field
             json::Writer* writer
             )
         {
-            return json::Fieldwriter<Y>::write(val,writer);
+            return json::Fieldwriter<Y,Type>::write(val,writer);
         }
 
         //! Serialize as JSON element

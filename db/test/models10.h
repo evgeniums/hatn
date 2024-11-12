@@ -36,7 +36,7 @@ HATN_TEST_USING
 
 HDU_UNIT_WITH(u3,(HDU_BASE(object)),
               HDU_ENUM(MyEnum,One=1,Two=2)
-              // HDU_REPEATED_FIELD(f1,TYPE_BOOL,1)
+              HDU_REPEATED_FIELD(f1,TYPE_BOOL,1)
               HDU_REPEATED_FIELD(f2,TYPE_INT8,2)
               HDU_REPEATED_FIELD(f3,TYPE_INT16,3)
               HDU_REPEATED_FIELD(f4,TYPE_INT32,4)
@@ -58,9 +58,7 @@ HDU_UNIT_WITH(u3,(HDU_BASE(object)),
               HDU_REPEATED_FIELD(f20,TYPE_DOUBLE,20)
               )
 
-//! @todo Fix repeated bool field
-
-// HATN_DB_INDEX(u3_f1_idx,u3::f1)
+HATN_DB_INDEX(u3_f1_idx,u3::f1)
 HATN_DB_INDEX(u3_f2_idx,u3::f2)
 HATN_DB_INDEX(u3_f3_idx,u3::f3)
 HATN_DB_INDEX(u3_f4_idx,u3::f4)
@@ -81,7 +79,7 @@ HATN_DB_INDEX(u3_f17_idx,u3::f17)
 
 HATN_DB_MODEL(m3,
               u3
-              // ,u3_f1_idx()
+            ,u3_f1_idx()
             ,u3_f2_idx()
             ,u3_f3_idx()
             ,u3_f4_idx()

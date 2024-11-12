@@ -244,11 +244,13 @@ class Scalar : public Field
         }
 
         //! Format as JSON element
-        template <typename Y> inline static bool formatJSON(const Y& val,
-                               json::Writer* writer
+        template <typename Y>
+        static bool formatJSON(
+                    const Y& val,
+                    json::Writer* writer
                 )
         {
-            return json::Fieldwriter<Y>::write(val,writer);
+            return json::Fieldwriter<Y,Type>::write(val,writer);
         }
 
         //! Serialize as JSON element

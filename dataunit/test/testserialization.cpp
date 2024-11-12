@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     f1.set(300);
     BOOST_CHECK_EQUAL(300,f1.get());
     auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(8,size);
+    BOOST_CHECK_EQUAL(9,size);
 
     auto du1f2=du1::field2;
     const auto* f1Parser=obj1.fieldParser<du::WireDataSingle>(du1f2);
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     f3_4.set("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f3_4.c_str());
     auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(46,size);
+    BOOST_CHECK_EQUAL(47,size);
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);

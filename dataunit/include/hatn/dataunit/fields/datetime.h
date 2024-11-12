@@ -92,8 +92,8 @@ struct FieldReader<TYPE,
     }
 };
 
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<common::DateTime,std::decay_t<T>>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<common::DateTime,std::decay_t<T>>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
@@ -232,7 +232,7 @@ class DateTime : public Field
                     json::Writer* writer
                 )
         {
-            return json::Fieldwriter<Y>::write(val,writer);
+            return json::Fieldwriter<Y,Type>::write(val,writer);
         }
 
         //! Serialize as JSON element

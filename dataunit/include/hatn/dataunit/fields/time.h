@@ -168,8 +168,8 @@ struct FieldReader<TYPE,
 };
 
 
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<common::Time,std::decay_t<T>>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<common::Time,std::decay_t<T>>::value>>
 {
     static bool write(const T& val,json::Writer* writer)
     {
