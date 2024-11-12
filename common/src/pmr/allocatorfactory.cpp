@@ -41,7 +41,7 @@ void AllocatorFactory::setDefault(std::shared_ptr<AllocatorFactory> instance) no
 //---------------------------------------------------------------
 void AllocatorFactory::resetDefault()
 {
-    defaultfactory().reset();
+    defaultfactory()=std::make_shared<AllocatorFactory>();
 }
 
 //---------------------------------------------------------------
