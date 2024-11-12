@@ -33,6 +33,7 @@ SET (HEADERS
     ${HEADERS}
 
     include/hatn/common/common.h
+    include/hatn/common/ignorewarnings.h
     include/hatn/common/error.h
     include/hatn/common/nativeerror.h
     include/hatn/common/errorcodes.h
