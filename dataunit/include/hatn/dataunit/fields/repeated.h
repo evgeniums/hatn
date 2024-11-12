@@ -902,7 +902,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arraySet(size_t idx,const common::Date& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
     virtual void arraySet(size_t idx,const common::Time& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
     virtual void arraySet(size_t idx,const common::DateRange& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
-    virtual void arraySet(size_t idx,const common::ConstDataBuf& val) {RepeatedGetterSetter<Type>::bufSetValue(vector,idx,val.data(),val.size());}
+    virtual void arraySet(size_t idx,const common::ConstDataBuf& val) override {RepeatedGetterSetter<Type>::bufSetValue(vector,idx,val.data(),val.size());}
     virtual void arraySet(size_t idx,const ObjectId& val) override {RepeatedGetterSetter<Type>::setVal(vector[idx],val);}
 
     virtual void arrayGet(size_t idx,bool& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
