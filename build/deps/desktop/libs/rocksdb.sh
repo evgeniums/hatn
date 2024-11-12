@@ -19,7 +19,7 @@ set with_iostats_context=0
 
 if ! [[ "$platform" == "windows" ]]; then
 
-    export CXXFLAGS=-fPIC USE_RTTI=1 DEBUG_LEVEL=0
+    export CXXFLAGS=-fPIC DEBUG_LEVEL=0
     
     set GFLAGS_INCLUDE=$root_dir/include
     set GFLAGS_LIB_RELEASE=$root_dir/lib/libgflags.a
@@ -39,6 +39,7 @@ cmake -G "$cmake_gen_prefix Makefiles" \
         -DROCKSDB_INSTALL_ON_WINDOWS=1 \
 		-DWITH_PERF_CONTEXT=$with_perf_context \
 		-DWITH_IOSTATS_CONTEXT=$with_iostats_context \
+		-DUSE_RTTI=true \
         $folder
 $make_tool install -j$build_workers install
 
