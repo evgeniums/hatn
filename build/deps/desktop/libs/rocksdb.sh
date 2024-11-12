@@ -59,7 +59,7 @@ $make_tool install -j$build_workers install
         # $folder 
 # $make_tool install -j$build_workers install
 
-fi
+#fi
 
 unset LDFLAGS
 unset CXXFLAGS
