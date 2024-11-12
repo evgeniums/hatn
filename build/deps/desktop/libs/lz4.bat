@@ -13,10 +13,10 @@ cmake %ARCH_CMAKE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% -DBUILD_STATIC_LIBS=1 -D
 if %errorlevel% neq 0 exit %errorlevel%
 @ECHO OFF
 
-cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
-if %errorlevel% neq 0 exit %errorlevel%
-
-rem cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
+rem cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 rem if %errorlevel% neq 0 exit %errorlevel%
+
+cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
+if %errorlevel% neq 0 exit %errorlevel%
 
 cd %WORKING_DIR%

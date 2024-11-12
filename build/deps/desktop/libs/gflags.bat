@@ -16,7 +16,7 @@ if %errorlevel% neq 0 exit %errorlevel%
 cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 if %errorlevel% neq 0 exit %errorlevel%
 
-rem cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
-rem if %errorlevel% neq 0 exit %errorlevel%
+cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
+if %errorlevel% neq 0 exit %errorlevel%
 
 cd %WORKING_DIR%
