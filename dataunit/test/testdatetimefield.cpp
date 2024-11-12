@@ -11,12 +11,12 @@ using namespace HATN_DATAUNIT_NAMESPACE::types;
 using namespace HATN_DATAUNIT_NAMESPACE::meta;
 
 namespace {
-
+#if 0
 struct f0_name
 {
     constexpr static const char* name="f0";
 };
-
+#endif
 HDU_UNIT(u1,
     HDU_FIELD(f1,TYPE_DATETIME,1)
     HDU_FIELD(f2,TYPE_DATE,2)
