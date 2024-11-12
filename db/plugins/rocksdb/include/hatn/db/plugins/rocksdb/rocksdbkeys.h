@@ -44,7 +44,6 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
         constexpr static const size_t TimestampSize=4;
 
         inline static const char ObjectIndexVersion{0x1};
-        constexpr static const size_t PreallocatedBufferSize=500;
 
         using KeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
 
@@ -57,8 +56,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         BufT& addBuf()
         {
-            m_bufs.emplace_back(m_allocatorFactory->bytesAllocator());
-            m_bufs.back().reserve(PreallocatedBufferSize);
+            m_bufs.emplace_back(m_allocatorFactory);
             return m_bufs.back();
         }
 

@@ -20,6 +20,10 @@
 
 #include "rocksdb/comparator.h"
 
+#include <hatn/common/pmr/pmrtypes.h>
+#include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/pmr/withstaticallocator.ipp>
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -244,9 +248,9 @@ Error iterateFieldVariant(
     readOptions.snapshot=snapshot;
     bool iterateForward=field.order==query::Order::Asc;
 
-    BufT fromBuf{allocatorFactory->bytesAllocator()};
+    BufT fromBuf{allocatorFactory};
     ROCKSDB_NAMESPACE::Slice fromS;
-    BufT toBuf{allocatorFactory->bytesAllocator()};
+    BufT toBuf{allocatorFactory};
     ROCKSDB_NAMESPACE::Slice toS;
     switch(field.op)
     {
@@ -402,7 +406,7 @@ Error iterateFieldVariant(
     return OK;
 }
 
-Error nextKeyField(
+Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     Cursor& cursor,
     RocksdbHandler& handler,
     const ModelIndexQuery& idxQuery,
@@ -706,7 +710,7 @@ Error nextKeyField(
     return OK;
 }
 
-Result<IndexKeys> indexKeys(
+Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,

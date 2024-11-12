@@ -137,7 +137,7 @@ struct Cursor
             const lib::string_view& topic_,
             RocksdbPartition* partition,
             common::pmr::AllocatorFactory* allocatorfactory
-        ) : partialKey(allocatorfactory->bytesAllocator()),
+        ) : partialKey(allocatorfactory),
         pos(0),
         topic(topic_),
         partition(partition)

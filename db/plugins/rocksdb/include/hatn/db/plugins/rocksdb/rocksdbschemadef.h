@@ -20,6 +20,7 @@
 #define HATNROCKSDBSCHEMADEF_H
 
 #include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/pmr/string.h>
 
 #include <hatn/db/db.h>
 
@@ -45,7 +46,8 @@ namespace common=HATN_COMMON_NAMESPACE;
 namespace db=HATN_DB_NAMESPACE;
 
 using AllocatorFactory=common::pmr::AllocatorFactory;
-using BufT=common::ByteArray;
+constexpr static const size_t PreallocatedBufferSize=500;
+using BufT=common::pmr::ByteString<PreallocatedBufferSize>;
 
 constexpr static const char SeparatorCharC=0;
 constexpr static const char* SeparatorChar=&SeparatorCharC;
