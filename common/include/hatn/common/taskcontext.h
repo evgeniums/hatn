@@ -485,8 +485,4 @@ HATN_COMMON_NAMESPACE_END
     template class ThreadLocalContext<Type>; \
     HATN_COMMON_NAMESPACE_END
 
-#if defined(__clang__)
-    _Pragma("GCC diagnostic pop")
-#endif
-
 #endif // HATNTASKCONTEXT_H
