@@ -51,7 +51,7 @@ class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
         virtual std::string message(int code) const override;
 
         //! Get string representation of the code.
-        virtual const char* codeString(int code) const;
+        virtual const char* codeString(int code) const override;
 
         //! Get category.
         static const CommonErrorCategory& getCategory() noexcept;

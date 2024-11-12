@@ -52,7 +52,7 @@ struct partitionFieldVisitor
 
     const ModelT& model;
     RocksdbHandler& handler;
-    query::Operator op;
+    mutable query::Operator op;
     common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions;
 
     template <typename T>

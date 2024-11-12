@@ -93,9 +93,10 @@ class Indexes
         {
             HATN_CTX_SCOPE("saveindexes")
 
-            auto eachIndex=[&,this](auto&& idx, auto&&)
+            auto self=this;
+            auto eachIndex=[&,self](auto&& idx, auto&&)
             {
-                return saveIndex(idx,tx,ns,objectId,indexValue,object,replace);
+                return self->saveIndex(idx,tx,ns,objectId,indexValue,object,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

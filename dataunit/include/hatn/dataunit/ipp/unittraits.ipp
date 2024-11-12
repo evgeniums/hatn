@@ -31,7 +31,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 template <typename ...Fields>
 UnitImpl<Fields...>::UnitImpl(Unit* self)
-    : m_fields(common::replicateToTuple(self,hana::size(m_fields)))
+    : m_fields(common::replicateToTuple(self,hana::size_c<sizeof...(Fields)>))
 {}
 
 //---------------------------------------------------------------
