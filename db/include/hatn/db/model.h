@@ -248,7 +248,7 @@ struct Model : public ConfigT
         auto found=findPartitionIndex();
         return hana::eval_if(
             hana::equal(found,hana::nothing),
-            [&](auto _)
+            [](auto)
             {
                 return hana::false_{};
             },

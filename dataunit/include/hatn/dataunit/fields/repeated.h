@@ -238,7 +238,7 @@ struct RepeatedGetterSetter<Type,
             {
                 _(arrayVal)=static_cast<valueType>(_(val));
             },
-            [&](auto _)
+            [](auto)
             {
                 Assert(false,"Invalid operation for field of this type");
             }
@@ -254,7 +254,7 @@ struct RepeatedGetterSetter<Type,
             {
                 _(arrayVal)=static_cast<valueType>(_(arrayVal)+_(val));
             },
-            [&](auto _)
+            [](auto)
             {
                 Assert(false,"Invalid operation for field of this type");
             }
@@ -270,7 +270,7 @@ struct RepeatedGetterSetter<Type,
             {
                 _(val)=static_cast<T>(_(arrayVal));
             },
-            [&](auto _)
+            [](auto)
             {
                 Assert(false,"Invalid operation for field of this type");
             }
@@ -286,7 +286,7 @@ struct RepeatedGetterSetter<Type,
             {
                 _(array).push_back(static_cast<valueType>(_(val)));
             },
-            [&](auto _)
+            [](auto)
             {
                 Assert(false,"Invalid operation for field of this type");
             }

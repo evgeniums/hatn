@@ -463,7 +463,7 @@ HATN_COMMON_NAMESPACE_END
     }; \
     HATN_COMMON_NAMESPACE_END
 
-#define HATN_TASK_CONTEXT_DEFINE(Type) \
+#define HATN_TASK_CONTEXT_DEFINE(Type,Export) \
     namespace { \
         thread_local static Type* ThreadLocalContextValue{nullptr}; \
     } \
@@ -480,7 +480,7 @@ HATN_COMMON_NAMESPACE_END
     { \
             ThreadLocalContextValue=nullptr; \
     } \
-    template class ThreadLocalContext<Type>; \
+    template class Export ThreadLocalContext<Type>; \
     HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTASKCONTEXT_H

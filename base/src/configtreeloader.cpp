@@ -398,7 +398,7 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
 
     auto handleSubstitution=[this,&target](const std::string& prefix, const std::string& substitute)
     {
-        auto handler=[this,&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
+        auto handler=[&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
         {
             if (value.type(true)==config_tree::Type::String)
             {

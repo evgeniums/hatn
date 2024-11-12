@@ -333,7 +333,7 @@ auto makeIndexFieldInfos(Fields&& fs)
                 {
                     return _(field).nullable();
                 },
-                [&](auto _)
+                [](auto)
                 {
                     return false;
                 }
@@ -604,7 +604,7 @@ struct getIndexFieldT
                 };
                 return hana::fold(_(field).path,_(unit),handler);
             },
-            [&](auto _)
+            [&](auto)
             {
                 return hana::eval_if(
                     hana::is_a<IndexFieldTag,FieldT>,

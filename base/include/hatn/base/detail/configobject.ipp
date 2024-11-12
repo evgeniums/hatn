@@ -284,7 +284,7 @@ void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logS
 
         auto value=hana::eval_if(
             typename T::isRepeatedType{},
-            [&](auto _)
+            [&](auto)
             {
                 return hana::eval_if(
                     dataunit::types::IsString<T::typeId>,
@@ -344,7 +344,7 @@ void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logS
                     }
                 );
             },
-            [&](auto _)
+            [&](auto)
             {
                 return hana::eval_if(
                     dataunit::types::IsString<T::typeId>,
