@@ -637,7 +637,7 @@ HATN_NAMESPACE_END
 {\
     if (ec)\
     {\
-        return !ec;\
+        return false;\
     }\
 }
 
