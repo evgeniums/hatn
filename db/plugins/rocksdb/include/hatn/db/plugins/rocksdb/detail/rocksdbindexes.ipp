@@ -143,9 +143,10 @@ class Indexes
         {
             HATN_CTX_SCOPE("deleteindexes")
 
-            auto eachIndex=[&,this](auto&& idx, auto&&)
+            auto self=this;
+            auto eachIndex=[&,&self](auto&& idx, auto&&)
             {
-                return deleteIndex(idx,tx,topic,objectId,object);
+                return self->deleteIndex(idx,tx,topic,objectId,object);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }
