@@ -66,6 +66,13 @@ Logger& ContextLogger::instance()
 
 //---------------------------------------------------------------
 
+bool ContextLogger::available() noexcept
+{
+    return static_cast<bool>(globalLogger());
+}
+
+//---------------------------------------------------------------
+
 void ContextLogger::free()
 {
     globalLogger().reset();

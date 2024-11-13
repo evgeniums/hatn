@@ -38,6 +38,8 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
         static Logger& instance();
 
+        static bool available() noexcept;
+
         static void free();
 
         ~ContextLogger();
