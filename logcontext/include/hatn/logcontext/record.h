@@ -75,6 +75,24 @@ using ValueT=common::lib::variant<
 
 using Value=ValueT<>;
 
+using ImmediateValue=common::lib::variant<
+    int8_t,
+    uint8_t,
+    int16_t,
+    uint16_t,
+    int32_t,
+    uint32_t,
+    int64_t,
+    uint64_t,
+    float,
+    double,
+    common::DateTime,
+    common::Date,
+    common::Time,
+    common::DateRange,
+    lib::string_view
+    >;
+
 namespace detail {
 
 template <typename BufT>
@@ -176,6 +194,13 @@ struct ValueSerializer
         buf.append(v);
         buf.append(lib::string_view("\""));
     }
+
+    void operator()(const lib::string_view& v)
+    {
+        buf.append(lib::string_view("\""));
+        buf.append(v);
+        buf.append(lib::string_view("\""));
+    }
 };
 
 }
@@ -197,7 +222,16 @@ using RecordT=std::pair<KeyT,ValueT>;
 
 using Record=RecordT<>;
 
-template <typename ValueT, typename KeyT>
+template <typename KeyT=Key>
+using ImmediateRecordT=std::pair<KeyT,ImmediateValue>;
+
+using ImmediateRecord=ImmediateRecordT<>;
+
+constexpr static size_t ImmediateVectorSize=6;
+
+using ImmediateRecords=HATN_COMMON_NAMESPACE::VectorOnStack<ImmediateRecord,ImmediateVectorSize>;
+
+template <typename KeyT, typename ValueT>
 auto makeRecord(KeyT key, ValueT&& value)
 {
     return std::make_pair(std::forward<KeyT>(key),std::forward<ValueT>(value));

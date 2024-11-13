@@ -255,7 +255,7 @@ class LoggerHandlerT
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )=0;
 
@@ -264,7 +264,7 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )=0;
 
@@ -273,7 +273,7 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )=0;
 
@@ -282,7 +282,7 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )=0;
 
@@ -332,7 +332,7 @@ class LoggerHandlerTraitsT
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )
         {
@@ -344,7 +344,7 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )
         {
@@ -356,7 +356,7 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )
         {
@@ -368,7 +368,7 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
         )
         {
@@ -440,8 +440,8 @@ class LoggerT : public LoggerBaseT<ContextT>,
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
-            lib::string_view module=lib::string_view{}
+            const ImmediateRecords& records,
+            lib::string_view module
             )
         {
             this->traits().log(level,ctx,msg,records,module);
@@ -452,8 +452,8 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
-            lib::string_view module=lib::string_view{}
+            const ImmediateRecords& records,
+            lib::string_view module
             )
         {
             this->traits().logError(level,ec,ctx,msg,records,module);
@@ -464,8 +464,8 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
-            lib::string_view module=lib::string_view{}
+            const ImmediateRecords& records,
+            lib::string_view module
             )
         {
             this->traits().logClose(level,ec,ctx,msg,records,module);
@@ -476,8 +476,8 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
-            lib::string_view module=lib::string_view{}
+            const ImmediateRecords& records,
+            lib::string_view module
             )
         {
             this->traits().logCloseApi(level,ec,ctx,msg,records,module);

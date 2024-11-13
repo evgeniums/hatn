@@ -191,7 +191,7 @@ class TextLogFormatterT
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             const lib::string_view& module,
             ErrorT ec=ErrorT{},
             CloseT ct=CloseT{},
@@ -221,7 +221,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             LogLevel level,
             const ContextT* ctx,
             const char* msg,            
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
             ) override
         {
@@ -251,7 +251,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,            
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
             ) override
         {
@@ -284,7 +284,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
             ) override
         {
@@ -319,7 +319,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            const common::pmr::vector<Record>& records,
+            const ImmediateRecords& records,
             lib::string_view module=lib::string_view{}
             ) override
         {
