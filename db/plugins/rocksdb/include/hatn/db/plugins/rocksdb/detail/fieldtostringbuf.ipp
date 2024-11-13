@@ -182,7 +182,7 @@ struct FieldToStringBufT
             std::is_convertible<std::decay_t<T>,lib::string_view>{},
             [&](auto _)
             {
-                static FieldToStringBufT f{};
+                constexpr static FieldToStringBufT f{};
                 f(_(buf),lib::string_view{_(val)});
             },
             [&](auto _)
