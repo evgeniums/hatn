@@ -204,7 +204,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const ContextT* ctx,
             const char* msg,
             lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
@@ -220,7 +220,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const ContextT* ctx,
             const char* msg,
             lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
@@ -237,7 +237,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const ContextT* ctx,
             const char* msg,
             lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
@@ -255,7 +255,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const ContextT* ctx,
             const char* msg,
             lib::string_view module=lib::string_view{},
-            common::pmr::vector<Record> records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();

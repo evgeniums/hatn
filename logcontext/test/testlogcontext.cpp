@@ -340,7 +340,10 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     auto r2=makeRecord("r2",12345);
     auto r3=makeRecord("r3",HATN_COMMON_NAMESPACE::Date::currentUtc());
 
-    HATN_CTX_FATAL_RECORDS(ec,"Fatal with records without module",r1,r2,r3);
+    HATN_CTX_FATAL(ec,"Fatal without module");
+    HATN_CTX_FATAL_RECORDS(ec,"Fatal with records without module",{"r1","hello"},{"r2",12345},{"r3",HATN_COMMON_NAMESPACE::Date::currentUtc()});
+
+#if 1
     HATN_CTX_FATAL_RECORDS_M(ec,"Fatal with records with module",sample_module,r1,r2,r3);
     HATN_CTX_ERROR_RECORDS(ec,"Error with records without module",r1,r2,r3);
     HATN_CTX_ERROR_RECORDS_M(ec,"Error with records with module",sample_module,r1,r2,r3);
@@ -360,7 +363,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     Error ec1{CommonError::NOT_IMPLEMENTED};
     HATN_CTX_CLOSE(ec1,"Closing context with error");
     HATN_CTX_CLOSE_API(ec1,"Closing context with API status and error");
-
+#endif
     ctx->afterThreadProcessing();
 
     BOOST_CHECK(true);

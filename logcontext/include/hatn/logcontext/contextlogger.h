@@ -182,58 +182,50 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
 #define HATN_CTX_LOG_RECORDS_M(Level,Msg,Module,...) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{{__VA_ARGS__},\
-                                    HATN_LOGCONTEXT_NAMESPACE::ContextAllocatorFactory::defaultFactory()->dataAllocator<HATN_LOGCONTEXT_NAMESPACE::Record>()}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
                       Level, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
                       #Module, \
-                      std::move(recs) \
+                      {__VA_ARGS__} \
                     ); \
     }
 
 #define HATN_CTX_LOG_RECORDS_ERR_M(Level,Err,Msg,Module,...) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{{__VA_ARGS__},\
-                                    HATN_LOGCONTEXT_NAMESPACE::ContextAllocatorFactory::defaultFactory()->dataAllocator<HATN_LOGCONTEXT_NAMESPACE::Record>()}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
                       #Module, \
-                      std::move(recs) \
+                      {__VA_ARGS__} \
                     ); \
     }
 
 #define HATN_CTX_LOG_RECORDS(Level,Msg,...) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{{__VA_ARGS__},\
-                                    HATN_LOGCONTEXT_NAMESPACE::ContextAllocatorFactory::defaultFactory()->dataAllocator<HATN_LOGCONTEXT_NAMESPACE::Record>()}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
               Level, \
               HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
               Msg, \
               HATN_COMMON_NAMESPACE::lib::string_view{}, \
-              std::move(recs) \
+              {__VA_ARGS__} \
               ); \
     }
 
 #define HATN_CTX_LOG_RECORDS_ERR(Level,Err,Msg,...) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_COMMON_NAMESPACE::pmr::vector<HATN_LOGCONTEXT_NAMESPACE::Record> recs{{__VA_ARGS__},\
-                                    HATN_LOGCONTEXT_NAMESPACE::ContextAllocatorFactory::defaultFactory()->dataAllocator<HATN_LOGCONTEXT_NAMESPACE::Record>()}; \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
                       HATN_COMMON_NAMESPACE::lib::string_view{}, \
-                      std::move(recs) \
+                      {__VA_ARGS__} \
                     ); \
     }
 

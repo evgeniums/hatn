@@ -26,7 +26,6 @@
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
-#include <hatn/common/pmr/string.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>

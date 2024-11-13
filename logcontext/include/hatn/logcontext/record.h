@@ -28,7 +28,7 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/fixedbytearray.h>
 #include <hatn/common/pmr/allocatorfactory.h>
-#include <hatn/common/pmr/string.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/logcontext/logcontext.h>
 
@@ -52,7 +52,7 @@ constexpr size_t MaxKeyLength=16;
 constexpr size_t PreallocatedValueSize=64;
 
 template <size_t PreallocatedSize=PreallocatedValueSize>
-using StringT=common::pmr::StringT<PreallocatedSize, common::pmr::ByteAllocator<ContextAllocatorFactory>>;
+using StringT=common::StringOnStackT<PreallocatedSize>;
 
 template <size_t PreallocatedSize=PreallocatedValueSize>
 using ValueT=common::lib::variant<

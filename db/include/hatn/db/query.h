@@ -26,7 +26,7 @@
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
-#include <hatn/common/pmr/string.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>
@@ -62,10 +62,7 @@ struct Last
     }
 };
 
-constexpr size_t StringPreallocatedSize=HATN_COMMON_NAMESPACE::pmr::StringPreallocatedSize;
-
-//! @todo Use query with preallocated arena
-using String=HATN_COMMON_NAMESPACE::pmr::StringT<StringPreallocatedSize>;
+using String=HATN_COMMON_NAMESPACE::StringOnStack;
 
 //! @todo Use query with preallocated arena
 template <typename T>
