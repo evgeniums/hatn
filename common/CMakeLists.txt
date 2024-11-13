@@ -14,6 +14,7 @@ INCLUDE(thirdparty/sha1/sha1.cmake)
 INCLUDE(thirdparty/crc32/crc32.cmake)
 INCLUDE(thirdparty/base64/base64.cmake)
 INCLUDE(thirdparty/fameta/fameta.cmake)
+INCLUDE(thirdparty/shortallocator/shortallocator.cmake)
 
 IF (NOT HATNCOMMON_PYTHON_SCRIPTS_DIR)
     INCLUDE(hatn/Scripts)
