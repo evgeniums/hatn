@@ -186,8 +186,8 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
                       Level, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
-                      #Module, \
-                      {__VA_ARGS__} \
+                      {__VA_ARGS__}, \
+                      #Module \
                     ); \
     }
 
@@ -199,8 +199,8 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
                       Err, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
-                      #Module, \
-                      {__VA_ARGS__} \
+                      {__VA_ARGS__}, \
+                      #Module \
                     ); \
     }
 
@@ -211,8 +211,8 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
               Level, \
               HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
               Msg, \
-              HATN_COMMON_NAMESPACE::lib::string_view{}, \
-              {__VA_ARGS__} \
+              {__VA_ARGS__}, \
+              HATN_COMMON_NAMESPACE::lib::string_view{} \
               ); \
     }
 
@@ -224,8 +224,8 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
                       Err, \
                       HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
                       Msg, \
-                      HATN_COMMON_NAMESPACE::lib::string_view{}, \
-                      {__VA_ARGS__} \
+                      {__VA_ARGS__}, \
+                      HATN_COMMON_NAMESPACE::lib::string_view{} \
                     ); \
     }
 

@@ -255,8 +255,8 @@ class LoggerHandlerT
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )=0;
 
         virtual void logError(
@@ -264,8 +264,8 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )=0;
 
         virtual void logClose(
@@ -273,8 +273,8 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )=0;
 
         virtual void logCloseApi(
@@ -282,9 +282,40 @@ class LoggerHandlerT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )=0;
+
+        virtual void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
 };
 using LoggerHandler=LoggerHandlerT<>;
 
@@ -301,11 +332,11 @@ class LoggerHandlerTraitsT
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )
         {
-            m_handler->log(level,ctx,msg,module,records);
+            m_handler->log(level,ctx,msg,records,module);
         }
 
         void logError(
@@ -313,11 +344,11 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )
         {
-            m_handler->logError(level,ec,ctx,msg,module,records);
+            m_handler->logError(level,ec,ctx,msg,records,module);
         }
 
         void logClose(
@@ -325,11 +356,11 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )
         {
-            m_handler->logClose(level,ec,ctx,msg,module,records);
+            m_handler->logClose(level,ec,ctx,msg,records,module);
         }
 
         void logCloseApi(
@@ -337,11 +368,54 @@ class LoggerHandlerTraitsT
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
         )
         {
-            m_handler->logCloseApi(level,ec,ctx,msg,module,records);
+            m_handler->logCloseApi(level,ec,ctx,msg,records,module);
+        }
+
+        void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            m_handler->log(level,ctx,msg,module);
+        }
+
+        void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            m_handler->logError(level,ec,ctx,msg,module);
+        }
+
+        void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            m_handler->logClose(level,ec,ctx,msg,module);
+        }
+
+        void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            m_handler->logCloseApi(level,ec,ctx,msg,module);
         }
 
     private:
@@ -366,11 +440,11 @@ class LoggerT : public LoggerBaseT<ContextT>,
             LogLevel level,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             )
         {
-            this->traits().log(level,ctx,msg,module,records);
+            this->traits().log(level,ctx,msg,records,module);
         }
 
         void logError(
@@ -378,11 +452,11 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             )
         {
-            this->traits().logError(level,ec,ctx,msg,module,records);
+            this->traits().logError(level,ec,ctx,msg,records,module);
         }
 
         void logClose(
@@ -390,11 +464,11 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             )
         {
-            this->traits().logClose(level,ec,ctx,msg,module,records);
+            this->traits().logClose(level,ec,ctx,msg,records,module);
         }
 
         void logCloseApi(
@@ -402,11 +476,54 @@ class LoggerT : public LoggerBaseT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             )
         {
-            this->traits().logCloseApi(level,ec,ctx,msg,module,records);
+            this->traits().logCloseApi(level,ec,ctx,msg,records,module);
+        }
+
+        void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            this->traits().log(level,ctx,msg,module);
+        }
+
+        void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            this->traits().logError(level,ec,ctx,msg,module);
+        }
+
+        void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            this->traits().logClose(level,ec,ctx,msg,module);
+        }
+
+        void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            this->traits().logCloseApi(level,ec,ctx,msg,module);
         }
 };
 

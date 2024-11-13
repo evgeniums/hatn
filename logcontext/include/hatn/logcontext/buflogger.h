@@ -35,6 +35,15 @@ class TextLogFormatterT
 {
     public:
 
+        template <typename BufT, typename RecordT>
+        static void appendRecord(BufT& buf, const RecordT& rec)
+        {
+            buf.append(lib::string_view(" "));
+            buf.append(rec.first);
+            buf.append(lib::string_view("="));
+            serializeValue(buf,rec.second);
+        }
+
         template <typename BufT,
                   typename ErrorT=hana::false_,
                   typename CloseT=hana::false_,
@@ -45,7 +54,6 @@ class TextLogFormatterT
             const ContextT* ctx,
             const char* msg,
             const lib::string_view& module,
-            const common::pmr::vector<Record>& records,
             ErrorT ec=ErrorT{},
             CloseT =CloseT{},
             WithApiStatusT =WithApiStatusT{}
@@ -161,15 +169,6 @@ class TextLogFormatterT
                 buf.append(module);
             }
 
-            // handler for variable
-            auto appendRecord=[](BufT& buf, const typename ContextT::recordT& rec)
-            {
-                buf.append(lib::string_view(" "));
-                buf.append(rec.first);
-                buf.append(lib::string_view("="));
-                serializeValue(buf,rec.second);
-            };
-
             // add context's map vars
             for (const auto& rec:ctx->globalVars())
             {
@@ -181,8 +180,27 @@ class TextLogFormatterT
             {
                 appendRecord(buf,rec);
             }
+        }
 
-            // add extra records
+        template <typename BufT,
+                 typename ErrorT=hana::false_,
+                 typename CloseT=hana::false_,
+                 typename WithApiStatusT=hana::false_>
+        static void format(
+            BufT& buf,
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            const common::pmr::vector<Record>& records,
+            const lib::string_view& module,
+            ErrorT ec=ErrorT{},
+            CloseT ct=CloseT{},
+            WithApiStatusT api=WithApiStatusT{}
+            )
+        {
+            format(buf,level,ctx,msg,module,ec,ct,api);
+
+            // add immediate records
             for (auto&& rec:records)
             {
                 appendRecord(buf,rec);
@@ -202,14 +220,28 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
         void log(
             LogLevel level,
             const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const char* msg,            
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
             TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
-                                                level,ctx,msg,std::move(module),std::move(records)
+                                                level,ctx,msg,records,module
+                                                );
+            this->traits().logBuf(bufWrapper);
+        }
+
+        void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            ) override
+        {
+            auto bufWrapper=this->traits().prepareBuf();
+            TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
+                                                level,ctx,msg,module
                                                 );
             this->traits().logBuf(bufWrapper);
         }
@@ -218,14 +250,30 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             LogLevel level,
             const Error& ec,
             const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const char* msg,            
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
             TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
-                                                level,ctx,msg,std::move(module),std::move(records),
+                                                level,ctx,msg,records,module,
+                                                ec
+                                                );
+            this->traits().logBufError(bufWrapper);
+        }
+
+        void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            ) override
+        {
+            auto bufWrapper=this->traits().prepareBuf();
+            TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
+                                                level,ctx,msg,module,
                                                 ec
                                                 );
             this->traits().logBufError(bufWrapper);
@@ -236,13 +284,30 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
             TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
-                                                level,ctx,msg,std::move(module),std::move(records),
+                                                level,ctx,msg,records,module,
+                                                ec,
+                                                hana::true_{}
+                                                );
+            this->traits().logBuf(bufWrapper);
+        }
+
+        void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            ) override
+        {
+            auto bufWrapper=this->traits().prepareBuf();
+            TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
+                                                level,ctx,msg,module,
                                                 ec,
                                                 hana::true_{}
                                                 );
@@ -254,13 +319,31 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
             const Error& ec,
             const ContextT* ctx,
             const char* msg,
-            lib::string_view module=lib::string_view{},
-            const common::pmr::vector<Record>& records=common::pmr::vector<Record>{}
+            const common::pmr::vector<Record>& records,
+            lib::string_view module=lib::string_view{}
             ) override
         {
             auto bufWrapper=this->traits().prepareBuf();
             TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
-                                                level,ctx,msg,std::move(module),std::move(records),
+                                                level,ctx,msg,records,module,
+                                                ec,
+                                                hana::true_{},
+                                                hana::true_{}
+                                                );
+            this->traits().logBuf(bufWrapper);
+        }
+
+        void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            ) override
+        {
+            auto bufWrapper=this->traits().prepareBuf();
+            TextLogFormatterT<ContextT>::format(bufWrapper.buf(),
+                                                level,ctx,msg,module,
                                                 ec,
                                                 hana::true_{},
                                                 hana::true_{}
