@@ -40,6 +40,10 @@ namespace memorypool {
 class MemBlockSize;
 }
 
+namespace pmr {
+class AllocatorFactory;
+}
+
  /**
  * @brief Byte array that uses memory pool for data buffers
  *
@@ -66,6 +70,10 @@ class HATN_COMMON_EXPORT ByteArray
             const common::pmr::polymorphic_allocator<char>& alloc
         ) noexcept : ByteArray(alloc.resource())
         {}
+
+        ByteArray(
+            pmr::AllocatorFactory* factory
+        ) noexcept;
 
         //! Ctor from null-terminated const char* string
         ByteArray(

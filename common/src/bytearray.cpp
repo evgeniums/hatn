@@ -28,6 +28,7 @@
 
 #include <hatn/common/thread.h>
 #include <hatn/common/memorypool/poolcachegen.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/common/pmr/withstaticallocator.ipp>
 
@@ -39,6 +40,13 @@ HATN_COMMON_NAMESPACE_BEGIN
 ByteArray::ByteArray(
         pmr::memory_resource* resource
     ) noexcept : d(resource)
+{
+}
+
+//---------------------------------------------------------------
+ByteArray::ByteArray(
+        pmr::AllocatorFactory* factory
+    ) noexcept : ByteArray(factory->dataMemoryResource())
 {
 }
 
