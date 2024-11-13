@@ -21,6 +21,7 @@
 
 #include <rocksdb/db.h>
 
+#include <hatn/common/allocatoronstack.h>
 #include <hatn/common/format.h>
 #include <hatn/common/datetime.h>
 
@@ -40,6 +41,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         using ObjectKeyValue=std::tuple<std::array<ROCKSDB_NAMESPACE::Slice,8>,uint32_t>;
 
+        constexpr static const size_t PreallocatedBuffersCount=8;
+
         constexpr static const size_t ObjectKeySliceCount=5;
         constexpr static const size_t TimestampSize=4;
 
@@ -47,7 +50,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         using KeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
 
-        Keys(AllocatorFactory* allocatorFactory=common::pmr::AllocatorFactory::getDefault());
+        Keys();
 
         void reset()
         {
@@ -56,7 +59,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         BufT& addBuf()
         {
-            m_bufs.emplace_back(m_allocatorFactory);
+            m_bufs.resize(m_bufs.size()+1);
             return m_bufs.back();
         }
 
@@ -127,8 +130,10 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
     private:
 
-        AllocatorFactory* m_allocatorFactory;
-        common::pmr::vector<BufT> m_bufs;
+        using bufAllocaT=common::AllocatorOnStack<BufT,PreallocatedBuffersCount>;
+
+        typename bufAllocaT::arena_type m_bufsArena;
+        std::vector<BufT,bufAllocaT> m_bufs;
 
         template <typename UnitT, typename IndexT, typename PosT>
         Error iterateIndexFields(

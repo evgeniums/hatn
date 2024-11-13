@@ -248,9 +248,15 @@ Error iterateFieldVariant(
     readOptions.snapshot=snapshot;
     bool iterateForward=field.order==query::Order::Asc;
 
+#ifdef HATN_PMR_BUF_VEC
     BufT fromBuf{allocatorFactory};
-    ROCKSDB_NAMESPACE::Slice fromS;
     BufT toBuf{allocatorFactory};
+#else
+    BufT fromBuf;
+    BufT toBuf;
+#endif
+
+    ROCKSDB_NAMESPACE::Slice fromS;    
     ROCKSDB_NAMESPACE::Slice toS;
     switch(field.op)
     {

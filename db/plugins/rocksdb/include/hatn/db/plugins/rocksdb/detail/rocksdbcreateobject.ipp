@@ -98,7 +98,7 @@ Error CreateObjectT::operator ()(
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // prepare
-        Keys keys{allocatorFactory};
+        Keys keys{};
         auto ttlMark=makeTtlMark(model,obj);
 
         // put serialized object to transaction

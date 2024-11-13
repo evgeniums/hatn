@@ -54,7 +54,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
     ) const
 {
     HATN_CTX_SCOPE("updatemany")
-    Keys keys{allocatorFactory};
+    Keys keys{};
     typename ModelT::SharedPtr result;
 
     size_t i=0;

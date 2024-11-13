@@ -34,9 +34,9 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-Keys::Keys(AllocatorFactory* allocatorFactory)
-    : m_allocatorFactory(allocatorFactory),
-      m_bufs(allocatorFactory->dataAllocator<BufT>())
+Keys::Keys()
+    : m_bufsArena(),
+      m_bufs(Keys::bufAllocaT{m_bufsArena})
 {}
 
 Keys::ObjectKeyValue Keys::makeObjectKeyValue(const std::string& modelId,
