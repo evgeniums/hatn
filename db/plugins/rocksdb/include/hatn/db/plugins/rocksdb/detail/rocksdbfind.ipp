@@ -109,7 +109,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
             {
                 HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(k))
                 HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(key.key))
-                HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range)
+                if (!key.partition->range.isNull())
+                {
+                    HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range)
+                }
             };
 
             ROCKSDB_NAMESPACE::PinnableSlice value;
