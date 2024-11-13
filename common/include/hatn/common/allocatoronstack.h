@@ -27,11 +27,15 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+/********************** AllocatorOnStack **************************/
+
 template <class T,
      std::size_t N,
      std::size_t Align = alignof(std::max_align_t),
      typename AllocatorT=std::allocator<T>>
 using AllocatorOnStack=salloc::short_alloc<T,N*Align,Align,AllocatorT>;
+
+/********************** StringOnStack **************************/
 
 constexpr size_t DefaultPreallocatedStringSize=64;
 
@@ -81,12 +85,18 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
         StringOnStackT(const StringOnStackT& other) : ArenaHolderT(),
                                                       BaseT(AllocaT{this->m_arena})
         {
+#ifdef HATN_CHECK_STRING_STACK_CTORS
+            std::cout<<"Copy constructor StringOnStackT"<<std::endl;
+#endif
             this->append(other);
         }
 
         StringOnStackT(StringOnStackT&& other) : ArenaHolderT(),
                                                  BaseT(AllocaT{this->m_arena})
         {
+#ifdef HATN_CHECK_STRING_STACK_CTORS
+            std::cout<<"Move constructor StringOnStackT"<<std::endl;
+#endif
             this->append(other);
             other.clear();
         }
@@ -97,7 +107,9 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             {
                 return *this;
             }
-
+#ifdef HATN_CHECK_STRING_STACK_CTORS
+            std::cout<<"Copy assignment StringOnStackT"<<std::endl;
+#endif
             this->clear();
             this->append(other);
             return *this;
@@ -109,6 +121,8 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             {
                 return *this;
             }
+
+            std::cout<<"Move assignment StringOnStackT"<<std::endl;
 
             this->clear();
             this->append(other);
@@ -124,6 +138,7 @@ namespace pmr
 using StringOnStack=StringOnStackT<DefaultPreallocatedStringSize,polymorphic_allocator<char>>;
 }
 
+/********************** VectorOnStack **************************/
 
 constexpr size_t DefaultPreallocatedVectorSize=8;
 
@@ -214,8 +229,6 @@ namespace pmr
 template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize>
 using VectorOnStack=VectorOnStackT<T,PreallocatedSize,polymorphic_allocator<char>>;
 }
-
-
 
 HATN_COMMON_NAMESPACE_END
 

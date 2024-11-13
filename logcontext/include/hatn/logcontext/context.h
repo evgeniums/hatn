@@ -220,9 +220,7 @@ class ContextT : public common::TaskContextValue
         template <typename T>
         void setGlobalVar(const lib::string_view& key, T&& value)
         {
-            auto&& val=valueT{std::forward<T>(value)};
-            auto&& k=keyT{key};
-            m_globalVarMap.emplace(key,std::move(val));
+            m_globalVarMap.emplace(key,std::forward<T>(value));
         }
 
         void unsetGlobalVar(const lib::string_view& key)
