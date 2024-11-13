@@ -106,9 +106,6 @@ using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
 template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
 
-// template <class T, std::size_t N>
-// using ContextAlloc=std::allocator<T>;
-
 template <typename Config=DefaultConfig,
          typename ThreadCursorDataT=ThreadCursorData>
 class ContextT : public common::TaskContextValue
@@ -136,8 +133,7 @@ class ContextT : public common::TaskContextValue
             :   TaskContextValue(taskCtx),
                 m_currentScopeIdx(0),
                 m_lockStack(false),
-                m_logLevel(LogLevel::Default)
-            ,
+                m_logLevel(LogLevel::Default),
                 m_scopeStackArena(),
                 m_varStackArena(),
                 m_threadStackArena(),

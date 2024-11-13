@@ -22,8 +22,11 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-template <class T, std::size_t N, std::size_t Align = alignof(std::max_align_t)>
-using AllocatorOnStack=salloc::short_alloc<T,N*Align,Align>;
+template <class T,
+     std::size_t N,
+     std::size_t Align = alignof(std::max_align_t),
+     typename AllocatorT=std::allocator<T>>
+using AllocatorOnStack=salloc::short_alloc<T,N*Align,Align,AllocatorT>;
 
 HATN_COMMON_NAMESPACE_END
 
