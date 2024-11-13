@@ -636,14 +636,21 @@ void DateTime::loadCurrent()
 
 uint64_t DateTime::millisecondsSinceEpoch()
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto pt=boost::posix_time::microsec_clock::universal_time();
+    auto epoch=boost::posix_time::from_time_t(0);
+    return (pt-epoch).total_milliseconds();
+    // return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 //---------------------------------------------------------------
 
 uint32_t DateTime::secondsSinceEpoch()
 {
-    return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    auto pt=boost::posix_time::microsec_clock::universal_time();
+    auto epoch=boost::posix_time::from_time_t(0);
+    return static_cast<uint32_t>((pt-epoch).total_seconds());
+
+    // return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 //---------------------------------------------------------------
