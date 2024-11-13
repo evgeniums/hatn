@@ -37,7 +37,7 @@ constexpr size_t DefaultPreallocatedStringSize=64;
 
 template <size_t PreallocatedSize=DefaultPreallocatedStringSize, typename FallbackAllocatorT=std::allocator<char>>
 using PreallocatedStringT = std::basic_string<char,std::char_traits<char>,
-                                              AllocatorOnStack<char,DefaultPreallocatedStringSize,alignof(std::max_align_t),FallbackAllocatorT>
+                                              AllocatorOnStack<char,PreallocatedSize,alignof(std::max_align_t),FallbackAllocatorT>
                                               >;
 
 template <size_t PreallocatedSize, typename FallbackAllocatorT>
@@ -124,21 +124,98 @@ namespace pmr
 using StringOnStack=StringOnStackT<DefaultPreallocatedStringSize,polymorphic_allocator<char>>;
 }
 
-#if 0
-constexpr size_t DefaultPreallocatedVectorSize=16;
 
-template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize, typename FallbackAllocatorT=std::allocator<char>>
-using PreallocatedVectorT = std::vector<T,AllocatorOnStack<char,PreallocatedSize,1,FallbackAllocatorT>>;
+constexpr size_t DefaultPreallocatedVectorSize=8;
 
-template <typename T>
-using PreallocatedVector=PreallocatedVectorT<T>;
+template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize, typename FallbackAllocatorT=std::allocator<T>>
+using PreallocatedVectorT = std::vector<T,AllocatorOnStack<T,PreallocatedSize,alignof(std::max_align_t),FallbackAllocatorT>>;
+
+template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize, typename FallbackAllocatorT=std::allocator<T>>
+class VectorOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>,
+                       public PreallocatedVectorT<T,PreallocatedSize,FallbackAllocatorT>
+{
+public:
+
+    using ArenaHolderT=ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>;
+    using BaseT=PreallocatedVectorT<T,PreallocatedSize,FallbackAllocatorT>;
+    using AllocaT=typename BaseT::allocator_type;
+
+    template <typename ...Args>
+    VectorOnStackT(Args&&... args) : ArenaHolderT(),
+        BaseT(std::forward<Args>(args)...,AllocaT{this->m_arena})
+    {
+    }
+
+    VectorOnStackT(std::initializer_list<T> elements) : ArenaHolderT(),
+        BaseT(std::move(elements),AllocaT{this->m_arena})
+    {
+    }
+
+    VectorOnStackT() : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {}
+
+    ~VectorOnStackT()
+    {
+        this->clear();
+        this->shrink_to_fit();
+    }
+
+    VectorOnStackT(const VectorOnStackT& other) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->append(other);
+    }
+
+    VectorOnStackT(VectorOnStackT&& other) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->append(other);
+        other.clear();
+    }
+
+    VectorOnStackT& operator =(const VectorOnStackT& other)
+    {
+        if (this==&other)
+        {
+            return *this;
+        }
+
+        this->clear();
+        this->append(other);
+        return *this;
+    }
+
+    VectorOnStackT& operator =(VectorOnStackT&& other)
+    {
+        if (this==&other)
+        {
+            return *this;
+        }
+
+        this->clear();
+        this->append(other);
+        other.clear();
+        return *this;
+    }
+
+    template <typename T1>
+    void append(const T1& other)
+    {
+        this->insert(std::end(*this), std::begin(other), std::end(other));
+    }
+};
+
+template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize>
+using VectorOnStack=VectorOnStackT<T, PreallocatedSize>;
 
 namespace pmr
 {
-template <typename T>
-using PreallocatedVector=PreallocatedVectorT<T,DefaultPreallocatedVectorSize,polymorphic_allocator<T>>;
+template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize>
+using VectorOnStack=VectorOnStackT<T,PreallocatedSize,polymorphic_allocator<char>>;
 }
-#endif
+
+
 
 HATN_COMMON_NAMESPACE_END
 
