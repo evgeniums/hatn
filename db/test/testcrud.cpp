@@ -55,22 +55,15 @@ HATN_DB_INDEX(idx4,simple1::f1)
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
 
-auto initSimpleSchema() -> decltype(auto)
+auto initSimpleSchema()
 {
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-
     ModelRegistry::free();
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbSchemas::free();
     rdb::RocksdbModels::free();
 #endif
 
-    // auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    // auto idx2=makeIndex(DefaultIndexConfig,object::created_at);
-    // auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
-    // auto idx4=makeIndex(DefaultIndexConfig,simple1::f1);
-
-    auto simpleModel1=makeModel<simple1::TYPE>(DefaultModelConfig,/*idx1,idx2,idx3,*/idx4());
+    auto simpleModel1=makeModel<simple1::TYPE>(DefaultModelConfig,idx4());
     auto simpleSchema1=makeSchema("schema_simple1",simpleModel1);
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
@@ -78,7 +71,8 @@ auto initSimpleSchema() -> decltype(auto)
     rdb::RocksdbSchemas::instance().registerSchema(simpleSchema1);
 #endif
 
-    BOOST_TEST_MESSAGE(fmt::format("idx4 ID={}",idx4().id()));
+    // ID of index outside model is empty
+    BOOST_CHECK_EQUAL(idx4().id(),"");
 
     return std::make_tuple(simpleModel1,simpleSchema1);
 }
@@ -97,6 +91,13 @@ BOOST_AUTO_TEST_SUITE(TestCrud, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::
 
 BOOST_AUTO_TEST_CASE(Simple1)
 {
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+
+    HATN_CTX_SCOPE("Test Simple1")
+    HATN_CTX_INFO("Test start")
+
     auto s=initSimpleSchema();
 
     auto handler=[&s](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
@@ -298,6 +299,9 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r7_.value().isNull());
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    HATN_CTX_INFO("Test finish")
+    ctx->afterThreadProcessing();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
