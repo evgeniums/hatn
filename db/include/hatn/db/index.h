@@ -202,10 +202,6 @@ class IndexFieldInfo
             boost::split(m_path,name,boost::is_any_of("."));
         }
 
-        // IndexFieldInfo(std::string nestedName, bool nullable=false)
-        //     : IndexFieldInfo(std::move(nestedName),-1,nullable)
-        // {}
-
         template <typename FieldT>
         explicit IndexFieldInfo(const FieldT& field, bool nullable=false)
             : IndexFieldInfo(field.name(),field.id(),nullable)
@@ -216,6 +212,7 @@ class IndexFieldInfo
             return m_name;
         }
 
+        //! @note ID of index outside model is empty
         int id() const noexcept
         {
             return m_id;

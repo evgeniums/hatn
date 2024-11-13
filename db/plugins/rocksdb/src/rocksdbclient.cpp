@@ -108,7 +108,7 @@ RocksdbClient::~RocksdbClient()
 
 void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
 {
-    HATN_CTX_SCOPE("rocksdbopen")
+    HATN_CTX_SCOPE("rocksdbopen")    
     invokeOpenDb(config,ec,records,false);
 }
 
