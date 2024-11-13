@@ -56,7 +56,7 @@ struct partitionFieldVisitor
     common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions;
 
     template <typename T>
-    void operator()(const common::pmr::vector<T>& vec) const
+    void operator()(const query::Vector<T>& vec) const
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {
@@ -72,7 +72,7 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void operator()(const common::pmr::vector<query::Interval<T>>& vec) const
+    void operator()(const query::Vector<query::Interval<T>>& vec) const
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {

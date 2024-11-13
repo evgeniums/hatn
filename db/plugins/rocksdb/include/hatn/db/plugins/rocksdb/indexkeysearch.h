@@ -64,6 +64,8 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
         AllocatorFactory* allocatorFactory
     );
 
+    //! @todo Use preallocated strings and vector
+
     common::pmr::string key;
     common::pmr::string value;
     RocksdbPartition* partition;

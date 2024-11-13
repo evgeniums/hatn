@@ -165,7 +165,7 @@ struct valueVisitor
     }
 
     template <typename T>
-    void operator()(const common::pmr::vector<T>&) const
+    void operator()(const query::Vector<T>&) const
     {}
 
     template <typename T>

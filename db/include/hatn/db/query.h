@@ -64,7 +64,12 @@ struct Last
 
 constexpr size_t StringPreallocatedSize=HATN_COMMON_NAMESPACE::pmr::StringPreallocatedSize;
 
+//! @todo Use query with preallocated arena
 using String=HATN_COMMON_NAMESPACE::pmr::StringT<StringPreallocatedSize>;
+
+//! @todo Use query with preallocated arena
+template <typename T>
+using Vector=common::pmr::vector<T>;
 
 enum class Operator : uint8_t
 {
@@ -221,7 +226,7 @@ struct Interval
     Endpoint from;
     Endpoint to;
 
-    static void sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order order);
+    static void sortAndMerge(Vector<Interval<T>>& vec, Order order);
 
     bool intersects(const Interval<T>& other) const noexcept;
 
@@ -293,8 +298,8 @@ struct Interval
 #define HATN_DB_QUERY_VALUE_TYPE(Type) \
         Type, \
         Interval<Type>, \
-        common::pmr::vector<Type>, \
-        common::pmr::vector<Interval<Type>>
+        Vector<Type>, \
+        Vector<Interval<Type>>
 
 #define HATN_DB_QUERY_VALUE_TYPE_ID(Type) \
         Type, \
@@ -652,7 +657,7 @@ bool Interval<T>::intersects(const Interval<T>& other) const noexcept
 }
 
 template <typename T>
-void Interval<T>::sortAndMerge(common::pmr::vector<Interval<T>>& vec, Order order)
+void Interval<T>::sortAndMerge(Vector<Interval<T>>& vec, Order order)
 {
     // sort vector
     std::sort(
