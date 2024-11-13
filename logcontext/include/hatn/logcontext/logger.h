@@ -305,7 +305,7 @@ class LoggerHandlerTraitsT
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
         {
-            m_handler->log(level,ctx,std::move(msg),module,std::move(records));
+            m_handler->log(level,ctx,msg,module,std::move(records));
         }
 
         void logError(
@@ -317,7 +317,7 @@ class LoggerHandlerTraitsT
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
         {
-            m_handler->logError(level,ec,ctx,std::move(msg),module,std::move(records));
+            m_handler->logError(level,ec,ctx,msg,module,std::move(records));
         }
 
         void logClose(
@@ -329,7 +329,7 @@ class LoggerHandlerTraitsT
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
         {
-            m_handler->logClose(level,ec,ctx,std::move(msg),module,std::move(records));
+            m_handler->logClose(level,ec,ctx,msg,module,std::move(records));
         }
 
         void logCloseApi(
@@ -341,7 +341,7 @@ class LoggerHandlerTraitsT
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
         )
         {
-            m_handler->logCloseApi(level,ec,ctx,std::move(msg),module,std::move(records));
+            m_handler->logCloseApi(level,ec,ctx,msg,module,std::move(records));
         }
 
     private:
@@ -370,7 +370,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
         {
-            this->traits().log(level,ctx,std::move(msg),module,std::move(records));
+            this->traits().log(level,ctx,msg,module,std::move(records));
         }
 
         void logError(
@@ -394,7 +394,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
         {
-            this->traits().logClose(level,ec,ctx,std::move(msg),module,std::move(records));
+            this->traits().logClose(level,ec,ctx,msg,module,std::move(records));
         }
 
         void logCloseApi(
@@ -406,7 +406,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             common::pmr::vector<Record> records=common::pmr::vector<Record>{}
             )
         {
-            this->traits().logCloseApi(level,ec,ctx,std::move(msg),module,std::move(records));
+            this->traits().logCloseApi(level,ec,ctx,msg,module,std::move(records));
         }
 };
 

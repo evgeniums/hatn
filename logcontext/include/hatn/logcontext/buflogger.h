@@ -149,7 +149,7 @@ class TextLogFormatterT
             // add message
             if (!common::CStrEmpty(msg))
             {
-                buf.append(lib::string_view(" msg=\"{}\""));
+                buf.append(lib::string_view(" msg=\""));
                 buf.append(lib::string_view(msg));
                 buf.append(lib::string_view("\""));
             }

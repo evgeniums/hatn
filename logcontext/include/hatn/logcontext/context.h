@@ -66,11 +66,11 @@ inline const char* logLevelName(LogLevel level) noexcept
     return "UNKNOWN";
 }
 
-constexpr size_t MaxVarStackSize=32;
-constexpr size_t MaxVarMapSize=16;
-constexpr size_t MaxScopeDepth=32;
-constexpr size_t MaxThreadDepth=8;
-constexpr size_t MaxTagLength=16;
+constexpr size_t MaxVarStackSize=16;
+constexpr size_t MaxVarMapSize=8;
+constexpr size_t MaxScopeDepth=16;
+constexpr size_t MaxThreadDepth=4;
+constexpr size_t MaxTagLength=8;
 constexpr size_t MaxTagSetSize=8;
 
 struct ScopeCursorData
@@ -103,6 +103,9 @@ struct ThreadCursorData
 template <typename CursorDataT=ThreadCursorData>
 using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
 
+template <class T, std::size_t N>
+using ContextAlloc=common::AllocatorOnStack<T,N>;
+
 template <typename Config=DefaultConfig,
          typename ThreadCursorDataT=ThreadCursorData>
 class ContextT : public common::TaskContextValue
@@ -120,23 +123,28 @@ class ContextT : public common::TaskContextValue
         using tagT=common::FixedByteArray<config::TagLength>;
         using tagRecordT=std::pair<tagT,LogLevel>;
 
-        using varStackAllocatorT=common::AllocatorOnStack<recordT,config::VarStackSize>;
-        using varMapAllocatorT=common::AllocatorOnStack<recordT,config::VarMapSize>;
-        using scopeStackAllocatorT=common::AllocatorOnStack<scopeCursorT,config::ScopeDepth>;
-        using threadStackAllocatorT=common::AllocatorOnStack<threadCursorT,config::ThreadDepth>;
-        using tagSetAllocatorT=common::AllocatorOnStack<tagT,config::TagSetSize>;
+        using varStackAllocatorT=ContextAlloc<recordT,config::VarStackSize>;
+        using varMapAllocatorT=ContextAlloc<recordT,config::VarMapSize>;
+        using scopeStackAllocatorT=ContextAlloc<scopeCursorT,config::ScopeDepth>;
+        using threadStackAllocatorT=ContextAlloc<threadCursorT,config::ThreadDepth>;
+        using tagSetAllocatorT=ContextAlloc<tagT,config::TagSetSize>;
 
         ContextT(common::TaskContext* taskCtx)
             :   TaskContextValue(taskCtx),
                 m_currentScopeIdx(0),
                 m_lockStack(false),
-                m_logLevel(LogLevel::Default)
-        {
-            m_varStack.reserve(config::VarStackSize);
-            m_globalVarMap.reserve(config::VarMapSize);
-            m_scopeStack.reserve(config::ScopeDepth);
-            m_tags.reserve(config::TagSetSize);
-        }
+                m_logLevel(LogLevel::Default),
+                m_scopeStackArena(),
+                m_varStackArena(),
+                m_threadStackArena(),
+                m_varMapArena(),
+                m_tagSetArena(),
+                m_scopeStack(m_scopeStackArena),
+                m_varStack(m_varStackArena),
+                m_threadStack(m_threadStackArena),
+                m_globalVarMap(m_varMapArena),
+                m_tags(m_tagSetArena)
+        {}
 
         ~ContextT()=default;
         ContextT(ContextT&&)=delete;
@@ -152,8 +160,7 @@ class ContextT : public common::TaskContextValue
         {
             m_currentScopeIdx++;
             Assert(m_currentScopeIdx<=config::ScopeDepth,"Reached depth of scope stack");
-            m_scopeStack.emplace_back(
-                std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
+            m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
         }
 
         /**
@@ -341,15 +348,21 @@ class ContextT : public common::TaskContextValue
 
     private:
 
+        size_t m_currentScopeIdx;
+        bool m_lockStack;
+        LogLevel m_logLevel;
+
+        typename scopeStackAllocatorT::arena_type m_scopeStackArena;
+        typename varStackAllocatorT::arena_type m_varStackArena;
+        typename threadStackAllocatorT::arena_type m_threadStackArena;
+        typename varMapAllocatorT::arena_type m_varMapArena;
+        typename tagSetAllocatorT::arena_type m_tagSetArena;
+
         std::vector<scopeCursorT,scopeStackAllocatorT> m_scopeStack;
         std::vector<recordT,varStackAllocatorT> m_varStack;
         std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
         common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
         common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
-
-        size_t m_currentScopeIdx;
-        bool m_lockStack;
-        LogLevel m_logLevel;
 };
 using Context=ContextT<>;
 

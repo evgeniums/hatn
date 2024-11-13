@@ -192,7 +192,8 @@ class TaskContextWrapper
         using type=T;
 
         TaskContextWrapper(TaskContext* taskContext) : m_value(taskContext)
-        {}
+        {
+        }
 
         const type* value() const noexcept
         {
@@ -288,7 +289,8 @@ class TaskContextT : public BaseTaskContextT
             BaseTaskContextT(std::forward<Args>(args)...),
             m_wrappers(replicateThis(this)),
             m_refs(wrapperRefs())
-        {}
+        {
+        }
 
         BaseTaskContextT* baseTaskContext() noexcept
         {
