@@ -22,6 +22,7 @@
 #define HATNPMRSTRING_H
 
 #include <hatn/common/common.h>
+#include <hatn/common/format.h>
 
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
@@ -68,6 +69,8 @@ class ByteAllocator
 
 constexpr size_t StringPreallocatedSize=64;
 
+//! @todo Refactor without basic_memory_buffer
+
 template <size_t PreallocatedSize=StringPreallocatedSize, typename AllocatorT=ByteAllocator<>>
 class StringT : public fmt::basic_memory_buffer<char,PreallocatedSize,AllocatorT>
 {
@@ -100,8 +103,24 @@ class StringT : public fmt::basic_memory_buffer<char,PreallocatedSize,AllocatorT
         {}
 
         ~StringT()=default;
-        StringT(StringT&& other)=default;
-        StringT& operator=(StringT&& other)=default;
+
+        StringT(StringT&& other) : StringT(other.get_allocator())
+        {
+            this->append(other);
+            other.clear();
+        }
+
+        StringT& operator=(StringT&& other)
+        {
+            if (this==&other)
+            {
+                return *this;
+            }
+            this->clear();
+            this->append(other);
+            other.clear();
+            return *this;
+        }
 
         StringT(const StringT& other) : StringT(other.get_allocator())
         {
@@ -110,11 +129,13 @@ class StringT : public fmt::basic_memory_buffer<char,PreallocatedSize,AllocatorT
 
         StringT& operator=(const StringT& other)
         {
-            if (&other!=this)
+            if (this==&other)
             {
-                this->clear();
-                this->append(other);
+                return *this;
             }
+
+            this->clear();
+            this->append(other);
             return *this;
         }
 
