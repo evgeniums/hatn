@@ -181,12 +181,12 @@ public:
         bool
         operator==(const short_alloc<T1, N1, A1, allocT1>& x, const short_alloc<U, M, A2, allocT2>& y) noexcept;
 
-    template <typename T, std::size_t N, std::size_t A1, typename U, std::size_t M, std::size_t A2,
+    template <typename T1, std::size_t N1, std::size_t A1, typename U, std::size_t M, std::size_t A2,
              typename allocT1, typename allocT2
              >
     friend
         bool
-        operator!=(const short_alloc<T, N, A1, allocT1>& x, const short_alloc<U, M, A2, allocT2>& y) noexcept;
+        operator!=(const short_alloc<T1, N1, A1, allocT1>& x, const short_alloc<U, M, A2, allocT2>& y) noexcept;
 
     template <class U, std::size_t M, std::size_t A, typename alloca_t> friend class short_alloc;
 };
