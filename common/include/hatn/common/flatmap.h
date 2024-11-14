@@ -274,6 +274,7 @@ class FlatContainer
         using vector_type=std::vector<ItemT,AllocT>;
         using iterator=FlatContainerIterator<vector_type,ItemT>;
         using const_iterator=FlatContainerIteratorConst<const vector_type,ItemT>;
+        using allocator_type=AllocT;
 
         FlatContainer()
         {}
@@ -423,7 +424,7 @@ class FlatContainer
         {
             if (itemCount!=0)
             {
-                reserve(capacity()+itemCount);
+                reserve(size()+itemCount);
             }
         }
         void rawInsert(const ItemT& val)
@@ -434,9 +435,12 @@ class FlatContainer
         {
             m_vec.push_back(std::move(val));
         }
-        void endRawInsert()
+        void endRawInsert(bool sort=true)
         {
-            std::sort(m_vec.begin(),m_vec.end(),m_comp);
+            if (sort)
+            {
+                std::sort(m_vec.begin(),m_vec.end(),m_comp);
+            }
         }
 
         void beginRawSet(size_t newSize)

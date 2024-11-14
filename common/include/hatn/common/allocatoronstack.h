@@ -22,10 +22,11 @@
 
 #include <hatn/thirdparty/shortallocator/short_alloc.h>
 
+#include <hatn/common/common.h>
+
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/stdwrappers.h>
-
-#include <hatn/common/common.h>
+#include <hatn/common/flatmap.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -252,8 +253,127 @@ using VectorOnStack=VectorOnStackT<T, PreallocatedSize>;
 
 namespace pmr
 {
+//! @todo pmr allocator with custom memory resource
 template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize>
 using VectorOnStack=VectorOnStackT<T,PreallocatedSize,polymorphic_allocator<char>>;
+}
+
+/********************** FlatSetOnStack **************************/
+
+template <typename T,
+         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         typename CompareT=std::less<T>,
+         typename FallbackAllocatorT=std::allocator<T>
+         >
+using PreallocatedFlatSetT = FlatSet<T,CompareT,AllocatorOnStack<T,PreallocatedSize,alignof(std::max_align_t),FallbackAllocatorT>>;
+
+template <typename T,
+         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         typename CompareT=std::less<T>,
+         typename FallbackAllocatorT=std::allocator<T>
+         >
+class FlatSetOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>,
+                       public PreallocatedFlatSetT<T,PreallocatedSize,CompareT,FallbackAllocatorT>
+{
+public:
+
+    using ArenaHolderT=ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>;
+    using BaseT=PreallocatedFlatSetT<T,PreallocatedSize,CompareT,FallbackAllocatorT>;
+    using AllocaT=typename BaseT::allocator_type;
+
+    template <typename ...Args>
+    FlatSetOnStackT(Args&&... args) : ArenaHolderT(),
+        BaseT(std::forward<Args>(args)...,AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+    }
+
+    FlatSetOnStackT(std::initializer_list<T> elements) : ArenaHolderT(),
+        BaseT(std::move(elements),AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+    }
+
+    FlatSetOnStackT() : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+    }
+
+    ~FlatSetOnStackT()
+    {
+        this->clear();
+        this->shrinkToFit();
+    }
+
+    FlatSetOnStackT(const FlatSetOnStackT& other) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+        append(other);
+    }
+
+    FlatSetOnStackT(FlatSetOnStackT&& other) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+        append(other);
+        other.clear();
+    }
+
+    FlatSetOnStackT& operator =(const FlatSetOnStackT& other)
+    {
+        if (this==&other)
+        {
+            return *this;
+        }
+
+        this->clear();
+        append(other);
+        return *this;
+    }
+
+    FlatSetOnStackT& operator =(FlatSetOnStackT&& other)
+    {
+        if (this==&other)
+        {
+            return *this;
+        }
+
+        this->clear();
+        append(other);
+        other.clear();
+        return *this;
+    }
+
+    private:
+
+        template <typename T1>
+        void append(T1&& other)
+        {
+            this->beginRawInsert(other.size());
+            for (size_t i=0;i<other.size();i++)
+            {
+                this->rawInsert(other.at(i));
+            }
+            this->endRawInsert(false);
+        }
+};
+
+template <typename T,
+         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         typename CompareT=std::less<T>
+         >
+using FlatSetOnStack=FlatSetOnStackT<T,PreallocatedSize,CompareT>;
+
+namespace pmr
+{
+//! @todo pmr allocator with custom memory resource
+template <typename T,
+         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         typename CompareT=std::less<T>
+         >
+using FlatSetOnStack=FlatSetOnStackT<T,PreallocatedSize,CompareT,polymorphic_allocator<char>>;
 }
 
 HATN_COMMON_NAMESPACE_END
