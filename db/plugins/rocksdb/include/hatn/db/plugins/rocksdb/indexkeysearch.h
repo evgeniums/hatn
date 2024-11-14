@@ -141,27 +141,26 @@ struct Cursor
             topic(topic_),
             partition(partition)
     {
-        partialKey.append(topic);
-        partialKey.append(SeparatorCharStr);
-        partialKey.append(indexId);
+        keyPrefix.append(topic);
+        keyPrefix.append(SeparatorCharStr);
+        keyPrefix.append(indexId);
     }
 
-    size_t appendPartial(const lib::string_view& prefixKey)
+    void appendPrefix(const lib::string_view& prefixKey)
     {
-        auto offset=partialKey.size();
+        auto offset=keyPrefix.size();
         if (prefixKey.size()>offset)
         {
-            partialKey.append(prefixKey.data()+offset,prefixKey.size()-offset);
+            keyPrefix.append(prefixKey.data()+offset,prefixKey.size()-offset);
         }
-        return offset;
     }
 
-    void restorePartial(size_t prevSize)
+    void restorePrefix(size_t prevSize)
     {
-        partialKey.resize(prevSize);
+        keyPrefix.resize(prevSize);
     }
 
-    KeyBuf partialKey;
+    KeyBuf keyPrefix;
     size_t pos;
     lib::string_view topic;
 

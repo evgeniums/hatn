@@ -245,22 +245,25 @@ Error iterateFieldVariant(
     )
 {
     size_t pos=cursor.pos;
+    bool lastField=pos==idxQuery.query.fields().size();
+
+    KeyBuf fromBuf;
+    KeyBuf toBuf;
+    Error ec;
+    bool lastKey=false;
+    bool seekExactPrefix=false;
+    ROCKSDB_NAMESPACE::Slice fromS;
+    ROCKSDB_NAMESPACE::Slice toS;
 
     // prepare read options
     ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
     readOptions.snapshot=snapshot;
     bool iterateForward=field.order==query::Order::Asc;
-
-    KeyBuf fromBuf;
-    KeyBuf toBuf;
-
-    ROCKSDB_NAMESPACE::Slice fromS;    
-    ROCKSDB_NAMESPACE::Slice toS;
     switch(field.op)
     {
         case (query::Operator::gt):
         {
-            fromBuf.append(cursor.partialKey);
+            fromBuf.append(cursor.keyPrefix);
             fromBuf.append(SeparatorCharStr);
             fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
@@ -269,7 +272,7 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::gte):
         {
-            fromBuf.append(cursor.partialKey);
+            fromBuf.append(cursor.keyPrefix);
             fromBuf.append(SeparatorCharStr);
             fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
@@ -278,7 +281,7 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::lt):
         {
-            toBuf.append(cursor.partialKey);
+            toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
@@ -287,7 +290,7 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::lte):
         {
-            toBuf.append(cursor.partialKey);
+            toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
@@ -296,22 +299,24 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::eq):
         {
-            fromBuf.append(cursor.partialKey);
+            fromBuf.append(cursor.keyPrefix);
             fromBuf.append(SeparatorCharStr);
             fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
 
-            toBuf.append(cursor.partialKey);
+            toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
+
+            seekExactPrefix=true;
         }
         break;
         case (query::Operator::in):
         {
-            fromBuf.append(cursor.partialKey);
+            fromBuf.append(cursor.keyPrefix);
             fromBuf.append(SeparatorCharStr);
             if (field.value.fromIntervalType()==query::IntervalType::Open)
             {
@@ -324,7 +329,7 @@ Error iterateFieldVariant(
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
 
-            toBuf.append(cursor.partialKey);
+            toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};
             if (field.value.toIntervalType()==query::IntervalType::Open)
@@ -337,6 +342,8 @@ Error iterateFieldVariant(
             }
             toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
             readOptions.iterate_upper_bound=&toS;
+
+            seekExactPrefix=true;
         }
         break;
 
@@ -347,66 +354,120 @@ Error iterateFieldVariant(
         break;
     }
 
-    // create iterator
-    std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(readOptions,cursor.partition->indexCf.get())};
-
-    // set start position of the iterator
-    if (iterateForward)
+    auto offset=cursor.keyPrefix.size();
+    while (!lastKey)
     {
-        it->SeekToFirst();
-    }
-    else
-    {
-        it->SeekToLast();
-    }
+        // create iterator
+        std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(readOptions,cursor.partition->indexCf.get())};
 
-    // iterate
-    Error ec;
-    while (it->Valid())
-    {
-        auto key=it->key();
-        auto keyValue=it->value();
-
-        // check if key must be filtered
-        if (!TtlMark::isExpired(keyValue) && !filterIndex(idxQuery,pos,key,keyValue))
-        {
-            // construct key prefix
-            auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);
-            auto offset=cursor.appendPartial(currentKey);
-
-            // call result callback for finally assembled key
-            if (pos==idxQuery.query.fields().size())
-            {
-                if (!keyCallback(cursor.partition,cursor.topic,&key,&keyValue,ec))
-                {
-                    return ec;
-                }
-            }
-            else
-            {
-                auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
-                HATN_CHECK_EC(ec)
-            }
-
-            // restore cursor
-            cursor.restorePartial(offset);
-        }
-
-        // get the next/prev key
+        // set start position of the iterator
         if (iterateForward)
         {
-            it->Next();
+            it->SeekToFirst();
         }
         else
         {
-            it->Prev();
+            it->SeekToLast();
         }
-    }
-    // check iterator status
-    if (!it->status().ok())
-    {
-        HATN_CTX_SCOPE_ERROR("index-find")
-        return makeError(DbError::READ_FAILED,it->status());
+
+        // iterate
+        while (it->Valid())
+        {
+            auto key=it->key();
+            auto keyValue=it->value();
+
+            // check if key must be filtered
+            bool keyFiltered=TtlMark::isExpired(keyValue) || filterIndex(idxQuery,pos,key,keyValue);
+            if (!keyFiltered)
+            {
+                // construct key prefix
+                auto currentKeyPrefix=IndexKey::keyPrefix(lib::toStringView(key),pos);
+                cursor.appendPrefix(currentKeyPrefix);
+
+                // call result callback for finally assembled key
+                if (lastField)
+                {
+                    if (!keyCallback(cursor.partition,cursor.topic,&key,&keyValue,ec))
+                    {
+                        return ec;
+                    }
+                }
+                else
+                {
+                    // process next field
+                    ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+                }
+                HATN_CHECK_EC(ec)
+
+                // if exact prefix then no more iteration needed
+                lastKey=seekExactPrefix;
+            }
+
+            // continue iteration
+            if (!lastKey)
+            {
+                // get the next/prev key
+                if (iterateForward)
+                {
+                    it->Next();
+                }
+                else
+                {
+                    it->Prev();
+                }
+                lastKey=!it->Valid();
+
+                // if this is not a final key field (i.e., lastField) then avoid iterating over repeated keys and go to seek for the next key prefix
+                if (!lastKey && !lastField && !keyFiltered)
+                {
+                    // check if key prefix is repeated at least twice
+                    auto nextKeyPrefix=IndexKey::keyPrefix(lib::toStringView(it->key()),pos);
+                    if (nextKeyPrefix==std::string_view{cursor.keyPrefix})
+                    {
+                        // next key prefix is the same as current key prefix, i.e. the prefix repeats at least twice
+                        // thus, invoke a new seek excluding current key prefix
+                        if (iterateForward)
+                        {
+                            fromBuf.clear();
+                            fromBuf.append(cursor.keyPrefix);
+                            fromBuf.append(SeparatorCharPlusStr);
+                            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+                            readOptions.iterate_lower_bound=&fromS;
+                        }
+                        else
+                        {
+                            toBuf.clear();
+                            toBuf.append(cursor.keyPrefix);
+                            toBuf.append(SeparatorCharStr);
+                            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+                            readOptions.iterate_upper_bound=&toS;
+                        }
+
+                        // restore key prefix in cursor
+                        if (!keyFiltered)
+                        {
+                            cursor.restorePrefix(offset);
+                        }
+
+                        // break iteration in "while (it->Valid())" and go to next seek in "while (!lastKey)"
+                        break;
+                    }
+                }
+            }
+
+            // restore key prefix in cursor
+            if (!keyFiltered)
+            {
+                cursor.restorePrefix(offset);
+            }
+        }
+
+        // check iterator status
+        if (!it->status().ok())
+        {
+            HATN_CTX_SCOPE_ERROR("index-find")
+            return makeError(DbError::READ_FAILED,it->status());
+        }
     }
 
     // done
@@ -432,8 +493,8 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     if (cursor.pos<idxQuery.query.fields().size() && idxQuery.query.field(cursor.pos).matchScalarOp(queryField))
     {
         // append field to cursor
-        cursor.partialKey.append(SeparatorCharStr);
-        fieldValueToBuf(cursor.partialKey,queryField);
+        cursor.keyPrefix.append(SeparatorCharStr);
+        fieldValueToBuf(cursor.keyPrefix,queryField);
 
         // go to next field
         return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
