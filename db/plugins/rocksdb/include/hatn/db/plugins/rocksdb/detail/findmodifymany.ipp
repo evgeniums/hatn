@@ -27,7 +27,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
 #include <hatn/db/indexquery.h>
@@ -87,10 +87,10 @@ Error FindModifyManyT::operator ()(
         // process all topics
         for (const auto& topic: idxQuery.query.topics())
         {
-            HATN_CTX_SCOPE_PUSH("topic",topic)
+            HATN_CTX_SCOPE_PUSH("topic",topic.topic())
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
+            index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
             auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

@@ -54,22 +54,22 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     static typename unitT::type sample;
 
     rdbModel->createObject=[model,allocatorFactory]
-        (RocksdbHandler& handler, const Namespace& ns, const dataunit::Unit* object, Transaction* tx)
+        (RocksdbHandler& handler, const Topic& topic, const dataunit::Unit* object, Transaction* tx)
     {
         const auto* obj=sample.castToUnit(object);
-        return CreateObject(model->model,handler,ns,obj,allocatorFactory,tx);
+        return CreateObject(model->model,handler,topic,obj,allocatorFactory,tx);
     };
 
     rdbModel->readObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             Transaction* tx,
             bool forUpdate
         )
     {
-        auto r=ReadObject(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
+        auto r=ReadObject(model->model,handler,topic,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
         if (r)
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -80,14 +80,14 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->readObjectWithDate=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx,
             bool forUpdate
         )
     {
-        auto r=ReadObject(model->model,handler,ns,objectId,date,allocatorFactory,tx,forUpdate);
+        auto r=ReadObject(model->model,handler,topic,objectId,date,allocatorFactory,tx,forUpdate);
         if (r)
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -108,24 +108,24 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->deleteObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             Transaction* tx
         )
     {
-        return DeleteObject(model->model,handler,ns,objectId,hana::false_c,allocatorFactory,tx);
+        return DeleteObject(model->model,handler,topic,objectId,hana::false_c,allocatorFactory,tx);
     };
 
     rdbModel->deleteObjectWithDate=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx
         )
     {
-        return DeleteObject(model->model,handler,ns,objectId,date,allocatorFactory,tx);
+        return DeleteObject(model->model,handler,topic,objectId,date,allocatorFactory,tx);
     };
 
     rdbModel->deleteMany=[model,allocatorFactory]
@@ -141,7 +141,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->updateObjectWithDate=[model,allocatorFactory]
         (
              RocksdbHandler& handler,
-             const Namespace& ns,
+             const Topic& topic,
              const ObjectId& objectId,
              const update::Request& request,
              const HATN_COMMON_NAMESPACE::Date& date,
@@ -149,7 +149,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
              Transaction* tx
         )
     {
-        auto r=UpdateObject(model->model,handler,ns,objectId,request,date,modifyReturn,allocatorFactory,tx);
+        auto r=UpdateObject(model->model,handler,topic,objectId,request,date,modifyReturn,allocatorFactory,tx);
         if (r)
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -160,14 +160,14 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->updateObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const update::Request& request,
             db::update::ModifyReturn modifyReturn,
             Transaction* tx
             )
     {
-        auto r=UpdateObject(model->model,handler,ns,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
+        auto r=UpdateObject(model->model,handler,topic,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
         if (r)
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
@@ -195,7 +195,6 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->readUpdateCreate=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Namespace& ns,
             const ModelIndexQuery& query,
             const update::Request& request,
             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
@@ -220,8 +219,13 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         }
 
         // create if not found
+        Topic topic;
+        if (!query.query.topics().empty())
+        {
+            topic=query.query.topics().at(0);
+        }
         const auto* obj=sample.castToUnit(object.get());
-        auto&& ec=CreateObject(model->model,handler,ns,obj,allocatorFactory,tx);
+        auto&& ec=CreateObject(model->model,handler,topic,obj,allocatorFactory,tx);
         if (ec)
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(ec)};

@@ -25,7 +25,6 @@
 
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
-#include <hatn/db/namespace.h>
 #include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>

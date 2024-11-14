@@ -36,7 +36,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
 #include <hatn/db/schema.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/indexquery.h>
 #include <hatn/db/update.h>
 #include <hatn/db/transaction.h>
@@ -186,7 +186,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
 
         template <typename ModelT>
-        Error create(const Namespace& ns,
+        Error create(const Topic& topic,
                      const std::shared_ptr<ModelT>& model,
                      dataunit::Unit* object,
                      Transaction* tx=nullptr
@@ -195,7 +195,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbcreate")
             if (m_opened)
             {
-                return doCreate(ns,*model->info,object,tx);
+                return doCreate(topic,*model->info,object,tx);
             }
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
@@ -223,7 +223,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> read(const Namespace& ns,
+        Result<typename ModelT::SharedPtr> read(const Topic& topic,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
                                                 Transaction* tx=nullptr,
@@ -233,7 +233,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbread")
             if (m_opened)
             {
-                return afterRead(model,doRead(ns,*model->info,id,tx,forUpdate),tpFilter);
+                return afterRead(model,doRead(topic,*model->info,id,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -241,7 +241,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> read(const Namespace& ns,
+        Result<typename ModelT::SharedPtr> read(const Topic& topic,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
                                                 const common::Date& date,
@@ -252,7 +252,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreaddate")
             if (m_opened)
             {
-                afterRead(model,doRead(ns,*model->info,id,date,tx,forUpdate),tpFilter);
+                afterRead(model,doRead(topic,*model->info,id,date,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -260,7 +260,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error update(const Namespace& ns,
+        Error update(const Topic& topic,
                        const std::shared_ptr<ModelT>& model,
                        const update::Request& request,
                        const ObjectId& id,
@@ -270,7 +270,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdatedate")
             if (m_opened)
             {
-                return doUpdateObject(ns,*model->info,request,id,date,tx);
+                return doUpdateObject(topic,*model->info,request,id,date,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -278,7 +278,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error update(const Namespace& ns,
+        Error update(const Topic& topic,
                      const std::shared_ptr<ModelT>& model,
                      const update::Request& request,
                      const ObjectId& id,
@@ -287,7 +287,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbupdate")
             if (m_opened)
             {
-                return doUpdateObject(ns,*model->info,request,id,tx);
+                return doUpdateObject(topic,*model->info,request,id,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -295,7 +295,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> readUpdate(const Namespace& ns,
+        Result<typename ModelT::SharedPtr> readUpdate(const Topic& topic,
                            const std::shared_ptr<ModelT>& model,
                            const update::Request& request,
                            const ObjectId& id,
@@ -307,7 +307,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatedate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(ns,*model->info,request,id,date,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,request,id,date,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -315,7 +315,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> readUpdate(const Namespace& ns,
+        Result<typename ModelT::SharedPtr> readUpdate(const Topic& topic,
                                                       const std::shared_ptr<ModelT>& model,
                                                       const update::Request& request,
                                                       const ObjectId& id,
@@ -326,7 +326,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(ns,*model->info,request,id,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,request,id,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -335,7 +335,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
 
         template <typename ModelT>
-        Error deleteObject(const Namespace& ns,
+        Error deleteObject(const Topic& topic,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
                             const common::Date& date,
@@ -344,7 +344,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbdelete")
             if (m_opened)
             {
-                return doDeleteObject(ns,*model->info,id,date,tx);
+                return doDeleteObject(topic,*model->info,id,date,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -352,7 +352,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error deleteObject(const Namespace& ns,
+        Error deleteObject(const Topic& topic,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
                             Transaction* tx=nullptr)
@@ -360,7 +360,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbdelete")
             if (m_opened)
             {
-                return doDeleteObject(ns,*model->info,id,tx);
+                return doDeleteObject(topic,*model->info,id,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -369,7 +369,6 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT, typename IndexT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
-            const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
             const Query<IndexT>& query,
             bool single=false
@@ -380,7 +379,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                auto r=doFind(ns,*model->info,q,single);
+                auto r=doFind(*model->info,q,single);
                 HATN_CHECK_RESULT(r)
                 if (!query.hasFilterTimePoints())
                 {
@@ -405,13 +404,12 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT, typename IndexT>
         Result<typename ModelT::SharedPtr> findOne(
-            const Namespace& ns,
             const std::shared_ptr<ModelT>& model,
             const Query<IndexT>& query
             )
         {
             HATN_CTX_SCOPE("dbfindone")
-            auto r=find(ns,model,query,true);
+            auto r=find(model,query,true);
             HATN_CHECK_RESULT(r)
             if (r->empty())
             {
@@ -422,7 +420,6 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT, typename QueryT>
         Error deleteMany(
-                const Namespace& ns,
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
                 Transaction* tx=nullptr
@@ -432,7 +429,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             if (m_opened)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return doDeleteMany(ns,*model->info,q,tx);
+                return doDeleteMany(*model->info,q,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -441,7 +438,6 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT, typename QueryT>
         Error updateMany(
-                const Namespace& ns,
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
                 const update::Request& request,
@@ -452,7 +448,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             if (m_opened)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return doUpdateMany(ns,*model->info,q,request,tx);
+                return doUpdateMany(*model->info,q,request,tx);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -460,7 +456,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT, typename QueryT>
-        Result<typename ModelT::SharedPtr> readUpdateCreate(const Namespace& ns,
+        Result<typename ModelT::SharedPtr> readUpdateCreate(
                                                       const std::shared_ptr<ModelT>& model,
                                                       const QueryT& query,
                                                       const update::Request& request,
@@ -473,7 +469,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 //! @todo doReadUpdateCreate single
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return afterRead(model,doReadUpdateCreate(ns,*model->info,q,request,object,returnType,tx),TimePointFilter{});
+                return afterRead(model,doReadUpdateCreate(*model->info,q,request,object,returnType,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -501,15 +497,15 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
 
-        virtual Error doCreate(const Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
+        virtual Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
                                                                  const ModelInfo& model,
                                                                  const ObjectId& id,
                                                                  Transaction* tx,
                                                                  bool forUpdate
         )=0;
-        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+        virtual Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
                                                                  const ModelInfo& model,
                                                                  const ObjectId& id,
                                                                  const common::Date& date,
@@ -517,31 +513,31 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                                  bool forUpdate
                                                                  )=0;
 
-        virtual Error doDeleteObject(const Namespace& ns,
+        virtual Error doDeleteObject(const Topic& topic,
                            const ModelInfo& model,
                            const ObjectId& id,
                            const common::Date& date,
                            Transaction* tx)=0;
 
-        virtual Error doDeleteObject(const Namespace& ns,
+        virtual Error doDeleteObject(const Topic& topic,
                                      const ModelInfo& model,
                                      const ObjectId& id,
                                      Transaction* tx)=0;
 
-        virtual Error doUpdateObject(const Namespace& ns,
+        virtual Error doUpdateObject(const Topic& topic,
                              const ModelInfo& model,
                              const update::Request& request,
                              const ObjectId& id,
                              const common::Date& date,
                              Transaction* tx)=0;
 
-        virtual Error doUpdateObject(const Namespace& ns,
+        virtual Error doUpdateObject(const Topic& topic,
                                const ModelInfo& model,
                                const update::Request& request,
                                const ObjectId& id,
                                Transaction* tx)=0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                      const ModelInfo& model,
                                      const update::Request& request,
                                      const ObjectId& id,
@@ -549,7 +545,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                      update::ModifyReturn returnType,
                                      Transaction* tx)=0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const update::Request& request,
                                                                        const ObjectId& id,
@@ -557,21 +553,19 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                                        Transaction* tx)=0;
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             bool single
         ) =0;
 
         virtual Error doUpdateMany(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             const update::Request& request,
             Transaction* tx
         ) =0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(const Namespace& ns,
+        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(
                                                             const ModelInfo& model,
                                                             const ModelIndexQuery& query,
                                                             const update::Request& request,
@@ -580,7 +574,6 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                             Transaction* tx)=0;
 
         virtual Error doDeleteMany(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             Transaction* tx

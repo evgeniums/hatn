@@ -22,7 +22,6 @@
 #include <rocksdb/db.h>
 #include <rocksdb/merge_operator.h>
 
-#include <hatn/db/namespace.h>
 #include <hatn/db/objectid.h>
 #include <hatn/db/dberror.h>
 

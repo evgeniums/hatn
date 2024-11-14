@@ -25,7 +25,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/update.h>
 #include <hatn/db/ipp/updateunit.ipp>
 
@@ -51,7 +51,7 @@ struct UpdateObjectT
     template <typename ModelT, typename DateT>
     Result<typename ModelT::SharedPtr> operator ()(const ModelT& model,
                                                   RocksdbHandler& handler,
-                                                  const Namespace& ns,
+                                                  const Topic& topic,
                                                   const ObjectId& objectId,
                                                   const update::Request& request,
                                                   const DateT& date,
@@ -258,7 +258,7 @@ template <typename ModelT, typename DateT>
 Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const Namespace& ns,
+        const Topic& topic,
         const ObjectId& objectId,
         const update::Request& request,
         const DateT& date,
@@ -269,7 +269,7 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
 {
     HATN_CTX_SCOPE("rocksdbupdateobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
-    HATN_CTX_SCOPE_PUSH("topic",ns.topic())
+    HATN_CTX_SCOPE_PUSH("topic",topic.topic())
     auto idData=objectId.toArray();
     auto idDataStr=lib::string_view{idData.data(),idData.size()};
     HATN_CTX_SCOPE_PUSH("object",idDataStr)
@@ -285,11 +285,11 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
     // construct key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS);
+    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),topic.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
 
     // do
-    auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),ns.topic(),request,modifyReturn,factory,intx);
+    auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),topic.topic(),request,modifyReturn,factory,intx);
     return r;
 }
 

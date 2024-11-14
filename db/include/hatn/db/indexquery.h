@@ -28,6 +28,7 @@
 #include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/db/db.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
 #include <hatn/db/query.h>
@@ -53,7 +54,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
                 const lib::string_view& topic,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
             ) : m_index(index),
-                m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
+                m_topics({topic},factory->dataAllocator<Topic>()),
                 m_fields(factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
         {}
@@ -64,7 +65,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
                 std::initializer_list<query::Field> list,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
             ) : m_index(index),
-                m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
+                m_topics({topic},factory->dataAllocator<Topic>()),
                 m_fields(std::move(list),factory->dataAllocator<query::Field>()),
                 m_limit(DefaultLimit)
         {
@@ -77,7 +78,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
                 common::pmr::vector<query::Field> fields,
                 common::pmr::AllocatorFactory* factory=defaultAllocatorFactory()
             ) : m_index(index),
-                m_topics({Topic{topic,factory->bytesAllocator()}},factory->dataAllocator<Topic>()),
+                m_topics({topic},factory->dataAllocator<Topic>()),
                 m_fields(std::move(fields)),
                 m_limit(DefaultLimit)
         {

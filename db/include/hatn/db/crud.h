@@ -25,7 +25,7 @@
 #include <hatn/common/objectid.h>
 
 #include <hatn/db/db.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 
 HATN_DB_NAMESPACE_BEGIN
 

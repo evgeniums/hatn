@@ -24,7 +24,6 @@
 #include <hatn/common/datetime.h>
 
 #include <hatn/db/objectid.h>
-#include <hatn/db/namespace.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>

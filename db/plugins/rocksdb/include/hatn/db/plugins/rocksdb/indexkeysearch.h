@@ -30,7 +30,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
 #include <hatn/db/query.h>
@@ -134,9 +134,8 @@ struct Cursor
 {
     Cursor(
             const lib::string_view& indexId,
-            const lib::string_view& topic_,
-            RocksdbPartition* partition,
-            common::pmr::AllocatorFactory* allocatorfactory
+            const Topic& topic_,
+            RocksdbPartition* partition
         ) :
             pos(0),
             topic(topic_),

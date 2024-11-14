@@ -31,7 +31,6 @@
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
-#include <hatn/db/namespace.h>
 
 HATN_DB_NAMESPACE_BEGIN
 

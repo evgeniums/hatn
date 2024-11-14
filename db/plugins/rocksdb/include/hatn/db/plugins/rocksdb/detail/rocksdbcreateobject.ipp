@@ -27,7 +27,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
@@ -48,7 +48,7 @@ struct CreateObjectT
     template <typename ModelT>
     Error operator ()(const ModelT& model,
                      RocksdbHandler& handler,
-                     const Namespace& ns,
+                     const Topic& topic,
                      const typename ModelT::UnitType::type* obj,
                      AllocatorFactory* allocatorFactory,
                      Transaction* tx
@@ -60,7 +60,7 @@ template <typename ModelT>
 Error CreateObjectT::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
-                               const Namespace& ns,
+                               const Topic& topic,
                                const typename ModelT::UnitType::type* obj,
                                AllocatorFactory* allocatorFactory,
                                Transaction* tx
@@ -70,7 +70,7 @@ Error CreateObjectT::operator ()(
 
     HATN_CTX_SCOPE("rocksdbcreateobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
-    HATN_CTX_SCOPE_PUSH("topic",ns.topic())
+    HATN_CTX_SCOPE_PUSH("topic",topic.topic())
 
     if (handler.readOnly())
     {
@@ -103,7 +103,7 @@ Error CreateObjectT::operator ()(
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
-        auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS,objectCreatedAt,ttlMark);
+        auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,objectCreatedAt,ttlMark);
         auto objectKeySlices=Keys::objectKeySlices(objectKeyFull);
         auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
         HATN_CHECK_EC(ec)
@@ -111,7 +111,7 @@ Error CreateObjectT::operator ()(
         // put indexes to transaction
         auto indexValueSlices=Keys::indexValueSlices(objectKeyFull);
         Indexes indexes{partition->indexCf.get(),keys};
-        ec=indexes.saveIndexes(rdbTx,model,ns,objectIdS,indexValueSlices,obj);
+        ec=indexes.saveIndexes(rdbTx,model,topic,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction

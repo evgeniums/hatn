@@ -126,13 +126,13 @@ BOOST_AUTO_TEST_CASE(OneLevel)
     {
         setSchemaToClient(client,s1);
 
-        Namespace ns{"topic1"};
+        Topic topic{"topic1"};
 
         auto o1=makeInitObject<u1_bool::type>();
         BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
 
         // create object
-        auto ec=client->create(ns,m1_bool(),&o1);
+        auto ec=client->create(topic,m1_bool(),&o1);
         if (ec)
         {
             BOOST_TEST_MESSAGE(ec.message());

@@ -23,7 +23,6 @@
 
 #include <hatn/logcontext/contextlogger.h>
 
-#include <hatn/db/namespace.h>
 #include <hatn/db/objectid.h>
 #include <hatn/db/dberror.h>
 

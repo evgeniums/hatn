@@ -30,7 +30,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
 #include <hatn/db/query.h>
@@ -832,10 +832,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         // process all topics
         for (const auto& topic: idxQuery.query.topics())
         {
-            HATN_CTX_SCOPE_PUSH("topic",topic)
+            HATN_CTX_SCOPE_PUSH("topic",topic.topic())
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
-            Cursor cursor(idxQuery.modelIndexId,topic,partition.get(),allocatorFactory);
+            Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
             auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
             HATN_CHECK_EC(ec)
 

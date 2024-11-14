@@ -507,7 +507,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
+Error RocksdbClient::doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbcreate")
 
@@ -516,12 +516,12 @@ Error RocksdbClient::doCreate(const db::Namespace& ns, const ModelInfo& model, d
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->createObject(*d->handler,ns,object,tx);
+    return rdbModel->createObject(*d->handler,topic,object,tx);
 }
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns,
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 Transaction* tx,
@@ -535,12 +535,12 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readObject(*d->handler,ns,id,tx,forUpdate);
+    return rdbModel->readObject(*d->handler,topic,id,tx,forUpdate);
 }
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace &ns,
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 const common::Date& date,
@@ -555,12 +555,12 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Namespace 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readObjectWithDate(*d->handler,ns,id,date,tx,forUpdate);
+    return rdbModel->readObjectWithDate(*d->handler,topic,id,date,tx,forUpdate);
 }
 
 //---------------------------------------------------------------
 
-Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(const Namespace &,
+Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(
                                                                               const ModelInfo &model,
                                                                               const ModelIndexQuery &query,
                                                                               bool single
@@ -579,7 +579,7 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(co
 //---------------------------------------------------------------
 
 Error RocksdbClient::doDeleteObject(
-        const Namespace &ns,
+        const Topic& topic,
         const ModelInfo &model,
         const ObjectId &id,
         const common::Date& date,
@@ -593,13 +593,13 @@ Error RocksdbClient::doDeleteObject(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteObjectWithDate(*d->handler,ns,id,date,tx);
+    return rdbModel->deleteObjectWithDate(*d->handler,topic,id,date,tx);
 }
 
 //---------------------------------------------------------------
 
 Error RocksdbClient::doDeleteObject(
-        const Namespace &ns,
+        const Topic& topic,
         const ModelInfo &model,
         const ObjectId &id,
         Transaction* tx
@@ -612,7 +612,7 @@ Error RocksdbClient::doDeleteObject(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteObject(*d->handler,ns,id,tx);
+    return rdbModel->deleteObject(*d->handler,topic,id,tx);
 }
 
 //---------------------------------------------------------------
@@ -624,7 +624,7 @@ Error RocksdbClient::doTransaction(const TransactionFn &fn)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doDeleteMany(const Namespace &,
+Error RocksdbClient::doDeleteMany(
                                   const ModelInfo &model,
                                   const ModelIndexQuery &query,
                                   Transaction* tx)
@@ -641,7 +641,7 @@ Error RocksdbClient::doDeleteMany(const Namespace &,
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Namespace &ns,
+Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const ModelInfo &model,
                                     const update::Request &request,
                                     const ObjectId &id,
@@ -655,7 +655,7 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObjectWithDate(*d->handler,ns,id,request,date,db::update::ModifyReturn::None,tx);
+    auto r=rdbModel->updateObjectWithDate(*d->handler,topic,id,request,date,db::update::ModifyReturn::None,tx);
     if (r)
     {
         return r.takeError();
@@ -665,7 +665,7 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Namespace &ns,
+Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const ModelInfo &model,
                                     const update::Request &request,
                                     const ObjectId &id,
@@ -678,7 +678,7 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObject(*d->handler,ns,id,request,db::update::ModifyReturn::None,tx);
+    auto r=rdbModel->updateObject(*d->handler,topic,id,request,db::update::ModifyReturn::None,tx);
     if (r)
     {
         return r.takeError();
@@ -688,7 +688,7 @@ Error RocksdbClient::doUpdateObject(const Namespace &ns,
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateMany(const Namespace &,
+Error RocksdbClient::doUpdateMany(
                                   const ModelInfo &model,
                                   const ModelIndexQuery &query,
                                   const update::Request& request,
@@ -711,7 +711,7 @@ Error RocksdbClient::doUpdateMany(const Namespace &,
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Namespace &ns,
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
                                     const ModelInfo &model,
                                     const update::Request &request,
                                     const ObjectId &id,
@@ -726,7 +726,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObjectWithDate(*d->handler,ns,id,request,date,returnType,tx);
+    auto r=rdbModel->updateObjectWithDate(*d->handler,topic,id,request,date,returnType,tx);
     HATN_CHECK_RESULT(r)
     if (r.value().isNull())
     {
@@ -737,7 +737,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Namespace &ns,
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
                                                                       const ModelInfo &model,
                                                                       const update::Request &request,
                                                                       const ObjectId &id,
@@ -751,7 +751,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObject(*d->handler,ns,id,request,returnType,tx);
+    auto r=rdbModel->updateObject(*d->handler,topic,id,request,returnType,tx);
     HATN_CHECK_RESULT(r)
     if (r.value().isNull())
     {
@@ -762,7 +762,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Name
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(const Namespace& ns,
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(
                                                                             const ModelInfo& model,
                                                                             const ModelIndexQuery& query,
                                                                             const update::Request& request,
@@ -777,7 +777,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(cons
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readUpdateCreate(*d->handler,ns,query,request,object,returnType,tx);
+    return rdbModel->readUpdateCreate(*d->handler,query,request,object,returnType,tx);
 }
 
 //---------------------------------------------------------------

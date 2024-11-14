@@ -27,7 +27,6 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/db/dberror.h>
-#include <hatn/db/namespace.h>
 #include <hatn/db/transaction.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>

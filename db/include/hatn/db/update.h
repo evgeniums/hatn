@@ -28,7 +28,6 @@
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
-#include <hatn/db/namespace.h>
 #include <hatn/db/query.h>
 
 HATN_DB_NAMESPACE_BEGIN

@@ -24,7 +24,7 @@
 
 #include <hatn/dataunit/unit.h>
 
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/model.h>
 #include <hatn/db/indexquery.h>
 #include <hatn/db/transaction.h>
@@ -51,14 +51,14 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const dataunit::Unit* object,
             Transaction* tx
             )> createObject;
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             Transaction* tx,
             bool forUpdate
@@ -66,7 +66,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx,
@@ -81,13 +81,13 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             Transaction* tx)> deleteObject;
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx
@@ -101,7 +101,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
              RocksdbHandler& handler,
-             const Namespace& ns,
+             const Topic& topic,
              const ObjectId& objectId,
              const update::Request& request,
              const HATN_COMMON_NAMESPACE::Date& date,
@@ -111,7 +111,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
-            const Namespace& ns,
+            const Topic& topic,
             const ObjectId& objectId,
             const update::Request& request,
             db::update::ModifyReturn modifyReturn,
@@ -128,7 +128,6 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
             RocksdbHandler& handler,
-            const Namespace& ns,
             const ModelIndexQuery& query,
             const update::Request& request,
             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,

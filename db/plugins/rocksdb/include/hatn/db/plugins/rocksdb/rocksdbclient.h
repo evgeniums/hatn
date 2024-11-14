@@ -58,15 +58,15 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
         Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
 
-        Error doCreate(const db::Namespace& ns, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
+        Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          Transaction* tx,
                                                          bool forUpdate
                                                          ) override;
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Namespace& ns,
+        Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          const common::Date& date,
@@ -75,25 +75,23 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                          ) override;
 
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             bool single
         ) override;
 
-        Error doDeleteObject(const Namespace& ns,
+        Error doDeleteObject(const Topic& topic,
                              const ModelInfo& model,
                              const ObjectId& id,
                              const common::Date& date,
                              Transaction* tx) override;
 
-        Error doDeleteObject(const Namespace& ns,
+        Error doDeleteObject(const Topic& topic,
                              const ModelInfo& model,
                              const ObjectId& id,
                              Transaction* tx) override;
 
         Error doDeleteMany(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             Transaction* tx
@@ -101,20 +99,20 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doTransaction(const TransactionFn& fn) override;
 
-        Error doUpdateObject(const Namespace& ns,
+        Error doUpdateObject(const Topic& topic,
                        const ModelInfo& model,
                        const update::Request& request,
                        const ObjectId& id,
                        const common::Date& date,
                        Transaction* tx) override;
 
-        Error doUpdateObject(const Namespace& ns,
+        Error doUpdateObject(const Topic& topic,
                        const ModelInfo& model,
                        const update::Request& request,
                        const ObjectId& id,
                        Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const update::Request& request,
                                                                        const ObjectId& id,
@@ -122,7 +120,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Namespace& ns,
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const update::Request& request,
                                                                        const ObjectId& id,
@@ -130,14 +128,13 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        Transaction* tx) override;
 
         Error doUpdateMany(
-            const Namespace& ns,
             const ModelInfo& model,
             const ModelIndexQuery& query,
             const update::Request& request,
             Transaction* tx
         ) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(const Namespace& ns,
+        Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(
                                                                      const ModelInfo& model,
                                                                      const ModelIndexQuery& query,
                                                                      const update::Request& request,

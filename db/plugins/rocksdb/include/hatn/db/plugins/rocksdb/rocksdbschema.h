@@ -26,7 +26,6 @@
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
-#include <hatn/db/namespace.h>
 #include <hatn/db/model.h>
 #include <hatn/db/schema.h>
 

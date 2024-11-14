@@ -29,7 +29,7 @@
 
 #include <hatn/logcontext/contextlogger.h>
 
-#include <hatn/db/namespace.h>
+#include <hatn/db/topic.h>
 #include <hatn/db/objectid.h>
 #include <hatn/db/dberror.h>
 #include <hatn/db/update.h>
@@ -57,7 +57,7 @@ class Indexes
         Error saveIndex(
             const IndexT& idx,
             ROCKSDB_NAMESPACE::Transaction* tx,
-            const Namespace& ns,
+            const Topic& topic,
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const ROCKSDB_NAMESPACE::SliceParts& indexValue,
             UnitT* object,
@@ -67,7 +67,7 @@ class Indexes
             HATN_CTX_SCOPE("saveindex")
 
             // make and handle key
-            return m_keys.makeIndexKey(ns.topic(),objectId,object,idx,
+            return m_keys.makeIndexKey(topic,objectId,object,idx,
                 [&](auto&& key){
                     auto ec=SaveSingleIndex(key,idx.unique(),m_cf,tx,indexValue,replace);
                     if (ec)
@@ -82,7 +82,7 @@ class Indexes
         Error saveIndexes(
                 ROCKSDB_NAMESPACE::Transaction* tx,
                 const ModelT& model,
-                const Namespace& ns,
+                const Topic& topic,
                 const ROCKSDB_NAMESPACE::Slice& objectId,
                 const ROCKSDB_NAMESPACE::SliceParts& indexValue,
                 UnitT* object,
@@ -94,7 +94,7 @@ class Indexes
             auto self=this;
             auto eachIndex=[&,self](auto&& idx, auto&&)
             {
-                return self->saveIndex(idx,tx,ns,objectId,indexValue,object,replace);
+                return self->saveIndex(idx,tx,topic,objectId,indexValue,object,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

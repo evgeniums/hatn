@@ -108,8 +108,8 @@ BOOST_AUTO_TEST_CASE(Simple1)
         std::ignore=plugin;
         setSchemaToClient(client,s1);
 
-        Namespace ns{"topic1"};
-        BOOST_CHECK_EQUAL(std::string("topic1"),std::string(ns.topic()));
+        Topic topic{"topic1"};
+        BOOST_CHECK_EQUAL(std::string("topic1"),std::string(topic.topic()));
 
         auto o1=makeInitObject<simple1::type>();
         o1.setFieldValue(simple1::f1,100);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
 
         // try to read unknown object
-        auto r1=client->read(ns,m1,id);
+        auto r1=client->read(topic,m1,id);
         if (r1)
         {
             BOOST_TEST_MESSAGE(fmt::format("Expected: {}",r1.error().message()));
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r1);
 
         // create object
-        auto ec=client->create(ns,m1,&o1);
+        auto ec=client->create(topic,m1,&o1);
         if (ec)
         {
             BOOST_TEST_MESSAGE(ec.message());
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_REQUIRE(!ec);
 
         // read object
-        auto r2=client->read(ns,m1,id);
+        auto r2=client->read(topic,m1,id);
         if (r2)
         {
             BOOST_TEST_MESSAGE(r2.error().message());
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         // find object
 #if 0
         auto w1=query::where(simple1::f1,query::Operator::eq,100);
-        const auto& wf1=hana::at(w1.conditions,hana::size_c<0>);
+        const auto& wf1=hana::at(w1.conditiotopic,hana::size_c<0>);
         query::Field qf1{idx4.fieldInfo(hana::at(wf1,hana::size_c<0>)),
                            hana::at(wf1,hana::size_c<1>),
                            hana::at(wf1,hana::size_c<2>),
@@ -186,23 +186,23 @@ BOOST_AUTO_TEST_CASE(Simple1)
                 );
         };
 
-        emplaceField(hana::at(w1.conditions,hana::size_c<0>));
+        emplaceField(hana::at(w1.conditiotopic,hana::size_c<0>));
 
         fs1.reserve(w1.size());
         hana::for_each(
-            w1.conditions,
+            w1.conditiotopic,
             emplaceField
         );
 
-        IndexQuery q1{idx4,ns.topic()};
+        IndexQuery q1{idx4,topic.topic()};
         query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
         q1.setField(qf1);
 #endif
-        auto q3=makeQuery(idx4(),ns.topic(),query::where(simple1::f1,query::Operator::eq,100));
-        BOOST_TEST_MESSAGE(fmt::format("topic={}",ns.topic()));
+        auto q3=makeQuery(idx4(),topic.topic(),query::where(simple1::f1,query::Operator::eq,100));
+        BOOST_TEST_MESSAGE(fmt::format("topic={}",topic.topic()));
         BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
-        BOOST_CHECK_EQUAL(q3.topics().at(0),ns.topic());
-        auto r3=client->find(ns,m1,q3);
+        BOOST_CHECK_EQUAL(q3.topics().at(0).topic(),topic.topic());
+        auto r3=client->find(m1,q3);
         if (r3)
         {
             BOOST_TEST_MESSAGE(r3.error().message());
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(o3->fieldValue(object::_id)==o1.fieldValue(object::_id));
         BOOST_CHECK(o3->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(o3->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
-        auto r3_=client->findOne(ns,m1,q3);
+        auto r3_=client->findOne(m1,q3);
         if (r3_)
         {
             BOOST_TEST_MESSAGE(r3_.error().message());
@@ -226,15 +226,15 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // try to find unknown object
-        auto q4=makeQuery(idx4(),ns.topic(),query::where(simple1::f1,query::Operator::eq,101));
-        auto r4=client->find(ns,m1,q4);
+        auto q4=makeQuery(idx4(),topic.topic(),query::where(simple1::f1,query::Operator::eq,101));
+        auto r4=client->find(m1,q4);
         if (r4)
         {
             BOOST_TEST_MESSAGE(fmt::format("Expected: {}",r4.error().message()));
         }
         BOOST_REQUIRE(!r4);
         BOOST_CHECK(r4->empty());
-        auto r4_=client->findOne(ns,m1,q4);
+        auto r4_=client->findOne(m1,q4);
         if (r4_)
         {
             BOOST_TEST_MESSAGE(r4_.error().message());
@@ -249,10 +249,10 @@ BOOST_AUTO_TEST_CASE(Simple1)
         auto update1=update::Request{
             {finf,update::Operator::set,101}
         };
-        ec=client->update(ns,m1,update1,id);
+        ec=client->update(topic,m1,update1,id);
         BOOST_REQUIRE(!ec);
         // read updated object
-        auto r5=client->read(ns,m1,id);
+        auto r5=client->read(topic,m1,id);
         if (r5)
         {
             BOOST_TEST_MESSAGE(r5.error().message());
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r5.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r5.value()->fieldValue(object::updated_at)>=o1.fieldValue(object::updated_at));
         // try to find original object
-        auto r6_=client->findOne(ns,m1,q3);
+        auto r6_=client->findOne(m1,q3);
         if (r6_)
         {
             BOOST_TEST_MESSAGE(r6_.error().message());
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_REQUIRE(!r6_);
         BOOST_CHECK(r6_.value().isNull());
         // find updated object
-        auto r6=client->findOne(ns,m1,q4);
+        auto r6=client->findOne(m1,q4);
         if (r6)
         {
             BOOST_TEST_MESSAGE(r6.error().message());
@@ -285,15 +285,15 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r6.value()->fieldValue(object::updated_at)==r5.value()->fieldValue(object::updated_at));
 
         // delete object
-        ec=client->deleteObject(ns,m1,id);
+        ec=client->deleteObject(topic,m1,id);
         BOOST_REQUIRE(!ec);
-        auto r7=client->read(ns,m1,id);
+        auto r7=client->read(topic,m1,id);
         if (r7)
         {
             BOOST_TEST_MESSAGE(fmt::format("Expected read after delete: {}",r7.error().message()));
         }
         BOOST_CHECK(r7);
-        auto r7_=client->findOne(ns,m1,q4);
+        auto r7_=client->findOne(m1,q4);
         if (r7_)
         {
             BOOST_TEST_MESSAGE(r7_.error().message());
