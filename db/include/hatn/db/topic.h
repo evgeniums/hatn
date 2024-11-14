@@ -58,32 +58,32 @@ class Topic
             return m_topic;
         }
 
-        operator < (const Topic& other) const noexcept
+        bool operator < (const Topic& other) const noexcept
         {
             return m_topic<other.m_topic;
         }
 
-        operator == (const Topic& other) const noexcept
+        bool operator == (const Topic& other) const noexcept
         {
             return m_topic==other.m_topic;
         }
 
-        operator > (const Topic& other) const noexcept
+        bool operator > (const Topic& other) const noexcept
         {
             return m_topic>other.m_topic;
         }
 
-        operator != (const Topic& other) const noexcept
+        bool operator != (const Topic& other) const noexcept
         {
             return m_topic!=other.m_topic;
         }
 
-        operator >= (const Topic& other) const noexcept
+        bool operator >= (const Topic& other) const noexcept
         {
             return m_topic>=other.m_topic;
         }
 
-        operator <= (const Topic& other) const noexcept
+        bool operator <= (const Topic& other) const noexcept
         {
             return m_topic<other.m_topic;
         }
