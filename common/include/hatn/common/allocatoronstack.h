@@ -20,8 +20,10 @@
 #include <string>
 #include <iostream>
 
-#include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/thirdparty/shortallocator/short_alloc.h>
+
+#include <hatn/common/pmr/pmrtypes.h>
+#include <hatn/common/stdwrappers.h>
 
 #include <hatn/common/common.h>
 
@@ -70,11 +72,14 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
         StringOnStackT(Args&&... args) : ArenaHolderT(),
                                          BaseT(std::forward<Args>(args)...,AllocaT{this->m_arena})
         {
+            this->reserve(PreallocatedSize);
         }
 
         StringOnStackT() : ArenaHolderT(),
                            BaseT(AllocaT{this->m_arena})
-        {}
+        {
+            this->reserve(PreallocatedSize);
+        }
 
         ~StringOnStackT()
         {
@@ -88,6 +93,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
 #ifdef HATN_CHECK_STRING_STACK_CTORS
             std::cout<<"Copy constructor StringOnStackT"<<std::endl;
 #endif
+            this->reserve(PreallocatedSize);
             this->append(other);
         }
 
@@ -97,6 +103,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
 #ifdef HATN_CHECK_STRING_STACK_CTORS
             std::cout<<"Move constructor StringOnStackT"<<std::endl;
 #endif
+            this->reserve(PreallocatedSize);
             this->append(other);
             other.clear();
         }
@@ -129,13 +136,26 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             other.clear();
             return *this;
         }
+
+        using BaseT::append;
+
+        template <typename ContiguousRange>
+        void append(const ContiguousRange& range)
+        {
+            BaseT::append(lib::string_view{range.data(),range.size()});
+        }
 };
 
 using StringOnStack=StringOnStackT<>;
 
 namespace pmr
 {
-using StringOnStack=StringOnStackT<DefaultPreallocatedStringSize,polymorphic_allocator<char>>;
+
+//! @todo pmr allocator with custom memory resource
+template <size_t PreallocatedSize=DefaultPreallocatedStringSize>
+using StringOnStackT=common::StringOnStackT<PreallocatedSize,polymorphic_allocator<char>>;
+
+using StringOnStack=StringOnStackT<DefaultPreallocatedStringSize>;
 }
 
 /********************** VectorOnStack **************************/
@@ -159,16 +179,20 @@ public:
     VectorOnStackT(Args&&... args) : ArenaHolderT(),
         BaseT(std::forward<Args>(args)...,AllocaT{this->m_arena})
     {
+        this->reserve(PreallocatedSize);
     }
 
     VectorOnStackT(std::initializer_list<T> elements) : ArenaHolderT(),
         BaseT(std::move(elements),AllocaT{this->m_arena})
     {
+        this->reserve(PreallocatedSize);
     }
 
     VectorOnStackT() : ArenaHolderT(),
         BaseT(AllocaT{this->m_arena})
-    {}
+    {
+        this->reserve(PreallocatedSize);
+    }
 
     ~VectorOnStackT()
     {
@@ -179,12 +203,14 @@ public:
     VectorOnStackT(const VectorOnStackT& other) : ArenaHolderT(),
         BaseT(AllocaT{this->m_arena})
     {
+        this->reserve(PreallocatedSize);
         this->append(other);
     }
 
     VectorOnStackT(VectorOnStackT&& other) : ArenaHolderT(),
         BaseT(AllocaT{this->m_arena})
     {
+        this->reserve(PreallocatedSize);
         this->append(other);
         other.clear();
     }
