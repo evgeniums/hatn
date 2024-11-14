@@ -57,6 +57,7 @@ IndexKey::IndexKey():partition(nullptr)
 IndexKey::IndexKey(
     ROCKSDB_NAMESPACE::Slice* k,
     ROCKSDB_NAMESPACE::Slice* v,
+    const lib::string_view& topic,
     RocksdbPartition* p,
     AllocatorFactory* allocatorFactory
     ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
@@ -65,32 +66,34 @@ IndexKey::IndexKey(
     keyParts(allocatorFactory->dataAllocator<lib::string_view>())
 {
     keyParts.reserve(8);
-    fillKeyParts();
+    fillKeyParts(topic);
 }
 
-void IndexKey::fillKeyParts()
+void IndexKey::fillKeyParts(const lib::string_view& topic)
 {
-    // split key to key parts
-    size_t offset=FieldsOffset;
-    for (size_t i=FieldsOffset;i<key.size();i++)
+    size_t offset=FieldsOffset+topic.size();
+    for (size_t i=offset;i<key.size()-ObjectId::Length;i++)
     {
         if (key[i]==SeparatorCharC)
         {
-            keyParts.push_back(ROCKSDB_NAMESPACE::Slice{key.data()+offset,i-offset});
+            auto* k=key.data();
+            auto* ptr=k+offset;
+            auto count=i-offset;
+            keyParts.emplace_back(ptr,count);
             offset=i;
         }
     }
 }
 
-lib::string_view IndexKey::keyPrefix(const lib::string_view& key, size_t pos) noexcept
+lib::string_view IndexKey::keyPrefix(const lib::string_view& key, const lib::string_view& topic, size_t pos) noexcept
 {
     size_t idx=0;
 
-    for (size_t i=FieldsOffset;i<key.size();i++)
+    for (size_t i=FieldsOffset+topic.size();i<key.size();i++)
     {
         if (key[i]==SeparatorCharC)
         {
-            if (idx==pos)
+            if (idx==(pos-1))
             {
                 return lib::string_view{key.data(),i};
             }
@@ -371,7 +374,8 @@ Error iterateFieldVariant(
         }
 
         // iterate
-        while (it->Valid())
+        lastKey=!it->Valid();
+        while (!lastKey)
         {
             auto key=it->key();
             auto keyValue=it->value();
@@ -381,7 +385,7 @@ Error iterateFieldVariant(
             if (!keyFiltered)
             {
                 // construct key prefix
-                auto currentKeyPrefix=IndexKey::keyPrefix(lib::toStringView(key),pos);
+                auto currentKeyPrefix=IndexKey::keyPrefix(lib::toStringView(key),cursor.topic,pos);
                 cursor.appendPrefix(currentKeyPrefix);
 
                 // call result callback for finally assembled key
@@ -421,7 +425,7 @@ Error iterateFieldVariant(
                 if (!lastKey && !lastField && !keyFiltered)
                 {
                     // check if key prefix is repeated at least twice
-                    auto nextKeyPrefix=IndexKey::keyPrefix(lib::toStringView(it->key()),pos);
+                    auto nextKeyPrefix=IndexKey::keyPrefix(lib::toStringView(it->key()),cursor.topic,pos);
                     if (nextKeyPrefix==std::string_view{cursor.keyPrefix})
                     {
                         // next key prefix is the same as current key prefix, i.e. the prefix repeats at least twice
@@ -792,17 +796,14 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
     auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
-                                                         const lib::string_view& /*topic*/,
+                                                         const lib::string_view& topic,
                                                          ROCKSDB_NAMESPACE::Slice* key,
                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
                                                          Error&
                                                        )
     {
-        //! @todo optimization: append presorted keys in case of first topic of first partition
-        //! or in case of first topic of each partition if partitions are ordered
-
         // insert found key
-        auto it=keys.insert(IndexKey{key,keyValue,partition,allocatorFactory});
+        auto it=keys.insert(IndexKey{key,keyValue,topic,partition,allocatorFactory});
         auto insertedIdx=it.first.index();
 
         // cut keys number to limit

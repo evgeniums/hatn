@@ -199,6 +199,9 @@ BOOST_AUTO_TEST_CASE(Simple1)
         q1.setField(qf1);
 #endif
         auto q3=makeQuery(idx4(),ns.topic(),query::where(simple1::f1,query::Operator::eq,100));
+        BOOST_TEST_MESSAGE(fmt::format("topic={}",ns.topic()));
+        BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
+        BOOST_CHECK_EQUAL(q3.topics().at(0),ns.topic());
         auto r3=client->find(ns,m1,q3);
         if (r3)
         {
