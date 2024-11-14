@@ -23,6 +23,7 @@
 
 #include <hatn/common/flatmap.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/db/db.h>
 
@@ -92,8 +93,7 @@ class Topic
         lib::string_view m_topic;        
 };
 
-//! @todo Use container on stack
-using Topics=common::pmr::FlatSet<Topic>;
+using Topics=common::FlatSetOnStack<Topic,4>;
 
 HATN_DB_NAMESPACE_END
 
