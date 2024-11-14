@@ -146,11 +146,19 @@ struct Cursor
         partialKey.append(indexId);
     }
 
-    void resetPartial(const lib::string_view& prefixKey, size_t p)
+    size_t appendPartial(const lib::string_view& prefixKey)
     {
-        partialKey.clear();
-        partialKey.append(prefixKey);
-        pos=p;
+        auto offset=partialKey.size();
+        if (prefixKey.size()>offset)
+        {
+            partialKey.append(prefixKey.data()+offset,prefixKey.size()-offset);
+        }
+        return offset;
+    }
+
+    void restorePartial(size_t prevSize)
+    {
+        partialKey.resize(prevSize);
     }
 
     KeyBuf partialKey;

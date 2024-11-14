@@ -372,7 +372,7 @@ Error iterateFieldVariant(
         {
             // construct key prefix
             auto currentKey=IndexKey::keyPrefix(lib::toStringView(key),pos);
-            cursor.resetPartial(currentKey,pos);
+            auto offset=cursor.appendPartial(currentKey);
 
             // call result callback for finally assembled key
             if (pos==idxQuery.query.fields().size())
@@ -387,6 +387,9 @@ Error iterateFieldVariant(
                 auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
                 HATN_CHECK_EC(ec)
             }
+
+            // restore cursor
+            cursor.restorePartial(offset);
         }
 
         // get the next/prev key
