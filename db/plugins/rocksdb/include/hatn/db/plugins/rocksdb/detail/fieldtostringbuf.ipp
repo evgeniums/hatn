@@ -164,6 +164,22 @@ struct FieldToStringBufT
     }
 
     template <typename BufT>
+    void operator ()(BufT& buf, const query::BoolValue& val) const
+    {
+        constexpr static lib::string_view True{"1",1};
+        constexpr static lib::string_view False{"0",1};
+
+        if (val)
+        {
+            buf.append(True);
+        }
+        else
+        {
+            buf.append(False);
+        }
+    }
+
+    template <typename BufT>
     void operator ()(BufT&, const query::Null&) const
     {}
 

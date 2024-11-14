@@ -24,7 +24,6 @@ HATN_DB_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 
 size_t IndexQuery::DefaultLimit=100;
-common::pmr::AllocatorFactory* IndexQuery::DefaultAllocatorFactory=nullptr;
 
 //---------------------------------------------------------------
 

@@ -33,10 +33,19 @@ class Topic
     public:
 
         Topic()=default;
+        ~Topic()=default;
+        Topic(Topic&&)=default;
+        Topic(const Topic&)=default;
+        Topic& operator=(Topic&&)=default;
+        Topic& operator=(const Topic&)=default;
 
-        Topic(const lib::string_view& topic)
-                : m_topic(topic)
-            {}
+        Topic(const char* topic)
+            : m_topic(topic)
+        {}
+
+        Topic(lib::string_view topic)
+            : m_topic(topic)
+        {}
 
         const lib::string_view& topic() const noexcept
         {

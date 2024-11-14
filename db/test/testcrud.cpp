@@ -198,10 +198,12 @@ BOOST_AUTO_TEST_CASE(Simple1)
         query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
         q1.setField(qf1);
 #endif
-        auto q3=makeQuery(idx4(),topic.topic(),query::where(simple1::f1,query::Operator::eq,100));
+        auto q3=makeQuery(topic.topic(),query::where(simple1::f1,query::Operator::eq,100),idx4());
         BOOST_TEST_MESSAGE(fmt::format("topic={}",topic.topic()));
         BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
         BOOST_CHECK_EQUAL(q3.topics().at(0).topic(),topic.topic());
+        auto q3_=makeQuery(query::where(simple1::f1,query::Operator::eq,101),idx4());
+        BOOST_REQUIRE_EQUAL(q3_.topics().size(),0);
         auto r3=client->find(m1,q3);
         if (r3)
         {
@@ -226,7 +228,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // try to find unknown object
-        auto q4=makeQuery(idx4(),topic.topic(),query::where(simple1::f1,query::Operator::eq,101));
+        auto q4=makeQuery({topic,"topic2"},query::where(simple1::f1,query::Operator::eq,101),idx4());
         auto r4=client->find(m1,q4);
         if (r4)
         {

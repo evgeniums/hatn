@@ -61,11 +61,25 @@ struct Last
     }
 };
 
-using String=HATN_COMMON_NAMESPACE::StringOnStack;
+using String=lib::string_view;
 
-//! @todo Use query with preallocated arena
+struct BoolValue
+{
+    BoolValue(bool val) noexcept :m_val(val)
+    {}
+
+    operator bool() const noexcept
+    {
+        return m_val;
+    }
+
+    bool m_val;
+};
+
+constexpr const size_t PreallocatedVectorSize=8;
+
 template <typename T>
-using Vector=common::pmr::vector<T>;
+using Vector=common::VectorOnStack<T,PreallocatedVectorSize>;
 
 enum class Operator : uint8_t
 {
@@ -255,7 +269,7 @@ struct Interval
         DO(Null), \
         DO(First), \
         DO(Last), \
-        DO(bool), \
+        DO(BoolValue), \
         DO(int8_t), \
         DO(int16_t), \
         DO(int32_t), \
@@ -759,8 +773,12 @@ struct whereT
 template <typename FieldT, typename ValueT>
 auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
 {
-    auto ts=hana::make_tuple(hana::make_tuple(field,op,std::forward<ValueT>(value),order));
-    return whereT<decltype(ts)>{std::move(ts)};
+    auto make=[&]()
+    {
+        return hana::make_tuple(hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+    };
+
+    return whereT<decltype(make())>{make()};
 }
 
 } // namespace query
