@@ -35,7 +35,7 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-template <typename UnitT, typename IndexT, typename PosT>
+template <typename UnitT, typename IndexT, typename PosT, typename BufT>
 Error Keys::iterateIndexFields(
     BufT& buf,
     const ROCKSDB_NAMESPACE::Slice& objectId,

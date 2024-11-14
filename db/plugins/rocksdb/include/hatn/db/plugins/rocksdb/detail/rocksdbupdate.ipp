@@ -143,6 +143,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
         // extract old keys for updated fields
+        const auto& k=key;
         IndexKeyUpdateSet oldKeys;
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
 
@@ -157,7 +158,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         HATN_CHECK_EC(ec)
 
         // save object
-        ROCKSDB_NAMESPACE::SliceParts keySlices{&key,1};
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&k,1};
         TtlMark ttlMark;
         auto oldTtlMarkSlice=TtlMark::ttlMark(readSlice);
         auto ttlMarkSlice=oldTtlMarkSlice;
@@ -282,13 +283,14 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
     }
 
     // construct key
-    Keys keys{};
+    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
 
     // do
-    return updateSingle(keys,objectIdS,key,model,handler,partition.get(),ns.topic(),request,modifyReturn,factory,intx);
+    auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),ns.topic(),request,modifyReturn,factory,intx);
+    return r;
 }
 
 HATN_ROCKSDB_NAMESPACE_END

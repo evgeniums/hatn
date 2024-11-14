@@ -49,7 +49,7 @@ Error DeleteManyT::operator ()(
 
     HATN_CTX_SCOPE("deletemany")
     TtlMark::refreshCurrentTimepoint();
-    Keys keys{};
+    Keys keys{allocatorFactory};
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 

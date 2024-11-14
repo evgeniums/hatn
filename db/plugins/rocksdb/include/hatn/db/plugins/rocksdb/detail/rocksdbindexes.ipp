@@ -48,8 +48,6 @@ class Indexes
 {
     public:
 
-        using bufT=BufT;
-
         Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys& keys)
             : m_cf(cf),
               m_keys(keys)

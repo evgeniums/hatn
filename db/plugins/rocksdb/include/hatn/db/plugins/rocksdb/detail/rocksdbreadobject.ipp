@@ -82,7 +82,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
     }
 
     // construct key
-    Keys keys{};
+    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),ns.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);

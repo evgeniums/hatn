@@ -64,6 +64,7 @@ IndexKey::IndexKey(
     partition(p),
     keyParts(allocatorFactory->dataAllocator<lib::string_view>())
 {
+    keyParts.reserve(8);
     fillKeyParts();
 }
 
@@ -100,7 +101,7 @@ lib::string_view IndexKey::keyPrefix(const lib::string_view& key, size_t pos) no
     return lib::string_view{};
 }
 
-template <typename EndpointT=hana::true_>
+template <typename BufT,typename EndpointT=hana::true_>
 struct valueVisitor
 {
     constexpr static const EndpointT endpoint{};
@@ -200,14 +201,16 @@ struct valueVisitor
 template <typename EndpointT=hana::true_>
 struct fieldValueToBufT
 {
+    template <typename BufT>
     void operator()(BufT& buf, const query::Field& field, const lib::string_view& sep) const
     {
-        lib::variantVisit(valueVisitor<EndpointT>{buf,sep},field.value());
+        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf,sep},field.value());
     }
 
+    template <typename BufT>
     void operator()(BufT& buf, const query::Field& field) const
     {
-        lib::variantVisit(valueVisitor<EndpointT>{buf},field.value());
+        lib::variantVisit(valueVisitor<BufT,EndpointT>{buf},field.value());
     }
 };
 constexpr fieldValueToBufT<hana::true_> fieldValueToBuf{};
@@ -248,13 +251,8 @@ Error iterateFieldVariant(
     readOptions.snapshot=snapshot;
     bool iterateForward=field.order==query::Order::Asc;
 
-#ifdef HATN_PMR_BUF_VEC
-    BufT fromBuf{allocatorFactory};
-    BufT toBuf{allocatorFactory};
-#else
-    BufT fromBuf;
-    BufT toBuf;
-#endif
+    KeyBuf fromBuf;
+    KeyBuf toBuf;
 
     ROCKSDB_NAMESPACE::Slice fromS;    
     ROCKSDB_NAMESPACE::Slice toS;

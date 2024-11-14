@@ -39,6 +39,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 {
     public:
 
+        using KeyBufT=std::pmr::string;
+
         using ObjectKeyValue=std::tuple<std::array<ROCKSDB_NAMESPACE::Slice,8>,uint32_t>;
 
         constexpr static const size_t PreallocatedBuffersCount=8;
@@ -50,17 +52,20 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         using KeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
 
-        Keys();
+        Keys(AllocatorFactory* factory) : factory(factory)
+        {}
 
         void reset()
         {
             m_bufs.clear();
         }
 
-        BufT& addBuf()
+        KeyBufT& addBuf()
         {
-            m_bufs.resize(m_bufs.size()+1);
-            return m_bufs.back();
+            m_bufs.emplace_back(factory->bytesAllocator());
+            auto& buf=m_bufs.back();
+            buf.reserve(PreallocatedKeySize);
+            return buf;
         }
 
         template <size_t Size>
@@ -69,7 +74,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
             auto& buf=addBuf();
             for (size_t i=1;i<ObjectKeySliceCount+1;i++)
             {
-                buf.append(parts[i]);
+                const auto& p=parts[i];
+                buf.append(p.data(),p.size());
             }
             return ROCKSDB_NAMESPACE::Slice{buf.data(),buf.size()};
         }
@@ -130,12 +136,10 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
     private:
 
-        using bufAllocaT=common::AllocatorOnStack<BufT,PreallocatedBuffersCount>;
+        common::VectorOnStackT<KeyBufT,PreallocatedBuffersCount> m_bufs;
+        AllocatorFactory* factory;
 
-        typename bufAllocaT::arena_type m_bufsArena;
-        std::vector<BufT,bufAllocaT> m_bufs;
-
-        template <typename UnitT, typename IndexT, typename PosT>
+        template <typename UnitT, typename IndexT, typename PosT, typename BufT>
         Error iterateIndexFields(
             BufT& buf,
             const ROCKSDB_NAMESPACE::Slice& objectId,

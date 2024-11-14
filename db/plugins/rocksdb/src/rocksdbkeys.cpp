@@ -34,11 +34,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-Keys::Keys()
-    : m_bufsArena(),
-      m_bufs(Keys::bufAllocaT{m_bufsArena})
-{}
-
 Keys::ObjectKeyValue Keys::makeObjectKeyValue(const std::string& modelId,
                                const lib::string_view& topic,
                                const ROCKSDB_NAMESPACE::Slice& objectId,

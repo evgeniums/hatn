@@ -64,12 +64,9 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
         AllocatorFactory* allocatorFactory
     );
 
-    //! @todo Use preallocated strings and vector
-
     common::pmr::string key;
     common::pmr::string value;
     RocksdbPartition* partition;
-
     common::pmr::vector<ROCKSDB_NAMESPACE::Slice> keyParts;
 
     static lib::string_view keyPrefix(const lib::string_view& key, size_t pos) noexcept;
@@ -140,12 +137,9 @@ struct Cursor
             RocksdbPartition* partition,
             common::pmr::AllocatorFactory* allocatorfactory
         ) :
-#ifdef HATN_PMR_BUF_VEC
-        partialKey(allocatorfactory),
-#endif
-        pos(0),
-        topic(topic_),
-        partition(partition)
+            pos(0),
+            topic(topic_),
+            partition(partition)
     {
         partialKey.append(topic);
         partialKey.append(SeparatorCharStr);
@@ -159,7 +153,7 @@ struct Cursor
         pos=p;
     }
 
-    BufT partialKey;
+    KeyBuf partialKey;
     size_t pos;
     lib::string_view topic;
 
