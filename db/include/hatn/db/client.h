@@ -467,7 +467,6 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdatecreate")
             if (m_opened)
             {
-                //! @todo doReadUpdateCreate single
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 return afterRead(model,doReadUpdateCreate(*model->info,q,request,object,returnType,tx),TimePointFilter{});
             }

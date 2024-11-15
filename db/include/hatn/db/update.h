@@ -121,7 +121,6 @@ struct Field
         checkOperator();
     }
 
-    //! @todo Do something with field info from field.
     template <typename T>
     Field(
         FieldInfo&& fieldInfo,
