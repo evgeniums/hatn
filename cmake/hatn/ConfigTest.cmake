@@ -190,15 +190,21 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
                 MESSAGE(STATUS "Reading tests source file ${SOURCE_FILE_NAME}")
 
-		FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
+                FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
 
                 STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *[\\),]" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+                IF (FOUND_TEST_SUITE)
+                    STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
+                ELSE()
+                    STRING(REGEX MATCH "// HATN_TEST_SUITE [A-Za-z_0-9]+" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+                    IF (FOUND_TEST_SUITE)
+                        STRING(REGEX REPLACE "// HATN_TEST_SUITE ([A-Za-z_0-9]+)" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
+                    ENDIF()
+                ENDIF()
 
 		IF (FOUND_TEST_SUITE)
 
-                        STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
-			
-			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
+                        MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
                         STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
                         IF (BUILD_IOS)

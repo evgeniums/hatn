@@ -13,6 +13,8 @@
 
 /****************************************************************************/
 
+// HATN_TEST_SUITE TestFind
+
 #include <boost/test/unit_test.hpp>
 
 #include "hatn_test_config.h"
@@ -36,12 +38,3 @@ void registerModels5()
     rdb::RocksdbModels::instance().registerModel(m1_str());   
 #endif
 }
-
-BOOST_AUTO_TEST_SUITE(TestFind)
-
-BOOST_AUTO_TEST_CASE(Skip5)
-{
-    BOOST_CHECK(true);
-}
-
-BOOST_AUTO_TEST_SUITE_END()

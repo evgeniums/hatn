@@ -13,6 +13,8 @@
 
 /****************************************************************************/
 
+// HATN_TEST_SUITE TestFind
+
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/syntax.h>
@@ -49,12 +51,3 @@ void registerModels9()
 
 #endif
 }
-
-BOOST_AUTO_TEST_SUITE(TestFind)
-
-BOOST_AUTO_TEST_CASE(Skip9)
-{
-    BOOST_CHECK(true);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
