@@ -126,13 +126,13 @@ BOOST_AUTO_TEST_CASE(OneLevel)
     {
         setSchemaToClient(client,s1);
 
-        Topic topic{"topic1"};
+        Topic topic1{"topic1"};
 
         auto o1=makeInitObject<u1_bool::type>();
         BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
 
         // create object
-        auto ec=client->create(topic,m1_bool(),&o1);
+        auto ec=client->create(topic1,m1_bool(),&o1);
         if (ec)
         {
             BOOST_TEST_MESSAGE(ec.message());
@@ -140,14 +140,32 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         BOOST_REQUIRE(!ec);
 
         // find object by f_bool
-        // auto r1=client->findOne(ns,m1,query::where(u1::f_bool,query::Operator::eq,false));
-        // if (r1)
-        // {
-        //     BOOST_TEST_MESSAGE(r1.error().message());
-        // }
-        // BOOST_REQUIRE(!r1);
+        auto r1=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),topic1));
+        if (r1)
+        {
+            BOOST_TEST_MESSAGE(r1.error().message());
+        }
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK(!r1.value().isNull());
+        auto r2=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,true),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK(r2.value().isNull());
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+
+/** @todo Test find:
+ *
+ *  1. Test scalar types
+ *  2. Test strings
+ *  3. Test Oid/DateTime/date/Time/DateRange
+ *  4. Test intervals
+ *  5. Test vectors
+ *  6. Test ordering
+ *  7. Test timepoint filtering
+ *  8. Test limits
+ *
+ * /
