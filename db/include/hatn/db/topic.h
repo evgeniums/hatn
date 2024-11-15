@@ -35,8 +35,8 @@ class Topic
 
         Topic()=default;
         ~Topic()=default;
-        Topic(Topic&&)=default;
-        Topic(const Topic&)=default;
+        Topic(Topic&& other)=default;
+        Topic(const Topic& other)=default;
         Topic& operator=(Topic&&)=default;
         Topic& operator=(const Topic&)=default;
 

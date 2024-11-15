@@ -160,49 +160,11 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r2.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // find object
-#if 0
-        auto w1=query::where(simple1::f1,query::Operator::eq,100);
-        const auto& wf1=hana::at(w1.conditiotopic,hana::size_c<0>);
-        query::Field qf1{idx4.fieldInfo(hana::at(wf1,hana::size_c<0>)),
-                           hana::at(wf1,hana::size_c<1>),
-                           hana::at(wf1,hana::size_c<2>),
-                           hana::at(wf1,hana::size_c<3>)
-                        };
-        common::pmr::vector<query::Field> fs1;
-
-        fs1.emplace_back(idx4.fieldInfo(hana::at(wf1,hana::size_c<0>)),
-                         hana::at(wf1,hana::size_c<1>),
-                         hana::at(wf1,hana::size_c<2>),
-                         hana::at(wf1,hana::size_c<3>)
-                         );
-
-        auto emplaceField=[&fs1,&idx4](const auto& cond)
-        {
-            fs1.emplace_back(
-                idx4.fieldInfo(hana::at(cond,hana::size_c<0>)),
-                hana::at(cond,hana::size_c<1>),
-                hana::at(cond,hana::size_c<2>),
-                hana::at(cond,hana::size_c<3>)
-                );
-        };
-
-        emplaceField(hana::at(w1.conditiotopic,hana::size_c<0>));
-
-        fs1.reserve(w1.size());
-        hana::for_each(
-            w1.conditiotopic,
-            emplaceField
-        );
-
-        IndexQuery q1{idx4,topic.topic()};
-        query::Field qf1{idx4.fieldInfo(simple1::f1),query::Operator::eq,100};
-        q1.setField(qf1);
-#endif
-        auto q3=makeQuery(topic.topic(),query::where(simple1::f1,query::Operator::eq,100),idx4());
+        auto q3=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,100),topic.topic());
         BOOST_TEST_MESSAGE(fmt::format("topic={}",topic.topic()));
         BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
         BOOST_CHECK_EQUAL(q3.topics().at(0).topic(),topic.topic());
-        auto q3_=makeQuery(query::where(simple1::f1,query::Operator::eq,101),idx4());
+        auto q3_=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,101));
         BOOST_REQUIRE_EQUAL(q3_.topics().size(),0);
         auto r3=client->find(m1,q3);
         if (r3)
@@ -228,7 +190,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // try to find unknown object
-        auto q4=makeQuery({topic,"topic2"},query::where(simple1::f1,query::Operator::eq,101),idx4());
+        auto q4=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,101),"topic1");
         auto r4=client->find(m1,q4);
         if (r4)
         {

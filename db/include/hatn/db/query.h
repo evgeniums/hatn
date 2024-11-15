@@ -7,9 +7,7 @@
 */
 
 /****************************************************************************/
-/*
 
-*/
 /** @file db/query.h
   *
   * Contains declarations of db queries.
@@ -754,7 +752,12 @@ struct whereT
     template <typename FieldT, typename ValueT>
     auto and_(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
     {
-        return hana::append(std::move(conditions),hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+        auto make=[&]()
+        {
+            return hana::append(std::move(conditions),hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+        };
+
+        return whereT<decltype(make())>{make()};
     }
 
     template <typename Ys>

@@ -37,8 +37,6 @@ HDU_UNIT(object,
     HDU_FIELD(updated_at,TYPE_DATETIME,102)
 )
 
-// namespace object=obj;
-
 inline std::string ObjectIdFieldName{object::_id.name()};
 inline std::string CreatedAtFieldName{object::created_at.name()};
 inline std::string UpdatedAtFieldName{object::updated_at.name()};

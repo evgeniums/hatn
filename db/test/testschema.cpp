@@ -28,6 +28,7 @@
 
 #include <hatn/db/schema.h>
 #include <hatn/db/update.h>
+#include <hatn/db/indexquery.h>
 
 #include "hatn_test_config.h"
 
@@ -47,9 +48,66 @@ HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
     HDU_FIELD(f2,TYPE_UINT32,2)
 )
 
+// using Tpc=std::vector<Topic>;
+using Tpc=common::FlatSet<Topic>;
+
+class S1
+{
+public:
+
+    template <typename ...Args>
+    S1(Args&&... args)
+        : m_topics(std::forward<Args>(args)...)
+    {}
+
+    // S1(Tpc&& topics) : m_topics(std::move(topics))
+    // {}
+
+private:
+
+    Tpc m_topics;
+};
+
+HATN_DB_INDEX(compoundIdx,object::_id,object::created_at)
+
+HATN_DB_INDEX(nestedIdx,nestedField(nu1::nf1,n1::f1))
+
 } // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(TestDbSchema)
+
+BOOST_AUTO_TEST_CASE(MakeIndexQuery)
+{
+    ObjectId oid1;
+    oid1.generate();
+
+    auto q0=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1));
+    BOOST_CHECK_EQUAL(q0.topics().size(),0);
+    BOOST_CHECK_EQUAL(q0.fields().size(),1);
+
+    auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1),"topic1");
+    BOOST_CHECK_EQUAL(q1.topics().size(),1);
+    BOOST_CHECK_EQUAL(q1.fields().size(),1);
+
+    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1),"topic1","topic2");
+    BOOST_CHECK_EQUAL(q2.topics().size(),2);
+    BOOST_CHECK_EQUAL(q2.fields().size(),1);
+    q2.topics().loadRange(std::vector{"topic3","topic4","topic5"});
+    BOOST_REQUIRE_EQUAL(q2.topics().size(),5);
+    BOOST_CHECK_EQUAL(std::string(q2.topics().at(4).topic()),std::string("topic5"));
+
+    auto now=common::DateTime::currentUtc();
+    auto q3=makeQuery(compoundIdx(),query::where(object::_id,query::Operator::eq,oid1).
+                                            and_(object::created_at,query::Operator::lt,now)
+                        ,"topic1");
+    BOOST_CHECK_EQUAL(q3.topics().size(),1);
+    BOOST_CHECK_EQUAL(q3.fields().size(),2);
+
+    auto q4=makeQuery(nestedIdx(),query::where(nested(nu1::nf1,n1::f1),query::Operator::lt,now)
+                        ,"topic1");
+    BOOST_CHECK_EQUAL(q4.topics().size(),1);
+    BOOST_CHECK_EQUAL(q4.fields().size(),1);
+}
 
 BOOST_AUTO_TEST_CASE(IndexField)
 {

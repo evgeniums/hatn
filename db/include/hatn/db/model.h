@@ -560,13 +560,14 @@ HATN_DB_NAMESPACE_END
 
 #define HATN_DB_INDEX(idx,...) \
     struct _index_##idx { \
-        const auto& operator()() const \
+    const auto& operator()() const \
         { \
-            static auto idx=makeIndex(DefaultIndexConfig,__VA_ARGS__); \
-            return idx; \
+                static auto idx=makeIndex(DefaultIndexConfig,__VA_ARGS__); \
+                return idx; \
         } \
     }; \
     constexpr _index_##idx idx{};
+
 
 #define HATN_DB_MODEL(m,type,...) \
     struct _model_##m { \
@@ -577,5 +578,13 @@ HATN_DB_NAMESPACE_END
         } \
     }; \
     constexpr _model_##m m{};
+
+HATN_DB_NAMESPACE_BEGIN
+
+HATN_DB_INDEX(oidIdx,object::_id)
+HATN_DB_INDEX(createdAtIdx,object::created_at)
+HATN_DB_INDEX(updatedAtIdx,object::updated_at)
+
+HATN_DB_NAMESPACE_END
 
 #endif // HATNDBMODEL_H

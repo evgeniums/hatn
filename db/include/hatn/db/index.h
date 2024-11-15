@@ -96,6 +96,7 @@ struct nestedFieldT
     }
 };
 constexpr nestedFieldT nestedField{};
+constexpr nestedFieldT nested{};
 
 struct AutoSizeTag{};
 
@@ -466,8 +467,18 @@ struct Index : public IndexBase, public ConfigT
     static const IndexFieldInfo* fieldInfo(const FieldT&)
     {
         constexpr static const auto idx=hana::find(fieldIdx,hana::type_c<std::decay_t<FieldT>>);
+        static_assert(decltype(!hana::is_nothing(idx))::value,"Index does not include provided field");
         const auto& finfs=fieldInfos();
         return &(hana::at(finfs,idx.value()));
+    }
+
+    template <typename FieldT, typename PosT>
+    static const IndexFieldInfo* fieldInfoPos(const FieldT&, const PosT&)
+    {
+        constexpr static const auto idx=hana::find(fieldIdx,hana::type_c<std::decay_t<FieldT>>);
+        static_assert(decltype(!hana::is_nothing(idx))::value,"Index does not include provided field");
+        static_assert(std::decay_t<decltype(idx.value())>::value==std::decay_t<PosT>::value,"Wrong field order in the index");
+        return &(hana::at(fieldInfos(),idx.value()));
     }
 
     constexpr static decltype(auto) frontField()

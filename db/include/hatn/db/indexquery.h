@@ -44,50 +44,25 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
 
         static size_t DefaultLimit; // 100
 
-        IndexQuery(
-                const IndexInfo* index,
-                Topic topic
-            ) : m_index(index),
-                m_topics({std::move(topic)}),
-                m_limit(DefaultLimit)
-        {
-            checkFields();
-        }
-
-        IndexQuery(
-                const IndexInfo* index,
-                std::initializer_list<Topic> topics
-            ) : m_index(index),
-                m_topics(std::move(topics)),
-                m_limit(DefaultLimit)
-        {
-            checkFields();
-        }
-
-        IndexQuery(
-                const IndexInfo* index
-            ) : m_index(index),
-                m_limit(DefaultLimit)
-        {
-            checkFields();
-        }
-
-        template <typename IndexT, typename TopicsT, typename WhereT>
-        IndexQuery(IndexT&& index, TopicsT&& topics, WhereT&& where)
-            : IndexQuery(index.indexInfo(),std::forward<TopicsT>(topics))
+        template <typename IndexT, typename WhereT, typename ...TopicsT>
+        IndexQuery(IndexT&& index, WhereT&& where, TopicsT&&... topics)
+            : IndexQuery(index.indexInfo(),int(0),std::forward<TopicsT>(topics)...)
         {
             m_fields.reserve(where.size());
             auto self=this;
-            hana::for_each(
+            hana::fold(
                 where.conditions,
-                [self,&index](const auto& cond)
+                hana::size_c<0>,
+                [self,&index](auto pos,const auto& cond)
                 {
+                    const auto& field=hana::at(cond,hana::size_c<0>);
                     self->m_fields.emplace_back(
-                        index.fieldInfo(hana::at(cond,hana::size_c<0>)),
+                        index.fieldInfoPos(field,pos),
                         hana::at(cond,hana::size_c<1>),
                         hana::at(cond,hana::size_c<2>),
                         hana::at(cond,hana::size_c<3>)
                         );
+                    return hana::plus(pos,hana::size_c<1>);
                 }
             );
         }
@@ -117,7 +92,12 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             return m_limit;
         }
 
-        const auto& topics() const noexcept
+        const Topics& topics() const noexcept
+        {
+            return m_topics;
+        }
+
+        Topics& topics() noexcept
         {
             return m_topics;
         }
@@ -134,23 +114,48 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
 
     private:
 
-        void checkFields() const
-        {
-            Assert(m_fields.size()<=m_index->fields().size(),"Number of fields must be less or equal to number of fields in the index");
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            Topic topic
+            ) : m_index(index),
+            m_topics({std::move(topic)}),
+            m_limit(DefaultLimit)
+        {}
 
-            for (size_t i=0;i<m_fields.size();i++)
-            {
-                const auto& qF=m_fields[i];
-                const auto& iF=m_index->fields()[i];
-                if (iF.nested())
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            std::initializer_list<Topic> topics
+            ) : m_index(index),
+            m_topics(std::move(topics)),
+            m_limit(DefaultLimit)
+        {}
+
+        IndexQuery(
+            const IndexInfo* index,
+            int
+            ) : m_index(index),
+            m_limit(DefaultLimit)
+        {}
+
+        template <typename ...Topics>
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            Topics&&... topics
+            ) : m_index(index),
+                m_limit(DefaultLimit)
+        {
+            m_topics.beginRawInsert(sizeof...(Topics));
+            hana::for_each(
+                hana::make_tuple(std::forward<Topics>(topics)...),
+                [this](auto&& topic)
                 {
-                    Assert(iF.name()==qF.fieldInfo->name(),"Field name mismatches name of corresponding index field");
+                    m_topics.rawEmplace(std::forward<decltype(topic)>(topic));
                 }
-                else
-                {
-                    Assert(iF.id()==qF.fieldInfo->id(),"Field ID mismatches ID of corresponding index field");
-                }
-            }
+                );
+            m_topics.endRawInsert();
         }
 
         const IndexInfo* m_index;
@@ -172,7 +177,7 @@ class Query : public IndexQuery
 
         template <typename ...Args>
         Query(const IndexT& index, Args&&... args)
-            : IndexQuery(index,std::forward<Args>(args)...),
+            : IndexQuery(index, std::forward<Args>(args)...),
               m_indexT(index)
         {}
 
@@ -188,22 +193,10 @@ class Query : public IndexQuery
 
 struct makeQueryT
 {
-    template <typename TopicsT, typename WhereT, typename IndexT>
-    auto operator() (TopicsT&& topics, WhereT&& where, const IndexT& index) const
+    template <typename IndexT, typename WhereT, typename ...TopicsT>
+    auto operator() (const IndexT& index, WhereT&& where, TopicsT&&... topics) const
     {
-        return Query<IndexT>{index,std::forward<TopicsT>(topics),std::forward<WhereT>(where)};
-    }
-
-    template <typename WhereT, typename IndexT>
-    auto operator() (std::initializer_list<Topic> topics, WhereT&& where, const IndexT& index) const
-    {
-        return Query<IndexT>{index,std::move(topics),std::forward<WhereT>(where)};
-    }
-
-    template <typename WhereT, typename IndexT>
-    auto operator() (WhereT&& where, const IndexT& index) const
-    {
-        return Query<IndexT>{index,std::initializer_list<Topic>{},std::forward<WhereT>(where)};
+        return Query<IndexT>(index,std::forward<WhereT>(where),std::forward<TopicsT>(topics)...);
     }
 };
 constexpr makeQueryT makeQuery{};
