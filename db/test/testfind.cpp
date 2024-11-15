@@ -168,4 +168,4 @@ BOOST_AUTO_TEST_SUITE_END()
  *  7. Test timepoint filtering
  *  8. Test limits
  *
- * /
+ */

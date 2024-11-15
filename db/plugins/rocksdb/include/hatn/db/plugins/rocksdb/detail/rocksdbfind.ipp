@@ -68,9 +68,9 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // collect partitions for processing
-    thread_local static common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>> partitions{1, allocatorFactory->dataAllocator<std::shared_ptr<RocksdbPartition>>()};
+    thread_local static index_key_search::Partitions partitions{};
     HATN_SCOPE_GUARD([](){partitions.clear();})
-    index_key_search::queryPartitions(partitions,model,handler,idxQuery);
+    auto firstFieldPartitioned=index_key_search::queryPartitions(partitions,model,handler,idxQuery);
 
     // make snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapshot{handler.p()->db};
@@ -78,7 +78,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
-    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single);
+    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single,firstFieldPartitioned);
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result

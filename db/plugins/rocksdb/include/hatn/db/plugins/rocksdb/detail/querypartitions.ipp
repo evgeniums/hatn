@@ -28,6 +28,8 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/indexkeysearch.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
@@ -35,14 +37,17 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 namespace index_key_search
 {
 
-template <typename ModelT>
+template <typename CompT>
+using FilteredPartitions=common::FlatSetOnStack<std::shared_ptr<RocksdbPartition>,36,CompT>;
+
+template <typename ModelT, typename CompT>
 struct partitionFieldVisitor
 {
     partitionFieldVisitor(
             const ModelT& model,
             RocksdbHandler& handler,
             query::Operator op,
-            common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions
+            FilteredPartitions<CompT>& partitions
         )
         :model(model),
           handler(handler),
@@ -53,7 +58,7 @@ struct partitionFieldVisitor
     const ModelT& model;
     RocksdbHandler& handler;
     mutable query::Operator op;
-    common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions;
+    FilteredPartitions<CompT>& partitions;
 
     template <typename T>
     void operator()(const query::Vector<T>& vec) const
@@ -66,7 +71,7 @@ struct partitionFieldVisitor
             }
             for (const auto& v: vec)
             {
-                handleRange(query::toDateRange(v,model.datePartitionMode()),false);
+                handleRange(query::toDateRange(v,model.datePartitionMode()));
             }
         }
     }
@@ -84,7 +89,7 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void handleInterval(const query::Interval<T>& iv, bool raw=true) const
+    void handleInterval(const query::Interval<T>& iv) const
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {
@@ -92,18 +97,18 @@ struct partitionFieldVisitor
             {
                 if (iv.to.type==query::IntervalType::Last)
                 {
-                    std::copy(handler.p()->partitions.begin(),handler.p()->partitions.end(),partitions);
+                    allPartitions();
                 }
                 else
                 {
-                    handleRange(query::toDateRange(iv.to.value,model.datePartitionMode()),raw,query::Operator::lte);
+                    handleRange(query::toDateRange(iv.to.value,model.datePartitionMode()),query::Operator::lte);
                 }
                 return;
             }
 
             if (iv.to.type==query::IntervalType::Last)
             {
-                handleRange(query::toDateRange(iv.from.value,model.datePartitionMode()),raw,query::Operator::gte);
+                handleRange(query::toDateRange(iv.from.value,model.datePartitionMode()),query::Operator::gte);
                 return;
             }
 
@@ -118,10 +123,8 @@ struct partitionFieldVisitor
             if (it!=handler.p()->partitions.end())
             {
                 size_t count=handler.p()->partitions.size()-it.index();
-                if (raw)
-                {
-                    partitions.beginRawInsert(count);
-                }
+                partitions.beginRawInsert(count);
+
                 // iterate to greatest partition
                 for (auto i=it.index();i<handler.p()->partitions.size();i++)
                 {
@@ -130,15 +133,10 @@ struct partitionFieldVisitor
                     {
                         break;
                     }
-                    if (raw)
-                    {
-                        partitions.rawInsert(partition);
-                    }
-                    else
-                    {
-                        partitions.insert(partition);
-                    }
+                    partitions.rawInsert(partition);
                 }
+
+                partitions.endRawInsert();
             }
         }
     }
@@ -152,11 +150,12 @@ struct partitionFieldVisitor
     void allPartitions()
     {
         const auto& all=handler.p()->partitions;
-        partitions.beginRawSet(all.size());
-        for (size_t i=0;i<partitions.size();i++)
+        partitions.beginRawInsert(all.size());
+        for (size_t i=0;i<all.size();i++)
         {
-            partitions.rawSet(all.at(i),i);
+            partitions.rawInsert(all.at(i));
         }
+        partitions.endRawInsert();
     }
 
     void operator()(const query::Last&) const
@@ -196,7 +195,7 @@ struct partitionFieldVisitor
         }
     }
 
-    void handleRange(const common::DateRange& range, bool raw=true, std::optional<query::Operator> opArg=std::optional<query::Operator>{})
+    void handleRange(const common::DateRange& range, std::optional<query::Operator> opArg=std::optional<query::Operator>{})
     {
         auto op_=opArg.value_or(op);
         switch(op_)
@@ -212,21 +211,12 @@ struct partitionFieldVisitor
                 if (it!=handler.p()->partitions.end())
                 {
                     size_t count=handler.p()->partitions.size()-it.index();
-                    if (raw)
-                    {
-                        partitions.beginRawInsert(count);
-                    }
+                    partitions.beginRawInsert(count);
                     for (auto i=it.index();i<handler.p()->partitions.size();i++)
                     {
-                        if (raw)
-                        {
-                            partitions.rawInsert(handler.p()->partitions.at(i));
-                        }
-                        else
-                        {
-                            partitions.insert(handler.p()->partitions.at(i));
-                        }
+                        partitions.rawInsert(handler.p()->partitions.at(i));
                     }
+                    partitions.endRawInsert();
                 }
             }
             break;
@@ -242,21 +232,12 @@ struct partitionFieldVisitor
                 if (it!=handler.p()->partitions.end())
                 {
                     size_t count=it.index()+1;
-                    if (raw)
-                    {
-                        partitions.beginRawInsert(count);
-                    }
+                    partitions.beginRawInsert(count);
                     for (auto i=0;i<=it.index();i++)
                     {
-                        if (raw)
-                        {
-                            partitions.rawInsert(handler.p()->partitions.at(i));
-                        }
-                        else
-                        {
-                            partitions.insert(handler.p()->partitions.at(i));
-                        }
+                        partitions.rawInsert(handler.p()->partitions.at(i));
                     }
+                    partitions.endRawInsert();
                 }
             }
             break;
@@ -266,14 +247,7 @@ struct partitionFieldVisitor
                 auto partition=handler.partition(range);
                 if (partition)
                 {
-                    if (raw)
-                    {
-                        partitions.rawInsert(partition);
-                    }
-                    else
-                    {
-                        partitions.insert(partition);
-                    }
+                    partitions.insert(partition);
                 }
             }
             break;
@@ -288,53 +262,80 @@ struct partitionFieldVisitor
 };
 
 template <typename ModelT>
-void queryPartitions(
-        common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& ps,
+bool queryPartitions(
+        index_key_search::Partitions& ps,
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery
     )
 {
     ps.clear();
+
     const auto& field0=idxQuery.query.field(0);
-    hana::eval_if(
+    return hana::eval_if(
         hana::bool_<ModelT::isDatePartitioned()>{},
         [&](auto _)
         {
-            common::lib::shared_lock<common::lib::shared_mutex> l{_(handler).p()->partitionMutex};
-
-            const auto& allPartitions=_(handler).p()->partitions;
-            _(ps).reserve(allPartitions.size());
-            if (ModelT::isDatePartitionField(_(field0).fieldInfo->name())
-                && (_(field0).op!=query::Operator::nin)
-                && (_(field0).op!=query::Operator::neq)
-                )
+            bool firtsFieldPartitioned=ModelT::isDatePartitionField(_(field0).fieldInfo->name())
+                                       && (_(field0).op!=query::Operator::nin)
+                                       && (_(field0).op!=query::Operator::neq);
+            if (firtsFieldPartitioned)
             {
-                // collect partitions matching query expression for the first field
-                partitionFieldVisitor<ModelT> visitor{
-                    _(model),
-                    _(handler),
-                    _(field0).op,
-                    _(ps)
+                // partition sets must be ordered by first field
+                auto comp=[&](const std::shared_ptr<RocksdbPartition>& l,
+                            const std::shared_ptr<RocksdbPartition>& r
+                            )
+                {
+                    if (_(field0).order==query::Order::Desc)
+                    {
+                        return l->range > r->range;
+                    }
+                    l->range < r->range;
                 };
-                visitor(_(field0).value);
+                using compT=decltype(comp);
+                FilteredPartitions<compT> filteredPs(comp);
+
+                // filter partitions
+                {
+                    common::lib::shared_lock<common::lib::shared_mutex> l{_(handler).p()->partitionMutex};
+                    filteredPs.reserve(_(handler).p()->partitions.size());
+
+                    // collect partitions matching query expression for the first field
+                    partitionFieldVisitor<ModelT,compT> visitor{
+                        _(model),
+                        _(handler),
+                        _(field0).op,
+                        filteredPs
+                    };
+                    visitor(_(field0).value);
+                }
+
+                // copy filtered partitions to result
+                _(ps).reserve(filteredPs.size());
+                for (size_t i=0;i<filteredPs.size();i++)
+                {
+                    _(ps).push_back(filteredPs.at(i));
+                }
             }
             else
-            {
+            {                
+                common::lib::shared_lock<common::lib::shared_mutex> l{_(handler).p()->partitionMutex};
+                _(ps).reserve(_(handler).p()->partitions.size());
+
                 //! @todo optimization: optimize nin and neq operators
 
                 // use all partitions pre-sorted by range
-                _(ps).beginRawSet(allPartitions.size());
                 for (size_t i=0;i<ps.size();i++)
                 {
-                    _(ps).rawSet(allPartitions.at(i),i);
+                    _(ps).push_back(_(handler).p()->partitions.at(i));
                 }
             }
+            return firtsFieldPartitioned;
         },
         [&](auto _)
         {
-            _(ps).beginRawSet(1);
-            _(ps).rawSet(_(handler).defaultPartition(),0);
+            _(ps).push_back(_(handler).defaultPartition());
+            return false;
         }
     );
 }

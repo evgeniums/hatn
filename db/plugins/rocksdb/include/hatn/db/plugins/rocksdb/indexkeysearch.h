@@ -44,6 +44,8 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 namespace index_key_search
 {
 
+using Partitions=std::vector<std::shared_ptr<RocksdbPartition>>;
+
 using KeyHandlerFn=std::function< bool (RocksdbPartition* partition,
                                     const lib::string_view& topic,
                                     ROCKSDB_NAMESPACE::Slice* key,
@@ -125,9 +127,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     RocksdbHandler& handler,
     const ModelIndexQuery& idxQuery,
-    const common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions,
+    const Partitions& partitions,
     AllocatorFactory* allocatorFactory,
-    bool single
+    bool single,
+    bool firstFieldPartitioned
 );
 
 struct Cursor

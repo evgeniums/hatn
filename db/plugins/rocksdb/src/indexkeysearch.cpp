@@ -786,9 +786,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
-        const common::pmr::FlatSet<std::shared_ptr<RocksdbPartition>>& partitions,
+        const Partitions& partitions,
         AllocatorFactory* allocatorFactory,
-        bool single
+        bool single,
+        bool firstFieldPartitioned
     )
 {
     HATN_CTX_SCOPE("indexkeys")
@@ -820,9 +821,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         }
 
         return true;
-    };
-
-    //! @todo optimization: if query starts with partition field then pre-sort partitons by order of that field
+    };    
 
     // process all partitions
     for (const auto& partition: partitions)
@@ -845,9 +844,15 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 
         HATN_CTX_SCOPE_POP()
 
-        //! @todo optimization: if query starts with partition field then break if limit reached
+        // if query starts with partition field then partitions are altready presorted by that field
+        if (firstFieldPartitioned && keys.size()>=idxQuery.query.limit())
+        {
+            // break iteration if limit reached
+            break;
+        }
     }
 
+    // done
     return keys;
 }
 
