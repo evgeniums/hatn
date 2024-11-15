@@ -134,6 +134,11 @@ struct Interval
               type(t)
         {}
 
+        Endpoint(bool v, Type t)
+            : value(BoolValue(v)),
+            type(t)
+        {}
+
         bool less(const Endpoint& other, bool selfFrom, bool otherFrom) const noexcept
         {
             static std::less<T> lt{};
@@ -366,7 +371,7 @@ template <typename HandlerT>
 struct VectorVisitor
 {
     template <typename T>
-    Error operator()(const common::pmr::vector<T>& vec) const
+    Error operator()(const Vector<T>& vec) const
     {
         return handler(vec);
     }
@@ -388,7 +393,7 @@ template <typename HandlerT>
 struct VectorItemVisitor
 {
     template <typename T>
-    Error operator()(const common::pmr::vector<T>& vec) const
+    Error operator()(const Vector<T>& vec) const
     {
         for (auto&& it: vec)
         {
@@ -423,6 +428,9 @@ class ValueT
 
         template <typename T>
         ValueT(T&& val) : m_value(std::forward<T>(val))
+        {}
+
+        ValueT(bool val) : m_value(BoolValue(val))
         {}
 
         Type typeId() const noexcept

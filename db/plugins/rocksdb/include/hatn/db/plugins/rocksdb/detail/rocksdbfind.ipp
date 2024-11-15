@@ -68,8 +68,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // collect partitions for processing
-    thread_local static index_key_search::Partitions partitions{};
-    HATN_SCOPE_GUARD([](){partitions.clear();})
+    index_key_search::Partitions partitions;
     auto firstFieldPartitioned=index_key_search::queryPartitions(partitions,model,handler,idxQuery);
 
     // make snapshot

@@ -38,7 +38,7 @@ namespace index_key_search
 {
 
 template <typename CompT>
-using FilteredPartitions=common::FlatSetOnStack<std::shared_ptr<RocksdbPartition>,36,CompT>;
+using FilteredPartitions=common::FlatSetOnStack<std::shared_ptr<RocksdbPartition>,PresetPartitionsCount,CompT>;
 
 template <typename ModelT, typename CompT>
 struct partitionFieldVisitor

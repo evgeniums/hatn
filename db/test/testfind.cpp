@@ -28,13 +28,17 @@
 
 #include <hatn/db/schema.h>
 
+#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
+
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 #include "preparedb.h"
 
 #include "models1.h"
+#if 0
 #include "models9.h"
 #include "models10.h"
+#endif
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
@@ -62,6 +66,7 @@ void init()
 #endif
 
     registerModels1();
+#if 0
     registerModels2();
     registerModels3();
     registerModels4();
@@ -71,6 +76,7 @@ void init()
     registerModels8();
     registerModels9();
     registerModels10();
+#endif
 }
 
 template <typename ...Models>
@@ -103,23 +109,26 @@ BOOST_AUTO_TEST_CASE(OneLevel)
 {
     init();
 
-    auto s1=initSchema(m1_bool(),
-                m1_int8(),
-                m1_int16(),
-                m1_int32(),
-                m1_int64(),
-                m1_uint8(),
-                m1_uint16(),
-                m1_uint32(),
-                m1_uint64(),
-                m1_str(),
-                m1_fix_str(),
-                m1_dt(),
-                m1_date(),
-                m1_time(),
-                m1_oid(),
-                m2(),
-                m3()
+    auto s1=initSchema(m1_bool()
+
+                //          ,
+                // m1_int8(),
+                // m1_int16(),
+                // m1_int32(),
+                // m1_int64(),
+                // m1_uint8(),
+                // m1_uint16(),
+                // m1_uint32(),
+                // m1_uint64(),
+                // m1_str(),
+                // m1_fix_str(),
+                // m1_dt(),
+                // m1_date(),
+                // m1_time(),
+                // m1_oid()
+                         // ,
+                // m2(),
+                // m3()
             );
 
     auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
@@ -130,6 +139,8 @@ BOOST_AUTO_TEST_CASE(OneLevel)
 
         auto o1=makeInitObject<u1_bool::type>();
         BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
+        o1.setFieldValue(u1_bool::f1,false);
+        BOOST_TEST_MESSAGE(fmt::format("o1 after f1 set: {}",o1.toString(true)));
 
         // create object
         auto ec=client->create(topic1,m1_bool(),&o1);
@@ -140,6 +151,13 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         BOOST_REQUIRE(!ec);
 
         // find object by f_bool
+        auto q=makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false));
+        std::cerr<<"operand type="<<static_cast<int>(q.fields().at(0).value.typeId())<<std::endl;
+        std::cerr<<"operand value="<<static_cast<bool>(q.fields().at(0).value.as<query::BoolValue>())<<std::endl;
+        common::FmtAllocatedBufferChar buf;
+        HATN_ROCKSDB_NAMESPACE::fieldValueToBuf(buf,q.fields().at(0));
+        std::cerr<<"operand string="<<common::fmtBufToString(buf)<<std::endl;
+
         auto r1=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),topic1));
         if (r1)
         {

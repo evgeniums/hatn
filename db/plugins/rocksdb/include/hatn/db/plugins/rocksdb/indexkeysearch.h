@@ -44,7 +44,9 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 namespace index_key_search
 {
 
-using Partitions=std::vector<std::shared_ptr<RocksdbPartition>>;
+constexpr const size_t PresetPartitionsCount=36;
+
+using Partitions=common::VectorOnStack<std::shared_ptr<RocksdbPartition>,PresetPartitionsCount>;
 
 using KeyHandlerFn=std::function< bool (RocksdbPartition* partition,
                                     const lib::string_view& topic,
