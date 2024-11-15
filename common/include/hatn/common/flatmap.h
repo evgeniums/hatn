@@ -18,6 +18,8 @@
 #ifndef HATNFLATMAP_H
 #define HATNFLATMAP_H
 
+#include <iostream>
+
 #include <algorithm>
 #include <vector>
 #include <functional>
@@ -297,15 +299,98 @@ class FlatContainer
                 CompareItemT comp=CompareItemT{}
             ) : m_vec(std::move(list)),
                 m_comp(std::move(comp))
-        {}
+        {
+            sort();
+        }
 
         FlatContainer(
-            std::initializer_list<ItemT> list,
-            const AllocT& alloc,
-            CompareItemT comp=CompareItemT{}
+                std::initializer_list<ItemT> list,
+                const AllocT& alloc,
+                CompareItemT comp=CompareItemT{}
             ) : m_vec(std::move(list),alloc),
                 m_comp(std::move(comp))
-        {}
+        {
+            sort();
+        }
+
+        FlatContainer(
+                vector_type vec,
+                const AllocT& alloc,
+                CompareItemT comp=CompareItemT{}
+            ) : m_vec(std::move(vec),alloc),
+                m_comp(std::move(comp))
+        {
+            sort();
+        }
+
+        FlatContainer(
+                vector_type vec,
+                CompareItemT comp=CompareItemT{}
+            ) : m_vec(std::move(vec)),
+                m_comp(std::move(comp))
+        {
+            sort();
+        }
+
+        FlatContainer(
+                ItemT&& item,
+                const AllocT& alloc,
+                CompareItemT comp=CompareItemT{}
+            ) : m_vec(alloc),
+                m_comp(std::move(comp))
+        {
+            m_vec.emplace_back(std::move(item));
+        }
+
+        FlatContainer(
+            ItemT&& item,
+            CompareItemT comp=CompareItemT{}
+            ) : m_comp(std::move(comp))
+        {
+            m_vec.emplace_back(std::move(item));
+        }
+
+        FlatContainer(
+            const ItemT& item,
+            const AllocT& alloc,
+            CompareItemT comp=CompareItemT{}
+            ) : m_vec(alloc),
+            m_comp(std::move(comp))
+        {
+            m_vec.push_back(item);
+        }
+
+        FlatContainer(
+            const ItemT& item,
+            CompareItemT comp=CompareItemT{}
+            ) : m_comp(std::move(comp))
+        {
+            m_vec.push_back(item);
+        }
+
+        template <typename RangeT>
+        void loadRange(const RangeT& range)
+        {
+            beginRawInsert(range.size());
+            for (auto&& it: range)
+            {
+                rawInsert(it);
+            }
+            endRawInsert();
+        }
+
+        template <typename RangeT>
+        void loadRange(RangeT&& range)
+        {
+            beginRawInsert(range.size());
+            for (auto it = std::make_move_iterator(std::begin(range)),
+                 end = std::make_move_iterator(std::end(range));
+                 it != end; ++it)
+            {
+                rawEmplace(*it);
+            }
+            endRawInsert();
+        }
 
         void reserve(size_t n)
         {
@@ -427,19 +512,28 @@ class FlatContainer
                 reserve(size()+itemCount);
             }
         }
+
         void rawInsert(const ItemT& val)
         {
             m_vec.push_back(val);
         }
+
         void rawInsert(ItemT&& val)
         {
             m_vec.push_back(std::move(val));
         }
-        void endRawInsert(bool sort=true)
+
+        template <typename ...Args>
+        void rawEmplace(Args&&... args)
         {
-            if (sort)
+            m_vec.emplace_back(std::forward<Args>(args)...);
+        }
+
+        void endRawInsert(bool enableSorting=true)
+        {
+            if (enableSorting)
             {
-                std::sort(m_vec.begin(),m_vec.end(),m_comp);
+                sort();
             }
         }
 
@@ -454,6 +548,11 @@ class FlatContainer
         void rawSet(ItemT&& val, size_t idx)
         {
             m_vec[idx]=std::move(val);
+        }
+
+        void sort()
+        {
+            std::sort(m_vec.begin(),m_vec.end(),m_comp);
         }
 
     protected:
