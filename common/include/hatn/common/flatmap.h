@@ -284,6 +284,9 @@ class FlatContainer
         FlatContainer(CompareItemT comp):m_comp(std::move(comp))
         {}
 
+        FlatContainer(CompareItemT comp, const AllocT& alloc):m_vec(alloc),m_comp(std::move(comp))
+        {}
+
         FlatContainer(const AllocT& alloc,CompareItemT comp=CompareItemT{}) : m_vec(alloc),m_comp(std::move(comp))
         {}
 

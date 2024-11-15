@@ -183,10 +183,17 @@ public:
         this->reserve(PreallocatedSize);
     }
 
-    VectorOnStackT(std::initializer_list<T> elements) : ArenaHolderT(),
-        BaseT(std::move(elements),AllocaT{this->m_arena})
+    VectorOnStackT(std::initializer_list<T> items) : ArenaHolderT(),
+        BaseT(std::move(items),AllocaT{this->m_arena})
     {
         this->reserve(PreallocatedSize);
+    }
+
+    VectorOnStackT(T&& item) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(PreallocatedSize);
+        this->emplace_back(std::move(item));
     }
 
     VectorOnStackT() : ArenaHolderT(),
