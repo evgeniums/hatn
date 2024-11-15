@@ -188,22 +188,15 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 	
 	FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
 
-                MESSAGE(STATUS "Reading tests source file ${SOURCE_FILE_NAME}")
+                MESSAGE(STATUS "Reading test source file ${SOURCE_FILE_NAME}")
 
                 FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
 
                 STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *[\\),]" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
-                IF (FOUND_TEST_SUITE)
-                    STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
-                ELSE()
-                    STRING(REGEX MATCH "// HATN_TEST_SUITE [A-Za-z_0-9]+" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
-                    IF (FOUND_TEST_SUITE)
-                        STRING(REGEX REPLACE "// HATN_TEST_SUITE ([A-Za-z_0-9]+)" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
-                    ENDIF()
-                ENDIF()
 
 		IF (FOUND_TEST_SUITE)
 
+                        STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
                         MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
                         STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
@@ -224,6 +217,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
 				LIST (APPEND TEST_SUITES ${SUITE_NAME})
 
+                                MESSAGE(STATUS "Adding ${SOURCE_FILE_NAME} to test ${TARGET_EXE}")
                                 ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES} ${HATN_TEST_THREAD_SOURCES})
                                 TARGET_INCLUDE_DIRECTORIES(${TARGET_EXE} PRIVATE ${TEST_BINARY_DIR})
                                 IF(NOT "${MODULE_TEST_LIB}" STREQUAL "")
@@ -275,6 +269,33 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 		ENDIF()
 
 	ENDFOREACH()
+
+        FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
+
+            FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
+
+            SET(FOUND_SUITES "")
+            STRING(REGEX MATCHALL "// HATN_TEST_SUITE [A-Za-z_0-9]+" HATN_SUITES "${SOURCE_FILE_CONTENTS}")
+            FOREACH(HIT ${HATN_SUITES})
+
+                    STRING(REGEX REPLACE "// HATN_TEST_SUITE ([A-Za-z_0-9]+)" "\\1" SUITE_NAME ${HIT})
+                    IF (${SUITE_NAME} IN_LIST TEST_SUITES)
+
+                        STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
+                        IF (BUILD_IOS)
+                            SET (TEST_EXEC_CMD ${BINDIR}/${TARGET_EXE}.app/${TARGET_EXE})
+                        ELSE ()
+                            SET (TEST_EXEC_CMD ${TARGET_EXE})
+                        ENDIF()
+
+                        TARGET_SOURCES(${TARGET_EXE} PRIVATE ${SOURCE_FILE_NAME})
+
+                        MESSAGE(STATUS "Adding ${SOURCE_FILE_NAME} to test ${TARGET_EXE}")
+                    ENDIF()
+
+            ENDFOREACH()
+
+        ENDFOREACH()
 
 	SET_PROPERTY(GLOBAL PROPERTY HATN_TEST_SUITES "${TEST_SUITES}")
 
