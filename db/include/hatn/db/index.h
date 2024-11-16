@@ -243,6 +243,22 @@ class IndexFieldInfo
         std::vector<std::string> m_path;
 };
 
+struct fieldT
+{
+    template <typename FieldT>
+    auto operator() (FieldT&& field) const -> decltype(auto)
+    {
+        return hana::id(std::forward<FieldT>(field));
+    }
+
+    template <typename ...FieldsT>
+    auto operator() (FieldsT&&... fields) const
+    {
+        return nestedField(std::forward<FieldsT>(fields)...);
+    }
+};
+constexpr fieldT field{};
+
 #define HDB_LENGTH(l) hana::size_t<l>{}
 #define HDB_TTL(ttl) hana::uint<ttl>
 
@@ -281,6 +297,10 @@ struct IndexConfig
     }
 };
 constexpr IndexConfig<> DefaultIndexConfig{};
+constexpr IndexConfig<Unique> UniqueIndexConfig{};
+constexpr IndexConfig<NotUnique,DatePartition> PartitionIndexConfig{};
+template <typename TtlT>
+constexpr IndexConfig<NotUnique,NotDatePartition,TtlT> TtlIndexConfig{};
 
 class IndexBase
 {
@@ -666,14 +686,46 @@ struct getPlainIndexFieldT
 };
 constexpr getPlainIndexFieldT getPlainIndexField{};
 
-inline auto objectIndexes()
-{
-    return hana::make_tuple(makeIndex(IndexConfig<Unique>{},object::_id),
-                            makeIndex(DefaultIndexConfig,object::created_at),
-                            makeIndex(DefaultIndexConfig,object::updated_at)
-                            );
-}
-
 HATN_DB_NAMESPACE_END
+
+#define HATN_DB_INDEX(idx,...) \
+    struct _index_##idx { \
+        const auto& operator()() const \
+        { \
+            static auto idx=makeIndex(DefaultIndexConfig,__VA_ARGS__); \
+            return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
+#define HATN_DB_UNIQUE_INDEX(idx,...) \
+    struct _index_##idx { \
+        const auto& operator()() const \
+        { \
+            static auto idx=makeIndex(UniqueIndexConfig,__VA_ARGS__); \
+            return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
+#define HATN_DB_DATE_PARTITION_INDEX(idx,...) \
+    struct _index_##idx { \
+            const auto& operator()() const \
+        { \
+                static auto idx=makeIndex(PartitionIndexConfig,__VA_ARGS__); \
+                return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
+#define HATN_DB_TTL_INDEX(idx,Ttl,...) \
+    struct _index_##idx { \
+    const auto& operator()() const \
+        { \
+            static auto idx=makeIndex(TtlIndexConfig<hana::int_<Ttl>>,__VA_ARGS__); \
+            return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
 
 #endif // HATNDBINDEX_H

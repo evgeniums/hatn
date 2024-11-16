@@ -34,7 +34,7 @@ HATN_DATAUNIT_USING
 HATN_DB_USING
 HATN_TEST_USING
 
-HDU_UNIT_WITH(u2,(HDU_BASE(object)),
+HDU_UNIT_WITH(u9,(HDU_BASE(object)),
               HDU_ENUM(MyEnum,One=1,Two=2)
               HDU_FIELD(f1,TYPE_BOOL,1)
               HDU_FIELD(f2,TYPE_INT8,2)
@@ -58,28 +58,28 @@ HDU_UNIT_WITH(u2,(HDU_BASE(object)),
               HDU_FIELD(f20,TYPE_DOUBLE,20)
               )
 
-HATN_DB_INDEX(u2_f1_idx,u2::f1)
-HATN_DB_INDEX(u2_f2_idx,u2::f2)
-HATN_DB_INDEX(u2_f3_idx,u2::f3)
-HATN_DB_INDEX(u2_f4_idx,u2::f4)
-HATN_DB_INDEX(u2_f5_idx,u2::f5)
-HATN_DB_INDEX(u2_f6_idx,u2::f6)
-HATN_DB_INDEX(u2_f7_idx,u2::f7)
-HATN_DB_INDEX(u2_f8_idx,u2::f8)
-HATN_DB_INDEX(u2_f9_idx,u2::f9)
-HATN_DB_INDEX(u2_f10_idx,u2::f10)
+HATN_DB_INDEX(u9_f1_idx,u9::f1)
+HATN_DB_INDEX(u9_f2_idx,u9::f2)
+HATN_DB_INDEX(u9_f3_idx,u9::f3)
+HATN_DB_INDEX(u9_f4_idx,u9::f4)
+HATN_DB_INDEX(u9_f5_idx,u9::f5)
+HATN_DB_INDEX(u9_f6_idx,u9::f6)
+HATN_DB_INDEX(u9_f7_idx,u9::f7)
+HATN_DB_INDEX(u9_f8_idx,u9::f8)
+HATN_DB_INDEX(u9_f9_idx,u9::f9)
+HATN_DB_INDEX(u9_f10_idx,u9::f10)
 
-HATN_DB_MODEL(m2,u2,u2_f1_idx()
+HATN_DB_MODEL(m9,u9,u9_f1_idx()
           ,
-          u2_f2_idx(),
-          u2_f3_idx(),
-          u2_f4_idx(),
-          u2_f5_idx(),
-          u2_f6_idx(),
-          u2_f7_idx(),
-          u2_f8_idx(),
-          u2_f9_idx(),
-          u2_f10_idx()
+          u9_f2_idx(),
+          u9_f3_idx(),
+          u9_f4_idx(),
+          u9_f5_idx(),
+          u9_f6_idx(),
+          u9_f7_idx(),
+          u9_f8_idx(),
+          u9_f9_idx(),
+          u9_f10_idx()
 )
 
 void registerModels9();

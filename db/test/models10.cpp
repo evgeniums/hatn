@@ -13,8 +13,6 @@
 
 /****************************************************************************/
 
-// HATN_TEST_SUITE TestFind
-
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/syntax.h>
@@ -47,7 +45,7 @@ void registerModels10()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 
-    rdb::RocksdbModels::instance().registerModel(m3());
+    rdb::RocksdbModels::instance().registerModel(m10());
 
 #endif
 }

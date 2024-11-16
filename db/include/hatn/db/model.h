@@ -33,6 +33,8 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
+auto objectIndexes();
+
 using DatePartitionMode=common::DateRange::Type;
 
 HDU_UNIT(model_field,
@@ -187,8 +189,6 @@ class UnitWrapper
 template <typename ConfigT, typename UnitT, typename Indexes>
 struct Model : public ConfigT
 {
-    //! @todo Check if indexes are valid, i.e. use existing fields.
-
     using hana_tag=ModelTag;
 
     using UnitType=UnitT;
@@ -284,7 +284,7 @@ struct Model : public ConfigT
     }
 
     template <typename IndexT>
-    const std::string& indexId(IndexT) const noexcept
+    lib::string_view indexId(IndexT) noexcept
     {
         auto pred=[](auto&& index)
         {
@@ -292,10 +292,9 @@ struct Model : public ConfigT
             using type2=std::decay_t<IndexT>;
             return std::is_same<type1,type2>{};
         };
-        thread_local static const auto& idx=hana::find_if(indexes,pred);
-        thread_local static const auto& val=idx.value();
-        thread_local static const auto& id=val.id();
-        return id;
+        auto idx=hana::find_if(indexes,pred);
+        static_assert(!decltype(hana::is_nothing(idx))::value,"No such index in the model");
+        return idx.value().id();
     }
 
     private:
@@ -558,17 +557,6 @@ template <typename UnitType> constexpr makeModelWithIdxT<UnitType> makeModelWith
 
 HATN_DB_NAMESPACE_END
 
-#define HATN_DB_INDEX(idx,...) \
-    struct _index_##idx { \
-    const auto& operator()() const \
-        { \
-                static auto idx=makeIndex(DefaultIndexConfig,__VA_ARGS__); \
-                return idx; \
-        } \
-    }; \
-    constexpr _index_##idx idx{};
-
-
 #define HATN_DB_MODEL(m,type,...) \
     struct _model_##m { \
         const auto& operator()() const \
@@ -581,9 +569,14 @@ HATN_DB_NAMESPACE_END
 
 HATN_DB_NAMESPACE_BEGIN
 
-HATN_DB_INDEX(oidIdx,object::_id)
+HATN_DB_UNIQUE_INDEX(oidIdx,object::_id)
 HATN_DB_INDEX(createdAtIdx,object::created_at)
 HATN_DB_INDEX(updatedAtIdx,object::updated_at)
+
+inline auto objectIndexes()
+{
+    return hana::make_tuple(oidIdx(),createdAtIdx(),updatedAtIdx());
+}
 
 HATN_DB_NAMESPACE_END
 
