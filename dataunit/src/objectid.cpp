@@ -68,6 +68,7 @@ bool ObjectId::parse(const common::ConstDataBuf &buf) noexcept
     }
 
 #if __cplusplus < 201703L
+    static_assert(false,"Not implemented yet");
     try
     {
         std::string dtStr{buf.data(), DateTimeLength};
