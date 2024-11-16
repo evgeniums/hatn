@@ -158,6 +158,8 @@ Error iterateFieldVariant(
             fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
+            toS=cursor.indexRangeToSlice();
+            readOptions.iterate_upper_bound=&toS;
         }
         break;
         case (query::Operator::gte):
@@ -167,10 +169,14 @@ Error iterateFieldVariant(
             fieldValueToBuf(fromBuf,field,SeparatorCharStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
+            toS=cursor.indexRangeToSlice();
+            readOptions.iterate_upper_bound=&toS;
         }
         break;
         case (query::Operator::lt):
         {
+            fromS=cursor.indexRangeFromSlice();
+            readOptions.iterate_lower_bound=&fromS;
             toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharStr);
@@ -180,6 +186,8 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::lte):
         {
+            fromS=cursor.indexRangeFromSlice();
+            readOptions.iterate_lower_bound=&fromS;
             toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);

@@ -28,7 +28,7 @@
 
 namespace {
 
-constexpr const size_t count=2;
+constexpr const size_t count=100;
 
 struct noPartitionT
 {
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
     {
         setSchemaToClient(client,s1);
 
-        m9()->model.indexId(u9_f2_idx());
+        // m9()->model.indexId(u9_f2_idx());
 
         fillDbForFind(count,client,topic(),m9(),genUInt8,noPartition,u9::f6);
     };

@@ -118,10 +118,37 @@ void fillDbForFind(
     BOOST_REQUIRE_EQUAL(r1.value().size(),count);
 
     // check if all objects are written, using gt than First
-    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First),topic);
+    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First,query::Order::Desc),topic);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
     BOOST_REQUIRE_EQUAL(r2.value().size(),count);
+
+    // check ordering
+    for (size_t i=0;i<count;i++)
+    {
+        auto obj1=r1.value().at(i).template unit<unitT>();
+        auto obj2=r2.value().at(count-i-1).template unit<unitT>();
+
+        BOOST_TEST_MESSAGE(fmt::format("Obj1 {}",i));
+        BOOST_TEST_MESSAGE(obj1->toString(true));
+        BOOST_CHECK(obj1->fieldValue(object::_id)==obj2->fieldValue(object::_id));
+
+        auto obj3=r2.value().at(i).template unit<unitT>();
+        BOOST_TEST_MESSAGE(fmt::format("Obj3 {}",i));
+        BOOST_TEST_MESSAGE(obj3->toString(true));
+
+        if (i<(count-1))
+        {
+            auto obj4=r1.value().at(i+1).template unit<unitT>();
+            BOOST_CHECK_LT(obj1->getAtPath(path),obj4->getAtPath(path));
+            BOOST_CHECK(obj1->fieldValue(object::_id)<obj4->fieldValue(object::_id));
+        }
+        if (i>0)
+        {
+            auto obj5=r2.value().at(i-1).template unit<unitT>();
+            BOOST_CHECK_LT(obj3->getAtPath(path),obj5->getAtPath(path));
+        }
+    }
 }
 
 #if 0

@@ -284,7 +284,7 @@ struct Model : public ConfigT
     }
 
     template <typename IndexT>
-    lib::string_view indexId(IndexT) noexcept
+    const std::string& indexId(IndexT) noexcept
     {
         auto pred=[](auto&& index)
         {
@@ -292,7 +292,7 @@ struct Model : public ConfigT
             using type2=std::decay_t<IndexT>;
             return std::is_same<type1,type2>{};
         };
-        auto idx=hana::find_if(indexes,pred);
+        thread_local static const auto idx=hana::find_if(indexes,pred);
         static_assert(!decltype(hana::is_nothing(idx))::value,"No such index in the model");
         return idx.value().id();
     }

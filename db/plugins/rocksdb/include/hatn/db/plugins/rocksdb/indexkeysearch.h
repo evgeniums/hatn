@@ -41,6 +41,8 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+using Slice=ROCKSDB_NAMESPACE::Slice;
+
 namespace index_key_search
 {
 
@@ -109,7 +111,7 @@ struct IndexKeyCompare
             }
             else
             {
-                cmp=leftPart.compare(rightPart)<0;
+                cmp=leftPart.compare(rightPart);
             }
             if (cmp!=0)
             {
@@ -138,17 +140,20 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 struct Cursor
 {
     Cursor(
-            const lib::string_view& indexId,
+            const std::string& indexId_,
             const Topic& topic_,
             RocksdbPartition* partition
         ) :
+            filledIndexRangeFrom(false),
+            filledIndexRangeTo(false),
             pos(0),
+            indexId(indexId_),
             topic(topic_),
             partition(partition)
     {
         keyPrefix.append(topic);
         keyPrefix.append(SeparatorCharStr);
-        keyPrefix.append(indexId);
+        keyPrefix.append(indexId_);
     }
 
     void appendPrefix(const lib::string_view& prefixKey)
@@ -165,9 +170,42 @@ struct Cursor
         keyPrefix.resize(prevSize);
     }
 
+    Slice indexRangeFromSlice()
+    {
+        if (!filledIndexRangeFrom)
+        {
+            indexRangeFrom.append(topic);
+            indexRangeFrom.append(SeparatorCharStr);
+            indexRangeFrom.append(indexId);
+            indexRangeFrom.append(SeparatorCharStr);
+            filledIndexRangeFrom=true;
+        }
+        return Slice{indexRangeFrom.data(),indexRangeFrom.size()};
+    }
+
+    Slice indexRangeToSlice()
+    {
+        if (!filledIndexRangeTo)
+        {
+            indexRangeTo.append(topic);
+            indexRangeTo.append(SeparatorCharStr);
+            indexRangeTo.append(indexId);
+            indexRangeTo.append(SeparatorCharPlusStr);
+            filledIndexRangeTo=true;
+        }
+        return Slice{indexRangeTo.data(),indexRangeTo.size()};
+    }
+
     KeyBuf keyPrefix;
+
+    bool filledIndexRangeFrom;
+    bool filledIndexRangeTo;
+    KeyBuf indexRangeFrom;
+    KeyBuf indexRangeTo;
+
     size_t pos;
-    lib::string_view topic;
+    const std::string& indexId;
+    lib::string_view topic;    
 
     RocksdbPartition* partition;
 };

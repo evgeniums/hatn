@@ -167,7 +167,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
 struct ModelIndexQuery
 {
     const IndexQuery& query;
-    lib::string_view modelIndexId;
+    const std::string& modelIndexId;
 };
 
 template <typename IndexT>
