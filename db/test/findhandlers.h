@@ -113,12 +113,14 @@ void fillDbForFind(
 
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
+    q1.setLimit(0);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
     BOOST_REQUIRE_EQUAL(r1.value().size(),count);
 
     // check if all objects are written, using gt than First
     auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First,query::Order::Desc),topic);
+    q2.setLimit(0);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
     BOOST_REQUIRE_EQUAL(r2.value().size(),count);
@@ -128,15 +130,17 @@ void fillDbForFind(
     {
         auto obj1=r1.value().at(i).template unit<unitT>();
         auto obj2=r2.value().at(count-i-1).template unit<unitT>();
-
+#if 0
         BOOST_TEST_MESSAGE(fmt::format("Obj1 {}",i));
         BOOST_TEST_MESSAGE(obj1->toString(true));
+#endif
         BOOST_CHECK(obj1->fieldValue(object::_id)==obj2->fieldValue(object::_id));
 
         auto obj3=r2.value().at(i).template unit<unitT>();
+#if 0
         BOOST_TEST_MESSAGE(fmt::format("Obj3 {}",i));
         BOOST_TEST_MESSAGE(obj3->toString(true));
-
+#endif
         if (i<(count-1))
         {
             auto obj4=r1.value().at(i+1).template unit<unitT>();

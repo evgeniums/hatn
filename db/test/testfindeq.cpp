@@ -28,7 +28,7 @@
 
 namespace {
 
-constexpr const size_t count=100;
+constexpr const size_t count=255;
 
 struct noPartitionT
 {
