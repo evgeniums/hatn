@@ -35,29 +35,32 @@ HATN_DB_NAMESPACE_BEGIN
 namespace query
 {
 
-struct Null
+struct NullT
 {
-    bool operator < (const Null&) const noexcept
+    bool operator < (const NullT&) const noexcept
     {
         return false;
     }
 };
+constexpr NullT Null{};
 
-struct First
+struct FirstT
 {
-    bool operator < (const First&) const noexcept
+    bool operator < (const FirstT&) const noexcept
     {
         return false;
     }
 };
+constexpr FirstT First{};
 
-struct Last
+struct LastT
 {
-    bool operator < (const Last&) const noexcept
+    bool operator < (const LastT&) const noexcept
     {
         return false;
     }
 };
+constexpr LastT Last{};
 
 using String=lib::string_view;
 
@@ -269,9 +272,9 @@ struct Interval
 };
 
 #define HATN_DB_QUERY_VALUE_TYPES(DO) \
-        DO(Null), \
-        DO(First), \
-        DO(Last), \
+        DO(NullT), \
+        DO(FirstT), \
+        DO(LastT), \
         DO(BoolValue), \
         DO(int8_t), \
         DO(int16_t), \
@@ -289,9 +292,9 @@ struct Interval
         DO(ObjectId)
 
 #define HATN_DB_QUERY_VALUE_TYPE_IDS(DO) \
-        DO(Null), \
-        DO(First), \
-        DO(Last), \
+        DO(NullT), \
+        DO(FirstT), \
+        DO(LastT), \
         DO(Bool), \
         DO(Int8_t), \
         DO(Int16_t), \

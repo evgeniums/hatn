@@ -158,7 +158,7 @@ struct partitionFieldVisitor
         partitions.endRawInsert();
     }
 
-    void operator()(const query::Last&) const
+    void operator()(const query::LastT&) const
     {
         if (op==query::Operator::lt || op==query::Operator::lte)
         {
@@ -170,7 +170,7 @@ struct partitionFieldVisitor
         }
     }
 
-    void operator()(const query::First&) const
+    void operator()(const query::FirstT&) const
     {
         if (op==query::Operator::gt || op==query::Operator::gte)
         {

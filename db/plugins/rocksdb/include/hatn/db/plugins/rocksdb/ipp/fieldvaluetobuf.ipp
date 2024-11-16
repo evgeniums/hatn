@@ -45,13 +45,13 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
                 {
                 case(query::IntervalType::Last):
                 {
-                    (*_(self))(query::Last{});
+                    (*_(self))(query::Last);
                 }
                 break;
 
                 case(query::IntervalType::First):
                 {
-                    (*_(self))(query::First{});
+                    (*_(self))(query::First);
                 }
                 break;
 
@@ -68,13 +68,13 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
                 {
                 case(query::IntervalType::Last):
                 {
-                    (*_(self))(query::Last{});
+                    (*_(self))(query::Last);
                 }
                 break;
 
                 case(query::IntervalType::First):
                 {
-                    (*_(self))(query::First{});
+                    (*_(self))(query::First);
                 }
                 break;
 
@@ -106,13 +106,13 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
         }
     }
 
-    void operator()(const query::Last&) const
+    void operator()(const query::LastT&) const
     {
         // replace previous separator with SeparatorCharPlusStr
         buf[buf.size()-1]=SeparatorCharPlusStr[0];
     }
 
-    void operator()(const query::First&) const
+    void operator()(const query::FirstT&) const
     {}
 
     valueVisitor(BufT& buf, const lib::string_view& sep):buf(buf),sep(&sep)

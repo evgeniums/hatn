@@ -112,13 +112,13 @@ void fillDbForFind(
     }
 
     // check if all objects are written, using less than Last
-    auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last{}),topic);
+    auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
     BOOST_REQUIRE_EQUAL(r1.value().size(),count);
 
     // check if all objects are written, using gt than First
-    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First{}),topic);
+    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First),topic);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
     BOOST_REQUIRE_EQUAL(r2.value().size(),count);

@@ -180,15 +180,15 @@ struct FieldToStringBufT
     }
 
     template <typename BufT>
-    void operator ()(BufT&, const query::Null&) const
+    void operator ()(BufT&, const query::NullT&) const
     {}
 
     template <typename BufT>
-    void operator ()(BufT&, const query::First&) const
+    void operator ()(BufT&, const query::FirstT&) const
     {}
 
     template <typename BufT>
-    void operator ()(BufT&, const query::Last&) const
+    void operator ()(BufT&, const query::LastT&) const
     {}
 
     template <typename BufT, typename T>

@@ -104,6 +104,7 @@ Error Keys::iterateIndexFields(
                     {
                         fieldToStringBuf(_(buf),_(field).value());
                     }
+                    // else Null index just append separator
                     _(buf).append(SeparatorCharStr);
                     return _(self)->iterateIndexFields(
                         _(buf),
