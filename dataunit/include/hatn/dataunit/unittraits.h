@@ -29,6 +29,7 @@
 #include <hatn/common/stdwrappers.h>
 
 #include <hatn/validator/utils/foreach_if.hpp>
+#include <hatn/validator/validator.hpp>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/fields/scalar.h>
@@ -49,6 +50,12 @@
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
 namespace hana=boost::hana;
+
+template <typename ...Ts>
+auto path(Ts&& ...keys)
+{
+    return validator::path(std::forward<Ts>(keys)...);
+}
 
 /**  @brief Base template for unit types. */
 template <typename ...Fields>
