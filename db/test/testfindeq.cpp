@@ -24,6 +24,12 @@
 #include "initdbplugins.h"
 #include "preparedb.h"
 
+namespace {
+size_t Count=250;
+std::vector<size_t> CheckValueIndexes{10,20,30,150,253};
+size_t Limit=0;
+}
+
 #include "findhandlers.h"
 
 namespace {
@@ -34,7 +40,7 @@ struct eqQueryGenT
     auto operator ()(size_t i, PathT&& path, const ValT& val) const
     {
         std::ignore=i;
-        return query::where(std::forward<PathT>(path),query::Operator::eq,val);
+        return query::where(std::forward<PathT>(path),query::eq,val);
     }
 };
 constexpr eqQueryGenT eqQueryGen{};
@@ -80,21 +86,108 @@ struct eqCheckerT
 };
 constexpr eqCheckerT eqChecker{};
 
+struct ltQueryGen
+{
+    template <typename PathT,typename ValT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val) const
+    {
+        std::ignore=i;
+        auto op = m_lte ? query::lte : query::lt;
+        return query::where(std::forward<PathT>(path),op,val);
+    }
+
+    ltQueryGen(bool lte=false) : m_lte(lte)
+    {}
+
+    bool m_lte;
+};
+
+struct ltChecker
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>& valIndexes,
+        size_t i,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+        bool skipLast=true;
+        if constexpr (std::is_same<vType,u9::MyEnum>::value
+                      ||
+                      std::is_same<vType,bool>::value
+                      )
+        {
+            skipLast=false;
+        }
+
+        size_t resultCount=0;
+        size_t lte=0;
+        if (m_lte)
+        {
+            lte=1;
+        }
+        BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+            if (skipLast && i==(valIndexes.size()-1))
+            {
+                resultCount=Count;
+            }
+            else
+            {
+                resultCount=valIndexes[i]+lte;
+            }
+            if (Limit!=0)
+            {
+                resultCount=std::min(resultCount,Limit);
+            }
+            BOOST_REQUIRE_EQUAL(resultCount,result.size());
+            for (size_t j=0;j<resultCount;j++)
+            {
+                auto obj=result.at(j).template unit<unitT>();
+                BOOST_CHECK(valGen(j,true)==static_cast<vType>(obj->getAtPath(path)));
+            }
+        }
+    }
+
+    ltChecker(bool lte=false) : m_lte(lte)
+    {}
+
+    bool m_lte;
+};
+
 }
 
 BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
 BOOST_AUTO_TEST_CASE(PlainEq)
 {
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
-    // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,"hi"),topic());
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,lib::string_view("hi")),topic());
+    // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,std::string("hi")),topic());
     std::string val("hi");
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,val),topic());
-    std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::Operator::eq,u9::MyEnum::One),topic());
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,val),topic());
+    std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::eq,u9::MyEnum::One),topic());
 
     InvokeTestT<eqQueryGenT,eqCheckerT> testEq{eqQueryGen,eqChecker};
     runTest(testEq);
+}
+
+BOOST_AUTO_TEST_CASE(PlainLt)
+{
+    InvokeTestT<ltQueryGen,ltChecker> testLt{ltQueryGen(),ltChecker()};
+    runTest(testLt);
+}
+
+BOOST_AUTO_TEST_CASE(PlainLte)
+{
+    InvokeTestT<ltQueryGen,ltChecker> testLte{ltQueryGen(true),ltChecker(true)};
+    runTest(testLte);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

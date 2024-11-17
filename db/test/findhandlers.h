@@ -51,15 +51,13 @@ HATN_TEST_NAMESPACE_BEGIN
 namespace
 {
 
-size_t count=250;
-
 template <typename ClientT,
          typename ModelT,
          typename ValueGeneratorT,
          typename PartitionFieldSetterT,
          typename ...FieldsT>
 void fillDbForFind(
-    size_t count,
+    size_t Count,
     ClientT& client,
     const Topic& topic,
     const ModelT& model,
@@ -72,7 +70,7 @@ void fillDbForFind(
     auto path=du::path(std::forward<FieldsT>(fields)...);
 
     // fill db with objects
-    for (size_t i=0;i<count;i++)
+    for (size_t i=0;i<Count;i++)
     {
         // create and fill object
         auto obj=makeInitObject<unitT>();
@@ -91,20 +89,20 @@ void fillDbForFind(
     q1.setLimit(0);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
-    BOOST_REQUIRE_EQUAL(r1.value().size(),count);
+    BOOST_REQUIRE_EQUAL(r1.value().size(),Count);
 
     // check if all objects are written, using gt than First
     auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First,query::Order::Desc),topic);
     q2.setLimit(0);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
-    BOOST_REQUIRE_EQUAL(r2.value().size(),count);
+    BOOST_REQUIRE_EQUAL(r2.value().size(),Count);
 
     // check ordering
-    for (size_t i=0;i<count;i++)
+    for (size_t i=0;i<Count;i++)
     {
         auto obj1=r1.value().at(i).template unit<unitT>();
-        auto obj2=r2.value().at(count-i-1).template unit<unitT>();
+        auto obj2=r2.value().at(Count-i-1).template unit<unitT>();
 #if 0
         BOOST_TEST_MESSAGE(fmt::format("Obj1 {}",i));
         BOOST_TEST_MESSAGE(obj1->toString(true));
@@ -115,17 +113,15 @@ void fillDbForFind(
 #if 0
         BOOST_TEST_MESSAGE(fmt::format("Obj3 {}",i));
         BOOST_TEST_MESSAGE(obj3->toString(true));
-#endif \
-    // exclude multiples of 10 due to possible invalid string comparison
-        constexpr bool exclude10=std::is_same<std::string,decltype(valGen(i,true))>::value;
-        if (i<(count-1) && (!exclude10 || (i+1)%10!=0))
+#endif
+        if (i<(Count-1))
         {
             // ordering of ASC
             auto obj4=r1.value().at(i+1).template unit<unitT>();
             BOOST_CHECK(obj1->getAtPath(path)<obj4->getAtPath(path));
             BOOST_CHECK(obj1->fieldValue(object::_id)<obj4->fieldValue(object::_id));
         }
-        if (i>0 && (!exclude10 || i%10!=0))
+        if (i>0)
         {
             // ordering of DESC
             auto obj5=r2.value().at(i-1).template unit<unitT>();
@@ -161,6 +157,7 @@ void invokeDbFind(
     {
         const auto val=valGen(valIndexes[i],true);
         auto q=makeQuery(index,queryGen(i,qField,val),topic);
+        q.setLimit(Limit);
 
         auto r=client->find(model,q);
         BOOST_REQUIRE(!r);
@@ -206,9 +203,9 @@ struct InvokeTestT
         const FieldsT&... fields
         )
     {
-        fillDbForFind(count,client,topic(),model,valGen,partitionFn,fields...);
+        fillDbForFind(Count,client,topic(),model,valGen,partitionFn,fields...);
 
-        std::vector<size_t> valIndexes{10,20,30,50,253};
+        std::vector<size_t> valIndexes=CheckValueIndexes;
         if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<u9::MyEnum,decltype(valGen(0,true))>::value)
         {
             valIndexes.clear();
@@ -293,7 +290,7 @@ auto genUInt64(size_t i, bool)
 
 std::string genString(size_t i, bool)
 {
-    return fmt::format("value_{}",i);
+    return fmt::format("value_{:04d}",i);
 }
 
 bool genBool(size_t i, bool)
@@ -428,11 +425,11 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client)
 
     BOOST_TEST_CONTEXT("object_id"){invoker(client,m9(),genObjectId,u9_f16_idx(),u9::f16);}
 
-    auto cc=count;
-    count=2;
+    auto cc=Count;
+    Count=2;
     BOOST_TEST_CONTEXT("bool"){invoker(client,m9(),genBool,u9_f1_idx(),u9::f1);}
     BOOST_TEST_CONTEXT("enum"){invoker(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
-    count=cc;
+    Count=cc;
 }
 
 void init()
