@@ -846,7 +846,7 @@ template <typename Ts>
 struct whereT
 {
     template <typename FieldT, typename ValueT>
-    auto and_(const FieldT& field, Operator op, const ValueT& value, Order order=Order::Asc) &&
+    auto and_(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
     {
         auto make=[&]()
         {
