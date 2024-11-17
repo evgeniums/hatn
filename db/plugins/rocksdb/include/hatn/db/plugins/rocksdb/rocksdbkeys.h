@@ -130,6 +130,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const char* ptr, size_t size);
 
+        static ROCKSDB_NAMESPACE::Slice objectKeyFromIndexValue(const ROCKSDB_NAMESPACE::Slice& val)
+        {
+            return objectKeyFromIndexValue(val.data(),val.size());
+        }
+
         static ROCKSDB_NAMESPACE::Slice objectIdFromIndexValue(const char* ptr, size_t size);
 
         static uint32_t timestampFromIndexValue(const char* ptr, size_t size);

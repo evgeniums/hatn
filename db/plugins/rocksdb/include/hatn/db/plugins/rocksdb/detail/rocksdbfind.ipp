@@ -105,6 +105,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
 
             auto pushLogKey=[&k,&key]()
             {
+                //! @todo Fix index formatting for logging
                 HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(k))
                 HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(key.key))
                 if (!key.partition->range.isNull())
@@ -126,7 +127,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
                 HATN_CTX_WARN("missing object in rocksdb")
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
-                HATN_CTX_SCOPE_POP()
+                if (!key.partition->range.isNull())
+                {
+                    HATN_CTX_SCOPE_POP()
+                }
                 continue;
             }
             if (TtlMark::isExpired(value))
@@ -137,7 +141,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
                 HATN_CTX_WARN("object expired in rocksdb")
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
-                HATN_CTX_SCOPE_POP()
+                if (!key.partition->range.isNull())
+                {
+                    HATN_CTX_SCOPE_POP()
+                }
                 continue;
             }
 

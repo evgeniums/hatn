@@ -68,7 +68,7 @@ struct DeleteObjectT
         // read object from db
         auto rdbTx=RocksdbTransaction::native(tx);
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-        auto status=rdbTx->Get(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
+        auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
         if (!status.ok())
         {
             if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
@@ -103,6 +103,7 @@ struct DeleteObjectT
         }
 
         // append index deletions to transaction
+        //! @todo Fix index deletion
         Indexes indexes{partition->indexCf.get(),keys};
         ec=indexes.deleteIndexes(rdbTx,model,topic,objectIdS,&unit);
         HATN_CHECK_EC(ec)

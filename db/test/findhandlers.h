@@ -111,6 +111,7 @@ void fillDbForFind(
         BOOST_REQUIRE(!ec);
     }
 
+#if 1
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
     q1.setLimit(0);
@@ -153,9 +154,10 @@ void fillDbForFind(
             BOOST_CHECK_LT(obj3->getAtPath(path),obj5->getAtPath(path));
         }
     }
+#endif
 }
 
-#if 0
+#if 1
 template <typename ClientT,
          typename ModelT,
          typename IndexT,
@@ -165,29 +167,28 @@ template <typename ClientT,
          typename ...FieldsT>
 void invokeDbFind(
     const std::vector<size_t>& valIndexes,
-    query::Operator op,
     ClientT& client,
     const ModelT& model,
     const IndexT& index,
+    const Topic& topic,
     ValueGeneratorT&& valGen,
     QueryGenT&& queryGen,
     ResultCheckerT&& checker,
     FieldsT&&... fields
     )
-{
-    using unitT=typename ModelT::Type;
-    auto path=hana::make_tuple(std::forward<FieldsT>(fields)...);
+{    
+    auto qField=field(fields...);
 
     // fill db with objects
-    for (auto&& i:valIndexes)
+    for (size_t i=0;i<valIndexes.size();i++)
     {
-        auto val=valGen(i);
-        auto prepareQ=queryGen(op,i,path,val);
-        auto q=makeQuery(index,prepareQ);
+        // auto val=valGen(i);
+        // auto prepareQ=queryGen(i,qField,valGen(i));
+        auto q=makeQuery(index,queryGen(i,qField,valGen(valIndexes[i])),topic);
 
         auto r=client->find(model,q);
-        HATN_CHECK_RESULT(r)
-        checker(r.value());
+        BOOST_REQUIRE(!r);
+        checker(model,valGen,valIndexes,i,r.value(),fields...);
     }
 }
 #endif

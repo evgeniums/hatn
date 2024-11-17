@@ -54,16 +54,19 @@ Error DeleteManyT::operator ()(
     static ttlIndexesT ttlIndexes{};
 
     auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
-                                                const lib::string_view& topic,
-                                                ROCKSDB_NAMESPACE::Slice* key,
-                                                ROCKSDB_NAMESPACE::Slice*,
-                                                Error& ec
-                                            )
+                                                      const lib::string_view& topic,
+                                                      ROCKSDB_NAMESPACE::Slice* key,
+                                                      ROCKSDB_NAMESPACE::Slice* keyValue,
+                                                      Error& ec
+                                                      )
     {
-        ec=DeleteObject.doDelete(model,handler,partition,topic,*key,keys,ttlIndexes,tx);
-        return !ec;
+        auto transactionFn=[&](Transaction* tx)
+        {
+            auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
+            return DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
+        };
+        return !handler.transaction(transactionFn,tx,true);
     };
-
     return FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
 }
 
