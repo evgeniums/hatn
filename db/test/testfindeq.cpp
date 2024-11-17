@@ -24,26 +24,9 @@
 #include "initdbplugins.h"
 #include "preparedb.h"
 
-#include "models9.h"
 #include "findhandlers.h"
 
 namespace {
-
-size_t count=250;
-
-struct noPartitionT
-{
-    template <typename T>
-    void operator()(T&&, size_t) const noexcept
-    {
-    }
-};
-constexpr noPartitionT noPartition{};
-
-Topic topic()
-{
-    return "topic1";
-}
 
 struct eqQueryGenT
 {
@@ -97,255 +80,21 @@ struct eqCheckerT
 };
 constexpr eqCheckerT eqChecker{};
 
-template <typename ModelT>
-void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
-{
-    auto q=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First),topic());
-    q.setLimit(0);
-    auto ec=client->deleteMany(m,q);
-    BOOST_CHECK(!ec);
-    auto r=client->find(m,q);
-    BOOST_REQUIRE(!r);
-    BOOST_REQUIRE_EQUAL(r.value().size(),0);
-}
-
-template <typename ModelT, typename ValGenT, typename IndexT, typename ...FieldsT>
-void testEq(std::shared_ptr<Client> client,
-            const ModelT& model,
-            ValGenT& valGen,
-            const IndexT& idx,
-            const FieldsT&... fields
-            )
-{
-    fillDbForFind(count,client,topic(),model,valGen,noPartition,fields...);
-
-    std::vector<size_t> valIndexes{10,20,30,50,253};
-    if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<u9::MyEnum,decltype(valGen(0,true))>::value)
-    {
-        valIndexes.clear();
-        valIndexes.push_back(0);
-        valIndexes.push_back(1);
-    }
-    invokeDbFind(valIndexes,
-                 client,
-                 model,
-                 idx,
-                 topic(),
-                 valGen,
-                 eqQueryGen,
-                 eqChecker,
-                 fields...);
-    clearTopic(client,model);
-}
-
-auto genInt8(size_t i, bool)
-{
-    return static_cast<int8_t>(i-127);
-}
-
-auto genInt16(size_t i, bool)
-{
-    return static_cast<int16_t>(i-127);
-}
-
-auto genInt32(size_t i, bool)
-{
-    return static_cast<int32_t>(i-127);
-}
-
-auto genInt64(size_t i, bool)
-{
-    return static_cast<int64_t>(i-127);
-}
-
-auto genUInt8(size_t i, bool)
-{
-    return static_cast<uint8_t>(i);
-}
-
-auto genUInt16(size_t i, bool)
-{
-    return static_cast<uint16_t>(i);
-}
-
-auto genUInt32(size_t i, bool)
-{
-    return static_cast<uint32_t>(i);
-}
-
-auto genUInt64(size_t i, bool)
-{
-    return static_cast<uint64_t>(i);
-}
-
-std::string genString(size_t i, bool)
-{
-    return fmt::format("value_{}",i);
-}
-
-bool genBool(size_t i, bool)
-{
-    if (i==0)
-    {
-        return false;
-    }
-    return true;
-}
-
-u9::MyEnum genEnum(size_t i, bool)
-{
-    if (i==0)
-    {
-        return u9::MyEnum::One;
-    }
-    return u9::MyEnum::Two;
-}
-
-template <typename T>
-struct genAndKeep
-{
-    auto operator ()(size_t i, bool forCheck)
-    {
-        auto val=m_gen(i);
-        if (!forCheck)
-        {
-            m_vals.resize(std::max(i+1,m_vals.size()));
-            m_vals[i]=val;
-            return val;
-        }
-        if (i<m_vals.size())
-        {
-            return m_vals[i];
-        }
-        return val;
-    }
-
-    std::vector<T> m_vals;
-    std::function<T (size_t)> m_gen;
-};
-
-struct genDateTimeT : public genAndKeep<common::DateTime>
-{
-    genDateTimeT()
-    {
-        m_gen=[](size_t i)
-        {
-            auto dt=common::DateTime::currentUtc();
-            dt.addMinutes(static_cast<int>(i));
-            return dt;
-        };
-    }
-};
-genDateTimeT genDateTime{};
-
-struct genDateT : public genAndKeep<common::Date>
-{
-    genDateT()
-    {
-        m_gen=[](size_t i)
-        {
-            auto dt=common::Date::currentUtc();
-            dt.addDays(static_cast<int>(i));
-            return dt;
-        };
-    }
-};
-genDateT genDate{};
-
-struct genTimeT : public genAndKeep<common::Time>
-{
-    genTimeT()
-    {
-        m_gen=[](size_t i)
-        {
-            common::Time time{1,1,1};
-            time.addSeconds(static_cast<int>(i));
-            return time;
-        };
-    }
-};
-genTimeT genTime{};
-
-struct genDateRangeT : public genAndKeep<common::DateRange>
-{
-    genDateRangeT()
-    {
-        m_gen=[](size_t i)
-        {
-            auto dt=common::Date::currentUtc();
-            dt.addDays(static_cast<int>(i));
-            common::DateRange range{dt,common::DateRange::Type::Day};
-            return range;
-        };
-    }
-};
-genDateRangeT genDateRange{};
-
-struct genObjectIdT : public genAndKeep<ObjectId>
-{
-    genObjectIdT()
-    {
-        m_gen=[](size_t)
-        {
-            return ObjectId::generateId();
-        };
-    }
-};
-genObjectIdT genObjectId{};
-
 }
 
 BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
-BOOST_AUTO_TEST_CASE(CheckEq)
+BOOST_AUTO_TEST_CASE(PlainEq)
 {
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
-    ctx->beforeThreadProcessing();
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
+    // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
+    std::string val("hi");
+    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,val),topic());
+    std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::Operator::eq,u9::MyEnum::One),topic());
 
-    init();
-    registerModels9();
-    auto s1=initSchema(m9());
-
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
-    {
-        setSchemaToClient(client,s1);
-
-        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
-        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
-        // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
-        std::string val("hi");
-        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,val),topic());
-        std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::Operator::eq,u9::MyEnum::One),topic());
-
-        BOOST_TEST_CONTEXT("int8"){testEq(client,m9(),genInt8,u9_f2_idx(),u9::f2);}
-        BOOST_TEST_CONTEXT("int16"){testEq(client,m9(),genInt16,u9_f3_idx(),u9::f3);}
-        BOOST_TEST_CONTEXT("int32"){testEq(client,m9(),genInt32,u9_f4_idx(),u9::f4);}
-        BOOST_TEST_CONTEXT("int64"){testEq(client,m9(),genInt64,u9_f5_idx(),u9::f5);}
-        BOOST_TEST_CONTEXT("uint8"){testEq(client,m9(),genUInt8,u9_f6_idx(),u9::f6);}
-        BOOST_TEST_CONTEXT("uint16"){testEq(client,m9(),genUInt16,u9_f7_idx(),u9::f7);}
-        BOOST_TEST_CONTEXT("uint32"){testEq(client,m9(),genUInt32,u9_f8_idx(),u9::f8);}
-        BOOST_TEST_CONTEXT("uint64"){testEq(client,m9(),genUInt64,u9_f9_idx(),u9::f9);}
-
-        BOOST_TEST_CONTEXT("string"){testEq(client,m9(),genString,u9_f10_idx(),u9::f10);}
-        BOOST_TEST_CONTEXT("fixed_string"){testEq(client,m9(),genString,u9_f12_idx(),u9::f12);}
-
-        BOOST_TEST_CONTEXT("datetime"){testEq(client,m9(),genDateTime,u9_f13_idx(),u9::f13);}
-        BOOST_TEST_CONTEXT("date"){testEq(client,m9(),genDate,u9_f14_idx(),u9::f14);}
-        BOOST_TEST_CONTEXT("time"){testEq(client,m9(),genTime,u9_f15_idx(),u9::f15);}
-        BOOST_TEST_CONTEXT("daterange"){testEq(client,m9(),genDateRange,u9_f17_idx(),u9::f17);}
-
-        BOOST_TEST_CONTEXT("object_id"){testEq(client,m9(),genObjectId,u9_f16_idx(),u9::f16);}
-
-        auto cc=count;
-        count=2;
-        BOOST_TEST_CONTEXT("bool"){testEq(client,m9(),genBool,u9_f1_idx(),u9::f1);}
-        BOOST_TEST_CONTEXT("enum"){testEq(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
-        count=cc;
-    };
-    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
-
-    ctx->afterThreadProcessing();
+    InvokeTestT<eqQueryGenT,eqCheckerT> testEq{eqQueryGen,eqChecker};
+    runTest(testEq);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
