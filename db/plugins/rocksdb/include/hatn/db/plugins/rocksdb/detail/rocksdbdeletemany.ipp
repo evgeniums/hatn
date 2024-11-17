@@ -53,6 +53,25 @@ Error DeleteManyT::operator ()(
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 
+#if 0
+//! @todo Bulk deletion in one transaction
+    auto transactionFn=[&](Transaction* tx)
+    {
+        auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
+                                                          const lib::string_view& topic,
+                                                          ROCKSDB_NAMESPACE::Slice* key,
+                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
+                                                          Error& ec
+                                                          )
+        {
+            auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
+            return !DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
+        };
+        return FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
+    };
+    return handler.transaction(transactionFn,tx,true);
+#endif
+
     auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
                                                       const lib::string_view& topic,
                                                       ROCKSDB_NAMESPACE::Slice* key,
