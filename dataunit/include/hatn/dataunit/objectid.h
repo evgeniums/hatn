@@ -38,7 +38,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
 {
     public:
 
-        constexpr static const uint32_t DateTimeLength=12;
+        constexpr static const uint32_t DateTimeLength=11;
         constexpr static const uint32_t SeqLength=6;
         constexpr static const uint32_t RandLength=8;
 
@@ -198,7 +198,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
         uint32_t m_seq=0; // 3 bytes: 0xFFFFFF
         uint32_t m_rand=0; // 4 bytes: 0xFFFFFFFF
 
-        // hex string: 2*(3+4)+11 = 26 characters
+        // hex string: 2*(3+4)+11 = 25 characters
 };
 
 //! Definition of DateTime type
