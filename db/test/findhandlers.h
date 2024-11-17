@@ -186,7 +186,7 @@ void invokeDbFind(
     // fill db with objects
     for (size_t i=0;i<valIndexes.size();i++)
     {
-        auto val=valGen(valIndexes[i]);
+        const auto val=valGen(valIndexes[i]);
         auto q=makeQuery(index,queryGen(i,qField,val),topic);
 
         auto r=client->find(model,q);

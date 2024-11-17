@@ -45,7 +45,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         static size_t DefaultLimit; // 100
 
         template <typename IndexT, typename WhereT, typename ...TopicsT>
-        IndexQuery(IndexT&& index, WhereT&& where, TopicsT&&... topics)
+        IndexQuery(IndexT&& index, const WhereT& where, TopicsT&&... topics)
             : IndexQuery(index.indexInfo(),int(0),std::forward<TopicsT>(topics)...)
         {
             m_fields.reserve(where.size());
@@ -57,7 +57,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
                 {
                     const auto& field=hana::at(cond,hana::size_c<0>);
                     self->m_fields.emplace_back(
-                        index.fieldInfoPos(field,pos),
+                        index.fieldInfoPos(field.get(),pos),
                         hana::at(cond,hana::size_c<1>),
                         hana::at(cond,hana::size_c<2>),
                         hana::at(cond,hana::size_c<3>)
@@ -175,9 +175,9 @@ class Query : public IndexQuery
 {
     public:
 
-        template <typename ...Args>
-        Query(const IndexT& index, Args&&... args)
-            : IndexQuery(index, std::forward<Args>(args)...),
+        template <typename WhereT,typename ...Args>
+        Query(const IndexT& index, const WhereT& where, Args&&... args)
+            : IndexQuery(index, where, std::forward<Args>(args)...),
               m_indexT(index)
         {}
 
@@ -194,9 +194,9 @@ class Query : public IndexQuery
 struct makeQueryT
 {
     template <typename IndexT, typename WhereT, typename ...TopicsT>
-    auto operator() (const IndexT& index, WhereT&& where, TopicsT&&... topics) const
+    auto operator() (const IndexT& index, const WhereT& where, TopicsT&&... topics) const
     {
-        return Query<IndexT>(index,std::forward<WhereT>(where),std::forward<TopicsT>(topics)...);
+        return Query<IndexT>(index,where,std::forward<TopicsT>(topics)...);
     }
 };
 constexpr makeQueryT makeQuery{};

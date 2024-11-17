@@ -21,6 +21,8 @@
 
 #include <boost/hana.hpp>
 
+#include <hatn/validator/utils/reference_wrapper.hpp>
+
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
@@ -62,8 +64,8 @@ struct LastT
 };
 constexpr LastT Last{};
 
-// using String=lib::string_view;
-using String=std::string;
+using String=lib::string_view;
+// using String=std::string;
 
 struct BoolValue
 {
@@ -574,14 +576,21 @@ struct Field
     {
     }
 
-    // Field(
-    //     const IndexFieldInfo* fieldInfo,
-    //     Operator op,
-    //     const std::string& value,
-    //     Order order=Order::Asc
-    //     ) : Field(fieldInfo,op,String(value),order)
-    // {
-    // }
+    Field(
+        const IndexFieldInfo* fieldInfo,
+        Operator op,
+        const std::string& value,
+        Order order=Order::Asc
+        ) : Field(fieldInfo,op,String(value),order)
+    {
+    }
+
+    Field(
+        const IndexFieldInfo* fieldInfo,
+        Operator op,
+        std::string&& value,
+        Order order=Order::Asc
+    )= delete;
 
     Field(
         const IndexFieldInfo* fieldInfo,
@@ -789,17 +798,41 @@ struct valueToDateRangeT
 };
 constexpr valueToDateRangeT toDateRange{};
 
+template <typename FieldT, typename ValueT>
+auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
+{
+    static const auto isLval=std::is_lvalue_reference<ValueT>{};
+    static const auto isStr=
+        hana::bool_c<
+            std::is_convertible<ValueT,String>::value
+            &&
+            !std::is_same<String,std::decay_t<ValueT>>::value
+            &&
+            !std::is_same<const char*,ValueT>::value
+        >;
+
+    static_assert(decltype(isLval)::value || !decltype(isStr)::value,"Do not use temporary/rvalue string as a query field value");
+
+    if constexpr (std::is_convertible<ValueT,String>::value)
+    {
+        return hana::make_tuple(std::cref(field),op,String(value),order);
+    }
+    else
+    {
+        return hana::make_tuple(std::cref(field),op,std::forward<ValueT>(value),order);
+    }
+}
+
 template <typename Ts>
 struct whereT
 {
     template <typename FieldT, typename ValueT>
-    auto and_(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
+    auto and_(const FieldT& field, Operator op, const ValueT& value, Order order=Order::Asc) &&
     {
         auto make=[&]()
         {
-            return hana::append(std::move(conditions),hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+            return hana::append(std::move(conditions),condition(field,op,std::forward<ValueT>(value),order));
         };
-
         return whereT<decltype(make())>{make()};
     }
 
@@ -821,9 +854,8 @@ auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::
 {
     auto make=[&]()
     {
-        return hana::make_tuple(hana::make_tuple(field,op,std::forward<ValueT>(value),order));
+        return hana::make_tuple(condition(field,op,std::forward<ValueT>(value),order));
     };
-
     return whereT<decltype(make())>{make()};
 }
 

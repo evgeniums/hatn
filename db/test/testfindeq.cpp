@@ -47,7 +47,7 @@ Topic topic()
 struct eqQueryGenT
 {
     template <typename PathT,typename ValT>
-    auto operator ()(size_t i, PathT&& path, ValT&& val) const
+    auto operator ()(size_t i, PathT&& path, const ValT& val) const
     {
         std::ignore=i;
         return query::where(std::forward<PathT>(path),query::Operator::eq,val);
@@ -218,9 +218,11 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
     {
         setSchemaToClient(client,s1);
 
-        // auto q0=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
-        // auto q1=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
-        // auto q2=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
+        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
+        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
+        // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
+        std::string val("hi");
+        std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,val),topic());
 
         BOOST_TEST_CONTEXT("int8"){testEq(client,m9(),genInt8,u9_f2_idx(),u9::f2);}
         BOOST_TEST_CONTEXT("int16"){testEq(client,m9(),genInt16,u9_f3_idx(),u9::f3);}
