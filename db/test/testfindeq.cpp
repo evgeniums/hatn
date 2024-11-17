@@ -16,6 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
+#include <hatn/common/daterange.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -60,7 +61,7 @@ struct eqCheckerT
     template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
     void operator ()(
         const ModelT&,
-        const ValueGeneratorT& valGen,
+        ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
         const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
@@ -70,7 +71,7 @@ struct eqCheckerT
         using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
         auto path=du::path(std::forward<Fields>(fields)...);
 
-        using vType=decltype(valGen(0));
+        using vType=decltype(valGen(0,true));
         bool skipLast=true;
         if constexpr (std::is_same<vType,u9::MyEnum>::value
                       ||
@@ -89,7 +90,7 @@ struct eqCheckerT
             {
                 BOOST_REQUIRE_EQUAL(1,result.size());
                 auto obj=result.at(0).template unit<unitT>();
-                BOOST_CHECK(valGen(valIndexes[i])==static_cast<vType>(obj->getAtPath(path)));
+                BOOST_CHECK(valGen(valIndexes[i],true)==static_cast<vType>(obj->getAtPath(path)));
             }
         }
     }
@@ -111,7 +112,7 @@ void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
 template <typename ModelT, typename ValGenT, typename IndexT, typename ...FieldsT>
 void testEq(std::shared_ptr<Client> client,
             const ModelT& model,
-            const ValGenT& valGen,
+            ValGenT& valGen,
             const IndexT& idx,
             const FieldsT&... fields
             )
@@ -119,7 +120,7 @@ void testEq(std::shared_ptr<Client> client,
     fillDbForFind(count,client,topic(),model,valGen,noPartition,fields...);
 
     std::vector<size_t> valIndexes{10,20,30,50,253};
-    if constexpr (std::is_same<bool,decltype(valGen(0))>::value || std::is_same<u9::MyEnum,decltype(valGen(0))>::value)
+    if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<u9::MyEnum,decltype(valGen(0,true))>::value)
     {
         valIndexes.clear();
         valIndexes.push_back(0);
@@ -137,52 +138,52 @@ void testEq(std::shared_ptr<Client> client,
     clearTopic(client,model);
 }
 
-auto genInt8(size_t i)
+auto genInt8(size_t i, bool)
 {
     return static_cast<int8_t>(i-127);
 }
 
-auto genInt16(size_t i)
+auto genInt16(size_t i, bool)
 {
     return static_cast<int16_t>(i-127);
 }
 
-auto genInt32(size_t i)
+auto genInt32(size_t i, bool)
 {
     return static_cast<int32_t>(i-127);
 }
 
-auto genInt64(size_t i)
+auto genInt64(size_t i, bool)
 {
     return static_cast<int64_t>(i-127);
 }
 
-auto genUInt8(size_t i)
+auto genUInt8(size_t i, bool)
 {
     return static_cast<uint8_t>(i);
 }
 
-auto genUInt16(size_t i)
+auto genUInt16(size_t i, bool)
 {
     return static_cast<uint16_t>(i);
 }
 
-auto genUInt32(size_t i)
+auto genUInt32(size_t i, bool)
 {
     return static_cast<uint32_t>(i);
 }
 
-auto genUInt64(size_t i)
+auto genUInt64(size_t i, bool)
 {
     return static_cast<uint64_t>(i);
 }
 
-std::string genString(size_t i)
+std::string genString(size_t i, bool)
 {
     return fmt::format("value_{}",i);
 }
 
-bool genBool(size_t i)
+bool genBool(size_t i, bool)
 {
     if (i==0)
     {
@@ -191,7 +192,7 @@ bool genBool(size_t i)
     return true;
 }
 
-u9::MyEnum genEnum(size_t i)
+u9::MyEnum genEnum(size_t i, bool)
 {
     if (i==0)
     {
@@ -199,6 +200,98 @@ u9::MyEnum genEnum(size_t i)
     }
     return u9::MyEnum::Two;
 }
+
+template <typename T>
+struct genAndKeep
+{
+    auto operator ()(size_t i, bool forCheck)
+    {
+        auto val=m_gen(i);
+        if (!forCheck)
+        {
+            m_vals.resize(std::max(i+1,m_vals.size()));
+            m_vals[i]=val;
+            return val;
+        }
+        if (i<m_vals.size())
+        {
+            return m_vals[i];
+        }
+        return val;
+    }
+
+    std::vector<T> m_vals;
+    std::function<T (size_t)> m_gen;
+};
+
+struct genDateTimeT : public genAndKeep<common::DateTime>
+{
+    genDateTimeT()
+    {
+        m_gen=[](size_t i)
+        {
+            auto dt=common::DateTime::currentUtc();
+            dt.addMinutes(static_cast<int>(i));
+            return dt;
+        };
+    }
+};
+genDateTimeT genDateTime{};
+
+struct genDateT : public genAndKeep<common::Date>
+{
+    genDateT()
+    {
+        m_gen=[](size_t i)
+        {
+            auto dt=common::Date::currentUtc();
+            dt.addDays(static_cast<int>(i));
+            return dt;
+        };
+    }
+};
+genDateT genDate{};
+
+struct genTimeT : public genAndKeep<common::Time>
+{
+    genTimeT()
+    {
+        m_gen=[](size_t i)
+        {
+            common::Time time{1,1,1};
+            time.addSeconds(static_cast<int>(i));
+            return time;
+        };
+    }
+};
+genTimeT genTime{};
+
+struct genDateRangeT : public genAndKeep<common::DateRange>
+{
+    genDateRangeT()
+    {
+        m_gen=[](size_t i)
+        {
+            auto dt=common::Date::currentUtc();
+            dt.addDays(static_cast<int>(i));
+            common::DateRange range{dt,common::DateRange::Type::Day};
+            return range;
+        };
+    }
+};
+genDateRangeT genDateRange{};
+
+struct genObjectIdT : public genAndKeep<ObjectId>
+{
+    genObjectIdT()
+    {
+        m_gen=[](size_t)
+        {
+            return ObjectId::generateId();
+        };
+    }
+};
+genObjectIdT genObjectId{};
 
 }
 
@@ -236,6 +329,13 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
 
         BOOST_TEST_CONTEXT("string"){testEq(client,m9(),genString,u9_f10_idx(),u9::f10);}
         BOOST_TEST_CONTEXT("fixed_string"){testEq(client,m9(),genString,u9_f12_idx(),u9::f12);}
+
+        BOOST_TEST_CONTEXT("datetime"){testEq(client,m9(),genDateTime,u9_f13_idx(),u9::f13);}
+        BOOST_TEST_CONTEXT("date"){testEq(client,m9(),genDate,u9_f14_idx(),u9::f14);}
+        BOOST_TEST_CONTEXT("time"){testEq(client,m9(),genTime,u9_f15_idx(),u9::f15);}
+        BOOST_TEST_CONTEXT("daterange"){testEq(client,m9(),genDateRange,u9_f17_idx(),u9::f17);}
+
+        BOOST_TEST_CONTEXT("object_id"){testEq(client,m9(),genObjectId,u9_f16_idx(),u9::f16);}
 
         auto cc=count;
         count=2;

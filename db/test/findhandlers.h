@@ -89,7 +89,7 @@ void fillDbForFind(
             ClientT& client,
             const Topic& topic,
             const ModelT& model,
-            ValueGeneratorT valGen,
+            ValueGeneratorT& valGen,
             PartitionFieldSetterT partitionSetter,
             FieldsT&&... fields
         )
@@ -102,7 +102,7 @@ void fillDbForFind(
     {
         // create and fill object
         auto obj=makeInitObject<unitT>();
-        auto val=valGen(i);
+        auto val=valGen(i,false);
         obj.setAtPath(path,val);
         partitionSetter(obj,i);
 
@@ -111,7 +111,7 @@ void fillDbForFind(
         BOOST_REQUIRE(!ec);
     }
 
-#if 0
+#if 1
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
     q1.setLimit(0);
@@ -143,25 +143,24 @@ void fillDbForFind(
         BOOST_TEST_MESSAGE(obj3->toString(true));
 #endif
         // exclude multiples of 10 due to possible invalid string comparison
-        constexpr bool exclude10=std::is_same<std::string,decltype(valGen(i))>::value;
+        constexpr bool exclude10=std::is_same<std::string,decltype(valGen(i,true))>::value;
         if (i<(count-1) && (!exclude10 || (i+1)%10!=0))
         {
             // ordering of ASC
-            auto obj4=r1.value().at(i+1).template unit<unitT>();                        
-            BOOST_CHECK_LT(obj1->getAtPath(path),obj4->getAtPath(path));
+            auto obj4=r1.value().at(i+1).template unit<unitT>();
+            BOOST_CHECK(obj1->getAtPath(path)<obj4->getAtPath(path));
             BOOST_CHECK(obj1->fieldValue(object::_id)<obj4->fieldValue(object::_id));
         }
         if (i>0 && (!exclude10 || i%10!=0))
         {
             // ordering of DESC
             auto obj5=r2.value().at(i-1).template unit<unitT>();
-            BOOST_CHECK_LT(obj3->getAtPath(path),obj5->getAtPath(path));
+            BOOST_CHECK(obj3->getAtPath(path)<obj5->getAtPath(path));
         }
     }
 #endif
 }
 
-#if 1
 template <typename ClientT,
          typename ModelT,
          typename IndexT,
@@ -175,7 +174,7 @@ void invokeDbFind(
     const ModelT& model,
     const IndexT& index,
     const Topic& topic,
-    ValueGeneratorT&& valGen,
+    ValueGeneratorT& valGen,
     QueryGenT&& queryGen,
     ResultCheckerT&& checker,
     FieldsT&&... fields
@@ -186,7 +185,7 @@ void invokeDbFind(
     // fill db with objects
     for (size_t i=0;i<valIndexes.size();i++)
     {
-        const auto val=valGen(valIndexes[i]);
+        const auto val=valGen(valIndexes[i],true);
         auto q=makeQuery(index,queryGen(i,qField,val),topic);
 
         auto r=client->find(model,q);
@@ -194,7 +193,6 @@ void invokeDbFind(
         checker(model,valGen,valIndexes,i,r.value(),fields...);
     }
 }
-#endif
 
 HATN_TEST_NAMESPACE_END
 

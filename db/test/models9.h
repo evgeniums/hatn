@@ -72,6 +72,12 @@ HATN_DB_INDEX(u9_f10_idx,u9::f10)
 HATN_DB_INDEX(u9_f11_idx,u9::f11)
 HATN_DB_INDEX(u9_f12_idx,u9::f12)
 
+HATN_DB_INDEX(u9_f13_idx,u9::f13)
+HATN_DB_INDEX(u9_f14_idx,u9::f14)
+HATN_DB_INDEX(u9_f15_idx,u9::f15)
+HATN_DB_INDEX(u9_f16_idx,u9::f16)
+HATN_DB_INDEX(u9_f17_idx,u9::f17)
+
 HATN_DB_MODEL(m9,u9,u9_f1_idx()
           ,
           u9_f2_idx(),
@@ -85,6 +91,11 @@ HATN_DB_MODEL(m9,u9,u9_f1_idx()
           u9_f10_idx()
           ,u9_f11_idx()
           ,u9_f12_idx()
+          ,u9_f13_idx()
+          ,u9_f14_idx()
+          ,u9_f15_idx()
+          ,u9_f16_idx()
+          ,u9_f17_idx()
 )
 
 void registerModels9();
