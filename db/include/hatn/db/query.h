@@ -97,11 +97,23 @@ enum class Operator : uint8_t
     nin
 };
 
+constexpr auto eq=Operator::eq;
+constexpr auto gt=Operator::gt;
+constexpr auto gte=Operator::gte;
+constexpr auto lt=Operator::lt;
+constexpr auto lte=Operator::lte;
+constexpr auto in=Operator::in;
+constexpr auto neq=Operator::neq;
+constexpr auto nin=Operator::nin;
+
 enum class Order : uint8_t
 {
     Asc,
     Desc
 };
+
+constexpr auto Asc=Order::Asc;
+constexpr auto Desc=Order::Desc;
 
 struct IntervalTag{};
 
