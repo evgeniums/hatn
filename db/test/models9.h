@@ -47,7 +47,7 @@ HDU_UNIT_WITH(u9,(HDU_BASE(object)),
               HDU_FIELD(f9,TYPE_UINT64,9)
               HDU_FIELD(f10,TYPE_STRING,10)
               HDU_DEFAULT_FIELD(f11,HDU_TYPE_ENUM(MyEnum),11,MyEnum::Two)
-              HDU_FIELD(f12,HDU_TYPE_FIXED_STRING(8),12)
+              HDU_FIELD(f12,HDU_TYPE_FIXED_STRING(64),12)
               HDU_FIELD(f13,TYPE_DATETIME,13)
               HDU_FIELD(f14,TYPE_DATE,14)
               HDU_FIELD(f15,TYPE_TIME,15)
@@ -67,7 +67,10 @@ HATN_DB_INDEX(u9_f6_idx,u9::f6)
 HATN_DB_INDEX(u9_f7_idx,u9::f7)
 HATN_DB_INDEX(u9_f8_idx,u9::f8)
 HATN_DB_INDEX(u9_f9_idx,u9::f9)
+
 HATN_DB_INDEX(u9_f10_idx,u9::f10)
+HATN_DB_INDEX(u9_f11_idx,u9::f11)
+HATN_DB_INDEX(u9_f12_idx,u9::f12)
 
 HATN_DB_MODEL(m9,u9,u9_f1_idx()
           ,
@@ -80,6 +83,8 @@ HATN_DB_MODEL(m9,u9,u9_f1_idx()
           u9_f8_idx(),
           u9_f9_idx(),
           u9_f10_idx()
+          ,u9_f11_idx()
+          ,u9_f12_idx()
 )
 
 void registerModels9();

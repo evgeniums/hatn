@@ -28,7 +28,7 @@
 
 namespace {
 
-constexpr const size_t count=250;
+size_t count=250;
 
 struct noPartitionT
 {
@@ -70,15 +70,27 @@ struct eqCheckerT
         using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
         auto path=du::path(std::forward<Fields>(fields)...);
 
-        if (i==(valIndexes.size()-1))
+        using vType=decltype(valGen(0));
+        bool skipLast=true;
+        if constexpr (std::is_same<vType,u9::MyEnum>::value
+                      ||
+                      std::is_same<vType,bool>::value
+                      )
         {
-            BOOST_REQUIRE_EQUAL(0,result.size());
+            skipLast=false;
         }
-        else
-        {
-            BOOST_REQUIRE_EQUAL(1,result.size());
-            auto obj=result.at(0).template unit<unitT>();
-            BOOST_CHECK(valGen(valIndexes[i])==obj->getAtPath(path));
+
+        BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+            if (skipLast && i==(valIndexes.size()-1))
+            {
+                BOOST_REQUIRE_EQUAL(0,result.size());
+            }
+            else
+            {
+                BOOST_REQUIRE_EQUAL(1,result.size());
+                auto obj=result.at(0).template unit<unitT>();
+                BOOST_CHECK(valGen(valIndexes[i])==static_cast<vType>(obj->getAtPath(path)));
+            }
         }
     }
 };
@@ -91,9 +103,9 @@ void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
     q.setLimit(0);
     auto ec=client->deleteMany(m,q);
     BOOST_CHECK(!ec);
-    // auto r=client->find(m,q);
-    // BOOST_REQUIRE(!r);
-    // BOOST_REQUIRE_EQUAL(r.value().size(),0);
+    auto r=client->find(m,q);
+    BOOST_REQUIRE(!r);
+    BOOST_REQUIRE_EQUAL(r.value().size(),0);
 }
 
 template <typename ModelT, typename ValGenT, typename IndexT, typename ...FieldsT>
@@ -107,6 +119,12 @@ void testEq(std::shared_ptr<Client> client,
     fillDbForFind(count,client,topic(),model,valGen,noPartition,fields...);
 
     std::vector<size_t> valIndexes{10,20,30,50,253};
+    if constexpr (std::is_same<bool,decltype(valGen(0))>::value || std::is_same<u9::MyEnum,decltype(valGen(0))>::value)
+    {
+        valIndexes.clear();
+        valIndexes.push_back(0);
+        valIndexes.push_back(1);
+    }
     invokeDbFind(valIndexes,
                  client,
                  model,
@@ -159,6 +177,29 @@ auto genUInt64(size_t i)
     return static_cast<uint64_t>(i);
 }
 
+std::string genString(size_t i)
+{
+    return fmt::format("value_{}",i);
+}
+
+bool genBool(size_t i)
+{
+    if (i==0)
+    {
+        return false;
+    }
+    return true;
+}
+
+u9::MyEnum genEnum(size_t i)
+{
+    if (i==0)
+    {
+        return u9::MyEnum::One;
+    }
+    return u9::MyEnum::Two;
+}
+
 }
 
 BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
@@ -177,14 +218,27 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
     {
         setSchemaToClient(client,s1);
 
-        testEq(client,m9(),genInt8,u9_f2_idx(),u9::f2);
-        testEq(client,m9(),genInt16,u9_f3_idx(),u9::f3);
-        testEq(client,m9(),genInt32,u9_f4_idx(),u9::f4);
-        testEq(client,m9(),genInt64,u9_f5_idx(),u9::f5);
-        testEq(client,m9(),genUInt8,u9_f6_idx(),u9::f6);
-        testEq(client,m9(),genUInt16,u9_f7_idx(),u9::f7);
-        testEq(client,m9(),genUInt32,u9_f8_idx(),u9::f8);
-        testEq(client,m9(),genUInt64,u9_f9_idx(),u9::f9);
+        // auto q0=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,"hi"),topic());
+        // auto q1=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
+        // auto q2=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,lib::string_view("hi")),topic());
+
+        BOOST_TEST_CONTEXT("int8"){testEq(client,m9(),genInt8,u9_f2_idx(),u9::f2);}
+        BOOST_TEST_CONTEXT("int16"){testEq(client,m9(),genInt16,u9_f3_idx(),u9::f3);}
+        BOOST_TEST_CONTEXT("int32"){testEq(client,m9(),genInt32,u9_f4_idx(),u9::f4);}
+        BOOST_TEST_CONTEXT("int64"){testEq(client,m9(),genInt64,u9_f5_idx(),u9::f5);}
+        BOOST_TEST_CONTEXT("uint8"){testEq(client,m9(),genUInt8,u9_f6_idx(),u9::f6);}
+        BOOST_TEST_CONTEXT("uint16"){testEq(client,m9(),genUInt16,u9_f7_idx(),u9::f7);}
+        BOOST_TEST_CONTEXT("uint32"){testEq(client,m9(),genUInt32,u9_f8_idx(),u9::f8);}
+        BOOST_TEST_CONTEXT("uint64"){testEq(client,m9(),genUInt64,u9_f9_idx(),u9::f9);}
+
+        BOOST_TEST_CONTEXT("string"){testEq(client,m9(),genString,u9_f10_idx(),u9::f10);}
+        BOOST_TEST_CONTEXT("fixed_string"){testEq(client,m9(),genString,u9_f12_idx(),u9::f12);}
+
+        auto cc=count;
+        count=2;
+        BOOST_TEST_CONTEXT("bool"){testEq(client,m9(),genBool,u9_f1_idx(),u9::f1);}
+        // testEq(client,m9(),genEnum,u9_f1_idx(),u9::f1);
+        count=cc;
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 

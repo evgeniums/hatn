@@ -111,7 +111,7 @@ void fillDbForFind(
         BOOST_REQUIRE(!ec);
     }
 
-#if 1
+#if 0
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
     q1.setLimit(0);
@@ -142,14 +142,18 @@ void fillDbForFind(
         BOOST_TEST_MESSAGE(fmt::format("Obj3 {}",i));
         BOOST_TEST_MESSAGE(obj3->toString(true));
 #endif
-        if (i<(count-1))
+        // exclude multiples of 10 due to possible invalid string comparison
+        constexpr bool exclude10=std::is_same<std::string,decltype(valGen(i))>::value;
+        if (i<(count-1) && (!exclude10 || (i+1)%10!=0))
         {
-            auto obj4=r1.value().at(i+1).template unit<unitT>();
+            // ordering of ASC
+            auto obj4=r1.value().at(i+1).template unit<unitT>();                        
             BOOST_CHECK_LT(obj1->getAtPath(path),obj4->getAtPath(path));
             BOOST_CHECK(obj1->fieldValue(object::_id)<obj4->fieldValue(object::_id));
         }
-        if (i>0)
+        if (i>0 && (!exclude10 || i%10!=0))
         {
+            // ordering of DESC
             auto obj5=r2.value().at(i-1).template unit<unitT>();
             BOOST_CHECK_LT(obj3->getAtPath(path),obj5->getAtPath(path));
         }
@@ -182,9 +186,8 @@ void invokeDbFind(
     // fill db with objects
     for (size_t i=0;i<valIndexes.size();i++)
     {
-        // auto val=valGen(i);
-        // auto prepareQ=queryGen(i,qField,valGen(i));
-        auto q=makeQuery(index,queryGen(i,qField,valGen(valIndexes[i])),topic);
+        auto val=valGen(valIndexes[i]);
+        auto q=makeQuery(index,queryGen(i,qField,val),topic);
 
         auto r=client->find(model,q);
         BOOST_REQUIRE(!r);

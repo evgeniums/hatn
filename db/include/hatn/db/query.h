@@ -62,7 +62,8 @@ struct LastT
 };
 constexpr LastT Last{};
 
-using String=lib::string_view;
+// using String=lib::string_view;
+using String=std::string;
 
 struct BoolValue
 {
@@ -564,16 +565,47 @@ using Operand=ValueT<ValueVariant,ValueEnum>;
 
 struct Field
 {
+    Field(
+        const IndexFieldInfo* fieldInfo,
+        Operator op,
+        const char* value,
+        Order order=Order::Asc
+        ) : Field(fieldInfo,op,String(value),order)
+    {
+    }
+
+    // Field(
+    //     const IndexFieldInfo* fieldInfo,
+    //     Operator op,
+    //     const std::string& value,
+    //     Order order=Order::Asc
+    //     ) : Field(fieldInfo,op,String(value),order)
+    // {
+    // }
+
+    Field(
+        const IndexFieldInfo* fieldInfo,
+        Operator op,
+        String value,
+        Order order=Order::Asc
+        ) : fieldInfo(fieldInfo),
+            op(op),
+            value(std::move(value)),
+            order(order)
+    {
+        checkOperator();
+    }
+
     template <typename T>
     Field(
         const IndexFieldInfo* fieldInfo,
         Operator op,
         T&& value,
         Order order=Order::Asc
-      ) : fieldInfo(fieldInfo),
-          op(op),
-          value(std::forward<T>(value)),
-          order(order)
+        ) : fieldInfo(fieldInfo),
+        op(op),
+        value(std::forward<T>(value)),
+        order(order)
     {
         checkOperator();
     }
