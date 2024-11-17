@@ -605,12 +605,14 @@ struct Field
         checkOperator();
     }
 
+#if 1
     template <typename T>
     Field(
         const IndexFieldInfo* fieldInfo,
         Operator op,
         T&& value,
-        Order order=Order::Asc
+        Order order=Order::Asc,
+        std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr
         ) : fieldInfo(fieldInfo),
         op(op),
         value(std::forward<T>(value)),
@@ -618,6 +620,23 @@ struct Field
     {
         checkOperator();
     }
+
+    template <typename T>
+    Field(
+        const IndexFieldInfo* fieldInfo,
+        Operator op,
+        T&& value,
+        Order order=Order::Asc,
+        std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr
+        ) : fieldInfo(fieldInfo),
+        op(op),
+        value(static_cast<int32_t>(value)),
+        order(order)
+    {
+        checkOperator();
+    }
+
+#endif
 
     bool isScalarOp() const noexcept
     {

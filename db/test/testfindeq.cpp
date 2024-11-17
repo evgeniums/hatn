@@ -223,6 +223,7 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
         // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,std::string("hi")),topic());
         std::string val("hi");
         std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::Operator::eq,val),topic());
+        std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::Operator::eq,u9::MyEnum::One),topic());
 
         BOOST_TEST_CONTEXT("int8"){testEq(client,m9(),genInt8,u9_f2_idx(),u9::f2);}
         BOOST_TEST_CONTEXT("int16"){testEq(client,m9(),genInt16,u9_f3_idx(),u9::f3);}
@@ -239,7 +240,7 @@ BOOST_AUTO_TEST_CASE(CheckEqInt)
         auto cc=count;
         count=2;
         BOOST_TEST_CONTEXT("bool"){testEq(client,m9(),genBool,u9_f1_idx(),u9::f1);}
-        // testEq(client,m9(),genEnum,u9_f1_idx(),u9::f1);
+        BOOST_TEST_CONTEXT("enum"){testEq(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
         count=cc;
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");

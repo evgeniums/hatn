@@ -207,7 +207,7 @@ struct FieldToStringBufT
                     std::is_enum<std::decay_t<T>>{},
                     [&](auto _)
                     {
-                        uint64_(_(buf),static_cast<uint64_t>(_(val)));
+                        int64_(_(buf),static_cast<int64_t>(_(val)));
                     },
                     [&](auto _)
                     {
