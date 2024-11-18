@@ -44,7 +44,7 @@ struct eqQueryGenT
     auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
     {
         std::ignore=i;
-        return query::where(std::forward<PathT>(path),query::eq,val);
+        return std::make_pair(query::where(std::forward<PathT>(path),query::eq,val),0);
     }
 };
 constexpr eqQueryGenT eqQueryGen{};
@@ -97,7 +97,7 @@ struct ltQueryGen
     {
         std::ignore=i;
         auto op = m_lte ? query::lte : query::lt;
-        return query::where(std::forward<PathT>(path),op,val);
+        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
     }
 
     ltQueryGen(bool lte=false) : m_lte(lte)
@@ -172,7 +172,7 @@ struct gtQueryGen
     {
         std::ignore=i;
         auto op = m_gte ? query::gte : query::gt;
-        return query::where(std::forward<PathT>(path),op,val);
+        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
     }
 
     gtQueryGen(bool gte=false) : m_gte(gte)
@@ -244,30 +244,44 @@ struct gtChecker
 
 struct inVectorQueryGenT
 {
-    template <typename ValGenT>
-    auto genVector(size_t i, ValGenT&& valGen) const
+    template <typename ValGenT, typename VecT>
+    void genVector(size_t i, ValGenT&& valGen, VecT v) const
     {
-        std::vector<decltype(valGen(i,true))> v;
         if (i<200)
         {
             for (size_t j=i;j<i+VectorSize*VectorStep;)
             {
-                v.push_back(valGen(j,true));
+                v->push_back(valGen(j,true));
                 j+=VectorStep;
             }
         }
         else
         {
-            v.push_back(valGen(i,true));
+            v->push_back(valGen(i,true));
         }
-        return v;
     }
 
     template <typename PathT,typename ValT, typename ValGenT>
     auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&& valGen) const
     {
         std::ignore=val;
-        return query::where(std::forward<PathT>(path),query::in,genVector(i,valGen));
+        using type=decltype(valGen(i,true));
+        if constexpr (std::is_enum<type>::value)
+        {
+            std::vector<u9::MyEnum> enums;
+            enums.push_back(u9::MyEnum::Two);
+            enums.push_back(u9::MyEnum::Three);
+
+            auto v1=std::make_shared<std::vector<int32_t>>();
+            query::fromEnumVector(enums,*v1);
+            return std::make_pair(query::where(std::forward<PathT>(path),query::in,*v1),v1);
+        }
+        else
+        {
+            auto vec=std::make_shared<std::vector<type>>();
+            genVector(i,valGen,vec);
+            return std::make_pair(query::where(std::forward<PathT>(path),query::in,*vec),vec);
+        }
     }
 };
 constexpr inVectorQueryGenT inVectorQueryGen{};
@@ -288,37 +302,39 @@ struct inVectorCheckerT
         auto path=du::path(std::forward<Fields>(fields)...);
 
         using vType=decltype(valGen(0,true));
-        bool skipLast=true;
-        if constexpr (std::is_same<vType,u9::MyEnum>::value
-                      ||
-                      std::is_same<vType,bool>::value
-                      )
-        {
-            skipLast=false;
+        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        {            
+            BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+                size_t resultCount=1;
+                BOOST_REQUIRE_EQUAL(resultCount,result.size());
+                auto obj=result.at(0).template unit<unitT>();
+                BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+            }
         }
+        else
+        {
+            BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+                size_t resultCount=0;
+                if (i!=(valIndexes.size()-1))
+                {
+                    resultCount=VectorSize;
+                }
+                if (Limit!=0)
+                {
+                    resultCount=std::min(resultCount,Limit);
+                }
+                BOOST_REQUIRE_EQUAL(resultCount,result.size());
 
-        size_t resultCount=0;
-        BOOST_TEST_CONTEXT(fmt::format("{}",i)){
-            if (skipLast && i==(valIndexes.size()-1))
-            {
-                resultCount=0;
-            }
-            else
-            {
-                resultCount=VectorSize;
-            }
-            if (Limit!=0)
-            {
-                resultCount=std::min(resultCount,Limit);
-            }
-            BOOST_REQUIRE_EQUAL(resultCount,result.size());
-            auto v=inVectorQueryGen.genVector(valIndexes[i],valGen);
+                auto vec=std::make_shared<std::vector<decltype(valGen(i,true))>>();
+                inVectorQueryGen.genVector(valIndexes[i],valGen,vec);
+                const auto& v=*vec;
 
-            for (size_t j=0;j<resultCount;j++)
-            {
-                auto obj=result.at(j).template unit<unitT>();
-                BOOST_CHECK(v[j]==static_cast<vType>(obj->getAtPath(path)));
-                // BOOST_CHECK_EQUAL(v[j],static_cast<vType>(obj->getAtPath(path)));
+                for (size_t j=0;j<resultCount;j++)
+                {
+                    auto obj=result.at(j).template unit<unitT>();
+                    BOOST_CHECK(v[j]==static_cast<vType>(obj->getAtPath(path)));
+                    // BOOST_CHECK_EQUAL(v[j],static_cast<vType>(obj->getAtPath(path)));
+                }
             }
         }
     }
@@ -368,7 +384,7 @@ BOOST_AUTO_TEST_CASE(PlainGte)
 
 BOOST_AUTO_TEST_CASE(PlainInVector)
 {
-    std::ignore=query::where(object::_id,query::in,{1,2,3,4,5});
+    // std::ignore=query::where(object::_id,query::in,{1,2,3,4,5});
     std::vector<int> v{1,2,3,4,5};
     std::ignore=query::where(object::_id,query::in,v);
 

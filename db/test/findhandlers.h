@@ -157,12 +157,19 @@ void invokeDbFind(
     {
         auto idx=valIndexes[i];
         const auto val=valGen(idx,true);
-        auto q=makeQuery(index,queryGen(idx,qField,val,valGen),topic);
-        q.setLimit(Limit);
+        BOOST_TEST_CONTEXT(fmt::format("i={}, idx={}",i,idx)){
+            auto [genQ,_]=queryGen(idx,qField,val,valGen);
+            auto q=makeQuery(index,genQ,topic);
+            q.setLimit(Limit);
 
-        auto r=client->find(model,q);
-        BOOST_REQUIRE(!r);
-        checker(model,valGen,valIndexes,i,r.value(),fields...);
+            auto r=client->find(model,q);
+            if (r)
+            {
+                BOOST_TEST_MESSAGE(r.error().message());
+            }
+            BOOST_REQUIRE(!r);
+            checker(model,valGen,valIndexes,i,r.value(),fields...);
+        }
     }
 }
 
@@ -416,8 +423,8 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client, SkipBoolT=S
     BOOST_TEST_CONTEXT("uint32"){invoker(client,m9(),genUInt32,u9_f8_idx(),u9::f8);}
     BOOST_TEST_CONTEXT("uint64"){invoker(client,m9(),genUInt64,u9_f9_idx(),u9::f9);}
 
-    // BOOST_TEST_CONTEXT("string"){invoker(client,m9(),genString,u9_f10_idx(),u9::f10);}
-    // BOOST_TEST_CONTEXT("fixed_string"){invoker(client,m9(),genString,u9_f12_idx(),u9::f12);}
+    BOOST_TEST_CONTEXT("string"){invoker(client,m9(),genString,u9_f10_idx(),u9::f10);}
+    BOOST_TEST_CONTEXT("fixed_string"){invoker(client,m9(),genString,u9_f12_idx(),u9::f12);}
 
     BOOST_TEST_CONTEXT("datetime"){invoker(client,m9(),genDateTime,u9_f13_idx(),u9::f13);}
     BOOST_TEST_CONTEXT("date"){invoker(client,m9(),genDate,u9_f14_idx(),u9::f14);}
@@ -432,7 +439,7 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client, SkipBoolT=S
     {
         BOOST_TEST_CONTEXT("bool"){invoker(client,m9(),genBool,u9_f1_idx(),u9::f1);}
     }
-    // BOOST_TEST_CONTEXT("enum"){invoker(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
+    BOOST_TEST_CONTEXT("enum"){invoker(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
     Count=cc;
 }
 

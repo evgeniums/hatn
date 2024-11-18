@@ -507,6 +507,9 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     }
     else if (queryField.value.isVectorType())
     {
+
+//! Maybe add some macro definition to enable vector pre-sorting
+#if 0
         // sort vector
         auto sortVector=[&queryField](const auto& vec)
         {
@@ -529,6 +532,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
             return Error{};
         };
         std::ignore=queryField.value.handleVector(sortVector);
+#endif
 
         // split to queries for each vector item
         if (queryField.op==query::Operator::in)
@@ -567,7 +571,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
             if constexpr (decltype(hana::is_a<query::IntervalTag,intervalType>)::value)
             {
                 auto& v=const_cast<vectorType&>(vec);
-                intervalType::sortAndMerge(v,queryField.order);
+                query::sortAndMerge(v,queryField.order);
             }
 
             return Error{};

@@ -28,8 +28,8 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-    template <typename BufT,typename EndpointT=hana::true_>
-    struct valueVisitor
+template <typename BufT,typename EndpointT=hana::true_>
+struct valueVisitor
 {
     constexpr static const EndpointT endpoint{};
 
@@ -93,7 +93,10 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
     }
 
     template <typename T>
-    void operator()(const query::Vector<T>&) const
+    void operator()(const query::VectorT<T>&) const
+    {}
+
+    void operator()(const query::VectorString&) const
     {}
 
     template <typename T>

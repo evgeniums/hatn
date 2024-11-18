@@ -35,7 +35,7 @@ HATN_DB_USING
 HATN_TEST_USING
 
 HDU_UNIT_WITH(u9,(HDU_BASE(object)),
-              HDU_ENUM(MyEnum,One=1,Two=2)
+              HDU_ENUM(MyEnum,One=1,Two=2,Three=3)
               HDU_FIELD(f1,TYPE_BOOL,1)
               HDU_FIELD(f2,TYPE_INT8,2)
               HDU_FIELD(f3,TYPE_INT16,3)

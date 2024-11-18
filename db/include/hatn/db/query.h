@@ -80,11 +80,6 @@ struct BoolValue
     bool m_val;
 };
 
-constexpr const size_t PreallocatedVectorSize=8;
-
-template <typename T>
-using Vector=common::VectorOnStack<T,PreallocatedVectorSize>;
-
 enum class Operator : uint8_t
 {
     eq,
@@ -257,7 +252,7 @@ struct Interval
     Endpoint from;
     Endpoint to;
 
-    static void sortAndMerge(Vector<Interval<T>>& vec, Order order);
+    // static void sortAndMerge(Vector<Interval<T>>& vec, Order order);
 
     bool intersects(const Interval<T>& other) const noexcept;
 
@@ -285,6 +280,85 @@ struct Interval
         return false;
     }
 };
+
+constexpr const size_t PreallocatedVectorSize=8;
+// template <typename T>
+// using Vector=common::VectorOnStack<T,PreallocatedVectorSize>;
+
+template <typename T>
+using VectorT=lib::variant<
+    std::reference_wrapper<const std::vector<T>>,
+    std::reference_wrapper<const common::pmr::vector<T>>,
+    std::reference_wrapper<const common::VectorOnStack<T>>
+    >;
+
+using VectorString=lib::variant<
+    std::reference_wrapper<const std::vector<std::string>>,
+    std::reference_wrapper<const common::pmr::vector<std::string>>,
+    std::reference_wrapper<const common::VectorOnStack<std::string>>,
+
+    std::reference_wrapper<const std::vector<common::pmr::string>>,
+    std::reference_wrapper<const common::pmr::vector<common::pmr::string>>,
+    std::reference_wrapper<const common::VectorOnStack<common::pmr::string>>,
+
+    std::reference_wrapper<const std::vector<lib::string_view>>,
+    std::reference_wrapper<const common::pmr::vector<lib::string_view>>,
+    std::reference_wrapper<const common::VectorOnStack<lib::string_view>>,
+
+    std::reference_wrapper<const std::vector<common::StringOnStack>>,
+    std::reference_wrapper<const common::pmr::vector<common::StringOnStack>>,
+    std::reference_wrapper<const common::VectorOnStack<common::StringOnStack>>
+    >;
+
+struct VectorTag
+{};
+
+template <typename T, typename = hana::when<true>>
+struct VectorTraits
+{
+    using hana_tag=VectorTag;
+    using type=VectorT<T>;
+};
+
+template <typename T>
+struct VectorTraits<T,hana::when<
+                           std::is_same<T,std::string>::value
+                           ||
+                           std::is_same<T,lib::string_view>::value
+                           ||
+                           std::is_same<T,common::pmr::string>::value
+                           ||
+                           hana::is_a<common::StringOnStackTag,T>
+                           >>
+{
+    using hana_tag=VectorTag;
+    using type=VectorString;
+};
+
+template <typename T>
+using Vector=typename VectorTraits<T>::type;
+
+template <typename T>
+auto makeEnumVector(const T& vec)
+{
+    common::VectorOnStack<int32_t,PreallocatedVectorSize> v;
+    v.resize(vec.size());
+    for (size_t i=0;i<vec.size();i++)
+    {
+        v[i]=static_cast<uint32_t>(vec[i]);
+    }
+    return v;
+}
+
+template <typename T, typename T1>
+void fromEnumVector(const T& from, T1& to)
+{
+    to.resize(from.size());
+    for (size_t i=0;i<from.size();i++)
+    {
+        to[i]=static_cast<uint32_t>(from[i]);
+    }
+}
 
 #define HATN_DB_QUERY_VALUE_TYPES(DO) \
         DO(NullT), \
@@ -389,14 +463,28 @@ template <typename HandlerT>
 struct VectorVisitor
 {
     template <typename T>
-    Error operator()(const Vector<T>& vec) const
+    Error operator()(const VectorT<T>& vec) const
     {
-        return handler(vec);
+        auto vis=[this](const auto& vCref)
+        {
+            return handler(vCref.get());
+        };
+        return common::lib::variantVisit(vis,vec);
+    }
+
+    Error operator()(const VectorString& vec) const
+    {
+        auto vis=[this](const auto& vCref)
+        {
+            return handler(vCref.get());
+        };
+        return common::lib::variantVisit(vis,vec);
     }
 
     template <typename T>
     Error operator()(const T&) const
     {
+        Assert(false,"Invalid vector type in VectorVisitor");
         return CommonError::INVALID_ARGUMENT;
     }
 
@@ -411,19 +499,38 @@ template <typename HandlerT>
 struct VectorItemVisitor
 {
     template <typename T>
-    Error operator()(const Vector<T>& vec) const
+    Error operator()(const VectorT<T>& vec) const
     {
-        for (auto&& it: vec)
+        auto vis=[this](const auto& vCref)
         {
-            auto ec=handler(it);
-            HATN_CHECK_EC(ec)
-        }
-        return OK;
+            for (auto&& it: vCref.get())
+            {
+                auto ec=handler(it);
+                HATN_CHECK_EC(ec)
+            }
+            return Error{OK};
+        };
+        return common::lib::variantVisit(vis,vec);
+    }
+
+    Error operator()(const VectorString& vec) const
+    {
+        auto vis=[this](const auto& vCref)
+        {
+            for (auto&& it: vCref.get())
+            {
+                auto ec=handler(it);
+                HATN_CHECK_EC(ec)
+            }
+            return Error{OK};
+        };
+        return common::lib::variantVisit(vis,vec);
     }
 
     template <typename T>
     Error operator()(const T&) const
     {
+        Assert(false,"Invalid vector type in VectorItemVisitor");
         return CommonError::INVALID_ARGUMENT;
     }
 
@@ -458,23 +565,15 @@ class ValueT
         {}
 
         template <typename T>
-        ValueT(const std::vector<T>& v) : m_value(Vector<T>{v})
-        {}
-
-        ValueT(const std::vector<std::string>& v) : m_value(Vector<String>{v})
-        {}
-
-        ValueT(const std::vector<const char*>& v) : m_value(Vector<String>{v})
+        ValueT(const std::reference_wrapper<const std::vector<T>>& v) : m_value(Vector<T>{v})
         {}
 
         template <typename T>
-        ValueT(std::initializer_list<T> v) : m_value(Vector<T>{std::move(v)})
+        ValueT(const std::reference_wrapper<const common::pmr::vector<T>>& v) : m_value(Vector<T>{v})
         {}
 
-        ValueT(std::initializer_list<std::string> v) : m_value(Vector<String>{std::move(v)})
-        {}
-
-        ValueT(std::initializer_list<const char*> v) : m_value(Vector<String>{std::move(v)})
+        template <typename T>
+        ValueT(const std::reference_wrapper<const common::VectorOnStack<T>>& v) : m_value(Vector<T>{v})
         {}
 
         ValueT(const char* value) : m_value(String(value))
@@ -743,14 +842,16 @@ bool Interval<T>::intersects(const Interval<T>& other) const noexcept
     return true;
 }
 
-template <typename T>
-void Interval<T>::sortAndMerge(Vector<Interval<T>>& vec, Order order)
+template <typename VecT>
+void sortAndMerge(VecT& vec, Order order)
 {
+    using itemType=typename VecT::value_type;
+
     // sort vector
     std::sort(
         vec.begin(),
         vec.end(),
-        std::less<Interval<T>>{}
+        std::less<itemType>{}
     );
 
     // merge intervals
@@ -825,20 +926,33 @@ struct valueToDateRangeT
 };
 constexpr valueToDateRangeT toDateRange{};
 
+template <typename T, typename = hana::when<true>>
+struct IsVector : public hana::false_
+{
+};
+
+template <typename T>
+struct IsVector<T,hana::when_valid<typename std::decay_t<T>::value_type>>
+    : public hana::true_
+{
+};
+
 template <typename FieldT, typename ValueT>
 auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
 {
     static const auto isLval=std::is_lvalue_reference<ValueT>{};
-    static const auto isStr=
+    static const auto isStrView=
         hana::bool_c<
-            std::is_convertible<ValueT,String>::value
-            &&
-            !std::is_same<String,std::decay_t<ValueT>>::value
-            &&
-            !std::is_same<const char*,ValueT>::value
-        >;
+            std::is_same<lib::string_view,std::decay_t<ValueT>>::value
+            ||
+            std::is_same<const char*,ValueT>::value
+            >;
+    using isVecT=IsVector<ValueT>;
 
-    static_assert(decltype(isLval)::value || !decltype(isStr)::value,"Do not use temporary/rvalue string as a query field value");
+    static_assert(
+        decltype(isLval)::value || decltype(isStrView)::value || !isVecT::value,
+        "Do not use temporary/rvalue strings or vectors as a query field value"
+    );
 
     if constexpr (std::is_convertible<ValueT,String>::value)
     {
@@ -846,7 +960,14 @@ auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Ord
     }
     else
     {
-        return hana::make_tuple(std::cref(field),op,std::forward<ValueT>(value),order);
+        if constexpr (isVecT::value)
+        {
+            return hana::make_tuple(std::cref(field),op,std::cref(value),order);
+        }
+        else
+        {
+            return hana::make_tuple(std::cref(field),op,std::forward<ValueT>(value),order);
+        }
     }
 }
 
@@ -886,15 +1007,6 @@ auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::
     return whereT<decltype(make())>{make()};
 }
 
-template <typename FieldT, typename ValueT>
-auto where(const FieldT& field, Operator op, std::initializer_list<ValueT> value, Order order=Order::Asc)
-{
-    auto make=[&]()
-    {
-        return hana::make_tuple(hana::make_tuple(std::cref(field),op,std::move(value),order));
-    };
-    return whereT<decltype(make())>{make()};
-}
 } // namespace query
 
 HATN_DB_NAMESPACE_END
