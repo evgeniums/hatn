@@ -59,11 +59,16 @@ class ArenaWrapperT
         typename AllocaT::arena_type m_arena;
 };
 
+struct StringOnStackTag
+{};
+
 template <size_t PreallocatedSize=DefaultPreallocatedStringSize, typename FallbackAllocatorT=std::allocator<char>>
 class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>,
                        public PreallocatedStringT<PreallocatedSize,FallbackAllocatorT>
 {
     public:
+
+        using hana_tag=StringOnStackTag;
 
         using ArenaHolderT=ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>;
         using BaseT=PreallocatedStringT<PreallocatedSize,FallbackAllocatorT>;
