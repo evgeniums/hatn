@@ -38,16 +38,19 @@ size_t VectorStep=5;
 
 namespace {
 
+template <bool NeqT=false>
 struct eqQueryGenT
 {
     template <typename PathT,typename ValT,typename ValGenT>
     auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
     {
         std::ignore=i;
-        return std::make_pair(query::where(std::forward<PathT>(path),query::eq,val),0);
+        auto op=NeqT?query::neq:query::eq;
+        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
     }
 };
-constexpr eqQueryGenT eqQueryGen{};
+template <bool NeqT=false>
+constexpr eqQueryGenT<NeqT> eqQueryGen{};
 
 struct eqCheckerT
 {
@@ -89,6 +92,62 @@ struct eqCheckerT
     }
 };
 constexpr eqCheckerT eqChecker{};
+
+struct neqCheckerT
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>& valIndexes,
+        size_t i,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+        bool skipLast=true;
+        if constexpr (std::is_same<vType,u9::MyEnum>::value
+                      ||
+                      std::is_same<vType,bool>::value
+                      )
+        {
+            skipLast=false;
+        }
+
+        BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+            if (skipLast && i==(valIndexes.size()-1))
+            {
+                BOOST_REQUIRE_EQUAL(Count,result.size());
+            }
+            else
+            {
+                BOOST_REQUIRE_EQUAL(Count-1,result.size());
+                auto skipIdx=valIndexes[i];
+                for (size_t j=0;j<Count;j++)
+                {
+                    if (j==result.size())
+                    {
+                        break;
+                    }
+                    auto obj=result.at(j).template unit<unitT>();
+                    if (j>=skipIdx)
+                    {
+                        BOOST_CHECK(valGen(j+1,true)==static_cast<vType>(obj->getAtPath(path)));
+                    }
+                    else
+                    {
+                        BOOST_CHECK(valGen(j,true)==static_cast<vType>(obj->getAtPath(path)));
+                    }
+                }
+            }
+        }
+    }
+};
+constexpr neqCheckerT neqChecker{};
 
 struct ltQueryGen
 {
@@ -384,6 +443,7 @@ struct ninVectorCheckerT
                 }
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
 
+                //! @todo check result
                 // auto vec=std::make_shared<std::vector<decltype(valGen(i,true))>>();
                 // inVectorQueryGen.genVector(valIndexes[i],valGen,vec);
                 // const auto& v=*vec;
@@ -411,8 +471,14 @@ BOOST_AUTO_TEST_CASE(PlainEq)
     std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,val),topic());
     std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::eq,u9::MyEnum::One),topic());
 
-    InvokeTestT<eqQueryGenT,eqCheckerT> testEq{eqQueryGen,eqChecker};
+    InvokeTestT<eqQueryGenT<>,eqCheckerT> testEq{eqQueryGen<>,eqChecker};
     runTest(testEq);
+}
+
+BOOST_AUTO_TEST_CASE(PlainNeq)
+{
+    InvokeTestT<eqQueryGenT<true>,neqCheckerT> testNeq{eqQueryGen<true>,neqChecker};
+    runTest(testNeq);
 }
 
 BOOST_AUTO_TEST_CASE(PlainLt)

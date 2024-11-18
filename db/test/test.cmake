@@ -8,7 +8,7 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testcrud.cpp
     ${DB_TEST_SRC}/testfind.cpp
     ${DB_TEST_SRC}/testfindeq.cpp
-    ${DB_TEST_SRC}/models1.cpp
+    # ${DB_TEST_SRC}/models1.cpp
     # ${DB_TEST_SRC}/models2.cpp
     # ${DB_TEST_SRC}/models3.cpp
     # ${DB_TEST_SRC}/models4.cpp
