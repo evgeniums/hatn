@@ -451,6 +451,26 @@ class ValueT
         ValueT(bool val) : m_value(BoolValue(val))
         {}
 
+        template <typename T>
+        ValueT(const std::vector<T>& v) : m_value(Vector<T>{v})
+        {}
+
+        ValueT(const std::vector<std::string>& v) : m_value(Vector<String>{v})
+        {}
+
+        ValueT(const std::vector<const char*>& v) : m_value(Vector<String>{v})
+        {}
+
+        template <typename T>
+        ValueT(std::initializer_list<T> v) : m_value(Vector<T>{std::move(v)})
+        {}
+
+        ValueT(std::initializer_list<std::string> v) : m_value(Vector<String>{std::move(v)})
+        {}
+
+        ValueT(std::initializer_list<const char*> v) : m_value(Vector<String>{std::move(v)})
+        {}
+
         Type typeId() const noexcept
         {
             return static_cast<Type>(lib::variantIndex(m_value));
@@ -890,6 +910,15 @@ auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::
     return whereT<decltype(make())>{make()};
 }
 
+template <typename FieldT, typename ValueT>
+auto where(const FieldT& field, Operator op, std::initializer_list<ValueT> value, Order order=Order::Asc)
+{
+    auto make=[&]()
+    {
+        return hana::make_tuple(hana::make_tuple(std::cref(field),op,std::move(value),order));
+    };
+    return whereT<decltype(make())>{make()};
+}
 } // namespace query
 
 HATN_DB_NAMESPACE_END

@@ -30,6 +30,8 @@ size_t MaxValIdx=250;
 size_t Count=MaxValIdx+1;
 std::vector<size_t> CheckValueIndexes{10,20,30,150,253};
 size_t Limit=0;
+size_t VectorSize=5;
+size_t VectorStep=5;
 }
 
 #include "findhandlers.h"
@@ -38,8 +40,8 @@ namespace {
 
 struct eqQueryGenT
 {
-    template <typename PathT,typename ValT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val) const
+    template <typename PathT,typename ValT,typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
     {
         std::ignore=i;
         return query::where(std::forward<PathT>(path),query::eq,val);
@@ -90,8 +92,8 @@ constexpr eqCheckerT eqChecker{};
 
 struct ltQueryGen
 {
-    template <typename PathT,typename ValT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val) const
+    template <typename PathT,typename ValT,typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
     {
         std::ignore=i;
         auto op = m_lte ? query::lte : query::lt;
@@ -165,8 +167,8 @@ struct ltChecker
 
 struct gtQueryGen
 {
-    template <typename PathT,typename ValT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val) const
+    template <typename PathT,typename ValT,typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
     {
         std::ignore=i;
         auto op = m_gte ? query::gte : query::gt;
@@ -240,6 +242,89 @@ struct gtChecker
     bool m_gte;
 };
 
+struct inVectorQueryGenT
+{
+    template <typename ValGenT>
+    auto genVector(size_t i, ValGenT&& valGen) const
+    {
+        std::vector<decltype(valGen(i,true))> v;
+        if (i<200)
+        {
+            for (size_t j=i;j<i+VectorSize*VectorStep;)
+            {
+                v.push_back(valGen(j,true));
+                j+=VectorStep;
+            }
+        }
+        else
+        {
+            v.push_back(valGen(i,true));
+        }
+        return v;
+    }
+
+    template <typename PathT,typename ValT, typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&& valGen) const
+    {
+        std::ignore=val;
+        return query::where(std::forward<PathT>(path),query::in,genVector(i,valGen));
+    }
+};
+constexpr inVectorQueryGenT inVectorQueryGen{};
+
+struct inVectorCheckerT
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>& valIndexes,
+        size_t i,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+        bool skipLast=true;
+        if constexpr (std::is_same<vType,u9::MyEnum>::value
+                      ||
+                      std::is_same<vType,bool>::value
+                      )
+        {
+            skipLast=false;
+        }
+
+        size_t resultCount=0;
+        BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+            if (skipLast && i==(valIndexes.size()-1))
+            {
+                resultCount=0;
+            }
+            else
+            {
+                resultCount=VectorSize;
+            }
+            if (Limit!=0)
+            {
+                resultCount=std::min(resultCount,Limit);
+            }
+            BOOST_REQUIRE_EQUAL(resultCount,result.size());
+            auto v=inVectorQueryGen.genVector(valIndexes[i],valGen);
+
+            for (size_t j=0;j<resultCount;j++)
+            {
+                auto obj=result.at(j).template unit<unitT>();
+                BOOST_CHECK(v[j]==static_cast<vType>(obj->getAtPath(path)));
+                // BOOST_CHECK_EQUAL(v[j],static_cast<vType>(obj->getAtPath(path)));
+            }
+        }
+    }
+};
+constexpr inVectorCheckerT inVectorChecker{};
+
 }
 
 BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
@@ -279,6 +364,16 @@ BOOST_AUTO_TEST_CASE(PlainGte)
 {
     InvokeTestT<gtQueryGen,gtChecker> testGte{gtQueryGen(true),gtChecker(true)};
     runTest(testGte);
+}
+
+BOOST_AUTO_TEST_CASE(PlainInVector)
+{
+    std::ignore=query::where(object::_id,query::in,{1,2,3,4,5});
+    std::vector<int> v{1,2,3,4,5};
+    std::ignore=query::where(object::_id,query::in,v);
+
+    InvokeTestT<inVectorQueryGenT,inVectorCheckerT> testInVector{inVectorQueryGen,inVectorChecker};
+    runTest(testInVector,hana::true_c);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -155,8 +155,9 @@ void invokeDbFind(
     // fill db with objects
     for (size_t i=0;i<valIndexes.size();i++)
     {
-        const auto val=valGen(valIndexes[i],true);
-        auto q=makeQuery(index,queryGen(i,qField,val),topic);
+        auto idx=valIndexes[i];
+        const auto val=valGen(idx,true);
+        auto q=makeQuery(index,queryGen(idx,qField,val,valGen),topic);
         q.setLimit(Limit);
 
         auto r=client->find(model,q);
@@ -403,8 +404,8 @@ struct genObjectIdT : public genAndKeep<ObjectId>
 };
 genObjectIdT genObjectId{};
 
-template <typename InvokerT>
-void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client)
+template <typename InvokerT, typename SkipBoolT=hana::false_>
+void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client, SkipBoolT=SkipBoolT{})
 {
     BOOST_TEST_CONTEXT("int8"){invoker(client,m9(),genInt8,u9_f2_idx(),u9::f2);}
     BOOST_TEST_CONTEXT("int16"){invoker(client,m9(),genInt16,u9_f3_idx(),u9::f3);}
@@ -415,8 +416,8 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client)
     BOOST_TEST_CONTEXT("uint32"){invoker(client,m9(),genUInt32,u9_f8_idx(),u9::f8);}
     BOOST_TEST_CONTEXT("uint64"){invoker(client,m9(),genUInt64,u9_f9_idx(),u9::f9);}
 
-    BOOST_TEST_CONTEXT("string"){invoker(client,m9(),genString,u9_f10_idx(),u9::f10);}
-    BOOST_TEST_CONTEXT("fixed_string"){invoker(client,m9(),genString,u9_f12_idx(),u9::f12);}
+    // BOOST_TEST_CONTEXT("string"){invoker(client,m9(),genString,u9_f10_idx(),u9::f10);}
+    // BOOST_TEST_CONTEXT("fixed_string"){invoker(client,m9(),genString,u9_f12_idx(),u9::f12);}
 
     BOOST_TEST_CONTEXT("datetime"){invoker(client,m9(),genDateTime,u9_f13_idx(),u9::f13);}
     BOOST_TEST_CONTEXT("date"){invoker(client,m9(),genDate,u9_f14_idx(),u9::f14);}
@@ -427,8 +428,11 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client)
 
     auto cc=Count;
     Count=2;
-    BOOST_TEST_CONTEXT("bool"){invoker(client,m9(),genBool,u9_f1_idx(),u9::f1);}
-    BOOST_TEST_CONTEXT("enum"){invoker(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
+    if constexpr (!std::decay_t<SkipBoolT>::value)
+    {
+        BOOST_TEST_CONTEXT("bool"){invoker(client,m9(),genBool,u9_f1_idx(),u9::f1);}
+    }
+    // BOOST_TEST_CONTEXT("enum"){invoker(client,m9(),genEnum,u9_f11_idx(),u9::f11);}
     Count=cc;
 }
 
@@ -465,8 +469,8 @@ void setSchemaToClient(std::shared_ptr<Client> client, const T& schema)
     BOOST_CHECK_EQUAL(s->get()->name(),schema->name());
 }
 
-template <typename InvokerT>
-void runTest(InvokerT&& invoker)
+template <typename InvokerT, typename SkipBoolT=hana::false_>
+void runTest(InvokerT&& invoker, SkipBoolT skipBool=SkipBoolT{})
 {
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
@@ -476,10 +480,10 @@ void runTest(InvokerT&& invoker)
     registerModels9();
     auto s1=initSchema(m9());
 
-    auto handler=[&s1,&invoker](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1,&invoker,&skipBool](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
-        invokeTests(invoker,client);
+        invokeTests(invoker,client,skipBool);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 

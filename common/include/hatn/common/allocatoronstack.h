@@ -189,6 +189,26 @@ public:
         this->reserve(PreallocatedSize);
     }
 
+    VectorOnStackT(const std::vector<T>& items) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(std::max(PreallocatedSize,items.size()));
+        for (auto&& it:items)
+        {
+            this->push_back(it);
+        }
+    }
+
+    VectorOnStackT(std::vector<T>&& items) : ArenaHolderT(),
+        BaseT(AllocaT{this->m_arena})
+    {
+        this->reserve(std::max(PreallocatedSize,items.size()));
+
+        std::copy(std::make_move_iterator(items.begin()),
+                  std::make_move_iterator(items.end()),
+                  std::inserter(*this, this->end()));
+    }
+
     VectorOnStackT(T&& item) : ArenaHolderT(),
         BaseT(AllocaT{this->m_arena})
     {
