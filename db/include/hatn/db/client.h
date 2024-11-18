@@ -64,6 +64,8 @@ class HATN_DB_EXPORT Client : public common::WithID
         Client& operator=(const Client&)=delete;
         Client& operator=(Client&&)=default;
 
+        //! @todo Implement Delete topic
+
         bool isOpen() const noexcept
         {
             return m_opened;
