@@ -1,14 +1,14 @@
 SET (TEST_SOURCES
-    # ${DB_TEST_SRC}/testobject.cpp
-    # ${DB_TEST_SRC}/testinitplugins.cpp
-    # ${DB_TEST_SRC}/testopenclose.cpp
-    # ${DB_TEST_SRC}/testschema.cpp
-    # ${DB_TEST_SRC}/testrocksdbschema.cpp
-    # ${DB_TEST_SRC}/testrocksdbop.cpp
-    # ${DB_TEST_SRC}/testcrud.cpp
-    # ${DB_TEST_SRC}/testfind.cpp
+    ${DB_TEST_SRC}/testobject.cpp
+    ${DB_TEST_SRC}/testinitplugins.cpp
+    ${DB_TEST_SRC}/testopenclose.cpp
+    ${DB_TEST_SRC}/testschema.cpp
+    ${DB_TEST_SRC}/testrocksdbschema.cpp
+    ${DB_TEST_SRC}/testrocksdbop.cpp
+    ${DB_TEST_SRC}/testcrud.cpp
+    ${DB_TEST_SRC}/testfind.cpp
     ${DB_TEST_SRC}/testfindeq.cpp
-    # ${DB_TEST_SRC}/models1.cpp
+    ${DB_TEST_SRC}/models1.cpp
     # ${DB_TEST_SRC}/models2.cpp
     # ${DB_TEST_SRC}/models3.cpp
     # ${DB_TEST_SRC}/models4.cpp

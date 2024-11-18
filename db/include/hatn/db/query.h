@@ -445,7 +445,13 @@ class ValueT
         using Type=EnumT;
 
         template <typename T>
-        ValueT(T&& val) : m_value(std::forward<T>(val))
+        ValueT(T&& val,
+               std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(std::forward<T>(val))
+        {}
+
+        template <typename T>
+        ValueT(T&& val,
+               std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(static_cast<int32_t>(val))
         {}
 
         ValueT(bool val) : m_value(BoolValue(val))
@@ -470,6 +476,33 @@ class ValueT
 
         ValueT(std::initializer_list<const char*> v) : m_value(Vector<String>{std::move(v)})
         {}
+
+        ValueT(const char* value) : m_value(String(value))
+        {}
+
+        ValueT(const std::string& value) : m_value(String(value))
+        {}
+
+        ValueT(std::string&& value)= delete;
+
+        ValueT(const common::pmr::string& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        ValueT(common::pmr::string&& value)= delete;
+
+        template <size_t CapacityS, bool ThrowOnOverflow>
+        ValueT(const common::FixedByteArray<CapacityS,ThrowOnOverflow>& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        template <size_t CapacityS, bool ThrowOnOverflow>
+        ValueT(common::FixedByteArray<CapacityS,ThrowOnOverflow>&& value) = delete;
+
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        ValueT(const common::StringOnStackT<PreallocatedSize,FallbackAllocatorT>& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        ValueT(common::StringOnStackT<PreallocatedSize,FallbackAllocatorT>&& value) =delete;
 
         Type typeId() const noexcept
         {
@@ -599,76 +632,19 @@ using Operand=ValueT<ValueVariant,ValueEnum>;
 
 struct Field
 {
-    Field(
-        const IndexFieldInfo* fieldInfo,
-        Operator op,
-        const char* value,
-        Order order=Order::Asc
-        ) : Field(fieldInfo,op,String(value),order)
-    {
-    }
-
-    Field(
-        const IndexFieldInfo* fieldInfo,
-        Operator op,
-        const std::string& value,
-        Order order=Order::Asc
-        ) : Field(fieldInfo,op,String(value),order)
-    {
-    }
-
-    Field(
-        const IndexFieldInfo* fieldInfo,
-        Operator op,
-        std::string&& value,
-        Order order=Order::Asc
-    )= delete;
-
-    Field(
-        const IndexFieldInfo* fieldInfo,
-        Operator op,
-        String value,
-        Order order=Order::Asc
-        ) : fieldInfo(fieldInfo),
-            op(op),
-            value(std::move(value)),
-            order(order)
-    {
-        checkOperator();
-    }
-
-#if 1
     template <typename T>
     Field(
         const IndexFieldInfo* fieldInfo,
         Operator op,
         T&& value,
-        Order order=Order::Asc,
-        std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr
-        ) : fieldInfo(fieldInfo),
+        Order order=Order::Asc
+    ) : fieldInfo(fieldInfo),
         op(op),
         value(std::forward<T>(value)),
         order(order)
     {
         checkOperator();
     }
-
-    template <typename T>
-    Field(
-        const IndexFieldInfo* fieldInfo,
-        Operator op,
-        T&& value,
-        Order order=Order::Asc,
-        std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr
-        ) : fieldInfo(fieldInfo),
-        op(op),
-        value(static_cast<int32_t>(value)),
-        order(order)
-    {
-        checkOperator();
-    }
-
-#endif
 
     bool isScalarOp() const noexcept
     {
