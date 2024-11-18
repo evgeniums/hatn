@@ -67,6 +67,30 @@ constexpr LastT Last{};
 using String=lib::string_view;
 // using String=std::string;
 
+template <typename T, typename = hana::when<true>>
+struct ValueTypeTraits
+{
+    using type=T;
+};
+
+template <>
+struct ValueTypeTraits<std::string>
+{
+    using type=String;
+};
+
+template <>
+struct ValueTypeTraits<common::pmr::string>
+{
+    using type=String;
+};
+
+template <>
+struct ValueTypeTraits<common::StringOnStack>
+{
+    using type=String;
+};
+
 struct BoolValue
 {
     BoolValue(bool val) noexcept :m_val(val)
@@ -140,6 +164,11 @@ struct Interval
 
         Endpoint() : type(IntervalType::Open)
         {}
+
+        Endpoint(Endpoint&& other)=default;
+        Endpoint(const Endpoint& other)=default;
+        Endpoint& operator=(Endpoint&& other)=default;
+        Endpoint& operator=(const Endpoint& other)=default;
 
         template <typename T1>
         Endpoint(T1&& v, Type t)
@@ -248,6 +277,11 @@ struct Interval
         ):from(std::forward<T1>(from),fromType),
           to(std::forward<T2>(to),toType)
     {}
+
+    Interval(Interval&& other)=default;
+    Interval(const Interval& other)=default;
+    Interval& operator=(Interval&& other)=default;
+    Interval& operator=(const Interval& other)=default;
 
     Endpoint from;
     Endpoint to;
@@ -997,6 +1031,8 @@ struct whereT
     Ts conditions;
 };
 
+//! @note Vectors and strings must be used only by references escept for string_vire strings.
+//! @note Vectors must be sorted, otherwise they will be sorted internally despite const lvalue reference.
 template <typename FieldT, typename ValueT>
 auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
 {

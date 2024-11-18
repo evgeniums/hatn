@@ -25,6 +25,15 @@ HATN_DB_NAMESPACE_BEGIN
 
 size_t IndexQuery::DefaultLimit=100;
 
+
+void a()
+{
+    query::Interval<query::NullT> interval{query::Null,query::IntervalType::Open,query::Null,query::IntervalType::Open};
+    query::Operand val{interval};
+
+    query::Field f(nullptr,query::nin,interval);
+}
+
 //---------------------------------------------------------------
 
 HATN_DB_NAMESPACE_END

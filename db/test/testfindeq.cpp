@@ -242,6 +242,7 @@ struct gtChecker
     bool m_gte;
 };
 
+template <bool Nin=false>
 struct inVectorQueryGenT
 {
     template <typename ValGenT, typename VecT>
@@ -274,17 +275,20 @@ struct inVectorQueryGenT
 
             auto v1=std::make_shared<std::vector<int32_t>>();
             query::fromEnumVector(enums,*v1);
-            return std::make_pair(query::where(std::forward<PathT>(path),query::in,*v1),v1);
+            auto op=Nin?query::nin:query::in;
+            return std::make_pair(query::where(std::forward<PathT>(path),op,*v1),v1);
         }
         else
         {
             auto vec=std::make_shared<std::vector<type>>();
             genVector(i,valGen,vec);
-            return std::make_pair(query::where(std::forward<PathT>(path),query::in,*vec),vec);
+            auto op=Nin?query::nin:query::in;
+            return std::make_pair(query::where(std::forward<PathT>(path),op,*vec),vec);
         }
     }
 };
-constexpr inVectorQueryGenT inVectorQueryGen{};
+template <bool Nin=false>
+constexpr inVectorQueryGenT<Nin> inVectorQueryGen{};
 
 struct inVectorCheckerT
 {
@@ -326,7 +330,7 @@ struct inVectorCheckerT
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
 
                 auto vec=std::make_shared<std::vector<decltype(valGen(i,true))>>();
-                inVectorQueryGen.genVector(valIndexes[i],valGen,vec);
+                inVectorQueryGen<>.genVector(valIndexes[i],valGen,vec);
                 const auto& v=*vec;
 
                 for (size_t j=0;j<resultCount;j++)
@@ -340,6 +344,59 @@ struct inVectorCheckerT
     }
 };
 constexpr inVectorCheckerT inVectorChecker{};
+
+struct ninVectorCheckerT
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>& valIndexes,
+        size_t i,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        {
+            BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+                size_t resultCount=1;
+                BOOST_REQUIRE_EQUAL(resultCount,result.size());
+                auto obj=result.at(0).template unit<unitT>();
+                BOOST_CHECK(u9::MyEnum::One==static_cast<vType>(obj->getAtPath(path)));
+            }
+        }
+        else
+        {
+            BOOST_TEST_CONTEXT(fmt::format("{}",i)){
+                size_t resultCount=Count;
+                if (i!=(valIndexes.size()-1))
+                {
+                    resultCount=Count-VectorSize;
+                }
+                if (Limit!=0)
+                {
+                    resultCount=std::min(resultCount,Limit);
+                }
+                BOOST_REQUIRE_EQUAL(resultCount,result.size());
+
+                // auto vec=std::make_shared<std::vector<decltype(valGen(i,true))>>();
+                // inVectorQueryGen.genVector(valIndexes[i],valGen,vec);
+                // const auto& v=*vec;
+                // for (size_t j=0;j<resultCount;j++)
+                // {
+                //     auto obj=result.at(j).template unit<unitT>();
+                //     BOOST_CHECK(v[j]==static_cast<vType>(obj->getAtPath(path)));
+                // }
+            }
+        }
+    }
+};
+constexpr ninVectorCheckerT ninVectorChecker{};
 
 }
 
@@ -388,8 +445,14 @@ BOOST_AUTO_TEST_CASE(PlainInVector)
     std::vector<int> v{1,2,3,4,5};
     std::ignore=query::where(object::_id,query::in,v);
 
-    InvokeTestT<inVectorQueryGenT,inVectorCheckerT> testInVector{inVectorQueryGen,inVectorChecker};
+    InvokeTestT<inVectorQueryGenT<>,inVectorCheckerT> testInVector{inVectorQueryGen<>,inVectorChecker};
     runTest(testInVector,hana::true_c);
+}
+
+BOOST_AUTO_TEST_CASE(PlainNinVector)
+{
+    InvokeTestT<inVectorQueryGenT<true>,ninVectorCheckerT> testNinVector{inVectorQueryGen<true>,ninVectorChecker};
+    runTest(testNinVector,hana::true_c);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
