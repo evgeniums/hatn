@@ -162,6 +162,8 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         Topics m_topics;
         common::VectorOnStack<query::Field,PreallocatedFieldsCount> m_fields;
         size_t m_limit;
+
+        //! @todo Implement offset.
 };
 
 struct ModelIndexQuery
