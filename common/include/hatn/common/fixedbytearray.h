@@ -68,6 +68,9 @@ struct FixedByteArrayTraits<T,false>
 
 }
 
+struct FixedByteArrayTag
+{};
+
 /**
  * @brief Byte array with fixed capacity
  */
@@ -75,6 +78,8 @@ template <size_t CapacityS, bool ThrowOnOverflow=false>
 class FixedByteArray
 {
     public:
+
+        using hana_tag=FixedByteArrayTag;
 
         using value_type=char;
         using type=FixedByteArray<CapacityS,ThrowOnOverflow>;
