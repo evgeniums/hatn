@@ -352,10 +352,54 @@ struct Interval
            to(BoolValue(to),toType)
     {}
 
+    /**
+     * @brief Interval constructor with From First
+     * @param fromType
+     * @param to
+     * @param toType
+     */
+    template <typename T2>
+    Interval(
+        IntervalType fromType,
+        T2&& to,
+        IntervalType toType
+        ): Interval(uint32_t(0),fromType,std::forward<T2>(to),toType)
+    {
+        Assert(fromType==IntervalType::First,"This constructor can be used only for interval from First");
+    }
+
+    /**
+     * @brief Interval constructor with To Last
+     * @param fromType
+     * @param to
+     * @param toType
+     */
+    template <typename T1>
+    Interval(
+        T1&& from,
+        IntervalType fromType,
+        IntervalType toType
+        ) : Interval(std::forward<T1>(from),fromType,uint32_t(0),toType)
+    {
+        Assert(toType==IntervalType::Last,"This constructor can be used only for interval to Last");
+    }
+
+    /**
+     * @brief Interval constructor with From First To Last
+     * @param fromType
+     * @param to
+     * @param toType
+     */
+    Interval(
+        IntervalType fromType,
+        IntervalType toType
+        ) : Interval(uint32_t(0),fromType,uint32_t(0),toType)
+    {
+        Assert(fromType==IntervalType::First && toType==IntervalType::Last,"This constructor can be used only for interval from First to Last");
+    }
+
     Endpoint from;
     Endpoint to;
-
-    // static void sortAndMerge(Vector<Interval<T>>& vec, Order order);
 
     bool intersects(const Interval<T>& other) const noexcept;
 

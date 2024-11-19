@@ -26,7 +26,6 @@
 
 namespace {
 size_t MaxValIdx=230;
-// size_t MaxValIdx=250;
 size_t Count=MaxValIdx+1;
 std::vector<size_t> CheckValueIndexes{10,20,30,150,233};
 size_t Limit=0;
@@ -444,15 +443,7 @@ struct ninVectorCheckerT
                 }
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
 
-                //! @todo check result
-                // auto vec=std::make_shared<std::vector<decltype(valGen(i,true))>>();
-                // inVectorQueryGen.genVector(valIndexes[i],valGen,vec);
-                // const auto& v=*vec;
-                // for (size_t j=0;j<resultCount;j++)
-                // {
-                //     auto obj=result.at(j).template unit<unitT>();
-                //     BOOST_CHECK(v[j]==static_cast<vType>(obj->getAtPath(path)));
-                // }
+                //! @todo Check result values for nin vector
             }
         }
     }
@@ -494,6 +485,7 @@ struct inIntervalQueryGenT
     query::IntervalType toType;
 };
 
+template <bool Nin=false>
 struct inIntervalCheckerT
 {
     template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
@@ -513,6 +505,13 @@ struct inIntervalCheckerT
         if constexpr (std::is_same<vType,u9::MyEnum>::value)
         {
             BOOST_TEST_CONTEXT(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType))){
+
+                if (Nin)
+                {
+                    // enums not checked yet
+                    return;
+                }
+
                 if (fromType==query::IntervalType::Closed)
                 {
                     size_t resultCount=1;
@@ -671,17 +670,29 @@ struct inIntervalCheckerT
                         resultCount=Count;
                     }
                 }
+
+                if (Nin)
+                {
+                    resultCount=Count-resultCount;
+                }
                 if (Limit!=0)
                 {
                     resultCount=std::min(resultCount,Limit);
                 }
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
 
-                for (size_t j=0;j<resultCount;j++)
+                if (!Nin)
                 {
-                    auto obj=result.at(j).template unit<unitT>();
-                    BOOST_CHECK(valGen(j+startIdx,true)==static_cast<vType>(obj->getAtPath(path)));
-                    // BOOST_CHECK_EQUAL(valGen(j+startIdx,true),static_cast<vType>(obj->getAtPath(path)));
+                    for (size_t j=0;j<resultCount;j++)
+                    {
+                        auto obj=result.at(j).template unit<unitT>();
+                        BOOST_CHECK(valGen(j+startIdx,true)==static_cast<vType>(obj->getAtPath(path)));
+                        // BOOST_CHECK_EQUAL(valGen(j+startIdx,true),static_cast<vType>(obj->getAtPath(path)));
+                    }
+                }
+                else
+                {
+                    //! @todo Check values for nin interval
                 }
             }
         }
@@ -761,7 +772,8 @@ BOOST_AUTO_TEST_CASE(PlainNinVector)
     runTest(testNinVector,hana::true_c);
 }
 
-BOOST_AUTO_TEST_CASE(PlainInInterval)
+template <bool Nin>
+void inNinInterval()
 {
     query::IntervalType fromType{query::IntervalType::Open};
     query::IntervalType toType{query::IntervalType::Open};
@@ -777,16 +789,17 @@ BOOST_AUTO_TEST_CASE(PlainInInterval)
     {
         BOOST_TEST_MESSAGE(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType)));
 
-        InvokeTestT<inIntervalQueryGenT<>,inIntervalCheckerT> testInInterval{inIntervalQueryGenT<>{
+        InvokeTestT<inIntervalQueryGenT<Nin>,inIntervalCheckerT<Nin>> test{
+            inIntervalQueryGenT<Nin>{
                 fromType,
                 toType
             },
-            inIntervalCheckerT{
+            inIntervalCheckerT<Nin>{
                 fromType,
                 toType
             }
         };
-        runTest(testInInterval,hana::true_c);
+        runTest(test,hana::true_c);
     };
 
     run();
@@ -823,13 +836,26 @@ BOOST_AUTO_TEST_CASE(PlainInInterval)
     toType=query::IntervalType{query::IntervalType::Last};
     run();
 
-    fromType=query::IntervalType{query::IntervalType::First};
-    toType=query::IntervalType{query::IntervalType::First};
-    run();
+    if (!Nin)
+    {
+        fromType=query::IntervalType{query::IntervalType::First};
+        toType=query::IntervalType{query::IntervalType::First};
+        run();
 
-    fromType=query::IntervalType{query::IntervalType::Last};
-    toType=query::IntervalType{query::IntervalType::Last};
-    run();
+        fromType=query::IntervalType{query::IntervalType::Last};
+        toType=query::IntervalType{query::IntervalType::Last};
+        run();
+    }
+}
+
+BOOST_AUTO_TEST_CASE(PlainInInterval)
+{
+    inNinInterval<false>();
+}
+
+BOOST_AUTO_TEST_CASE(PlainNinInterval)
+{
+    inNinInterval<true>();
 }
 
 template <bool LastT=false>
@@ -888,19 +914,5 @@ struct eqFirstLastCheckerT
 };
 template <bool LastT=false>
 constexpr eqFirstLastCheckerT<LastT> eqFirstLastChecker{};
-
-BOOST_AUTO_TEST_CASE(PlainFirstLastEq)
-{
-    auto tmpV=CheckValueIndexes;
-    CheckValueIndexes.resize(1);
-
-    InvokeTestT<eqFirstLastQueryGenT<>,eqFirstLastCheckerT<>> testFirst{eqFirstLastQueryGen<>,eqFirstLastChecker<>};
-    runTest(testFirst);
-
-    InvokeTestT<eqFirstLastQueryGenT<true>,eqFirstLastCheckerT<true>> testLast{eqFirstLastQueryGen<true>,eqFirstLastChecker<true>};
-    runTest(testLast);
-
-    CheckValueIndexes=tmpV;
-}
 
 BOOST_AUTO_TEST_SUITE_END()

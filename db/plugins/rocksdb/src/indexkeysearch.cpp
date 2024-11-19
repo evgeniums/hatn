@@ -526,34 +526,38 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
         {
             // nin
             auto doNinInterval=[&](const auto& val)
-            {
-                const auto &beforeVal=val.from.value;
-                query::Operator beforeOp=val.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+            {                
+                if (val.from.type!=query::IntervalType::First)
+                {
+                    const auto &beforeVal=val.from.value;
+                    query::Operator beforeOp=val.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+                    query::Field fieldBefore{queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
+                    auto ec=iterateFieldVariant(cursor,
+                                                  handler,
+                                                  idxQuery,
+                                                  keyCallback,
+                                                  snapshot,
+                                                  fieldBefore,
+                                                  allocatorFactory
+                                                  );
+                    HATN_CHECK_EC(ec)
+                }
 
-                query::Field fieldBefore{queryField.fieldInfo,beforeOp,beforeVal,queryField.order};
-                auto ec=iterateFieldVariant(cursor,
-                                              handler,
-                                              idxQuery,
-                                              keyCallback,
-                                              snapshot,
-                                              fieldBefore,
-                                              allocatorFactory
-                                              );
-                HATN_CHECK_EC(ec)
-
-                const auto &afterVal=val.to.value;
-                query::Operator afterOp=val.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
-
-                query::Field fieldAfter{queryField.fieldInfo,afterOp,afterVal,queryField.order};
-                ec=iterateFieldVariant(cursor,
-                                         handler,
-                                         idxQuery,
-                                         keyCallback,
-                                         snapshot,
-                                         fieldAfter,
-                                         allocatorFactory
-                                         );
-                HATN_CHECK_EC(ec)
+                if (val.to.type!=query::IntervalType::Last)
+                {
+                    const auto &afterVal=val.to.value;
+                    query::Operator afterOp=val.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
+                    query::Field fieldAfter{queryField.fieldInfo,afterOp,afterVal,queryField.order};
+                    auto ec=iterateFieldVariant(cursor,
+                                             handler,
+                                             idxQuery,
+                                             keyCallback,
+                                             snapshot,
+                                             fieldAfter,
+                                             allocatorFactory
+                                             );
+                    HATN_CHECK_EC(ec)
+                }
 
                 return Error{};
             };
