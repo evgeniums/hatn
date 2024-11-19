@@ -142,6 +142,8 @@ Error iterateFieldVariant(
     Error ec;
     bool lastKey=false;
     bool seekExactPrefix=false;
+    bool onlyFirst=false;
+    bool onlyLast=false;
     ROCKSDB_NAMESPACE::Slice fromS;
     ROCKSDB_NAMESPACE::Slice toS;
 
@@ -197,17 +199,32 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::eq):
         {
-            fromBuf.append(cursor.keyPrefix);
-            fromBuf.append(SeparatorCharStr);
-            fieldValueToBuf(fromBuf,field,SeparatorCharStr);
-            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
-            readOptions.iterate_lower_bound=&fromS;
+            if (
+                field.value.isFirst()
+                ||
+                field.value.isLast()
+                )
+            {
+                fromS=cursor.indexRangeFromSlice();
+                readOptions.iterate_lower_bound=&fromS;
+                toS=cursor.indexRangeToSlice();
+                readOptions.iterate_upper_bound=&toS;
+                iterateForward=field.value.isFirst();
+            }
+            else
+            {
+                fromBuf.append(cursor.keyPrefix);
+                fromBuf.append(SeparatorCharStr);
+                fieldValueToBuf(fromBuf,field,SeparatorCharStr);
+                fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+                readOptions.iterate_lower_bound=&fromS;
 
-            toBuf.append(cursor.keyPrefix);
-            toBuf.append(SeparatorCharStr);
-            fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
-            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
-            readOptions.iterate_upper_bound=&toS;
+                toBuf.append(cursor.keyPrefix);
+                toBuf.append(SeparatorCharStr);
+                fieldValueToBuf(toBuf,field,SeparatorCharPlusStr);
+                toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+                readOptions.iterate_upper_bound=&toS;
+            }
 
             seekExactPrefix=true;
         }
@@ -216,30 +233,54 @@ Error iterateFieldVariant(
         {
             fromBuf.append(cursor.keyPrefix);
             fromBuf.append(SeparatorCharStr);
-            if (field.value.fromIntervalType()==query::IntervalType::Open)
-            {
-                fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
-            }
-            else
-            {
-                fieldValueToBuf(fromBuf,field,SeparatorCharStr);
-            }
-            fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
-            readOptions.iterate_lower_bound=&fromS;
 
-            toBuf.append(cursor.keyPrefix);
-            toBuf.append(SeparatorCharStr);
-            constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};
-            if (field.value.toIntervalType()==query::IntervalType::Open)
+            onlyFirst=field.value.fromIntervalType()==query::IntervalType::First
+                        &&
+                        field.value.toIntervalType()==query::IntervalType::First;
+
+            onlyLast=field.value.fromIntervalType()==query::IntervalType::Last
+                       &&
+                       field.value.toIntervalType()==query::IntervalType::Last;
+
+            if (onlyFirst || onlyLast)
             {
-                toValueToBuf(toBuf,field,SeparatorCharStr);
+                fromS=cursor.indexRangeFromSlice();
+                readOptions.iterate_lower_bound=&fromS;
+                toS=cursor.indexRangeToSlice();
+                readOptions.iterate_upper_bound=&toS;
+                iterateForward=onlyFirst;
+                seekExactPrefix=true;
             }
             else
             {
-                toValueToBuf(toBuf,field,SeparatorCharPlusStr);
+                if (field.value.fromIntervalType()==query::IntervalType::Open)
+                {
+                    fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
+                }
+                else
+                {
+                    fieldValueToBuf(fromBuf,field,SeparatorCharStr);
+                }
+                fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+                readOptions.iterate_lower_bound=&fromS;
+
+                toBuf.append(cursor.keyPrefix);
+                toBuf.append(SeparatorCharStr);
+                constexpr static const fieldValueToBufT<hana::false_> toValueToBuf{};
+                if (field.value.toIntervalType()==query::IntervalType::Open
+                    ||
+                    field.value.toIntervalType()==query::IntervalType::Last
+                    )
+                {
+                    toValueToBuf(toBuf,field,SeparatorCharStr);
+                }
+                else
+                {
+                    toValueToBuf(toBuf,field,SeparatorCharPlusStr);
+                }
+                toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
+                readOptions.iterate_upper_bound=&toS;
             }
-            toS=ROCKSDB_NAMESPACE::Slice{toBuf.data(),toBuf.size()};
-            readOptions.iterate_upper_bound=&toS;
         }
         break;
 
@@ -451,7 +492,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     else if (queryField.value.isIntervalType())
     {
         // process interval fields
-        if (queryField.op!=query::Operator::in)
+        if (queryField.op==query::Operator::in)
         {
             // in
             auto ec=iterateFieldVariant(cursor,

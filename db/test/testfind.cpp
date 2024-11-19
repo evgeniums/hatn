@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(OneLevel)
 BOOST_AUTO_TEST_SUITE_END()
 
 
-/** @todo Test find:
+/** @todo Test:
  *
  *  1. Test scalar types - done
  *  2. Test strings - done
@@ -158,4 +158,5 @@ BOOST_AUTO_TEST_SUITE_END()
  *  14. Test offset
  *  15. Test delete with query
  *  16. Test find-update-create
+ *  17. Test update
  */

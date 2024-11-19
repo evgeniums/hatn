@@ -25,13 +25,14 @@
 #include "preparedb.h"
 
 namespace {
-size_t MaxValIdx=250;
+size_t MaxValIdx=230;
 // size_t MaxValIdx=250;
 size_t Count=MaxValIdx+1;
-std::vector<size_t> CheckValueIndexes{10,20,30,150,253};
+std::vector<size_t> CheckValueIndexes{10,20,30,150,233};
 size_t Limit=0;
 size_t VectorSize=5;
 size_t VectorStep=5;
+size_t IntervalWidth=7;
 }
 
 #include "findhandlers.h"
@@ -458,6 +459,245 @@ struct ninVectorCheckerT
 };
 constexpr ninVectorCheckerT ninVectorChecker{};
 
+template <bool Nin=false>
+struct inIntervalQueryGenT
+{
+    template <typename PathT, typename ValT, typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&& valGen) const
+    {
+        std::ignore=val;
+        using vType=decltype(valGen(i,true));
+        using type=typename query::ValueTypeTraits<vType>::type;
+        if constexpr (std::is_enum<vType>::value)
+        {
+            query::Interval<type> v(u9::MyEnum::Two,fromType,u9::MyEnum::Three,toType);
+            auto op=Nin?query::nin:query::in;
+            return std::make_pair(query::where(std::forward<PathT>(path),op,v),0);
+        }
+        else
+        {
+            auto p=std::make_shared<std::pair<vType,vType>>(valGen(i,true),valGen(i+IntervalWidth-1,true));
+            query::Interval<type> v(p->first,fromType,p->second,toType);
+            auto op=Nin?query::nin:query::in;
+            return std::make_pair(query::where(std::forward<PathT>(path),op,v),p);
+        }
+    }
+
+    inIntervalQueryGenT(
+        query::IntervalType fromType,
+        query::IntervalType toType
+    ) : fromType(fromType),
+        toType(toType)
+    {}
+
+    query::IntervalType fromType;
+    query::IntervalType toType;
+};
+
+struct inIntervalCheckerT
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>& valIndexes,
+        size_t i,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        {
+            BOOST_TEST_CONTEXT(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType))){
+                if (fromType==query::IntervalType::Closed)
+                {
+                    size_t resultCount=1;
+                    if (fromType==query::IntervalType::First)
+                    {
+                        resultCount=2;
+                    }
+                    BOOST_REQUIRE_EQUAL(resultCount,result.size());
+                    auto obj=result.at(0).template unit<unitT>();
+                    BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+                }
+                else
+                {
+                    size_t resultCount=0;
+                    if (fromType==query::IntervalType::First)
+                    {
+                        if (toType==query::IntervalType::First)
+                        {
+                            resultCount=1;
+                        }
+                        else
+                        {
+                            resultCount=2;
+                        }
+                    }
+                    else if (fromType==query::IntervalType::Last)
+                    {
+                        resultCount=1;
+                    }
+                    BOOST_REQUIRE_EQUAL(resultCount,result.size());
+                    if (resultCount>0)
+                    {
+                        if (fromType==query::IntervalType::First)
+                        {
+                            auto obj0=result.at(0).template unit<unitT>();
+                            BOOST_CHECK(u9::MyEnum::One==static_cast<vType>(obj0->getAtPath(path)));
+                            if (toType!=query::IntervalType::First)
+                            {
+                                auto obj1=result.at(1).template unit<unitT>();
+                                BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj1->getAtPath(path)));
+                            }
+                        }
+                        else
+                        {
+                            auto obj=result.at(0).template unit<unitT>();
+                            BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            BOOST_TEST_CONTEXT(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType))){
+                size_t resultCount=0;
+                size_t startIdx=0;
+                if (
+                    fromType==query::IntervalType::First
+                    &&
+                    toType==query::IntervalType::Last
+                    )
+                {
+                    resultCount=Count;
+                }
+                else if (
+                        fromType==query::IntervalType::First
+                        &&
+                        toType==query::IntervalType::First
+                    )
+                {
+                    resultCount=1;
+                }
+                else if (
+                    fromType==query::IntervalType::Last
+                    &&
+                    toType==query::IntervalType::Last
+                    )
+                {
+                    resultCount=1;
+                    startIdx=MaxValIdx;
+                }
+                else if (i<(valIndexes.size()-1))
+                {
+                    if (
+                        fromType==query::IntervalType::Closed
+                        &&
+                        toType==query::IntervalType::Closed
+                       )
+                    {
+                        resultCount=IntervalWidth;
+                        startIdx=valIndexes[i];
+                    }
+                    else if (
+                        fromType==query::IntervalType::Open
+                        &&
+                        toType==query::IntervalType::Open
+                        )
+                    {
+                        resultCount=IntervalWidth-2;
+                        startIdx=valIndexes[i]+1;
+                    }
+                    else if (
+                            fromType==query::IntervalType::First
+                            &&
+                            toType==query::IntervalType::Open
+                        )
+                    {
+                        resultCount=valIndexes[i]+IntervalWidth-1;
+                        startIdx=0;
+                    }
+                    else if (
+                        fromType==query::IntervalType::First
+                        &&
+                        toType==query::IntervalType::Closed
+                        )
+                    {
+                        resultCount=valIndexes[i]+IntervalWidth;
+                        startIdx=0;
+                    }
+                    else if (
+                        fromType==query::IntervalType::Open
+                        &&
+                        toType==query::IntervalType::Last
+                        )
+                    {
+                        resultCount=Count-valIndexes[i]-1;
+                        startIdx=valIndexes[i]+1;
+                    }
+                    else if (
+                        fromType==query::IntervalType::Closed
+                        &&
+                        toType==query::IntervalType::Last
+                        )
+                    {
+                        resultCount=Count-valIndexes[i];
+                        startIdx=valIndexes[i];
+                    }
+                    else
+                    {
+                        resultCount=IntervalWidth-1;
+                        if (fromType==query::IntervalType::Closed)
+                        {
+                            startIdx=valIndexes[i];
+                        }
+                        else
+                        {
+                            startIdx=valIndexes[i]+1;
+                        }
+                    }
+                }
+                else
+                {
+                    resultCount=0;
+                    if (fromType==query::IntervalType::First)
+                    {
+                        resultCount=Count;
+                    }
+                }
+                if (Limit!=0)
+                {
+                    resultCount=std::min(resultCount,Limit);
+                }
+                BOOST_REQUIRE_EQUAL(resultCount,result.size());
+
+                for (size_t j=0;j<resultCount;j++)
+                {
+                    auto obj=result.at(j).template unit<unitT>();
+                    BOOST_CHECK(valGen(j+startIdx,true)==static_cast<vType>(obj->getAtPath(path)));
+                    // BOOST_CHECK_EQUAL(valGen(j+startIdx,true),static_cast<vType>(obj->getAtPath(path)));
+                }
+            }
+        }
+    }
+
+    inIntervalCheckerT(
+        query::IntervalType fromType,
+        query::IntervalType toType
+        ) : fromType(fromType),
+        toType(toType)
+    {}
+
+    query::IntervalType fromType;
+    query::IntervalType toType;
+};
+
 }
 
 BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
@@ -519,6 +759,77 @@ BOOST_AUTO_TEST_CASE(PlainNinVector)
 {
     InvokeTestT<inVectorQueryGenT<true>,ninVectorCheckerT> testNinVector{inVectorQueryGen<true>,ninVectorChecker};
     runTest(testNinVector,hana::true_c);
+}
+
+BOOST_AUTO_TEST_CASE(PlainInInterval)
+{
+    query::IntervalType fromType{query::IntervalType::Open};
+    query::IntervalType toType{query::IntervalType::Open};
+
+    std::ignore=query::Interval<query::String>{"1000",fromType,"9000",toType};
+    // std::ignore=query::Interval<query::String>{std::string("1000"),fromType,"9000",toType};
+    // std::ignore=query::Interval<query::String>{"1000",fromType,std::string("9000"),toType};
+    std::string from("1000");
+    std::string to("9000");
+    std::ignore=query::Interval<query::String>{from,fromType,to,toType};
+
+    auto run=[&]()
+    {
+        BOOST_TEST_MESSAGE(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType)));
+
+        InvokeTestT<inIntervalQueryGenT<>,inIntervalCheckerT> testInInterval{inIntervalQueryGenT<>{
+                fromType,
+                toType
+            },
+            inIntervalCheckerT{
+                fromType,
+                toType
+            }
+        };
+        runTest(testInInterval,hana::true_c);
+    };
+
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Closed};
+    toType=query::IntervalType{query::IntervalType::Closed};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Open};
+    toType=query::IntervalType{query::IntervalType::Closed};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Closed};
+    toType=query::IntervalType{query::IntervalType::Open};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::First};
+    toType=query::IntervalType{query::IntervalType::Open};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::First};
+    toType=query::IntervalType{query::IntervalType::Closed};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Open};
+    toType=query::IntervalType{query::IntervalType::Last};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Closed};
+    toType=query::IntervalType{query::IntervalType::Last};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::First};
+    toType=query::IntervalType{query::IntervalType::Last};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::First};
+    toType=query::IntervalType{query::IntervalType::First};
+    run();
+
+    fromType=query::IntervalType{query::IntervalType::Last};
+    toType=query::IntervalType{query::IntervalType::Last};
+    run();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

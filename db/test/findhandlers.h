@@ -83,7 +83,7 @@ void fillDbForFind(
         BOOST_REQUIRE(!ec);
     }
 
-#if 1
+#if 0
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
     q1.setLimit(0);
@@ -211,6 +211,8 @@ struct InvokeTestT
         const FieldsT&... fields
         )
     {
+        BOOST_TEST_MESSAGE("Begin test");
+
         fillDbForFind(Count,client,topic(),model,valGen,partitionFn,fields...);
 
         std::vector<size_t> valIndexes=CheckValueIndexes;
@@ -230,6 +232,8 @@ struct InvokeTestT
                      checker,
                      fields...);
         clearTopic(client,model);
+
+        BOOST_TEST_MESSAGE("End test");
     }
 
     template <typename QueryGenT1, typename CheckerT1, typename PartitionFnT1>

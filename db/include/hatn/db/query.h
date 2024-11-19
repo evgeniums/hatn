@@ -67,28 +67,48 @@ constexpr LastT Last{};
 using String=lib::string_view;
 // using String=std::string;
 
+using Enum=int32_t;
+
 template <typename T, typename = hana::when<true>>
 struct ValueTypeTraits
 {
     using type=T;
+    constexpr static const auto is_string=hana::false_c;
+};
+
+template <typename T>
+struct ValueTypeTraits<T, hana::when<std::is_enum<T>::value>>
+{
+    using type=Enum;
+    constexpr static const auto is_string=hana::false_c;
+};
+
+template <typename T>
+struct ValueTypeTraits<T, hana::when<hana::is_a<common::FixedByteArrayTag,T>>>
+{
+    using type=String;
+    constexpr static const auto is_string=hana::true_c;
 };
 
 template <>
 struct ValueTypeTraits<std::string>
 {
     using type=String;
+    constexpr static const auto is_string=hana::true_c;
 };
 
 template <>
 struct ValueTypeTraits<common::pmr::string>
 {
     using type=String;
+    constexpr static const auto is_string=hana::true_c;
 };
 
-template <>
-struct ValueTypeTraits<common::StringOnStack>
+template <typename T>
+struct ValueTypeTraits<T, hana::when<hana::is_a<common::StringOnStackTag,T>>>
 {
     using type=String;
+    constexpr static const auto is_string=hana::true_c;
 };
 
 struct BoolValue
@@ -144,9 +164,21 @@ enum class IntervalType : uint8_t
     Last
 };
 
-inline IntervalType reverseIntervalType(IntervalType type)
+inline IntervalType reverseIntervalType(IntervalType type) noexcept
 {
     return (type==IntervalType::Closed) ? IntervalType::Open : IntervalType::Closed;
+}
+
+inline const char* intervalTypeToString(IntervalType type) noexcept
+{
+    switch(type)
+    {
+        case (IntervalType::Closed): return "closed"; break;
+        case (IntervalType::Open): return "open"; break;
+        case (IntervalType::First): return "first"; break;
+        case (IntervalType::Last): return "last"; break;
+    }
+    return "";
 }
 
 template <typename T>
@@ -164,11 +196,6 @@ struct Interval
 
         Endpoint() : type(IntervalType::Open)
         {}
-
-        Endpoint(Endpoint&& other)=default;
-        Endpoint(const Endpoint& other)=default;
-        Endpoint& operator=(Endpoint&& other)=default;
-        Endpoint& operator=(const Endpoint& other)=default;
 
         template <typename T1>
         Endpoint(T1&& v, Type t)
@@ -273,15 +300,57 @@ struct Interval
             T1&& from,
             IntervalType fromType,
             T2&& to,
-            IntervalType toType
+            IntervalType toType,
+            std::enable_if_t<!std::is_enum<std::decay_t<T1>>::value>* =nullptr
         ):from(std::forward<T1>(from),fromType),
           to(std::forward<T2>(to),toType)
+    {
+        static const auto isLval1=std::is_lvalue_reference<T1>{};
+        static const auto isStrView1=
+            hana::bool_c<
+                std::is_same<lib::string_view,std::decay_t<T1>>::value
+            ||
+            std::is_same<const char*,T1>::value
+                >;
+        static const auto isStr1=ValueTypeTraits<T1>::is_string;
+        static_assert(
+            decltype(isLval1)::value || !decltype(isStr1)::value || decltype(isStrView1)::value,
+            "Temporary/rvalue string must not be used as From"
+            );
+
+        static const auto isLval2=std::is_lvalue_reference<T2>{};
+        static const auto isStrView2=
+            hana::bool_c<
+                std::is_same<lib::string_view,std::decay_t<T2>>::value
+            ||
+            std::is_same<const char*,T2>::value
+                >;
+        static const auto isStr2=ValueTypeTraits<T2>::is_string;
+        static_assert(
+            decltype(isLval2)::value || !decltype(isStr2)::value || decltype(isStrView2)::value,
+            "Temporary/rvalue string must not be used as To"
+            );
+    }
+
+    template <typename T1>
+    Interval(
+            T1&& from,
+            IntervalType fromType,
+            T1&& to,
+            IntervalType toType,
+            std::enable_if_t<std::is_enum<std::decay_t<T1>>::value>* =nullptr
+        ): from(static_cast<Enum>(from),fromType),
+           to(static_cast<Enum>(to),toType)
     {}
 
-    Interval(Interval&& other)=default;
-    Interval(const Interval& other)=default;
-    Interval& operator=(Interval&& other)=default;
-    Interval& operator=(const Interval& other)=default;
+    Interval(
+        bool from,
+        IntervalType fromType,
+        bool to,
+        IntervalType toType
+        ): from(BoolValue(from),fromType),
+           to(BoolValue(to),toType)
+    {}
 
     Endpoint from;
     Endpoint to;
@@ -316,8 +385,6 @@ struct Interval
 };
 
 constexpr const size_t PreallocatedVectorSize=8;
-// template <typename T>
-// using Vector=common::VectorOnStack<T,PreallocatedVectorSize>;
 
 template <typename T>
 using VectorT=lib::variant<
@@ -379,7 +446,7 @@ auto makeEnumVector(const T& vec)
     v.resize(vec.size());
     for (size_t i=0;i<vec.size();i++)
     {
-        v[i]=static_cast<uint32_t>(vec[i]);
+        v[i]=static_cast<Enum>(vec[i]);
     }
     return v;
 }
@@ -390,7 +457,7 @@ void fromEnumVector(const T& from, T1& to)
     to.resize(from.size());
     for (size_t i=0;i<from.size();i++)
     {
-        to[i]=static_cast<uint32_t>(from[i]);
+        to[i]=static_cast<Enum>(from[i]);
     }
 }
 
@@ -577,6 +644,11 @@ struct VectorItemVisitor
 
 }
 
+enum class ValueType : uint8_t
+{
+    HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
+};
+
 template <typename VariantT, typename EnumT>
 class ValueT
 {
@@ -592,7 +664,7 @@ class ValueT
 
         template <typename T>
         ValueT(T&& val,
-               std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(static_cast<int32_t>(val))
+               std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(static_cast<Enum>(val))
         {}
 
         ValueT(bool val) : m_value(BoolValue(val))
@@ -655,6 +727,16 @@ class ValueT
         const type& operator()() const noexcept
         {
             return m_value;
+        }
+
+        bool isFirst() const noexcept
+        {
+            return isType(ValueType::FirstT);
+        }
+
+        bool isLast() const noexcept
+        {
+            return isType(ValueType::LastT);
         }
 
         bool isScalarType() const noexcept
@@ -756,12 +838,7 @@ using ValueVariant=lib::variant<
     HATN_DB_QUERY_VALUE_TYPES(HATN_DB_QUERY_VALUE_TYPE)
 >;
 
-enum class ValueEnum : uint8_t
-{
-    HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
-};
-
-using Operand=ValueT<ValueVariant,ValueEnum>;
+using Operand=ValueT<ValueVariant,ValueType>;
 
 struct Field
 {
