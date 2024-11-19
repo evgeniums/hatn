@@ -96,6 +96,10 @@ struct valueVisitor
     void operator()(const query::VectorT<T>&) const
     {}
 
+    template <typename T>
+    void operator()(const query::VectorInterval<T>&) const
+    {}
+
     void operator()(const query::VectorString&) const
     {}
 

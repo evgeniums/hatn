@@ -686,20 +686,16 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     else if (queryField.value.isVectorIntervalType())
     {
         // sort/merge vector of intervals
-        auto sortMergeVector=[&queryField](const auto& vec)
+        auto sortMergeVector=[&queryField](const auto& vecWrapper)
         {
-            using vectorType=std::decay_t<decltype(vec)>;
-            using intervalType=typename vectorType::value_type;
+            using wrapperType=std::decay_t<decltype(vecWrapper)>;
 
-            if constexpr (decltype(hana::is_a<query::IntervalTag,intervalType>)::value)
-            {
-                auto& v=const_cast<vectorType&>(vec);
-                query::sortAndMerge(v,queryField.order);
-            }
+            auto& v=const_cast<wrapperType&>(vecWrapper);
+            query::sortAndMerge(v.value,queryField.order);
 
             return Error{};
         };
-        std::ignore=queryField.value.handleVector(sortMergeVector);
+        std::ignore=queryField.value.handleVectorInterval(sortMergeVector);
 
         // handler for intermediate intervals
         auto doIn=[&](const auto& val)
@@ -719,82 +715,81 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
         if (queryField.op==query::Operator::in)
         {
             // in
-            auto ec=queryField.value.eachVectorItem(doIn);
+            auto ec=queryField.value.eachVectorIntervalItem(doIn);
             HATN_CHECK_EC(ec)
         }
         else
         {
             // nin
-            auto doNin=[&](const auto& vec)
+            auto doNin=[&](const auto& vecWrapper)
             {
-                using intervalType=typename std::decay_t<decltype(vec)>::value_type;
-                if constexpr (decltype(hana::is_a<query::IntervalTag,intervalType>)::value)
+                using wrapperType=std::decay_t<decltype(vecWrapper)>;
+                using intervalType=typename wrapperType::interval_type;
+                const auto& vec=vecWrapper.value;
+
+                for (size_t i=0;i<vec.size();i++)
                 {
-                    for (size_t i=0;i<vec.size();i++)
+                    const auto& interval=vec[i];
+
+                    if (i==0)
                     {
-                        const auto& interval=vec[i];
+                        // before first interval use lt/lte
+                        query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
+                        query::Field fieldBefore{queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      handler,
+                                                      idxQuery,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      fieldBefore,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
+                    }
+                    else
+                    {
+                        // use in for intermediate intervals
+                        const auto& prevInterval=vec[i-1];
+                        intervalType tmpInterval{
+                            prevInterval.to.value,
+                            query::reverseIntervalType(prevInterval.to.type),
+                            interval.from.value,
+                            query::reverseIntervalType(interval.from.type)
+                        };
+                        query::Field field{queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      handler,
+                                                      idxQuery,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      field,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
+                    }
 
-                        if (i==0)
-                        {
-                            // before first interval use lt/lte
-                            query::Operator beforeOp=interval.from.type==query::IntervalType::Open ? query::Operator::lte : query::Operator::lt;
-                            query::Field fieldBefore{queryField.fieldInfo,beforeOp,interval.from.value,queryField.order};
-                            auto ec=iterateFieldVariant(cursor,
-                                                          handler,
-                                                          idxQuery,
-                                                          keyCallback,
-                                                          snapshot,
-                                                          fieldBefore,
-                                                          allocatorFactory
-                                                          );
-                            HATN_CHECK_EC(ec)
-                        }
-                        else
-                        {
-                            // use in for intermediate intervals
-                            const auto& prevInterval=vec[i-1];
-                            intervalType tmpInterval{
-                                prevInterval.to.value,
-                                query::reverseIntervalType(prevInterval.to.type),
-                                interval.from.value,
-                                query::reverseIntervalType(interval.from.type)
-                            };
-                            query::Field field{queryField.fieldInfo,query::Operator::in,tmpInterval,queryField.order};
-                            auto ec=iterateFieldVariant(cursor,
-                                                          handler,
-                                                          idxQuery,
-                                                          keyCallback,
-                                                          snapshot,
-                                                          field,
-                                                          allocatorFactory
-                                                          );
-                            HATN_CHECK_EC(ec)
-                        }
-
-                        // after last interval
-                        if (i==vec.size()-1)
-                        {
-                            // use lt/lte
-                            query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
-                            query::Field fieldAfter{queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
-                            auto ec=iterateFieldVariant(cursor,
-                                                          handler,
-                                                          idxQuery,
-                                                          keyCallback,
-                                                          snapshot,
-                                                          fieldAfter,
-                                                          allocatorFactory
-                                                          );
-                            HATN_CHECK_EC(ec)
-                        }
+                    // after last interval
+                    if (i==vec.size()-1)
+                    {
+                        // use lt/lte
+                        query::Operator afterOp=interval.to.type==query::IntervalType::Open ? query::Operator::gte : query::Operator::gt;
+                        query::Field fieldAfter{queryField.fieldInfo,afterOp,interval.to.value,queryField.order};
+                        auto ec=iterateFieldVariant(cursor,
+                                                      handler,
+                                                      idxQuery,
+                                                      keyCallback,
+                                                      snapshot,
+                                                      fieldAfter,
+                                                      allocatorFactory
+                                                      );
+                        HATN_CHECK_EC(ec)
                     }
                 }
-
                 return Error{};
             };
 
             // inverse intervals and invoke in or lt/lte for first and gt/gte for last intervals
-            auto ec=queryField.value.handleVector(doNin);
+            auto ec=queryField.value.handleVectorInterval(doNin);
             HATN_CHECK_EC(ec)
         }
     }

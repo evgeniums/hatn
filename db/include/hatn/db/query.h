@@ -545,11 +545,26 @@ void fromEnumVector(const T& from, T1& to)
         DO(DateRange), \
         DO(ObjectId)
 
+
+struct VectorIntervalTag{};
+
+template <typename T>
+struct VectorInterval
+{
+    using hana_tag=VectorIntervalTag;
+
+    using type=T;
+    using interval_type=Interval<type>;
+    using vector_type=std::vector<interval_type>;
+
+    vector_type value;
+};
+
 #define HATN_DB_QUERY_VALUE_TYPE(Type) \
         Type, \
         Interval<Type>, \
         Vector<Type>, \
-        Vector<Interval<Type>>
+        VectorInterval<Type>
 
 #define HATN_DB_QUERY_VALUE_TYPE_ID(Type) \
         Type, \
@@ -626,6 +641,17 @@ struct VectorVisitor
         return common::lib::variantVisit(vis,vec);
     }
 
+    //! @todo Fix it
+    // template <typename T>
+    // Error operator()(const VectorInterval<T>& vec) const
+    // {
+    //     auto vis=[this](const auto& v)
+    //     {
+    //         return handler(v);
+    //     };
+    //     return common::lib::variantVisit(vis,vec);
+    // }
+
     template <typename T>
     Error operator()(const T&) const
     {
@@ -635,6 +661,29 @@ struct VectorVisitor
 
     template <typename T>
     VectorVisitor(T&& fn):handler(std::forward<T>(fn))
+    {}
+
+    HandlerT handler;
+};
+
+template <typename HandlerT>
+struct VectorIntervalVisitor
+{
+    template <typename T>
+    Error operator()(const VectorInterval<T>& vec) const
+    {
+        return handler(vec);
+    }
+
+    template <typename T>
+    Error operator()(const T&) const
+    {
+        Assert(false,"Invalid vector type in VectorIntervalVisitor");
+        return CommonError::INVALID_ARGUMENT;
+    }
+
+    template <typename T>
+    VectorIntervalVisitor(T&& fn):handler(std::forward<T>(fn))
     {}
 
     HandlerT handler;
@@ -681,6 +730,34 @@ struct VectorItemVisitor
 
     template <typename T>
     VectorItemVisitor(T&& fn):handler(std::forward<T>(fn))
+    {}
+
+    HandlerT handler;
+};
+
+template <typename HandlerT>
+struct VectorIntervalItemVisitor
+{
+    template <typename T>
+    Error operator()(const VectorInterval<T>& vec) const
+    {
+        for (auto&& it: vec.value)
+        {
+            auto ec=handler(it);
+            HATN_CHECK_EC(ec)
+        }
+        return Error{OK};
+    }
+
+    template <typename T>
+    Error operator()(const T&) const
+    {
+        Assert(false,"Invalid vector type in VectorIntervalItemVisitor");
+        return CommonError::INVALID_ARGUMENT;
+    }
+
+    template <typename T>
+    VectorIntervalItemVisitor(T&& fn):handler(std::forward<T>(fn))
     {}
 
     HandlerT handler;
@@ -827,6 +904,13 @@ class ValueT
         }
 
         template <typename HandlerT>
+        Error eachVectorIntervalItem(const HandlerT& handler) const
+        {
+            detail::VectorIntervalItemVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
         Error handleInterval(const HandlerT& handler) const
         {
             detail::IntervalVisitor<HandlerT> v{handler};
@@ -841,9 +925,23 @@ class ValueT
         }
 
         template <typename HandlerT>
+        Error handleVectorInterval(const HandlerT& handler) const
+        {
+            detail::VectorIntervalVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
         Error eachVectorItem(const HandlerT& handler)
         {
             detail::VectorItemVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error eachVectorIntervalItem(const HandlerT& handler)
+        {
+            detail::VectorIntervalItemVisitor<HandlerT> v{handler};
             return common::lib::variantVisit(v,m_value);
         }
 
@@ -858,6 +956,13 @@ class ValueT
         Error handleVector(const HandlerT& handler)
         {
             detail::VectorVisitor<HandlerT> v{handler};
+            return common::lib::variantVisit(v,m_value);
+        }
+
+        template <typename HandlerT>
+        Error handleVectorInterval(const HandlerT& handler)
+        {
+            detail::VectorIntervalVisitor<HandlerT> v{handler};
             return common::lib::variantVisit(v,m_value);
         }
 
@@ -897,6 +1002,9 @@ struct Field
         value(std::forward<T>(value)),
         order(order)
     {
+        //! @todo Test vector of intervals
+        static_assert(!hana::is_a<VectorIntervalTag,T>,"Vector of intervals is not properly supported yet");
+
         checkOperator();
     }
 
