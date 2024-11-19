@@ -290,7 +290,7 @@ bool queryPartitions(
                     {
                         return l->range > r->range;
                     }
-                    l->range < r->range;
+                    return l->range < r->range;
                 };
                 using compT=decltype(comp);
                 FilteredPartitions<compT> filteredPs(comp);

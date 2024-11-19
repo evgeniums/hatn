@@ -523,6 +523,15 @@ struct makeModelWithInfoT
 };
 constexpr makeModelWithInfoT makeModelWithInfo{};
 
+HATN_DB_UNIQUE_INDEX(oidIdx,object::_id)
+HATN_DB_INDEX(createdAtIdx,object::created_at)
+HATN_DB_INDEX(updatedAtIdx,object::updated_at)
+
+inline auto objectIndexes()
+{
+    return hana::make_tuple(oidIdx(),createdAtIdx(),updatedAtIdx());
+}
+
 template <typename UnitType>
 struct makeModelT
 {
@@ -566,18 +575,5 @@ HATN_DB_NAMESPACE_END
         } \
     }; \
     constexpr _model_##m m{};
-
-HATN_DB_NAMESPACE_BEGIN
-
-HATN_DB_UNIQUE_INDEX(oidIdx,object::_id)
-HATN_DB_INDEX(createdAtIdx,object::created_at)
-HATN_DB_INDEX(updatedAtIdx,object::updated_at)
-
-inline auto objectIndexes()
-{
-    return hana::make_tuple(oidIdx(),createdAtIdx(),updatedAtIdx());
-}
-
-HATN_DB_NAMESPACE_END
 
 #endif // HATNDBMODEL_H

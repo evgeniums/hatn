@@ -191,7 +191,15 @@ struct HandleFieldT
                     field->arrayResize(val.size());
                     for (size_t i=0;i<val.size();i++)
                     {
-                        field->arraySet(i,val[i]);
+                        using valueT=typename std::decay_t<decltype(val)>::value_type;
+                        if constexpr (std::is_same<valueT,bool>::value)
+                        {
+                            field->arraySet(i,static_cast<bool>(val[i]));
+                        }
+                        else
+                        {
+                            field->arraySet(i,val[i]);
+                        }
                     }
                 };
                 auto vis=FieldVisitor(std::move(scalarSet),std::move(vectorSet));

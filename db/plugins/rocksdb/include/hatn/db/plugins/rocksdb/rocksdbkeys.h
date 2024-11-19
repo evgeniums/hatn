@@ -39,7 +39,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 {
     public:
 
-        using KeyBufT=std::pmr::string;
+        using KeyBufT=common::pmr::string;
 
         using ObjectKeyValue=std::tuple<std::array<ROCKSDB_NAMESPACE::Slice,8>,uint32_t>;
 
