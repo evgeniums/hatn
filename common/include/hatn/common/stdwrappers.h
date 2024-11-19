@@ -22,21 +22,21 @@
 
 #if __cplusplus < 201703L
     #include <boost/utility/string_view.hpp>
-    #define HATN_MAYBE_CONSTEXPR
-#else
-    #define HATN_MAYBE_CONSTEXPR constexpr
-#endif
-
-#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
-    #include <boost/variant.hpp>
-    #include <boost/optional.hpp>
     #include <boost/thread/shared_mutex.hpp>
     #include <boost/thread/locks.hpp>
     #include <boost/thread/lock_types.hpp>
+    #define HATN_MAYBE_CONSTEXPR
+#else
+    #define HATN_MAYBE_CONSTEXPR constexpr
+    #include <shared_mutex>
+#endif
+
+#if __cplusplus < 201703L
+    #include <boost/variant.hpp>
+    #include <boost/optional.hpp>
 #else
     #include <variant>
     #include <optional>
-    #include <shared_mutex>
     #include <mutex>
 #endif
 
@@ -65,7 +65,7 @@ template <typename T> string_view toStringView(const T& buf) noexcept
     return string_view(buf.data(),buf.size());
 }
 
-#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
+#if __cplusplus < 201703L
     template <typename ...Types> using variant=boost::variant<Types...>;
     template <typename T,typename ...Types>
     constexpr T& variantGet(variant<Types...>& var) noexcept

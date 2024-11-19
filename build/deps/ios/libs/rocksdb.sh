@@ -40,8 +40,9 @@ cmake -G "Unix Makefiles" \
             -DROCKSDB_BUILD_SHARED=0 \
             -Dlz4_INCLUDE_DIRS=$install_dir/include \
             -Dlz4_LIBRARIES=$install_dir/lib/liblz4.a \
-			-DWITH_PERF_CONTEXT=0 \
-			-DWITH_IOSTATS_CONTEXT=0 \
+	    -DWITH_PERF_CONTEXT=0 \
+	    -DWITH_IOSTATS_CONTEXT=0 \
+	    -DUSE_RTTI=1 \
             $folder
 
 make -j$build_workers install
