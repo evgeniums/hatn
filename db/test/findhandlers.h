@@ -83,16 +83,16 @@ void fillDbForFind(
         BOOST_REQUIRE(!ec);
     }
 
-#if 0
+#if 1
     // check if all objects are written, using less than Last
-    auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lt,query::Last),topic);
+    auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lte,query::Last),topic);
     q1.setLimit(0);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
     BOOST_REQUIRE_EQUAL(r1.value().size(),Count);
 
     // check if all objects are written, using gt than First
-    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First,query::Order::Desc),topic);
+    auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First,query::Order::Desc),topic);
     q2.setLimit(0);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
@@ -190,7 +190,7 @@ Topic topic()
 template <typename ModelT>
 void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
 {
-    auto q=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gt,query::First),topic());
+    auto q=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First),topic());
     q.setLimit(0);
     auto ec=client->deleteMany(m,q);
     BOOST_CHECK(!ec);

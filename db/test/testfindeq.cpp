@@ -832,4 +832,75 @@ BOOST_AUTO_TEST_CASE(PlainInInterval)
     run();
 }
 
+template <bool LastT=false>
+struct eqFirstLastQueryGenT
+{
+    template <typename PathT,typename ValT,typename ValGenT>
+    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
+    {
+        std::ignore=i;
+        std::ignore=val;
+
+        if constexpr (LastT)
+        {
+            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::Last),0);
+        }
+        else
+        {
+            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::First),0);
+        }
+    }
+};
+template <bool LastT=false>
+constexpr eqFirstLastQueryGenT<LastT> eqFirstLastQueryGen{};
+
+template <bool LastT=false>
+struct eqFirstLastCheckerT
+{
+    template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
+    void operator ()(
+        const ModelT&,
+        ValueGeneratorT& valGen,
+        const std::vector<size_t>&,
+        size_t,
+        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        Fields&&... fields
+        ) const
+    {
+        using unitT=typename std::decay_t<typename ModelT::element_type>::Type;
+        auto path=du::path(std::forward<Fields>(fields)...);
+
+        using vType=decltype(valGen(0,true));
+
+        if (LastT)
+        {
+            BOOST_REQUIRE_EQUAL(1,result.size());
+            auto obj=result.at(0).template unit<unitT>();
+            BOOST_CHECK(valGen(MaxValIdx,true)==static_cast<vType>(obj->getAtPath(path)));
+        }
+        else
+        {
+            BOOST_REQUIRE_EQUAL(1,result.size());
+            auto obj=result.at(0).template unit<unitT>();
+            BOOST_CHECK(valGen(0,true)==static_cast<vType>(obj->getAtPath(path)));
+        }
+    }
+};
+template <bool LastT=false>
+constexpr eqFirstLastCheckerT<LastT> eqFirstLastChecker{};
+
+BOOST_AUTO_TEST_CASE(PlainFirstLastEq)
+{
+    auto tmpV=CheckValueIndexes;
+    CheckValueIndexes.resize(1);
+
+    InvokeTestT<eqFirstLastQueryGenT<>,eqFirstLastCheckerT<>> testFirst{eqFirstLastQueryGen<>,eqFirstLastChecker<>};
+    runTest(testFirst);
+
+    InvokeTestT<eqFirstLastQueryGenT<true>,eqFirstLastCheckerT<true>> testLast{eqFirstLastQueryGen<true>,eqFirstLastChecker<true>};
+    runTest(testLast);
+
+    CheckValueIndexes=tmpV;
+}
+
 BOOST_AUTO_TEST_SUITE_END()

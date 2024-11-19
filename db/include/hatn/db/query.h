@@ -877,6 +877,15 @@ struct Field
             ok=!isScalarOp();
         }
 
+        if (value.isFirst())
+        {
+            Assert(op==Operator::gte || op==Operator::eq,"Invalid operator for First operand, only eq and gte operators supported");
+        }
+        if (value.isLast())
+        {
+            Assert(op==Operator::lte || op==Operator::eq,"Invalid operator for Last operand, only eq and lte operators supported");
+        }
+
         Assert(ok,"Invalid combination of operator and operand");
     }
 

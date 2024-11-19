@@ -96,12 +96,12 @@ using ValueVariant=lib::variant<
     HATN_DB_UPDATE_VALUE_TYPES(HATN_DB_UPDATE_VALUE_TYPE)
 >;
 
-enum class ValueEnum : uint8_t
+enum class ValueType : uint8_t
 {
     HATN_DB_UPDATE_VALUE_TYPE_IDS(HATN_DB_UPDATE_VALUE_TYPE_ID)
 };
 
-using Operand=query::ValueT<ValueVariant,ValueEnum>;
+using Operand=query::ValueT<ValueVariant,ValueType>;
 
 using FieldInfo=IndexFieldInfo;
 
