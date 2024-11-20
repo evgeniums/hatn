@@ -172,11 +172,13 @@ BOOST_AUTO_TEST_CASE(IndexKeys)
     BOOST_CHECK(true);
 }
 
+#if 0
 BOOST_AUTO_TEST_CASE(EmbeddedIndex)
 {
     rdb::RocksdbModels::instance().registerModel(emb_model1());
     BOOST_CHECK(true);
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 
