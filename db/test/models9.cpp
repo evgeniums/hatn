@@ -13,7 +13,7 @@
 
 /****************************************************************************/
 
-// HATN_TEST_SUITE TestFindEq
+// HATN_TEST_SUITE TestFindPlain
 
 #include <boost/test/unit_test.hpp>
 

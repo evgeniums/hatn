@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/test/testfindeq.cpp
+/** @file db/test/findhelpers.ipp
 */
 
 /****************************************************************************/
@@ -23,18 +23,6 @@
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 #include "preparedb.h"
-
-namespace {
-size_t MaxValIdx=230;
-size_t Count=MaxValIdx+1;
-std::vector<size_t> CheckValueIndexes{10,20,30,150,233};
-size_t Limit=0;
-size_t VectorSize=5;
-size_t VectorStep=5;
-size_t IntervalWidth=7;
-}
-
-#include "findhandlers.h"
 
 namespace {
 
@@ -709,155 +697,6 @@ struct inIntervalCheckerT
     query::IntervalType toType;
 };
 
-}
-
-BOOST_AUTO_TEST_SUITE(TestFindEq, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
-
-BOOST_AUTO_TEST_CASE(PlainEq)
-{
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,"hi"),topic());
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,lib::string_view("hi")),topic());
-    // std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,std::string("hi")),topic());
-    std::string val("hi");
-    std::ignore=makeQuery(u9_f10_idx(),query::where(u9::f10,query::eq,val),topic());
-    std::ignore=makeQuery(u9_f11_idx(),query::where(u9::f11,query::eq,u9::MyEnum::One),topic());
-
-    InvokeTestT<eqQueryGenT<>,eqCheckerT> testEq{eqQueryGen<>,eqChecker};
-    runTest(testEq);
-}
-
-BOOST_AUTO_TEST_CASE(PlainNeq)
-{
-    InvokeTestT<eqQueryGenT<true>,neqCheckerT> testNeq{eqQueryGen<true>,neqChecker};
-    runTest(testNeq);
-}
-
-BOOST_AUTO_TEST_CASE(PlainLt)
-{
-    InvokeTestT<ltQueryGen,ltChecker> testLt{ltQueryGen(),ltChecker()};
-    runTest(testLt);
-}
-
-BOOST_AUTO_TEST_CASE(PlainLte)
-{
-    InvokeTestT<ltQueryGen,ltChecker> testLte{ltQueryGen(true),ltChecker(true)};
-    runTest(testLte);
-}
-
-BOOST_AUTO_TEST_CASE(PlainGt)
-{
-    InvokeTestT<gtQueryGen,gtChecker> testGt{gtQueryGen(),gtChecker()};
-    runTest(testGt);
-}
-
-BOOST_AUTO_TEST_CASE(PlainGte)
-{
-    InvokeTestT<gtQueryGen,gtChecker> testGte{gtQueryGen(true),gtChecker(true)};
-    runTest(testGte);
-}
-
-BOOST_AUTO_TEST_CASE(PlainInVector)
-{
-    // std::ignore=query::where(object::_id,query::in,{1,2,3,4,5});
-    std::vector<int> v{1,2,3,4,5};
-    std::ignore=query::where(object::_id,query::in,v);
-
-    InvokeTestT<inVectorQueryGenT<>,inVectorCheckerT> testInVector{inVectorQueryGen<>,inVectorChecker};
-    runTest(testInVector,hana::true_c);
-}
-
-BOOST_AUTO_TEST_CASE(PlainNinVector)
-{
-    InvokeTestT<inVectorQueryGenT<true>,ninVectorCheckerT> testNinVector{inVectorQueryGen<true>,ninVectorChecker};
-    runTest(testNinVector,hana::true_c);
-}
-
-template <bool Nin>
-void inNinInterval()
-{
-    query::IntervalType fromType{query::IntervalType::Open};
-    query::IntervalType toType{query::IntervalType::Open};
-
-    std::ignore=query::Interval<query::String>{"1000",fromType,"9000",toType};
-    // std::ignore=query::Interval<query::String>{std::string("1000"),fromType,"9000",toType};
-    // std::ignore=query::Interval<query::String>{"1000",fromType,std::string("9000"),toType};
-    std::string from("1000");
-    std::string to("9000");
-    std::ignore=query::Interval<query::String>{from,fromType,to,toType};
-
-    auto run=[&]()
-    {
-        BOOST_TEST_MESSAGE(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType)));
-
-        InvokeTestT<inIntervalQueryGenT<Nin>,inIntervalCheckerT<Nin>> test{
-            inIntervalQueryGenT<Nin>{
-                fromType,
-                toType
-            },
-            inIntervalCheckerT<Nin>{
-                fromType,
-                toType
-            }
-        };
-        runTest(test,hana::true_c);
-    };
-
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::Closed};
-    toType=query::IntervalType{query::IntervalType::Closed};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::Open};
-    toType=query::IntervalType{query::IntervalType::Closed};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::Closed};
-    toType=query::IntervalType{query::IntervalType::Open};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::First};
-    toType=query::IntervalType{query::IntervalType::Open};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::First};
-    toType=query::IntervalType{query::IntervalType::Closed};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::Open};
-    toType=query::IntervalType{query::IntervalType::Last};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::Closed};
-    toType=query::IntervalType{query::IntervalType::Last};
-    run();
-
-    fromType=query::IntervalType{query::IntervalType::First};
-    toType=query::IntervalType{query::IntervalType::Last};
-    run();
-
-    if (!Nin)
-    {
-        fromType=query::IntervalType{query::IntervalType::First};
-        toType=query::IntervalType{query::IntervalType::First};
-        run();
-
-        fromType=query::IntervalType{query::IntervalType::Last};
-        toType=query::IntervalType{query::IntervalType::Last};
-        run();
-    }
-}
-
-BOOST_AUTO_TEST_CASE(PlainInInterval)
-{
-    inNinInterval<false>();
-}
-
-BOOST_AUTO_TEST_CASE(PlainNinInterval)
-{
-    inNinInterval<true>();
-}
-
 template <bool LastT=false>
 struct eqFirstLastQueryGenT
 {
@@ -915,16 +754,4 @@ struct eqFirstLastCheckerT
 template <bool LastT=false>
 constexpr eqFirstLastCheckerT<LastT> eqFirstLastChecker{};
 
-BOOST_AUTO_TEST_CASE(PlainFindFirst)
-{
-    InvokeTestT<eqFirstLastQueryGenT<>,eqFirstLastCheckerT<>> testFirst{eqFirstLastQueryGen<>,eqFirstLastChecker<>};
-    runTest(testFirst,hana::true_c);
 }
-
-BOOST_AUTO_TEST_CASE(PlainFindLast)
-{
-    InvokeTestT<eqFirstLastQueryGenT<true>,eqFirstLastCheckerT<true>> testLast{eqFirstLastQueryGen<true>,eqFirstLastChecker<true>};
-    runTest(testLast,hana::true_c);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
