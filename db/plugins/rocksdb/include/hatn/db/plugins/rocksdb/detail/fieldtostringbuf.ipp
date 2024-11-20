@@ -194,7 +194,21 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const BufT& val) const
     {
-        _(buf).append(_(val).data(),_(val).size());
+        buf.append(val.data(),val.size());
+    }
+
+    template <typename BufT>
+    void operator ()(BufT& buf, const common::pmr::string& val) const
+    {
+        constexpr static FieldToStringBufT f{};
+        f(buf,lib::string_view{val.data(),val.size()});
+    }
+
+    template <typename BufT>
+    void operator ()(BufT& buf, const std::string& val) const
+    {
+        constexpr static FieldToStringBufT f{};
+        f(buf,lib::string_view{val});
     }
 
     template <typename BufT, typename T>

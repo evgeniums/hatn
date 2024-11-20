@@ -53,9 +53,9 @@ HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
     HDU_FIELD(f2,TYPE_UINT32,2)
 )
 
-HATN_DB_INDEX(emb_idx1,nested(nu1::nf1,n1::f1))
+// HATN_DB_INDEX(emb_idx1,nested(nu1::nf1,n1::f1))
 
-HATN_DB_MODEL(emb_model1,nu1,emb_idx1())
+// HATN_DB_MODEL(emb_model1,nu1,emb_idx1())
 
 } // anonymous namespace
 
