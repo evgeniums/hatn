@@ -191,6 +191,12 @@ struct FieldToStringBufT
     void operator ()(BufT&, const query::LastT&) const
     {}
 
+    template <typename BufT>
+    void operator ()(BufT& buf, const BufT& val) const
+    {
+        _(buf).append(_(val).data(),_(val).size());
+    }
+
     template <typename BufT, typename T>
     void operator ()(BufT& buf, const T& val) const
     {
@@ -203,19 +209,12 @@ struct FieldToStringBufT
             },
             [&](auto _)
             {
-                hana::eval_if(
-                    std::is_enum<std::decay_t<T>>{},
-                    [&](auto _)
-                    {
-                        int64_(_(buf),static_cast<int64_t>(_(val)));
-                    },
-                    [&](auto _)
-                    {
-                        auto&& v=_(val);
-                        using type=decltype(v);
-                        static_assert(std::is_same<std::decay_t<type>,BufT>::value,"Unsupported value type");
-                    }
-                );
+                constexpr auto isEnum=std::is_enum<std::decay_t<T>>::value;
+                static_assert(std::is_enum<std::decay_t<T>>::value,"Unsupported value type");
+                if constexpr (isEnum)
+                {
+                    int64_(_(buf),static_cast<int64_t>(_(val)));
+                }
             }
         );
     }
