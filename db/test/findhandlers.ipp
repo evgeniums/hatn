@@ -421,13 +421,15 @@ genObjectIdT genObjectId{};
 template <typename InvokerT, typename SkipBoolT=hana::false_>
 void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client, SkipBoolT=SkipBoolT{})
 {
+    BOOST_TEST_CONTEXT("uint32"){invoker(client,ModelRef,genUInt32,IdxUInt32,FieldUInt32);}
+
+#if 1
     BOOST_TEST_CONTEXT("int8"){invoker(client,ModelRef,genInt8,IdxInt8,FieldInt8);}
     BOOST_TEST_CONTEXT("int16"){invoker(client,ModelRef,genInt16,IdxInt16,FieldInt16);}
     BOOST_TEST_CONTEXT("int32"){invoker(client,ModelRef,genInt32,IdxInt32,FieldInt32);}
     BOOST_TEST_CONTEXT("int64"){invoker(client,ModelRef,genInt64,IdxInt64,FieldInt64);}
     BOOST_TEST_CONTEXT("uint8"){invoker(client,ModelRef,genUInt8,IdxUInt8,FieldUInt8);}
     BOOST_TEST_CONTEXT("uint16"){invoker(client,ModelRef,genUInt16,IdxUInt16,FieldUInt16);}
-    BOOST_TEST_CONTEXT("uint32"){invoker(client,ModelRef,genUInt32,IdxUInt32,FieldUInt32);}
     BOOST_TEST_CONTEXT("uint64"){invoker(client,ModelRef,genUInt64,IdxUInt64,FieldUInt64);}
 
     BOOST_TEST_CONTEXT("string"){invoker(client,ModelRef,genString,IdxString,FieldString);}
@@ -448,6 +450,7 @@ void invokeTests(InvokerT&& invoker, std::shared_ptr<Client> client, SkipBoolT=S
     }
     BOOST_TEST_CONTEXT("enum"){invoker(client,ModelRef,genEnum,IdxEnum,FieldEnum);}
     Count=cc;
+#endif
 }
 
 void init()
