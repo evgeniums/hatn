@@ -52,7 +52,7 @@ namespace
 template <typename ClientT,
          typename ModelT,
          typename ValueGeneratorT,
-         typename PartitionFieldSetterT,
+         typename extSetterT,
          typename ...FieldsT>
 void fillDbForFind(
     size_t Count,
@@ -60,7 +60,7 @@ void fillDbForFind(
     const Topic& topic,
     const ModelT& model,
     ValueGeneratorT& valGen,
-    PartitionFieldSetterT partitionSetter,
+    extSetterT extSetter,
     FieldsT&&... fields
     )
 {
@@ -68,39 +68,54 @@ void fillDbForFind(
     auto path=du::path(std::forward<FieldsT>(fields)...);
 
     // fill db with objects
-    for (size_t i=0;i<Count;i++)
+    for (size_t iter=0;iter<extSetter.iterCount();iter++)
     {
-        // create and fill object
-        auto obj=makeInitObject<unitT>();
-        auto val=valGen(i,false);
-        obj.setAtPath(path,val);
-        partitionSetter(obj,i);
+        auto valGenProxy=[&valGen,iter](size_t i)
+        {
+            // generate only once, use already generated for the rest iterations
+            if (iter==0)
+            {
+                return valGen(i,false);
+            }
+            return valGen(i,true);
+        };
 
-        // save object in db
-        auto ec=client->create(topic,model,&obj);
-        BOOST_REQUIRE(!ec);
+        for (size_t i=0;i<Count;i++)
+        {
+            // create and fill object
+            auto obj=makeInitObject<unitT>();
+            auto val=valGenProxy(i);
+            obj.setAtPath(path,val);
+            extSetter.fillObject(obj,iter,i);
+
+            // save object in db
+            auto ec=client->create(topic,model,&obj);
+            BOOST_REQUIRE(!ec);
+        }
     }
 
 #if 1
+    auto totalCount=Count*extSetter.iterCount();
+
     // check if all objects are written, using less than Last
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lte,query::Last),topic);
     q1.setLimit(0);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
-    BOOST_REQUIRE_EQUAL(r1.value().size(),Count);
+    BOOST_REQUIRE_EQUAL(r1.value().size(),totalCount);
 
-    // check if all objects are written, using gt than First
+    // check if all objects are written, using gt than First and reverse order
     auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First,query::Order::Desc),topic);
     q2.setLimit(0);
     auto r2=client->find(model,q2);
     BOOST_REQUIRE(!r2);
-    BOOST_REQUIRE_EQUAL(r2.value().size(),Count);
+    BOOST_REQUIRE_EQUAL(r2.value().size(),totalCount);
 
     // check ordering
-    for (size_t i=0;i<Count;i++)
+    for (size_t i=0;i<totalCount;i++)
     {
         auto obj1=r1.value().at(i).template unit<unitT>();
-        auto obj2=r2.value().at(Count-i-1).template unit<unitT>();
+        auto obj2=r2.value().at(totalCount-i-1).template unit<unitT>();
 #if 0
         BOOST_TEST_MESSAGE(fmt::format("Obj1 {}",i));
         BOOST_TEST_MESSAGE(obj1->toString(true));
@@ -112,14 +127,14 @@ void fillDbForFind(
         BOOST_TEST_MESSAGE(fmt::format("Obj3 {}",i));
         BOOST_TEST_MESSAGE(obj3->toString(true));
 #endif
-        if (i<(Count-1))
+        if ((i%Count)<(Count-1))
         {
             // ordering of ASC
             auto obj4=r1.value().at(i+1).template unit<unitT>();
             BOOST_CHECK(obj1->getAtPath(path)<obj4->getAtPath(path));
             BOOST_CHECK(obj1->fieldValue(object::_id)<obj4->fieldValue(object::_id));
         }
-        if (i>0)
+        if ((i%Count)>0)
         {
             // ordering of DESC
             auto obj5=r2.value().at(i-1).template unit<unitT>();
@@ -171,15 +186,6 @@ void invokeDbFind(
     }
 }
 
-struct noPartitionT
-{
-    template <typename T>
-    void operator()(T&&, size_t) const noexcept
-    {
-    }
-};
-constexpr noPartitionT noPartition{};
-
 Topic topic()
 {
     return "topic1";
@@ -197,7 +203,7 @@ void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
     BOOST_REQUIRE_EQUAL(r.value().size(),0);
 }
 
-template <typename QueryGenT, typename CheckerT, typename PartitionFnT=noPartitionT>
+template <typename QueryGenT, typename CheckerT, typename ExtSetterT=ExtSetter>
 struct InvokeTestT
 {
     template <typename ModelT, typename ValGenT, typename IndexT, typename ...FieldsT>
@@ -211,7 +217,7 @@ struct InvokeTestT
     {
         BOOST_TEST_MESSAGE("Begin test");
 
-        fillDbForFind(Count,client,topic(),model,valGen,partitionFn,fields...);
+        fillDbForFind(Count,client,topic(),model,valGen,extSetter,fields...);
 
         std::vector<size_t> valIndexes=CheckValueIndexes;
         if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<plain::MyEnum,decltype(valGen(0,true))>::value)
@@ -234,14 +240,14 @@ struct InvokeTestT
         BOOST_TEST_MESSAGE("End test");
     }
 
-    template <typename QueryGenT1, typename CheckerT1, typename PartitionFnT1>
+    template <typename QueryGenT1, typename CheckerT1, typename ExtSetterT1>
     InvokeTestT(
         QueryGenT1&& queryGen,
         CheckerT1&& checker,
-        PartitionFnT1&& partitionFn
+        ExtSetterT1&& extSetter
         ) : queryGen(std::forward<QueryGenT1>(queryGen)),
         checker(std::forward<CheckerT1>(checker)),
-        partitionFn(std::forward<PartitionFnT>(partitionFn))
+        extSetter(std::forward<ExtSetterT1>(extSetter))
     {}
 
     template <typename QueryGenT1, typename CheckerT1>
@@ -249,13 +255,12 @@ struct InvokeTestT
         QueryGenT1&& queryGen,
         CheckerT1&& checker
         ) : queryGen(std::forward<QueryGenT1>(queryGen)),
-        checker(std::forward<CheckerT1>(checker)),
-        partitionFn(noPartition)
+        checker(std::forward<CheckerT1>(checker))
     {}
 
     QueryGenT queryGen;
     CheckerT checker;
-    PartitionFnT partitionFn;
+    ExtSetterT extSetter;
 };
 
 auto genInt8(size_t i, bool)

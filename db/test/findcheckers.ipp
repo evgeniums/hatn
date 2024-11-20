@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/test/findhelpers.ipp
+/** @file db/test/findcheckers.ipp
 */
 
 /****************************************************************************/
@@ -25,20 +25,6 @@
 #include "preparedb.h"
 
 namespace {
-
-template <bool NeqT=false>
-struct eqQueryGenT
-{
-    template <typename PathT,typename ValT,typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
-    {
-        std::ignore=i;
-        auto op=NeqT?query::neq:query::eq;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
-    }
-};
-template <bool NeqT=false>
-constexpr eqQueryGenT<NeqT> eqQueryGen{};
 
 struct eqCheckerT
 {
@@ -137,22 +123,6 @@ struct neqCheckerT
 };
 constexpr neqCheckerT neqChecker{};
 
-struct ltQueryGen
-{
-    template <typename PathT,typename ValT,typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
-    {
-        std::ignore=i;
-        auto op = m_lte ? query::lte : query::lt;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
-    }
-
-    ltQueryGen(bool lte=false) : m_lte(lte)
-    {}
-
-    bool m_lte;
-};
-
 struct ltChecker
 {
     template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
@@ -210,22 +180,6 @@ struct ltChecker
     {}
 
     bool m_lte;
-};
-
-struct gtQueryGen
-{
-    template <typename PathT,typename ValT,typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
-    {
-        std::ignore=i;
-        auto op = m_gte ? query::gte : query::gt;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
-    }
-
-    gtQueryGen(bool gte=false) : m_gte(gte)
-    {}
-
-    bool m_gte;
 };
 
 struct gtChecker
@@ -288,54 +242,6 @@ struct gtChecker
 
     bool m_gte;
 };
-
-template <bool Nin=false>
-struct inVectorQueryGenT
-{
-    template <typename ValGenT, typename VecT>
-    void genVector(size_t i, ValGenT&& valGen, VecT v) const
-    {
-        if (i<200)
-        {
-            for (size_t j=i;j<i+VectorSize*VectorStep;)
-            {
-                v->push_back(valGen(j,true));
-                j+=VectorStep;
-            }
-        }
-        else
-        {
-            v->push_back(valGen(i,true));
-        }
-    }
-
-    template <typename PathT,typename ValT, typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&& valGen) const
-    {
-        std::ignore=val;
-        using type=decltype(valGen(i,true));
-        if constexpr (std::is_enum<type>::value)
-        {
-            std::vector<plain::MyEnum> enums;
-            enums.push_back(plain::MyEnum::Two);
-            enums.push_back(plain::MyEnum::Three);
-
-            auto v1=std::make_shared<std::vector<int32_t>>();
-            query::fromEnumVector(enums,*v1);
-            auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,*v1),v1);
-        }
-        else
-        {
-            auto vec=std::make_shared<std::vector<type>>();
-            genVector(i,valGen,vec);
-            auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,*vec),vec);
-        }
-    }
-};
-template <bool Nin=false>
-constexpr inVectorQueryGenT<Nin> inVectorQueryGen{};
 
 struct inVectorCheckerT
 {
@@ -437,41 +343,6 @@ struct ninVectorCheckerT
     }
 };
 constexpr ninVectorCheckerT ninVectorChecker{};
-
-template <bool Nin=false>
-struct inIntervalQueryGenT
-{
-    template <typename PathT, typename ValT, typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&& valGen) const
-    {
-        std::ignore=val;
-        using vType=decltype(valGen(i,true));
-        using type=typename query::ValueTypeTraits<vType>::type;
-        if constexpr (std::is_enum<vType>::value)
-        {
-            query::Interval<type> v(plain::MyEnum::Two,fromType,plain::MyEnum::Three,toType);
-            auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,v),0);
-        }
-        else
-        {
-            auto p=std::make_shared<std::pair<vType,vType>>(valGen(i,true),valGen(i+IntervalWidth-1,true));
-            query::Interval<type> v(p->first,fromType,p->second,toType);
-            auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,v),p);
-        }
-    }
-
-    inIntervalQueryGenT(
-        query::IntervalType fromType,
-        query::IntervalType toType
-    ) : fromType(fromType),
-        toType(toType)
-    {}
-
-    query::IntervalType fromType;
-    query::IntervalType toType;
-};
 
 template <bool Nin=false>
 struct inIntervalCheckerT
@@ -698,28 +569,6 @@ struct inIntervalCheckerT
 };
 
 template <bool LastT=false>
-struct eqFirstLastQueryGenT
-{
-    template <typename PathT,typename ValT,typename ValGenT>
-    auto operator ()(size_t i, PathT&& path, const ValT& val, ValGenT&&) const
-    {
-        std::ignore=i;
-        std::ignore=val;
-
-        if constexpr (LastT)
-        {
-            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::Last),0);
-        }
-        else
-        {
-            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::First),0);
-        }
-    }
-};
-template <bool LastT=false>
-constexpr eqFirstLastQueryGenT<LastT> eqFirstLastQueryGen{};
-
-template <bool LastT=false>
 struct eqFirstLastCheckerT
 {
     template <typename ValueGeneratorT, typename ModelT, typename ...Fields>
@@ -737,17 +586,24 @@ struct eqFirstLastCheckerT
 
         using vType=decltype(valGen(0,true));
 
-        if (LastT)
+        if constexpr (decltype(FirstLastNotSound)::value)
         {
-            BOOST_REQUIRE_EQUAL(1,result.size());
-            auto obj=result.at(0).template unit<unitT>();
-            BOOST_CHECK(valGen(MaxValIdx,true)==static_cast<vType>(obj->getAtPath(path)));
+            BOOST_REQUIRE_EQUAL(0,result.size());
         }
         else
         {
-            BOOST_REQUIRE_EQUAL(1,result.size());
-            auto obj=result.at(0).template unit<unitT>();
-            BOOST_CHECK(valGen(0,true)==static_cast<vType>(obj->getAtPath(path)));
+            if (LastT)
+            {
+                BOOST_REQUIRE_EQUAL(1,result.size());
+                auto obj=result.at(0).template unit<unitT>();
+                BOOST_CHECK(valGen(MaxValIdx,true)==static_cast<vType>(obj->getAtPath(path)));
+            }
+            else
+            {
+                BOOST_REQUIRE_EQUAL(1,result.size());
+                auto obj=result.at(0).template unit<unitT>();
+                BOOST_CHECK(valGen(0,true)==static_cast<vType>(obj->getAtPath(path)));
+            }
         }
     }
 };

@@ -16,8 +16,9 @@
 #include "findplain.h"
 
 #include "finddefs.h"
-#include "findhandlers.h"
-#include "findhelpers.ipp"
+#include "findqueries.ipp"
+#include "findhandlers.ipp"
+#include "findcheckers.ipp"
 
 BOOST_AUTO_TEST_SUITE(TestFindPlain, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 

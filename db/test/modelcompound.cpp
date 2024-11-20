@@ -8,12 +8,12 @@
 
 /****************************************************************************/
 
-/** @file db/test/modelembedded.cpp
+/** @file db/test/modelcompund.cpp
 */
 
 /****************************************************************************/
 
-// HATN_TEST_SUITE TestFindEmbedded
+// HATN_TEST_SUITE TestFindCompound
 
 #include <boost/test/unit_test.hpp>
 
@@ -28,7 +28,7 @@
 
 #include "hatn_test_config.h"
 
-#include "modelembedded.h"
+#include "modelcompound.h"
 
 HATN_USING
 HATN_DATAUNIT_USING
@@ -43,11 +43,11 @@ HATN_TEST_USING
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
 
-void registerModelEmbedded()
+void registerModelComp()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 
-    rdb::RocksdbModels::instance().registerModel(modelEmbed());
+    rdb::RocksdbModels::instance().registerModel(modelComp());
 
 #endif
 }

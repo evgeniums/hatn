@@ -15,6 +15,7 @@
 
 // HATN_TEST_SUITE TestFindPlain
 // HATN_TEST_SUITE TestFindEmbedded
+// HATN_TEST_SUITE TestFindCompound
 
 #include <boost/test/unit_test.hpp>
 

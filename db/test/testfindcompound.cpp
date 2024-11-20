@@ -8,19 +8,19 @@
 
 /****************************************************************************/
 
-/** @file db/test/testfindembedded.cpp
+/** @file db/test/testfindcompound.cpp
 */
 
 /****************************************************************************/
 
-#include "findembedded.h"
+#include "findcompound.h"
 
 #include "finddefs.h"
-#include "findqueries.ipp"
+#include "findcompoundqueries.ipp"
 #include "findhandlers.ipp"
 #include "findcheckers.ipp"
 
-BOOST_AUTO_TEST_SUITE(TestFindEmbedded, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
+BOOST_AUTO_TEST_SUITE(TestFindCompound, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
 #include "findcases.ipp"
 
