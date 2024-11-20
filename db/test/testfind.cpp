@@ -142,21 +142,23 @@ BOOST_AUTO_TEST_SUITE_END()
 
 /** @todo Test:
  *
- *  1. Test scalar types - done
- *  2. Test strings - done
- *  3. Test Oid/DateTime/date/Time/DateRange - done
- *  4. Test intervals
+ *  1. Test find scalar types - done
+ *  2. Test find strings - done
+ *  3. Test find Oid/DateTime/date/Time/DateRange - done
+ *  4. Test find intervals - done
  *  5. Test vectors - done
  *  6. Test ordering - done
  *  7. Test timepoint filtering
  *  8. Test limits
  *  9. Test partitions
  *  10. Test TTL
- *  11. Test nested index fields
- *  12. Test compound indexes
+ *  11. Test nested index fields - done
+ *  12. Test compound indexes - done
  *  13. Test repeated field indexes
- *  14. Test offset
+ *  14. Test query offset
  *  15. Test delete with query
  *  16. Test find-update-create
  *  17. Test update
+ *  18. Test find Null
+ *  19. Test unique indexes
  */

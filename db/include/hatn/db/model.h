@@ -297,6 +297,8 @@ struct Model : public ConfigT
         return idx.value().id();
     }
 
+    //! @todo Ensure that in partitioned table unique index starts with prefix of the date partition index
+
     private:
 
         constexpr static auto findPartitionIndex()
