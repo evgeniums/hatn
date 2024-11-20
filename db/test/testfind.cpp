@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         std::cout<<"operand value="<<static_cast<bool>(q.fields().at(0).value.as<query::BoolValue>())<<std::endl;
         common::FmtAllocatedBufferChar buf;
         HATN_ROCKSDB_NAMESPACE::fieldValueToBuf(buf,q.fields().at(0));
-        std::cerr<<"operand string="<<common::fmtBufToString(buf)<<std::endl;
+        std::cout<<"operand string="<<common::fmtBufToString(buf)<<std::endl;
 
         auto r1=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),topic1));
         if (r1)
@@ -206,6 +206,94 @@ BOOST_AUTO_TEST_CASE(NullIndex)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_AUTO_TEST_CASE(SortAndLimit)
+{
+    init();
+
+    auto s1=initSchema(m1_uint32());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        // create object1 with field set
+        auto o1=makeInitObject<u1_uint32::type>();
+        o1.setFieldValue(u1_uint32::f1,0xaabb);
+        auto ec=client->create(topic1,m1_uint32(),&o1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // create object2 with field not set
+        auto o2=makeInitObject<u1_uint32::type>();
+        ec=client->create(topic1,m1_uint32(),&o2);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // create object3 with field set
+        auto o3=makeInitObject<u1_uint32::type>();
+        o3.setFieldValue(u1_uint32::f1,0xccdd);
+        ec=client->create(topic1,m1_uint32(),&o3);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // create object4 with field set
+        auto o4=makeInitObject<u1_uint32::type>();
+        o4.setFieldValue(u1_uint32::f1,0xeeee);
+        ec=client->create(topic1,m1_uint32(),&o4);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // find objects with default limit and Asc orering
+        auto q1=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,0xaabb),topic1);
+        auto r2=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),3);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(2).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+
+        // find objects with default limit and Desc orering
+        auto q2=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,0xaabb,query::Desc),topic1);
+        r2=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),3);
+        BOOST_CHECK(r2.value().at(2).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+
+        // find objects with limit and Asc orering
+        q1.setLimit(2);
+        r2=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find objects with limit and Desc orering
+        q2.setLimit(2);
+        r2=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
@@ -218,7 +306,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  5. Test vectors - done
  *  6. Test ordering - done
  *  7. Test timepoint filtering
- *  8. Test limits
+ *  8. Test limits - done
  *  9. Test partitions
  *  10. Test TTL
  *  11. Test nested index fields - done
