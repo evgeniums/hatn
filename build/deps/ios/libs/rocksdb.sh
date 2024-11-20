@@ -5,15 +5,6 @@ export repo_path=https://github.com/facebook/$lib_name
 
 source $scripts_root/../desktop/scripts/clonegit.sh
 
-export patch_file=$scripts_root/libs/rocksdb-ios.patch
-cd $folder
-if ! patch -R -p0 -s -f --dry-run <$patch_file > /dev/null; then
-  echo "rocksdb distro must be patched with $patch_file"
-  patch -p0 <$patch_file
-  echo "rocksdb patched"
-fi
-cd - > /dev/null
-
 set GFLAGS_INCLUDE=$root_dir/include
 set GFLAGS_LIB_RELEASE=$root_dir/lib/libgflags.a
 set LZ4_INCLUDE=$root_dir/include
@@ -21,7 +12,7 @@ set LZ4_LIB_RELEASE=$root_dir/lib/liblz4.a
 
 cd $lib_build_dir
 
-export CXXFLAGS=-fPIC
+export CXXFLAGS="-fPIC -DOS_MACOSX"
 
 cmake -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=Release \
@@ -43,6 +34,7 @@ cmake -G "Unix Makefiles" \
 	    -DWITH_PERF_CONTEXT=0 \
 	    -DWITH_IOSTATS_CONTEXT=0 \
 	    -DUSE_RTTI=1 \
+	    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
             $folder
 
 make -j$build_workers install
