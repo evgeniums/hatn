@@ -57,7 +57,7 @@ struct eqCheckerT
 
         using vType=decltype(valGen(0,true));
         bool skipLast=true;
-        if constexpr (std::is_same<vType,u9::MyEnum>::value
+        if constexpr (std::is_same<vType,plain::MyEnum>::value
                       ||
                       std::is_same<vType,bool>::value
                       )
@@ -98,7 +98,7 @@ struct neqCheckerT
 
         using vType=decltype(valGen(0,true));
         bool skipLast=true;
-        if constexpr (std::is_same<vType,u9::MyEnum>::value
+        if constexpr (std::is_same<vType,plain::MyEnum>::value
                       ||
                       std::is_same<vType,bool>::value
                       )
@@ -170,7 +170,7 @@ struct ltChecker
 
         using vType=decltype(valGen(0,true));
         bool skipLast=true;
-        if constexpr (std::is_same<vType,u9::MyEnum>::value
+        if constexpr (std::is_same<vType,plain::MyEnum>::value
                       ||
                       std::is_same<vType,bool>::value
                       )
@@ -245,7 +245,7 @@ struct gtChecker
 
         using vType=decltype(valGen(0,true));
         bool skipLast=true;
-        if constexpr (std::is_same<vType,u9::MyEnum>::value
+        if constexpr (std::is_same<vType,plain::MyEnum>::value
                       ||
                       std::is_same<vType,bool>::value
                       )
@@ -316,9 +316,9 @@ struct inVectorQueryGenT
         using type=decltype(valGen(i,true));
         if constexpr (std::is_enum<type>::value)
         {
-            std::vector<u9::MyEnum> enums;
-            enums.push_back(u9::MyEnum::Two);
-            enums.push_back(u9::MyEnum::Three);
+            std::vector<plain::MyEnum> enums;
+            enums.push_back(plain::MyEnum::Two);
+            enums.push_back(plain::MyEnum::Three);
 
             auto v1=std::make_shared<std::vector<int32_t>>();
             query::fromEnumVector(enums,*v1);
@@ -353,13 +353,13 @@ struct inVectorCheckerT
         auto path=du::path(std::forward<Fields>(fields)...);
 
         using vType=decltype(valGen(0,true));
-        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        if constexpr (std::is_same<vType,plain::MyEnum>::value)
         {            
             BOOST_TEST_CONTEXT(fmt::format("{}",i)){
                 size_t resultCount=1;
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
                 auto obj=result.at(0).template unit<unitT>();
-                BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+                BOOST_CHECK(plain::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
             }
         }
         else
@@ -408,13 +408,13 @@ struct ninVectorCheckerT
         auto path=du::path(std::forward<Fields>(fields)...);
 
         using vType=decltype(valGen(0,true));
-        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        if constexpr (std::is_same<vType,plain::MyEnum>::value)
         {
             BOOST_TEST_CONTEXT(fmt::format("{}",i)){
                 size_t resultCount=1;
                 BOOST_REQUIRE_EQUAL(resultCount,result.size());
                 auto obj=result.at(0).template unit<unitT>();
-                BOOST_CHECK(u9::MyEnum::One==static_cast<vType>(obj->getAtPath(path)));
+                BOOST_CHECK(plain::MyEnum::One==static_cast<vType>(obj->getAtPath(path)));
             }
         }
         else
@@ -449,7 +449,7 @@ struct inIntervalQueryGenT
         using type=typename query::ValueTypeTraits<vType>::type;
         if constexpr (std::is_enum<vType>::value)
         {
-            query::Interval<type> v(u9::MyEnum::Two,fromType,u9::MyEnum::Three,toType);
+            query::Interval<type> v(plain::MyEnum::Two,fromType,plain::MyEnum::Three,toType);
             auto op=Nin?query::nin:query::in;
             return std::make_pair(query::where(std::forward<PathT>(path),op,v),0);
         }
@@ -490,7 +490,7 @@ struct inIntervalCheckerT
         auto path=du::path(std::forward<Fields>(fields)...);
 
         using vType=decltype(valGen(0,true));
-        if constexpr (std::is_same<vType,u9::MyEnum>::value)
+        if constexpr (std::is_same<vType,plain::MyEnum>::value)
         {
             BOOST_TEST_CONTEXT(fmt::format("[{},{}]",query::intervalTypeToString(fromType),query::intervalTypeToString(toType))){
 
@@ -509,7 +509,7 @@ struct inIntervalCheckerT
                     }
                     BOOST_REQUIRE_EQUAL(resultCount,result.size());
                     auto obj=result.at(0).template unit<unitT>();
-                    BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+                    BOOST_CHECK(plain::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
                 }
                 else
                 {
@@ -535,17 +535,17 @@ struct inIntervalCheckerT
                         if (fromType==query::IntervalType::First)
                         {
                             auto obj0=result.at(0).template unit<unitT>();
-                            BOOST_CHECK(u9::MyEnum::One==static_cast<vType>(obj0->getAtPath(path)));
+                            BOOST_CHECK(plain::MyEnum::One==static_cast<vType>(obj0->getAtPath(path)));
                             if (toType!=query::IntervalType::First)
                             {
                                 auto obj1=result.at(1).template unit<unitT>();
-                                BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj1->getAtPath(path)));
+                                BOOST_CHECK(plain::MyEnum::Two==static_cast<vType>(obj1->getAtPath(path)));
                             }
                         }
                         else
                         {
                             auto obj=result.at(0).template unit<unitT>();
-                            BOOST_CHECK(u9::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
+                            BOOST_CHECK(plain::MyEnum::Two==static_cast<vType>(obj->getAtPath(path)));
                         }
                     }
                 }

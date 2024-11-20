@@ -34,7 +34,7 @@ HATN_DATAUNIT_USING
 HATN_DB_USING
 HATN_TEST_USING
 
-HDU_UNIT_WITH(u9,(HDU_BASE(object)),
+HDU_UNIT_WITH(plain,(HDU_BASE(object)),
               HDU_ENUM(MyEnum,One=1,Two=2,Three=3)
               HDU_FIELD(f1,TYPE_BOOL,1)
               HDU_FIELD(f2,TYPE_INT8,2)
@@ -58,46 +58,46 @@ HDU_UNIT_WITH(u9,(HDU_BASE(object)),
               HDU_FIELD(f20,TYPE_DOUBLE,20)
               )
 
-HATN_DB_INDEX(u9_f1_idx,u9::f1)
-HATN_DB_INDEX(u9_f2_idx,u9::f2)
-HATN_DB_INDEX(u9_f3_idx,u9::f3)
-HATN_DB_INDEX(u9_f4_idx,u9::f4)
-HATN_DB_INDEX(u9_f5_idx,u9::f5)
-HATN_DB_INDEX(u9_f6_idx,u9::f6)
-HATN_DB_INDEX(u9_f7_idx,u9::f7)
-HATN_DB_INDEX(u9_f8_idx,u9::f8)
-HATN_DB_INDEX(u9_f9_idx,u9::f9)
+HATN_DB_INDEX(plain_f1_idx,plain::f1)
+HATN_DB_INDEX(plain_f2_idx,plain::f2)
+HATN_DB_INDEX(plain_f3_idx,plain::f3)
+HATN_DB_INDEX(plain_f4_idx,plain::f4)
+HATN_DB_INDEX(plain_f5_idx,plain::f5)
+HATN_DB_INDEX(plain_f6_idx,plain::f6)
+HATN_DB_INDEX(plain_f7_idx,plain::f7)
+HATN_DB_INDEX(plain_f8_idx,plain::f8)
+HATN_DB_INDEX(plain_f9_idx,plain::f9)
 
-HATN_DB_INDEX(u9_f10_idx,u9::f10)
-HATN_DB_INDEX(u9_f11_idx,u9::f11)
-HATN_DB_INDEX(u9_f12_idx,u9::f12)
+HATN_DB_INDEX(plain_f10_idx,plain::f10)
+HATN_DB_INDEX(plain_f11_idx,plain::f11)
+HATN_DB_INDEX(plain_f12_idx,plain::f12)
 
-HATN_DB_INDEX(u9_f13_idx,u9::f13)
-HATN_DB_INDEX(u9_f14_idx,u9::f14)
-HATN_DB_INDEX(u9_f15_idx,u9::f15)
-HATN_DB_INDEX(u9_f16_idx,u9::f16)
-HATN_DB_INDEX(u9_f17_idx,u9::f17)
+HATN_DB_INDEX(plain_f13_idx,plain::f13)
+HATN_DB_INDEX(plain_f14_idx,plain::f14)
+HATN_DB_INDEX(plain_f15_idx,plain::f15)
+HATN_DB_INDEX(plain_f16_idx,plain::f16)
+HATN_DB_INDEX(plain_f17_idx,plain::f17)
 
-HATN_DB_MODEL(m9,u9,u9_f1_idx()
+HATN_DB_MODEL(modelPlain,plain,plain_f1_idx()
           ,
-          u9_f2_idx(),
-          u9_f3_idx(),
-          u9_f4_idx(),
-          u9_f5_idx(),
-          u9_f6_idx(),
-          u9_f7_idx(),
-          u9_f8_idx(),
-          u9_f9_idx(),
-          u9_f10_idx()
-          ,u9_f11_idx()
-          ,u9_f12_idx()
-          ,u9_f13_idx()
-          ,u9_f14_idx()
-          ,u9_f15_idx()
-          ,u9_f16_idx()
-          ,u9_f17_idx()
+          plain_f2_idx(),
+          plain_f3_idx(),
+          plain_f4_idx(),
+          plain_f5_idx(),
+          plain_f6_idx(),
+          plain_f7_idx(),
+          plain_f8_idx(),
+          plain_f9_idx(),
+          plain_f10_idx()
+          ,plain_f11_idx()
+          ,plain_f12_idx()
+          ,plain_f13_idx()
+          ,plain_f14_idx()
+          ,plain_f15_idx()
+          ,plain_f16_idx()
+          ,plain_f17_idx()
 )
 
-void registerModels9();
+void registerModelPlain();
 
 #endif // HATNDBTESTMODELS9_H

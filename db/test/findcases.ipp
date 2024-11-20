@@ -15,12 +15,12 @@
 
 BOOST_AUTO_TEST_CASE(Eq)
 {
-    std::ignore=makeQuery(IdxString,query::where(FieldString,query::eq,"hi"),topic());
-    std::ignore=makeQuery(IdxString,query::where(FieldString,query::eq,lib::string_view("hi")),topic());
+    std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,"hi"),topic());
+    std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,lib::string_view("hi")),topic());
     // std::ignore=makeQuery(IdxString,query::where(FieldString,query::eq,std::string("hi")),topic());
     std::string val("hi");
-    std::ignore=makeQuery(IdxString,query::where(FieldString,query::eq,val),topic());
-    std::ignore=makeQuery(IdxFixedString,query::where(FieldFixedString,query::eq,u9::MyEnum::One),topic());
+    std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,val),topic());
+    std::ignore=makeQuery(IdxFixedString,query::where(field(FieldFixedString),query::eq,plain::MyEnum::One),topic());
 
     InvokeTestT<eqQueryGenT<>,eqCheckerT> testEq{eqQueryGen<>,eqChecker};
     runTest(testEq);

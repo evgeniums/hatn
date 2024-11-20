@@ -8,18 +8,18 @@
 
 /****************************************************************************/
 
-/** @file db/test/testfindplain.cpp
+/** @file db/test/testfindembedded.cpp
 */
 
 /****************************************************************************/
 
-#include "findplain.h"
+#include "findembedded.h"
 
 #include "finddefs.h"
 #include "findhandlers.h"
 #include "findhelpers.ipp"
 
-BOOST_AUTO_TEST_SUITE(TestFindPlain, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
+BOOST_AUTO_TEST_SUITE(TestFindEmbedded, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
 #include "findcases.ipp"
 

@@ -148,7 +148,7 @@ void invokeDbFind(
     FieldsT&&... fields
     )
 {
-    auto qField=field(fields...);
+    auto qField=field(std::forward<FieldsT>(fields)...);
 
     // fill db with objects
     for (size_t i=0;i<valIndexes.size();i++)
@@ -214,7 +214,7 @@ struct InvokeTestT
         fillDbForFind(Count,client,topic(),model,valGen,partitionFn,fields...);
 
         std::vector<size_t> valIndexes=CheckValueIndexes;
-        if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<u9::MyEnum,decltype(valGen(0,true))>::value)
+        if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<plain::MyEnum,decltype(valGen(0,true))>::value)
         {
             valIndexes.clear();
             valIndexes.push_back(0);
@@ -312,13 +312,13 @@ bool genBool(size_t i, bool)
     return true;
 }
 
-u9::MyEnum genEnum(size_t i, bool)
+plain::MyEnum genEnum(size_t i, bool)
 {
     if (i==0)
     {
-        return u9::MyEnum::One;
+        return plain::MyEnum::One;
     }
-    return u9::MyEnum::Two;
+    return plain::MyEnum::Two;
 }
 
 template <typename T>
