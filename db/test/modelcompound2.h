@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/test/modelcompund.h
+/** @file db/test/modelcompund2.h
  *
  *     Declaration of model with compound indexes.
  *
@@ -39,25 +39,25 @@ HDU_UNIT_WITH(comp,(HDU_BASE(plain)),
     HDU_FIELD(ext1,TYPE_STRING,90)
 )
 
-HATN_DB_INDEX(comp_f1_idx,plain::f1,comp::ext1)
-HATN_DB_INDEX(comp_f2_idx,plain::f2,comp::ext1)
-HATN_DB_INDEX(comp_f3_idx,plain::f3,comp::ext1)
-HATN_DB_INDEX(comp_f4_idx,plain::f4,comp::ext1)
-HATN_DB_INDEX(comp_f5_idx,plain::f5,comp::ext1)
-HATN_DB_INDEX(comp_f6_idx,plain::f6,comp::ext1)
-HATN_DB_INDEX(comp_f7_idx,plain::f7,comp::ext1)
-HATN_DB_INDEX(comp_f8_idx,plain::f8,comp::ext1)
-HATN_DB_INDEX(comp_f9_idx,plain::f9,comp::ext1)
+HATN_DB_INDEX(comp_f1_idx,comp::ext1,plain::f1)
+HATN_DB_INDEX(comp_f2_idx,comp::ext1,plain::f2)
+HATN_DB_INDEX(comp_f3_idx,comp::ext1,plain::f3)
+HATN_DB_INDEX(comp_f4_idx,comp::ext1,plain::f4)
+HATN_DB_INDEX(comp_f5_idx,comp::ext1,plain::f5)
+HATN_DB_INDEX(comp_f6_idx,comp::ext1,plain::f6)
+HATN_DB_INDEX(comp_f7_idx,comp::ext1,plain::f7)
+HATN_DB_INDEX(comp_f8_idx,comp::ext1,plain::f8)
+HATN_DB_INDEX(comp_f9_idx,comp::ext1,plain::f9)
 
-HATN_DB_INDEX(comp_f10_idx,plain::f10,comp::ext1)
-HATN_DB_INDEX(comp_f11_idx,plain::f11,comp::ext1)
-HATN_DB_INDEX(comp_f12_idx,plain::f12,comp::ext1)
+HATN_DB_INDEX(comp_f10_idx,comp::ext1,plain::f10)
+HATN_DB_INDEX(comp_f11_idx,comp::ext1,plain::f11)
+HATN_DB_INDEX(comp_f12_idx,comp::ext1,plain::f12)
 
-HATN_DB_INDEX(comp_f13_idx,plain::f13,comp::ext1)
-HATN_DB_INDEX(comp_f14_idx,plain::f14,comp::ext1)
-HATN_DB_INDEX(comp_f15_idx,plain::f15,comp::ext1)
-HATN_DB_INDEX(comp_f16_idx,plain::f16,comp::ext1)
-HATN_DB_INDEX(comp_f17_idx,plain::f17,comp::ext1)
+HATN_DB_INDEX(comp_f13_idx,comp::ext1,plain::f13)
+HATN_DB_INDEX(comp_f14_idx,comp::ext1,plain::f14)
+HATN_DB_INDEX(comp_f15_idx,comp::ext1,plain::f15)
+HATN_DB_INDEX(comp_f16_idx,comp::ext1,plain::f16)
+HATN_DB_INDEX(comp_f17_idx,comp::ext1,plain::f17)
 
 HATN_DB_MODEL(modelComp,comp,
           comp_f1_idx(),
@@ -79,6 +79,6 @@ HATN_DB_MODEL(modelComp,comp,
           ,comp_f17_idx()
 )
 
-void registerModelComp();
+void registerModelComp2();
 
 #endif // HATNDBTESTMODELCOMPUND_H

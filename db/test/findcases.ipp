@@ -15,13 +15,14 @@
 
 BOOST_AUTO_TEST_CASE(Eq)
 {
+#ifndef HATN_DISABLE_MANUAL_QUERY_TESTS
     std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,"hi"),topic());
     std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,lib::string_view("hi")),topic());
     // std::ignore=makeQuery(IdxString,query::where(FieldString,query::eq,std::string("hi")),topic());
     std::string val("hi");
     std::ignore=makeQuery(IdxString,query::where(field(FieldString),query::eq,val),topic());
     std::ignore=makeQuery(IdxFixedString,query::where(field(FieldFixedString),query::eq,plain::MyEnum::One),topic());
-
+#endif
     InvokeTestT<eqQueryGenT<>,eqCheckerT> testEq{eqQueryGen<>,eqChecker};
     runTest(testEq);
 }

@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file db/test/findqueries.ipp
+/** @file db/test/findcompundqueries2.ipp
 */
 
 /****************************************************************************/
@@ -24,22 +24,26 @@
 #include "initdbplugins.h"
 #include "preparedb.h"
 
+#define HATN_DISABLE_MANUAL_QUERY_TESTS
+
 namespace {
 
-struct noExtSetterT
+struct compoundExtSetterT
 {
     template <typename T>
-    void fillObject(T&, size_t, size_t) const noexcept
+    void fillObject(T& obj, size_t iter, size_t) const noexcept
     {
+        auto str=fmt::format("comp_{:02d}",iter);
+        obj.field(comp::ext1).set(str);
     }
 
     static const size_t iterCount() noexcept
     {
-        return 1;
+        return 5;
     }
 };
-using ExtSetter=noExtSetterT;
-
+using ExtSetter=compoundExtSetterT;
+std::string queryExtVal{"comp_03"};
 constexpr auto FirstLastNotFound=hana::false_c;
 
 template <bool NeqT=false>
@@ -50,7 +54,8 @@ struct eqQueryGenT
     {
         std::ignore=i;
         auto op=NeqT?query::neq:query::eq;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
+        return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,val)
+                              ,0);
     }
 };
 template <bool NeqT=false>
@@ -63,7 +68,8 @@ struct ltQueryGen
     {
         std::ignore=i;
         auto op = m_lte ? query::lte : query::lt;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
+        return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,val)
+                              ,0);
     }
 
     ltQueryGen(bool lte=false) : m_lte(lte)
@@ -79,7 +85,8 @@ struct gtQueryGen
     {
         std::ignore=i;
         auto op = m_gte ? query::gte : query::gt;
-        return std::make_pair(query::where(std::forward<PathT>(path),op,val),0);
+        return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,val)
+                              ,0);
     }
 
     gtQueryGen(bool gte=false) : m_gte(gte)
@@ -122,14 +129,16 @@ struct inVectorQueryGenT
             auto v1=std::make_shared<std::vector<int32_t>>();
             query::fromEnumVector(enums,*v1);
             auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,*v1),v1);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,*v1)
+                                  ,v1);
         }
         else
         {
             auto vec=std::make_shared<std::vector<type>>();
             genVector(i,valGen,vec);
             auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,*vec),vec);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,*vec)
+                                  ,vec);
         }
     }
 };
@@ -149,14 +158,16 @@ struct inIntervalQueryGenT
         {
             query::Interval<type> v(plain::MyEnum::Two,fromType,plain::MyEnum::Three,toType);
             auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,v),0);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,v)
+                                  ,0);
         }
         else
         {
             auto p=std::make_shared<std::pair<vType,vType>>(valGen(i,true),valGen(i+IntervalWidth-1,true));
             query::Interval<type> v(p->first,fromType,p->second,toType);
             auto op=Nin?query::nin:query::in;
-            return std::make_pair(query::where(std::forward<PathT>(path),op,v),p);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),op,v)
+                                  ,p);
         }
     }
 
@@ -182,11 +193,13 @@ struct eqFirstLastQueryGenT
 
         if constexpr (LastT)
         {
-            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::Last),0);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),query::eq,query::Last)
+                                  ,0);
         }
         else
         {
-            return std::make_pair(query::where(std::forward<PathT>(path),query::eq,query::First),0);
+            return std::make_pair(query::where(comp::ext1,query::eq,queryExtVal).and_(std::forward<PathT>(path),query::eq,query::First)
+                                  ,0);
         }
     }
 };

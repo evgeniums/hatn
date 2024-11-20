@@ -521,8 +521,8 @@ struct makeIndexT
     template <typename ConfigT, typename ...Fields>
     auto operator()(ConfigT&& cfg, Fields&& ...fields) const
     {
+#if 1
         auto ft1=hana::make_tuple(fields...);
-
         auto args=hana::eval_if(
             hana::is_a<IndexConfigTag,ConfigT>,
             [&](auto _)
@@ -596,6 +596,23 @@ struct makeIndexT
         auto ci=hana::unpack(c,hana::template_<Index>);
         using type=typename decltype(ci)::type;
         return type{std::move(p.second)};
+#else
+        common::FmtAllocatedBufferChar buf;
+        auto handler=[&buf](auto&& field, auto&& idx)
+        {
+            if (idx.value==0)
+            {
+                fmt::format_to(std::back_inserter(buf),"idx_{}",field.name());
+            }
+            else
+            {
+                fmt::format_to(std::back_inserter(buf),"_{}",field.name());
+            }
+            return true;
+        };
+        HATN_VALIDATOR_NAMESPACE::foreach_if(hana::make_tuple(fields...),HATN_DATAUNIT_META_NAMESPACE::true_predicate,handler);
+        return Index<std::decay_t<ConfigT>,Fields...>{common::fmtBufToString(buf)};
+#endif
     }
 };
 constexpr makeIndexT makeIndex{};

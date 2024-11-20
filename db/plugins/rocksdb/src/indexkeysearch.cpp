@@ -131,7 +131,9 @@ Error iterateFieldVariant(
     const KeyHandlerFn& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     const query::Field& field,
-    AllocatorFactory* allocatorFactory
+    AllocatorFactory* allocatorFactory,
+    const Slice& prevFrom,
+    const Slice& prevTo
     )
 {
     size_t pos=cursor.pos;
@@ -160,7 +162,7 @@ Error iterateFieldVariant(
             fieldValueToBuf(fromBuf,field,SeparatorCharPlusStr);
             fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
             readOptions.iterate_lower_bound=&fromS;
-            toS=cursor.indexRangeToSlice();
+            toS=prevTo;
             readOptions.iterate_upper_bound=&toS;
         }
         break;
@@ -168,7 +170,7 @@ Error iterateFieldVariant(
         {
             if (field.value.isFirst())
             {
-                fromS=cursor.indexRangeFromSlice();
+                fromS=prevFrom;
                 readOptions.iterate_lower_bound=&fromS;
             }
             else
@@ -179,13 +181,13 @@ Error iterateFieldVariant(
                 fromS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
                 readOptions.iterate_lower_bound=&fromS;
             }
-            toS=cursor.indexRangeToSlice();
+            toS=prevTo;
             readOptions.iterate_upper_bound=&toS;
         }
         break;
         case (query::Operator::lt):
         {
-            fromS=cursor.indexRangeFromSlice();
+            fromS=prevFrom;
             readOptions.iterate_lower_bound=&fromS;
             toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
@@ -196,12 +198,12 @@ Error iterateFieldVariant(
         break;
         case (query::Operator::lte):
         {
-            fromS=cursor.indexRangeFromSlice();
+            fromS=prevFrom;
             readOptions.iterate_lower_bound=&fromS;
 
             if (field.value.isLast())
             {
-                toS=cursor.indexRangeToSlice();
+                toS=prevTo;
                 readOptions.iterate_upper_bound=&toS;
             }
             else
@@ -222,9 +224,9 @@ Error iterateFieldVariant(
                 field.value.isLast()
                 )
             {
-                fromS=cursor.indexRangeFromSlice();
+                fromS=prevFrom;
                 readOptions.iterate_lower_bound=&fromS;
-                toS=cursor.indexRangeToSlice();
+                toS=prevTo;
                 readOptions.iterate_upper_bound=&toS;
                 iterateForward=field.value.isFirst();
             }
@@ -261,9 +263,9 @@ Error iterateFieldVariant(
 
             if (onlyFirst || onlyLast)
             {
-                fromS=cursor.indexRangeFromSlice();
+                fromS=prevFrom;
                 readOptions.iterate_lower_bound=&fromS;
-                toS=cursor.indexRangeToSlice();
+                toS=prevTo;
                 readOptions.iterate_upper_bound=&toS;
                 iterateForward=onlyFirst;
                 seekExactPrefix=true;
@@ -350,7 +352,7 @@ Error iterateFieldVariant(
                 else
                 {
                     // process next field
-                    ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+                    ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,fromS,toS);
                 }
                 HATN_CHECK_EC(ec)
 
@@ -435,7 +437,9 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const ModelIndexQuery& idxQuery,
     const KeyHandlerFn& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
-    AllocatorFactory* allocatorFactory
+    AllocatorFactory* allocatorFactory,
+    const Slice& prevFrom,
+    const Slice& prevTo
     )
 {
     Assert(cursor.pos<idxQuery.query.fields().size(),"Out of range of cursor position of index query");
@@ -452,7 +456,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
         fieldValueToBuf(cursor.keyPrefix,queryField);
 
         // go to next field
-        return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+        return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,prevFrom,prevTo);
     }
 
     // for neq operation split to lt and gt queries
@@ -466,6 +470,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                       snapshot,
                                       fieldLt,
                                       allocatorFactory
+                                      ,prevFrom,prevTo
                                       );
         HATN_CHECK_EC(ec)
 
@@ -477,6 +482,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                  snapshot,
                                  fieldGt,
                                  allocatorFactory
+                                 ,prevFrom,prevTo
                                  );
         HATN_CHECK_EC(ec)
 
@@ -496,6 +502,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                           snapshot,
                                           queryField,
                                           allocatorFactory
+                                          ,prevFrom,prevTo
                                           );
             HATN_CHECK_EC(ec)
         }
@@ -519,6 +526,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                           snapshot,
                                           queryField,
                                           allocatorFactory
+                                          ,prevFrom,prevTo
                                           );
             HATN_CHECK_EC(ec)
         }
@@ -539,6 +547,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                   snapshot,
                                                   fieldBefore,
                                                   allocatorFactory
+                                                  ,prevFrom,prevTo
                                                   );
                     HATN_CHECK_EC(ec)
                 }
@@ -555,6 +564,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                              snapshot,
                                              fieldAfter,
                                              allocatorFactory
+                                            ,prevFrom,prevTo
                                              );
                     HATN_CHECK_EC(ec)
                 }
@@ -605,6 +615,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                            snapshot,
                                            field,
                                            allocatorFactory
+                                           ,prevFrom,prevTo
                                            );
             };
             auto ec=queryField.value.eachVectorItem(doEq);
@@ -633,6 +644,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                           snapshot,
                                                           fieldBefore,
                                                           allocatorFactory
+                                                          ,prevFrom,prevTo
                                                           );
                             HATN_CHECK_EC(ec)
                         }
@@ -654,6 +666,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                           snapshot,
                                                           field,
                                                           allocatorFactory
+                                                          ,prevFrom,prevTo
                                                           );
                             HATN_CHECK_EC(ec)
                         }
@@ -670,6 +683,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                           snapshot,
                                                           fieldAfter,
                                                           allocatorFactory
+                                                          ,prevFrom,prevTo
                                                           );
                             HATN_CHECK_EC(ec)
                         }
@@ -708,6 +722,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                        snapshot,
                                        fieldLt,
                                        allocatorFactory
+                                       ,prevFrom,prevTo
                                        );
         };
 
@@ -743,6 +758,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                       snapshot,
                                                       fieldBefore,
                                                       allocatorFactory
+                                                      ,prevFrom,prevTo
                                                       );
                         HATN_CHECK_EC(ec)
                     }
@@ -764,6 +780,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                       snapshot,
                                                       field,
                                                       allocatorFactory
+                                                      ,prevFrom,prevTo
                                                       );
                         HATN_CHECK_EC(ec)
                     }
@@ -781,6 +798,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                                       snapshot,
                                                       fieldAfter,
                                                       allocatorFactory
+                                                      ,prevFrom,prevTo
                                                       );
                         HATN_CHECK_EC(ec)
                     }
@@ -852,7 +870,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
             Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
-            auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+            auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
+                                   cursor.indexRangeFromSlice(),
+                                   cursor.indexRangeToSlice()
+                    );
             HATN_CHECK_EC(ec)
 
             HATN_CTX_SCOPE_POP()

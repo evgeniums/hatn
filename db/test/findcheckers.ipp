@@ -586,7 +586,7 @@ struct eqFirstLastCheckerT
 
         using vType=decltype(valGen(0,true));
 
-        if constexpr (decltype(FirstLastNotSound)::value)
+        if constexpr (decltype(FirstLastNotFound)::value)
         {
             BOOST_REQUIRE_EQUAL(0,result.size());
         }

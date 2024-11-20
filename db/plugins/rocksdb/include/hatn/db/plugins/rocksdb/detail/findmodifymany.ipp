@@ -90,7 +90,10 @@ Error FindModifyManyT::operator ()(
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
             index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
-            auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory);
+            auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
+                        cursor.indexRangeFromSlice(),
+                        cursor.indexRangeToSlice()
+                    );
             HATN_CHECK_EC(ec)
 
             HATN_CTX_SCOPE_POP()

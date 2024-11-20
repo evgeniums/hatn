@@ -10,9 +10,11 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testfindplain.cpp
     ${DB_TEST_SRC}/testfindembedded.cpp
     ${DB_TEST_SRC}/testfindcompound.cpp
+    ${DB_TEST_SRC}/testfindcompound2.cpp
     ${DB_TEST_SRC}/modelplain.cpp
     ${DB_TEST_SRC}/modelembedded.cpp
     ${DB_TEST_SRC}/modelcompound.cpp
+    ${DB_TEST_SRC}/modelcompound2.cpp
     # ${DB_TEST_SRC}/models1.cpp
     # ${DB_TEST_SRC}/models2.cpp
     # ${DB_TEST_SRC}/models3.cpp
@@ -45,12 +47,15 @@ SET(TEST_LIB_HEADERS
     ${DB_TEST_SRC}/findcases.ipp
     ${DB_TEST_SRC}/modelembedded.h
     ${DB_TEST_SRC}/findembedded.h
-    ${DB_TEST_SRC}/modelcompound.h
-    ${DB_TEST_SRC}/findcompound.h
     ${DB_TEST_SRC}/findhandlers.ipp
     ${DB_TEST_SRC}/findqueries.ipp
     ${DB_TEST_SRC}/findcheckers.ipp
+    ${DB_TEST_SRC}/modelcompound.h
+    ${DB_TEST_SRC}/findcompound.h
     ${DB_TEST_SRC}/findcompoundqueries.ipp
+    ${DB_TEST_SRC}/modelcompound2.h
+    ${DB_TEST_SRC}/findcompound2.h
+    ${DB_TEST_SRC}/findcompoundqueries2.ipp
 )
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES} ${TEST_LIB_HEADERS})
@@ -80,8 +85,8 @@ ENDIF ()
 
 IF (MSVC)
     # Fix string table overflow when compiling in debug mode
-    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS /bigobj)
-    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS /bigobj)
+    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj /Zm200")
+    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj /Zm200")
 ENDIF ()
 
 ADD_CUSTOM_TARGET(dbtest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})

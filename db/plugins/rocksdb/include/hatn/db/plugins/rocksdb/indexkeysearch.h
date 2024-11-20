@@ -216,7 +216,9 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const ModelIndexQuery& idxQuery,
     const KeyHandlerFn& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
-    AllocatorFactory* allocatorFactory
+    AllocatorFactory* allocatorFactory,
+    const Slice& prevFrom,
+    const Slice& prevTo
 );
 
 } // namespace index_key_search

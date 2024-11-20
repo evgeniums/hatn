@@ -42,7 +42,7 @@ struct compoundExtSetterT
 };
 using ExtSetter=compoundExtSetterT;
 std::string queryExtVal{"comp_03"};
-constexpr auto FirstLastNotSound=hana::true_c;
+constexpr auto FirstLastNotFound=hana::true_c;
 
 template <bool NeqT=false>
 struct eqQueryGenT
