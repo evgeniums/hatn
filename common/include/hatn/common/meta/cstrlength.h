@@ -27,26 +27,32 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 //! Get size of const char* at compilation time.
-constexpr size_t CStrLength(const char* str) noexcept
+constexpr inline size_t CStrLength(const char* str) noexcept
 {
-    return *str ? 1 + hatn::common::CStrLength(str + 1) : 0;
+    return *str ? 1 + CStrLength(str + 1) : 0;
 }
 
-//! Check if const char* is empty.
-template <typename T>
-constexpr bool CStrEmpty(T str) noexcept
+constexpr inline size_t CStrLength(std::nullptr_t) noexcept
 {
-    return boost::hana::eval_if(
-        std::is_same<T,std::nullptr_t>{},
-        []()
-        {
-            return true;
-        },
-        [&](auto _)
-        {
-            return CStrLength(_(str))==0;
-        }
-    );
+    return 0;
+}
+
+//! Check if const char* is empty at compilation time.
+constexpr inline bool CStrEmpty(std::nullptr_t) noexcept
+{
+    return true;
+}
+
+//! Check if const char* is empty at compilation time.
+constexpr inline bool CStrEmpty(const char* str) noexcept
+{
+    return *str==0;
+}
+
+//! Check if const char* is empty at runtime time.
+inline bool StrEmpty(const char* str) noexcept
+{
+    return str==nullptr || *str==0;
 }
 
 HATN_COMMON_NAMESPACE_END
