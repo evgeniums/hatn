@@ -150,6 +150,11 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
         {
             BaseT::append(lib::string_view{range.data(),range.size()});
         }
+
+        operator lib::string_view() const noexcept
+        {
+            return lib::string_view{this->data(),this->size()};
+        }
 };
 
 using StringOnStack=StringOnStackT<>;
