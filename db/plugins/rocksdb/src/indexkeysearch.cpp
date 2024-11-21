@@ -355,11 +355,11 @@ Error iterateFieldVariant(
                 {
                     // process next field
                     ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,fromS,toS);
+
+                    // if exact prefix then no more iteration needed
+                    lastKey=seekExactPrefix;
                 }
                 HATN_CHECK_EC(ec)
-
-                // if exact prefix then no more iteration needed
-                lastKey=seekExactPrefix;
             }
 
             // continue iteration
