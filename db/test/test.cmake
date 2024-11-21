@@ -8,13 +8,17 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testcrud.cpp
     ${DB_TEST_SRC}/testfind.cpp
     ${DB_TEST_SRC}/models1.cpp
+
     ${DB_TEST_SRC}/testfindplain.cpp
-    ${DB_TEST_SRC}/testfindembedded.cpp
-    ${DB_TEST_SRC}/testfindcompound.cpp
-    ${DB_TEST_SRC}/testfindcompound2.cpp
     ${DB_TEST_SRC}/modelplain.cpp
+
+    ${DB_TEST_SRC}/testfindembedded.cpp
     ${DB_TEST_SRC}/modelembedded.cpp
+
+    ${DB_TEST_SRC}/testfindcompound.cpp
     ${DB_TEST_SRC}/modelcompound.cpp
+
+    ${DB_TEST_SRC}/testfindcompound2.cpp
     ${DB_TEST_SRC}/modelcompound2.cpp
 
     # ${DB_TEST_SRC}/models2.cpp
@@ -86,8 +90,8 @@ ENDIF ()
 
 IF (MSVC)
     # Fix string table overflow when compiling in debug mode
-    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj /Zm200")
-    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj /Zm200")
+    SET_SOURCE_FILES_PROPERTIES(${TEST_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj")
+    SET_SOURCE_FILES_PROPERTIES(${TEST_LIB_SOURCES} PROPERTIES COMPILE_FLAGS "/bigobj")
 ENDIF ()
 
 ADD_CUSTOM_TARGET(dbtest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
