@@ -393,6 +393,13 @@ common::SharedPtr<Unit> Unit::createManagedUnit() const
 }
 
 //---------------------------------------------------------------
+common::SharedPtr<Unit> Unit::toManagedUnit() const
+{
+    Assert(false,"A managed DataUnit can be created only by other managed unit");
+    return common::SharedPtr<Unit>();
+}
+
+//---------------------------------------------------------------
 bool Unit::iterateFields(const Unit::FieldVisitor& visitor)
 {
     std::ignore=visitor;

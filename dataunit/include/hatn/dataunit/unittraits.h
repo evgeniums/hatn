@@ -498,6 +498,11 @@ class ManagedUnit : public common::EnableSharedFromThis<ManagedUnit<UnitType>>, 
         {
             return this->factory()->template createObject<ManagedUnit<UnitType>>(this->factory()).template staticCast<Unit>();
         }
+
+        virtual common::SharedPtr<Unit> toManagedUnit() const override
+        {
+            return common::SharedPtr<Unit>{this->sharedFromThis()};
+        }
 };
 
 /**  Empty DataUnit template */
