@@ -181,13 +181,13 @@ class FlatContainerIteratorBase
         }
         FlatContainerIteratorBase operator+(const difference_type& diff)
         {
-            auto it=FlatContainerIterator(m_vec,m_idx);
+            auto it=FlatContainerIteratorBase(m_vec,m_idx);
             it+=diff;
             return it;
         }
         FlatContainerIteratorBase operator-(const difference_type& diff)
         {
-            auto it=FlatContainerIterator(m_vec,m_idx);
+            auto it=FlatContainerIteratorBase(m_vec,m_idx);
             it-=diff;
             return it;
         }
@@ -215,7 +215,15 @@ class FlatContainerIterator : public FlatContainerIteratorBase<VectorT,ItemT>
     public:
 
         using base=FlatContainerIteratorBase<VectorT,ItemT>;
-        using base::FlatContainerIteratorBase;
+
+        FlatContainerIterator(
+            VectorT* vec,
+            size_t idx=0
+            ) : base(vec,idx)
+        {}
+
+        FlatContainerIterator(base it) : base(std::move(it))
+        {}
 
         typename base::reference operator*()
         {
@@ -481,6 +489,12 @@ class FlatContainer
                 return erase(it);
             }
             return end();
+        }
+
+        iterator erase(iterator begin, iterator end)
+        {
+            auto it=m_vec.erase(m_vec.begin()+begin.m_idx, m_vec.begin()+ end.m_idx);
+            return iterator(&m_vec,detail::vector_iterator_index(m_vec,it));
         }
 
         template <typename Arg>
