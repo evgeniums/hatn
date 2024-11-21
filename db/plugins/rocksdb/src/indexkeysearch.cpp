@@ -352,7 +352,7 @@ Error iterateFieldVariant(
                     }
 
                     // if exact prefix then no more iteration needed
-                    lastKey=seekExactPrefix && field.value.isLast();
+                    lastKey=seekExactPrefix && (field.value.isLast() || field.value.isFirst());
                 }
                 else
                 {
