@@ -101,7 +101,7 @@ class TextLogFormatterT
                                 [](auto){},
                                 [&](auto _)
                                 {
-                                    if (_(ec) && !common::CStrEmpty(_(scope).second.error))
+                                    if (_(ec) && !common::StrEmpty(_(scope).second.error))
                                     {
                                         _(buf).append(lib::string_view("("));
                                         _(buf).append(lib::string_view(_(scope).second.error));
@@ -155,7 +155,7 @@ class TextLogFormatterT
             );
 
             // add message
-            if (!common::CStrEmpty(msg))
+            if (!common::StrEmpty(msg))
             {
                 buf.append(lib::string_view(" msg=\""));
                 buf.append(lib::string_view(msg));
