@@ -259,7 +259,16 @@ class ContextT : public common::TaskContextValue
         {
             m_lockStack=enable;
 
-            //! @todo When unlocking stack set stack cursors to current scope
+            // restore stack cursors to current scope
+            if (!m_lockStack)
+            {
+                m_scopeStack.resize(m_currentScopeIdx);
+                const auto* scopeCursor=currentScope();
+                if (scopeCursor!=nullptr)
+                {
+                    m_varStack.resize(scopeCursor->second.varStackOffset);
+                }
+            }
         }
 
         bool stackLocked() const noexcept
@@ -346,8 +355,6 @@ class ContextT : public common::TaskContextValue
             return m_tags;
         }
 
-        //! @todo How to handle scope loops, especially for static loops over tuples.
-
     private:
 
         size_t m_currentScopeIdx;
@@ -430,7 +437,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
 
 //! @todo Fix scope unlocking
-#if 0
+#if 1
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
