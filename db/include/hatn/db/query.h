@@ -398,6 +398,12 @@ struct Interval
         Assert(fromType==IntervalType::First && toType==IntervalType::Last,"This constructor can be used only for interval from First to Last");
     }
 
+    Interval(
+            T from,
+            T to
+        ) : Interval(std::move(from),IntervalType::Closed,std::move(to),IntervalType::Open)
+    {}
+
     Endpoint from;
     Endpoint to;
 
@@ -427,6 +433,13 @@ struct Interval
         return false;
     }
 };
+
+//! Make default interval [from,to)
+template <typename T>
+auto makeInterval(T from, T to)
+{
+    return Interval<std::decay_t<T>>(std::move(from),std::move(to));
+}
 
 constexpr const size_t PreallocatedVectorSize=8;
 
