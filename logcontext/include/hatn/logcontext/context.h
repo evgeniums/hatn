@@ -166,7 +166,7 @@ class ContextT : public common::TaskContextValue
         /**
          * @brief Describe scope error.
          * @param err Error description. Must be constexpr. Do not use temporary variable.
-         * @param lockStack Do not pop scope stack when leavinf the scope.
+         * @param lockStack Do not pop scope stack when leaving the scope.
          */
         void describeScopeError(const char* err, bool lockStack=true)
         {
@@ -193,7 +193,7 @@ class ContextT : public common::TaskContextValue
             if (freeScope)
             {
                 m_currentScopeIdx--;
-                Assert(m_currentScopeIdx<=config::ScopeDepth,"Mismatched number of enter/leace scope calls");
+                Assert(m_currentScopeIdx<=config::ScopeDepth,"Mismatched number of enter/leave scope calls");
 
                 if (!m_lockStack)
                 {
@@ -258,6 +258,8 @@ class ContextT : public common::TaskContextValue
         void setStackLocked(bool enable)
         {
             m_lockStack=enable;
+
+            //! @todo When unlocking stack set stack cursors to current scope
         }
 
         bool stackLocked() const noexcept
@@ -344,6 +346,8 @@ class ContextT : public common::TaskContextValue
             return m_tags;
         }
 
+        //! @todo How to handle scope loops, especially for static loops over tuples.
+
     private:
 
         size_t m_currentScopeIdx;
@@ -425,8 +429,21 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     HATN_CTX_IF() \
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
 
+//! @todo Fix scope unlocking
+#if 0
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
-        ScopeCtx->setStackLocked(true);
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
+
+#define HATN_CTX_SCOPE_UNLOCK() \
+    HATN_CTX_IF() \
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(false);
+#else
+
+#define HATN_CTX_SCOPE_LOCK()
+
+#define HATN_CTX_SCOPE_UNLOCK()
+
+#endif
 
 #endif // HATNLOGCONTEXT_H
