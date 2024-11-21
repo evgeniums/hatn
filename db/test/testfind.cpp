@@ -53,8 +53,6 @@ namespace rdb=HATN_ROCKSDB_NAMESPACE;
 
 void init()
 {
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-
     ModelRegistry::free();
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbSchemas::free();
@@ -294,6 +292,149 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_AUTO_TEST_CASE(UniqueIndex)
+{
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+
+    HATN_CTX_SCOPE("Test UniqueIndex")
+    HATN_CTX_INFO("Test start")
+
+    init();
+
+    auto s1=initSchema(m1_str());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Error ec;
+        Topic topic1{"topic1"};
+        std::string str1{"Unique string 1"};
+        std::string str2{"Not unique string"};
+        std::string str3{"Unique string 2"};
+        std::string str4{"Unique string 3"};
+
+        auto q0=makeQuery(u1_str_f2_idx(),query::where(u1_str::f2,query::eq,str2),topic1);
+
+        HATN_CTX_INFO("create object1 with unique field")
+        auto o1=makeInitObject<u1_str::type>();
+        o1.setFieldValue(u1_str::f1,str1);
+        o1.setFieldValue(u1_str::f2,str2);
+        ec=client->create(topic1,m1_str(),&o1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        HATN_CTX_INFO("read object o1")
+        auto  r0=client->read(topic1,m1_str(),o1.fieldValue(object::_id));
+        BOOST_REQUIRE(!r0);
+        BOOST_TEST_MESSAGE(fmt::format("Read o0: {}", r0.value()->toString(true)));
+        BOOST_CHECK(r0.value()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+#ifndef HATN_DB_FIX_READ
+        BOOST_CHECK_EQUAL(r0.value()->fieldValue(u1_str::f2),str2);
+#endif
+        HATN_CTX_INFO("find objects by not unique field 1")
+        auto r1=client->find(m1_str(),q0);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),1);
+        BOOST_CHECK(r1.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_TEST_MESSAGE(fmt::format("Find o1: {}", r1.value().at(0).unit<u1_str::type>()->toString(true)));
+
+        HATN_CTX_INFO("create object1 with the same unique field without non unique field")
+        auto o2=makeInitObject<u1_str::type>();
+        o2.setFieldValue(u1_str::f1,str1);
+        ec=client->create(topic1,m1_str(),&o2);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"expected error 1")
+        }
+        BOOST_CHECK(ec);
+
+        HATN_CTX_INFO("find objects by not unique field 2")
+        r1=client->find(m1_str(),q0);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),1);
+        BOOST_CHECK(r1.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+
+        HATN_CTX_INFO("create object2 with the same unique field and with non unique field")
+        auto o2_2=makeInitObject<u1_str::type>();
+        o2_2.setFieldValue(u1_str::f1,str1);
+        o2_2.setFieldValue(u1_str::f2,str2);
+        ec=client->create(topic1,m1_str(),&o2_2);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"expected error 2")
+        }
+        BOOST_CHECK(ec);
+
+        HATN_CTX_INFO("find objects by not unique field 3")
+        r1=client->find(m1_str(),q0);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),1);
+        BOOST_CHECK(r1.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+
+        HATN_CTX_INFO("create object3 with new unique field")
+        auto o3=makeInitObject<u1_str::type>();
+        o3.setFieldValue(u1_str::f1,str3);
+        o3.setFieldValue(u1_str::f2,str2);
+        ec=client->create(topic1,m1_str(),&o3);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        HATN_CTX_INFO("read object o3")
+        auto  r2=client->read(topic1,m1_str(),o3.fieldValue(object::_id));
+        BOOST_REQUIRE(!r2);
+        BOOST_TEST_MESSAGE(fmt::format("Read o3: {}", r2.value()->toString(true)));
+        BOOST_CHECK(r2.value()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+#ifndef HATN_DB_FIX_READ
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(u1_str::f2),str2);
+#endif
+
+        HATN_CTX_INFO("find objects by not unique field 4")
+        r1=client->find(m1_str(),q0);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),2);
+        BOOST_CHECK(r1.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r1.value().at(1).unit<u1_str::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        HATN_CTX_INFO("create object4 with new unique field")
+        auto o4=makeInitObject<u1_str::type>();
+        o4.setFieldValue(u1_str::f1,str4);
+        o4.setFieldValue(u1_str::f2,str2);
+        ec=client->create(topic1,m1_str(),&o4);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        HATN_CTX_INFO("find objects by not unique field 5")
+        auto r3=client->find(m1_str(),q0);
+        if (r3)
+        {
+            BOOST_TEST_MESSAGE(r3.error().message());
+        }
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),3);
+        BOOST_CHECK(r3.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r3.value().at(1).unit<u1_str::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+        BOOST_CHECK(r3.value().at(2).unit<u1_str::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+
+        BOOST_TEST_MESSAGE(fmt::format("Find o3: {}", r3.value().at(1).unit<u1_str::type>()->toString(true)));
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    HATN_CTX_INFO("Test end")
+    ctx->afterThreadProcessing();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
@@ -317,6 +458,6 @@ BOOST_AUTO_TEST_SUITE_END()
  *  16. Test find-update-create
  *  17. Test update
  *  18. Test find Null - done
- *  19. Test unique indexes
+ *  19. Test unique indexes - done
  *  20. Test vectors of intervals
  */

@@ -79,6 +79,7 @@ HDU_UNIT_WITH(u1_enum,(HDU_BASE(object)),
 
 HDU_UNIT_WITH(u1_str,(HDU_BASE(object)),
               HDU_FIELD(f1,TYPE_STRING,1)
+              HDU_FIELD(f2,TYPE_STRING,2)
               )
 
 HDU_UNIT_WITH(u1_fix_str,(HDU_BASE(object)),
@@ -132,8 +133,9 @@ HATN_DB_MODEL(m1_uint64,u1_uint64,u1_uint64_f1_idx())
 HATN_DB_INDEX(u1_enum_f1_idx,u1_enum::f1)
 HATN_DB_MODEL(m1_enum,u1_enum,u1_enum_f1_idx())
 
-HATN_DB_INDEX(u1_str_f1_idx,u1_str::f1)
-HATN_DB_MODEL(m1_str,u1_str,u1_str_f1_idx())
+HATN_DB_UNIQUE_INDEX(u1_str_f1_idx,u1_str::f1)
+HATN_DB_INDEX(u1_str_f2_idx,u1_str::f2)
+HATN_DB_MODEL(m1_str,u1_str,u1_str_f1_idx(),u1_str_f2_idx())
 
 HATN_DB_INDEX(u1_fix_str_f1_idx,u1_fix_str::f1)
 HATN_DB_MODEL(m1_fix_str,u1_fix_str,u1_fix_str_f1_idx())

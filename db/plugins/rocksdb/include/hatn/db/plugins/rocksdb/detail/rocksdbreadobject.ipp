@@ -141,6 +141,12 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         HATN_CTX_SCOPE_ERROR("deserialize");
         return ec;
     }
+//! @todo Log debug
+#if 0
+    std::cout << "Read object: " << obj->toString(true) << std::endl;
+    auto rr=common::SharedPtr<dataunit::Unit>(obj);
+    std::cout << "Read casted object: " << rr->toString(true) << std::endl;
+#endif
 
     // done
     return obj;

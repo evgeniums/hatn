@@ -47,6 +47,7 @@ HATN_TEST_USING
 
 HDU_UNIT_WITH(simple1,(HDU_BASE(object)),
     HDU_FIELD(f1,TYPE_UINT32,1)
+    HDU_FIELD(f2,TYPE_STRING,2)
 )
 
 HATN_DB_INDEX(idx4,simple1::f1)
@@ -113,6 +114,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
 
         auto o1=makeInitObject<simple1::type>();
         o1.setFieldValue(simple1::f1,100);
+        o1.setFieldValue(simple1::f2,"hi");
         const auto& id=o1.fieldValue(object::_id);
         BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
 
@@ -158,6 +160,10 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK_EQUAL(oid1.toString(),oid2.toString());
         BOOST_CHECK(r2.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r2.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(simple1::f1),100);
+#ifndef HATN_DB_FIX_READ
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(simple1::f2),std::string("hi"));
+#endif
 
         // find object
         auto q3=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,100),topic.topic());

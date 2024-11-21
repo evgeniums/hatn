@@ -27,9 +27,13 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/savesingleindex.h>
 
+#include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
+
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
+        RocksdbHandler& handler,
         const IndexKeySlice& key,
         bool unique,
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
@@ -39,7 +43,6 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
     )
 {
     ROCKSDB_NAMESPACE::Status status;
-    ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
 
     // put index to transaction
     bool put=true;
@@ -47,18 +50,40 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
     {
         if (!replace)
         {
-            HATN_CTX_SCOPE_PUSH("idx_op","merge");
+            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size()-1)};
             put=false;
             std::string bufk;
             ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
+
+//! @todo Log debug
+#if 0
+            std::cout<<"Unique index " << logKey(k) << std::endl;
+#endif
             std::string bufv;
             ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
             status=tx->Merge(cf,k,v);
+            if (status.ok())
+            {
+                auto ropt=handler.p()->readOptions;
+                ROCKSDB_NAMESPACE::PinnableSlice sl;
+                status=tx->Get(ropt,cf,k,&sl);
+            }
+            if (!status.ok() && (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed))
+            {
+                return dbError(DbError::DUPLICATE_UNIQUE_KEY);
+            }
         }
     }
     if (put)
     {
-        HATN_CTX_SCOPE_PUSH("idx_op","put");
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+
+        std::string bufk;
+        ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
+//! @todo Log debug
+#if 0
+        std::cout<<"Not unique index " << logKey(k) << std::endl;
+#endif
         status=tx->Put(cf,keySlices,indexValue);
     }
     if (!status.ok())

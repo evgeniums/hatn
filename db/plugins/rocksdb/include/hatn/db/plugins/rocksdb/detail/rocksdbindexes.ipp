@@ -55,6 +55,7 @@ class Indexes
 
         template <typename IndexT, typename UnitT>
         Error saveIndex(
+            RocksdbHandler& handler,
             const IndexT& idx,
             ROCKSDB_NAMESPACE::Transaction* tx,
             const Topic& topic,
@@ -69,10 +70,16 @@ class Indexes
             // make and handle key
             return m_keys.makeIndexKey(topic,objectId,object,idx,
                 [&](auto&& key){
-                    auto ec=SaveSingleIndex(key,idx.unique(),m_cf,tx,indexValue,replace);
+
+//! @todo Log debug
+#if 0
+                    std::cout<<"Index " << idx.name() << std::endl;
+#endif
+                    auto ec=SaveSingleIndex(handler,key,idx.unique(),m_cf,tx,indexValue,replace);
                     if (ec)
-                    {
+                    {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                        HATN_CTX_SCOPE_LOCK()
                     }
                     return ec;
                 });
@@ -80,6 +87,7 @@ class Indexes
 
         template <typename ModelT, typename UnitT>
         Error saveIndexes(
+                RocksdbHandler& handler,
                 ROCKSDB_NAMESPACE::Transaction* tx,
                 const ModelT& model,
                 const Topic& topic,
@@ -94,7 +102,7 @@ class Indexes
             auto self=this;
             auto eachIndex=[&,self](auto&& idx, auto&&)
             {
-                return self->saveIndex(idx,tx,topic,objectId,indexValue,object,replace);
+                return self->saveIndex(handler,idx,tx,topic,objectId,indexValue,object,replace);
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }
@@ -121,6 +129,7 @@ class Indexes
                                            if (!status.ok())
                                            {
                                                HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
+                                               HATN_CTX_SCOPE_LOCK()
                                                return makeError(DbError::DELETE_INDEX_FAILED,status);
                                            }
 

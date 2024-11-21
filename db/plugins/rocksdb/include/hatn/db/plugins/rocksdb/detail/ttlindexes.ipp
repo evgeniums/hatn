@@ -200,7 +200,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             if (!status.ok())
             {
                 HATN_CTX_SCOPE_ERROR("tx-ttl-index");
-                setRocksdbError(ec,DbError::SAVE_TTL_INDEX_FAILED,status);
+                copyRocksdbError(ec,DbError::SAVE_TTL_INDEX_FAILED,status);
             }
         }
     }
@@ -219,7 +219,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("tx-ttl-index");
-            setRocksdbError(ec,DbError::DELETE_TTL_INDEX_FAILED,status);
+            copyRocksdbError(ec,DbError::DELETE_TTL_INDEX_FAILED,status);
         }
     }
 

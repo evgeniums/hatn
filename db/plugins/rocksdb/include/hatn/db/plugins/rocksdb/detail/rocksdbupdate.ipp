@@ -197,7 +197,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 auto status=rdbTx->Delete(indexCf,keySlices);
                 if (!status.ok())
                 {
-                    HATN_CTX_SCOPE_PUSH("idx_key",oldKey.keyStringView());
+                    HATN_CTX_SCOPE_PUSH("idx_name",oldKey.indexName);
                     return makeError(DbError::DELETE_INDEX_FAILED,status);
                 }
             }
@@ -214,10 +214,11 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 if (!newKey.exists)
                 {
                     // save new key
-                    ec=SaveSingleIndex(newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
+                    ec=SaveSingleIndex(handler,newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
                     if (ec)
                     {
-                        HATN_CTX_SCOPE_PUSH("idx_key",newKey.keyStringView());
+                        HATN_CTX_SCOPE_PUSH("idx_name",newKey.indexName)
+                        HATN_CTX_SCOPE_LOCK()
                         return ec;
                     }
                 }

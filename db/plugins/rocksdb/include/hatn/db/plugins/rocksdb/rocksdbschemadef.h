@@ -63,6 +63,9 @@ constexpr static const char EmptyCharC=0x2;
 constexpr static const char* EmptyChar=&EmptyCharC;
 constexpr lib::string_view EmptyCharStr{EmptyChar,1};
 
+constexpr static const char SpaceCharC=32;
+constexpr static const char BackSlashCharC=92;
+
 HATN_ROCKSDB_NAMESPACE_END
 
 #endif // HATNROCKSDBSCHEMADEF_H

@@ -111,7 +111,7 @@ Error CreateObjectT::operator ()(
         // put indexes to transaction
         auto indexValueSlices=Keys::indexValueSlices(objectKeyFull);
         Indexes indexes{partition->indexCf.get(),keys};
-        ec=indexes.saveIndexes(rdbTx,model,topic,objectIdS,indexValueSlices,obj);
+        ec=indexes.saveIndexes(handler,rdbTx,model,topic,objectIdS,indexValueSlices,obj);
         HATN_CHECK_EC(ec)
 
         // put ttl index to transaction

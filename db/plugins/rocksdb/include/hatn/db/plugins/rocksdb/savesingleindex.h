@@ -27,7 +27,10 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+class RocksdbHandler;
+
 Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
+        RocksdbHandler& handler,
         const IndexKeySlice& key,
         bool unique,
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,

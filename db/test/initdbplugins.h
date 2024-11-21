@@ -25,6 +25,11 @@
 #include <hatn/db/dbplugin.h>
 #include <hatn/test/pluginlist.h>
 
+//! @todo Fix Read with MSVC debug
+#ifdef _MSC_VER
+#define HATN_DB_FIX_READ
+#endif
+
 HATN_TEST_NAMESPACE_BEGIN
 
 struct DbTestTraits

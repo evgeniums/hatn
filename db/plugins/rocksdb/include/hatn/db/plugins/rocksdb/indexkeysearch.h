@@ -119,7 +119,8 @@ struct IndexKeyCompare
             }
         }
 
-        return false;
+        // compare full keys
+        return l.key<r.key;
     }
 
     const ModelIndexQuery* idxQuery;

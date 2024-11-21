@@ -36,12 +36,14 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 struct IndexKeyUpdate
 {
+    lib::string_view indexName;
+
     IndexKeySlice key;
     bool exists;
     bool unique;
 
-    IndexKeyUpdate(IndexKeySlice key)
-        : key(key),exists(false),unique(false)
+    IndexKeyUpdate(const std::string& indexName, IndexKeySlice key)
+        : indexName(indexName),key(key),exists(false),unique(false)
     {}
 
     bool operator < (const IndexKeyUpdate& other) const noexcept
@@ -84,10 +86,9 @@ struct IndexKeyUpdate
         return false;
     }
 
-    lib::string_view keyStringView() const noexcept
+    ROCKSDB_NAMESPACE::Slice keySlice() const noexcept
     {
-        const auto& k=key[0];
-        return lib::string_view{k.data(),k.size()};
+        return key[0];
     }
 };
 

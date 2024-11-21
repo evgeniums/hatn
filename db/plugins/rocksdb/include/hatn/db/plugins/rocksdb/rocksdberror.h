@@ -76,10 +76,9 @@ class RocksdbError : public common::NativeError
 
 std::shared_ptr<common::NativeError> HATN_ROCKSDB_SCHEMA_EXPORT makeRocksdbError(const ROCKSDB_NAMESPACE::Status& status);
 
-inline void setRocksdbError(Error& ec, db::DbError code, const ROCKSDB_NAMESPACE::Status& status)
+inline void copyRocksdbError(Error& ec, db::DbError code, const ROCKSDB_NAMESPACE::Status& status)
 {
-    HATN_CTX_IF()
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
+    HATN_CTX_SCOPE_LOCK()
 
     ec.setNative(code,makeRocksdbError(status));
 }

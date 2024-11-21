@@ -86,6 +86,12 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
         return dbError(DbError::TX_BEGIN_FAILED);
     }
 
+
+    //! @todo Figure out what to do with transaction options
+    ROCKSDB_NAMESPACE::WriteOptions wopt;
+    wopt.sync=true;
+    rocksdbTx.m_native->SetWriteOptions(wopt);
+
     // invoke transaction
     auto ec=fn(&rocksdbTx);
     if (ec)
@@ -101,7 +107,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
         auto status=rocksdbTx.m_native->Commit();
         if (!status.ok())
         {
-            setRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
+            copyRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
         }
     }
     return ec;

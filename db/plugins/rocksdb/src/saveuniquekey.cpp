@@ -23,10 +23,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-namespace {
-static thread_local Error Ec;
-}
-
 //---------------------------------------------------------------
 
 bool SaveUniqueKey::Merge(
@@ -36,17 +32,10 @@ bool SaveUniqueKey::Merge(
     std::string* new_value,
     ROCKSDB_NAMESPACE::Logger*) const
 {
-    RocksdbOpError::resetEc();
     if (existing_value!=nullptr && !TtlMark::isExpired(*existing_value))
-    {        
-        HATN_CTX_SCOPE("saveuniquekey")
-        auto k=common::lib::string_view{key.data(),key.size()};
-        HATN_CTX_SCOPE_PUSH("unique_key",k);
-        HATN_CTX_SCOPE_ERROR("duplicate-key");
-        RocksdbOpError::setEc(dbError(DbError::DUPLICATE_UNIQUE_KEY));
+    {
         return false;
     }
-
     *new_value=std::string{value.data(),value.size()};
     return true;
 }

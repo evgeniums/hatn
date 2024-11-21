@@ -103,11 +103,14 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
             // get object from rocksdb            
             auto k=Keys::objectKeyFromIndexValue(key.value.data(),key.value.size());
 
+//! @todo Log debug
+#if 0
+            std::cout<<"Find: index key "<< logKey(key.key)<<" object key " << logKey(k) << std::endl;
+#endif
             auto pushLogKey=[&k,&key]()
             {
-                //! @todo Fix index formatting for logging
-                HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(k))
-                HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(key.key))
+                HATN_CTX_SCOPE_PUSH("obj_key",lib::toStringView(logKey(k)))
+                HATN_CTX_SCOPE_PUSH("idx_key",lib::toStringView(logKey(key.key)))
                 if (!key.partition->range.isNull())
                 {
                     HATN_CTX_SCOPE_PUSH("db_partition",key.partition->range)
@@ -162,6 +165,10 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
                 return ec;
             }
 
+//! @todo Log debug
+#if 0
+            std::cout<<"Find: object appended to result" << std::endl;
+#endif
             // emplace wrapped unit to result vector
             objects.emplace_back(sharedUnit);
         }

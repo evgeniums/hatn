@@ -139,7 +139,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
     auto status = rocksdb::DestroyDB(d->cfg.config().field(rocksdb_config::dbpath).c_str(),options);
     if (!status.ok())
     {
-        setRocksdbError(ec,DbError::DB_DESTROY_FAILED,status);
+        copyRocksdbError(ec,DbError::DB_DESTROY_FAILED,status);
     }
 
     // done
@@ -184,7 +184,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
-    indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();        
+    indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     options.create_if_missing = createIfMissing;
 
@@ -202,7 +202,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         if (!createNew)
         {
             HATN_CTX_SCOPE_ERROR("list-column-families")
-            setRocksdbError(ec,DbError::PARTITION_LIST_FAILED,status);
+            copyRocksdbError(ec,DbError::PARTITION_LIST_FAILED,status);
             return;
         }
     }
@@ -265,12 +265,12 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         if (createNew)
         {
             HATN_CTX_SCOPE_ERROR("create-db")
-            setRocksdbError(ec,DbError::DB_CREATE_FAILED,status);
+            copyRocksdbError(ec,DbError::DB_CREATE_FAILED,status);
         }
         else
         {
             HATN_CTX_SCOPE_ERROR("open-db")
-            setRocksdbError(ec,DbError::DB_OPEN_FAILED,status);
+            copyRocksdbError(ec,DbError::DB_OPEN_FAILED,status);
         }
         return;
     }
@@ -416,7 +416,7 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         // check status
         if (!status.ok())
         {
-            setRocksdbError(ec,DbError::DB_CLOSE_FAILED,status);
+            copyRocksdbError(ec,DbError::DB_CLOSE_FAILED,status);
         }
 
         // done
@@ -535,7 +535,12 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& top
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readObject(*d->handler,topic,id,tx,forUpdate);
+    auto r=rdbModel->readObject(*d->handler,topic,id,tx,forUpdate);
+    HATN_CHECK_RESULT(r)
+
+    std::cout << "RocksdbClient::doRead: " << r.value()->toString(true) << std::endl;
+
+    return r;
 }
 
 //---------------------------------------------------------------

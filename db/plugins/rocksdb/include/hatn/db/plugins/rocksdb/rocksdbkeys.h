@@ -157,4 +157,55 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
 HATN_ROCKSDB_NAMESPACE_END
 
+namespace fmt
+{
+    template <>
+    struct formatter<ROCKSDB_NAMESPACE::Slice> : formatter<string_view>
+    {
+        template <typename FormatContext>
+        auto format(const ROCKSDB_NAMESPACE::Slice& s, FormatContext& ctx) const
+        {
+            auto it=ctx.out();
+            for (size_t i=0;i<s.size();i++)
+            {
+                auto ch=*(s.data()+i);
+                if (ch<=HATN_ROCKSDB_NAMESPACE::SpaceCharC)
+                {
+                    it=format_to(it,"\\{:d}",ch);
+                }
+                else
+                {
+                    it=format_to(it,"{}",ch);
+                }
+            }
+            return it;
+        }
+    };
+}
+
+HATN_ROCKSDB_NAMESPACE_BEGIN
+
+template <typename T>
+inline KeyBuf logKey(const T& key)
+{
+    KeyBuf buf;
+    buf.reserve(key.size()+10);
+    for (size_t i=0;i<key.size();i++)
+    {
+        auto ch=*(key.data()+i);
+        if (ch<SpaceCharC)
+        {
+            buf.push_back(BackSlashCharC);
+            buf.append(std::to_string(ch));
+        }
+        else
+        {
+            buf.push_back(ch);
+        }
+    }
+    return buf;
+}
+
+HATN_ROCKSDB_NAMESPACE_END
+
 #endif // HATNROCKSDBKEYS_H

@@ -353,11 +353,11 @@ Error iterateFieldVariant(
                 {
                     // process next field
                     ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,fromS,toS);
+
+                    // if exact prefix then no more iteration needed
+                    lastKey=seekExactPrefix;
                 }
                 HATN_CHECK_EC(ec)
-
-                // if exact prefix then no more iteration needed
-                lastKey=seekExactPrefix;
             }
 
             // continue iteration
@@ -829,9 +829,9 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 {
     HATN_CTX_SCOPE("indexkeys")
     auto limit=single?1:idxQuery.query.limit();
-
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
-    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory](RocksdbPartition* partition,
+
+    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single](RocksdbPartition* partition,
                                                          const lib::string_view& topic,
                                                          ROCKSDB_NAMESPACE::Slice* key,
                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -842,6 +842,11 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         auto it=keys.insert(IndexKey{key,keyValue,topic,partition,allocatorFactory});
         auto insertedIdx=it.first.index();
 
+//! @todo Log debug
+#if 0
+        std::cout<<"indexKeys found key " << logKey(*key) << " keys.size()="<<keys.size()
+                  << " limit="<<limit<< " single="<<single << std::endl;
+#endif
         // cut keys number to limit
         if (limit!=0 && keys.size()>limit)
         {
@@ -891,6 +896,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     }
 
     // done
+//! @todo Log debug
+#if 0
+    std::cout<<"indexKeys found keys count " << keys.size() << std::endl;
+#endif
     return keys;
 }
 
