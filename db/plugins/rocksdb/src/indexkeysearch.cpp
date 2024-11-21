@@ -350,6 +350,9 @@ Error iterateFieldVariant(
                     {
                         return ec;
                     }
+
+                    // if exact prefix then no more iteration needed
+                    lastKey=seekExactPrefix && field.value.isLast();
                 }
                 else
                 {
