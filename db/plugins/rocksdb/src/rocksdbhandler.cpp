@@ -86,11 +86,11 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
         return dbError(DbError::TX_BEGIN_FAILED);
     }
 
-
     //! @todo Figure out what to do with transaction options
+#if 0
     ROCKSDB_NAMESPACE::WriteOptions wopt;
-    wopt.sync=true;
     rocksdbTx.m_native->SetWriteOptions(wopt);
+#endif
 
     // invoke transaction
     auto ec=fn(&rocksdbTx);
