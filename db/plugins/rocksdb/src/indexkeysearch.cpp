@@ -833,10 +833,18 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     )
 {
     HATN_CTX_SCOPE("indexkeys")
-    auto limit=single?1:idxQuery.query.limit();
+    auto limit = single ? 1 : idxQuery.query.limit();
+    size_t partitionLimit = idxQuery.query.offset() + limit;
+    size_t partitionCount = 0;
+
+    bool skipBeforeOffset=idxQuery.query.offset()!=0 && partitions.size()==1;
+    // bool skipBeforeOffset=false;
+
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
 
-    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single]
+    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single,
+        &partitionCount,partitionLimit,&partitions,skipBeforeOffset
+        ]
         (RocksdbPartition* partition,
          const lib::string_view& topic,
          ROCKSDB_NAMESPACE::Slice* key,
@@ -844,23 +852,40 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
          Error&
         )
     {
+        // skip indexes below offset in case of one partition
+        if (skipBeforeOffset)
+        {
+            if (partitionCount<idxQuery.query.offset())
+            {
+                partitionCount++;
+                return true;
+            }
+        }
+
         // insert found key
         auto it=keys.insert(IndexKey{key,keyValue,topic,partition,idxQuery.query.index()->unique(),allocatorFactory});
         auto insertedIdx=it.first.index();
 
-//! @todo Log debug
-#if 0
-        std::cout<<"indexKeys found key " << logKey(*key) << " keys.size()="<<keys.size()
-                  << " limit="<<limit<< " single="<<single << std::endl;
-#endif
-        // cut keys number to limit
-        if (limit!=0 && keys.size()>limit)
+        if (idxQuery.query.offset()==0)
         {
-            keys.resize(limit);
+            // cut keys number to limit
+            if (limit!=0 && keys.size()>limit)
+            {
+                keys.resize(limit);
 
-            // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
-            // and all next keys will be dropped anyway
-            if (insertedIdx==limit)
+                // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
+                // and all next keys will be dropped anyway
+                if (insertedIdx==limit)
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            // collect offset+limit for each partition to truncate from the head up to the offset later
+            partitionCount++;
+            if (partitionCount==partitionLimit)
             {
                 return false;
             }
@@ -883,6 +908,8 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             HATN_CTX_SCOPE_PUSH("topic",topic.topic())
             HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
+            partitionCount=0;
+
             Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
             auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
                                    cursor.indexRangeFromSlice(),
@@ -900,18 +927,36 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         }
 
         // if query starts with partition field then partitions are altready presorted by that field
-        if (firstFieldPartitioned && keys.size()>=idxQuery.query.limit())
+        if (firstFieldPartitioned && keys.size()>=partitionLimit)
         {
             // break iteration if limit reached
             break;
         }
     }
 
+    // if offset is not zero then cut the keys
+    if (idxQuery.query.offset()!=0)
+    {
+        // remove from the beginning only if there are >1 partitions
+        // because in case of only 1 partition the keys are already skipped
+        if (!skipBeforeOffset)
+        {
+            if (idxQuery.query.offset()>=keys.size())
+            {
+                keys.clear();
+            }
+            else
+            {
+                keys.erase(keys.begin(),keys.begin()+idxQuery.query.offset());
+            }
+        }
+        if (keys.size()>limit)
+        {
+            keys.resize(limit);
+        }
+    }
+
     // done
-//! @todo Log debug
-#if 0
-    std::cout<<"indexKeys found keys count " << keys.size() << std::endl;
-#endif
     return keys;
 }
 

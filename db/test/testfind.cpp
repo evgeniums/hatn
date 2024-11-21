@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
         }
         BOOST_REQUIRE(!ec);
 
-        // find objects with default limit and Asc orering
+        // find objects with default limit and Asc ordering
         auto q1=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,0xaabb),topic1);
         auto r2=client->find(m1_uint32(),q1);
         BOOST_REQUIRE(!r2);
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
         BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
         BOOST_CHECK(r2.value().at(2).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
 
-        // find objects with default limit and Desc orering
+        // find objects with default limit and Desc ordering
         auto q2=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,0xaabb,query::Desc),topic1);
         r2=client->find(m1_uint32(),q2);
         BOOST_REQUIRE(!r2);
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
         BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
         BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
 
-        // find objects with limit and Asc orering
+        // find objects with limit and Asc ordering
         q1.setLimit(2);
         r2=client->find(m1_uint32(),q1);
         BOOST_REQUIRE(!r2);
@@ -281,13 +281,75 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
         BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
         BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
 
-        // find objects with limit and Desc orering
+        // find objects with limit and Desc ordering
         q2.setLimit(2);
         r2=client->find(m1_uint32(),q2);
         BOOST_REQUIRE(!r2);
         BOOST_REQUIRE_EQUAL(r2.value().size(),2);
         BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
         BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_AUTO_TEST_CASE(OffsetAndLimit)
+{
+    init();
+
+    auto s1=initSchema(m1_uint32());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        // fill db with objects
+        uint32_t startVal=1000000;
+        size_t count=50;
+        for (size_t i=0;i<count;i++)
+        {
+            uint32_t val=static_cast<uint32_t>(i+startVal);
+            auto o=makeInitObject<u1_uint32::type>();
+            o.setFieldValue(u1_uint32::f1,val);
+            auto ec=client->create(topic1,m1_uint32(),&o);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // (offset+limit) is below count
+        size_t offset=10;
+        size_t limit=15;
+        auto q3=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,startVal),topic1);
+        q3.setOffset(offset);
+        q3.setLimit(limit);
+        auto r2=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r2);
+        size_t foundCount=limit;
+        BOOST_REQUIRE_EQUAL(r2.value().size(),limit);
+        BOOST_CHECK_EQUAL(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
+        BOOST_CHECK_EQUAL(r2.value().at(foundCount-1).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset+foundCount-1);
+
+        // (offset+limit) is above count
+        offset=count-10;
+        limit=15;
+        q3.setOffset(offset);
+        q3.setLimit(limit);
+        r2=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r2);
+        foundCount=count-offset;
+        BOOST_REQUIRE_EQUAL(r2.value().size(),foundCount);
+        BOOST_CHECK_EQUAL(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
+        BOOST_CHECK_EQUAL(r2.value().at(foundCount-1).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+count-1);
+
+        // offset is above count
+        offset=count+10;
+        limit=15;
+        q3.setOffset(offset);
+        q3.setLimit(limit);
+        r2=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r2);
+        foundCount=0;
+        BOOST_REQUIRE_EQUAL(r2.value().size(),foundCount);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -542,7 +604,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  11. Test nested index fields - done
  *  12. Test compound indexes - done
  *  13. Test repeated field indexes
- *  14. Test query offset
+ *  14. Test query offset - done
  *  15. Test delete with query - done
  *  16. Test find-update-create
  *  17. Test update

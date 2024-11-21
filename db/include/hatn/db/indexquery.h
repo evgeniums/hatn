@@ -92,6 +92,16 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             return m_limit;
         }
 
+        void setOffset(size_t offset) noexcept
+        {
+            m_offset=offset;
+        }
+
+        size_t offset() const noexcept
+        {
+            return m_offset;
+        }
+
         const Topics& topics() const noexcept
         {
             return m_topics;
@@ -120,7 +130,8 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             Topic topic
             ) : m_index(index),
             m_topics({std::move(topic)}),
-            m_limit(DefaultLimit)
+            m_limit(DefaultLimit),
+            m_offset(0)
         {}
 
         IndexQuery(
@@ -129,14 +140,16 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             std::initializer_list<Topic> topics
             ) : m_index(index),
             m_topics(std::move(topics)),
-            m_limit(DefaultLimit)
+            m_limit(DefaultLimit),
+            m_offset(0)
         {}
 
         IndexQuery(
             const IndexInfo* index,
             int
             ) : m_index(index),
-            m_limit(DefaultLimit)
+                m_limit(DefaultLimit),
+                m_offset(0)
         {}
 
         template <typename ...Topics>
@@ -145,7 +158,8 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             int,
             Topics&&... topics
             ) : m_index(index),
-                m_limit(DefaultLimit)
+                m_limit(DefaultLimit),
+                m_offset(0)
         {
             m_topics.beginRawInsert(sizeof...(Topics));
             hana::for_each(
@@ -162,14 +176,22 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         Topics m_topics;
         common::VectorOnStack<query::Field,PreallocatedFieldsCount> m_fields;
         size_t m_limit;
-
-        //! @todo Implement offset.
+        size_t m_offset;
 };
 
 struct ModelIndexQuery
 {
     const IndexQuery& query;
     const std::string& modelIndexId;
+
+    ModelIndexQuery(
+            const IndexQuery& query,
+            const std::string& modelIndexId
+        ) : query(query),
+            modelIndexId(modelIndexId)
+    {
+        Assert(query.offset()==0 || query.limit()!=0,"Query offset can be used only if the limit is not zero");
+    }
 };
 
 template <typename IndexT>
