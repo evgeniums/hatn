@@ -433,6 +433,97 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
     ctx->afterThreadProcessing();
 }
 
+BOOST_AUTO_TEST_CASE(DeleteWithQuery)
+{
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+
+    HATN_CTX_SCOPE("Test UniqueIndex")
+    HATN_CTX_INFO("Test start")
+
+    init();
+
+    auto s1=initSchema(m1_uint32());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Error ec;
+        Topic topic1{"topic1"};
+        uint32_t v0=0;
+        uint32_t v1=100;
+        uint32_t v2=200;
+        uint32_t v3=300;
+
+        // fill db with objects
+        for (size_t i=0;i<50;i++)
+        {
+            size_t offset=v0;
+
+            if (i>=10 && i<20)
+            {
+                offset=v1;
+            }
+            else if (i>=20 && i<30)
+            {
+                offset=v2;
+            }
+            else if (i>=30)
+            {
+                offset=v3;
+            }
+            uint32_t val=static_cast<uint32_t>(i+offset);
+
+            auto o=makeInitObject<u1_uint32::type>();
+            o.setFieldValue(u1_uint32::f1,val);
+            ec=client->create(topic1,m1_uint32(),&o);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // check objects
+        auto q1=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::in,query::makeInterval(v0,v1)),topic1);
+        auto r1=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),10);
+        auto q2=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::in,query::makeInterval(v1,v2)),topic1);
+        auto r2=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),10);
+        auto q3=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::in,query::makeInterval(v2,v3)),topic1);
+        auto r3=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),10);
+        auto q4=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,v3),topic1);
+        auto r4=client->find(m1_uint32(),q4);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),20);
+
+        // delete objects
+        ec=client->deleteMany(m1_uint32(),q2);
+        BOOST_REQUIRE(!ec);
+
+        // check objects after delete
+        r1=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),10);
+        r2=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),0);
+        r3=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),10);
+        r4=client->find(m1_uint32(),q4);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),20);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    HATN_CTX_INFO("Test end")
+    ctx->afterThreadProcessing();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
@@ -452,10 +543,11 @@ BOOST_AUTO_TEST_SUITE_END()
  *  12. Test compound indexes - done
  *  13. Test repeated field indexes
  *  14. Test query offset
- *  15. Test delete with query
+ *  15. Test delete with query - done
  *  16. Test find-update-create
  *  17. Test update
  *  18. Test find Null - done
  *  19. Test unique indexes - done
  *  20. Test vectors of intervals
+ *  21. Test transactions
  */
