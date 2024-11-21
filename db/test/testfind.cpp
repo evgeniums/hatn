@@ -349,6 +349,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         if (ec)
         {
             HATN_CTX_ERROR(ec,"expected error 1")
+            HATN_CTX_SCOPE_UNLOCK()
         }
         BOOST_CHECK(ec);
 
@@ -366,6 +367,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         if (ec)
         {
             HATN_CTX_ERROR(ec,"expected error 2")
+            HATN_CTX_SCOPE_UNLOCK()
         }
         BOOST_CHECK(ec);
 

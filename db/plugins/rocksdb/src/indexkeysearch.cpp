@@ -866,7 +866,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     // process all partitions
     for (const auto& partition: partitions)
     {
-        HATN_CTX_SCOPE_PUSH("partition",partition->range)
+        if (!partition->range.isNull())
+        {
+            HATN_CTX_SCOPE_PUSH("partition",partition->range)
+        }
 
         // process all topics
         for (const auto& topic: idxQuery.query.topics())
@@ -885,7 +888,10 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             HATN_CTX_SCOPE_POP()
         }
 
-        HATN_CTX_SCOPE_POP()
+        if (!partition->range.isNull())
+        {
+            HATN_CTX_SCOPE_POP()
+        }
 
         // if query starts with partition field then partitions are altready presorted by that field
         if (firstFieldPartitioned && keys.size()>=idxQuery.query.limit())
