@@ -74,20 +74,6 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        //! @todo Cleanup comments
-        // return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
-
-        // std::cout << "Read result: " << r.value()->toString(true) << std::endl;
-
-        // dataunit::Unit* u=r.value().get();
-        // std::cout << "Read casted unit ptr: " << u->toString(true) << std::endl;
-
-        // auto sp=r.value()->toManagedUnit();
-        // std::cout << "Read casted managed unit: " << sp->toString(true) << std::endl;
-
-        // auto rr=Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{sp};
-        // std::cout << "Read casted result: " << rr.value()->toString(true) << std::endl;
-
         return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
     };
 
@@ -106,7 +92,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
     };
 
     rdbModel->find=[model,allocatorFactory]
@@ -168,7 +154,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
     };
 
     rdbModel->updateObject=[model,allocatorFactory]
@@ -186,7 +172,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
     };
 
     rdbModel->updateMany=[model,allocatorFactory]
@@ -203,7 +189,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
     };
 
     rdbModel->readUpdateCreate=[model,allocatorFactory]
@@ -229,7 +215,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         }
         if (r.value())
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue().template staticCast<dataunit::Unit>()};
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
         }
 
         // create if not found

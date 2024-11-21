@@ -436,8 +436,6 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     HATN_CTX_IF() \
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
 
-//! @todo Fix scope unlocking
-#if 1
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
@@ -445,12 +443,5 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 #define HATN_CTX_SCOPE_UNLOCK() \
     HATN_CTX_IF() \
         HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(false);
-#else
-
-#define HATN_CTX_SCOPE_LOCK()
-
-#define HATN_CTX_SCOPE_UNLOCK()
-
-#endif
 
 #endif // HATNLOGCONTEXT_H
