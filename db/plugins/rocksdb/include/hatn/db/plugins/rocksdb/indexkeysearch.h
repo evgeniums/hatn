@@ -68,6 +68,7 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
         ROCKSDB_NAMESPACE::Slice* v,
         const lib::string_view& topic,
         RocksdbPartition* p,
+        bool unique,
         AllocatorFactory* allocatorFactory
     );
 
@@ -80,7 +81,7 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
 
     private:
 
-        void fillKeyParts(const lib::string_view& topic);
+        void fillKeyParts(const lib::string_view& topic, bool unique);
 };
 
 struct IndexKeyCompare

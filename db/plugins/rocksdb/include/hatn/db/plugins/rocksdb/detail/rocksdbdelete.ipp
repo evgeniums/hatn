@@ -82,7 +82,7 @@ struct DeleteObjectT
         }
 
         // deserialize object
-        thread_local static unitType unit;
+        unitType unit;
         auto objSlice=TtlMark::stripTtlMark(readSlice);
         dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
         Error ec;
@@ -102,13 +102,12 @@ struct DeleteObjectT
             return makeError(DbError::DELETE_OBJECT_FAILED,status);
         }
 
-        // append index deletions to transaction
-        //! @todo Fix index deletion
+        // delete indexes
         Indexes indexes{partition->indexCf.get(),keys};
         ec=indexes.deleteIndexes(rdbTx,model,topic,objectIdS,&unit);
         HATN_CHECK_EC(ec)
 
-        // append ttl index deletion to transaction
+        // delete ttl index
         TtlMark ttlMarkObj{model,&unit};
         auto ttlMark=ttlMarkObj.slice();
         ttlIndexes.deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);

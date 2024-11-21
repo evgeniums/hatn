@@ -56,24 +56,26 @@ IndexKey::IndexKey():partition(nullptr)
 {}
 
 IndexKey::IndexKey(
-    ROCKSDB_NAMESPACE::Slice* k,
-    ROCKSDB_NAMESPACE::Slice* v,
-    const lib::string_view& topic,
-    RocksdbPartition* p,
-    AllocatorFactory* allocatorFactory
+        ROCKSDB_NAMESPACE::Slice* k,
+        ROCKSDB_NAMESPACE::Slice* v,
+        const lib::string_view& topic,
+        RocksdbPartition* p,
+        bool unique,
+        AllocatorFactory* allocatorFactory
     ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
-    value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
-    partition(p),
-    keyParts(allocatorFactory->dataAllocator<lib::string_view>())
+        value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
+        partition(p),
+        keyParts(allocatorFactory->dataAllocator<lib::string_view>())
 {
     keyParts.reserve(8);
-    fillKeyParts(topic);
+    fillKeyParts(topic,unique);
 }
 
-void IndexKey::fillKeyParts(const lib::string_view& topic)
+void IndexKey::fillKeyParts(const lib::string_view& topic, bool unique)
 {
+    size_t size=unique ? key.size() : (key.size()-ObjectId::Length);
     size_t offset=FieldsOffset+topic.size();
-    for (size_t i=offset;i<key.size()-ObjectId::Length;i++)
+    for (size_t i=offset;i<size;i++)
     {
         if (key[i]==SeparatorCharC)
         {
@@ -353,11 +355,11 @@ Error iterateFieldVariant(
                 {
                     // process next field
                     ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,fromS,toS);
-
-                    // if exact prefix then no more iteration needed
-                    lastKey=seekExactPrefix;
                 }
                 HATN_CHECK_EC(ec)
+
+                // if exact prefix then no more iteration needed
+                lastKey=seekExactPrefix;
             }
 
             // continue iteration
@@ -831,15 +833,16 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     auto limit=single?1:idxQuery.query.limit();
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
 
-    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single](RocksdbPartition* partition,
-                                                         const lib::string_view& topic,
-                                                         ROCKSDB_NAMESPACE::Slice* key,
-                                                         ROCKSDB_NAMESPACE::Slice* keyValue,
-                                                         Error&
-                                                       )
+    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single]
+        (RocksdbPartition* partition,
+         const lib::string_view& topic,
+         ROCKSDB_NAMESPACE::Slice* key,
+         ROCKSDB_NAMESPACE::Slice* keyValue,
+         Error&
+        )
     {
         // insert found key
-        auto it=keys.insert(IndexKey{key,keyValue,topic,partition,allocatorFactory});
+        auto it=keys.insert(IndexKey{key,keyValue,topic,partition,idxQuery.query.index()->unique(),allocatorFactory});
         auto insertedIdx=it.first.index();
 
 //! @todo Log debug

@@ -122,7 +122,8 @@ class Indexes
             return m_keys.makeIndexKey(topic,objectId,object,idx,
                                        [&](auto&& key){
 
-                                           ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+                                           size_t slicesCount=idx.unique()?key.size()-1:key.size();
+                                           ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(slicesCount)};
 
                                            // put op to transaction
                                            auto status=tx->Delete(m_cf,keySlices);

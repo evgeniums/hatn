@@ -97,14 +97,14 @@ void fillDbForFind(
 #if 1
     auto totalCount=Count*extSetter.iterCount();
 
-    // check if all objects are written, using less than Last
+    HATN_CTX_INFO("check if all objects are written, using less than Last")
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lte,query::Last),topic);
     q1.setLimit(0);
     auto r1=client->find(model,q1);
     BOOST_REQUIRE(!r1);
     BOOST_REQUIRE_EQUAL(r1.value().size(),totalCount);
 
-    // check if all objects are written, using gt than First and reverse order
+    HATN_CTX_INFO("check if all objects are written, using gt than First and reverse order")
     auto q2=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First,query::Order::Desc),topic);
     q2.setLimit(0);
     auto r2=client->find(model,q2);
@@ -163,9 +163,11 @@ void invokeDbFind(
     FieldsT&&... fields
     )
 {
+    HATN_CTX_INFO("invoke db find")
+
     auto qField=field(std::forward<FieldsT>(fields)...);
 
-    // fill db with objects
+    // find objects
     for (size_t i=0;i<valIndexes.size();i++)
     {
         auto idx=valIndexes[i];
@@ -194,13 +196,20 @@ Topic topic()
 template <typename ModelT>
 void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
 {
+    HATN_CTX_INFO("clear topic")
+
     auto q=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First),topic());
     q.setLimit(0);
     auto ec=client->deleteMany(m,q);
     BOOST_CHECK(!ec);
+
+    HATN_CTX_INFO("check find after clear")
+
     auto r=client->find(m,q);
     BOOST_REQUIRE(!r);
     BOOST_REQUIRE_EQUAL(r.value().size(),0);
+
+    HATN_CTX_INFO("clear topic done")
 }
 
 template <typename QueryGenT, typename CheckerT, typename ExtSetterT=ExtSetter>
@@ -235,6 +244,7 @@ struct InvokeTestT
                      queryGen,
                      checker,
                      fields...);
+
         clearTopic(client,model);
 
         BOOST_TEST_MESSAGE("End test");
