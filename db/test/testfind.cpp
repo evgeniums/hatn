@@ -334,9 +334,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         BOOST_REQUIRE(!r0);
         BOOST_TEST_MESSAGE(fmt::format("Read o0: {}", r0.value()->toString(true)));
         BOOST_CHECK(r0.value()->fieldValue(object::_id)==o1.fieldValue(object::_id));
-#ifndef HATN_DB_FIX_READ
         BOOST_CHECK_EQUAL(r0.value()->fieldValue(u1_str::f2),str2);
-#endif
         HATN_CTX_INFO("find objects by not unique field 1")
         auto r1=client->find(m1_str(),q0);
         BOOST_REQUIRE(!r1);
@@ -393,9 +391,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         BOOST_REQUIRE(!r2);
         BOOST_TEST_MESSAGE(fmt::format("Read o3: {}", r2.value()->toString(true)));
         BOOST_CHECK(r2.value()->fieldValue(object::_id)==o3.fieldValue(object::_id));
-#ifndef HATN_DB_FIX_READ
         BOOST_CHECK_EQUAL(r2.value()->fieldValue(u1_str::f2),str2);
-#endif
 
         HATN_CTX_INFO("find objects by not unique field 4")
         r1=client->find(m1_str(),q0);

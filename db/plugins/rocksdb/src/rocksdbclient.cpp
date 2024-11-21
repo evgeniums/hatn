@@ -535,12 +535,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& top
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->readObject(*d->handler,topic,id,tx,forUpdate);
-    HATN_CHECK_RESULT(r)
-
-    std::cout << "RocksdbClient::doRead: " << r.value()->toString(true) << std::endl;
-
-    return r;
+    return rdbModel->readObject(*d->handler,topic,id,tx,forUpdate);
 }
 
 //---------------------------------------------------------------

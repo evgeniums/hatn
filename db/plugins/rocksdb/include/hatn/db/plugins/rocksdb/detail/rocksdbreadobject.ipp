@@ -82,10 +82,10 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
     }
 
     // construct key
-    Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
-    auto key=keys.objectKeySolid(objKeyVal);
+    auto [objKeyVal,_]=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
+    KeyBuf keyBuf;
+    auto key=Keys::objectKeySolid(keyBuf,objKeyVal);
 
     // read object from db
     auto rdb=handler.p()->db;
@@ -141,12 +141,6 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         HATN_CTX_SCOPE_ERROR("deserialize");
         return ec;
     }
-//! @todo Log debug
-#if 0
-    std::cout << "Read object: " << obj->toString(true) << std::endl;
-    auto rr=common::SharedPtr<dataunit::Unit>(obj);
-    std::cout << "Read casted object: " << rr->toString(true) << std::endl;
-#endif
 
     // done
     return obj;

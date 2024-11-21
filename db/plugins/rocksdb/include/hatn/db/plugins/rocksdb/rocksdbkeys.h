@@ -71,7 +71,12 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
         template <size_t Size>
         ROCKSDB_NAMESPACE::Slice objectKeySolid(const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts)
         {
-            auto& buf=addBuf();
+            return objectKeySolid(addBuf(),parts);
+        }
+
+        template <typename BufT, size_t Size>
+        static ROCKSDB_NAMESPACE::Slice objectKeySolid(BufT& buf, const std::array<ROCKSDB_NAMESPACE::Slice,Size>& parts)
+        {
             for (size_t i=1;i<ObjectKeySliceCount+1;i++)
             {
                 const auto& p=parts[i];
