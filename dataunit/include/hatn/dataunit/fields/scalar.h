@@ -278,7 +278,7 @@ class Scalar : public Field
         template <typename T>
         inline void setVal(const T &val) noexcept
         {
-            m_value=static_cast<decltype(m_value)>(val);
+            set(static_cast<decltype(m_value)>(val));
         }
         template <typename T1>
         inline void getVal(T1 &val) const noexcept
@@ -289,6 +289,7 @@ class Scalar : public Field
         template <typename T1>
         inline void incVal(const T1 &val) noexcept
         {
+            this->markSet();
             m_value=static_cast<decltype(m_value)>(m_value+val);
         }
 
