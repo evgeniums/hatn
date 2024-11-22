@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(Bytes)
     checkOtherFields(o,FieldBytes);
     o.reset();
 
-    common::VectorOnStack v3;
+    common::VectorOnStack<char> v3;
     v3.append(val);
     update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v3)));
     BOOST_CHECK(o.field(FieldBytes).isSet());
