@@ -32,6 +32,14 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
+template <typename T>
+using VectorT=query::VectorT<T>;
+
+using VectorString=query::VectorString;
+
+template <typename T>
+using Vector=query::Vector<T>;
+
 #define HATN_DB_UPDATE_VALUE_TYPES(DO) \
     DO(bool), \
     DO(int8_t), \
@@ -68,7 +76,7 @@ HATN_DB_NAMESPACE_BEGIN
 
 #define HATN_DB_UPDATE_VALUE_TYPE(Type) \
     Type, \
-    common::pmr::vector<Type>
+    Vector<Type>
 
 #define HATN_DB_UPDATE_VALUE_TYPE_ID(Type) \
     Type, \
@@ -102,8 +110,6 @@ enum class ValueType : uint8_t
 };
 
 using Operand=query::ValueT<ValueVariant,ValueType>;
-
-using FieldInfo=IndexFieldInfo;
 
 struct Field
 {
@@ -145,7 +151,10 @@ struct Field
     Operand value;
 };
 
-using Request=common::pmr::vector<Field>;
+constexpr const size_t PreallocatedOpsCount=8;
+using FieldsVector=common::VectorOnStack<Field,PreallocatedOpsCount>;
+
+using Request=FieldsVector;
 
 enum class ModifyReturn : int
 {

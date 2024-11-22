@@ -10,7 +10,7 @@
 
 /** @file db/index.h
   *
-  * Contains helpers for definition od database indexes.
+  * Contains helpers for definition of database model indexes.
   *
   */
 
@@ -28,12 +28,11 @@
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/datetime.h>
 
-#include <hatn/validator/utils/foreach_if.hpp>
-
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/object.h>
+#include <hatn/db/field.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -46,220 +45,8 @@ HDU_UNIT_WITH(index,(HDU_BASE(object)),
     HDU_FIELD(ttl,TYPE_UINT32,7)
 )
 
-struct NestedFieldTag{};
+using IndexFieldInfo=FieldInfo;
 
-template <typename PathT>
-struct NestedField
-{
-    using hana_tag=NestedFieldTag;
-
-    constexpr static const PathT path{};
-    using Type=typename std::decay_t<decltype(hana::back(path))>::Type;
-
-    static std::string name()
-    {
-        auto fillName=[]()
-        {
-            common::FmtAllocatedBufferChar buf;
-            auto handler=[&buf](auto&& field, auto&& idx)
-            {
-                if (idx.value==0)
-                {
-                    fmt::format_to(std::back_inserter(buf),"{}",field.name());
-                }
-                else
-                {
-                    fmt::format_to(std::back_inserter(buf),"__{}",field.name());
-                }
-                return true;
-            };
-            HATN_VALIDATOR_NAMESPACE::foreach_if(path,HATN_DATAUNIT_META_NAMESPACE::true_predicate,handler);
-            return common::fmtBufToString(buf);
-        };
-
-        static std::string str=fillName();
-        return str;
-    }
-
-    constexpr static int id()
-    {
-        return -1;
-    }
-};
-
-struct nestedFieldT
-{
-    template <typename ...PathT>
-    constexpr auto operator()(PathT ...path) const
-    {
-        return NestedField<decltype(hana::make_tuple(path...))>{};
-    }
-};
-constexpr nestedFieldT nestedField{};
-constexpr nestedFieldT nested{};
-
-struct AutoSizeTag{};
-
-struct AutoSizeT
-{
-    using hana_tag=AutoSizeTag;
-};
-constexpr AutoSizeT AutoSize{};
-
-struct IndexFieldTag{};
-
-using NotNullT=hana::false_;
-constexpr NotNullT NotNull{};
-
-using NullableT=hana::true_;
-constexpr NullableT Nullable{};
-
-namespace detail {
-
-template <typename T, typename LengthT>
-struct IndexFieldHelper
-{
-    static constexpr size_t size=LengthT::value;
-};
-
-template <typename T>
-struct IndexFieldHelper<T,AutoSizeT>
-{
-    using maxSize=typename T::maxSize;
-    static constexpr size_t size=maxSize::value;
-};
-
-}
-
-template <typename FieldT, typename LengthT=AutoSizeT, typename NullableT=NotNullT>
-struct IndexField
-{
-    using hana_tag=IndexFieldTag;
-
-    using field_type=FieldT;
-    using Type=typename std::decay_t<field_type>::Type;
-
-    constexpr static const field_type field{};
-
-    constexpr static size_t length() noexcept
-    {
-        return detail::IndexFieldHelper<Type,LengthT>::size;
-    }
-
-    constexpr static bool nullable() noexcept
-    {
-        return NullableT::value;
-    }
-
-    static auto name()
-    {
-        return std::decay_t<field_type>::name();
-    }
-
-    static auto id()
-    {
-        return std::decay_t<field_type>::id();
-    }
-};
-
-struct indexFieldT
-{
-    template <typename FieldT, typename LengthT, typename NullableT>
-    constexpr static auto create(FieldT, LengthT, NullableT)
-    {
-        return IndexField<FieldT,std::decay_t<LengthT>,std::decay_t<NullableT>>{};
-    }
-
-    template <typename FieldT, typename LengthT, typename NullableT>
-    constexpr auto operator()(FieldT f, LengthT l, NullableT n) const
-    {
-        return create(f,l,n);
-    }
-
-    template <typename FieldT, typename LengthT>
-    constexpr auto operator()(FieldT f, LengthT l) const
-    {
-        return create(f,l,NotNull);
-    }
-
-    template <typename FieldT>
-    constexpr auto operator()(FieldT f) const
-    {
-        return create(f,AutoSize,NotNull);
-    }
-};
-constexpr indexFieldT indexField{};
-
-class IndexFieldInfo
-{
-    public:
-
-        IndexFieldInfo(std::string name, int id, bool nullable=false)
-            : m_name(std::move(name)),
-              m_id(id),
-              m_nested(false),
-              m_nullable(nullable)
-        {
-            boost::split(m_path,name,boost::is_any_of("."));
-        }
-
-        template <typename FieldT>
-        explicit IndexFieldInfo(const FieldT& field, bool nullable=false)
-            : IndexFieldInfo(field.name(),field.id(),nullable)
-        {}
-
-        const std::string& name() const noexcept
-        {
-            return m_name;
-        }
-
-        //! @note ID of index outside model is empty
-        int id() const noexcept
-        {
-            return m_id;
-        }
-
-        bool nested() const noexcept
-        {
-            return m_nested;
-        }
-
-        bool nullable() const noexcept
-        {
-            return m_nullable;
-        }
-
-        const std::vector<std::string>& path() const noexcept
-        {
-            return m_path;
-        }
-
-    private:
-
-        std::string m_name;
-        int m_id;
-        bool m_nested;
-        bool m_nullable;
-        std::vector<std::string> m_path;
-};
-
-struct fieldT
-{
-    template <typename FieldT>
-    auto operator() (FieldT&& field) const -> decltype(auto)
-    {
-        return hana::id(std::forward<FieldT>(field));
-    }
-
-    template <typename ...FieldsT>
-    auto operator() (FieldsT&&... fields) const
-    {
-        return nestedField(std::forward<FieldsT>(fields)...);
-    }
-};
-constexpr fieldT field{};
-
-#define HDB_LENGTH(l) hana::size_t<l>{}
 #define HDB_TTL(ttl) hana::uint<ttl>
 
 using Unique=hana::true_;
@@ -314,6 +101,7 @@ class IndexBase
             return m_name;
         }
 
+        //! @note ID of index outside model is empty
         const std::string& id() const noexcept
         {
             return m_id;
@@ -345,18 +133,7 @@ auto makeIndexFieldInfos(Fields&& fs)
         hana::make_tuple(),
         [](auto&& finfs, auto&& field)
         {
-            bool nullable=hana::eval_if(
-                hana::is_a<IndexFieldTag,decltype(field)>,
-                [&](auto _)
-                {
-                    return _(field).nullable();
-                },
-                [](auto)
-                {
-                    return false;
-                }
-                );
-            return hana::append(finfs,IndexFieldInfo{field,nullable});
+            return hana::append(finfs,IndexFieldInfo{field});
         }
     );
 }
@@ -398,19 +175,7 @@ class IndexInfo : public IndexBase
         {
             auto eachField=[this](const auto& field)
             {
-                bool nullable=hana::eval_if(
-                    hana::is_a<IndexFieldTag,decltype(field)>,
-                    [&](auto _)
-                    {
-                        return _(field).nullable();
-                    },
-                    [&](auto)
-                    {
-                        return false;
-                    }
-                    );
-                auto f=IndexFieldInfo{field,nullable};
-                m_fields.push_back(std::move(f));
+                m_fields.emplace_back(field);
             };
             hana::for_each(idx.fields,eachField);
         }
@@ -564,7 +329,7 @@ struct makeIndexT
             hana::or_(
                 hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,decltype(lastArg)>,
                 hana::is_a<NestedFieldTag,decltype(lastArg)>,
-                hana::is_a<IndexFieldTag,decltype(lastArg)>
+                hana::is_a<FieldTag,decltype(lastArg)>
             ),
             [&](auto _)
             {
@@ -652,7 +417,7 @@ struct getIndexFieldT
             [&](auto)
             {
                 return hana::eval_if(
-                    hana::is_a<IndexFieldTag,FieldT>,
+                    hana::is_a<FieldTag,FieldT>,
                     [&](auto _)
                     {
                         return getIndexFieldT::invoke(_(unit),_(field).field);

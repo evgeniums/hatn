@@ -9,6 +9,7 @@ SET (HEADERS
     include/hatn/db/objectid.h
     include/hatn/db/topic.h
     include/hatn/db/client.h
+    include/hatn/db/field.h
     include/hatn/db/index.h
     include/hatn/db/model.h
     include/hatn/db/schema.h

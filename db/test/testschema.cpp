@@ -109,26 +109,6 @@ BOOST_AUTO_TEST_CASE(MakeIndexQuery)
     BOOST_CHECK_EQUAL(q4.fields().size(),1);
 }
 
-BOOST_AUTO_TEST_CASE(IndexField)
-{
-    static_assert(decltype(hana::is_a<AutoSizeTag,AutoSizeT>)::value,"");
-
-    auto if1=indexField(nu1::f2);
-    static_assert(decltype(if1)::length()==4,"");
-    static_assert(!decltype(if1)::nullable(),"");
-    BOOST_CHECK_EQUAL(if1.length(),4);
-
-    auto if2=indexField(nu1::f2,HDB_LENGTH(8));
-    static_assert(decltype(if2)::length()==8,"");
-    static_assert(!decltype(if2)::nullable(),"");
-    BOOST_CHECK_EQUAL(if2.length(),8);
-
-    auto if3=indexField(nu1::f2,AutoSize,Nullable);
-    static_assert(decltype(if3)::length()==4,"");
-    static_assert(decltype(if3)::nullable(),"");
-    BOOST_CHECK_EQUAL(if3.length(),4);
-}
-
 BOOST_AUTO_TEST_CASE(MakeIndex)
 {
     ModelRegistry::free();
@@ -158,10 +138,6 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::_id);
     BOOST_CHECK(!idx4.unique());
     BOOST_CHECK(idx4.isDatePartitioned());
-
-    auto idx5=makeIndex(IndexConfig<NotUnique,DatePartition>{},indexField(object::_id));
-    BOOST_CHECK(!idx5.unique());
-    BOOST_CHECK(idx5.isDatePartitioned());
 
     auto idx6=makeIndex(object::created_at,object::updated_at);
     BOOST_CHECK_EQUAL(idx6.name(),"idx_created_at_updated_at");
@@ -211,7 +187,7 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     auto model3=unitModel<n1::TYPE>(ModelConfig{"object_collection2"});
     BOOST_CHECK_EQUAL(model3.modelId(),3528016721);
 
-    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},indexField(object::created_at));
+    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
     auto model4=unitModel<object::TYPE>(ModelConfig{"object_collection3"},idx1,idx4,idx3);
     BOOST_CHECK_EQUAL(model4.modelId(),3432328208);
     BOOST_CHECK(model4.isDatePartitioned());
@@ -233,11 +209,11 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
 
     auto nestedField1=nestedField(nu1::nf1,n1::f1);
 
-    constexpr auto isField=hana::or_(hana::is_a<FieldTag,decltype(nestedField1)>,hana::is_a<NestedFieldTag,decltype(nestedField1)>);
+    constexpr auto isField=hana::or_(hana::is_a<db::FieldTag,decltype(nestedField1)>,hana::is_a<NestedFieldTag,decltype(nestedField1)>);
     static_assert(decltype(isField)::value,"");
     auto ft=hana::make_tuple(nestedField1);
     const auto& lastArg=hana::back(ft);
-    constexpr auto isBackField=hana::or_(hana::is_a<FieldTag,decltype(lastArg)>,hana::is_a<NestedFieldTag,decltype(lastArg)>);
+    constexpr auto isBackField=hana::or_(hana::is_a<db::FieldTag,decltype(lastArg)>,hana::is_a<NestedFieldTag,decltype(lastArg)>);
     static_assert(decltype(isBackField)::value,"");
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
@@ -256,7 +232,7 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     BOOST_REQUIRE(partitionRange1.isValid());
     BOOST_CHECK_EQUAL(partitionRange1.value(),32024006);
 
-    auto finf=update::FieldInfo{nestedField(nu1::nf1,n1::f1)};
+    auto finf=FieldInfo{nestedField(nu1::nf1,n1::f1)};
     std::ignore=update::Request{
         {finf,update::Operator::set,common::DateTime::currentUtc()}
     };

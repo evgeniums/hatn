@@ -21,6 +21,8 @@
 #ifndef HATNUPDATEUNIT_IPP
 #define HATNUPDATEUNIT_IPP
 
+#include <hatn/common/stdwrappers.h>
+
 #include <hatn/dataunit/unit.h>
 
 #include <hatn/db/update.h>
@@ -41,9 +43,25 @@ struct FieldVisitorT
     }
 
     template <typename T>
-    Error operator()(const common::pmr::vector<T>& val) const
+    void handleVector(const T& val) const
     {
-        vectorFn(val);
+        auto vis=[this](const auto& vec)
+        {
+            vectorFn(vec.get());
+        };
+        lib::variantVisit(vis,val);
+    }
+
+    template <typename T>
+    Error operator()(const VectorT<T>& val) const
+    {
+        handleVector(val);
+        return OK;
+    }
+
+    Error operator()(const VectorString& val) const
+    {
+        handleVector(val);
         return OK;
     }
 

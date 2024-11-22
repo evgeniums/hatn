@@ -17,6 +17,7 @@
 // HATN_TEST_SUITE TestFindEmbedded
 // HATN_TEST_SUITE TestFindCompound
 // HATN_TEST_SUITE TestFindCompound2
+// HATN_TEST_SUITE TestUpdate
 
 #include <boost/test/unit_test.hpp>
 
