@@ -42,6 +42,8 @@
 
 HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
+//! @todo Move to common lib
+
 struct true_predicate_t
 {
     template <typename T>
