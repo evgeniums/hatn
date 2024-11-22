@@ -256,6 +256,30 @@ BOOST_AUTO_TEST_CASE(FloatingPoint)
     checkScalar(FieldDouble,double(1000.105));
 }
 
+BOOST_AUTO_TEST_CASE(MultipleFields)
+{
+    plain::type o;
+
+    auto checkScalar=[&o](const auto& field1, auto val1, const auto& field2, auto val2)
+    {
+        update::applyRequest(&o,update::request(
+                                    update::field(field1,update::set,val1),
+                                    update::field(field2,update::inc,val2)
+                                )
+                             );
+        BOOST_CHECK_EQUAL(o.fieldValue(field1),val1);
+        BOOST_CHECK(o.field(field1).isSet());
+        BOOST_CHECK_EQUAL(o.fieldValue(field2),val2);
+        BOOST_CHECK(o.field(field2).isSet());
+        o.reset();
+    };
+
+    checkScalar(FieldInt8,int8_t(0xaa),FieldInt16,int16_t(0xaabb));
+    checkScalar(FieldInt32,int32_t(0xaabbcc),FieldInt64,int64_t(0xaabbccddee));
+    checkScalar(FieldUInt8,uint8_t(0xaa),FieldUInt16,uint16_t(0xaabb));
+    checkScalar(FieldUInt32,uint32_t(0xaabbcc),FieldUInt64,uint64_t(0xaabbccddee));
+}
+
 #if 0
 BOOST_AUTO_TEST_CASE(Single)
 {

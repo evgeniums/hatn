@@ -172,6 +172,31 @@ struct Field
 
 constexpr makePathT path{};
 
+struct fieldT
+{
+    template <typename T1, typename T2>
+    Field operator ()(T1&& path_,Operator op,T2&& value) const
+    {
+        if constexpr (hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,T1>)
+        {
+            return Field{path(std::forward<T1>(path_)),op,std::forward<T2>(value)};
+        }
+        else
+        {
+            if constexpr (hana::is_a<NestedFieldTag,T1>)
+            {
+                return Field{path_.fieldPath(),op,std::forward<T2>(value)};
+            }
+            else
+            {
+                static_assert(std::is_same<FieldPath,std::decay_t<T1>>::value,"Invalid path type");
+                return Field{std::forward<T1>(path_),op,std::forward<T2>(value)};
+            }
+        }
+    }
+};
+constexpr fieldT field{};
+
 constexpr const size_t PreallocatedOpsCount=8;
 using FieldsVector=common::VectorOnStack<Field,PreallocatedOpsCount>;
 
@@ -195,6 +220,7 @@ struct makeRequestT
     }
 };
 constexpr makeRequestT makeRequest{};
+constexpr makeRequestT request{};
 
 enum class ModifyReturn : int
 {
