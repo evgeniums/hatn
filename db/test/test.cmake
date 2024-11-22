@@ -22,6 +22,8 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testfindcompound2.cpp
     ${DB_TEST_SRC}/modelcompound2.cpp
 
+    ${DB_TEST_SRC}/testupdate.cpp
+
     # ${DB_TEST_SRC}/models2.cpp
     # ${DB_TEST_SRC}/models3.cpp
     # ${DB_TEST_SRC}/models4.cpp
