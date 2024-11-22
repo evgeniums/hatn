@@ -21,6 +21,10 @@
 #ifndef HATNDBUPDATE_H
 #define HATNDBUPDATE_H
 
+#include <algorithm>
+
+#include <hatn/validator/utils/reference_wrapper.hpp>
+
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
@@ -100,6 +104,16 @@ enum class Operator : uint8_t
     inc_element
 };
 
+constexpr const auto set=Operator::set;
+constexpr const auto unset=Operator::unset;
+constexpr const auto inc=Operator::inc;
+constexpr const auto push=Operator::push;
+constexpr const auto pop=Operator::pop;
+constexpr const auto push_unique=Operator::push_unique;
+constexpr const auto replace_element=Operator::replace_element;
+constexpr const auto erase_element=Operator::erase_element;
+constexpr const auto inc_element=Operator::inc_element;
+
 using ValueVariant=lib::variant<
     HATN_DB_UPDATE_VALUE_TYPES(HATN_DB_UPDATE_VALUE_TYPE)
 >;
@@ -113,48 +127,61 @@ using Operand=query::ValueT<ValueVariant,ValueType>;
 
 struct Field
 {
-    //! @todo optimization: Use prepared FieldInfo for often used fields in order not to make it on each constructor call.
-
     template <typename T>
     Field(
-            const FieldInfo& fieldInfo,
+            FieldPath path,
             Operator op,
             T&& value
-        ) : fieldInfo(&fieldInfo),
+        ) : path(std::move(path)),
             op(op),
             value(std::forward<T>(value))
     {
-        checkOperator();
+        check();
     }
 
-    template <typename T>
-    Field(
-        FieldInfo&& fieldInfo,
-        Operator op,
-        T&& value
-    ) = delete;
-
-    void checkOperator() const
-    {
-        //! @todo Check combination of operator and operand
-        bool ok=fieldInfo->name()!=ObjectIdFieldName
-            &&
-            fieldInfo->name()!=CreatedAtFieldName
-            &&
-            fieldInfo->name()!=UpdatedAtFieldName
-            ;
-        Assert(ok,"Invalid combination of operator and operand");
-    }
-
-    const FieldInfo* fieldInfo;
+    FieldPath path;
     Operator op;
     Operand value;
+
+    private:
+
+        void check() const
+        {
+            Assert(path.size()>0,"FieldPath must be not null");
+            auto firstFieldPathItem=path.at(0);
+            Assert(firstFieldPathItem.fieldId!=ObjectIdFieldId,"Cannot update object::_id");
+            Assert(firstFieldPathItem.fieldId!=CreatedAtFieldId,"Cannot update object::created_at");
+            Assert(firstFieldPathItem.fieldId!=UpdatedAtFieldId,"Cannot update object::created_at");
+
+            //! @todo Check combination of operator and operand
+        }
 };
+
+constexpr makePathT path{};
 
 constexpr const size_t PreallocatedOpsCount=8;
 using FieldsVector=common::VectorOnStack<Field,PreallocatedOpsCount>;
 
 using Request=FieldsVector;
+
+struct makeRequestT
+{
+    template <typename ...Fields>
+    auto operator()(Fields&&... fields) const
+    {
+        Request r;
+        r.reserve(sizeof...(fields));
+        hana::for_each(
+            hana::make_tuple(std::forward<Fields>(fields)...),
+            [&r](auto&& field)
+            {
+                r.emplace_back(std::forward<decltype(field)>(field));
+            }
+        );
+        return r;
+    }
+};
+constexpr makeRequestT makeRequest{};
 
 enum class ModifyReturn : int
 {

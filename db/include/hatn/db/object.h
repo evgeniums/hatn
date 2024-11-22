@@ -31,10 +31,14 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
+constexpr const int ObjectIdFieldId=100;
+constexpr const int CreatedAtFieldId=101;
+constexpr const int UpdatedAtFieldId=102;
+
 HDU_UNIT(object,
-    HDU_FIELD(_id,TYPE_OBJECT_ID,100)
-    HDU_FIELD(created_at,TYPE_DATETIME,101)
-    HDU_FIELD(updated_at,TYPE_DATETIME,102)
+    HDU_FIELD(_id,TYPE_OBJECT_ID,ObjectIdFieldId)
+    HDU_FIELD(created_at,TYPE_DATETIME,CreatedAtFieldId)
+    HDU_FIELD(updated_at,TYPE_DATETIME,UpdatedAtFieldId)
 )
 
 inline std::string ObjectIdFieldName{object::_id.name()};

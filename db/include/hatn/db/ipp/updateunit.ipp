@@ -83,48 +83,32 @@ auto FieldVisitor(T1&& scalar, T2&& vector)
 
 struct HandleFieldT
 {
-    static dataunit::Field* getUnitField(dataunit::Unit* unit, const FieldInfo* fieldInfo, size_t depth=0)
+    static dataunit::Field* getUnitField(dataunit::Unit* unit, const Field& updateField, bool maxDepth=true)
     {
-        dataunit::Field* field{nullptr};
+        auto* field=unit->fieldById(updateField.path.at(0).id);
+        Assert(field!=nullptr,"Field not found in the object");
 
-        if (!fieldInfo->nested())
+        size_t count=maxDepth? updateField.path.size() : (updateField.path.size()-1);
+
+        auto* u=unit;
+        for (size_t i=1;i<count;i++)
         {
-            field=unit->fieldById(fieldInfo->id());
-        }
-        else
-        {
-            const auto* path=&fieldInfo->path();
-            auto* u=unit;
-            if (depth==0)
+            if (field->isArray())
             {
-                depth=path->size();
+                size_t id=static_cast<size_t>(updateField.path.at(i).id);
+                u=field->arraySubunit(id);
+                i++;
             }
-            for (size_t i=0;i<depth;i++)
+            else
             {
-                if (field!=nullptr)
-                {
-                    if (field->isArray())
-                    {
-                        const auto& name=path->at(i);
-                        size_t idx=std::stoul(name);
-                        u=field->arraySubunit(idx);
-                        i++;
-                        if (i==depth)
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        u=field->subunit();
-                    }
-                }
-                const auto& name=path->at(i);
-                field=u->fieldByName(name);
+                u=field->subunit();
             }
+            Assert(u!=nullptr,"Field must be of subunit type");
+            size_t id=static_cast<size_t>(updateField.path.at(i).id);
+            field=u->fieldById(id);
         }
 
-        Assert(field!=nullptr,"Requested to update unknown field");
+        Assert(field!=nullptr,"Unknown field for update");
         return field;
     }
 
@@ -133,19 +117,18 @@ struct HandleFieldT
         // special cases for operations on repeated fields: replace vector element by index, erase vector element by index, increment vector element by index
         if (updateField.op==Operator::replace_element || updateField.op==Operator::erase_element || updateField.op==Operator::inc_element)
         {
-            auto depth=updateField.fieldInfo->path().size();
-            Assert(depth>1,"Invalid field path for update operation");
-            auto* field=getUnitField(unit,updateField.fieldInfo,depth-1);
-            const auto& name=updateField.fieldInfo->path().back();
-            size_t idx=std::stoul(name);
+            Assert(updateField.path.size()>=2,"Invalid path for re  quested update operation");
+
+            auto* field=getUnitField(unit,updateField,false);
+            auto id=static_cast<size_t>(updateField.path.back().id);
 
             switch (updateField.op)
             {
                 case (Operator::replace_element):
                 {
-                    auto elementSet=[idx,&field](const auto& val)
+                    auto elementSet=[id,&field](const auto& val)
                     {
-                        field->arraySet(idx,val);
+                        field->arraySet(id,val);
                     };
                     auto vectorSet=[](const auto&)
                     {
@@ -157,21 +140,21 @@ struct HandleFieldT
 
                 case (Operator::erase_element):
                 {
-                    field->arrayErase(idx);
+                    field->arrayErase(id);
                 }
                 break;
 
                 case (Operator::inc_element):
                 {
                     std::ignore=updateField.value.handleValue(
-                        [idx,&field](const auto& val)
+                        [id,&field](const auto& val)
                         {
                             using type=std::decay_t<decltype(val)>;
                             hana::eval_if(
                                 std::is_arithmetic<type>{},
                                 [&](auto _)
                                 {
-                                    field->arrayInc(_(idx),_(val));
+                                    field->arrayInc(_(id),_(val));
                                 },
                                 [&](auto )
                                 {
@@ -195,7 +178,7 @@ struct HandleFieldT
         }
 
         // normal operations on the field
-        auto* field=getUnitField(unit,updateField.fieldInfo);
+        auto* field=getUnitField(unit,updateField);
         switch (updateField.op)
         {
             case (Operator::set):
@@ -209,6 +192,7 @@ struct HandleFieldT
                     field->arrayResize(val.size());
                     for (size_t i=0;i<val.size();i++)
                     {
+                        // to avoid some compiler warnings on bool type conversions
                         using valueT=typename std::decay_t<decltype(val)>::value_type;
                         if constexpr (std::is_same<valueT,bool>::value)
                         {

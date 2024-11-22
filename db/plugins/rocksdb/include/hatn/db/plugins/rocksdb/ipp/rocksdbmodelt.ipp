@@ -28,10 +28,10 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 /********************** RocksdbModelT **************************/
 
 template <typename ModelT>
-std::multimap<std::string,UpdateIndexKeyExtractor<typename ModelT::Type>> RocksdbModelT<ModelT>::updateIndexKeyExtractors;
+std::multimap<FieldPath,UpdateIndexKeyExtractor<typename ModelT::Type>,FieldPathCompare> RocksdbModelT<ModelT>::updateIndexKeyExtractors;
 
 template <typename ModelT>
-common::FlatSet<std::string> RocksdbModelT<ModelT>::ttlFields;
+common::FlatSet<FieldPath,FieldPathCompare> RocksdbModelT<ModelT>::ttlFields;
 
 //---------------------------------------------------------------
 
@@ -61,7 +61,11 @@ void RocksdbModelT<ModelT>::init(const T& model)
                     }
                 );
             };
-            updateIndexKeyExtractors.insert(std::make_pair(field.name(),handler));
+            updateIndexKeyExtractors.insert(std::make_pair(fieldPath(field),handler));
+            if (idx.isTtl())
+            {
+                ttlFields.insert(fieldPath(field));
+            }
         };
         hana::for_each(idx.fields,eachField);
     };
@@ -82,7 +86,7 @@ void RocksdbModelT<ModelT>::updatingKeys(
 {
     for (auto&& field : request)
     {
-        auto range=updateIndexKeyExtractors.equal_range(field.fieldInfo->name());
+        auto range=updateIndexKeyExtractors.equal_range(field.path);
         for (auto i=range.first;i!=range.second;++i)
         {
             (i->second)(keysHandler,topic,objectId,object,keys);
@@ -95,14 +99,16 @@ void RocksdbModelT<ModelT>::updatingKeys(
 template <typename ModelT>
 bool RocksdbModelT<ModelT>::checkTtlFieldUpdated(const update::Request& request) noexcept
 {
-    if (ttlFields.find(UpdatedAtFieldName)!=ttlFields.end())
+    static FieldPath pathOfUpdatedAt{makePath(object::updated_at)};
+
+    if (ttlFields.find(pathOfUpdatedAt)!=ttlFields.end())
     {
         return true;
     }
 
     for (auto&& field : request)
     {
-        if (ttlFields.find(field.fieldInfo->name())!=ttlFields.end())
+        if (ttlFields.find(field.path)!=ttlFields.end())
         {
             return true;
         }

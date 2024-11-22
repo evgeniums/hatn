@@ -22,6 +22,7 @@
 #include <string>
 
 #include <hatn/common/format.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/dataunit/unitmeta.h>
 
@@ -30,6 +31,103 @@
 #include <hatn/db/db.h>
 
 HATN_DB_NAMESPACE_BEGIN
+
+struct FieldPathElement
+{
+    int fieldId;
+    const char* name;
+    int id;
+
+    FieldPathElement(
+            int fieldId,
+            const char* name,
+            int id
+        ) : fieldId(fieldId),
+            name(name),
+            id(id)
+    {}
+};
+
+constexpr const size_t FieldPathDepth=4;
+using FieldPath=common::VectorOnStack<FieldPathElement,FieldPathDepth>;
+
+struct FieldPathCompare
+{
+    inline bool operator ()(const FieldPath& l, const FieldPath& r) const noexcept
+    {
+        for (size_t i=0;i<l.size();i++)
+        {
+            if (i>=r.size())
+            {
+                return false;
+            }
+
+            if (l[i].id<r[i].id)
+            {
+                return true;
+            }
+
+            if (l[i].id>r[i].id)
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+};
+
+struct ArrayFieldTag
+{};
+
+template <typename T>
+struct ArrayField
+{
+    using hana_tag=ArrayFieldTag;
+
+    const T& field;
+    int id;
+};
+
+struct arrayT
+{
+    template <typename FieldT, typename T>
+    auto operator ()(const FieldT& field, T&& id) const noexcept
+    {
+        return ArrayField{field,static_cast<int>(id)};
+    }
+};
+constexpr arrayT array{};
+
+struct makePathT
+{
+    template <typename ...Args>
+    FieldPath operator()(Args&&... args) const
+    {
+        FieldPath path;
+        path.reserve(sizeof...(Args));
+
+        hana::for_each(
+            HATN_VALIDATOR_NAMESPACE::make_cref_tuple(std::forward<Args>(args)...),
+            [&](auto&& arg)
+            {
+                auto&& val=HATN_VALIDATOR_NAMESPACE::extract_ref(arg);
+                using type=std::decay_t<decltype(val)>;
+                if constexpr (hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,type>)
+                {
+                    path.emplace_back(val.id(),val.name(),val.id());
+                }
+                else
+                {
+                    static_assert(hana::is_a<ArrayFieldTag,type>,"Invalid path element");
+                    path.emplace_back(val.field.id(),val.field.name(),val.id);
+                }
+            }
+            );
+
+        return path;
+    }
+};
+constexpr makePathT makePath{};
 
 struct NestedFieldTag{};
 
@@ -64,6 +162,12 @@ struct NestedField
 
         static std::string str=fillName();
         return str;
+    }
+
+    static FieldPath fieldPath()
+    {
+        static auto p=hana::unpack(path,makePath);
+        return p;
     }
 
     constexpr static int id()
@@ -104,7 +208,30 @@ struct Field
     {
         return std::decay_t<field_type>::id();
     }
+
+    static FieldPath fieldPath()
+    {
+        static auto p=makePath(field);
+        return p;
+    }
 };
+
+struct fieldPathT
+{
+    template <typename T>
+    FieldPath operator()(T&& field) const
+    {
+        if constexpr (hana::is_a<FieldTag,T> || hana::is_a<NestedFieldTag,T>)
+        {
+            return field.fieldPath();
+        }
+        else
+        {
+            return makePath(field);
+        }
+    }
+};
+constexpr fieldPathT fieldPath{};
 
 class FieldInfo
 {

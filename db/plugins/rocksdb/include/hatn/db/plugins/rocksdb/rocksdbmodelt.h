@@ -127,8 +127,8 @@ class RocksdbModelT
 
     private:
 
-        static std::multimap<std::string,UpdateIndexKeyExtractor<ObjectT>> updateIndexKeyExtractors;
-        static common::FlatSet<std::string> ttlFields;
+        static std::multimap<FieldPath,UpdateIndexKeyExtractor<ObjectT>,FieldPathCompare> updateIndexKeyExtractors;
+        static common::FlatSet<FieldPath,FieldPathCompare> ttlFields;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

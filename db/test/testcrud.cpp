@@ -216,9 +216,9 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_REQUIRE_EQUAL(std::string(simple1::f1.name()),std::string("f1"));
         db::FieldInfo finf{simple1::f1};
         BOOST_REQUIRE_EQUAL(finf.name(),std::string("f1"));
-        auto update1=update::Request{
-            {finf,update::Operator::set,101}
-        };
+        auto update1=update::makeRequest(
+            update::Field(update::path(simple1::f1),update::set,101)
+        );
         ec=client->update(topic,m1,update1,id);
         BOOST_REQUIRE(!ec);
         // read updated object

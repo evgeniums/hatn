@@ -101,6 +101,22 @@ void checkOtherFields(
 
 BOOST_AUTO_TEST_SUITE(TestUpdate, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::DbTestFixture>())
 
+BOOST_AUTO_TEST_CASE(FieldPathMap)
+{
+    std::multimap<FieldPath,int,FieldPathCompare> s;
+
+    auto p1=fieldPath(FieldInt8);
+    auto p2=fieldPath(FieldInt16);
+
+    s.insert(std::make_pair(p1,10));
+    s.insert(std::make_pair(p2,20));
+
+    BOOST_REQUIRE_EQUAL(s.size(),2);
+
+    BOOST_CHECK(s.find(p1)!=s.end());
+    BOOST_CHECK(s.find(p2)!=s.end());
+}
+
 BOOST_AUTO_TEST_CASE(SetSingle)
 {
     plain::type o;
