@@ -54,6 +54,8 @@ using Vector=query::Vector<T>;
     DO(uint16_t), \
     DO(uint32_t), \
     DO(uint64_t), \
+    DO(float), \
+    DO(double), \
     DO(String), \
     DO(common::DateTime), \
     DO(common::Date), \
@@ -71,6 +73,8 @@ using Vector=query::Vector<T>;
     DO(Uint16_t), \
     DO(Uint32_t), \
     DO(Uint64_t), \
+    DO(Float), \
+    DO(Double), \
     DO(String), \
     DO(DateTime), \
     DO(Date), \
@@ -135,6 +139,15 @@ struct Field
         ) : path(std::move(path)),
             op(op),
             value(std::forward<T>(value))
+    {
+        check();
+    }
+
+    Field(
+            FieldPath path,
+            Operator op
+        ) : path(std::move(path)),
+            op(op)
     {
         check();
     }

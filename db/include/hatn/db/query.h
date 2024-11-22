@@ -791,6 +791,8 @@ class ValueT
         using type=VariantT;
         using Type=EnumT;
 
+        ValueT()=default;
+
         template <typename T>
         ValueT(T&& val,
                std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(std::forward<T>(val))

@@ -38,6 +38,8 @@ HATN_DATAUNIT_USING
 HATN_DB_USING
 HATN_TEST_USING
 
+namespace tt = boost::test_tools;
+
 namespace {
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
@@ -126,7 +128,132 @@ BOOST_AUTO_TEST_CASE(SetSingle)
     checkOtherFields(o,FieldInt8);
     o.reset();
 
+    auto checkScalar=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        checkOtherFields(o,field);
+        o.reset();
+    };
+    auto checkExtra=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_CHECK(o.fieldValue(field)==val);
+        checkOtherFields(o,field);
+        o.reset();
+    };
 
+    checkScalar(FieldInt8,int8_t(0xaa));
+    checkScalar(FieldInt16,int16_t(0xaabb));
+    checkScalar(FieldInt32,int32_t(0xaabbcc));
+    checkScalar(FieldInt64,int64_t(0xaabbccddee));
+    checkScalar(FieldUInt8,uint8_t(0xaa));
+    checkScalar(FieldUInt16,uint16_t(0xaabb));
+    checkScalar(FieldUInt32,uint32_t(0xaabbcc));
+    checkScalar(FieldUInt64,uint64_t(0xaabbccddee));
+    checkScalar(FieldBool,true);
+    checkScalar(FieldString,"hello world");
+    checkScalar(FieldFixedString,"hi");
+    checkExtra(FieldDateTime,common::DateTime::currentUtc());
+    checkExtra(FieldDate,common::Date::currentUtc());
+    checkExtra(FieldTime,common::Time::currentUtc());
+    checkExtra(FieldDateRange,common::DateRange(common::Date::currentUtc()));
+    checkExtra(FieldObjectId,ObjectId::generateId());
+    checkExtra(FieldEnum,plain::MyEnum::Two);
+}
+
+BOOST_AUTO_TEST_CASE(UnsetSingle)
+{
+    plain::type o;
+
+    auto checkScalar=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK(o.field(field).isSet());
+        checkOtherFields(o,field);
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::unset)));
+        BOOST_CHECK(!o.field(field).isSet());
+        o.reset();
+    };
+    auto checkExtra=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_CHECK(o.fieldValue(field)==val);
+        BOOST_CHECK(o.field(field).isSet());
+        checkOtherFields(o,field);
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::unset)));
+        BOOST_CHECK(!o.field(field).isSet());
+        o.reset();
+    };
+
+    checkScalar(FieldInt8,int8_t(0xaa));
+    checkScalar(FieldInt16,int16_t(0xaabb));
+    checkScalar(FieldInt32,int32_t(0xaabbcc));
+    checkScalar(FieldInt64,int64_t(0xaabbccddee));
+    checkScalar(FieldUInt8,uint8_t(0xaa));
+    checkScalar(FieldUInt16,uint16_t(0xaabb));
+    checkScalar(FieldUInt32,uint32_t(0xaabbcc));
+    checkScalar(FieldUInt64,uint64_t(0xaabbccddee));
+    checkScalar(FieldBool,true);
+    checkScalar(FieldString,"hello world");
+    checkScalar(FieldFixedString,"hi");
+    checkExtra(FieldDateTime,common::DateTime::currentUtc());
+    checkExtra(FieldDate,common::Date::currentUtc());
+    checkExtra(FieldTime,common::Time::currentUtc());
+    checkExtra(FieldDateRange,common::DateRange(common::Date::currentUtc()));
+    checkExtra(FieldObjectId,ObjectId::generateId());
+    checkExtra(FieldEnum,plain::MyEnum::Two);
+}
+
+BOOST_AUTO_TEST_CASE(IncSingle)
+{
+    plain::type o;
+
+    auto checkScalar=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK(o.field(field).isSet());
+        checkOtherFields(o,field);
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,3)));
+        BOOST_CHECK_EQUAL(o.fieldValue(field),val+3);
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,-3)));
+        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        checkOtherFields(o,field);
+        o.reset();
+    };
+
+    checkScalar(FieldInt8,int8_t(0xaa));
+    checkScalar(FieldInt16,int16_t(0xaabb));
+    checkScalar(FieldInt32,int32_t(0xaabbcc));
+    checkScalar(FieldInt64,int64_t(0xaabbccddee));
+    checkScalar(FieldUInt8,uint8_t(0xaa));
+    checkScalar(FieldUInt16,uint16_t(0xaabb));
+    checkScalar(FieldUInt32,uint32_t(0xaabbcc));
+    checkScalar(FieldUInt64,uint64_t(0xaabbccddee));
+}
+
+BOOST_AUTO_TEST_CASE(FloatingPoint)
+{
+    plain::type o;
+
+    auto checkScalar=[&o](const auto& field, auto val)
+    {
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
+        BOOST_TEST(o.fieldValue(field)==val, tt::tolerance(0.0001));
+        BOOST_CHECK(o.field(field).isSet());
+        checkOtherFields(o,field);
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,3)));
+        BOOST_TEST(o.fieldValue(field)==(val+3), tt::tolerance(0.001));
+        update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,-3)));
+        BOOST_TEST(o.fieldValue(field)==val, tt::tolerance(0.0001));
+        checkOtherFields(o,field);
+        o.reset();
+    };
+
+    checkScalar(FieldFloat,float(100.103));
+    checkScalar(FieldDouble,double(1000.105));
 }
 
 #if 0

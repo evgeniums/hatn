@@ -50,6 +50,11 @@ void registerModels()
 #define FieldBool plain::f1
 #define FieldEnum plain::f11
 
+#define FieldBytes plain::f18
+
+#define FieldFloat plain::f19
+#define FieldDouble plain::f20
+
 #define IdxInt8 plain_f2_idx()
 #define IdxInt16 plain_f3_idx()
 #define IdxInt32 plain_f4_idx()
