@@ -65,7 +65,6 @@ struct LastT
 constexpr LastT Last{};
 
 using String=lib::string_view;
-// using String=std::string;
 
 using Enum=int32_t;
 
@@ -793,16 +792,6 @@ class ValueT
 
         ValueT()=default;
 
-        template <typename T>
-        ValueT(T&& val,
-               std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(std::forward<T>(val))
-        {}
-
-        template <typename T>
-        ValueT(T&& val,
-               std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(static_cast<Enum>(val))
-        {}
-
         ValueT(bool val) : m_value(BoolValue(val))
         {}
 
@@ -844,6 +833,40 @@ class ValueT
 
         template <size_t PreallocatedSize, typename FallbackAllocatorT>
         ValueT(common::StringOnStackT<PreallocatedSize,FallbackAllocatorT>&& value) =delete;
+
+        ValueT(const std::vector<char>& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        ValueT(std::vector<char>&& value)= delete;
+
+        ValueT(const common::ByteArray& value,
+               void* =nullptr
+               ) : m_value(String(value.data(),value.size()))
+        {}
+
+        // ValueT(common::ByteArray&& value)= delete;
+
+        ValueT(const common::pmr::vector<char>& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        ValueT(common::pmr::vector<char>&& value)= delete;
+
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        ValueT(const common::VectorOnStackT<char,PreallocatedSize,FallbackAllocatorT>& value) : m_value(String(value.data(),value.size()))
+        {}
+
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        ValueT(common::VectorOnStackT<char,PreallocatedSize,FallbackAllocatorT>&& value) =delete;
+
+        template <typename T>
+        ValueT(const T& val,
+               std::enable_if_t<!std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(val)
+        {}
+
+        template <typename T>
+        ValueT(const T& val,
+               std::enable_if_t<std::is_enum<std::decay_t<T>>::value>* =nullptr) : m_value(static_cast<Enum>(val))
+        {}
 
         Type typeId() const noexcept
         {

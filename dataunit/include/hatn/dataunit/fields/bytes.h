@@ -393,6 +393,9 @@ class FieldTmplBytes : public Field, public BytesType
             return CanChainBlocks;
         }
 
+        using Field::less;
+        using Field::equals;
+
         virtual bool less(const char* data, size_t length) const override{return buf()->isLess(data,length);}
         virtual bool equals(const char* data, size_t length) const override {return buf()->isEqual(data,length);}
 

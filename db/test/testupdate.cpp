@@ -280,6 +280,53 @@ BOOST_AUTO_TEST_CASE(MultipleFields)
     checkScalar(FieldUInt32,uint32_t(0xaabbcc),FieldUInt64,uint64_t(0xaabbccddee));
 }
 
+BOOST_AUTO_TEST_CASE(Bytes)
+{
+    plain::type o;
+
+    std::string val{"Hello world!"};
+
+    std::vector<char> v1;
+    std::copy(val.begin(),val.end(),std::back_inserter(v1));
+    update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v1)));
+    BOOST_CHECK(o.field(FieldBytes).isSet());
+    BOOST_CHECK(o.field(FieldBytes).equals(lib::string_view{val.data(),val.size()}));
+    checkOtherFields(o,FieldBytes);
+    o.reset();
+
+    common::ByteArray v2;
+    v2.append(val);
+    update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v2)));
+    BOOST_CHECK(o.field(FieldBytes).isSet());
+    BOOST_CHECK(o.field(FieldBytes).equals(lib::string_view{val.data(),val.size()}));
+    checkOtherFields(o,FieldBytes);
+    o.reset();
+
+    common::VectorOnStack v3;
+    v3.append(val);
+    update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v3)));
+    BOOST_CHECK(o.field(FieldBytes).isSet());
+    BOOST_CHECK(o.field(FieldBytes).equals(lib::string_view{val.data(),val.size()}));
+    checkOtherFields(o,FieldBytes);
+    o.reset();
+
+    common::pmr::string v4;
+    std::copy(val.begin(),val.end(),std::back_inserter(v4));
+    update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v4)));
+    BOOST_CHECK(o.field(FieldBytes).isSet());
+    BOOST_CHECK(o.field(FieldBytes).equals(lib::string_view{val.data(),val.size()}));
+    checkOtherFields(o,FieldBytes);
+    o.reset();
+
+    common::pmr::vector<char> v5;
+    std::copy(val.begin(),val.end(),std::back_inserter(v5));
+    update::applyRequest(&o,update::request(update::field(FieldBytes,update::set,v5)));
+    BOOST_CHECK(o.field(FieldBytes).isSet());
+    BOOST_CHECK(o.field(FieldBytes).equals(lib::string_view{val.data(),val.size()}));
+    checkOtherFields(o,FieldBytes);
+    o.reset();
+}
+
 #if 0
 BOOST_AUTO_TEST_CASE(Single)
 {

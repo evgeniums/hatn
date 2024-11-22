@@ -44,6 +44,8 @@ using VectorString=query::VectorString;
 template <typename T>
 using Vector=query::Vector<T>;
 
+using Bytes=common::ConstDataBuf;
+
 #define HATN_DB_UPDATE_VALUE_TYPES(DO) \
     DO(bool), \
     DO(int8_t), \
