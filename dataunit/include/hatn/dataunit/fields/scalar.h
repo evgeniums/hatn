@@ -172,10 +172,11 @@ class Scalar : public Field
         }
 
         //! Set field
-        inline void set(const type& val)
+        template <typename T>
+        void set(const T& val)
         {
             this->markSet(true);
-            m_value=val;
+            m_value=static_cast<type>(val);
         }
 
         //! Get default value
