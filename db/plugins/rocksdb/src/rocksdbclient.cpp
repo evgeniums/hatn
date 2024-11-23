@@ -624,7 +624,7 @@ Error RocksdbClient::doTransaction(const TransactionFn &fn)
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doDeleteMany(
+Result<size_t> RocksdbClient::doDeleteMany(
                                   const ModelInfo &model,
                                   const ModelIndexQuery &query,
                                   Transaction* tx)
@@ -688,7 +688,7 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateMany(
+Result<size_t> RocksdbClient::doUpdateMany(
                                   const ModelInfo &model,
                                   const ModelIndexQuery &query,
                                   const update::Request& request,
@@ -701,12 +701,7 @@ Error RocksdbClient::doUpdateMany(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateMany(*d->handler,query,request,db::update::ModifyReturn::None,tx);
-    if (r)
-    {
-        return r.takeError();
-    }
-    return OK;
+    return rdbModel->updateMany(*d->handler,query,request,db::update::ModifyReturn::None,tx);
 }
 
 //---------------------------------------------------------------

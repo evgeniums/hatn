@@ -187,9 +187,9 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         auto r=UpdateMany(model->model,handler,query,request,modifyReturnFirst,allocatorFactory,tx);
         if (r)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            return Result<size_t>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+        return Result<size_t>{r.value().first};
     };
 
     rdbModel->readUpdateCreate=[model,allocatorFactory]
@@ -213,9 +213,9 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
         }
-        if (r.value())
+        if (r.value().second)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(r.takeValue().second)};
         }
 
         // create if not found

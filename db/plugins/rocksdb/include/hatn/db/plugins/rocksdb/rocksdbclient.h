@@ -91,7 +91,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                              const ObjectId& id,
                              Transaction* tx) override;
 
-        Error doDeleteMany(
+        Result<size_t> doDeleteMany(
             const ModelInfo& model,
             const ModelIndexQuery& query,
             Transaction* tx
@@ -127,7 +127,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx) override;
 
-        Error doUpdateMany(
+        Result<size_t> doUpdateMany(
             const ModelInfo& model,
             const ModelIndexQuery& query,
             const update::Request& request,

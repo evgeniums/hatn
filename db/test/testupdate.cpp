@@ -471,8 +471,9 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
         auto request=update::request(
             update::field(FieldInt16,update::inc,inc)
         );
-        auto ec=client->updateMany(modelPlain(),q3,request);
-        BOOST_REQUIRE(!ec);
+        auto ru=client->updateMany(modelPlain(),q3,request);
+        BOOST_REQUIRE(!ru);
+        BOOST_CHECK_EQUAL(ru.value(),count/2);
 
         // find half of objects by first field - changed
         r1=client->find(modelPlain(),q3);

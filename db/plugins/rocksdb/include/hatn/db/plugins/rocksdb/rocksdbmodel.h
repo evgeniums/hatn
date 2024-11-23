@@ -93,7 +93,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> deleteObjectWithDate;
 
-        std::function<Error (
+        std::function<Result<size_t> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
             Transaction* tx
@@ -118,7 +118,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> updateObject;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<size_t> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
             const update::Request& request,

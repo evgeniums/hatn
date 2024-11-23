@@ -404,6 +404,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        //! @todo Add find with callback per each found object
+
         template <typename ModelT, typename IndexT>
         Result<typename ModelT::SharedPtr> findOne(
             const std::shared_ptr<ModelT>& model,
@@ -420,10 +422,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return r->at(0).template managedUnit<typename ModelT::ManagedType>()->sharedFromThis();
         }
 
-        //! @todo Return number of deleted objects
-
         template <typename ModelT, typename QueryT>
-        Error deleteMany(
+        Result<size_t> deleteMany(
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
                 Transaction* tx=nullptr
@@ -440,10 +440,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        //! @todo Return number of updated objects
-
         template <typename ModelT, typename QueryT>
-        Error updateMany(
+        Result<size_t> updateMany(
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
                 const update::Request& request,
@@ -563,7 +561,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             bool single
         ) =0;
 
-        virtual Error doUpdateMany(
+        virtual Result<size_t> doUpdateMany(
             const ModelInfo& model,
             const ModelIndexQuery& query,
             const update::Request& request,
@@ -578,7 +576,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                             update::ModifyReturn returnType,
                                                             Transaction* tx)=0;
 
-        virtual Error doDeleteMany(
+        virtual Result<size_t> doDeleteMany(
             const ModelInfo& model,
             const ModelIndexQuery& query,
             Transaction* tx

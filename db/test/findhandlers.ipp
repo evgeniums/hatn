@@ -200,8 +200,9 @@ void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
 
     auto q=makeQuery(oidIdx(),query::where(object::_id,query::Operator::gte,query::First),topic());
     q.setLimit(0);
-    auto ec=client->deleteMany(m,q);
-    BOOST_CHECK(!ec);
+    auto rd=client->deleteMany(m,q);
+    BOOST_CHECK(!rd);
+    BOOST_CHECK_EQUAL(rd.value(),Count);
 
     HATN_CTX_INFO("check find after clear")
 

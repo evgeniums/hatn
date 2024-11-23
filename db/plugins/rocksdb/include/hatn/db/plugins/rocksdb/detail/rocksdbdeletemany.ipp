@@ -26,7 +26,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 struct DeleteManyT
 {
     template <typename ModelT>
-    Error operator ()(
+    Result<size_t> operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
@@ -37,7 +37,7 @@ struct DeleteManyT
 constexpr DeleteManyT DeleteMany{};
 
 template <typename ModelT>
-Error DeleteManyT::operator ()(
+Result<size_t> DeleteManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -53,8 +53,8 @@ Error DeleteManyT::operator ()(
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 
-#if 0
 //! @todo Bulk deletion in one transaction
+#if 0
     auto transactionFn=[&](Transaction* tx)
     {
         auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
@@ -72,7 +72,8 @@ Error DeleteManyT::operator ()(
     return handler.transaction(transactionFn,tx,true);
 #endif
 
-    auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
+    size_t count=0;
+    auto keyCallback=[&model,&handler,&keys,&tx,&count](RocksdbPartition* partition,
                                                       const lib::string_view& topic,
                                                       ROCKSDB_NAMESPACE::Slice* key,
                                                       ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -84,9 +85,14 @@ Error DeleteManyT::operator ()(
             auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
             return DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
         };
-        return !handler.transaction(transactionFn,tx,true);
+        auto ok=!handler.transaction(transactionFn,tx,true);
+        count++;
+        return ok;
     };
-    return FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
+    auto ec=FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
+    HATN_CHECK_EC(ec)
+
+    return count;
 }
 
 HATN_ROCKSDB_NAMESPACE_END

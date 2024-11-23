@@ -29,20 +29,33 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 struct UpdateManyT
 {
     template <typename ModelT>
-    Result<typename ModelT::SharedPtr> operator ()(const ModelT& model,
-                                                  RocksdbHandler& handler,
-                                                  const ModelIndexQuery& query,
-                                                  const update::Request& request,
-                                                  db::update::ModifyReturn modifyReturnFirst,
-                                                  AllocatorFactory* allocatorFactory,
-                                                  Transaction* tx,
-                                                  bool single=false
-                                                  ) const;
+    Result<
+        std::pair<
+            size_t,
+            typename ModelT::SharedPtr
+            >
+        >
+     operator ()(
+        const ModelT& model,
+        RocksdbHandler& handler,
+        const ModelIndexQuery& query,
+        const update::Request& request,
+        db::update::ModifyReturn modifyReturnFirst,
+        AllocatorFactory* allocatorFactory,
+        Transaction* tx,
+        bool single=false
+) const;
 };
 constexpr UpdateManyT UpdateMany{};
 
 template <typename ModelT>
-Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
+Result<
+    std::pair<
+        size_t,
+        typename ModelT::SharedPtr
+        >
+    >
+UpdateManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
@@ -57,7 +70,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
     Keys keys{allocatorFactory};
     typename ModelT::SharedPtr result;
 
-    size_t i=0;
+    size_t count=0;
     auto keyCallback=[&](RocksdbPartition* partition,
                                                       const lib::string_view& topic,
                                                       ROCKSDB_NAMESPACE::Slice* key,
@@ -88,11 +101,11 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
         }
 
         // fill return object with first found
-        if (modifyReturnFirst!=db::update::ModifyReturn::None && i==0)
+        if (modifyReturnFirst!=db::update::ModifyReturn::None && count==0)
         {
             result=r.takeValue();
         }
-        i++;
+        count++;
 
         if (single)
         {
@@ -108,7 +121,7 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
     HATN_CHECK_EC(ec)
 
     // done
-    return result;
+    return std::make_pair(count,result);
 }
 
 HATN_ROCKSDB_NAMESPACE_END
