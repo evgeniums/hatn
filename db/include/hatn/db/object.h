@@ -23,6 +23,7 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/databuf.h>
+#include <hatn/common/makeshared.h>
 
 #include <hatn/dataunit/syntax.h>
 
@@ -68,6 +69,14 @@ ObjectT makeInitObject()
 {
     ObjectT obj;
     initObject(obj);
+    return obj;
+}
+
+template <typename ObjectT>
+auto makeInitObjectPtr()
+{
+    auto obj=common::makeShared<ObjectT>();
+    initObject(*obj);
     return obj;
 }
 

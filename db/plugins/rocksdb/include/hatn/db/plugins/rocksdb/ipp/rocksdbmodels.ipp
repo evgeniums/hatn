@@ -236,6 +236,10 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         {
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(ec)};
         }
+        if (modifyReturn==db::update::ModifyReturn::Before)
+        {
+            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{}};
+        }
         return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{object};
     };
 
