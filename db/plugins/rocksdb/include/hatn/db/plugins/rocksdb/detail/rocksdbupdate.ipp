@@ -74,7 +74,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
     const update::Request& request,
     db::update::ModifyReturn modifyReturn,
     AllocatorFactory* factory,
-    Transaction* intx
+    Transaction* intx,
+    bool* warnBrokenIndex=nullptr
     )
 {
     using modelType=std::decay_t<ModelT>;
@@ -129,9 +130,13 @@ Result<typename ModelT::SharedPtr> updateSingle(
         auto found=getForUpdate();
         HATN_CHECK_EC(ec)
 
-        // if not found then call not found callback
+        // if not found then return
         if (!found)
         {
+            if (warnBrokenIndex!=nullptr)
+            {
+                *warnBrokenIndex=true;
+            }
             return Error{OK};
         }
         if (modifyReturn==db::update::ModifyReturn::Before)

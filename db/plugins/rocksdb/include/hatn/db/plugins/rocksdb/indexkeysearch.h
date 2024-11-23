@@ -41,8 +41,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-using Slice=ROCKSDB_NAMESPACE::Slice;
-
 namespace index_key_search
 {
 

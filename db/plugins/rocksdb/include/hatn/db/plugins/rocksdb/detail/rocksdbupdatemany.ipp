@@ -67,13 +67,24 @@ Result<typename ModelT::SharedPtr> UpdateManyT::operator ()(
     {
         // construct object ID
         auto objectIdS=Keys::objectIdFromIndexValue(val->data(),val->size());
+        auto objectKey=Keys::objectKeyFromIndexValue(val->data(),val->size());
 
         // update
-        auto r=updateSingle(keys,objectIdS,*key,model,handler,partition,topic,request,modifyReturnFirst,allocatorFactory,tx);
+        bool brokenIdx=false;
+        auto r=updateSingle(keys,objectIdS,objectKey,model,handler,partition,topic,request,modifyReturnFirst,allocatorFactory,tx,&brokenIdx);
         if (r)
         {
             ec=std::move(r.takeError());
             return false;
+        }
+        if (brokenIdx)
+        {
+            HATN_CTX_WARN_RECORDS("missing object in rocksdb",
+                                  {"idx_key",lib::toStringView(logKey(*key))},
+                                  {"obj_key",lib::toStringView(logKey(objectKey))},
+                                  {"obj_id",sliceView(objectIdS)},
+                                  {"db_partition",partition->range}
+                                  )
         }
 
         // fill return object with first found

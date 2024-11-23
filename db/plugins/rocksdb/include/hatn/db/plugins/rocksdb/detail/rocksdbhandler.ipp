@@ -193,6 +193,13 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
 //---------------------------------------------------------------
 
+using Slice=ROCKSDB_NAMESPACE::Slice;
+
+inline lib::string_view sliceView(const Slice& slice)
+{
+    return lib::string_view{slice.data(),slice.size()};
+}
+
 HATN_ROCKSDB_NAMESPACE_END
 
 #endif // HATNROCKSDBHANDLER_IPP

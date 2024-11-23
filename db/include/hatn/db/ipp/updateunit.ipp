@@ -104,8 +104,7 @@ struct HandleFieldT
                 u=field->subunit();
             }
             Assert(u!=nullptr,"Field must be of subunit type");
-            size_t id=static_cast<size_t>(updateField.path.at(i).id);
-            field=u->fieldById(id);
+            field=u->fieldById(updateField.path.at(i).id);
         }
 
         Assert(field!=nullptr,"Unknown field for update");

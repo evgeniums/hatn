@@ -327,9 +327,13 @@ BOOST_AUTO_TEST_CASE(Bytes)
     o.reset();
 }
 
-#if 0
-BOOST_AUTO_TEST_CASE(Single)
+BOOST_AUTO_TEST_CASE(CheckIndexes)
 {
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+    HATN_CTX_SCOPE("CheckIndexes")
+
     init();
 
     auto s1=initSchema(modelPlain());
@@ -340,40 +344,154 @@ BOOST_AUTO_TEST_CASE(Single)
 
         Topic topic1{"topic1"};
 
-        auto o1=makeInitObject<u1_bool::type>();
-        BOOST_TEST_MESSAGE(fmt::format("Original o1: {}",o1.toString(true)));
-        o1.setFieldValue(u1_bool::f1,false);
-        BOOST_TEST_MESSAGE(fmt::format("o1 after f1 set: {}",o1.toString(true)));
+        int16_t val1=100;
+        uint32_t val2=1000;
 
-        // create object
-        auto ec=client->create(topic1,m1_bool(),&o1);
-        if (ec)
-        {
-            BOOST_TEST_MESSAGE(ec.message());
-        }
+        auto o1=makeInitObject<plain::type>();
+        o1.setFieldValue(FieldInt16,val1);
+        o1.setFieldValue(FieldUInt32,val2);
+        BOOST_CHECK_EQUAL(o1.fieldValue(FieldInt16),val1);
+        BOOST_CHECK_EQUAL(o1.fieldValue(FieldUInt32),val2);
+
+        // create object in db
+        auto ec=client->create(topic1,modelPlain(),&o1);
         BOOST_REQUIRE(!ec);
 
-        // find object by f_bool
-        auto q=makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false));
-        std::cout<<"operand type="<<static_cast<int>(q.fields().at(0).value.typeId())<<std::endl;
-        std::cout<<"operand value="<<static_cast<bool>(q.fields().at(0).value.as<query::BoolValue>())<<std::endl;
-        common::FmtAllocatedBufferChar buf;
-        HATN_ROCKSDB_NAMESPACE::fieldValueToBuf(buf,q.fields().at(0));
-        std::cout<<"operand string="<<common::fmtBufToString(buf)<<std::endl;
-
-        auto r1=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),topic1));
-        if (r1)
-        {
-            BOOST_TEST_MESSAGE(r1.error().message());
-        }
+        // find object by first field
+        auto q1=makeQuery(IdxInt16,query::where(FieldInt16,query::eq,val1),topic1);
+        auto r1=client->findOne(modelPlain(),q1);
         BOOST_REQUIRE(!r1);
-        BOOST_CHECK(!r1.value().isNull());
-        auto r2=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,true),topic1));
+        BOOST_REQUIRE(!r1.value().isNull());
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(FieldInt16),val1);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(FieldUInt32),val2);
+
+        // find object by second field
+        auto q2=makeQuery(IdxUInt32,query::where(FieldUInt32,query::eq,val2),topic1);
+        auto r2=client->findOne(modelPlain(),q2);
         BOOST_REQUIRE(!r2);
-        BOOST_CHECK(r2.value().isNull());
+        BOOST_REQUIRE(!r2.value().isNull());
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldInt16),val1);
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldUInt32),val2);
+
+        // update object
+        int16_t newVal1=200;
+        uint32_t incVal2=20;
+        auto request=update::request(
+                                     update::field(FieldInt16,update::set,newVal1),
+                                     update::field(FieldUInt32,update::inc,incVal2)
+                                     );
+        ec=client->updateMany(modelPlain(),q1,request);
+        BOOST_REQUIRE(!ec);
+
+        // find object with prev queries
+        auto r3=client->findOne(modelPlain(),q1);
+        BOOST_REQUIRE(!r3);
+        BOOST_CHECK(r3.value().isNull());
+        r3=client->findOne(modelPlain(),q2);
+        BOOST_REQUIRE(!r3);
+        BOOST_CHECK(r3.value().isNull());
+
+        // find object with upated queries
+        auto q1_1=makeQuery(IdxInt16,query::where(FieldInt16,query::eq,newVal1),topic1);
+        auto r1_1=client->findOne(modelPlain(),q1_1);
+        BOOST_REQUIRE(!r1_1);
+        BOOST_REQUIRE(!r1_1.value().isNull());
+        BOOST_CHECK_EQUAL(r1_1.value()->fieldValue(FieldInt16),newVal1);
+        BOOST_CHECK_EQUAL(r1_1.value()->fieldValue(FieldUInt32),val2+incVal2);
+        auto q2_1=makeQuery(IdxUInt32,query::where(FieldUInt32,query::eq,val2+incVal2),topic1);
+        auto r2_1=client->findOne(modelPlain(),q2_1);
+        BOOST_REQUIRE(!r2_1);
+        BOOST_REQUIRE(!r2_1.value().isNull());
+        BOOST_CHECK_EQUAL(r2_1.value()->fieldValue(FieldInt16),newVal1);
+        BOOST_CHECK_EQUAL(r2_1.value()->fieldValue(FieldUInt32),val2+incVal2);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    ctx->afterThreadProcessing();
 }
-#endif
+
+BOOST_AUTO_TEST_CASE(UpdateMany)
+{
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+    HATN_CTX_SCOPE("CheckIndexes")
+
+    init();
+
+    auto s1=initSchema(modelPlain());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        int16_t val1=100;
+        uint32_t val2=1000;
+        size_t count=100;
+
+        for (size_t i=0;i<count;i++)
+        {
+            auto o1=makeInitObject<plain::type>();
+            o1.setFieldValue(FieldInt16,val1+i);
+            o1.setFieldValue(FieldUInt32,val2+i);
+
+            // create object in db
+            auto ec=client->create(topic1,modelPlain(),&o1);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // find all objects by first field
+        auto q1=makeQuery(IdxInt16,query::where(FieldInt16,query::lt,val1+count),topic1);
+        auto r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count);
+
+        // find all object by second field
+        auto q2=makeQuery(IdxUInt32,query::where(FieldUInt32,query::lt,val2+count),topic1);
+        auto r2=client->find(modelPlain(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count);
+
+        // find half of objects by first field
+        auto q3=makeQuery(IdxInt16,query::where(FieldInt16,query::lt,val1+count/2),topic1);
+        r1=client->find(modelPlain(),q3);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count/2);
+
+        // find half of object by second field
+        auto q4=makeQuery(IdxUInt32,query::where(FieldUInt32,query::lt,val2+count/2),topic1);
+        r2=client->find(modelPlain(),q4);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+
+        // update objects
+        uint32_t inc=count;
+        auto request=update::request(
+            update::field(FieldInt16,update::inc,inc)
+        );
+        auto ec=client->updateMany(modelPlain(),q3,request);
+        BOOST_REQUIRE(!ec);
+
+        // find half of objects by first field - changed
+        r1=client->find(modelPlain(),q3);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),0);
+
+        // find all of objects by first field - changed
+        r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count/2);
+
+        // find half of object by second field - did not change
+        r2=client->find(modelPlain(),q4);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    ctx->afterThreadProcessing();
+}
 
 BOOST_AUTO_TEST_SUITE_END()

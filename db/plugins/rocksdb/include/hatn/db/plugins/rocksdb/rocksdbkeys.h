@@ -191,7 +191,7 @@ namespace fmt
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename T>
-inline KeyBuf logKey(const T& key)
+KeyBuf logKey(const T& key)
 {
     KeyBuf buf;
     buf.reserve(key.size()+10);

@@ -420,6 +420,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return r->at(0).template managedUnit<typename ModelT::ManagedType>()->sharedFromThis();
         }
 
+        //! @todo Return number of deleted objects
+
         template <typename ModelT, typename QueryT>
         Error deleteMany(
                 const std::shared_ptr<ModelT>& model,
@@ -437,6 +439,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
+
+        //! @todo Return number of updated objects
 
         template <typename ModelT, typename QueryT>
         Error updateMany(
