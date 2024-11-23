@@ -44,7 +44,7 @@ Result<size_t> CountT::operator ()(
     ) const
 {
     size_t count=0;
-    auto keyCallback=[&model,&handler,&count,&idxQuery](RocksdbPartition*,
+    auto keyCallback=[&count,&idxQuery](RocksdbPartition*,
                                                       const lib::string_view&,
                                                       ROCKSDB_NAMESPACE::Slice*,
                                                       ROCKSDB_NAMESPACE::Slice*,
