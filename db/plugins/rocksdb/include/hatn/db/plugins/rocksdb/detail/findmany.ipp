@@ -69,6 +69,7 @@ Error FindManyT::operator ()(
 {
     HATN_CTX_SCOPE("findmany")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
+    HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
     // collect partitions for processing
     index_key_search::Partitions partitions;
@@ -83,11 +84,12 @@ Error FindManyT::operator ()(
     {
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
+        //! @todo If topics are empty in query then find all topics for the model
+
         // process all topics
         for (const auto& topic: idxQuery.query.topics())
         {
             HATN_CTX_SCOPE_PUSH("topic",topic.topic())
-            HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
 
             index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
             auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
@@ -96,7 +98,6 @@ Error FindManyT::operator ()(
                     );
             HATN_CHECK_EC(ec)
 
-            HATN_CTX_SCOPE_POP()
             HATN_CTX_SCOPE_POP()
         }
 
