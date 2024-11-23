@@ -204,27 +204,6 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<typename ModelT::SharedPtr> afterRead(
-            const std::shared_ptr<ModelT>&,
-            Result<common::SharedPtr<dataunit::Unit>>&& r,
-            const TimePointFilter& tpFilter
-            )
-        {
-            static typename ModelT::ManagedType sample;
-            if (r)
-            {
-                return r.takeError();
-            }
-            auto* obj=common::dynamicCastWithSample(r.value().get(),&sample);
-            if (tpFilter && !tpFilter.filterTimePoint(*obj))
-            {
-                HATN_CTX_SCOPE_ERROR("filter-timepoint")
-                return dbError(DbError::NOT_FOUND);
-            }
-            return obj->sharedFromThis();
-        }
-
-        template <typename ModelT>
         Result<typename ModelT::SharedPtr> read(const Topic& topic,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
@@ -370,6 +349,9 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
+
+        //! @todo Add count()
+        //! @todo Return topic in find results
 
         template <typename ModelT, typename IndexT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> find(
@@ -613,6 +595,31 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
     private:
+
+        template <typename ModelT>
+        Result<typename ModelT::SharedPtr> afterRead(
+            const std::shared_ptr<ModelT>&,
+            Result<common::SharedPtr<dataunit::Unit>>&& r,
+            const TimePointFilter& tpFilter
+            )
+        {
+            static typename ModelT::ManagedType sample;
+            if (r)
+            {
+                return r.takeError();
+            }
+            if (r.value().isNull())
+            {
+                return typename ModelT::SharedPtr{};
+            }
+            auto* obj=common::dynamicCastWithSample(r.value().get(),&sample);
+            if (tpFilter && !tpFilter.filterTimePoint(*obj))
+            {
+                HATN_CTX_SCOPE_ERROR("filter-timepoint")
+                return dbError(DbError::NOT_FOUND);
+            }
+            return obj->sharedFromThis();
+        }
 
         bool m_opened;
 };

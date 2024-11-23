@@ -117,6 +117,7 @@ UpdateManyT::operator ()(
     };
 
     // iterate
+    //! @todo rename FindModifyMany to FindMany
     auto ec=FindModifyMany(model,handler,query,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)
 

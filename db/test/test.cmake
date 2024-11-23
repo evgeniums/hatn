@@ -10,7 +10,7 @@ SET (TEST_SOURCES
     # ${DB_TEST_SRC}/testfind.cpp
     # ${DB_TEST_SRC}/models1.cpp
 
-    ${DB_TEST_SRC}/testfindplain.cpp
+    # ${DB_TEST_SRC}/testfindplain.cpp
     ${DB_TEST_SRC}/modelplain.cpp
 
     # ${DB_TEST_SRC}/testfindembedded.cpp

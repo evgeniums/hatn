@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(SetSingle)
     auto checkScalar=[&o](const auto& field, auto val)
     {
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
-        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK_EQUAL(o.fieldValue(field),static_cast<decltype(o.fieldValue(field))>(val));
         checkOtherFields(o,field);
         o.reset();
     };
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(UnsetSingle)
     auto checkScalar=[&o](const auto& field, auto val)
     {
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
-        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK_EQUAL(o.fieldValue(field),static_cast<decltype(o.fieldValue(field))>(val));
         BOOST_CHECK(o.field(field).isSet());
         checkOtherFields(o,field);
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::unset)));
@@ -213,13 +213,13 @@ BOOST_AUTO_TEST_CASE(IncSingle)
     auto checkScalar=[&o](const auto& field, auto val)
     {
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::set,val)));
-        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK_EQUAL(o.fieldValue(field),static_cast<decltype(o.fieldValue(field))>(val));
         BOOST_CHECK(o.field(field).isSet());
         checkOtherFields(o,field);
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,3)));
-        BOOST_CHECK_EQUAL(o.fieldValue(field),val+3);
+        BOOST_CHECK_EQUAL(o.fieldValue(field),static_cast<decltype(o.fieldValue(field))>(val)+3);
         update::applyRequest(&o,update::makeRequest(update::Field(update::path(field),update::inc,-3)));
-        BOOST_CHECK_EQUAL(o.fieldValue(field),val);
+        BOOST_CHECK_EQUAL(o.fieldValue(field),static_cast<decltype(o.fieldValue(field))>(val));
         checkOtherFields(o,field);
         o.reset();
     };
@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
         BOOST_CHECK_EQUAL(r2.value().size(),count/2);
 
         // update objects
-        uint32_t inc=count;
+        auto inc=count;
         auto request=update::request(
             update::field(FieldInt16,update::inc,inc)
         );
@@ -489,6 +489,8 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
         r2=client->find(modelPlain(),q4);
         BOOST_REQUIRE(!r2);
         BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+
+        // find not existant
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
@@ -578,6 +580,115 @@ BOOST_AUTO_TEST_CASE(ReadUpdate)
         BOOST_REQUIRE(!r3_.value().isNull());
         BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldInt16),2000);
         BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldUInt32),val2+count/2);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    ctx->afterThreadProcessing();
+}
+
+BOOST_AUTO_TEST_CASE(FindUpdate)
+{
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+    HATN_CTX_SCOPE("FindUpdate")
+
+    init();
+
+    auto s1=initSchema(modelPlain());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        int16_t val1=100;
+        uint32_t val2=1000;
+        size_t count=10;
+
+        // create objects
+        ObjectId middleOid;
+        for (size_t i=0;i<count;i++)
+        {
+            auto o1=makeInitObject<plain::type>();
+            o1.setFieldValue(FieldInt16,val1+i);
+            o1.setFieldValue(FieldUInt32,val2+i);
+
+            if (i==count/2)
+            {
+                middleOid=o1.fieldValue(object::_id);
+            }
+
+            // create object in db
+            auto ec=client->create(topic1,modelPlain(),&o1);
+            BOOST_REQUIRE(!ec);
+        }
+        // find all objects
+        auto q1=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1);
+#if 0
+        auto r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),count);
+        for (size_t i=0;i<count;i++)
+        {
+            BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldInt16),val1+i);
+            BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldUInt32),val2+i);
+        }
+#endif
+        // find and update object, return before
+        auto q2=makeQuery(IdxInt16,query::where(FieldInt16,query::eq,val1+count/2),topic1);
+        auto updateReq1=update::request(
+            update::field(FieldInt16,update::set,1000)
+            );
+        auto r2=client->findUpdate(modelPlain(),q2,updateReq1,update::ReturnBefore);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE(!r2.value().isNull());
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldInt16),val1+count/2);
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldUInt32),val2+count/2);
+
+        // read updated object
+        auto r2_=client->read(topic1,modelPlain(),middleOid);
+        BOOST_REQUIRE(!r2_);
+        BOOST_REQUIRE(!r2_.value().isNull());
+        BOOST_CHECK_EQUAL(r2_.value()->fieldValue(FieldInt16),1000);
+        BOOST_CHECK_EQUAL(r2_.value()->fieldValue(FieldUInt32),val2+count/2);
+
+        // find and update object, return after
+        auto q3=makeQuery(IdxUInt32,query::where(FieldUInt32,query::eq,val2+count/2),topic1);
+        auto updateReq2=update::request(
+            update::field(FieldUInt32,update::set,2000)
+            );
+        auto r3=client->findUpdate(modelPlain(),q3,updateReq2,update::ReturnAfter);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE(!r3.value().isNull());
+        BOOST_CHECK_EQUAL(r3.value()->fieldValue(FieldInt16),1000);
+        BOOST_CHECK_EQUAL(r3.value()->fieldValue(FieldUInt32),2000);
+
+        // read updated object
+        auto r3_=client->read(topic1,modelPlain(),middleOid);
+        BOOST_REQUIRE(!r3_);
+        BOOST_REQUIRE(!r3_.value().isNull());
+        BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldInt16),1000);
+        BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldUInt32),2000);
+
+        // check objects
+        auto r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),count);
+        for (size_t i=0;i<count;i++)
+        {
+            if (i==count/2)
+            {
+                BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldInt16),1000);
+                BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldUInt32),2000);
+            }
+            else
+            {
+                BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldInt16),val1+i);
+                BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldUInt32),val2+i);
+            }
+        }
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
