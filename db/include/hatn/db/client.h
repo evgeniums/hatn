@@ -407,6 +407,23 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT, typename QueryT>
+        Result<size_t> count(
+            const std::shared_ptr<ModelT>& model,
+            const QueryT& query
+            )
+        {
+            HATN_CTX_SCOPE("dbcount")
+            if (m_opened)
+            {
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+                return doCount(*model->info,q);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT, typename QueryT>
         Result<size_t> deleteMany(
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
@@ -564,6 +581,11 @@ class HATN_DB_EXPORT Client : public common::WithID
             const ModelInfo& model,
             const ModelIndexQuery& query,
             bool single
+        ) =0;
+
+        virtual Result<size_t> doCount(
+            const ModelInfo& model,
+            const ModelIndexQuery& query
         ) =0;
 
         virtual Result<size_t> doUpdateMany(

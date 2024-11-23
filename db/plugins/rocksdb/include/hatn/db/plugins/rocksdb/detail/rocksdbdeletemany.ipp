@@ -19,7 +19,7 @@
 #ifndef HATNROCKSDBDELETEMANY_IPP
 #define HATNROCKSDBDELETEMANY_IPP
 
-#include <hatn/db/plugins/rocksdb/detail/findmodifymany.ipp>
+#include <hatn/db/plugins/rocksdb/detail/findmany.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -67,7 +67,7 @@ Result<size_t> DeleteManyT::operator ()(
             auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
             return !DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
         };
-        return FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
+        return FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
     };
     return handler.transaction(transactionFn,tx,true);
 #endif
@@ -89,7 +89,7 @@ Result<size_t> DeleteManyT::operator ()(
         count++;
         return ok;
     };
-    auto ec=FindModifyMany(model,handler,idxQuery,allocatorFactory,keyCallback);
+    auto ec=FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)
 
     return count;

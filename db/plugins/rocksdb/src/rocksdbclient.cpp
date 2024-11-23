@@ -578,6 +578,23 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(
 
 //---------------------------------------------------------------
 
+Result<size_t> RocksdbClient::doCount(
+        const ModelInfo &model,
+        const ModelIndexQuery &query
+    )
+{
+    HATN_CTX_SCOPE("rocksdbcount")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->count(*d->handler,query);
+}
+
+//---------------------------------------------------------------
+
 Error RocksdbClient::doDeleteObject(
         const Topic& topic,
         const ModelInfo &model,

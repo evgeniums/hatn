@@ -80,6 +80,11 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             bool single
         ) override;
 
+        virtual Result<size_t> doCount(
+            const ModelInfo& model,
+            const ModelIndexQuery& query
+        ) override;
+
         Error doDeleteObject(const Topic& topic,
                              const ModelInfo& model,
                              const ObjectId& id,

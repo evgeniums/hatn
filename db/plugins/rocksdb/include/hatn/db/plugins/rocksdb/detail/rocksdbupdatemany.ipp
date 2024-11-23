@@ -22,7 +22,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
-#include <hatn/db/plugins/rocksdb/detail/findmodifymany.ipp>
+#include <hatn/db/plugins/rocksdb/detail/findmany.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -117,8 +117,8 @@ UpdateManyT::operator ()(
     };
 
     // iterate
-    //! @todo rename FindModifyMany to FindMany
-    auto ec=FindModifyMany(model,handler,query,allocatorFactory,keyCallback);
+    //! @todo rename FindMany to FindMany
+    auto ec=FindMany(model,handler,query,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)
 
     // done

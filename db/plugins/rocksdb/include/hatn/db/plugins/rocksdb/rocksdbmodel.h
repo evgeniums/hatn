@@ -135,6 +135,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> findUpdateCreate;
 
+        std::function<Result<size_t> (
+            RocksdbHandler& handler,
+            const ModelIndexQuery& query
+            )> count;
+
     private:
 
         std::shared_ptr<ModelInfo> m_modelInfo;

@@ -119,6 +119,8 @@ Error CreateObjectT::operator ()(
         ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition.get(),objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 
+        //! @todo Make models-topics relation index
+
         // done
         return Error{OK};
     };

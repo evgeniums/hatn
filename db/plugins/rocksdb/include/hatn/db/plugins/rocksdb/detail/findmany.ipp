@@ -16,8 +16,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNROCKSDBFINDMODIFYMANY_IPP
-#define HATNROCKSDBFINDMODIFYMANY_IPP
+#ifndef HATNROCKSDBFINDMANY_IPP
+#define HATNROCKSDBFINDMANY_IPP
 
 #include <hatn/logcontext/contextlogger.h>
 
@@ -45,7 +45,7 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-struct FindModifyManyT
+struct FindManyT
 {
     template <typename ModelT>
     Error operator ()(
@@ -56,10 +56,10 @@ struct FindModifyManyT
         const index_key_search::KeyHandlerFn& keyCallback
     ) const;
 };
-constexpr FindModifyManyT FindModifyMany{};
+constexpr FindManyT FindMany{};
 
 template <typename ModelT>
-Error FindModifyManyT::operator ()(
+Error FindManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -67,7 +67,7 @@ Error FindModifyManyT::operator ()(
         const index_key_search::KeyHandlerFn& keyCallback
     ) const
 {
-    HATN_CTX_SCOPE("findmodifymany")
+    HATN_CTX_SCOPE("findmany")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
 
     // collect partitions for processing
@@ -109,4 +109,4 @@ Error FindModifyManyT::operator ()(
 
 HATN_ROCKSDB_NAMESPACE_END
 
-#endif // HATNROCKSDBFINDMODIFYMANY_IPP
+#endif // HATNROCKSDBFINDMANY_IPP

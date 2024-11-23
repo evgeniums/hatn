@@ -32,6 +32,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdatemany.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbcount.ipp>
 
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
@@ -241,6 +242,15 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
             return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{}};
         }
         return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{object};
+    };
+
+    rdbModel->count=[model,allocatorFactory]
+        (
+            RocksdbHandler& handler,
+            const ModelIndexQuery& query
+        )
+    {
+        return Count(model->model,handler,query,allocatorFactory);
     };
 
     using mType=std::decay_t<decltype(model->model)>;
