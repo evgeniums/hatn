@@ -708,8 +708,8 @@ Result<size_t> RocksdbClient::doUpdateMany(
 
 Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
                                     const ModelInfo &model,
-                                    const update::Request &request,
                                     const ObjectId &id,
+                                    const update::Request &request,                                    
                                     const common::Date &date,
                                     update::ModifyReturn returnType,
                                     Transaction* tx)
@@ -734,8 +734,8 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topi
 
 Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
                                                                       const ModelInfo &model,
-                                                                      const update::Request &request,
                                                                       const ObjectId &id,
+                                                                      const update::Request &request,                                                                      
                                                                       update::ModifyReturn returnType,
                                                                       Transaction* tx)
 {
@@ -757,7 +757,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topi
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(
+Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doFindUpdateCreate(
                                                                             const ModelInfo& model,
                                                                             const ModelIndexQuery& query,
                                                                             const update::Request& request,
@@ -765,14 +765,14 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdateCreate(
                                                                             update::ModifyReturn returnType,
                                                                             Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbreadupdatecreate")
+    HATN_CTX_SCOPE("rocksdbfindupdatecreate")
 
     ENSURE_MODEL_SCHEMA
 
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->readUpdateCreate(*d->handler,query,request,object,returnType,tx);
+    return rdbModel->findUpdateCreate(*d->handler,query,request,object,returnType,tx);
 }
 
 //---------------------------------------------------------------

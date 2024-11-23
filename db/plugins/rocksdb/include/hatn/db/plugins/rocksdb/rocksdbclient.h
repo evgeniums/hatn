@@ -114,16 +114,16 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
+                                                                       const ObjectId &id,
                                                                        const update::Request& request,
-                                                                       const ObjectId& id,
                                                                        const common::Date& date,
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx) override;
 
         Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
-                                                                       const update::Request& request,
                                                                        const ObjectId& id,
+                                                                       const update::Request& request,                                                                       
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx) override;
 
@@ -134,7 +134,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             Transaction* tx
         ) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(
+        Result<common::SharedPtr<dataunit::Unit>> doFindUpdateCreate(
                                                                      const ModelInfo& model,
                                                                      const ModelIndexQuery& query,
                                                                      const update::Request& request,

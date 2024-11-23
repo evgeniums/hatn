@@ -301,15 +301,16 @@ class HATN_DB_EXPORT Client : public common::WithID
                            const std::shared_ptr<ModelT>& model,
                            const update::Request& request,
                            const ObjectId& id,
-                           const common::Date& date,
-                           const TimePointFilter& tpFilter=TimePointFilter{},
+                           const common::Date& date,                           
                            update::ModifyReturn returnType=update::ModifyReturn::After,
-                           Transaction* tx=nullptr)
+                           Transaction* tx=nullptr,
+                           const TimePointFilter& tpFilter=TimePointFilter{}
+                    )
         {
             HATN_CTX_SCOPE("dbreadupdatedate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(topic,*model->info,request,id,date,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,id,request,date,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -319,16 +320,17 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Result<typename ModelT::SharedPtr> readUpdate(const Topic& topic,
                                                       const std::shared_ptr<ModelT>& model,
-                                                      const update::Request& request,
                                                       const ObjectId& id,
-                                                      const TimePointFilter& tpFilter=TimePointFilter{},
+                                                      const update::Request& request,
                                                       update::ModifyReturn returnType=update::ModifyReturn::After,
-                                                      Transaction* tx=nullptr)
+                                                      Transaction* tx=nullptr,
+                                                      const TimePointFilter& tpFilter=TimePointFilter{}
+                                                      )
         {
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_opened)
             {
-                return afterRead(model,doReadUpdate(topic,*model->info,request,id,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,id,request,returnType,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -460,7 +462,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT, typename QueryT>
-        Result<typename ModelT::SharedPtr> readUpdateCreate(
+        Result<typename ModelT::SharedPtr> findUpdateCreate(
                                                       const std::shared_ptr<ModelT>& model,
                                                       const QueryT& query,
                                                       const update::Request& request,
@@ -468,11 +470,32 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                       update::ModifyReturn returnType=update::ModifyReturn::After,
                                                       Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbreadupdatecreate")
+            HATN_CTX_SCOPE("dbfindupdatecreate")
             if (m_opened)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return afterRead(model,doReadUpdateCreate(*model->info,q,request,object,returnType,tx),TimePointFilter{});
+                return afterRead(model,doFindUpdateCreate(*model->info,q,request,object,returnType,tx),TimePointFilter{});
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT, typename QueryT>
+        Result<typename ModelT::SharedPtr> findUpdate(
+            const std::shared_ptr<ModelT>& model,
+            const QueryT& query,
+            const update::Request& request,
+            update::ModifyReturn returnType=update::ModifyReturn::After,
+            Transaction* tx=nullptr)
+        {
+            HATN_CTX_SCOPE("dbfindupdate")
+            if (m_opened)
+            {
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+                return afterRead(model,doFindUpdateCreate(*model->info,q,request,
+                                                           HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{},
+                                                           returnType,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -542,16 +565,16 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                      const ModelInfo& model,
-                                     const update::Request& request,
                                      const ObjectId& id,
+                                     const update::Request& request,                                     
                                      const common::Date& date,
                                      update::ModifyReturn returnType,
                                      Transaction* tx)=0;
 
         virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
-                                                                       const update::Request& request,
                                                                        const ObjectId& id,
+                                                                       const update::Request& request,                                                                       
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx)=0;
 
@@ -568,7 +591,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             Transaction* tx
         ) =0;
 
-        virtual Result<common::SharedPtr<dataunit::Unit>> doReadUpdateCreate(
+        virtual Result<common::SharedPtr<dataunit::Unit>> doFindUpdateCreate(
                                                             const ModelInfo& model,
                                                             const ModelIndexQuery& query,
                                                             const update::Request& request,

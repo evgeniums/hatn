@@ -133,7 +133,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
             db::update::ModifyReturn modifyReturn,
             Transaction* tx
-            )> readUpdateCreate;
+            )> findUpdateCreate;
 
     private:
 

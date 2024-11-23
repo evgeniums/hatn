@@ -231,6 +231,10 @@ enum class ModifyReturn : int
     After=2
 };
 
+constexpr auto ReturnNone=ModifyReturn::None;
+constexpr auto ReturnAfter=ModifyReturn::After;
+constexpr auto ReturnBefore=ModifyReturn::Before;
+
 } // namespace update
 
 HATN_DB_NAMESPACE_END

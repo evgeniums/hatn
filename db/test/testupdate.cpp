@@ -415,7 +415,7 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
-    HATN_CTX_SCOPE("CheckIndexes")
+    HATN_CTX_SCOPE("UpdateMany")
 
     init();
 
@@ -489,6 +489,95 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
         r2=client->find(modelPlain(),q4);
         BOOST_REQUIRE(!r2);
         BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+
+    ctx->afterThreadProcessing();
+}
+
+BOOST_AUTO_TEST_CASE(ReadUpdate)
+{
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
+    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    ctx->beforeThreadProcessing();
+    HATN_CTX_SCOPE("ReadUpdate")
+
+    init();
+
+    auto s1=initSchema(modelPlain());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        int16_t val1=100;
+        uint32_t val2=1000;
+        size_t count=10;
+
+        // create objects
+        ObjectId middleOid;
+        for (size_t i=0;i<count;i++)
+        {
+            auto o1=makeInitObject<plain::type>();
+            o1.setFieldValue(FieldInt16,val1+i);
+            o1.setFieldValue(FieldUInt32,val2+i);
+
+            if (i==count/2)
+            {
+                middleOid=o1.fieldValue(object::_id);
+            }
+
+            // create object in db
+            auto ec=client->create(topic1,modelPlain(),&o1);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // find all objects
+        auto q1=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1);
+        auto r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),count);
+        for (size_t i=0;i<count;i++)
+        {
+            BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldInt16),val1+i);
+            BOOST_CHECK_EQUAL(r1->at(i).unit<plain::type>()->fieldValue(FieldUInt32),val2+i);
+        }
+
+        // read and update object, return before
+        auto updateReq1=update::request(
+            update::field(FieldInt16,update::set,1000)
+        );
+        auto r2=client->readUpdate(topic1,modelPlain(),middleOid,updateReq1,update::ReturnBefore);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE(!r2.value().isNull());
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldInt16),val1+count/2);
+        BOOST_CHECK_EQUAL(r2.value()->fieldValue(FieldUInt32),val2+count/2);
+
+        // read updated object
+        auto r2_=client->read(topic1,modelPlain(),middleOid);
+        BOOST_REQUIRE(!r2_);
+        BOOST_REQUIRE(!r2_.value().isNull());
+        BOOST_CHECK_EQUAL(r2_.value()->fieldValue(FieldInt16),1000);
+        BOOST_CHECK_EQUAL(r2_.value()->fieldValue(FieldUInt32),val2+count/2);
+
+        // read and update object, return after
+        auto updateReq2=update::request(
+            update::field(FieldInt16,update::set,2000)
+            );
+        auto r3=client->readUpdate(topic1,modelPlain(),middleOid,updateReq2,update::ReturnAfter);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE(!r3.value().isNull());
+        BOOST_CHECK_EQUAL(r3.value()->fieldValue(FieldInt16),2000);
+        BOOST_CHECK_EQUAL(r3.value()->fieldValue(FieldUInt32),val2+count/2);
+
+        // read updated object
+        auto r3_=client->read(topic1,modelPlain(),middleOid);
+        BOOST_REQUIRE(!r3_);
+        BOOST_REQUIRE(!r3_.value().isNull());
+        BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldInt16),2000);
+        BOOST_CHECK_EQUAL(r3_.value()->fieldValue(FieldUInt32),val2+count/2);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
