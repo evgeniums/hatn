@@ -54,7 +54,7 @@ template <typename ClientT,
          typename ValueGeneratorT,
          typename extSetterT,
          typename ...FieldsT>
-void fillDbForFind(
+size_t fillDbForFind(
     size_t Count,
     ClientT& client,
     const Topic& topic,
@@ -94,8 +94,9 @@ void fillDbForFind(
         }
     }
 
-#if 1
     auto totalCount=Count*extSetter.iterCount();
+
+#if 1
 
     HATN_CTX_INFO("check if all objects are written, using less than Last")
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::lte,query::Last),topic);
@@ -142,6 +143,8 @@ void fillDbForFind(
         }
     }
 #endif
+
+    return totalCount;
 }
 
 template <typename ClientT,
@@ -194,7 +197,7 @@ Topic topic()
 }
 
 template <typename ModelT>
-void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
+void clearTopic(std::shared_ptr<Client> client, const ModelT& m, size_t count)
 {
     HATN_CTX_INFO("clear topic")
 
@@ -202,7 +205,7 @@ void clearTopic(std::shared_ptr<Client> client, const ModelT& m)
     q.setLimit(0);
     auto rd=client->deleteMany(m,q);
     BOOST_CHECK(!rd);
-    BOOST_CHECK_EQUAL(rd.value(),Count);
+    BOOST_CHECK_EQUAL(rd.value(),count);
 
     HATN_CTX_INFO("check find after clear")
 
@@ -227,7 +230,7 @@ struct InvokeTestT
     {
         BOOST_TEST_MESSAGE("Begin test");
 
-        fillDbForFind(Count,client,topic(),model,valGen,extSetter,fields...);
+        auto count=fillDbForFind(Count,client,topic(),model,valGen,extSetter,fields...);
 
         std::vector<size_t> valIndexes=CheckValueIndexes;
         if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<plain::MyEnum,decltype(valGen(0,true))>::value)
@@ -246,7 +249,7 @@ struct InvokeTestT
                      checker,
                      fields...);
 
-        clearTopic(client,model);
+        clearTopic(client,model,count);
 
         BOOST_TEST_MESSAGE("End test");
     }
