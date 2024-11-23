@@ -336,6 +336,7 @@ Error iterateFieldVariant(
             auto keyValue=it->value();
 
             // check if key must be filtered
+            //! @todo Check if filter would drop all the next keys and, thus, break iteration immediately
             bool keyFiltered=TtlMark::isExpired(keyValue) || filterIndex(idxQuery,pos,key,keyValue);
             if (!keyFiltered)
             {
@@ -352,7 +353,7 @@ Error iterateFieldVariant(
                     }
 
                     // if exact prefix then no more iteration needed
-                    lastKey=seekExactPrefix && (field.value.isLast() || field.value.isFirst());
+                    lastKey=seekExactPrefix && (onlyFirst || onlyLast || field.value.isLast() || field.value.isFirst());
                 }
                 else
                 {
