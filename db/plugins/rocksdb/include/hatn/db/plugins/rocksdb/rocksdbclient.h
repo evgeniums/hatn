@@ -74,10 +74,9 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                          bool forUpdate
                                                          ) override;
 
-        Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> doFind(
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> doFind(
             const ModelInfo& model,
-            const ModelIndexQuery& query,
-            bool single
+            const ModelIndexQuery& query
         ) override;
 
         virtual Result<size_t> doCount(
@@ -139,13 +138,18 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             Transaction* tx
         ) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doFindUpdateCreate(
-                                                                     const ModelInfo& model,
-                                                                     const ModelIndexQuery& query,
-                                                                     const update::Request& request,
-                                                                     const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                                                     update::ModifyReturn returnType,
-                                                                     Transaction* tx) override;
+        Result<DbObject> doFindUpdateCreate(
+                                             const ModelInfo& model,
+                                             const ModelIndexQuery& query,
+                                             const update::Request& request,
+                                             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+                                             update::ModifyReturn returnType,
+                                             Transaction* tx) override;
+
+        Result<DbObject> doFindOne(
+            const ModelInfo& model,
+            const ModelIndexQuery& query
+        ) override;
 
     private:
 

@@ -212,17 +212,17 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         auto r=UpdateMany(model->model,handler,query,request,modifyReturn,allocatorFactory,tx,true);
         if (r)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            return Result<DbObject>{r.takeError()};
         }
         if (r.value().second)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(r.takeValue().second)};
+            return Result<DbObject>{r.takeValue().second};
         }
 
         // done if object is not provided
         if (object.isNull())
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{}};
+            return Result<DbObject>{DbObject{}};
         }
 
         // create if not found
@@ -235,13 +235,13 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         auto&& ec=CreateObject(model->model,handler,topic,obj,allocatorFactory,tx);
         if (ec)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{std::move(ec)};
+            return Result<DbObject>{std::move(ec)};
         }
         if (modifyReturn==db::update::ModifyReturn::Before)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{}};
+            return Result<DbObject>{DbObject{}};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{object};
+        return Result<DbObject>{object,topic};
     };
 
     rdbModel->count=[model,allocatorFactory]

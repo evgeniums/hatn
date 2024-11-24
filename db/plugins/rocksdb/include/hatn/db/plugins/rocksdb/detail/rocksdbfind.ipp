@@ -45,7 +45,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 struct FindT
 {
     template <typename ModelT>
-    Result<common::pmr::vector<UnitWrapper>> operator ()(
+    Result<common::pmr::vector<DbObject>> operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
@@ -56,7 +56,7 @@ struct FindT
 constexpr FindT Find{};
 
 template <typename ModelT>
-Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
+Result<common::pmr::vector<DbObject>> FindT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
@@ -81,7 +81,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result
-    common::pmr::vector<UnitWrapper> objects{allocatorFactory->dataAllocator<UnitWrapper>()};
+    common::pmr::vector<DbObject> objects{allocatorFactory->dataAllocator<DbObject>()};
 
     // if keys not found then return empty result
     if (indexKeys->empty())
@@ -170,7 +170,7 @@ Result<common::pmr::vector<UnitWrapper>> FindT::operator ()(
             std::cout<<"Find: object appended to result" << std::endl;
 #endif
             // emplace wrapped unit to result vector
-            objects.emplace_back(sharedUnit);
+            objects.emplace_back(sharedUnit,key.topic());
         }
     }
 

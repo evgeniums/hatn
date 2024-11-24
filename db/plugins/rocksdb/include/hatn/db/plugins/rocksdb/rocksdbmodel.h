@@ -73,7 +73,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             bool forUpdate
             )> readObjectWithDate;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> (
+        std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
             bool single
@@ -126,7 +126,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> updateMany;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<DbObject> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
             const update::Request& request,

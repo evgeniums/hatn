@@ -141,51 +141,6 @@ inline ModelConfig DefaultModelConfig{};
 
 struct ModelTag{};
 
-class UnitWrapper
-{
-    public:
-
-        UnitWrapper()
-        {}
-
-        template <typename T>
-        UnitWrapper(const HATN_COMMON_NAMESPACE::SharedPtr<T>& sharedUnit) :
-                m_shared(sharedUnit.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
-        {}
-
-        template <typename T>
-        T* unit()
-        {
-            static T sample;
-            return sample.castToUnit(m_shared.get());
-        }
-
-        template <typename T>
-        const T* unit() const
-        {
-            static T sample;
-            return sample.castToUnit(m_shared.get());
-        }
-
-        template <typename T>
-        T* managedUnit()
-        {
-            static T sample;
-            return sample.castToManagedUnit(m_shared.get());
-        }
-
-        template <typename T>
-        const T* managedUnit() const
-        {
-            static T sample;
-            return sample.castToManagedUnit(m_shared.get());
-        }
-
-    private:
-
-        HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> m_shared;
-};
-
 template <typename ConfigT, typename UnitT, typename Indexes>
 struct Model : public ConfigT
 {

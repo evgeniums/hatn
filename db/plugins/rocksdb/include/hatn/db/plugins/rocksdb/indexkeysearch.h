@@ -73,9 +73,15 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
     common::pmr::string key;
     common::pmr::string value;
     RocksdbPartition* partition;
+    size_t topicLength;
     common::pmr::vector<ROCKSDB_NAMESPACE::Slice> keyParts;
 
     static lib::string_view keyPrefix(const lib::string_view& key, const lib::string_view& topic, size_t pos) noexcept;
+
+    lib::string_view topic() const noexcept
+    {
+        return lib::string_view{key.data(),topicLength};
+    }
 
     private:
 

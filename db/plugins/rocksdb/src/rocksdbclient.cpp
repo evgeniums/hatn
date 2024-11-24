@@ -560,10 +560,9 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& top
 
 //---------------------------------------------------------------
 
-Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(
+Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> RocksdbClient::doFind(
                                                                               const ModelInfo &model,
-                                                                              const ModelIndexQuery &query,
-                                                                              bool single
+                                                                              const ModelIndexQuery &query
                                                                               )
 {
     HATN_CTX_SCOPE("rocksdbfind")
@@ -573,7 +572,7 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>> RocksdbClient::doFind(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->find(*d->handler,query,single);
+    return rdbModel->find(*d->handler,query,false);
 }
 
 //---------------------------------------------------------------
@@ -774,13 +773,13 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topi
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doFindUpdateCreate(
-                                                                            const ModelInfo& model,
-                                                                            const ModelIndexQuery& query,
-                                                                            const update::Request& request,
-                                                                            const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                                                            update::ModifyReturn returnType,
-                                                                            Transaction* tx)
+Result<DbObject> RocksdbClient::doFindUpdateCreate(
+                                            const ModelInfo& model,
+                                            const ModelIndexQuery& query,
+                                            const update::Request& request,
+                                            const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
+                                            update::ModifyReturn returnType,
+                                            Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbfindupdatecreate")
 
@@ -790,6 +789,30 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doFindUpdateCreate(
     Assert(rdbModel,"Model not registered");
 
     return rdbModel->findUpdateCreate(*d->handler,query,request,object,returnType,tx);
+}
+
+//---------------------------------------------------------------
+
+Result<DbObject>
+RocksdbClient::doFindOne(
+        const ModelInfo& model,
+        const ModelIndexQuery& query
+    )
+{
+    HATN_CTX_SCOPE("rocksdbdoFindOne")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    auto r=rdbModel->find(*d->handler,query,true);
+    HATN_CHECK_RESULT(r)
+    if (r->empty())
+    {
+        return Result<DbObject>{DbObject{}};
+    }
+    return r->at(0);
 }
 
 //---------------------------------------------------------------

@@ -32,7 +32,7 @@ struct UpdateManyT
     Result<
         std::pair<
             size_t,
-            typename ModelT::SharedPtr
+            DbObject
             >
         >
      operator ()(
@@ -52,7 +52,7 @@ template <typename ModelT>
 Result<
     std::pair<
         size_t,
-        typename ModelT::SharedPtr
+        DbObject
         >
     >
 UpdateManyT::operator ()(
@@ -68,7 +68,7 @@ UpdateManyT::operator ()(
 {
     HATN_CTX_SCOPE("updatemany")
     Keys keys{allocatorFactory};
-    typename ModelT::SharedPtr result;
+    DbObject result;
 
     size_t count=0;
     auto keyCallback=[&](RocksdbPartition* partition,
@@ -103,7 +103,7 @@ UpdateManyT::operator ()(
         // fill return object with first found
         if (modifyReturnFirst!=db::update::ModifyReturn::None && count==0)
         {
-            result=r.takeValue();
+            result=DbObject{r.takeValue(),topic};
         }
         count++;
 
@@ -117,7 +117,6 @@ UpdateManyT::operator ()(
     };
 
     // iterate
-    //! @todo rename FindMany to FindMany
     auto ec=FindMany(model,handler,query,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)
 

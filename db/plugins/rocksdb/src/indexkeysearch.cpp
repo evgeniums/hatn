@@ -65,7 +65,8 @@ IndexKey::IndexKey(
     ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
         value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
         partition(p),
-        keyParts(allocatorFactory->dataAllocator<lib::string_view>())
+        keyParts(allocatorFactory->dataAllocator<lib::string_view>()),
+        topicLength(topic.size())
 {
     keyParts.reserve(8);
     fillKeyParts(topic,unique);

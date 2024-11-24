@@ -128,9 +128,11 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         }
         BOOST_REQUIRE(!r1);
         BOOST_CHECK(!r1.value().isNull());
+        BOOST_CHECK(r1.value().topic()==topic1);
+
         auto r2=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,true),topic1));
         BOOST_REQUIRE(!r2);
-        BOOST_CHECK(r2.value().isNull());
+        BOOST_CHECK(r2.value().isNull());        
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -679,4 +681,5 @@ BOOST_AUTO_TEST_SUITE_END()
  *  22. Test update nested fields
  *  23. Test update arrays
  *  24. Test count - done
+ *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate
  */

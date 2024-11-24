@@ -34,7 +34,7 @@ struct eqCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -75,7 +75,7 @@ struct neqCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -131,7 +131,7 @@ struct ltChecker
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -190,7 +190,7 @@ struct gtChecker
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -251,7 +251,7 @@ struct inVectorCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -306,7 +306,7 @@ struct ninVectorCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -353,7 +353,7 @@ struct inIntervalCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>& valIndexes,
         size_t i,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
@@ -577,7 +577,7 @@ struct eqFirstLastCheckerT
         ValueGeneratorT& valGen,
         const std::vector<size_t>&,
         size_t,
-        const HATN_COMMON_NAMESPACE::pmr::vector<UnitWrapper>& result,
+        const HATN_COMMON_NAMESPACE::pmr::vector<DbObject>& result,
         Fields&&... fields
         ) const
     {
