@@ -838,9 +838,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     auto limit = single ? 1 : idxQuery.query.limit();
     size_t partitionLimit = idxQuery.query.offset() + limit;
     size_t partitionCount = 0;
-
-    bool skipBeforeOffset=idxQuery.query.offset()!=0 && partitions.size()==1;
-    // bool skipBeforeOffset=false;
+    bool skipBeforeOffset=idxQuery.query.offset()!=0 && (partitions.size()*idxQuery.query.topics().size()==1);
 
     IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
 
@@ -854,7 +852,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
          Error&
         )
     {
-        // skip indexes below offset in case of one partition
+        // skip indexes below offset in case of one partition and topic
         if (skipBeforeOffset)
         {
             if (partitionCount<idxQuery.query.offset())

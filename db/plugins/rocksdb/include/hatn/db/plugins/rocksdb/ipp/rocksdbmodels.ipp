@@ -73,9 +73,9 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         auto r=ReadObject(model->model,handler,topic,objectId,hana::false_c,allocatorFactory,tx,forUpdate);
         if (r)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            return Result<DbObject>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+        return Result<DbObject>{r.takeValue(),topic};
     };
 
     rdbModel->readObjectWithDate=[model,allocatorFactory]
@@ -91,9 +91,9 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         auto r=ReadObject(model->model,handler,topic,objectId,date,allocatorFactory,tx,forUpdate);
         if (r)
         {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
+            return Result<DbObject>{r.takeError()};
         }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+        return Result<DbObject>{r.takeValue(),topic};
     };
 
     rdbModel->find=[model,allocatorFactory]
@@ -150,12 +150,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
              Transaction* tx
         )
     {
-        auto r=UpdateObject(model->model,handler,topic,objectId,request,date,modifyReturn,allocatorFactory,tx);
-        if (r)
-        {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
-        }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+        return UpdateObject(model->model,handler,topic,objectId,request,date,modifyReturn,allocatorFactory,tx);
     };
 
     rdbModel->updateObject=[model,allocatorFactory]
@@ -168,12 +163,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
             Transaction* tx
             )
     {
-        auto r=UpdateObject(model->model,handler,topic,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
-        if (r)
-        {
-            return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeError()};
-        }
-        return Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>>{r.takeValue()};
+        return UpdateObject(model->model,handler,topic,objectId,request,hana::false_c,modifyReturn,allocatorFactory,tx);
     };
 
     rdbModel->updateMany=[model,allocatorFactory]
@@ -226,11 +216,8 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         }
 
         // create if not found
-        Topic topic;
-        if (!query.query.topics().empty())
-        {
-            topic=query.query.topics().at(0);
-        }
+        Assert(!query.query.topics().empty(),"Topic must be provided");
+        Topic topic{query.query.topics().at(0)};
         const auto* obj=sample.castToUnit(object.get());
         auto&& ec=CreateObject(model->model,handler,topic,obj,allocatorFactory,tx);
         if (ec)

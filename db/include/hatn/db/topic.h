@@ -58,6 +58,11 @@ class Topic
             return m_topic;
         }
 
+        operator std::string() const
+        {
+            return std::string{m_topic.data(),m_topic.size()};
+        }
+
         bool operator < (const Topic& other) const noexcept
         {
             return m_topic<other.m_topic;

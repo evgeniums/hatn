@@ -56,7 +56,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> createObject;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<DbObject> (
             RocksdbHandler& handler,
             const Topic& topic,
             const ObjectId& objectId,
@@ -64,7 +64,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             bool forUpdate
             )> readObject;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<DbObject> (
             RocksdbHandler& handler,
             const Topic& topic,
             const ObjectId& objectId,
@@ -99,7 +99,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             Transaction* tx
             )> deleteMany;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<DbObject> (
              RocksdbHandler& handler,
              const Topic& topic,
              const ObjectId& objectId,
@@ -109,7 +109,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
              Transaction* tx
             )> updateObjectWithDate;
 
-        std::function<Result<HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>> (
+        std::function<Result<DbObject> (
             RocksdbHandler& handler,
             const Topic& topic,
             const ObjectId& objectId,

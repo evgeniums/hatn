@@ -521,7 +521,7 @@ Error RocksdbClient::doCreate(const Topic& topic, const ModelInfo& model, dataun
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& topic,
+Result<DbObject> RocksdbClient::doRead(const Topic& topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 Transaction* tx,
@@ -540,7 +540,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& top
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doRead(const Topic& topic,
+Result<DbObject> RocksdbClient::doRead(const Topic& topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 const common::Date& date,
@@ -659,8 +659,8 @@ Result<size_t> RocksdbClient::doDeleteMany(
 
 Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const ModelInfo &model,
+                                    const ObjectId& id,
                                     const update::Request &request,
-                                    const ObjectId &id,
                                     const common::Date &date,
                                     Transaction* tx)
 {
@@ -672,9 +672,10 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
     Assert(rdbModel,"Model not registered");
 
     auto r=rdbModel->updateObjectWithDate(*d->handler,topic,id,request,date,db::update::ModifyReturn::None,tx);
-    if (r)
+    HATN_CHECK_RESULT(r)
+    if (r.value().isNull())
     {
-        return r.takeError();
+        return dbError(DbError::NOT_FOUND);
     }
     return OK;
 }
@@ -683,8 +684,8 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
 
 Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const ModelInfo &model,
+                                    const ObjectId& id,
                                     const update::Request &request,
-                                    const ObjectId &id,
                                     Transaction* tx)
 {
     HATN_CTX_SCOPE("rocksdbupdate")
@@ -695,9 +696,10 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
     Assert(rdbModel,"Model not registered");
 
     auto r=rdbModel->updateObject(*d->handler,topic,id,request,db::update::ModifyReturn::None,tx);
-    if (r)
+    HATN_CHECK_RESULT(r)
+    if (r.value().isNull())
     {
-        return r.takeError();
+        return dbError(DbError::NOT_FOUND);
     }
     return OK;
 }
@@ -722,7 +724,7 @@ Result<size_t> RocksdbClient::doUpdateMany(
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
+Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                     const ModelInfo &model,
                                     const ObjectId &id,
                                     const update::Request &request,                                    
@@ -748,7 +750,7 @@ Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topi
 
 //---------------------------------------------------------------
 
-Result<common::SharedPtr<dataunit::Unit>> RocksdbClient::doReadUpdate(const Topic &topic,
+Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                                                       const ModelInfo &model,
                                                                       const ObjectId &id,
                                                                       const update::Request &request,                                                                      

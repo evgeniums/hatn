@@ -160,13 +160,29 @@ class DbObject
         template <typename T>
         T* get() const noexcept
         {
-            return managedUnit<T>();
+            auto self=const_cast<DbObject*>(this);
+            return self->template get<T>();
         }
 
         template <typename T>
         T* get() noexcept
-        {
-            return managedUnit<T>();
+        {            
+            if constexpr (hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>)
+            {
+                return unit<T>();
+            }
+            else if constexpr (hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>)
+            {
+                return managedUnit<T>();
+            }
+            else
+            {
+                static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>
+                                  ||
+                                  hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>
+                              ,"T must be either of Unit or of ManagedUnit type");
+                return T(nullptr);
+            }
         }
 
         template <typename T>
@@ -182,27 +198,15 @@ class DbObject
         }
 
         template <typename T>
-        T* operator->() const noexcept
+        T* as() const noexcept
         {
             return get<T>();
         }
 
         template <typename T>
-        T* operator->() noexcept
+        T* as() noexcept
         {
             return get<T>();
-        }
-
-        template <typename T>
-        T& operator*() const noexcept
-        {
-            return value<T>();
-        }
-
-        template <typename T>
-        T& operator*() noexcept
-        {
-            return mutableValue<T>();
         }
 
         auto shared() const noexcept
@@ -279,6 +283,21 @@ class DbObjectT : public DbObject
         T& operator*() noexcept
         {
             return mutableValue();
+        }
+
+        //! @note Helper in case DbObjectT is used in place of DbObject
+        template <typename T1>
+        auto* as() const noexcept
+        {
+            static_assert(std::is_same<T,T1>::value,"T1 must be the same as T");
+            return get();
+        }
+
+        template <typename T1>
+        auto* as() noexcept
+        {
+            static_assert(std::is_same<T,T1>::value,"T1 must be the same as T");
+            return get();
         }
 };
 

@@ -567,7 +567,7 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
 
-    HATN_CTX_SCOPE("Test UniqueIndex")
+    HATN_CTX_SCOPE("DeleteWithQuery")
     HATN_CTX_INFO("Test start")
 
     init();
@@ -652,6 +652,196 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
     ctx->afterThreadProcessing();
 }
 
+BOOST_AUTO_TEST_CASE(MultipleTopics)
+{
+    init();
+
+    auto s1=initSchema(m1_uint32());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        constexpr const size_t count=4;
+        std::vector<Topic> topics{
+            "topic1", "topic2", "topic3", "topic0"
+        };
+        std::vector<uint32_t> vals{1000,200,300,500};
+        std::vector<ObjectId> oids;
+        uint32_t val5=400;
+
+        // create objects
+        for (size_t i=0;i<count;i++)
+        {
+            auto o=makeInitObject<u1_uint32::type>();
+            o.setFieldValue(u1_uint32::f1,vals[i]);
+            auto ec=client->create(topics[i],m1_uint32(),&o);
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
+            BOOST_REQUIRE(!ec);
+            oids.emplace_back(o.fieldValue(object::_id));
+        }
+
+        // find all objects in topics array
+        auto q1=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topics);
+        auto r1=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),count);
+        BOOST_CHECK(r1.value().at(0).as<u1_uint32::type>()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK(r1.value().at(1).as<u1_uint32::type>()->fieldValue(object::_id)==oids[1]);
+        BOOST_CHECK(r1.value().at(2).as<u1_uint32::type>()->fieldValue(object::_id)==oids[2]);
+        BOOST_CHECK(r1.value().at(3).as<u1_uint32::type>()->fieldValue(object::_id)==oids[3]);
+        BOOST_CHECK(r1.value().at(0).topic()==topics[0]);
+        BOOST_CHECK(r1.value().at(1).topic()==topics[1]);
+        BOOST_CHECK(r1.value().at(2).topic()==topics[2]);
+        BOOST_CHECK(r1.value().at(3).topic()==topics[3]);
+
+        // additional object in topics[2]
+        auto o1=makeInitObject<u1_uint32::type>();
+        o1.setFieldValue(u1_uint32::f1,val5);
+        auto ec=client->create(topics[2],m1_uint32(),&o1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // find all objects in topics array
+        auto r2=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),count+1);
+        BOOST_CHECK(r2.value().at(0).as<u1_uint32::type>()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK(r2.value().at(1).as<u1_uint32::type>()->fieldValue(object::_id)==oids[1]);
+        BOOST_CHECK(r2.value().at(2).as<u1_uint32::type>()->fieldValue(object::_id)==oids[2]);
+        BOOST_CHECK(r2.value().at(3).as<u1_uint32::type>()->fieldValue(object::_id)==oids[3]);
+        BOOST_CHECK(r2.value().at(4).as<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(0).topic()==topics[0]);
+        BOOST_CHECK(r2.value().at(1).topic()==topics[1]);
+        BOOST_CHECK(r2.value().at(2).topic()==topics[2]);
+        BOOST_CHECK(r2.value().at(3).topic()==topics[3]);
+        BOOST_CHECK(r2.value().at(4).topic()==topics[2]);
+
+        // only some topics in arbitrary order
+        auto q2=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topics[2],topics[0]);
+        auto r3=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),3);
+        // result is sorted by oid
+        BOOST_CHECK(r2.value().at(0).as<u1_uint32::type>()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK(r3.value().at(1).as<u1_uint32::type>()->fieldValue(object::_id)==oids[2]);
+        BOOST_CHECK(r3.value().at(2).as<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK_EQUAL(std::string(r3.value().at(0).topic()),std::string(topics[0]));
+        BOOST_CHECK_EQUAL(std::string(r3.value().at(1).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r3.value().at(2).topic()),std::string(topics[2]));
+
+        // find objects with query on field
+        auto q3=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,300),topics);
+        auto r4=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r4);
+#if 0
+        for (auto&& it: r4.value())
+        {
+            BOOST_TEST_MESSAGE(it.as<u1_uint32::type>()->toString(true));
+        }
+#endif
+        BOOST_REQUIRE_EQUAL(r4.value().size(),4);
+        BOOST_CHECK_EQUAL(r4.value().at(0).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),300);
+        BOOST_CHECK_EQUAL(r4.value().at(1).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),400);
+        BOOST_CHECK_EQUAL(r4.value().at(2).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),500);
+        BOOST_CHECK_EQUAL(r4.value().at(3).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),1000);
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(0).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(1).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(2).topic()),std::string(topics[3]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(3).topic()),std::string(topics[0]));
+
+        // find objects with query on field with limit
+        q3.setLimit(3);
+        r4=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),3);
+        BOOST_CHECK_EQUAL(r4.value().at(0).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),300);
+        BOOST_CHECK_EQUAL(r4.value().at(1).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),400);
+        BOOST_CHECK_EQUAL(r4.value().at(2).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),500);
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(0).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(1).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(2).topic()),std::string(topics[3]));
+
+        // find objects with query on field with limit and offset
+        q3.setLimit(3);
+        q3.setOffset(1);
+        r4=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),3);
+        BOOST_CHECK_EQUAL(r4.value().at(0).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),400);
+        BOOST_CHECK_EQUAL(r4.value().at(1).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),500);
+        BOOST_CHECK_EQUAL(r4.value().at(2).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),1000);
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(0).topic()),std::string(topics[2]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(1).topic()),std::string(topics[3]));
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(2).topic()),std::string(topics[0]));
+
+        // read object
+        auto r5=client->read(topics[0],m1_uint32(),oids[0]);
+        BOOST_REQUIRE(!r5);
+        BOOST_CHECK(r5.value()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK_EQUAL(std::string(r5.value().topic()),std::string(topics[0]));
+
+        // read object from wrong topic
+        r5=client->read(topics[0],m1_uint32(),oids[1]);
+        BOOST_REQUIRE(r5);
+
+        // update object
+        auto updateReq1=update::request(
+                update::field(u1_uint32::f1,update::set,10)
+            );
+        auto r6=client->update(topics[0],m1_uint32(),oids[0],updateReq1);
+        BOOST_REQUIRE(!r6);
+
+        // read updated object
+        r5=client->read(topics[0],m1_uint32(),oids[0]);
+        BOOST_REQUIRE(!r5);
+        BOOST_CHECK_EQUAL(r5.value()->fieldValue(u1_uint32::f1),10);
+        BOOST_CHECK(r5.value()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK_EQUAL(std::string(r5.value().topic()),std::string(topics[0]));
+
+        // update object in wrong topic
+        auto updateReq2=update::request(
+            update::field(u1_uint32::f1,update::set,20)
+            );
+        r6=client->update(topics[0],m1_uint32(),oids[1],updateReq2);
+        BOOST_CHECK(r6);
+
+        // read not modified object
+        r5=client->read(topics[0],m1_uint32(),oids[0]);
+        BOOST_REQUIRE(!r5);
+        BOOST_CHECK_EQUAL(r5.value()->fieldValue(u1_uint32::f1),10);
+        BOOST_CHECK(r5.value()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK_EQUAL(std::string(r5.value().topic()),std::string(topics[0]));
+
+        // find update existent object
+        auto q4=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::eq,300),topics);
+        auto o2=makeInitObjectPtr<u1_uint32::type>();
+        o2->setFieldValue(u1_uint32::f1,30);
+        auto r7=client->findUpdateCreate(m1_uint32(),q4,updateReq2,o2,update::ReturnAfter);
+        BOOST_REQUIRE(!r7);
+        BOOST_REQUIRE(!r7.value().isNull());
+        BOOST_CHECK_EQUAL(r7.value()->fieldValue(u1_uint32::f1),20);
+        BOOST_CHECK(r7.value()->fieldValue(object::_id)==oids[2]);
+        BOOST_CHECK_EQUAL(std::string(r7.value().topic()),std::string(topics[2]));
+
+        // find update create non existent object
+        auto q5=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::eq,1000),topics[1]);
+        r7=client->findUpdateCreate(m1_uint32(),q5,updateReq2,o2,update::ReturnAfter);
+        BOOST_REQUIRE(!r7);
+        BOOST_REQUIRE(!r7.value().isNull());
+        BOOST_CHECK_EQUAL(r7.value()->fieldValue(u1_uint32::f1),30);
+        BOOST_CHECK(r7.value()->fieldValue(object::_id)==o2->fieldValue(object::_id));
+        BOOST_CHECK_EQUAL(std::string(r7.value().topic()),std::string(topics[1]));
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
@@ -681,5 +871,5 @@ BOOST_AUTO_TEST_SUITE_END()
  *  22. Test update nested fields
  *  23. Test update arrays
  *  24. Test count - done
- *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate
+ *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate - done
  */

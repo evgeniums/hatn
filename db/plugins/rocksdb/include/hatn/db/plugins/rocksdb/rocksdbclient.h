@@ -60,13 +60,13 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
+        Result<DbObject> doRead(const Topic& topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          Transaction* tx,
                                                          bool forUpdate
                                                          ) override;
-        Result<common::SharedPtr<dataunit::Unit>> doRead(const Topic& topic,
+        Result<DbObject> doRead(const Topic& topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          const common::Date& date,
@@ -105,18 +105,18 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doUpdateObject(const Topic& topic,
                        const ModelInfo& model,
-                       const update::Request& request,
                        const ObjectId& id,
+                       const update::Request& request,                       
                        const common::Date& date,
                        Transaction* tx) override;
 
         Error doUpdateObject(const Topic& topic,
                        const ModelInfo& model,
-                       const update::Request& request,
                        const ObjectId& id,
+                       const update::Request& request,
                        Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
+        Result<DbObject> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId &id,
                                                                        const update::Request& request,
@@ -124,7 +124,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        update::ModifyReturn returnType,
                                                                        Transaction* tx) override;
 
-        Result<common::SharedPtr<dataunit::Unit>> doReadUpdate(const Topic& topic,
+        Result<DbObject> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId& id,
                                                                        const update::Request& request,                                                                       

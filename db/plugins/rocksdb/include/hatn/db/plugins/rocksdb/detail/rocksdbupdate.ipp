@@ -49,7 +49,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 struct UpdateObjectT
 {
     template <typename ModelT, typename DateT>
-    Result<typename ModelT::SharedPtr> operator ()(const ModelT& model,
+    Result<DbObject> operator ()(const ModelT& model,
                                                   RocksdbHandler& handler,
                                                   const Topic& topic,
                                                   const ObjectId& objectId,
@@ -83,6 +83,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
     decltype(obj) objBefore;
+    bool found=false;
 
     // transaction fn
     auto transactionFn=[&](Transaction* tx)
@@ -127,7 +128,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
             // done
             return true;
         };
-        auto found=getForUpdate();
+        found=getForUpdate();
         HATN_CHECK_EC(ec)
 
         // if not found then return
@@ -252,6 +253,12 @@ Result<typename ModelT::SharedPtr> updateSingle(
     auto ec=handler.transaction(transactionFn,intx,true);
     HATN_CHECK_EC(ec)
 
+    // return empty if not found
+    if (!found)
+    {
+        return typename ModelT::SharedPtr{};
+    }
+
     // done
     if (modifyReturn==db::update::ModifyReturn::Before)
     {
@@ -261,7 +268,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 }
 
 template <typename ModelT, typename DateT>
-Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
+Result<DbObject> UpdateObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const Topic& topic,
@@ -284,7 +291,6 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
     const auto partition=objectPartition(handler,model,objectId,date);
     if (!partition)
     {
-        HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
 
@@ -296,7 +302,14 @@ Result<typename ModelT::SharedPtr> UpdateObjectT::operator ()(
 
     // do
     auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),topic.topic(),request,modifyReturn,factory,intx);
-    return r;
+
+    // prepare and reurn result
+    HATN_CHECK_RESULT(r)
+    if (r.value().isNull())
+    {
+        return DbObject{};
+    }
+    return DbObject{r.value(),topic};
 }
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -45,8 +45,8 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         static size_t DefaultLimit; // 100
 
         template <typename IndexT, typename WhereT, typename ...TopicsT>
-        IndexQuery(IndexT&& index, const WhereT& where, TopicsT&&... topics)
-            : IndexQuery(index.indexInfo(),int(0),std::forward<TopicsT>(topics)...)
+        IndexQuery(IndexT&& index, const WhereT& where, const TopicsT&... topics)
+            : IndexQuery(index.indexInfo(),int(0),topics...)
         {
             m_fields.reserve(where.size());
             auto self=this;
@@ -156,21 +156,71 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         IndexQuery(
             const IndexInfo* index,
             int,
-            Topics&&... topics
+            const Topics&... topics
             ) : m_index(index),
                 m_limit(DefaultLimit),
                 m_offset(0)
         {
             m_topics.beginRawInsert(sizeof...(Topics));
             hana::for_each(
-                hana::make_tuple(std::forward<Topics>(topics)...),
-                [this](auto&& topic)
+                HATN_VALIDATOR_NAMESPACE::make_cref_tuple(topics...),
+                [this](const auto& topic)
                 {
-                    m_topics.rawEmplace(std::forward<decltype(topic)>(topic));
+                    m_topics.rawEmplace(topic.get());
                 }
                 );
             m_topics.endRawInsert();
         }
+
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            Topics topics
+            ) : m_index(index),
+                m_topics(std::move(topics)),
+                m_limit(DefaultLimit),
+                m_offset(0)
+        {}
+
+        template <typename ContainerT>
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            int,
+            const ContainerT& topics
+            ) : m_index(index),
+            m_limit(DefaultLimit),
+            m_offset(0)
+        {
+            m_topics.beginRawInsert(topics.size());
+            for (auto&& it: topics)
+            {
+                m_topics.rawEmplace(it);
+            }
+            m_topics.endRawInsert();
+        }
+
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            const std::vector<Topic>& topics
+            ) : IndexQuery(index,0,0,topics)
+        {}
+
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            const common::pmr::vector<Topic>& topics
+            ) : IndexQuery(index,0,0,topics)
+        {}
+
+        template <size_t Size,typename AllocatorT>
+        IndexQuery(
+            const IndexInfo* index,
+            int,
+            const common::VectorOnStackT<Topic,Size,AllocatorT>& topics
+            ) : IndexQuery(index,0,0,topics)
+        {}
 
         const IndexInfo* m_index;
         Topics m_topics;
