@@ -781,6 +781,15 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
         BOOST_CHECK_EQUAL(std::string(r4.value().at(1).topic()),std::string(topics[3]));
         BOOST_CHECK_EQUAL(std::string(r4.value().at(2).topic()),std::string(topics[0]));
 
+        // find objects with query on field with limit and offset
+        q3.setLimit(1);
+        q3.setOffset(1);
+        r4=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),1);
+        BOOST_CHECK_EQUAL(r4.value().at(0).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),400);
+        BOOST_CHECK_EQUAL(std::string(r4.value().at(0).topic()),std::string(topics[2]));
+
         // read object
         auto r5=client->read(topics[0],m1_uint32(),oids[0]);
         BOOST_REQUIRE(!r5);
