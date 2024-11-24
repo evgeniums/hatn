@@ -553,11 +553,17 @@ struct unit
     }
 };
 
+struct managed_unit_tag
+{};
+
 template <typename UnitT>
 class managed_unit : public ManagedUnit<UnitT>,
                      public common::WithStaticAllocator<managed_unit<UnitT>>
 {
     public:
+
+        using hana_tag=managed_unit_tag;
+
         using ManagedUnit<UnitT>::ManagedUnit;
 
         inline managed_unit<UnitT>* castToManagedUnit(Unit* unit) const noexcept
@@ -575,6 +581,9 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
                             public common::WithStaticAllocator<shared_managed_unit<SharedUnitT>>
 {
     public:
+
+        using hana_tag=managed_unit_tag;
+
         using ManagedUnit<SharedUnitT>::ManagedUnit;
 
         inline shared_managed_unit<SharedUnitT>* castToManagedUnit(Unit* unit) const noexcept
@@ -589,10 +598,15 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
 
 //---------------------------------------------------------------
 
+struct unit_tag
+{};
+
 template <typename BaseT, typename UniqueType=void>
 class unit_t : public BaseT
 {
         public:
+
+            using hana_tag=unit_tag;
 
             using unit_type=unit_t<BaseT,UniqueType>;
 
