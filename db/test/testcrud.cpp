@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         auto update1=update::makeRequest(
             update::Field(update::path(simple1::f1),update::set,101)
         );
-        ec=client->update(topic,m1,update1,id);
+        ec=client->update(topic,m1,id,update1);
         BOOST_REQUIRE(!ec);
         // read updated object
         auto r5=client->read(topic,m1,id);

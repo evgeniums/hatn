@@ -9,7 +9,7 @@
 /****************************************************************************/
 /** @file common/pmr/pmrtypes.h
   *
-  *     Typedef for polymorphic allocator types
+  *     Typedefs and aliases for polymorphic allocator types and helpers
   *
   */
 
@@ -27,10 +27,6 @@
 #include <boost/container/pmr/memory_resource.hpp>
 #include <boost/container/pmr/polymorphic_allocator.hpp>
 #include <boost/container/pmr/pool_options.hpp>
-#include <boost/container/pmr/vector.hpp>
-#include <boost/container/pmr/string.hpp>
-#include <boost/container/pmr/list.hpp>
-#include <boost/container/pmr/map.hpp>
 
 #else
 
@@ -41,10 +37,10 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <set>
 #include <string>
 
 #include <hatn/common/common.h>
-#include <hatn/common/classuid.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 namespace pmr {
@@ -60,18 +56,6 @@ inline memory_resource* get_default_resource() noexcept
 template <typename T> using vector=std::vector<T, polymorphic_allocator<T>>;
 using string=std::basic_string<char,std::char_traits<char>,polymorphic_allocator<char>>;
 template <typename T> using list=std::list<T,polymorphic_allocator<T>>;
-#if defined (__APPLE__) || defined (BUILD_ANDROID)
-
-template <typename Key, typename Value, typename Comp=std::less<Key>>
-using map=boost::container::pmr::map<Key,Value,Comp>;
-
-template <typename Key, typename Value, typename Comp=std::less<Key>>
-using map=boost::container::pmr::set<Key,Comp>;
-
-#else
-
-// template <typename Key, typename Value> using map=std::map<Key,Value,std::less<Key>,polymorphic_allocator<std::pair<Key,Value>>>;
-// template <typename Key, typename Value> using set=std::set<Key,std::less<Key>,polymorphic_allocator<Key>>;
 
 template <typename Key, typename Value, typename Comp=std::less<Key>>
 using map=std::map<Key,Value,Comp,polymorphic_allocator<std::pair<Key,Value>>>;
@@ -79,7 +63,6 @@ using map=std::map<Key,Value,Comp,polymorphic_allocator<std::pair<Key,Value>>>;
 template <typename Key, typename Comp=std::less<Key>>
 using set=std::set<Key,Comp,polymorphic_allocator<Key>>;
 
-#endif
 #else
 
 template <typename T> using polymorphic_allocator = std::pmr::polymorphic_allocator<T>;
@@ -138,7 +121,7 @@ template <typename T> inline void destroyDeallocate(T* obj,polymorphic_allocator
 }
 
 //---------------------------------------------------------------
-} // namespace memory
+} // namespace pmr
 
 HATN_COMMON_NAMESPACE_END
 #endif // HATNPMRDEFS_H
