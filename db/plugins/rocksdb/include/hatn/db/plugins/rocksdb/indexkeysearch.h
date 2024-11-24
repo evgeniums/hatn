@@ -58,6 +58,7 @@ using KeyHandlerFn=std::function< bool (RocksdbPartition* partition,
 struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
 {
     constexpr static const size_t FieldsOffset=2*sizeof(SeparatorCharC)+common::Crc32HexLength;
+    constexpr static const size_t KeyPartsMax=8;
 
     IndexKey();
 
@@ -66,15 +67,14 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
         ROCKSDB_NAMESPACE::Slice* v,
         const lib::string_view& topic,
         RocksdbPartition* p,
-        bool unique,
-        AllocatorFactory* allocatorFactory
+        bool unique
     );
 
-    common::pmr::string key;
-    common::pmr::string value;
+    KeyBuf key;
+    KeyBuf value;
     RocksdbPartition* partition;
     size_t topicLength;
-    common::pmr::vector<ROCKSDB_NAMESPACE::Slice> keyParts;
+    common::VectorOnStackT<ROCKSDB_NAMESPACE::Slice,KeyPartsMax> keyParts;
 
     static lib::string_view keyPrefix(const lib::string_view& key, const lib::string_view& topic, size_t pos) noexcept;
 
@@ -131,7 +131,7 @@ struct IndexKeyCompare
     const ModelIndexQuery* idxQuery;
 };
 
-using IndexKeys=common::pmr::FlatSet<IndexKey,IndexKeyCompare>;
+using IndexKeys=common::pmr::set<IndexKey,IndexKeyCompare>;
 
 Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,

@@ -60,15 +60,13 @@ IndexKey::IndexKey(
         ROCKSDB_NAMESPACE::Slice* v,
         const lib::string_view& topic,
         RocksdbPartition* p,
-        bool unique,
-        AllocatorFactory* allocatorFactory
-    ) : key(k->data(),k->size(),allocatorFactory->bytesAllocator()),
-        value(v->data(),v->size(),allocatorFactory->bytesAllocator()),
+        bool unique
+    ) : key(k->data(),k->size()),
+        value(v->data(),v->size()),
         partition(p),
-        keyParts(allocatorFactory->dataAllocator<lib::string_view>()),
         topicLength(topic.size())
 {
-    keyParts.reserve(8);
+    keyParts.reserve(KeyPartsMax);
     fillKeyParts(topic,unique);
 }
 
@@ -840,7 +838,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     size_t partitionCount = 0;
     bool skipBeforeOffset=idxQuery.query.offset()!=0 && (partitions.size()*idxQuery.query.topics().size()==1);
 
-    IndexKeys keys{allocatorFactory->dataAllocator<IndexKey>(),IndexKeyCompare{idxQuery}};
+    IndexKeys keys{IndexKeyCompare{idxQuery},allocatorFactory->dataAllocator<IndexKey>()};
 
     auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single,
         &partitionCount,partitionLimit,&partitions,skipBeforeOffset
@@ -863,27 +861,26 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         }
 
         // insert found key
-        auto it=keys.insert(IndexKey{key,keyValue,topic,partition,idxQuery.query.index()->unique(),allocatorFactory});
-        auto insertedIdx=it.first.index();
-
+        auto it=keys.emplace(key,keyValue,topic,partition,idxQuery.query.index()->unique());
         if (idxQuery.query.offset()==0)
         {
             // cut keys number to limit
             if (limit!=0 && keys.size()>limit)
             {
-                keys.resize(limit);
-
-                // if inserted key was dropped over the limit then break current iteration because keys are pre-sorted
+                // if inserted key is over the limit then break current iteration because keys are pre-sorted
                 // and all next keys will be dropped anyway
-                if (insertedIdx==limit)
+                auto last=--keys.end();
+                if (it.first==last)
                 {
+                    keys.erase(last);
                     return false;
                 }
+                keys.erase(last);
             }
         }
         else
         {
-            // collect offset+limit for each partition to truncate from the head up to the offset later
+            // collect offset+limit for each partition*topic to truncate from the head up to the offset later
             partitionCount++;
             if (partitionCount==partitionLimit)
             {
@@ -947,12 +944,15 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             }
             else
             {
-                keys.erase(keys.begin(),keys.begin()+idxQuery.query.offset());
+                for (size_t i=0;i<idxQuery.query.offset();i++)
+                {
+                    keys.erase(keys.begin());
+                }
             }
         }
-        if (keys.size()>limit)
+        while (keys.size()>limit)
         {
-            keys.resize(limit);
+            keys.erase(--keys.end());
         }
     }
 
