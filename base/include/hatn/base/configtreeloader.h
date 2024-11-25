@@ -162,7 +162,7 @@ class HATN_BASE_EXPORT ConfigTreeLoader
         template <typename ...Args>
         void addIncludeDirs(Args&& ...dirs)
         {
-            common::ContainerUtils::addElements(m_includeDirs,std::forward<Args>(dirs)...);
+            common::ContainerUtils::append(m_includeDirs,std::forward<Args>(dirs)...);
         }
 
         /**

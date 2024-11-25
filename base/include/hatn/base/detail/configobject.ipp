@@ -124,7 +124,7 @@ struct FieldTraits<T,hana::when<T::isRepeatedType::value>>
 
             for (size_t i=0;i<arr->size();i++)
             {
-                field.addValue(arr->at(i));
+                field.appendValue(arr->at(i));
             }
         }
 

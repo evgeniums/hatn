@@ -66,13 +66,13 @@ struct LogSettings : public LogParams
 
     LogSettings(const LogParams& params=LogParams())
         : LogParams(params),
-          MaskNames{{"password","secret","masked"}}
+          MaskNames{{"password","secret","masked","passphrase","passwd"}}
     {}
 
     template <typename ...Args>
     LogSettings(Args&& ...patterns)
     {
-        common::ContainerUtils::insertElements(MaskNames,std::forward<Args>(patterns)...);
+        common::ContainerUtils::insert(MaskNames,std::forward<Args>(patterns)...);
     }
 
     void mask(const std::string name, std::string& value) const
