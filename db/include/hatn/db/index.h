@@ -402,17 +402,37 @@ constexpr makePlainIndexesT makePlainIndexes{};
 struct getIndexFieldT
 {
     template <typename UnitT, typename FieldT>
-    static decltype(auto) invoke(UnitT&& unit, FieldT&& field)
+    static const auto& invoke(const UnitT& unit, FieldT&& field)
     {
-        return hana::eval_if(
+        if constexpr (hana::is_a<NestedFieldTag,FieldT>)
+        {
+            const auto& f=unit.fieldAtPath(vld::make_member(field.path));
+            return f;
+        }
+        else if constexpr (hana::is_a<FieldTag,FieldT>)
+        {
+            const auto& f=unit.field(field.field);
+            return f;
+        }
+        else
+        {
+            const auto& f=unit.field(field);
+            return f;
+        }
+#if 0
+        const auto& f=hana::eval_if(
             hana::is_a<NestedFieldTag,FieldT>,
             [&](auto _)
             {
+                const auto& f=_(unit).fieldAtPath(vld::make_member(_(field).path));
+                return f;
+#if 0
                 auto handler=[](auto&& currentUnit, auto&& currentField)
                 {
                     return currentUnit.field(currentField);
                 };
                 return hana::fold(_(field).path,_(unit),handler);
+#endif
             },
             [&](auto)
             {
@@ -420,21 +440,26 @@ struct getIndexFieldT
                     hana::is_a<FieldTag,FieldT>,
                     [&](auto _)
                     {
-                        return getIndexFieldT::invoke(_(unit),_(field).field);
+                        const auto& f=getIndexFieldT::invoke(_(unit),_(field).field);
+                        return f;
                     },
                     [&](auto _)
                     {
-                        return _(unit).field(_(field));
+                        const auto& f=_(unit).field(_(field));
+                        return f;
                     }
                 );
             }
         );
+
+       return f;
+#endif
     }
 
     template <typename UnitT, typename FieldT>
-    decltype(auto) operator()(UnitT&& unit, FieldT&& field) const
+    const auto& operator()(const UnitT& unit, FieldT&& field) const
     {
-        return getIndexFieldT::invoke(std::forward<UnitT>(unit),std::forward<FieldT>(field));
+        return getIndexFieldT::invoke(unit,std::forward<FieldT>(field));
     }
 };
 constexpr getIndexFieldT getIndexField{};

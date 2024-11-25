@@ -98,6 +98,11 @@ struct IndexKeyCompare
 
     inline bool operator ()(const IndexKey& l, const IndexKey& r) const noexcept
     {
+        if (l.value==r.value)
+        {
+            return false;
+        }
+
         // compare key parts according to ordering of query fields
         for (size_t i=0;i<idxQuery->query.fields().size();i++)
         {

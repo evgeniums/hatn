@@ -13,6 +13,8 @@
 
 /****************************************************************************/
 
+// HATN_TEST_SUITE TestRepeated
+
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/syntax.h>
@@ -26,7 +28,7 @@
 
 #include "hatn_test_config.h"
 
-#include "models10.h"
+#include "modelsrep.h"
 
 HATN_USING
 HATN_DATAUNIT_USING
@@ -41,11 +43,11 @@ HATN_TEST_USING
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
 
-void registerModels10()
+void registerModels()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 
-    rdb::RocksdbModels::instance().registerModel(m10());
+    rdb::RocksdbModels::instance().registerModel(modelRep());
 
 #endif
 }

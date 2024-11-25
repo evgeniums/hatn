@@ -62,12 +62,12 @@ struct FieldPathCompare
                 return false;
             }
 
-            if (l[i].id<r[i].id)
+            if (l[i].fieldId<r[i].fieldId)
             {
                 return true;
             }
 
-            if (l[i].id>r[i].id)
+            if (l[i].fieldId>r[i].fieldId)
             {
                 return false;
             }
@@ -93,7 +93,7 @@ struct arrayT
     template <typename FieldT, typename T>
     auto operator ()(const FieldT& field, T&& id) const noexcept
     {
-        return ArrayField{field,static_cast<int>(id)};
+        return ArrayField<FieldT>{field,static_cast<int>(id)};
     }
 };
 constexpr arrayT array{};
@@ -121,7 +121,8 @@ struct makePathT
                     else
                     {
                         static_assert(hana::is_a<ArrayFieldTag,type>,"Invalid path element");
-                        path.emplace_back(val.field.id(),val.field.name(),val.id);
+                        auto&& f=vld::unwrap_object(val.field);
+                        path.emplace_back(f.id(),f.name(),val.id);
                     }
                 }
             );

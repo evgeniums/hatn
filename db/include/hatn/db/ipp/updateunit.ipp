@@ -85,7 +85,7 @@ struct HandleFieldT
 {
     static dataunit::Field* getUnitField(dataunit::Unit* unit, const Field& updateField, bool maxDepth=true)
     {
-        auto* field=unit->fieldById(updateField.path.at(0).id);
+        auto* field=unit->fieldById(updateField.path.at(0).fieldId);
         Assert(field!=nullptr,"Field not found in the object");
 
         size_t count=maxDepth? updateField.path.size() : (updateField.path.size()-1);
@@ -104,7 +104,7 @@ struct HandleFieldT
                 u=field->subunit();
             }
             Assert(u!=nullptr,"Field must be of subunit type");
-            field=u->fieldById(updateField.path.at(i).id);
+            field=u->fieldById(updateField.path.at(i).fieldId);
         }
 
         Assert(field!=nullptr,"Unknown field for update");
@@ -116,8 +116,6 @@ struct HandleFieldT
         // special cases for operations on repeated fields: replace vector element by index, erase vector element by index, increment vector element by index
         if (updateField.op==Operator::replace_element || updateField.op==Operator::erase_element || updateField.op==Operator::inc_element)
         {
-            Assert(updateField.path.size()>=2,"Invalid path for re  quested update operation");
-
             auto* field=getUnitField(unit,updateField,false);
             auto id=static_cast<size_t>(updateField.path.back().id);
 
@@ -127,7 +125,10 @@ struct HandleFieldT
                 {
                     auto elementSet=[id,&field](const auto& val)
                     {
-                        field->arraySet(id,val);
+                        if (id<field->arraySize())
+                        {
+                            field->arraySet(id,val);
+                        }
                     };
                     auto vectorSet=[](const auto&)
                     {
@@ -139,7 +140,10 @@ struct HandleFieldT
 
                 case (Operator::erase_element):
                 {
-                    field->arrayErase(id);
+                    if (id<field->arraySize())
+                    {
+                        field->arrayErase(id);
+                    }
                 }
                 break;
 
@@ -153,7 +157,10 @@ struct HandleFieldT
                                 std::is_arithmetic<type>{},
                                 [&](auto _)
                                 {
-                                    field->arrayInc(_(id),_(val));
+                                    if (id<field->arraySize())
+                                    {
+                                        field->arrayInc(_(id),_(val));
+                                    }
                                 },
                                 [&](auto )
                                 {
@@ -240,7 +247,7 @@ struct HandleFieldT
             {
                 auto elementAdd=[&field](const auto& val)
                 {
-                    field->arrayAdd(val);
+                    field->arrayAppend(val);
                 };
                 auto vectorSet=[](const auto&)
                 {
@@ -267,7 +274,7 @@ struct HandleFieldT
                     bool unique=true;
                     for (size_t i=0;i<field->arraySize();i++)
                     {
-                        if (field->equals(val))
+                        if (field->arrayEquals(i,val))
                         {
                             unique=false;
                             break;
@@ -275,7 +282,7 @@ struct HandleFieldT
                     }
                     if (unique)
                     {
-                        field->arrayAdd(val);
+                        field->arrayAppend(val);
                     }
                 };
                 auto vectorSet=[](const auto&)

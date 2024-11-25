@@ -41,7 +41,7 @@ Error Keys::iterateIndexFields(
     const UnitT* object,
     const IndexT& index,
     const Keys::KeyHandlerFn& handler,
-    const PosT& pos
+    PosT pos
     )
 {
     auto self=this;
@@ -68,8 +68,11 @@ Error Keys::iterateIndexFields(
                 {
                     if (_(field).isSet())
                     {
+                        auto nextPos=hana::plus(_(pos),hana::size_c<1>);
                         for (size_t i=0;i<_(field).count();i++)
                         {
+                            auto sizeBefore=_(buf).size();
+
                             const auto& val=_(field).at(i);
                             fieldToStringBuf(_(buf),val);
                             _(buf).append(SeparatorCharStr);
@@ -79,9 +82,11 @@ Error Keys::iterateIndexFields(
                                 _(object),
                                 _(index),
                                 _(handler),
-                                hana::plus(_(pos),hana::size_c<1>)
+                                nextPos
                                 );
                             HATN_CHECK_EC(ec)
+
+                            _(buf).resize(sizeBefore);
                         }
                         return Error{OK};
                     }

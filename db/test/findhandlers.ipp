@@ -233,7 +233,7 @@ struct InvokeTestT
         auto count=fillDbForFind(Count,client,topic(),model,valGen,extSetter,fields...);
 
         std::vector<size_t> valIndexes=CheckValueIndexes;
-        if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<plain::MyEnum,decltype(valGen(0,true))>::value)
+        if constexpr (std::is_same<bool,decltype(valGen(0,true))>::value || std::is_same<TestEnum,decltype(valGen(0,true))>::value)
         {
             valIndexes.clear();
             valIndexes.push_back(0);
@@ -331,13 +331,13 @@ bool genBool(size_t i, bool)
     return true;
 }
 
-plain::MyEnum genEnum(size_t i, bool)
+TestEnum genEnum(size_t i, bool)
 {
     if (i==0)
     {
-        return plain::MyEnum::One;
+        return TestEnum::One;
     }
-    return plain::MyEnum::Two;
+    return TestEnum::Two;
 }
 
 template <typename T>

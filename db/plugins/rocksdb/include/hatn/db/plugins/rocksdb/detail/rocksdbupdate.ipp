@@ -149,6 +149,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
         // extract old keys for updated fields
+        std::cout<<"Extract old keys "<< std::endl;
         const auto& k=key;
         IndexKeyUpdateSet oldKeys;
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
@@ -177,6 +178,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
+        std::cout<<"Extract new keys "<< std::endl;
         IndexKeyUpdateSet newKeys;
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys);
 
@@ -186,10 +188,26 @@ Result<typename ModelT::SharedPtr> updateSingle(
             auto oldKeyIt=oldKeys.find(newKey);
             if (oldKeyIt!=oldKeys.end())
             {
-                newKey.exists=true;
-                oldKeyIt->exists=true;
+                auto& n=const_cast<IndexKeyUpdate&>(static_cast<const IndexKeyUpdate&>(newKey));
+                n.exists=true;
+                auto& o=const_cast<IndexKeyUpdate&>(static_cast<const IndexKeyUpdate&>(*oldKeyIt));
+                o.exists=true;
             }
         }
+
+//! @todo Log debug
+#if 1
+        std::cout<<"Old keys "<< std::endl;
+        for (auto&& it: oldKeys)
+        {
+            std::cout<< "idx=" << it.indexName << " key=" << logKey(it.key) << " exists=" << it.exists << std::endl;
+        }
+        std::cout<<"New keys "<< std::endl;
+        for (auto&& it: newKeys)
+        {
+            std::cout<< "idx=" << it.indexName << " key=" << logKey(it.key) << " exists=" << it.exists << std::endl;
+        }
+#endif
 
         auto indexCf=partition->indexCf.get();
 
@@ -199,8 +217,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
             if (!oldKey.exists)
             {
                 // delete old key
-                ROCKSDB_NAMESPACE::SliceParts keySlices{oldKey.key.data(),static_cast<int>(oldKey.key.size())};
-                auto status=rdbTx->Delete(indexCf,keySlices);
+                auto sl=oldKey.keySlice();
+                auto status=rdbTx->Delete(indexCf,sl);
                 if (!status.ok())
                 {
                     HATN_CTX_SCOPE_PUSH("idx_name",oldKey.indexName);
@@ -220,7 +238,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 if (!newKey.exists)
                 {
                     // save new key
-                    ec=SaveSingleIndex(handler,newKey.key,newKey.unique,indexCf,rdbTx,indexValue);
+                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique,indexCf,rdbTx,indexValue);
                     if (ec)
                     {
                         HATN_CTX_SCOPE_PUSH("idx_name",newKey.indexName)

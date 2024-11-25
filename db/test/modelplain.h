@@ -58,6 +58,8 @@ HDU_UNIT_WITH(plain,(HDU_BASE(object)),
               HDU_FIELD(f20,TYPE_DOUBLE,20)
               )
 
+using TestEnum=plain::MyEnum;
+
 HATN_DB_INDEX(plain_f1_idx,plain::f1)
 HATN_DB_INDEX(plain_f2_idx,plain::f2)
 HATN_DB_INDEX(plain_f3_idx,plain::f3)

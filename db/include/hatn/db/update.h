@@ -176,23 +176,79 @@ constexpr makePathT path{};
 
 struct fieldT
 {
+    template <typename T>
+    auto wrapValue(T&& val) const -> decltype(auto)
+    {
+        using isVecT=query::IsVector<T>;
+
+        static const auto isLval=std::is_lvalue_reference<T>{};
+        static const auto isStrView=
+            hana::bool_c<
+                std::is_same<lib::string_view,std::decay_t<T>>::value
+            ||
+            std::is_same<const char*,T>::value
+                >;
+
+        static_assert(
+            decltype(isLval)::value || decltype(isStrView)::value || !isVecT::value,
+            "Do not use temporary/rvalue strings or vectors as a update field value"
+            );
+
+        if constexpr (std::is_convertible<T,String>::value)
+        {
+            return String(val);
+        }
+        else
+        {
+            if constexpr (isVecT::value)
+            {
+                return std::cref(val);
+            }
+            else
+            {
+                return hana::id(std::forward<T>(val));
+            }
+        }
+    }
+
     template <typename T1, typename T2>
     Field operator ()(T1&& path_,Operator op,T2&& value) const
     {
         if constexpr (hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,T1>)
         {
-            return Field{path(std::forward<T1>(path_)),op,std::forward<T2>(value)};
+            return Field{path(std::forward<T1>(path_)),op,wrapValue(std::forward<T2>(value))};
         }
         else
         {
             if constexpr (hana::is_a<NestedFieldTag,T1>)
             {
-                return Field{path_.fieldPath(),op,std::forward<T2>(value)};
+                return Field{path_.fieldPath(),op,wrapValue(std::forward<T2>(value))};
             }
             else
             {
                 static_assert(std::is_same<FieldPath,std::decay_t<T1>>::value,"Invalid path type");
-                return Field{std::forward<T1>(path_),op,std::forward<T2>(value)};
+                return Field{std::forward<T1>(path_),op,wrapValue(std::forward<T2>(value))};
+            }
+        }
+    }
+
+    template <typename T1>
+    Field operator ()(T1&& path_,Operator op) const
+    {
+        if constexpr (hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,T1>)
+        {
+            return Field{path(std::forward<T1>(path_)),op};
+        }
+        else
+        {
+            if constexpr (hana::is_a<NestedFieldTag,T1>)
+            {
+                return Field{path_.fieldPath(),op};
+            }
+            else
+            {
+                static_assert(std::is_same<FieldPath,std::decay_t<T1>>::value,"Invalid path type");
+                return Field{std::forward<T1>(path_),op};
             }
         }
     }

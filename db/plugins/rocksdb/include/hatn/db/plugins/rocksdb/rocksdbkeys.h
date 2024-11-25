@@ -156,7 +156,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
             const UnitT* object,
             const IndexT& index,
             const KeyHandlerFn& handler,
-            const PosT& pos
+            PosT pos
         );
 };
 

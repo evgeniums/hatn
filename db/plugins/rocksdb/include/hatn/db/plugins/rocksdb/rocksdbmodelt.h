@@ -38,61 +38,42 @@ struct IndexKeyUpdate
 {
     lib::string_view indexName;
 
-    IndexKeySlice key;
+    KeyBuf key;
     bool exists;
     bool unique;
+    size_t slice2Offset;
 
-    IndexKeyUpdate(const std::string& indexName, IndexKeySlice key)
-        : indexName(indexName),key(key),exists(false),unique(false)
-    {}
-
-    bool operator < (const IndexKeyUpdate& other) const noexcept
+    IndexKeyUpdate(const std::string& indexName, IndexKeySlice k, bool unique)
+        : indexName(indexName),exists(false),unique(unique),slice2Offset(k[0].size())
     {
-        if (key.size()<other.key.size())
-        {
-            return true;
-        }
-        if (key.size()>other.key.size())
-        {
-            return false;
-        }
-
-        if (key.size()>0)
-        {
-            int cmp0=key[0].compare(other.key[0]);
-            if (cmp0<0)
-            {
-                return true;
-            }
-            if (cmp0>0)
-            {
-                return false;
-            }
-
-            if (key.size()>1)
-            {
-                int cmp1=key[1].compare(other.key[1]);
-                if (cmp1<0)
-                {
-                    return true;
-                }
-                if (cmp1>0)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return false;
+        key.append(k[0].data(),k[0].size());
+        key.append(k[1].data(),k[1].size());
     }
 
     ROCKSDB_NAMESPACE::Slice keySlice() const noexcept
     {
-        return key[0];
+        return ROCKSDB_NAMESPACE::Slice{key.data(),key.size()};
+    }
+
+    IndexKeySlice keySlices() const noexcept
+    {
+        IndexKeySlice slices;
+        slices[0]=ROCKSDB_NAMESPACE::Slice{key.data(),slice2Offset};
+        slices[1]=ROCKSDB_NAMESPACE::Slice{key.data()+slice2Offset,key.size()-slice2Offset};
+        return slices;
     }
 };
 
-using IndexKeyUpdateSet=common::FlatSet<IndexKeyUpdate>;
+struct IndexKeyUpdateCmp
+{
+    bool operator () (const IndexKeyUpdate& l, const IndexKeyUpdate& r) const noexcept
+    {
+        return l.key<r.key;
+    }
+};
+
+//! @todo What kind of set to use?
+using IndexKeyUpdateSet=std::set<IndexKeyUpdate,IndexKeyUpdateCmp>;
 
 template <typename ObjectT>
 using UpdateIndexKeyExtractor=
