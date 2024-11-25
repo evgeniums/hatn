@@ -860,7 +860,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  2. Test find strings - done
  *  3. Test find Oid/DateTime/date/Time/DateRange - done
  *  4. Test find intervals - done
- *  5. Test vectors - done
+ *  5. Test find vectors - done
  *  6. Test ordering - done
  *  7. Test timepoint filtering
  *  8. Test limits - done
@@ -877,8 +877,9 @@ BOOST_AUTO_TEST_SUITE_END()
  *  19. Test unique indexes - done
  *  20. Test vectors of intervals
  *  21. Test transactions
- *  22. Test update nested fields
- *  23. Test update arrays
+ *  22. Test update nested fields - done
+ *  23. Test update repeated fields
  *  24. Test count - done
  *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate - done
+ *  26. Test find with callback
  */

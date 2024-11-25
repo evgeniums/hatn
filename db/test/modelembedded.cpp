@@ -14,6 +14,7 @@
 /****************************************************************************/
 
 // HATN_TEST_SUITE TestFindEmbedded
+// HATN_TEST_SUITE TestUpdateNested
 
 #include <boost/test/unit_test.hpp>
 

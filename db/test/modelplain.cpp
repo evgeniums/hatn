@@ -18,6 +18,7 @@
 // HATN_TEST_SUITE TestFindCompound
 // HATN_TEST_SUITE TestFindCompound2
 // HATN_TEST_SUITE TestUpdate
+// HATN_TEST_SUITE TestUpdateNested
 
 #include <boost/test/unit_test.hpp>
 

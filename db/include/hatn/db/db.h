@@ -21,6 +21,10 @@
 
 #include <hatn/db/config.h>
 
+#include <hatn/validator/config.hpp>
+
+#include <hatn/dataunit/dataunit.h>
+
 // define export symbols for windows platform
 #ifdef WIN32
 #    ifndef HATN_DB_EXPORT
@@ -44,5 +48,8 @@
 HATN_DB_NAMESPACE_BEGIN
 constexpr const char* DB_MODULE_NAME="db";
 HATN_DB_NAMESPACE_END
+
+namespace vld=HATN_VALIDATOR_NAMESPACE;
+namespace du=HATN_DATAUNIT_NAMESPACE;
 
 #endif // HATNDB_H

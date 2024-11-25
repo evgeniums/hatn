@@ -309,6 +309,28 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         }
 
         /**
+          @brief Get field at given path.
+          @param path Path to the field in format _[level1][level2]...[levelN].
+          @return Field at given path.
+         **/
+        template <typename PathT>
+        auto fieldAtPath(PathT&& path) const -> decltype(auto)
+        {
+            return UnitFieldUpdater::fieldAtPath(*this,path);
+        }
+
+        /**
+          @brief Get field at given path.
+          @param path Path to the field in format _[level1][level2]...[levelN].
+          @return Field at given path.
+         **/
+        template <typename PathT>
+        auto fieldAtPath(PathT&& path) -> decltype(auto)
+        {
+            return UnitFieldUpdater::fieldAtPath(*this,path);
+        }
+
+        /**
           @brief Get data from the field at given path.
           @param path Path to the field in format _[level1][level2]...[levelN].
           @return Value form the field at given path.

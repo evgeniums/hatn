@@ -50,6 +50,11 @@ void registerModels()
 #define FieldBool embed::f1,plain::f1
 #define FieldEnum embed::f1,plain::f11
 
+#define FieldBytes embed::f1,plain::f18
+
+#define FieldFloat embed::f1,plain::f19
+#define FieldDouble embed::f1,plain::f20
+
 #define IdxInt8 embed_f2_idx()
 #define IdxInt16 embed_f3_idx()
 #define IdxInt32 embed_f4_idx()

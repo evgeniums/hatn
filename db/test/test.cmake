@@ -23,6 +23,7 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/modelcompound2.cpp
 
     ${DB_TEST_SRC}/testupdate.cpp
+    ${DB_TEST_SRC}/testupdatenested.cpp
 
     # ${DB_TEST_SRC}/models2.cpp
     # ${DB_TEST_SRC}/models3.cpp
@@ -64,6 +65,7 @@ SET(TEST_LIB_HEADERS
     ${DB_TEST_SRC}/modelcompound2.h
     ${DB_TEST_SRC}/findcompound2.h
     ${DB_TEST_SRC}/findcompoundqueries2.ipp
+    ${DB_TEST_SRC}/updatescalarops.ipp
 )
 
 ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOURCES} ${TEST_LIB_HEADERS})

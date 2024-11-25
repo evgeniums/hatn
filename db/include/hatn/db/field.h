@@ -104,25 +104,39 @@ struct makePathT
     FieldPath operator()(Args&&... args) const
     {
         FieldPath path;
-        path.reserve(sizeof...(Args));
 
-        hana::for_each(
-            HATN_VALIDATOR_NAMESPACE::make_cref_tuple(std::forward<Args>(args)...),
-            [&](auto&& arg)
-            {
-                auto&& val=HATN_VALIDATOR_NAMESPACE::extract_ref(arg);
-                using type=std::decay_t<decltype(val)>;
-                if constexpr (hana::is_a<HATN_DATAUNIT_NAMESPACE::FieldTag,type>)
+        auto make=[&path](const auto& ts)
+        {
+            path.reserve(hana::size(ts).value);
+            hana::for_each(
+                ts,
+                [&](auto&& arg)
                 {
-                    path.emplace_back(val.id(),val.name(),val.id());
+                    auto&& val=vld::unwrap_object(vld::extract_ref(arg));
+                    using type=std::decay_t<decltype(val)>;
+                    if constexpr (hana::is_a<du::FieldTag,type>)
+                    {
+                        path.emplace_back(val.id(),val.name(),val.id());
+                    }
+                    else
+                    {
+                        static_assert(hana::is_a<ArrayFieldTag,type>,"Invalid path element");
+                        path.emplace_back(val.field.id(),val.field.name(),val.id);
+                    }
                 }
-                else
-                {
-                    static_assert(hana::is_a<ArrayFieldTag,type>,"Invalid path element");
-                    path.emplace_back(val.field.id(),val.field.name(),val.id);
-                }
-            }
             );
+        };
+
+        auto ts=vld::make_cref_tuple(std::forward<Args>(args)...);
+        const auto& arg0=hana::front(ts).get();
+        if constexpr (hana::is_a<vld::member_tag,decltype(arg0)>)
+        {
+            make(arg0.path());
+        }
+        else
+        {
+            make(ts);
+        }
 
         return path;
     }
@@ -283,7 +297,14 @@ struct fieldT
     template <typename FieldT>
     auto operator() (FieldT&& field) const -> decltype(auto)
     {
-        return hana::id(std::forward<FieldT>(field));
+        if constexpr (hana::is_a<vld::member_tag,FieldT>)
+        {
+            return hana::unpack(hana::transform(field.path(),vld::unwrap_object),fieldT{});
+        }
+        else
+        {
+            return hana::id(std::forward<FieldT>(field));
+        }
     }
 
     template <typename ...FieldsT>
