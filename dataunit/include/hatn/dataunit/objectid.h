@@ -343,7 +343,7 @@ struct FieldReader<TYPE,
         {
             return false;
         }
-        this->m_field->addValue(oid);
+        this->m_field->appendValue(oid);
         return true;
     }
 

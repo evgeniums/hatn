@@ -105,7 +105,7 @@ struct ContainerUtils final
     }
 
     template <typename T, typename ...Args>
-    static void addElements(T& container, Args&& ...args)
+    static void append(T& container, Args&& ...args)
     {
         boost::hana::for_each(boost::hana::make_tuple(std::forward<Args>(args)...),
                        [&container](auto&& arg) {
@@ -114,7 +114,7 @@ struct ContainerUtils final
     }
 
     template <typename T, typename ...Args>
-    static void insertElements(T& container, Args&& ...args)
+    static void insert(T& container, Args&& ...args)
     {
         boost::hana::for_each(boost::hana::make_tuple(std::forward<Args>(args)...),
                        [&container](auto&& arg) {

@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     v1.field(u3::f2).set(102);
     v1.field(u3::f3).set(103);
     v1.field(u3::f4).set(104);
-    v1.field(u3::f5).addValues(7);
+    v1.field(u3::f5).appendValues(7);
 
     auto fillBuf=[&v1,&buf1]()
     {
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(FuzzUnit)
         obj.field(u4::f1).mutableValue()->field(u3::f4).set(urand(0,0xFFFFFFFF));
         for (uint32_t i=0;i<urand(0,8);i++)
         {
-            obj.field(u4::f1).mutableValue()->field(u3::f5).addValue(urand(0,0xFFFFFFFF));
+            obj.field(u4::f1).mutableValue()->field(u3::f5).appendValue(urand(0,0xFFFFFFFF));
         }
 
         obj.field(u4::f10).set((urand(0,0xFFFFFFFF)&0x1) == 0x1);

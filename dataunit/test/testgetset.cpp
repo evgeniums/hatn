@@ -614,7 +614,7 @@ void checkByteArray(bool shared)
 
     for (size_t i=0;i<vec.size();i++)
     {
-        field2->arrayBufAddValue(vec[i]);
+        field2->arrayBufAppendValue(vec[i]);
     }
     BOOST_CHECK_EQUAL(field2->arraySize(),vec.size());
     BOOST_CHECK(!field2->arrayEmpty());

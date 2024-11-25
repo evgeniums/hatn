@@ -219,7 +219,7 @@ class UpdateFilter
             }
             auto handler=[](Field* field, const common::ConstDataBuf& buf)
             {
-                field->arrayBufAddValue(buf);
+                field->arrayBufAppendValue(buf);
             };
             return update<FieldGetSet::Operation::Set>(invoker,unit,id,handler,validateCb,buf);
         }

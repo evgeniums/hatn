@@ -251,9 +251,9 @@ class FieldGetSet
         virtual size_t arrayBufCapacity(size_t idx) const {Assert(false,"Invalid operation for field of this type");std::ignore=idx;return 0;}
         virtual bool arrayBufEmpty(size_t idx) const {Assert(false,"Invalid operation for field of this type");std::ignore=idx;return true;}
         virtual void arrayBufSetValue(size_t idx,const char* data,size_t length) {Assert(false,"Invalid operation for field of this type");std::ignore=idx;std::ignore=data;std::ignore=length;}
-        virtual void arrayBufAddValue(const char* data,size_t length) {Assert(false,"Invalid operation for field of this type");std::ignore=data;std::ignore=length;}
+        virtual void arrayBufAppendValue(const char* data,size_t length) {Assert(false,"Invalid operation for field of this type");std::ignore=data;std::ignore=length;}
         inline void arrayBufSetValue(size_t idx,const common::ConstDataBuf& data) {arrayBufSetValue(idx,data.data(),data.size());}
-        inline void arrayBufAddValue(const common::ConstDataBuf& data) {arrayBufAddValue(data.data(),data.size());}
+        inline void arrayBufAppendValue(const common::ConstDataBuf& data) {arrayBufAppendValue(data.data(),data.size());}
         virtual void arrayBufCreateShared(size_t idx) {Assert(false,"Invalid operation for field of this type");std::ignore=idx;}
 
         virtual Unit* arraySubunit(size_t idx) {Assert(false,"Invalid operation for field of this type");std::ignore=idx; return nullptr;}

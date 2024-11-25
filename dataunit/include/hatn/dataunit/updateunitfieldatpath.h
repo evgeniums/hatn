@@ -153,7 +153,7 @@ struct UnitFieldUpdater
                     std::is_base_of<RepeatedType,fieldT>{},
                     [](auto&& field, auto&&... args)
                     {
-                        field.appendValues(std::forward<decltype(args)>(args)...);
+                        field.append(std::forward<decltype(args)>(args)...);
                     },
                     [](auto&&, auto&&...)
                     {
@@ -173,7 +173,7 @@ struct UnitFieldUpdater
             std::is_base_of<RepeatedType,fieldT>{},
             [&size](auto&& field)
             {
-                field.addValues(size);
+                field.appendValues(size);
             },
             [](auto&&)
             {

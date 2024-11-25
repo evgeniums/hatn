@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
 
     type obj1;
     auto& f5=obj1.field(du5::field5);
-    f5.addValue("Hello world!");
+    f5.appendValue("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f5.value(0).buf()->c_str());
     auto size=du::io::size(obj1);
     BOOST_CHECK_EQUAL(20,size);

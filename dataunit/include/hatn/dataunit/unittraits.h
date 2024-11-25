@@ -434,7 +434,7 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
           @param size Number of items to append.
 
           Auto appending means that each item is appended with default initialization as
-          defined in createAndAddValue() method for the item's type. For example, shared byte arrays or shared subunits
+          defined in createAndAppendValue() method for the item's type. For example, shared byte arrays or shared subunits
           will be allocated appropriately. In contrast, when using ordinary resize methods the items are not initialized
           and must be initialized manually before use.
 

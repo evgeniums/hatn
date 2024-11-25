@@ -157,7 +157,7 @@ struct FieldReader<TYPE,
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
         auto r=common::Time::parse(lib::string_view{data,size});
         HATN_BOOL_RESULT(r)
-        this->m_field->addValue(r.takeValue());
+        this->m_field->appendValue(r.takeValue());
         return true;
     }
 

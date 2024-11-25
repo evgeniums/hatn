@@ -266,11 +266,11 @@ struct FieldReader<TYPE,
         return true;
     }
 
-    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
 
     bool EndArray(SizeType)
     {
@@ -322,12 +322,12 @@ struct FieldReader<TYPE,
         return true;
     }
 
-    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Double(double val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Double(double val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
 
     bool EndArray(SizeType)
     {
@@ -385,7 +385,7 @@ struct FieldReader<TYPE,
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
 
-        auto&& val=this->m_field->createAndAddValue();
+        auto&& val=this->m_field->createAndAppendValue();
         common::Base64::from(data,size,*val.buf());
         return true;
     }
@@ -442,7 +442,7 @@ struct FieldReader<TYPE,
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
-        this->m_field->addValue(data,size);
+        this->m_field->appendValue(data,size);
         return true;
     }
 
@@ -497,7 +497,7 @@ struct FieldReader<TYPE,
     bool Null()
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
-        this->m_field->createAndAddValue();
+        this->m_field->createAndAppendValue();
         return true;
     }
 
@@ -511,7 +511,7 @@ struct FieldReader<TYPE,
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
 
-        auto val=this->m_field->createAndAddValue();
+        auto val=this->m_field->createAndAppendValue();
         pushHandler<Unit,UnitReader>(this->m_topUnit,val.mutableValue(),this->m_scopes,1);
         return true;
     }
