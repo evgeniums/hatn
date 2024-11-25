@@ -91,11 +91,16 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             // create objects
             for (size_t j=0;j<objectCount;j++)
             {
-                auto o=makeInitObject<rep::type>();
-                oids.emplace_back(o.fieldValue(object::_id));
+                rep::type o;
+                initObject(o);
+
+                auto factory=o.factory();
+                BOOST_REQUIRE(factory!=nullptr);
+                auto& f=o.fieldAtPath(path);
                 for (size_t i=0;i<arraySize;i++)
                 {
-                    o.fieldAtPath(path).appendValue(gen(i+j*arraySize,false));
+                    auto val=gen(i+j*arraySize,false);
+                    f.appendValue(val);
                 }
 
                 // create object
@@ -105,6 +110,8 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
                     BOOST_TEST_MESSAGE(ec.message());
                 }
                 BOOST_REQUIRE(!ec);
+
+                oids.emplace_back(o.fieldValue(object::_id));
             }
 
             // find single object
@@ -150,7 +157,7 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             BOOST_CHECK(r2->at(4).template as<rep::type>()->fieldValue(object::_id)==oids[9]);
 
             // push to array
-            size_t pushVal=10000;
+            auto pushVal=gen(10000,false);
             auto pushReq=update::request(
                 update::field(update::path(path),update::push,pushVal)
                 );
@@ -228,31 +235,34 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
 
             // increment element in array
             auto incIdx=replaceIdx;
-            size_t incVal=9;
-            auto incrementedVal=gen(replaceInt+incVal,true);
-            auto q7=makeQuery(idx,query::where(field(path),query::Operator::eq,incrementedVal),topic1);
-            auto incReq=update::request(
-                update::field(update::path(array(fld,incIdx)),update::inc_element,incVal)
-                );
-            r4=client->updateMany(modelRep(),q3,incReq);
-            BOOST_REQUIRE(!r4);
-            BOOST_REQUIRE_EQUAL(r4.value(),1);
-            r1=client->find(modelRep(),q3);
-            BOOST_REQUIRE(!r1);
-            BOOST_REQUIRE_EQUAL(r1->size(),1);
-            BOOST_TEST_MESSAGE(fmt::format("Found after increment:\n {}",r1->at(0).template as<rep::type>()->toString(true)));
-            BOOST_CHECK(r1->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
-            BOOST_CHECK_EQUAL(r1->at(0).template as<rep::type>()->sizeAtPath(path),arraySize);
-            r1=client->find(modelRep(),q6);
-            BOOST_REQUIRE(!r1);
-            BOOST_CHECK_EQUAL(r1->size(),0);
-            r1=client->find(modelRep(),q7);
-            BOOST_REQUIRE(!r1);
-            BOOST_REQUIRE_EQUAL(r1->size(),1);
-            BOOST_CHECK(r1->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
-            BOOST_CHECK_EQUAL(r1->at(0).template as<rep::type>()->sizeAtPath(path),arraySize);
-            const auto& incF=r1->at(0).template as<rep::type>()->fieldAtPath(path);
-            BOOST_CHECK(incF.arrayEquals(incIdx,gen(replaceInt+incVal,true)));
+            if constexpr (std::is_arithmetic<decltype(gen(0,false))>::value)
+            {
+                size_t incVal=9;
+                auto incrementedVal=gen(replaceInt+incVal,true);
+                auto q7=makeQuery(idx,query::where(field(path),query::Operator::eq,incrementedVal),topic1);
+                auto incReq=update::request(
+                    update::field(update::path(array(fld,incIdx)),update::inc_element,incVal)
+                    );
+                r4=client->updateMany(modelRep(),q3,incReq);
+                BOOST_REQUIRE(!r4);
+                BOOST_REQUIRE_EQUAL(r4.value(),1);
+                r1=client->find(modelRep(),q3);
+                BOOST_REQUIRE(!r1);
+                BOOST_REQUIRE_EQUAL(r1->size(),1);
+                BOOST_TEST_MESSAGE(fmt::format("Found after increment:\n {}",r1->at(0).template as<rep::type>()->toString(true)));
+                BOOST_CHECK(r1->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
+                BOOST_CHECK_EQUAL(r1->at(0).template as<rep::type>()->sizeAtPath(path),arraySize);
+                r1=client->find(modelRep(),q6);
+                BOOST_REQUIRE(!r1);
+                BOOST_CHECK_EQUAL(r1->size(),0);
+                r1=client->find(modelRep(),q7);
+                BOOST_REQUIRE(!r1);
+                BOOST_REQUIRE_EQUAL(r1->size(),1);
+                BOOST_CHECK(r1->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
+                BOOST_CHECK_EQUAL(r1->at(0).template as<rep::type>()->sizeAtPath(path),arraySize);
+                const auto& incF=r1->at(0).template as<rep::type>()->fieldAtPath(path);
+                BOOST_CHECK(incF.arrayEquals(incIdx,gen(replaceInt+incVal,true)));
+            }
 
             // erase element in array
             auto eraseReq=update::request(
@@ -267,9 +277,12 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             BOOST_TEST_MESSAGE(fmt::format("Found after erase element:\n {}",r1->at(0).template as<rep::type>()->toString(true)));
             BOOST_CHECK(r1->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
             BOOST_CHECK_EQUAL(r1->at(0).template as<rep::type>()->sizeAtPath(path),arraySize-1);
-            r1=client->find(modelRep(),q7);
-            BOOST_REQUIRE(!r1);
-            BOOST_CHECK_EQUAL(r1->size(),0);
+            if constexpr (std::is_arithmetic<decltype(gen(0,false))>::value)
+            {
+                r1=client->find(modelRep(),q7);
+                BOOST_REQUIRE(!r1);
+                BOOST_CHECK_EQUAL(r1->size(),0);
+            }
 
             // push unique element to array
             // exists, no change
@@ -336,7 +349,7 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             }
         };
 
-        // run(FieldUInt32,genUInt32,IdxUInt32);
+        run(FieldUInt32,genUInt32,IdxUInt32);
         run(FieldString,genString,IdxString);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
