@@ -68,11 +68,14 @@ bool ObjectId::parse(const common::ConstDataBuf &buf) noexcept
     }
 
 #if __cplusplus < 201703L
-    static_assert(false,"Not implemented yet");
     try
     {
         std::string dtStr{buf.data(), DateTimeLength};
         m_timepoint=std::stoll(dtStr,nullptr,16);
+        std::string seqStr{buf.data()+DateTimeLength, SeqLength};
+        m_seq=std::stoll(seqStr,nullptr,16);
+        std::string randStr{buf.data()+DateTimeLength+SeqLength, RandLength};
+        m_rand=std::stoll(randStr,nullptr,16);
     }
     catch(...)
     {
