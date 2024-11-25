@@ -158,7 +158,7 @@ class UpdateFilter
             return update<FieldGetSet::Operation::ArrayResize>(invoker,unit,id,handler,validateCb,0);
         }
         template <typename T>
-        bool arrayAdd(UpdateInvoker* invoker,Unit* unit,int id, const T& val, const ValidateCb& validateCb=ValidateCb()) const
+        bool arrayAppend(UpdateInvoker* invoker,Unit* unit,int id, const T& val, const ValidateCb& validateCb=ValidateCb()) const
         {
             auto field=unit->fieldById(id);
             if (field!=nullptr)
@@ -170,7 +170,7 @@ class UpdateFilter
             }
             auto handler=[](Field* field, const T& val)
             {
-                field->arrayAdd(val);
+                field->arrayAppend(val);
             };
             return update<FieldGetSet::Operation::Set>(invoker,unit,id,handler,validateCb,val);
         }

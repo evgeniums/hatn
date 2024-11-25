@@ -29,10 +29,13 @@
 
 #include <boost/hana.hpp>
 
+#include <hatn/validator/utils/safe_compare.hpp>
+
 #include <hatn/common/containerutils.h>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/fields/subunit.h>
+#include <hatn/dataunit/fields/scalar.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -182,6 +185,13 @@ struct RepeatedGetterSetterNoBytes
     {
         Assert(false,"Invalid operation for field of this type");
     }
+
+    template <typename ArrayT>
+    static bool equals(const ArrayT&,size_t,const common::ConstDataBuf&)
+    {
+        Assert(false,"Invalid operation for field of this type");
+        return false;
+    }
 };
 struct RepeatedGetterSetterNoUnit
 {
@@ -215,6 +225,12 @@ template <typename valueType> struct RepeatedGetterSetterNoScalar
     {
         Assert(false,"Invalid operation for field of this type");
     }
+    template <typename ValueT,typename T>
+    static bool equals(const ValueT&,const T&)
+    {
+        Assert(false,"Invalid operation for field of this type");
+        return false;
+    }
 };
 
 template <typename Type, typename=void>
@@ -230,7 +246,7 @@ struct RepeatedGetterSetter<Type,
     using valueType=typename Type::type;
 
     template <typename T>
-    constexpr static void setVal(valueType& arrayVal,const T& val)
+    static void setVal(valueType& arrayVal,const T& val)
     {
         hana::eval_if(
             std::is_convertible<T,valueType>{},
@@ -246,7 +262,7 @@ struct RepeatedGetterSetter<Type,
     }
 
     template <typename T>
-    constexpr static void incVal(valueType& arrayVal,const T& val)
+    static void incVal(valueType& arrayVal,const T& val)
     {
         hana::eval_if(
             std::is_convertible<T,valueType>{},
@@ -262,7 +278,7 @@ struct RepeatedGetterSetter<Type,
     }
 
     template <typename T>
-    constexpr static void getVal(const valueType& arrayVal,T &val) noexcept
+    static void getVal(const valueType& arrayVal,T &val) noexcept
     {
         hana::eval_if(
             std::is_convertible<valueType,T>{},
@@ -278,7 +294,7 @@ struct RepeatedGetterSetter<Type,
     }
 
     template <typename ArrayT,typename T>
-    constexpr static void appendVal(ArrayT& array,const T& val) noexcept
+    static void appendVal(ArrayT& array,const T& val) noexcept
     {
         hana::eval_if(
             std::is_convertible<T,valueType>{},
@@ -291,6 +307,14 @@ struct RepeatedGetterSetter<Type,
                 Assert(false,"Invalid operation for field of this type");
             }
         );
+    }
+
+    using RepeatedGetterSetterNoBytes::equals;
+
+    template <typename T>
+    static bool equals(const valueType& arrayVal,const T& val) noexcept
+    {
+        return HATN_VALIDATOR_NAMESPACE::safe_compare_equal(arrayVal,val);
     }
 };
 
@@ -362,6 +386,14 @@ struct RepeatedGetterSetter<Type,
     constexpr static void bufAppendValue(RepeatedT* field,const char* data, size_t length)
     {
         field->appendValue(data,length);
+    }
+
+    using RepeatedGetterSetterNoScalar<typename Type::type>::equals;
+
+    template <typename ArrayT>
+    static bool equals(const ArrayT& array,size_t idx,const common::ConstDataBuf& val) noexcept
+    {
+        return array[idx].buf()->isEqual(val.data(),val.size());
     }
 };
 template <typename Type> struct RepeatedGetterSetter<Type,
@@ -923,23 +955,23 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayGet(size_t idx,common::DataBuf& val) const override {RepeatedGetterSetter<Type>::bufGet(vector,idx,val);}
     virtual void arrayGet(size_t idx,ObjectId& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
 
-    virtual void arrayAdd(bool val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(uint8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(uint16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(uint32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(uint64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(int8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(int16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(int32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(int64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(float val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(double val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(const common::DateTime& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(const common::Date& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(const common::Time& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(const common::DateRange& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAdd(const common::ConstDataBuf& val) override {RepeatedGetterSetter<Type>::bufAppendValue(this,val.data(),val.size());}
-    virtual void arrayAdd(const ObjectId& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(bool val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(float val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(double val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::DateTime& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::Date& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::Time& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::DateRange& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::ConstDataBuf& val) override {RepeatedGetterSetter<Type>::bufAppendValue(this,val.data(),val.size());}
+    virtual void arrayAppend(const ObjectId& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
 
     virtual void arrayInc(size_t idx,uint8_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
     virtual void arrayInc(size_t idx,uint16_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
@@ -951,6 +983,24 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayInc(size_t idx,int64_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
     virtual void arrayInc(size_t idx,float val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
     virtual void arrayInc(size_t idx,double val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
+
+    virtual bool arrayEquals(size_t idx,bool val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,uint8_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,uint16_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,uint32_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,uint64_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,int8_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,int16_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,int32_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,int64_t val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,float val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,double val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,const common::DateTime& val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,const common::Date& val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,const common::Time& val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,const common::DateRange& val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
+    virtual bool arrayEquals(size_t idx,const common::ConstDataBuf& val) const override {return RepeatedGetterSetter<Type>::equals(vector,idx,val);}
+    virtual bool arrayEquals(size_t idx,const ObjectId& val) const override {return RepeatedGetterSetter<Type>::equals(vector[idx],val);}
 
     virtual void arrayBufResize(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufResize(vector,idx,size);}
     virtual void arrayBufReserve(size_t idx,size_t size) override {RepeatedGetterSetter<Type>::bufReserve(vector,idx,size);}
