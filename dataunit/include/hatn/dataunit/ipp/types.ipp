@@ -117,8 +117,11 @@ struct HATN_DATAUNIT_EXPORT Dbl : public BaseType<double,std::true_type,ValueTyp
 namespace detail
 {
 
+struct BytesTraitsBase
+{};
+
 template <typename sharedT, typename onstackT, typename managedT>
-struct BytesTraits
+struct BytesTraits : public BytesTraitsBase
 {
     using onstackType=onstackT;
     using sharedType=sharedT;
@@ -184,6 +187,7 @@ struct BytesTraits
         }
     }
 
+    //! @todo Use other name for field, size must be used for data soize
     inline size_t size() const noexcept
     {
         if (!byteArrayShared().isNull())
@@ -273,6 +277,10 @@ struct BytesTraits
         return lib::string_view{dataPtr(),dataSize()};
     }
 
+    inline auto stringView() const noexcept
+    {
+        return lib::string_view{dataPtr(),dataSize()};
+    }
     private:
 
         sharedType shared;

@@ -74,7 +74,14 @@ Error Keys::iterateIndexFields(
                             auto sizeBefore=_(buf).size();
 
                             const auto& val=_(field).at(i);
-                            fieldToStringBuf(_(buf),val);
+                            if constexpr (std::is_base_of<du::detail::BytesTraitsBase,std::decay_t<decltype(val)>>::value)
+                            {
+                                fieldToStringBuf(_(buf),val.stringView());
+                            }
+                            else
+                            {
+                                fieldToStringBuf(_(buf),val);
+                            }
                             _(buf).append(SeparatorCharStr);
                             auto ec=_(self)->iterateIndexFields(
                                 _(buf),
