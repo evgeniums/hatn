@@ -70,7 +70,7 @@ const common::FlatMap<common::lib::string_view,uintptr_t>& UnitImpl<Fields...>::
     return map;
 }
 
-/********************** UnitConcat **************************/
+/********************** UnitConcat **************************/    
 
 //---------------------------------------------------------------
 
@@ -80,6 +80,44 @@ UnitConcat<Conf,Fields...>::UnitConcat(
     ) : Unit(factory),
         UnitImpl<Fields...>(this)
 {}
+
+//---------------------------------------------------------------
+
+template <typename Conf, typename ...Fields>
+UnitConcat<Conf,Fields...>::UnitConcat(
+        UnitConcat&& other
+    ) : Unit(std::move(other)),
+        UnitImpl<Fields...>(std::move(other))
+{
+    setFieldsParent();
+}
+
+//---------------------------------------------------------------
+
+template <typename Conf, typename ...Fields>
+UnitConcat<Conf,Fields...>::UnitConcat(
+    const UnitConcat& other
+    ) : Unit(other),
+        UnitImpl<Fields...>(other)
+{
+    setFieldsParent();
+}
+
+//---------------------------------------------------------------
+
+template <typename Conf, typename ...Fields>
+void UnitConcat<Conf,Fields...>::setFieldsParent()
+{
+    hana::for_each(
+        this->m_fields,
+        [this](auto& field)
+        {
+            this->setFieldParent(field);
+        }
+    );
+}
+
+//---------------------------------------------------------------
 
 HATN_DATAUNIT_NAMESPACE_END
 

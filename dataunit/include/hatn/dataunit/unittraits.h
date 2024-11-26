@@ -151,15 +151,15 @@ class UnitImpl
             return hana::at(m_fields,std::forward<Index>(idx));
         }
 
+        hana::tuple<Fields...> m_fields;
+
     private:
 
         static const common::FlatMap<int,uintptr_t>& fieldsMap();
         static const common::FlatMap<common::lib::string_view,uintptr_t>& fieldsNameMap();
 
         template <typename BufferT>
-        static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();
-
-        hana::tuple<Fields...> m_fields;
+        static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();        
 };
 
 /** @brief Base DataUnit template for concatenation with unit config. **/
@@ -173,6 +173,38 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         using conf=Conf;
 
         UnitConcat(AllocatorFactory* factory=AllocatorFactory::getDefault());
+
+        ~UnitConcat()=default;
+        UnitConcat(UnitConcat&& other);
+        UnitConcat(const UnitConcat& other);
+
+        UnitConcat& operator= (UnitConcat&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            Unit::operator= (std::move(other));
+            baseType::operator= (std::move(other));
+
+            setFieldsParent();
+            return *this;
+        }
+
+        UnitConcat& operator= (const UnitConcat& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            Unit::operator= (other);
+            baseType::operator= (other);
+
+            setFieldsParent();
+            return *this;
+        }
 
         /** Stub for compilation compatibility with SharedPtr */
         constexpr static bool isNull() noexcept
@@ -484,6 +516,8 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         }
 
     private:
+
+        void setFieldsParent();
 
         template <typename T>
         constexpr static auto fieldIndex(T&&) noexcept

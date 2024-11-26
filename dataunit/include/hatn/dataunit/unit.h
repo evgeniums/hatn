@@ -397,6 +397,13 @@ class HATN_DATAUNIT_EXPORT Unit
             return 0;
         }
 
+    protected:
+
+        void setFieldParent(Field& field)
+        {
+            field.setParent(this);
+        }
+
     private:
 
         template <typename T>

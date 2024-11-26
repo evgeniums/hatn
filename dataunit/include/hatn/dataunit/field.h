@@ -199,10 +199,17 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 
     private:
 
+        void setParent(Unit* unit)
+        {
+            m_unit=unit;
+        }
+
         bool m_set;
         Unit* m_unit;
         ValueType m_valueTypeId;
         bool m_array;
+
+        friend class Unit;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

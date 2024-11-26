@@ -555,14 +555,11 @@ BOOST_FIXTURE_TEST_CASE(TestScalarArrays,Env)
 template <typename ObjT, typename FieldT>
 void checkByteArray(bool shared)
 {
-//! @todo Fix move construction, detected failure with msvc debug
-#if 0
+    // testing move ctor
     auto o=std::make_shared<ObjT>();
-    ObjT obj1=std::move(*o);
+    ObjT obj1=std::move(*o);    
     o.reset();
-#else
-    ObjT obj1;
-#endif
+
     std::vector<ByteArray> vec={"one","two","three","four","five"};
 
     auto field1=obj1.fieldById(FieldT::id());
