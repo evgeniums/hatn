@@ -130,7 +130,7 @@ struct BytesTraits
                 Unit* parentUnit
             ) : onstack(
                         common::ConstructWithArgsOrDefault<onstackType,decltype(parentUnit->factory()->dataMemoryResource())>::f(
-                            std::forward<decltype(parentUnit->factory()->dataMemoryResource())>(parentUnit->factory()->dataMemoryResource())
+                            parentUnit->factory()->dataMemoryResource()
                         )
                     )
     {}
