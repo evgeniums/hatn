@@ -169,6 +169,9 @@ using StringOnStack=StringOnStackT<DefaultPreallocatedStringSize>;
 
 /********************** VectorOnStack **************************/
 
+struct VectorOnStackTag
+{};
+
 constexpr size_t DefaultPreallocatedVectorSize=8;
 
 template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize, typename FallbackAllocatorT=std::allocator<T>>
@@ -180,9 +183,11 @@ class VectorOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
 {
 public:
 
+    using hana_tag=VectorOnStackTag;
+
     using ArenaHolderT=ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>;
     using BaseT=PreallocatedVectorT<T,PreallocatedSize,FallbackAllocatorT>;
-    using AllocaT=typename BaseT::allocator_type;
+    using AllocaT=typename BaseT::allocator_type;    
 
     template <typename ...Args>
     VectorOnStackT(Args&&... args) : ArenaHolderT(),
