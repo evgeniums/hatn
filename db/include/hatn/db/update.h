@@ -179,12 +179,13 @@ struct fieldT
     template <typename T>
     auto wrapValue(T&& val) const -> decltype(auto)
     {
+        using type=std::decay_t<T>;
         using isVecT=query::IsVector<T>;
 
         static const auto isLval=std::is_lvalue_reference<T>{};
         static const auto isStrView=
             hana::bool_c<
-                std::is_same<lib::string_view,std::decay_t<T>>::value
+                std::is_same<lib::string_view,type>::value
             ||
             std::is_same<const char*,T>::value
                 >;
@@ -200,7 +201,16 @@ struct fieldT
         }
         else
         {
-            if constexpr (isVecT::value)
+            if constexpr (isVecT::value
+                          &&
+                          !std::is_same<type,std::vector<char>>::value
+                          &&
+                          !std::is_same<type,common::pmr::vector<char>>::value
+                          &&
+                          !std::is_same<type,common::ByteArray>::value
+                          &&
+                          !hana::is_a<common::VectorOnStackTag,type>
+                          )
             {
                 return std::cref(val);
             }
