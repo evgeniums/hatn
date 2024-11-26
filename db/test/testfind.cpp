@@ -878,8 +878,9 @@ BOOST_AUTO_TEST_SUITE_END()
  *  20. Test vectors of intervals
  *  21. Test transactions
  *  22. Test update nested fields - done
- *  23. Test update repeated fields
+ *  23. Test update repeated fields - done
  *  24. Test count - done
  *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate - done
- *  26. Test find with callback
+ *  26. Implement and test find with callback
+ *  27. Implement and test repeated subunits
  */
