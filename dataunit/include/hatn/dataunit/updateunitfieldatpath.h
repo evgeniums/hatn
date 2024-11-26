@@ -35,16 +35,29 @@ namespace hana=boost::hana;
 struct UnitFieldUpdater
 {    
     template <typename UnitT, typename PathT>
-    static auto fieldAtPath(UnitT&& unit, PathT&& path) -> decltype(auto)
+    static auto& fieldAtPath(UnitT& unit, PathT&& path)
     {
         return hana::fold(
             path.path(),
-            std::forward<UnitT>(unit),
-            [](auto&& parent, auto&& key) -> decltype(auto)
+            unit,
+            [](auto& parent, auto&& key) -> decltype(auto)
             {
                 return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
             }
         );
+    }
+
+    template <typename UnitT, typename PathT>
+    static const auto& fieldAtPath(const UnitT& unit, PathT&& path)
+    {
+        return hana::fold(
+            path.path(),
+            unit,
+            [](const auto& parent, auto&& key) -> decltype(auto)
+            {
+                return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
+            }
+            );
     }
 
     template <typename UnitT, typename PathT, typename ...Args>

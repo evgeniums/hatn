@@ -31,9 +31,6 @@ Field::Field(ValueType valeuTypeId,Unit* unit, bool array)
 {}
 
 //---------------------------------------------------------------
-Field::~Field()=default;
-
-//---------------------------------------------------------------
 WireType Field::wireType() const noexcept
 {
     return fieldWireType();

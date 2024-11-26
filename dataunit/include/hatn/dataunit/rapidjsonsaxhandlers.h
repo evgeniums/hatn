@@ -511,7 +511,7 @@ struct FieldReader<TYPE,
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
 
-        auto val=this->m_field->createAndAppendValue();
+        auto& val=this->m_field->createAndAppendValue();
         pushHandler<Unit,UnitReader>(this->m_topUnit,val.mutableValue(),this->m_scopes,1);
         return true;
     }

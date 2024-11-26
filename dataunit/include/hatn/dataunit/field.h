@@ -54,12 +54,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         //! Ctor
         Field(ValueType type, Unit* unit, bool array=false);
 
-        virtual ~Field();
-        Field(const Field& other)=default;
-        Field& operator=(const Field& other)=default;
-        Field(Field&& other) =default;
-        Field& operator =(Field&& other) =default;
-
         //! Load field from wire
         inline bool load(WireData& wired, AllocatorFactory *factory)
         {

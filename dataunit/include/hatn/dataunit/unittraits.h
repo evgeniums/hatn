@@ -66,12 +66,6 @@ class UnitImpl
         /**  Ctor */
         UnitImpl(Unit* self);
 
-        virtual ~UnitImpl()=default;
-        UnitImpl(const UnitImpl& other)=default;
-        UnitImpl& operator= (const UnitImpl& other)=default;
-        UnitImpl(UnitImpl&& other) =default;
-        UnitImpl& operator= (UnitImpl&& other) =default;
-
         /**  Get field count */
         constexpr static int count() noexcept
         {
@@ -314,7 +308,7 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
           @return Field at given path.
          **/
         template <typename PathT>
-        auto fieldAtPath(PathT&& path) const -> decltype(auto)
+        const auto& fieldAtPath(PathT&& path) const
         {
             return UnitFieldUpdater::fieldAtPath(*this,path);
         }
@@ -325,7 +319,7 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
           @return Field at given path.
          **/
         template <typename PathT>
-        auto fieldAtPath(PathT&& path) -> decltype(auto)
+        auto& fieldAtPath(PathT&& path)
         {
             return UnitFieldUpdater::fieldAtPath(*this,path);
         }

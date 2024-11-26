@@ -30,6 +30,51 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+template <typename LeftT, typename RightT, typename=void>
+struct safe_eq
+{
+    template <typename LeftT1, typename RightT1>
+    constexpr static bool f(const LeftT1&, const RightT1&) noexcept
+    {
+        return false;
+    }
+};
+
+/**
+ * @brief Safe equal to if operation is possible.
+ */
+template <typename LeftT, typename RightT>
+struct safe_eq<LeftT,RightT,
+               std::enable_if_t
+               <
+                   std::is_same<
+                       bool,
+                       decltype(
+                           std::declval<std::decay_t<LeftT>>()==std::declval<std::decay_t<RightT>>()
+                           )
+                       >::value
+                       &&
+                        (
+                           (std::is_arithmetic<std::decay_t<LeftT>>::value
+                                &&
+                            std::is_arithmetic<std::decay_t<RightT>>::value
+                            )
+                           ||
+                           std::is_same<std::decay_t<RightT>,std::decay_t<LeftT>>::value
+                           ||
+                           !(std::is_convertible<LeftT,bool>::value || std::is_convertible<RightT,bool>::value)
+                       )
+                   >
+               >
+{
+    template <typename LeftT1, typename RightT1>
+    constexpr static bool f(const LeftT1& left, const RightT1& right) noexcept
+    {
+        return left == right;
+    }
+};
+
+
 //! Helper fpr comparation of scalar fields.
 template <typename LeftT, typename RightT, typename=void>
 struct ScalarCompare
@@ -40,7 +85,7 @@ struct ScalarCompare
     }
     constexpr static bool equal(const LeftT& left, const RightT& right) noexcept
     {
-        return left == right;
+        return safe_eq<LeftT,RightT>::f(left,right);
     }
 };
 
@@ -93,7 +138,9 @@ struct ScalarCompare<LeftT, RightT,
 
 template <typename LeftT,typename RightT>
 struct ScalarCompare<LeftT,RightT,
-                    std::enable_if_t<!std::is_same<LeftT, bool>::value && std::is_same<RightT, bool>::value>
+                    std::enable_if_t<!std::is_same<LeftT, bool>::value
+                                                     &&
+                    std::is_same<RightT, bool>::value>
                 >
 {
     constexpr static bool less(const LeftT& left, const RightT& right) noexcept
@@ -102,7 +149,18 @@ struct ScalarCompare<LeftT,RightT,
     }
     constexpr static bool equal(const LeftT& left, const RightT& right) noexcept
     {
-        return static_cast<bool>(left)==right;
+        return hana::eval_if(
+            std::is_convertible<LeftT,bool>{},
+            [&](auto _)
+            {
+                bool l=static_cast<bool>(_(left));
+                return safe_eq<bool,RightT>::f(l,_(right));
+            },
+            [&](auto _)
+            {
+                return safe_eq<LeftT,RightT>::f(_(left),_(right));
+            }
+        );
     }
 };
 template <typename LeftT, typename RightT>
@@ -180,7 +238,7 @@ class Scalar : public Field
         }
 
         //! Get default value
-        type defaultValue() const
+        auto defaultValue() const
         {
             return fieldDefaultValue();
         }
@@ -544,6 +602,36 @@ template <>
         : public VarInt<TYPE_BOOL>
 {
     using VarInt<TYPE_BOOL>::VarInt;
+
+    //! Get field
+    inline auto get() noexcept
+    {
+        return static_cast<bool>(this->m_value);
+    }
+
+    //! Get const field
+    inline auto get() const noexcept
+    {
+        return static_cast<bool>(this->m_value);
+    }
+
+    //! Get value
+    inline auto value() const noexcept
+    {
+        return get();
+    }
+
+    //! Get default value
+    inline auto fieldDefaultValue() const
+    {
+        return false;
+    }
+
+    //! Get default value
+    inline auto defaultValue() const
+    {
+        return false;
+    }
 };
 
 /**  Field template for float type */

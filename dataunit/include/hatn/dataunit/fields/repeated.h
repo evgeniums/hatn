@@ -314,7 +314,7 @@ struct RepeatedGetterSetter<Type,
     template <typename T>
     static bool equals(const valueType& arrayVal,const T& val) noexcept
     {
-        return HATN_VALIDATOR_NAMESPACE::safe_compare_equal(arrayVal,val);
+        return ScalarCompare<valueType,T>::equal(arrayVal,val);
     }
 };
 
@@ -412,6 +412,20 @@ template <typename Type> struct RepeatedGetterSetter<Type,
     {
         return &array[idx].value();
     }
+
+    template <typename ValueT,typename T>
+    static bool equals(const ValueT&,const T&)
+    {
+        Assert(false,"Invalid operation for field of this type");
+        return false;
+    }
+
+    template <typename ArrayT>
+    static bool equals(const ArrayT&,size_t,const common::ConstDataBuf&)
+    {
+        Assert(false,"Invalid operation for field of this type");
+        return false;
+    }
 };
 
 struct RepeatedType{};
@@ -422,6 +436,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 {
     using type=typename RepeatedTraits<Type>::valueType;
     using fieldType=typename RepeatedTraits<Type>::fieldType;
+    //! @todo Maybe use vector on stack
     using vectorType=HATN_COMMON_NAMESPACE::pmr::vector<type>;
     using isRepeatedType=std::true_type;
     using selfType=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
@@ -439,39 +454,8 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         Unit* parentUnit
         ): Field(RepeatedTraits<Type>::typeId,parentUnit,true),
         vector(parentUnit->factory()->dataAllocator<type>()),
-        m_parseToSharedArrays(false),
-        m_parentUnit(parentUnit)
+        m_parseToSharedArrays(false)
     {}
-
-    ~RepeatedFieldTmpl()=default;
-
-    /**  Copy ctor */
-    RepeatedFieldTmpl(const RepeatedFieldTmpl& other)
-        : Field(other),
-        vector(other.vector,other.m_parentUnit->factory()->template dataAllocator<type>()),
-        m_parseToSharedArrays(other.m_parseToSharedArrays),
-        m_parentUnit(other.m_parentUnit)
-    {}
-
-    /** Assignment **/
-    RepeatedFieldTmpl& operator=(const RepeatedFieldTmpl& other) noexcept
-    {
-        if (this!=&other)
-        {
-            Field::operator =(other);
-            std::copy(other.vector.begin(), other.vector.end(),
-                      std::back_inserter(vector));
-            m_parseToSharedArrays=other.m_parseToSharedArrays;
-            m_parentUnit=other.m_parentUnit;
-        }
-        return *this;
-    }
-
-    /** Move ctor **/
-    RepeatedFieldTmpl(RepeatedFieldTmpl&& other) =default;
-
-    /** Move assignment **/
-    RepeatedFieldTmpl& operator=(RepeatedFieldTmpl&& other) =default;
 
     constexpr static WireType fieldWireType() noexcept
     {
@@ -612,10 +596,10 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     type& createAndAppendValue()
     {
         this->markSet();
-        auto val=RepeatedTraits<Type>::template createValue<DefaultTraits>(m_parentUnit);
+        auto val=RepeatedTraits<Type>::template createValue<DefaultTraits>(this->unit());
         if (fieldIsParseToSharedArrays())
         {
-            fieldType::prepareSharedStorage(val,m_parentUnit->factory());
+            fieldType::prepareSharedStorage(val,this->unit()->factory());
         }
         vector.push_back(std::move(val));
         return vector.back();
@@ -742,7 +726,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         fieldClear();
         if (factory==nullptr)
         {
-            factory=m_parentUnit->factory();
+            factory=this->unit()->factory();
         }
 
         /* get count of elements in array */
@@ -1010,7 +994,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual size_t arrayBufSize(size_t idx) const override {return RepeatedGetterSetter<Type>::bufSize(vector,idx);}
     virtual size_t arrayBufCapacity(size_t idx) const override {return RepeatedGetterSetter<Type>::bufCapacity(vector,idx);}
     virtual bool arrayBufEmpty(size_t idx) const override {return RepeatedGetterSetter<Type>::bufEmpty(vector,idx);}
-    virtual void arrayBufCreateShared(size_t idx) override {RepeatedGetterSetter<Type>::bufCreateShared(vector,idx,m_parentUnit->factory());}
+    virtual void arrayBufCreateShared(size_t idx) override {RepeatedGetterSetter<Type>::bufCreateShared(vector,idx,this->unit()->factory());}
     virtual void arrayBufSetValue(size_t idx,const char* data,size_t length) override {RepeatedGetterSetter<Type>::bufSetValue(vector,idx,data,length);}
     virtual void arrayBufAppendValue(const char* data,size_t length) override {RepeatedGetterSetter<Type>::bufAppendValue(this,data,length);}
 
@@ -1020,7 +1004,6 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 protected:
 
     bool m_parseToSharedArrays;
-    Unit* m_parentUnit;
 };
 
 /**  Template class for repeated dataunit field compatible with packed repeated fields of Google Protocol Buffers*/
@@ -1041,7 +1024,7 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
 
         if (factory==nullptr)
         {
-            factory=this->m_parentUnit->factory();
+            factory=this->unit()->factory();
         }
 
         /* get size of array */
@@ -1203,7 +1186,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,Defa
     {
         if (factory==nullptr)
         {
-            factory=this->m_parentUnit->factory();
+            factory=this->unit()->factory();
         }
 
         auto& field=this->createAndAppendValue();
