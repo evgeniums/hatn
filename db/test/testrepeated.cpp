@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
-BOOST_AUTO_TEST_CASE(FloatingPoint)
+BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
 {
     auto run=[](auto sample, const auto& path, const auto& field)
     {
@@ -483,6 +483,112 @@ BOOST_AUTO_TEST_CASE(FloatingPoint)
 
     run(float(0),du::path(FieldFloat),FieldFloat);
     run(double(0),du::path(FieldDouble),FieldDouble);
+}
+
+BOOST_AUTO_TEST_CASE(UpdateBytes)
+{
+    auto run=[](const auto& path, const auto& field)
+    {
+        auto o=makeInitObject<rep::type>();
+
+        // set vector
+        //! @todo Support vector of vector<char>?
+        std::vector<std::string> vec1{"one","two","three","four", "five"};
+        auto req1=update::request(
+            update::field(update::path(path),update::set,vec1)
+            );
+        update::apply(&o,req1);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),vec1[i]);
+        }
+
+        // push
+        std::vector<char> val2{'v','e','c','t','o','r','2'};
+        auto req2=update::request(
+            update::field(update::path(path),update::push,val2)
+            );
+        update::apply(&o,req2);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()+1);
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),vec1[i]);
+        }
+        auto res2=lib::string_view{o.fieldAtPath(path).at(vec1.size()).dataPtr(),o.fieldAtPath(path).at(vec1.size()).dataSize()};
+        auto check2=lib::string_view{val2.data(),val2.size()};
+        BOOST_CHECK(res2==check2);
+
+        // pop
+        auto req3=update::request(
+            update::field(update::path(path),update::pop)
+            );
+        update::apply(&o,req3);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),vec1[i]);
+        }
+
+        // replace element
+        std::vector<char> repl5{'v','e','c','t','o','r','3'};
+        auto repl5Check=lib::string_view{repl5.data(),repl5.size()};
+        size_t replIdx=2;
+        auto req5=update::request(
+            update::field(update::path(array(field,replIdx)),update::replace_element,repl5)
+            );
+        update::apply(&o,req5);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            if (i==replIdx)
+            {
+                auto res=lib::string_view{o.fieldAtPath(path).at(i).dataPtr(),o.fieldAtPath(path).at(i).dataSize()};
+                BOOST_CHECK(res==repl5Check);
+            }
+            else
+            {
+                BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),vec1[i]);
+            }
+        }
+
+        // erase element
+        size_t eraseIdx=1;
+        auto req6=update::request(
+            update::field(update::path(array(field,eraseIdx)),update::erase_element)
+            );
+        update::apply(&o,req6);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()-1);
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            size_t j=i;
+            if (i==eraseIdx)
+            {
+                i++;
+            }
+            if (i>eraseIdx)
+            {
+                j=i-1;
+            }
+
+            if (i==replIdx)
+            {
+                auto res=lib::string_view{o.fieldAtPath(path).at(j).dataPtr(),o.fieldAtPath(path).at(j).dataSize()};
+                BOOST_CHECK(res==repl5Check);
+            }
+            else
+            {
+                BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(j).c_str(),vec1[i]);
+            }
+        }
+    };
+
+    run(du::path(FieldBytes),FieldBytes);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
