@@ -329,6 +329,7 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         typeChecks<decltype(fields.type_int8),traits>(allTypes);
     }
 
+#if 1
     BOOST_TEST_CONTEXT("Copy construct")
     {
         auto allTypesCopy=allTypes;
@@ -340,6 +341,16 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         allTypesCopyOp=allTypes;
         typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesCopyOp);
     }
+
+    BOOST_TEST_CONTEXT("Move construct")
+    {
+        auto allTypes1=std::make_shared<type>();
+        typeChecks<decltype(fields.type_int8),traits>(*allTypes1);
+        auto allTypesMove=std::move(*allTypes1);
+        allTypes1.reset();
+        typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesMove);
+    }
+#endif
 
     using extTraits=ext1::traits;
     const auto extFields=extTraits::fields;
