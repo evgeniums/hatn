@@ -91,8 +91,7 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             // create objects
             for (size_t j=0;j<objectCount;j++)
             {
-                auto o1=makeInitObjectPtr<rep::type>();
-                auto& o=*o1;
+                auto o=makeInitObject<rep::type>();
 
                 auto& f=o.fieldAtPath(path);
                 for (size_t i=0;i<arraySize;i++)
