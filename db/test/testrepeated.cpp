@@ -91,11 +91,9 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             // create objects
             for (size_t j=0;j<objectCount;j++)
             {
-                rep::type o;
-                initObject(o);
+                auto o1=makeInitObjectPtr<rep::type>();
+                auto& o=*o1;
 
-                auto factory=o.factory();
-                BOOST_REQUIRE(factory!=nullptr);
                 auto& f=o.fieldAtPath(path);
                 for (size_t i=0;i<arraySize;i++)
                 {
@@ -235,11 +233,11 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
 
             // increment element in array
             auto incIdx=replaceIdx;
+            size_t incVal=9;
+            auto incrementedVal=gen(replaceInt+incVal,true);
+            auto q7=makeQuery(idx,query::where(field(path),query::Operator::eq,incrementedVal),topic1);
             if constexpr (std::is_arithmetic<decltype(gen(0,false))>::value)
             {
-                size_t incVal=9;
-                auto incrementedVal=gen(replaceInt+incVal,true);
-                auto q7=makeQuery(idx,query::where(field(path),query::Operator::eq,incrementedVal),topic1);
                 auto incReq=update::request(
                     update::field(update::path(array(fld,incIdx)),update::inc_element,incVal)
                     );
