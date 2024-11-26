@@ -45,6 +45,8 @@ using ExtSetter=void;
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 
+namespace tt = boost::test_tools;
+
 HATN_USING
 HATN_DATAUNIT_USING
 HATN_DB_USING
@@ -350,6 +352,137 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
         run(FieldString,genString,IdxString);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_AUTO_TEST_CASE(FloatingPoint)
+{
+    auto run=[](auto sample, const auto& path, const auto& field)
+    {
+        auto o=makeInitObject<rep::type>();
+        using type=decltype(sample);
+
+        // set vector
+        std::vector<type> vec1{100.01,200.02,300.03,400.004, 500.005};
+        auto req1=update::request(
+            update::field(update::path(path),update::set,vec1)
+        );
+        update::apply(&o,req1);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_TEST(o.fieldAtPath(path).at(i)==vec1[i], tt::tolerance(0.0001));
+        }
+
+        // push
+        type val2{1000.505};
+        auto req2=update::request(
+            update::field(update::path(path),update::push,val2)
+        );
+        update::apply(&o,req2);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()+1);
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_TEST(o.fieldAtPath(path).at(i)==vec1[i], tt::tolerance(0.0001));
+        }
+        BOOST_TEST(o.fieldAtPath(path).at(vec1.size())==val2, tt::tolerance(0.0001));
+
+        // pop
+        auto req3=update::request(
+                update::field(update::path(path),update::pop)
+            );
+        update::apply(&o,req3);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            BOOST_TEST(o.fieldAtPath(path).at(i)==vec1[i], tt::tolerance(0.0001));
+        }
+
+        // increment element
+        type inc4{15.709};
+        size_t incIdx=3;
+        auto req4=update::request(
+                update::field(update::path(array(field,incIdx)),update::inc_element,inc4)
+            );
+        update::apply(&o,req4);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            if (i==incIdx)
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(i)==(vec1[i]+inc4), tt::tolerance(0.0001));
+            }
+            else
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(i)==vec1[i], tt::tolerance(0.0001));
+            }
+        }
+
+        // replace element
+        type repl5{20097.831};
+        size_t replIdx=2;
+        auto req5=update::request(
+            update::field(update::path(array(field,replIdx)),update::replace_element,repl5)
+            );
+        update::apply(&o,req5);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            if (i==incIdx)
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(i)==(vec1[i]+inc4), tt::tolerance(0.0001));
+            }
+            else if (i==replIdx)
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(i)==repl5, tt::tolerance(0.0001));
+            }
+            else
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(i)==vec1[i], tt::tolerance(0.0001));
+            }
+        }
+
+        // erase element
+        size_t eraseIdx=1;
+        auto req6=update::request(
+            update::field(update::path(array(field,eraseIdx)),update::erase_element)
+            );
+        update::apply(&o,req6);
+        BOOST_CHECK(o.fieldAtPath(path).isSet());
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()-1);
+        for (size_t i=0;i<vec1.size();i++)
+        {
+            size_t j=i;
+            if (i==eraseIdx)
+            {
+                i++;
+            }
+            if (i>eraseIdx)
+            {
+                j=i-1;
+            }
+
+            if (i==incIdx)
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(j)==(vec1[i]+inc4), tt::tolerance(0.0001));
+            }
+            else if (i==replIdx)
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(j)==repl5, tt::tolerance(0.0001));
+            }
+            else
+            {
+                BOOST_TEST(o.fieldAtPath(path).at(j)==vec1[i], tt::tolerance(0.0001));
+            }
+        }
+    };
+
+    run(float(0),du::path(FieldFloat),FieldFloat);
+    run(double(0),du::path(FieldDouble),FieldDouble);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

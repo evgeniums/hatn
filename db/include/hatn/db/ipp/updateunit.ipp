@@ -313,6 +313,7 @@ struct ApplyRequestT
 };
 constexpr ApplyRequestT ApplyRequest{};
 constexpr ApplyRequestT applyRequest{};
+constexpr ApplyRequestT apply{};
 
 } // namespace update
 
