@@ -110,7 +110,7 @@ class FlatContainerIteratorBase
         using const_pointer = const ItemT*;
         using reference = ItemT&;
         using const_reference = const ItemT&;
-        using difference_type = size_t;
+        using difference_type = ptrdiff_t;
 
     public:
 
@@ -132,13 +132,19 @@ class FlatContainerIteratorBase
             return *this;
         }
 
-        operator bool() const noexcept
-        {
-            return m_idx<m_vec->size();
-        }
+        // operator bool() const noexcept
+        // {
+        //     return m_idx<m_vec->size();
+        // }
+
         bool operator==(const FlatContainerIteratorBase& other) const noexcept
         {
             return (m_idx == other.m_idx);
+        }
+
+        bool operator!=(const FlatContainerIteratorBase& other) const noexcept
+        {
+            return (m_idx != other.m_idx);
         }
 
         FlatContainerIteratorBase& operator+=(const difference_type& diff)
@@ -179,16 +185,23 @@ class FlatContainerIteratorBase
             --m_idx;
             return *this;
         }
-        FlatContainerIteratorBase operator+(const difference_type& diff)
+        FlatContainerIteratorBase operator+(const difference_type& diff)  const noexcept
         {
             auto it=FlatContainerIteratorBase(m_vec,m_idx);
             it+=diff;
             return it;
         }
-        FlatContainerIteratorBase operator-(const difference_type& diff)
+        FlatContainerIteratorBase operator-(const difference_type& diff)  const noexcept
         {
             auto it=FlatContainerIteratorBase(m_vec,m_idx);
             it-=diff;
+            return it;
+        }
+
+        FlatContainerIteratorBase operator-(const FlatContainerIteratorBase& diff) const noexcept
+        {
+            auto it=FlatContainerIteratorBase(m_vec,m_idx);
+            it-=diff.index();
             return it;
         }
 
@@ -208,6 +221,9 @@ class FlatContainerIteratorBase
                   >
         friend class FlatContainer;
 };
+
+template <typename VectorT, typename ItemT>
+class FlatContainerIteratorConst;
 
 template <typename VectorT, typename ItemT>
 class FlatContainerIterator : public FlatContainerIteratorBase<VectorT,ItemT>
@@ -242,6 +258,8 @@ class FlatContainerIterator : public FlatContainerIteratorBase<VectorT,ItemT>
             }
             return &((*this->m_vec)[this->m_idx]);
         }
+
+        // bool operator==(const FlatContainerIteratorConst<VectorT,ItemT>& other) const noexcept;
 };
 
 template <typename VectorT, typename ItemT>
@@ -685,6 +703,34 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
             }
             auto idx=detail::vector_iterator_index(this->m_vec,it);
             return std::make_pair(iterator(&this->m_vec,idx),created);
+        }
+
+        template<typename T>
+        const_iterator lower_bound(const T& key) const
+        {
+            auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
+            return const_iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        iterator lower_bound(const T& key)
+        {
+            auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
+            return iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        const_iterator upper_bound(const T& key) const
+        {
+            auto it=std::upper_bound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
+            return const_iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        iterator upper_bound(const T& key)
+        {
+            auto it=std::upper_bound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
+            return iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
         }
 };
 

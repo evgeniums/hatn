@@ -208,13 +208,56 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapComp)
     BOOST_REQUIRE(it2!=m2.end());
     uint32_t v2=it2->second;
     BOOST_CHECK_EQUAL(v2,1);
+
+    common::FlatMap<std::string,uint32_t,std::less<>> m3;
+    m3["0000"]=1;
+    m3["0001"]=2;
+    m3["0002"]=3;
+    m3["0003"]=4;
+    m3["0004"]=5;
+    m3["0010"]=10;
+    m3["0011"]=11;
+
+    BOOST_CHECK_EQUAL(m3.begin().index(),0);
+
+    std::string s3("0003");
+    auto it3=m3.lower_bound(s3);
+    BOOST_CHECK_EQUAL(m3.begin().index(),0);
+    BOOST_CHECK_EQUAL(it3.index(),3);
+    BOOST_CHECK(it3!=m3.begin());
+    BOOST_REQUIRE(it3!=m3.end());
+    auto it3_=m3.upper_bound(s3);
+    BOOST_CHECK_EQUAL(it3_.index(),4);
+    BOOST_CHECK(it3_!=m3.begin());
+    BOOST_REQUIRE(it3_!=m3.end());
+
+    std::string s4("0001");
+    auto it4=m3.lower_bound(s4);
+    BOOST_CHECK(it4!=m3.begin());
+    BOOST_REQUIRE(it4!=m3.end());
+    BOOST_CHECK_EQUAL(it4.index(),1);
+    BOOST_CHECK(it3!=it4);
+    auto it4_=m3.upper_bound(s4);
+    BOOST_CHECK_EQUAL(it4_.index(),2);
+    BOOST_CHECK(it4_!=m3.begin());
+    BOOST_REQUIRE(it4_!=m3.end());
+
+    std::string s5("0007");
+    auto it5=m3.lower_bound(s5);
+    BOOST_CHECK(it5!=m3.begin());
+    BOOST_REQUIRE(it5!=m3.end());
+    BOOST_CHECK_EQUAL(it5.index(),5);
+    auto it5_=m3.upper_bound(s5);
+    BOOST_CHECK_EQUAL(it5_.index(),5);
+    BOOST_CHECK(it5_!=m3.begin());
+    BOOST_REQUIRE(it5_!=m3.end());
 }
 
-BOOST_AUTO_TEST_CASE(CheckAllocatorOnStack)
+BOOST_AUTO_TEST_CASE(CheckVectorOnStack)
 {
-    std::vector<FixedByteArray64,AllocatorOnStack<FixedByteArray64,256>> v1;
+    VectorOnStack<FixedByteArray64,256> v1;
 
-    BOOST_CHECK_EQUAL(v1.capacity(),0);
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
     BOOST_CHECK_EQUAL(v1.size(),0);
 
     v1.reserve(256);
@@ -248,25 +291,9 @@ BOOST_AUTO_TEST_CASE(CheckAllocatorOnStack)
     BOOST_CHECK_EQUAL(v1.capacity(),256);
     BOOST_REQUIRE_EQUAL(v1.size(),1);
     BOOST_CHECK_EQUAL(v1[0].c_str(),"hello");
+
+    //! @todo Test allocation in heap when size exceeds preallocated
 }
-
-BOOST_AUTO_TEST_CASE(CheckFlatMapAllocatorOnStack)
-{
-    using pairAlloc=AllocatorOnStack<std::pair<FixedByteArray32,FixedByteArray64>,256>;
-    FlatMap<FixedByteArray32,FixedByteArray64,std::less<FixedByteArray32>,pairAlloc> m1;
-
-    m1.reserve(256);
-    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
-    m1["hi"]="hello";
-    BOOST_REQUIRE_EQUAL(m1.size(),1);
-    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
-    BOOST_CHECK_EQUAL(m1["hi"].c_str(),"hello");
-
-    m1.erase("hi");
-    BOOST_REQUIRE_EQUAL(m1.size(),0);
-    BOOST_REQUIRE_EQUAL(m1.capacity(),256);
-}
-
 
 // #define TEST_FLATMAP_PERFORMANCE
 
