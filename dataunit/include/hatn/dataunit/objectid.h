@@ -101,16 +101,6 @@ class HATN_DATAUNIT_EXPORT ObjectId
             return toDatetime();
         }
 
-        operator common::Date() const
-        {
-            return toDate();
-        }
-
-        operator common::DateRange() const
-        {
-            return toDateRange();
-        }
-
         uint64_t timepoint() const noexcept
         {
             return m_timepoint;
