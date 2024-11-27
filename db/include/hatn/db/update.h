@@ -270,6 +270,7 @@ using FieldsVector=common::VectorOnStack<Field,PreallocatedOpsCount>;
 
 using Request=FieldsVector;
 
+//! @todo Implement operations with repeated subunits
 struct makeRequestT
 {
     template <typename ...Fields>
