@@ -38,47 +38,34 @@ std::shared_ptr<RocksdbPartition> objectPartition(
 {
     using modelType=std::decay_t<ModelT>;
 
-    auto partitionR=hana::eval_if(
-        hana::bool_<modelType::isDatePartitioned()>{},
-        [&](auto _)
+    if constexpr (modelType::isDatePartitioned())
+    {
+        common::DateRange range;
+
+        // check if date is hana::false_
+        using dateT=std::decay_t<DateT>;
+        if constexpr (std::is_same<dateT,hana::false_>::value)
         {
-            using dateT=std::decay_t<decltype(_(date))>;
-            std::pair<std::shared_ptr<RocksdbPartition>,common::DateRange> r;
-            r.second=hana::eval_if(
-                std::is_same<dateT,hana::false_>{},
-                [&](auto _)
-                {
-                    // check if partition field is _id
-                    using modelType=std::decay_t<decltype(_(model))>;
-                    using eqT=std::is_same<
-                        std::decay_t<decltype(object::_id)>,
-                        std::decay_t<decltype(modelType::datePartitionField())>
-                        >;
-                    if constexpr (eqT::value)
-                    {
-                        return datePartition(_(objectId),_(model));
-                    }
-                    else
-                    {
-                        Assert(eqT::value,"Object ID must be a date partition index field");
-                        return HATN_COMMON_NAMESPACE::DateRange{};
-                    }
-                },
-                [&](auto _)
-                {
-                    return datePartition(_(date),_(model));
-                }
-                );
-            HATN_CTX_SCOPE_PUSH("partition",r.second)
-            r.first=_(handler).partition(r.second);
-            return r;
-        },
-        [&](auto _)
-        {
-            return std::make_pair(_(handler).defaultPartition(),common::DateRange{});
+            // check if partition field is _id
+            using isId=std::is_same<
+                std::decay_t<decltype(object::_id)>,
+                std::decay_t<decltype(modelType::datePartitionField())>
+                >;
+            static_assert(isId::value,"Object ID must be a date partition index field");
+            range=datePartition(objectId,model);
         }
-    );
-    return partitionR.first;
+        else
+        {
+            range=datePartition(date,model);
+        }
+
+        // return partition for range
+        return handler.partition(range);
+    }
+    else
+    {
+        return handler.defaultPartition();
+    }
 }
 
 HATN_ROCKSDB_NAMESPACE_END
