@@ -41,8 +41,8 @@ class HATN_DB_EXPORT ModelRegistry : public common::Singleton
 
         void registerModel(std::string name, uint32_t id)
         {
-            Assert(m_modelIds.find(name)==m_modelIds.end(),"Model with this name already registered");
-            Assert(m_modelNames.find(id)==m_modelNames.end(),"Model with this ID already registered");
+            Assert(m_modelIds.find(name)==m_modelIds.end(),"Model with such ID already registered");
+            Assert(m_modelNames.find(id)==m_modelNames.end(),"Model with such name already registered");
             m_modelIds.emplace(name,id);
             m_modelNames.emplace(id,std::move(name));
         }

@@ -75,6 +75,8 @@ std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &na
 
 void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
 {
+    auto it=m_models.find(model->info()->modelId());
+    Assert(it==m_models.end(),"Model with such ID already registered in RocksDB schema");
     m_models[model->info()->modelId()]=std::move(model);
 }
 

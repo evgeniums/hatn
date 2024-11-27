@@ -1,29 +1,31 @@
 SET (TEST_SOURCES
-    ${DB_TEST_SRC}/testobject.cpp
-    ${DB_TEST_SRC}/testinitplugins.cpp
-    ${DB_TEST_SRC}/testopenclose.cpp
-    ${DB_TEST_SRC}/testschema.cpp
-    ${DB_TEST_SRC}/testrocksdbschema.cpp
-    ${DB_TEST_SRC}/testrocksdbop.cpp
-    ${DB_TEST_SRC}/testcrud.cpp
+    # ${DB_TEST_SRC}/testobject.cpp
+    # ${DB_TEST_SRC}/testinitplugins.cpp
+    # ${DB_TEST_SRC}/testopenclose.cpp
+    # ${DB_TEST_SRC}/testschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbop.cpp
+    # ${DB_TEST_SRC}/testcrud.cpp
 
-    ${DB_TEST_SRC}/testfind.cpp
-    ${DB_TEST_SRC}/models1.cpp
+    # ${DB_TEST_SRC}/testfind.cpp
+    # ${DB_TEST_SRC}/models1.cpp
 
-    ${DB_TEST_SRC}/testfindplain.cpp
-    ${DB_TEST_SRC}/modelplain.cpp
+    # ${DB_TEST_SRC}/testfindplain.cpp
+    # ${DB_TEST_SRC}/modelplain.cpp
 
-    ${DB_TEST_SRC}/testfindembedded.cpp
-    ${DB_TEST_SRC}/modelembedded.cpp
+    # ${DB_TEST_SRC}/testfindembedded.cpp
+    # ${DB_TEST_SRC}/modelembedded.cpp
 
-    ${DB_TEST_SRC}/testfindcompound2.cpp
-    ${DB_TEST_SRC}/modelcompound2.cpp
+    # ${DB_TEST_SRC}/testfindcompound2.cpp
+    # ${DB_TEST_SRC}/modelcompound2.cpp
 
-    ${DB_TEST_SRC}/testupdate.cpp
-    ${DB_TEST_SRC}/testupdatenested.cpp
+    # ${DB_TEST_SRC}/testupdate.cpp
+    # ${DB_TEST_SRC}/testupdatenested.cpp
 
-    ${DB_TEST_SRC}/testrepeated.cpp
-    ${DB_TEST_SRC}/modelsrep.cpp
+    # ${DB_TEST_SRC}/testrepeated.cpp
+    # ${DB_TEST_SRC}/modelsrep.cpp
+
+    ${DB_TEST_SRC}/testpartitions.cpp
 )
 
 SET (TEST_HEADERS

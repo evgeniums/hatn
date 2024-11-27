@@ -78,7 +78,7 @@ Error CreateObjectT::operator ()(
     }
 
     // eval partition
-    const auto partition=objectPartition(handler,model,obj);
+    const auto partition=objectPartition(handler,model,*obj);
     if (!partition)
     {
         HATN_CTX_SCOPE_ERROR("find-partition");

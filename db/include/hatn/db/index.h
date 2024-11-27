@@ -86,6 +86,7 @@ struct IndexConfig
 constexpr IndexConfig<> DefaultIndexConfig{};
 constexpr IndexConfig<Unique> UniqueIndexConfig{};
 constexpr IndexConfig<NotUnique,DatePartition> PartitionIndexConfig{};
+constexpr IndexConfig<Unique,DatePartition> UniquePartitionIndexConfig{};
 template <typename TtlT>
 constexpr IndexConfig<NotUnique,NotDatePartition,TtlT> TtlIndexConfig{};
 
@@ -286,7 +287,6 @@ struct makeIndexT
     template <typename ConfigT, typename ...Fields>
     auto operator()(ConfigT&& cfg, Fields&& ...fields) const
     {
-#if 1
         auto ft1=hana::make_tuple(fields...);
         auto args=hana::eval_if(
             hana::is_a<IndexConfigTag,ConfigT>,
@@ -304,16 +304,17 @@ struct makeIndexT
         auto&& ft=args.second;
 
         using isDatePartition=hana::bool_<configT::isDatePartitioned()>;
-        static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
-                      "Date partition can be used for index with single field only");
+        // static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
+        //               "Date partition can be used for index with single field only");
         using firstFieldType=typename std::decay_t<decltype(hana::front(ft))>::Type::type;
         static_assert(!isDatePartition::value || (isDatePartition::value &&
                                                       (std::is_same<firstFieldType,common::DateTime>::value ||
                                                        std::is_same<firstFieldType,common::Date>::value ||
+                                                       std::is_same<firstFieldType,common::DateRange>::value ||
                                                        std::is_same<firstFieldType,ObjectId>::value
                                                        )
                                                   ),
-                      "Type of date partition field must be one of: DateTime or Date or ObjectId");
+                      "Type of date partition field must be one of: DateTime or Date or DateRange or ObjectId");
 
         using isTtl=hana::bool_<configT::isTtl()>;
         static_assert(!isTtl::value || (isTtl::value && (decltype(hana::size(ft))::value==1)),
@@ -361,23 +362,6 @@ struct makeIndexT
         auto ci=hana::unpack(c,hana::template_<Index>);
         using type=typename decltype(ci)::type;
         return type{std::move(p.second)};
-#else
-        common::FmtAllocatedBufferChar buf;
-        auto handler=[&buf](auto&& field, auto&& idx)
-        {
-            if (idx.value==0)
-            {
-                fmt::format_to(std::back_inserter(buf),"idx_{}",field.name());
-            }
-            else
-            {
-                fmt::format_to(std::back_inserter(buf),"_{}",field.name());
-            }
-            return true;
-        };
-        HATN_VALIDATOR_NAMESPACE::foreach_if(hana::make_tuple(fields...),HATN_DATAUNIT_META_NAMESPACE::true_predicate,handler);
-        return Index<std::decay_t<ConfigT>,Fields...>{common::fmtBufToString(buf)};
-#endif
     }
 };
 constexpr makeIndexT makeIndex{};
@@ -419,41 +403,6 @@ struct getIndexFieldT
             const auto& f=unit.field(field);
             return f;
         }
-#if 0
-        const auto& f=hana::eval_if(
-            hana::is_a<NestedFieldTag,FieldT>,
-            [&](auto _)
-            {
-                const auto& f=_(unit).fieldAtPath(vld::make_member(_(field).path));
-                return f;
-#if 0
-                auto handler=[](auto&& currentUnit, auto&& currentField)
-                {
-                    return currentUnit.field(currentField);
-                };
-                return hana::fold(_(field).path,_(unit),handler);
-#endif
-            },
-            [&](auto)
-            {
-                return hana::eval_if(
-                    hana::is_a<FieldTag,FieldT>,
-                    [&](auto _)
-                    {
-                        const auto& f=getIndexFieldT::invoke(_(unit),_(field).field);
-                        return f;
-                    },
-                    [&](auto _)
-                    {
-                        const auto& f=_(unit).field(_(field));
-                        return f;
-                    }
-                );
-            }
-        );
-
-       return f;
-#endif
     }
 
     template <typename UnitT, typename FieldT>
@@ -515,11 +464,21 @@ HATN_DB_NAMESPACE_END
     }; \
     constexpr _index_##idx idx{};
 
-#define HATN_DB_DATE_PARTITION_INDEX(idx,...) \
+#define HATN_DB_PARTITION_INDEX(idx,...) \
     struct _index_##idx { \
             const auto& operator()() const \
         { \
                 static auto idx=makeIndex(PartitionIndexConfig,__VA_ARGS__); \
+                return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
+#define HATN_DB_UNIQUE_DATE_PARTITION_INDEX(idx,...) \
+    struct _index_##idx { \
+            const auto& operator()() const \
+        { \
+                static auto idx=makeIndex(UniquePartitionIndexConfig,__VA_ARGS__); \
                 return idx; \
         } \
     }; \

@@ -56,6 +56,5 @@ void registerModels1()
     rdb::RocksdbModels::instance().registerModel(m1_time());
     rdb::RocksdbModels::instance().registerModel(m1_oid());
 #endif
-#endif
 }
 
