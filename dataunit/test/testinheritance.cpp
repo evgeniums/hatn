@@ -68,7 +68,7 @@ auto m2=hana::make_map(
 using WithM2=WithMap<decltype(m2)>;
 
 template <typename ...Fields>
-constexpr auto index_map=make_index_map(hana::tuple_t<Fields...>);
+constexpr auto index_map=makeIndexMap(hana::tuple_t<Fields...>);
 
 template <typename ...Fields>
 struct WithIndexMap
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(InheritanceMetaV2)
     static_assert(std::is_same<std::string,std::decay_t<decltype(v4)>>::value,"");
     BOOST_CHECK(true);
 
-    auto idxMap=make_index_map(hana::tuple_t<type1,type2>);
+    auto idxMap=makeIndexMap(hana::tuple_t<type1,type2>);
     std::ignore=idxMap;
 
     WithIndexMap<type1,type2> t3;
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(InheritObjV2)
     b1::type v1;
     const auto& fields1=b1::fields;
 
-    auto m1=b1::type::conf::fields_map;
+    auto m1=b1::type::fieldsMap;
     std::ignore=m1;
 
     auto& f1=v1.field(fields1.f1);

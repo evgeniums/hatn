@@ -70,15 +70,15 @@ const common::FlatMap<common::lib::string_view,uintptr_t>& UnitImpl<Fields...>::
     return map;
 }
 
-/********************** UnitConcat **************************/    
-
+/********************** UnitConcat **************************/
+#if 0
 //---------------------------------------------------------------
 
 template <typename Conf, typename ...Fields>
 UnitConcat<Conf,Fields...>::UnitConcat(
         AllocatorFactory* factory
     ) : Unit(factory),
-        UnitImpl<Fields...>(this)
+        baseType(this)
 {}
 
 //---------------------------------------------------------------
@@ -87,7 +87,7 @@ template <typename Conf, typename ...Fields>
 UnitConcat<Conf,Fields...>::UnitConcat(
         UnitConcat&& other
     ) : Unit(std::move(other)),
-        UnitImpl<Fields...>(std::move(other))
+        baseType(std::move(other))
 {
     setFieldsParent();
 }
@@ -98,7 +98,7 @@ template <typename Conf, typename ...Fields>
 UnitConcat<Conf,Fields...>::UnitConcat(
     const UnitConcat& other
     ) : Unit(other),
-        UnitImpl<Fields...>(other)
+        baseType(other)
 {
     setFieldsParent();
 }
@@ -116,7 +116,7 @@ void UnitConcat<Conf,Fields...>::setFieldsParent()
         }
     );
 }
-
+#endif
 //---------------------------------------------------------------
 
 HATN_DATAUNIT_NAMESPACE_END

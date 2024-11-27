@@ -30,6 +30,7 @@
 
 #include <hatn/validator/utils/foreach_if.hpp>
 #include <hatn/validator/validator.hpp>
+#include <hatn/validator/utils/make_types_tuple.hpp>
 
 #include <hatn/dataunit/fields/fieldtraits.h>
 #include <hatn/dataunit/fields/scalar.h>
@@ -162,21 +163,88 @@ class UnitImpl
         static const common::FlatMap<int,FieldParser<BufferT>>& fieldParsers();        
 };
 
+struct makeIndexMapT
+{
+    template <typename TypesC>
+    constexpr auto operator()(TypesC typesC) const
+    {
+        constexpr auto indexes=hana::make_range(hana::int_c<0>,hana::size(typesC));
+        constexpr auto pairs=hana::zip_with(hana::make_pair,typesC,hana::unpack(indexes,hana::make_tuple));
+        return hana::unpack(pairs,hana::make_map);
+    }
+};
+constexpr makeIndexMapT makeIndexMap{};
+
+template <typename ...Fields>
+struct fieldsMapT
+{
+    constexpr static auto f() noexcept
+    {
+        auto to_field_traits_c=[](auto x)
+        {
+            using field_c=typename decltype(x)::type;
+            using field_type=typename field_c::traits;
+            return hana::type_c<field_type>;
+        };
+
+        auto field_traits_c=hana::transform(hana::tuple_t<Fields...>,to_field_traits_c);
+        return makeIndexMap(field_traits_c);
+    }
+
+    using type=decltype(f());
+};
+
+template <typename Conf, typename ...Fields>
+struct makeUnitImpl
+{
+    static auto f()
+    {
+        auto fields=hana::tuple<Fields...>{};
+        return hana::unpack(
+                hana::transform(fields,typename Conf::to_field_c{}),
+                hana::template_<UnitImpl>
+            );
+    }
+
+    using type=typename decltype(f())::type;
+};
+
 /** @brief Base DataUnit template for concatenation with unit config. **/
 template <typename Conf, typename ...Fields>
-class UnitConcat : public Unit, public UnitImpl<Fields...>
+class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
 {        
     public:
 
         using selfType=UnitConcat<Conf,Fields...>;
-        using baseType=UnitImpl<Fields...>;
+        using baseType=typename makeUnitImpl<Conf,Fields...>::type;
         using conf=Conf;
 
-        UnitConcat(AllocatorFactory* factory=AllocatorFactory::getDefault());
+        using mapType=typename fieldsMapT<Fields...>::type;
+        constexpr static mapType fieldsMap{};
 
         ~UnitConcat()=default;
-        UnitConcat(UnitConcat&& other);
-        UnitConcat(const UnitConcat& other);
+
+        UnitConcat(
+                AllocatorFactory* factory=AllocatorFactory::getDefault()
+            ) : Unit(factory),
+                baseType(this)
+        {}
+
+        UnitConcat(
+            UnitConcat&& other
+            ) : Unit(std::move(other)),
+            baseType(std::move(other))
+        {
+            setFieldsParent();
+        }
+
+        UnitConcat(
+            const UnitConcat& other
+            ) : Unit(other),
+            baseType(other)
+        {
+            setFieldsParent();
+        }
 
         UnitConcat& operator= (UnitConcat&& other)
         {
@@ -217,7 +285,7 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
         constexpr static bool hasField(T&&) noexcept
         {
             constexpr auto idx=hana::type_c<std::decay_t<T>>;
-            return hana::contains(Conf::fields_map,idx);
+            return hana::contains(fieldsMap,idx);
         }
 
         /**  Get position of field */
@@ -283,7 +351,7 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
             constexpr auto idx=hana::type_c<std::decay_t<T>>;
             auto self=this;
             return hana::eval_if(
-                hana::contains(Conf::fields_map,idx),
+                hana::contains(fieldsMap,idx),
                 [&](auto _)
                 {
                     return _(self)->field(_(fieldName)).isSet();
@@ -517,14 +585,23 @@ class UnitConcat : public Unit, public UnitImpl<Fields...>
 
     private:
 
-        void setFieldsParent();
+        void setFieldsParent() noexcept
+        {
+            hana::for_each(
+                this->m_fields,
+                [this](auto& field)
+                {
+                    this->setFieldParent(field);
+                }
+                );
+        }
 
         template <typename T>
         constexpr static auto fieldIndex(T&&) noexcept
         {
             constexpr auto idx=hana::type_c<std::decay_t<T>>;
-            static_assert(hana::value(hana::contains(Conf::fields_map,idx)),"Field not found");
-            return Conf::fields_map[idx];
+            static_assert(hana::value(hana::contains(fieldsMap,idx)),"Field not found");
+            return fieldsMap[idx];
         }
 };
 
