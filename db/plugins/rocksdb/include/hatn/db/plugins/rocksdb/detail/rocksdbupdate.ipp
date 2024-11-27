@@ -149,7 +149,6 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
         // extract old keys for updated fields
-        std::cout<<"Extract old keys "<< std::endl;
         const auto& k=key;
         IndexKeyUpdateSet oldKeys;
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
@@ -178,7 +177,6 @@ Result<typename ModelT::SharedPtr> updateSingle(
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
-        std::cout<<"Extract new keys "<< std::endl;
         IndexKeyUpdateSet newKeys;
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys);
 
@@ -196,7 +194,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
 //! @todo Log debug
-#if 1
+#if 0
         std::cout<<"Old keys "<< std::endl;
         for (auto&& it: oldKeys)
         {

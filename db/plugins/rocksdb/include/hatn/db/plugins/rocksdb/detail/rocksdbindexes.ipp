@@ -72,7 +72,7 @@ class Indexes
                 [&](auto&& key){
 
 //! @todo Log debug
-#if 1
+#if 0
                     std::cout<<"Index " << idx.name() << " " << logKey(key[0]) << std::endl;
 #endif
                     auto ec=SaveSingleIndex(handler,key,idx.unique(),m_cf,tx,indexValue,replace);
