@@ -46,24 +46,6 @@ void checkOtherFields(
         Path&&... testFieldPath
     )
 {
-#if 0
-    auto testUnit=[](const du::Unit& u, const auto& testField)
-    {
-        BOOST_TEST_CONTEXT(testField.name()){
-            u.iterateFieldsConst(
-                [&](const du::Field& field)
-                {
-                    if (field.getID()!=testField.id())
-                    {
-                        BOOST_CHECK(!field.isSet());
-                    }
-                    return true;
-                }
-            );
-        }
-    };
-#endif
-
     if constexpr (sizeof...(Path)==1)
     {
         testUnit(o,std::forward<Path>(testFieldPath)...);
