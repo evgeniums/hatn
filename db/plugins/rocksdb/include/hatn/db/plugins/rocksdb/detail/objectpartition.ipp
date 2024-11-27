@@ -51,8 +51,14 @@ std::shared_ptr<RocksdbPartition> objectPartition(
                 std::decay_t<decltype(object::_id)>,
                 std::decay_t<decltype(modelType::datePartitionField())>
                 >;
-            static_assert(isId::value,"Object ID must be a date partition index field");
-            range=datePartition(objectId,model);
+            if constexpr (isId::value)
+            {
+                range=datePartition(objectId,model);
+            }
+            else
+            {
+                Assert(isId::value,"Object ID must be a date partition index field");
+            }
         }
         else
         {
