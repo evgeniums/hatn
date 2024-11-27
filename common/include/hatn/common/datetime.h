@@ -45,7 +45,7 @@ class HATN_COMMON_EXPORT DateTime
         {}
 
         /**
-         * @brief Ctor with init.
+         * @brief Ctor.
          * @param date Date.
          * @param time Time.
          * @param tz Timezone.
@@ -58,12 +58,21 @@ class HATN_COMMON_EXPORT DateTime
         }
 
         /**
-         * @brief Ctor with init.
+         * @brief Ctor.
          * @param date Date.
          * @param time Time.
          */
         DateTime(Date date, Time time)
             : DateTime(std::move(date),std::move(time),0)
+        {}
+
+        /**
+         * @brief Ctor.
+         * @param date Date.
+         * @param time Time.
+         */
+        DateTime(Date date)
+            : DateTime(std::move(date),Time{0,0,0,1})
         {}
 
         /**
