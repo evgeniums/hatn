@@ -31,10 +31,6 @@
 
 #include "hatn_test_config.h"
 
-#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
-#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
-#endif
-
 HATN_USING
 HATN_DATAUNIT_USING
 HATN_DB_USING
@@ -472,10 +468,7 @@ void init()
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
 
     ModelRegistry::free();
-#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
-    rdb::RocksdbSchemas::free();
-    rdb::RocksdbModels::free();
-#endif
+    initRocksDb();
 }
 
 template <typename ...Models>

@@ -101,5 +101,6 @@ HATN_DB_MODEL(modelPlain,plain,plain_f1_idx()
 )
 
 void registerModelPlain();
+void initRocksDb();
 
 #endif // HATNDBTESTMODELS9_H

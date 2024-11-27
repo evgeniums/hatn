@@ -56,3 +56,12 @@ void registerModelPlain()
 
 #endif
 }
+
+void initRocksDb()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    rdb::RocksdbSchemas::free();
+    rdb::RocksdbModels::free();
+#endif
+}
+
