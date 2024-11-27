@@ -182,6 +182,8 @@ class HATN_DATAUNIT_EXPORT ObjectId
             return m_timepoint==0;
         }
 
+        void setDateTime(const common::DateTime& dt);
+
     private:
 
         uint64_t m_timepoint=0; // 5.5 bytes: 0xFFFFFFFFFFF

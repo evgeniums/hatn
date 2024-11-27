@@ -107,6 +107,11 @@ bool ObjectId::parse(const common::ConstDataBuf &buf) noexcept
     return true;
 }
 
+void ObjectId::setDateTime(const common::DateTime& dt)
+{
+    m_timepoint=dt.toEpochMs();
+}
+
 //---------------------------------------------------------------
 
 HATN_DATAUNIT_NAMESPACE_END
