@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         using type=decltype(sample);
 
         // set vector
-        std::vector<type> vec1{100.01,200.02,300.03,400.004, 500.005};
+        std::vector<type> vec1{type(100.01),type(200.02),type(300.03),type(400.004),type(500.005)};
         auto req1=update::request(
             update::field(update::path(path),update::set,vec1)
         );
@@ -375,7 +375,7 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         }
 
         // push
-        type val2{1000.505};
+        auto val2=type(1000.505);
         auto req2=update::request(
             update::field(update::path(path),update::push,val2)
         );
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         }
 
         // increment element
-        type inc4{15.709};
+        auto inc4=type(15.709);
         size_t incIdx=3;
         auto req4=update::request(
                 update::field(update::path(array(field,incIdx)),update::inc_element,inc4)
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         }
 
         // replace element
-        type repl5{20097.831};
+        auto repl5=type(20097.831);
         size_t replIdx=2;
         auto req5=update::request(
             update::field(update::path(array(field,replIdx)),update::replace_element,repl5)

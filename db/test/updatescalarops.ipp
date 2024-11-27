@@ -22,12 +22,31 @@
 
 namespace {
 
+template <typename T>
+void testUnit(const du::Unit& obj, const T& testField)
+{
+    BOOST_TEST_CONTEXT(testField.name())
+    {
+        obj.iterateFieldsConst(
+            [&](const du::Field& field)
+            {
+                if (field.getID()!=testField.id())
+                {
+                    BOOST_CHECK(!field.isSet());
+                }
+                return true;
+            }
+        );
+    }
+}
+
 template <typename UnitT, typename ...Path>
 void checkOtherFields(
         const UnitT& o,
         Path&&... testFieldPath
     )
 {
+#if 0
     auto testUnit=[](const du::Unit& u, const auto& testField)
     {
         BOOST_TEST_CONTEXT(testField.name()){
@@ -43,6 +62,7 @@ void checkOtherFields(
             );
         }
     };
+#endif
 
     if constexpr (sizeof...(Path)==1)
     {
