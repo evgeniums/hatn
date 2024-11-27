@@ -22,6 +22,8 @@
 #include <rocksdb/db.h>
 #include <rocksdb/utilities/transaction_db.h>
 
+#include <hatn/common/utils.h>
+
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
@@ -490,11 +492,57 @@ Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const st
 
 //---------------------------------------------------------------
 
+Result<std::set<common::DateRange>> RocksdbClient::doListDatePartitions()
+{
+    ROCKSDB_NAMESPACE::Options options;
+    std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
+
+    // list names of existing column families
+    std::vector<std::string> cfNames;
+    auto status = ROCKSDB_NAMESPACE::DB::ListColumnFamilies(options, dbPath, &cfNames);
+
+    // check status
+    if (!status.ok())
+    {
+        return makeError(DbError::PARTITION_LIST_FAILED,status);
+    }
+
+    std::set<common::DateRange> r;
+    for (auto&& it: cfNames)
+    {
+        std::vector<std::string> parts;
+        common::Utils::split(parts,it,'_');
+        if (parts.size()==2)
+        {
+            auto range=common::DateRange::fromString(parts[0]);
+            if (!range)
+            {
+                if (range->isValid())
+                {
+//! @todo Log debug
+#if 0
+                    std::cout << "Found partition range " << range->toString() << " for column family " << parts[1] << std::endl;
+#endif
+                    r.insert(range.value());
+                }
+            }
+            else
+            {
+                HATN_CTX_ERROR_RECORDS(range.error(),"invalid partition range",{"cf",it})
+            }
+        }
+    }
+
+    // done
+    return r;
+}
+
+//---------------------------------------------------------------
+
 Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
     HATN_CTX_SCOPE("rocksdbdeletepartitions")
 
-    //! @todo test delete partition
     for (auto&& range: dateRanges)
     {
         auto ec=d->handler->deletePartition(range);

@@ -163,7 +163,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error addDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
+        Error addDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
+                                const common::Date& from=common::Date::currentUtc())
         {
             HATN_CTX_SCOPE("dbadddatepartitions")
             if (m_open)
@@ -174,7 +175,14 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{})
+        Result<std::set<common::DateRange>> listDatePartitions()
+        {
+            HATN_CTX_SCOPE("dblistdatepartitions")
+            return doListDatePartitions();
+        }
+
+        Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
+                                   const common::Date& from)
         {
             HATN_CTX_SCOPE("dbdeletedatepartitions")
             if (m_open)
@@ -529,6 +537,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
+        virtual Result<std::set<common::DateRange>> doListDatePartitions()=0;
 
         virtual Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
 

@@ -58,6 +58,8 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
         Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
 
+        Result<std::set<common::DateRange>> doListDatePartitions() override;
+
         Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
         Result<DbObject> doRead(const Topic& topic,

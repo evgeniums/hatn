@@ -46,13 +46,24 @@ std::set<common::DateRange> Client::datePartitionRanges(
         if (model.isDatePartitioned())
         {
             auto r=common::DateRange::datesToRanges(to,from,model.datePartitionMode());
-#if __cplusplus >= 201703L
-            ranges.merge(r);
-#else
-            ranges.insert(r.begin(), r.end());
+//! @todo Cleanup it
+#if 0
+            for (auto&& it:r)
+            {
+                std::cout << "Merging " << it.toString() << std::endl;
+            }
 #endif
+            ranges.merge(r);
         }
     }
+
+//! @todo Cleanup it
+#if 0
+    for (auto&& it:ranges)
+    {
+        std::cout << "Merged " << it.toString() << std::endl;
+    }
+#endif
     return ranges;
 }
 

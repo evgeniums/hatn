@@ -136,4 +136,53 @@ BOOST_AUTO_TEST_CASE(InitSchema)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_AUTO_TEST_CASE(PartitionsOperations)
+{
+    auto run=[](const auto& model)
+    {
+        init();
+
+        auto s1=initSchema(model);
+        std::vector<ModelInfo> modelInfos{*(model->info)};
+
+        auto handler=[&s1,&modelInfos](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+        {
+            setSchemaToClient(client,s1);
+
+            BOOST_TEST_MESSAGE("Add partitions");
+            auto ec=client->addDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(365));
+            BOOST_REQUIRE(!ec);
+
+            BOOST_TEST_MESSAGE("List partitions");
+            auto ranges=client->listDatePartitions();
+            BOOST_REQUIRE(!ranges);
+            BOOST_CHECK_EQUAL(ranges->size(),12+1);
+
+            BOOST_TEST_MESSAGE("Delete partitions");
+            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(183),common::Date::currentUtc());
+            BOOST_REQUIRE(!ec);
+
+            BOOST_TEST_MESSAGE("List partitions after delete");
+            ranges=client->listDatePartitions();
+            BOOST_REQUIRE(!ranges);
+            BOOST_CHECK_EQUAL(ranges->size(),6);
+
+            BOOST_TEST_MESSAGE("Try to delete already deleted partitions");
+            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(183),common::Date::currentUtc());
+            BOOST_REQUIRE(!ec);
+
+            BOOST_TEST_MESSAGE("List partitions after retry delete");
+            ranges=client->listDatePartitions();
+            BOOST_REQUIRE(!ranges);
+            BOOST_CHECK_EQUAL(ranges->size(),6);
+        };
+        PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+    };
+
+    BOOST_TEST_CONTEXT("modelImplicit1()"){run(modelImplicit1());}
+    BOOST_TEST_CONTEXT("modelImplicit2()"){run(modelImplicit2());}
+    BOOST_TEST_CONTEXT("modelExplicit1()"){run(modelExplicit1());}
+    BOOST_TEST_CONTEXT("modelExplicit2()"){run(modelExplicit2());}
+}
+
 BOOST_AUTO_TEST_SUITE_END()

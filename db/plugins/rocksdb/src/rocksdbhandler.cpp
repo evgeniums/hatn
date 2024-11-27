@@ -120,6 +120,10 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     HATN_CTX_SCOPE("rocksdbcreatepartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
 
+//! @todo Log debug
+#if 0
+    std::cout << "Creating partition " << range.toString() << std::endl;
+#endif
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
@@ -130,6 +134,10 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
         partition=*it;
         if (partition->collectionCf && partition->indexCf && partition->ttlCf)
         {
+//! @todo Log debug
+#if 0
+            std::cout << "Partition exists " << range.toString() << std::endl;
+#endif
             return partition;
         }
     }
@@ -207,7 +215,10 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 {
     HATN_CTX_SCOPE("rocksdbdeletepartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
-
+//! @todo Log debug
+#if 0
+    std::cout << "Deleting partition " << range.toString() << std::endl;
+#endif
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
@@ -221,11 +232,13 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
     // drop column families
     if (partition->indexCf)
     {
+//! @todo Log debug
+#if 0
+        std::cout << "Deleting indexCf " << range.toString() << std::endl;
+#endif
         auto status=d->transactionDb->DropColumnFamily(partition->indexCf.get());
         if (!status.ok())
         {
-            //! @todo skip non-existent cf
-
             HATN_CTX_SCOPE_ERROR("index-column-family")
             return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
@@ -233,11 +246,13 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 
     if (partition->collectionCf)
     {
+//! @todo Log debug
+#if 0
+        std::cout << "Deleting collectionCf " << range.toString() << std::endl;
+#endif
         auto status=d->transactionDb->DropColumnFamily(partition->collectionCf.get());
         if (!status.ok())
         {
-            //! @todo skip non-existent cf
-
             HATN_CTX_SCOPE_ERROR("collection-column-family")
             return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
@@ -245,11 +260,13 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 
     if (partition->ttlCf)
     {
+//! @todo Log debug
+#if 0
+        std::cout << "Deleting ttlCf " << range.toString() << std::endl;
+#endif
         auto status=d->transactionDb->DropColumnFamily(partition->ttlCf.get());
         if (!status.ok())
         {
-            //! @todo skip non-existent cf
-            //!
             HATN_CTX_SCOPE_ERROR("ttl-column-family")
             return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
