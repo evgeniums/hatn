@@ -27,14 +27,6 @@ SET (TEST_SOURCES
 
     ${DB_TEST_SRC}/testrepeated.cpp
     ${DB_TEST_SRC}/modelsrep.cpp
-
-    # ${DB_TEST_SRC}/models2.cpp
-    # ${DB_TEST_SRC}/models3.cpp
-    # ${DB_TEST_SRC}/models4.cpp
-    # ${DB_TEST_SRC}/models5.cpp
-    # ${DB_TEST_SRC}/models6.cpp
-    # ${DB_TEST_SRC}/models7.cpp
-    # ${DB_TEST_SRC}/models8.cpp    
 )
 
 SET (TEST_HEADERS

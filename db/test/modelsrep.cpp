@@ -46,8 +46,14 @@ namespace rdb=HATN_ROCKSDB_NAMESPACE;
 void registerModels()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
-
     rdb::RocksdbModels::instance().registerModel(modelRep());
+#endif
+}
 
+void initRocksDb()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    rdb::RocksdbSchemas::free();
+    rdb::RocksdbModels::free();
 #endif
 }

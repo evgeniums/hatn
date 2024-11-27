@@ -154,5 +154,6 @@ HATN_DB_MODEL(modelRep,
 #define IdxEnum rep_f11_idx()
 
 void registerModels();
+void initRocksDb();
 
 #endif // HATNDBTESTMODELSREP_H
