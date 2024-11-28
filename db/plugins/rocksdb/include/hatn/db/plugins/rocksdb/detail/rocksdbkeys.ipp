@@ -44,7 +44,7 @@ Error Keys::iterateIndexFields(
         PosT pos
     )
 {
-    if constexpr (hana::equal(pos,hana::size(index.fields)).value)
+    if constexpr (decltype(hana::equal(pos,hana::size(index.fields)))::value)
     {
         IndexKeySlice key;
         key[0]=ROCKSDB_NAMESPACE::Slice{buf.data(),buf.size()};

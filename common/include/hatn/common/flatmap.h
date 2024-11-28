@@ -739,7 +739,7 @@ class FlatSet : public FlatContainer<ValueT,AllocT,CompareT>
 
         using base=FlatContainer<ValueT,AllocT,CompareT>;
 
-        using base::FlatContainer;
+        using base::base;
 
         template<typename T>
         auto lower_bound(const T& key) const

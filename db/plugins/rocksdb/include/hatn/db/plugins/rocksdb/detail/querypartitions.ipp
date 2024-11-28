@@ -288,7 +288,7 @@ bool queryPartitions(
                             visitor.op=query::Operator::eq;
                         }
                         const auto& m=_(model);
-                        _(field0).value.eachVectorItem(
+                        std::ignore=_(field0).value.eachVectorItem(
                             [&visitor,&m](const auto& v)
                             {
                                 visitor.handleRange(query::toDateRange(v,m.datePartitionMode()));
