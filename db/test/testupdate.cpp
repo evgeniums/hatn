@@ -128,9 +128,12 @@ BOOST_AUTO_TEST_CASE(Bytes)
 
 BOOST_AUTO_TEST_CASE(CheckIndexes)
 {
+//! @todo Cleanup
+#if 0
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
+#endif
     HATN_CTX_SCOPE("CheckIndexes")
 
     init();
@@ -144,14 +147,20 @@ BOOST_AUTO_TEST_CASE(CheckIndexes)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
+//! @todo Cleanup
+#if 0
     ctx->afterThreadProcessing();
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(UpdateMany)
 {
+//! @todo Cleanup
+#if 0
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
+#endif
     HATN_CTX_SCOPE("UpdateMany")
 
     init();
@@ -231,14 +240,20 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
+//! @todo Cleanup
+#if 0
     ctx->afterThreadProcessing();
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(ReadUpdate)
 {
+//! @todo Cleanup
+#if 0
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
+#endif
     HATN_CTX_SCOPE("ReadUpdate")
 
     init();
@@ -320,14 +335,20 @@ BOOST_AUTO_TEST_CASE(ReadUpdate)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
+//! @todo Cleanup
+#if 0
     ctx->afterThreadProcessing();
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(FindUpdate)
 {
+//! @todo Cleanup
+#if 0
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
+#endif
     HATN_CTX_SCOPE("FindUpdate")
 
     init();
@@ -428,14 +449,20 @@ BOOST_AUTO_TEST_CASE(FindUpdate)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
+//! @todo Cleanup
+#if 0
     ctx->afterThreadProcessing();
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(FindUpdateCreate)
 {
+//! @todo Cleanup
+#if 0
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
     auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     ctx->beforeThreadProcessing();
+#endif
     HATN_CTX_SCOPE("FindUpdateCreate")
 
     init();
@@ -581,7 +608,10 @@ BOOST_AUTO_TEST_CASE(FindUpdateCreate)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
+//! @todo Cleanup
+#if 0
     ctx->afterThreadProcessing();
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

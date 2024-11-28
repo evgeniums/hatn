@@ -40,21 +40,6 @@ void registerModels1()
     rdb::RocksdbModels::instance().registerModel(m1_uint32());
     rdb::RocksdbModels::instance().registerModel(m1_str());
 
-#if 0
-    rdb::RocksdbModels::instance().registerModel(m1_int16());
-    rdb::RocksdbModels::instance().registerModel(m1_int32());
-    rdb::RocksdbModels::instance().registerModel(m1_int64());
-
-    rdb::RocksdbModels::instance().registerModel(m1_uint8());
-    rdb::RocksdbModels::instance().registerModel(m1_uint16());    
-    rdb::RocksdbModels::instance().registerModel(m1_uint64());
-
-    rdb::RocksdbModels::instance().registerModel(m1_fix_str());
-
-    rdb::RocksdbModels::instance().registerModel(m1_dt());
-    rdb::RocksdbModels::instance().registerModel(m1_date());
-    rdb::RocksdbModels::instance().registerModel(m1_time());
-    rdb::RocksdbModels::instance().registerModel(m1_oid());
-#endif
+#endif    
 }
 
