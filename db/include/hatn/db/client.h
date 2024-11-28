@@ -219,6 +219,8 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                 bool forUpdate=false,
                                                 const TimePointFilter& tpFilter=TimePointFilter{})
         {
+            checkPartitionField(model);
+
             HATN_CTX_SCOPE("dbread")
             if (m_open)
             {
@@ -238,10 +240,10 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                 bool forUpdate=false,
                                                 const TimePointFilter& tpFilter=TimePointFilter{})
         {
-            HATN_CTX_SCOPE("dbreaddate")
+            HATN_CTX_SCOPE("dbreadupdate")
             if (m_open)
             {
-                afterRead(model,doRead(topic,*model->info,id,date,tx,forUpdate),tpFilter);
+                return afterRead(model,doRead(topic,*model->info,id,date,tx,forUpdate),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -256,7 +258,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                        const common::Date& date,
                        Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbupdatedate")
+            HATN_CTX_SCOPE("dbupdate")
             if (m_open)
             {
                 return doUpdateObject(topic,*model->info,id,request,date,tx);
@@ -273,6 +275,14 @@ class HATN_DB_EXPORT Client : public common::WithID
                      const update::Request& request,
                      Transaction* tx=nullptr)
         {
+            checkPartitionField(model);
+
+            using modelType=typename ModelT::ModelType;
+            static_assert(
+                !modelType::isDatePartitioned() || modelType::isDatePartitionObjectId(),
+                "Date must be presented in arguments because partition field is not object::_id"
+                );
+
             HATN_CTX_SCOPE("dbupdate")
             if (m_open)
             {
@@ -286,15 +296,15 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Result<DbObjectT<typename ModelT::ManagedType>> readUpdate(const Topic& topic,
                            const std::shared_ptr<ModelT>& model,
-                           const update::Request& request,
                            const ObjectId& id,
-                           const common::Date& date,                           
+                           const update::Request& request,                           
+                           const common::Date& date,
                            update::ModifyReturn returnType=update::ModifyReturn::After,
                            Transaction* tx=nullptr,
                            const TimePointFilter& tpFilter=TimePointFilter{}
                     )
         {
-            HATN_CTX_SCOPE("dbreadupdatedate")
+            HATN_CTX_SCOPE("dbreadupdate")
             if (m_open)
             {
                 return afterRead(model,doReadUpdate(topic,*model->info,id,request,date,returnType,tx),tpFilter);
@@ -314,6 +324,8 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                       const TimePointFilter& tpFilter=TimePointFilter{}
                                                       )
         {
+            checkPartitionField(model);
+
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_open)
             {
@@ -348,6 +360,8 @@ class HATN_DB_EXPORT Client : public common::WithID
                             const ObjectId& id,
                             Transaction* tx=nullptr)
         {
+            checkPartitionField(model);
+
             HATN_CTX_SCOPE("dbdelete")
             if (m_open)
             {
@@ -672,6 +686,16 @@ class HATN_DB_EXPORT Client : public common::WithID
             auto ec=checkTpFilter(res.value(),tpFilter);
             HATN_CHECK_EC(ec)
             return res;
+        }
+
+        template <typename ModelT>
+        void checkPartitionField(const std::shared_ptr<ModelT>&)
+        {
+            using modelType=typename ModelT::ModelType;
+            static_assert(
+                !modelType::isDatePartitioned() || modelType::isDatePartitionObjectId(),
+                "Date must be presented in arguments because partition field is not object::_id"
+                );
         }
 
         bool m_open;

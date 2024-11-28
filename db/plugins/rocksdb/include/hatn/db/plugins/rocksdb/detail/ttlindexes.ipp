@@ -151,7 +151,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             const common::DateRange& dateRange
         )
     {
-        HATN_CTX_SCOPE("rocksdbttlindexprepare")
+        HATN_CTX_SCOPE("rdbttlindexprepare")
 
         initObject(ttlIndex);
 
@@ -181,7 +181,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             const ROCKSDB_NAMESPACE::Slice& ttlMark
         )
     {
-        HATN_CTX_SCOPE("rocksdbttlindexput")
+        HATN_CTX_SCOPE("rdbttlindexput")
 
         // serialize
         dataunit::io::serialize(ttlIndex,buf,ec);

@@ -221,6 +221,14 @@ struct Model : public ConfigT
         return field.name()==fieldName;
     }
 
+    constexpr static auto isDatePartitionObjectId() noexcept
+    {
+        return std::is_same<
+            std::decay_t<decltype(datePartitionField())>,
+            std::decay_t<decltype(object::_id)>
+            >::value;
+    }
+
     constexpr static auto ttlIndexes()
     {
         return hana::filter(common::tupleToTupleCType<Indexes>{},

@@ -141,7 +141,7 @@ Error DeleteObjectT::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rocksdbdeleteobject")
+    HATN_CTX_SCOPE("rdbdeleteobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
     auto idData=objectId.toArray();

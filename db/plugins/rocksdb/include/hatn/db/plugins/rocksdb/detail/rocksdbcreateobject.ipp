@@ -68,7 +68,7 @@ Error CreateObjectT::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rocksdbcreateobject")
+    HATN_CTX_SCOPE("rdbcreateobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
 

@@ -110,7 +110,7 @@ RocksdbClient::~RocksdbClient()
 
 void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
 {
-    HATN_CTX_SCOPE("rocksdbopen")    
+    HATN_CTX_SCOPE("rdbopen")
     invokeOpenDb(config,ec,records,false);
 }
 
@@ -118,7 +118,7 @@ void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config
 
 Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object::LogRecords& records)
 {
-    HATN_CTX_SCOPE("rocksdbcreatedb")
+    HATN_CTX_SCOPE("rdbcreatedb")
     Error ec;
     invokeOpenDb(config,ec,records,true);
     HATN_CHECK_EC(ec)
@@ -132,7 +132,7 @@ Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object:
 
 Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object::LogRecords& records)
 {
-    HATN_CTX_SCOPE("rocksdbdestroydb")
+    HATN_CTX_SCOPE("rdbdestroydb")
 
     // load config
     auto ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
@@ -155,7 +155,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
 
 void RocksdbClient::doCloseDb(Error &ec)
 {
-    HATN_CTX_SCOPE("rocksdbclosedb")
+    HATN_CTX_SCOPE("rdbclosedb")
     invokeCloseDb(ec);
 }
 
@@ -425,7 +425,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
 void RocksdbClient::invokeCloseDb(Error &ec)
 {
-    HATN_CTX_SCOPE("rocksdbinvokeclose")
+    HATN_CTX_SCOPE("rdbinvokeclose")
 
     ec.reset();
     if (d->handler)
@@ -459,7 +459,7 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 Error RocksdbClient::doSetSchema(std::shared_ptr<Schema> schema)
 {
-    HATN_CTX_SCOPE("rocksdbaddschema")
+    HATN_CTX_SCOPE("rdbaddschema")
 
     auto rs=RocksdbSchemas::instance().schema(schema->name());
     if (!rs)
@@ -476,7 +476,7 @@ Error RocksdbClient::doSetSchema(std::shared_ptr<Schema> schema)
 
 Result<std::shared_ptr<Schema>> RocksdbClient::doGetSchema() const
 {
-    HATN_CTX_SCOPE("rocksdbfindschema")
+    HATN_CTX_SCOPE("rdbfindschema")
 
     auto s=d->handler->schema();
     if (!s)
@@ -568,7 +568,7 @@ Result<std::set<common::DateRange>> RocksdbClient::doListDatePartitions()
 
 Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
-    HATN_CTX_SCOPE("rocksdbdeletepartitions")
+    HATN_CTX_SCOPE("rdbdeletepartitions")
 
     for (auto&& range: dateRanges)
     {
@@ -584,7 +584,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 Error RocksdbClient::doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbcreate")
+    HATN_CTX_SCOPE("rdbcreate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -603,7 +603,7 @@ Result<DbObject> RocksdbClient::doRead(const Topic& topic,
                                                                 bool forUpdate
                                                                 )
 {
-    HATN_CTX_SCOPE("rocksdbread")
+    HATN_CTX_SCOPE("rdbread")
 
     ENSURE_MODEL_SCHEMA
 
@@ -623,7 +623,7 @@ Result<DbObject> RocksdbClient::doRead(const Topic& topic,
                                                                 bool forUpdate
                                                                 )
 {
-    HATN_CTX_SCOPE("rocksdbreaddate")
+    HATN_CTX_SCOPE("rdbreaddate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -640,7 +640,7 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> RocksdbClient::doFind(
                                                                               const ModelIndexQuery &query
                                                                               )
 {
-    HATN_CTX_SCOPE("rocksdbfind")
+    HATN_CTX_SCOPE("rdbfind")
 
     ENSURE_MODEL_SCHEMA
 
@@ -657,7 +657,7 @@ Result<size_t> RocksdbClient::doCount(
         const ModelIndexQuery &query
     )
 {
-    HATN_CTX_SCOPE("rocksdbcount")
+    HATN_CTX_SCOPE("rdbcount")
 
     ENSURE_MODEL_SCHEMA
 
@@ -677,7 +677,7 @@ Error RocksdbClient::doDeleteObject(
         Transaction* tx
     )
 {
-    HATN_CTX_SCOPE("rocksdbdelete")
+    HATN_CTX_SCOPE("rdbdelete")
 
     ENSURE_MODEL_SCHEMA
 
@@ -696,7 +696,7 @@ Error RocksdbClient::doDeleteObject(
         Transaction* tx
     )
 {
-    HATN_CTX_SCOPE("rocksdbdelete")
+    HATN_CTX_SCOPE("rdbdelete")
 
     ENSURE_MODEL_SCHEMA
 
@@ -720,7 +720,7 @@ Result<size_t> RocksdbClient::doDeleteMany(
                                   const ModelIndexQuery &query,
                                   Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbdeletemany")
+    HATN_CTX_SCOPE("rdbdeletemany")
 
     ENSURE_MODEL_SCHEMA
 
@@ -739,7 +739,7 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const common::Date &date,
                                     Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbupdate")
+    HATN_CTX_SCOPE("rdbupdate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -763,7 +763,7 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
                                     const update::Request &request,
                                     Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbupdate")
+    HATN_CTX_SCOPE("rdbbupdate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -787,7 +787,7 @@ Result<size_t> RocksdbClient::doUpdateMany(
                                   const update::Request& request,
                                   Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbupdatemany")
+    HATN_CTX_SCOPE("rdbupdatemany")
 
     ENSURE_MODEL_SCHEMA
 
@@ -807,7 +807,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                     update::ModifyReturn returnType,
                                     Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbreadupdate")
+    HATN_CTX_SCOPE("rdbreadupdate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -832,7 +832,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                                                       update::ModifyReturn returnType,
                                                                       Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbreadupdate")
+    HATN_CTX_SCOPE("rdbreadupdate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -858,7 +858,7 @@ Result<DbObject> RocksdbClient::doFindUpdateCreate(
                                             update::ModifyReturn returnType,
                                             Transaction* tx)
 {
-    HATN_CTX_SCOPE("rocksdbfindupdatecreate")
+    HATN_CTX_SCOPE("rdbfindupdatecreate")
 
     ENSURE_MODEL_SCHEMA
 
@@ -876,7 +876,7 @@ RocksdbClient::doFindOne(
         const ModelIndexQuery& query
     )
 {
-    HATN_CTX_SCOPE("rocksdbdoFindOne")
+    HATN_CTX_SCOPE("rdbdoFindOne")
 
     ENSURE_MODEL_SCHEMA
 

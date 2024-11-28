@@ -296,7 +296,7 @@ Result<DbObject> UpdateObjectT::operator ()(
         Transaction* intx
     ) const
 {
-    HATN_CTX_SCOPE("rocksdbupdateobject")
+    HATN_CTX_SCOPE("rdbupdateobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
     auto idData=objectId.toArray();
@@ -309,6 +309,11 @@ Result<DbObject> UpdateObjectT::operator ()(
     {
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
+    if (!partition->range.isNull())
+    {
+        HATN_CTX_SCOPE_PUSH("partition",partition->range)
+    }
+    HATN_CTX_DEBUG("")
 
     // construct key
     Keys keys{factory};

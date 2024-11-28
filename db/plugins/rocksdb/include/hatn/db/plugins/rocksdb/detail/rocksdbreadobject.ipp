@@ -66,7 +66,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rocksdbreadobject")
+    HATN_CTX_SCOPE("rdbread")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
     auto idData=objectId.toArray();
@@ -80,6 +80,11 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
+    if (!partition->range.isNull())
+    {
+        HATN_CTX_SCOPE_PUSH("partition",partition->range)
+    }
+    HATN_CTX_DEBUG("")
 
     // construct key
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};

@@ -196,7 +196,12 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 {
     ContextLogger::instance().setDefaultLogLevel(LogLevel::Debug);
 
-    auto run=[](const auto& model, const auto& obj, const auto& partitionField)
+    auto run=[](const auto& model,
+                  const auto& obj,
+                  const auto& partitionField,
+                  const auto& partitionIdx,
+                  const auto& genFromDate
+                  )
     {
         using type=std::decay_t<decltype(obj)>;
 
@@ -216,6 +221,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
             size_t objectsPerPartition=5;
             size_t count=dates.size()*objectsPerPartition;
             Topic topic1{"topic1"};
+            std::vector<std::pair<ObjectId,common::Date>> testObjects;
 
             setSchemaToClient(client,s1);
 
@@ -225,28 +231,36 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
             // fill db with objects
             for (size_t i=0;i<count;i++)
             {
+                auto partition=i%dates.size();
+
                 auto o=makeInitObject<type>();
                 o.setFieldValue(base_fields::df2,static_cast<uint32_t>(i));
                 o.setFieldValue(base_fields::df3,fmt::format("value_{:04d}",i));
-                common::DateTime dt{dates[i%dates.size()],common::Time{1,1,1}};
-                auto df=o.fieldValue(partitionField);
-                if constexpr (std::is_same<decltype(df),du::ObjectId>::value)
+                common::DateTime dt{dates[partition],common::Time{1,1,1}};
+                if constexpr (std::is_same<std::decay_t<decltype(partitionField)>,std::decay_t<decltype(object::_id)>>::value)
                 {
+                    auto df=o.fieldValue(partitionField);
                     df.setDateTime(dt);
-                    o.setFieldValue(partitionField,df);
+                    o.setFieldValue(object::_id,df);
+                    o.setFieldValue(object::created_at,dt);
+                    o.setFieldValue(object::updated_at,dt);
                 }
                 else
                 {
                     o.setFieldValue(partitionField,dt.date());
                 }
-                o.setFieldValue(object::created_at,dt);
-                o.setFieldValue(object::updated_at,dt);
-                auto ec=client->create(topic1,model,&o);
+                ec=client->create(topic1,model,&o);
                 if (ec)
                 {
-                    BOOST_TEST_MESSAGE(fmt::format("Failed to create object {}: {}",i,ec.message()));
+                    HATN_CTX_ERROR_RECORDS(ec,"Failed to create object",{"i",i})
                 }
                 BOOST_REQUIRE(!ec);
+
+
+                if (partition==0 || partition==6 || partition==11)
+                {
+                    testObjects.emplace_back(o.fieldValue(object::_id),dates[partition]);
+                }
             }
 
             // add object to default partition
@@ -265,7 +279,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 
                 // find all objects from all partitions by partition field
                 BOOST_TEST_MESSAGE("Find all by partition field");
-                auto q1=makeQuery(oidPartitionIdx(),query::where(object::_id,query::gte,query::First),topic1);
+                auto q1=makeQuery(partitionIdx,query::where(partitionField,query::gte,query::First),topic1);
                 auto r1=client->find(model,q1);
                 if (r1)
                 {
@@ -273,54 +287,57 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 }
                 BOOST_REQUIRE(!r1);
                 BOOST_CHECK_EQUAL(r1->size(),count);
+#if 0
                 for (size_t i=0;i<r1->size();i++)
                 {
                     std::cout<<"All by partition field "<<i<<":\n"<<r1->at(i).template as<type>()->toString(true)<<std::endl;
                 }
-
+#endif
                 // find all objects from all partitions by not partition field
                 BOOST_TEST_MESSAGE("Find all by not partition field");
                 auto q2=makeQuery(df3Idx(),query::where(base_fields::df3,query::gte,query::First),topic1);
                 auto r2=client->find(model,q2);
                 BOOST_REQUIRE(!r2);
                 BOOST_CHECK_EQUAL(r2->size(),count);
+#if 0
                 for (size_t i=0;i<r2->size();i++)
                 {
                     std::cout<<"All by not partition field "<<i<<":\n"<<r2->at(i).template as<type>()->toString(true)<<std::endl;
                 }
-
+#endif
                 // find objects from partition by partition field with gte
                 BOOST_TEST_MESSAGE("Find by partition field with gte");
-                ObjectId oid3;
-                oid3.setDateTime(common::DateTime(dates[dates.size()-2]));
-                std::cout<<"oid3="<<oid3.toString()<<std::endl;
-                auto q3=makeQuery(oidPartitionIdx(),query::where(object::_id,query::gte,oid3),topic1);
+                auto val3=genFromDate(dates[dates.size()-2]);
+                auto q3=makeQuery(partitionIdx,query::where(partitionField,query::gte,val3),topic1);
                 auto r3=client->find(model,q3);
                 BOOST_REQUIRE(!r3);
                 BOOST_CHECK_EQUAL(r3->size(),objectsPerPartition*2);
+#if 0
                 for (size_t i=0;i<r3->size();i++)
                 {
                     std::cout<<"By gte partition field "<<i<<":\n"<<r3->at(i).template as<type>()->toString(true)<<std::endl;
                 }
-
+#endif
                 // find objects from partition by partition field with lte
                 BOOST_TEST_MESSAGE("Find by partition field with lte");
-                ObjectId oid4;
-                oid4.setDateTime(common::DateTime(dates[1].copyAddDays(1)));
-                std::cout<<"oid4="<<oid4.toString()<<std::endl;
-                auto q4=makeQuery(oidPartitionIdx(),query::where(object::_id,query::lte,oid4,query::Desc),topic1);
+                auto val4=genFromDate(dates[1].copyAddDays(1));
+                auto q4=makeQuery(partitionIdx,query::where(partitionField,query::lte,val4,query::Desc),topic1);
                 auto r4=client->find(model,q4);
                 BOOST_REQUIRE(!r4);
                 BOOST_CHECK_EQUAL(r4->size(),objectsPerPartition*2);
+#if 0
                 for (size_t i=0;i<r4->size();i++)
                 {
                     std::cout<<"By lte partition field "<<i<<":\n"<<r4->at(i).template as<type>()->toString(true)<<std::endl;
                 }
+#endif
             };
 
+//! @todo Uncomment
+#if 1
             // find objects in currently opened db
             BOOST_TEST_CONTEXT("original db"){findObjects();};
-
+#endif
             // close and re-open database
             ec=client->closeDb();
             if (ec)
@@ -337,13 +354,178 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
             BOOST_REQUIRE(!ec);
 
             // find objects in reopened db
+            BOOST_TEST_MESSAGE("Reopen db and re-run objects finding");
+//! @todo Uncomment
+#if 1
             BOOST_TEST_CONTEXT("reopened db"){findObjects();};
+#endif
+            // read-update-delete test objects
+            size_t updateCount=0;
+            for (auto&& it: testObjects)
+            {
+                if constexpr (std::is_same<std::decay_t<decltype(partitionField)>,std::decay_t<decltype(object::_id)>>::value)
+                {
+                    auto val1=fmt::format("str_{:04d}",updateCount++);
+                    auto updateReq1=update::request(
+                        update::field(base_fields::df3,update::set,val1)
+                        );
+                    auto val2=fmt::format("str_{:04d}",1+updateCount++);
+                    auto updateReq2=update::request(
+                        update::field(base_fields::df3,update::set,val2)
+                        );
+
+                    auto ru=client->update(topic1,model,it.first,updateReq1);
+                    BOOST_REQUIRE(!ru);
+
+                    auto r=client->read(topic1,model,it.first);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val1);
+
+                    r=client->readUpdate(topic1,model,it.first,updateReq2);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val2);
+
+                    auto rd=client->deleteObject(topic1,model,it.first);
+                    BOOST_CHECK(!rd);
+                    r=client->read(topic1,model,it.first);
+                    BOOST_REQUIRE(r);
+                }
+                else
+                {
+                    auto val1=fmt::format("str_{:04d}",updateCount++);
+                    auto updateReq1=update::request(
+                        update::field(base_fields::df3,update::set,val1)
+                        );
+                    auto val2=fmt::format("str_{:04d}",1+updateCount++);
+                    auto updateReq2=update::request(
+                        update::field(base_fields::df3,update::set,val2)
+                        );
+                    auto val3=fmt::format("str_{:04d}",2+updateCount++);
+                    auto updateReq3=update::request(
+                        update::field(base_fields::df3,update::set,val3)
+                        );
+                    auto val4=fmt::format("str_{:04d}",3+updateCount++);
+                    auto updateReq4=update::request(
+                        update::field(base_fields::df3,update::set,val4)
+                        );
+                    auto val5=fmt::format("str_{:04d}",4+updateCount++);
+                    auto updateReq5=update::request(
+                        update::field(base_fields::df3,update::set,val5)
+                        );
+                    auto val6=fmt::format("str_{:04d}",4+updateCount++);
+                    auto updateReq6=update::request(
+                        update::field(base_fields::df3,update::set,val6)
+                        );
+
+                    // update with date
+                    auto ru=client->update(topic1,model,it.first,updateReq1,it.second);
+                    BOOST_REQUIRE(!ru);
+                    // read with date
+                    auto r=client->read(topic1,model,it.first,it.second);
+                    if (r)
+                    {
+                        HATN_CTX_ERROR(r.error(),"failed to read object with date")
+                    }
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val1);
+
+                    // update with date in wrong partition
+                    ru=client->update(topic1,model,it.first,updateReq3,dates[3]);
+                    BOOST_CHECK(ru);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    // read with date in wrong partition
+                    r=client->read(topic1,model,it.first, dates[3]);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    // read check
+                    r=client->read(topic1,model,it.first,it.second);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val1);
+
+                    // read-update with date
+                    r=client->readUpdate(topic1,model,it.first,updateReq4,it.second);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val4);
+                    // read-update in wrong partition
+                    r=client->readUpdate(topic1,model,it.first,updateReq6,dates[3]);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    // read check
+                    r=client->read(topic1,model,it.first,it.second);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val4);
+
+                    // operations in not existing partition
+                    auto dt=common::Date{2023,1,1};
+                    r=client->read(topic1,model,it.first,dt);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    r=client->update(topic1,model,it.first,updateReq6,dt);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    r=client->readUpdate(topic1,model,it.first,updateReq6,dt);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                    auto rd=client->deleteObject(topic1,model,it.first,dt);
+                    BOOST_CHECK(rd);
+                    HATN_CTX_SCOPE_UNLOCK()
+
+                    // delete objects
+
+                    // try to delete in wrong partition, no error
+                    rd=client->deleteObject(topic1,model,it.first,dates[3]);
+                    BOOST_CHECK(!rd);
+                    // read check
+                    r=client->read(topic1,model,it.first,it.second);
+                    BOOST_REQUIRE(!r);
+                    BOOST_CHECK(r.value()->fieldValue(base_fields::df3)==val4);
+
+                    // delete with date
+                    rd=client->deleteObject(topic1,model,it.first,it.second);
+                    BOOST_CHECK(!rd);
+                    // read check
+                    r=client->read(topic1,model,it.first,it.second);
+                    BOOST_CHECK(r);
+                    HATN_CTX_SCOPE_UNLOCK()
+                }
+            }
+
+            // delete objects from default partition
+            ec=client->deleteMany(modelNoP(),
+                                    makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1)
+                                  );
+            BOOST_REQUIRE(!ec);
         };
         PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
     };
 
-    BOOST_TEST_CONTEXT("modelImplicit1()"){run(modelImplicit1(),implicit_p::type{},object::_id);}
-    // BOOST_TEST_CONTEXT("modelImplicit2()"){run(modelImplicit2());}
+    auto oidFromDate=[](const common::Date& date)
+    {
+        ObjectId oid;
+        oid.setDateTime(common::DateTime{date});
+        return oid;
+    };
+
+    auto dateFromDate=[](const common::Date& date)
+    {
+        return date;
+    };
+
+    BOOST_TEST_CONTEXT("modelImplicit1()"){
+        run(modelImplicit1(),implicit_p::type{},object::_id,oidPartitionIdx(),oidFromDate);
+    }
+
+    BOOST_TEST_CONTEXT("modelImplicit2()"){
+        run(modelImplicit2(),implicit_p::type{},object::_id,oidIdx2(),oidFromDate);
+    }
+
+    BOOST_TEST_CONTEXT("modelExplicit1()"){
+        run(modelExplicit1(),explicit_p::type{},explicit_p::pf1,pf1Idx1(),dateFromDate);
+    }
+
+    BOOST_TEST_CONTEXT("modelExplicit2()"){
+        run(modelExplicit2(),explicit_p::type{},explicit_p::pf1,pf1Idx2(),dateFromDate);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

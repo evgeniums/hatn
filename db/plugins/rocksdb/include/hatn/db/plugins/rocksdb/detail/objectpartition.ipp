@@ -32,7 +32,7 @@ template <typename ModelT, typename ObjectDateT, typename DateT=hana::false_>
 std::shared_ptr<RocksdbPartition> objectPartition(
         RocksdbHandler& handler,
         const ModelT& model,
-        const ObjectDateT& objectId,
+        const ObjectDateT& objectDateId,
         const DateT& date=DateT{}
     )
 {
@@ -46,19 +46,7 @@ std::shared_ptr<RocksdbPartition> objectPartition(
         using dateT=std::decay_t<DateT>;
         if constexpr (std::is_same<dateT,hana::false_>::value)
         {
-            // check if partition field is _id
-            using isId=std::is_same<
-                std::decay_t<decltype(object::_id)>,
-                std::decay_t<decltype(modelType::datePartitionField())>
-                >;
-            if constexpr (isId::value)
-            {
-                range=datePartition(objectId,model);
-            }
-            else
-            {
-                Assert(isId::value,"Object ID must be a date partition index field");
-            }
+            range=datePartition(objectDateId,model);
         }
         else
         {
