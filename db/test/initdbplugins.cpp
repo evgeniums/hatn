@@ -64,7 +64,7 @@ void DbTestFixture::setup()
     );
     m_logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
     m_logCtx->beforeThreadProcessing();
-
+    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(false);
 }
 
 void DbTestFixture::teardown()
