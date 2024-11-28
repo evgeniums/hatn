@@ -132,11 +132,6 @@ class FlatContainerIteratorBase
             return *this;
         }
 
-        // operator bool() const noexcept
-        // {
-        //     return m_idx<m_vec->size();
-        // }
-
         bool operator==(const FlatContainerIteratorBase& other) const noexcept
         {
             return (m_idx == other.m_idx);
@@ -198,11 +193,9 @@ class FlatContainerIteratorBase
             return it;
         }
 
-        FlatContainerIteratorBase operator-(const FlatContainerIteratorBase& diff) const noexcept
+        difference_type operator-(const FlatContainerIteratorBase& other) const noexcept
         {
-            auto it=FlatContainerIteratorBase(m_vec,m_idx);
-            it-=diff.index();
-            return it;
+            return m_idx-other.index();
         }
 
         size_t index() const noexcept
@@ -744,7 +737,37 @@ class FlatSet : public FlatContainer<ValueT,AllocT,CompareT>
 {
     public:
 
-        using FlatContainer<ValueT,AllocT,CompareT>::FlatContainer;
+        using base=FlatContainer<ValueT,AllocT,CompareT>;
+
+        using base::FlatContainer;
+
+        template<typename T>
+        auto lower_bound(const T& key) const
+        {
+            auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,CompareT{});
+            return typename base::const_iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        auto lower_bound(const T& key)
+        {
+            auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,CompareT{});
+            return typename base::iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        auto upper_bound(const T& key) const
+        {
+            auto it=std::upper_bound(this->m_vec.begin(),this->m_vec.end(),key,CompareT{});
+            return typename base::const_iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
+
+        template<typename T>
+        auto upper_bound(const T& key)
+        {
+            auto it=std::upper_bound(this->m_vec.begin(),this->m_vec.end(),key,CompareT{});
+            return typename base::iterator(&this->m_vec,detail::vector_iterator_index(this->m_vec,it));
+        }
 };
 
 //---------------------------------------------------------------
