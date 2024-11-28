@@ -143,7 +143,8 @@ class ContextT : public common::TaskContextValue
                 m_varStack(m_varStackArena),
                 m_threadStack(m_threadStackArena),
                 m_globalVarMap(m_varMapArena),
-                m_tags(m_tagSetArena)
+                m_tags(m_tagSetArena),
+                m_enableStackLocking(true)
         {}
 
         ~ContextT()=default;
@@ -170,7 +171,7 @@ class ContextT : public common::TaskContextValue
          */
         void describeScopeError(const char* err, bool lockStack=true)
         {
-            if (lockStack)
+            if (lockStack && m_enableStackLocking)
             {
                 m_lockStack=true;
             }
@@ -255,12 +256,28 @@ class ContextT : public common::TaskContextValue
             m_threadStack.resize(pos);
         }
 
+        void setStackLockingEnabled(bool enable) noexcept
+        {
+            m_enableStackLocking=enable;
+        }
+
+        bool isStackLockingEnabled() const noexcept
+        {
+            return m_enableStackLocking;
+        }
+
         void setStackLocked(bool enable)
         {
+            if (!m_enableStackLocking)
+            {
+                return;
+            }
+
+            bool locked=m_lockStack;
             m_lockStack=enable;
 
             // restore stack cursors to current scope
-            if (!m_lockStack)
+            if (locked && !m_lockStack)
             {
                 m_scopeStack.resize(m_currentScopeIdx);
                 const auto* scopeCursor=currentScope();
@@ -376,6 +393,8 @@ class ContextT : public common::TaskContextValue
         std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
         common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
         common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
+
+        bool m_enableStackLocking;
 };
 using Context=ContextT<>;
 

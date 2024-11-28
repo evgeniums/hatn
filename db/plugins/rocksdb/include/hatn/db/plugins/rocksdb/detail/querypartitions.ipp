@@ -76,18 +76,17 @@ struct partitionFieldVisitor
     template <typename T>
     void handleInterval(const query::Interval<T>& iv)
     {
+        if (iv.from.type==query::IntervalType::First && iv.to.type==query::IntervalType::Last)
+        {
+            allPartitions();
+            return;
+        }
+
         if constexpr (std::is_convertible_v<T,common::DateRange> || std::is_same_v<T,ObjectId>)
         {
             if (iv.from.type==query::IntervalType::First)
             {
-                if (iv.to.type==query::IntervalType::Last)
-                {
-                    allPartitions();
-                }
-                else
-                {
-                    handleRange(query::toDateRange(iv.to.value,model.datePartitionMode()),query::Operator::lte);
-                }
+                handleRange(query::toDateRange(iv.to.value,model.datePartitionMode()),query::Operator::lte);
                 return;
             }
 
@@ -135,6 +134,8 @@ struct partitionFieldVisitor
 
     void allPartitions()
     {
+        common::lib::shared_lock<common::lib::shared_mutex> l{handler.p()->partitionMutex};
+
         const auto& all=handler.p()->partitions;
         partitions.beginRawInsert(all.size());
         for (size_t i=0;i<all.size();i++)

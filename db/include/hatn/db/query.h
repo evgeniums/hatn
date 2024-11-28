@@ -362,7 +362,7 @@ struct Interval
         IntervalType fromType,
         T2&& to,
         IntervalType toType
-        ): Interval(uint32_t(0),fromType,std::forward<T2>(to),toType)
+        ): Interval(T{},fromType,std::forward<T2>(to),toType)
     {
         Assert(fromType==IntervalType::First,"This constructor can be used only for interval from First");
     }
@@ -378,7 +378,7 @@ struct Interval
         T1&& from,
         IntervalType fromType,
         IntervalType toType
-        ) : Interval(std::forward<T1>(from),fromType,uint32_t(0),toType)
+        ) : Interval(std::forward<T1>(from),fromType,T{},toType)
     {
         Assert(toType==IntervalType::Last,"This constructor can be used only for interval to Last");
     }
@@ -392,9 +392,10 @@ struct Interval
     Interval(
         IntervalType fromType,
         IntervalType toType
-        ) : Interval(uint32_t(0),fromType,uint32_t(0),toType)
+        ) : Interval(T{0},fromType,T{0},toType)
     {
-        Assert(fromType==IntervalType::First && toType==IntervalType::Last,"This constructor can be used only for interval from First to Last");
+        Assert(fromType==IntervalType::First && toType==IntervalType::Last,
+               "This constructor can be used only for interval from First to Last");
     }
 
     Interval(
@@ -435,10 +436,32 @@ struct Interval
 
 //! Make default interval [from,to)
 template <typename T>
-auto makeInterval(T from, T to)
+auto makeInterval(T&& from, T&& to)
 {
-    return Interval<std::decay_t<T>>(std::move(from),std::move(to));
+    return Interval<std::decay_t<T>>{std::forward<T>(from),std::forward<T>(to)};
 }
+
+template <typename T>
+auto makeInterval(IntervalType from, T&& to)
+{
+    return Interval<std::decay_t<T>>{from,std::forward<T>(to),IntervalType::Open};
+}
+
+template <typename T>
+auto makeInterval(T&& from, IntervalType to)
+{
+    return Interval<std::decay_t<T>>{std::forward<T>(from),IntervalType::Closed,to};
+}
+
+inline auto makeInterval(IntervalType from, IntervalType to)
+{
+    Assert(from==IntervalType::First && to==IntervalType::Last,
+           "This helper can be used only for interval from First to Last");
+
+    return Interval<uint32_t>{0,IntervalType::First,0,IntervalType::Last};
+}
+
+//! @todo Make conversion First -> IntervalType::First and Last -> IntervalType::Last
 
 constexpr const size_t PreallocatedVectorSize=8;
 

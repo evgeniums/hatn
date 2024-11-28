@@ -362,7 +362,6 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 #endif
                 // find objects from partition by partition field using in interval
                 BOOST_TEST_MESSAGE("Find by partition field using in interval");
-
                 auto intv6=query::makeInterval(genFromDate(dates[3].copyAddDays(-14)),
                                     genFromDate(dates[4].copyAddDays(15))
                                     );
@@ -378,6 +377,54 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 for (size_t i=0;i<r6->size();i++)
                 {
                     std::cout<<"Partititon field in vector: "<<i<<":\n"<<r6->at(i).template as<type>()->toString(true)<<std::endl;
+                }
+#endif
+
+                // find objects from partition by partition field using in interval [First,to]
+                BOOST_TEST_MESSAGE("Find by partition field using in interval [First,to]");
+                auto intv7=query::makeInterval(query::IntervalType::First,
+                                                 genFromDate(dates[2].copyAddDays(15))
+                                                 );
+                auto q7=makeQuery(partitionIdx,query::where(partitionField,query::in,intv7),topic1);
+                auto r7=client->find(model,q7);
+                BOOST_REQUIRE(!r7);
+                BOOST_CHECK_EQUAL(r7->size(),objectsPerPartition*3);
+#if 0
+                for (size_t i=0;i<r7->size();i++)
+                {
+                    std::cout<<"Partititon field in vector: "<<i<<":\n"<<r7->at(i).template as<type>()->toString(true)<<std::endl;
+                }
+#endif
+
+                // find objects from partition by partition field using in interval [from,Last]
+                BOOST_TEST_MESSAGE("Find by partition field using in interval [from,Last]");
+                auto intv8=query::makeInterval(
+                                genFromDate(dates[10].copyAddDays(-14)),
+                                query::IntervalType::Last);
+                auto q8=makeQuery(partitionIdx,query::where(partitionField,query::in,intv8),topic1);
+                auto r8=client->find(model,q8);
+                BOOST_REQUIRE(!r8);
+                BOOST_CHECK_EQUAL(r8->size(),objectsPerPartition*2);
+#if 0
+                for (size_t i=0;i<r8->size();i++)
+                {
+                    std::cout<<"Partititon field in vector: "<<i<<":\n"<<r8->at(i).template as<type>()->toString(true)<<std::endl;
+                }
+#endif
+
+                // find objects from partition by partition field using in interval [First,Last]
+                BOOST_TEST_MESSAGE("Find by partition field using in interval [First,Last]");
+                auto intv9=query::makeInterval(
+                    query::IntervalType::First,
+                    query::IntervalType::Last);
+                auto q9=makeQuery(partitionIdx,query::where(partitionField,query::in,intv9),topic1);
+                auto r9=client->find(model,q9);
+                BOOST_REQUIRE(!r9);
+                BOOST_CHECK_EQUAL(r9->size(),objectsPerPartition*dates.size());
+#if 0
+                for (size_t i=0;i<r9->size();i++)
+                {
+                    std::cout<<"Partititon field in vector: "<<i<<":\n"<<r9->at(i).template as<type>()->toString(true)<<std::endl;
                 }
 #endif
             };
