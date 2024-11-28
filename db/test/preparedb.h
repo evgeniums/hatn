@@ -58,6 +58,8 @@ struct PrepareDbAndRun
         const std::string& testConfigFile,
         const std::vector<PartitionRange>& partitions=std::vector<PartitionRange>{}
     );
+
+    static db::ClientConfig* currentCfg;
 };
 
 HATN_TEST_NAMESPACE_END

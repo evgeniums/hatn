@@ -15,6 +15,10 @@
 */
 
 #include <boost/test/unit_test.hpp>
+
+#include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/streamlogger.h>
+
 #include "initdbplugins.h"
 
 #ifdef NO_DYNAMIC_HATN_PLUGINS
@@ -54,10 +58,19 @@ void DbPluginTest::initOnce()
 void DbTestFixture::setup()
 {
     DbPluginTest::instance().initOnce();
+
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(
+        std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>())
+    );
+    m_logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    m_logCtx->beforeThreadProcessing();
+
 }
 
 void DbTestFixture::teardown()
 {
+    m_logCtx->afterThreadProcessing();
+    m_logCtx.reset();
 }
 
 HATN_TEST_NAMESPACE_END

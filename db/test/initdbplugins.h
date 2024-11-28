@@ -22,6 +22,8 @@
 
 #include <hatn_test_config.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/db/dbplugin.h>
 #include <hatn/test/pluginlist.h>
 
@@ -104,6 +106,15 @@ class DbTestFixture : public MultiThreadFixture
 
         void setup();
         void teardown();
+
+        auto logCtx()
+        {
+            return m_logCtx;
+        }
+
+    private:
+
+        decltype(HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>()) m_logCtx;
 };
 
 HATN_TEST_NAMESPACE_END

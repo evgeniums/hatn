@@ -1005,15 +1005,20 @@ class ValueT
         }
 
         template <typename VisitorT>
-        Error handleValue(const VisitorT& v) const
+        Error handleValue(VisitorT&& v) const
         {
-            return common::lib::variantVisit(v,m_value);
+            return common::lib::variantVisit(std::forward<VisitorT>(v),m_value);
         }
 
         template <typename T>
         const T& as() const
         {
             return common::lib::variantGet<T>(m_value);
+        }
+
+        const type& value() const
+        {
+            return m_value;
         }
 
     private:

@@ -897,6 +897,11 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         if (!partition->range.isNull())
         {
             HATN_CTX_SCOPE_PUSH("partition",partition->range)
+
+//! @todo Log debug
+#if 1
+            std::cout<<"Looking in partition "<<partition->range.toString()<<std::endl;
+#endif
         }
 
         // process all topics

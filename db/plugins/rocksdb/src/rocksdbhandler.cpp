@@ -120,25 +120,30 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     HATN_CTX_SCOPE("rocksdbcreatepartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
 
-//! @todo Log debug
-#if 0
-    std::cout << "Creating partition " << range.toString() << std::endl;
-#endif
+    if (range.isNull())
+    {
+        HATN_CTX_INFO("create default partition")
+    }
+    else
+    {
+        HATN_CTX_INFO("create date partition")
+    }
+
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
     std::shared_ptr<RocksdbPartition> partition;
-    auto it=d->partitions.find(range);
-    if (it!=d->partitions.end())
+    if (!range.isNull())
     {
-        partition=*it;
-        if (partition->collectionCf && partition->indexCf && partition->ttlCf)
+        auto it=d->partitions.find(range);
+        if (it!=d->partitions.end())
         {
-//! @todo Log debug
-#if 0
-            std::cout << "Partition exists " << range.toString() << std::endl;
-#endif
-            return partition;
+            partition=*it;
+            if (partition->collectionCf && partition->indexCf && partition->ttlCf)
+            {
+                HATN_CTX_DEBUG_RECORDS("date partition exists",{"partition",range.toString()});
+                return partition;
+            }
         }
     }
 
@@ -200,12 +205,13 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     }
 
     // keep partition
-    if (!partition)
+    if (!partition && !range.isNull())
     {
         partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf,range);
         d->partitions.insert(std::move(partition));
     }
 
+    // done
     return partition;
 }
 
@@ -215,10 +221,16 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 {
     HATN_CTX_SCOPE("rocksdbdeletepartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
-//! @todo Log debug
-#if 0
-    std::cout << "Deleting partition " << range.toString() << std::endl;
-#endif
+
+    if (range.isNull())
+    {
+        HATN_CTX_INFO("delete default partition")
+    }
+    else
+    {
+        HATN_CTX_INFO("delete date partition")
+    }
+
     common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
 
     // skip existing partition
@@ -232,10 +244,6 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
     // drop column families
     if (partition->indexCf)
     {
-//! @todo Log debug
-#if 0
-        std::cout << "Deleting indexCf " << range.toString() << std::endl;
-#endif
         auto status=d->transactionDb->DropColumnFamily(partition->indexCf.get());
         if (!status.ok())
         {
@@ -246,10 +254,6 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 
     if (partition->collectionCf)
     {
-//! @todo Log debug
-#if 0
-        std::cout << "Deleting collectionCf " << range.toString() << std::endl;
-#endif
         auto status=d->transactionDb->DropColumnFamily(partition->collectionCf.get());
         if (!status.ok())
         {
@@ -260,10 +264,6 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
 
     if (partition->ttlCf)
     {
-//! @todo Log debug
-#if 0
-        std::cout << "Deleting ttlCf " << range.toString() << std::endl;
-#endif
         auto status=d->transactionDb->DropColumnFamily(partition->ttlCf.get());
         if (!status.ok())
         {
@@ -302,10 +302,13 @@ std::shared_ptr<RocksdbPartition> RocksdbHandler::defaultPartition() const noexc
 
 //---------------------------------------------------------------
 
-void RocksdbHandler::insertPartition(const common::DateRange &range, std::shared_ptr<RocksdbPartition> partition)
+void RocksdbHandler::insertPartition(const std::shared_ptr<RocksdbPartition>& partition)
 {
-    common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
-    d->partitions.insert(std::move(partition));
+    if (!partition->range.isNull())
+    {
+        common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+        d->partitions.insert(partition);
+    }
 }
 
 //---------------------------------------------------------------

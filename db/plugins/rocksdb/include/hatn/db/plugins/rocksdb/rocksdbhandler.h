@@ -59,7 +59,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         Error deletePartition(const common::DateRange& range);
 
         std::shared_ptr<RocksdbPartition> partition(const common::DateRange& range) const noexcept;
-        void insertPartition(const common::DateRange& range, std::shared_ptr<RocksdbPartition> partition);
+        void insertPartition(const std::shared_ptr<RocksdbPartition>& partition);
 
         std::shared_ptr<RocksdbPartition> defaultPartition() const noexcept;
 

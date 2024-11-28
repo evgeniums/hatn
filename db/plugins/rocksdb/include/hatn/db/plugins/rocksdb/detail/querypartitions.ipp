@@ -61,7 +61,7 @@ struct partitionFieldVisitor
     FilteredPartitions<CompT>& partitions;
 
     template <typename T>
-    void operator()(const query::Vector<T>& vec) const
+    void operator()(const query::Vector<T>& vec)
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {
@@ -77,7 +77,7 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void operator()(const query::Vector<query::Interval<T>>& vec) const
+    void operator()(const query::Vector<query::Interval<T>>& vec)
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {
@@ -89,7 +89,7 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void handleInterval(const query::Interval<T>& iv) const
+    void handleInterval(const query::Interval<T>& iv)
     {
         if constexpr (std::is_convertible_v<T,common::DateRange>)
         {
@@ -142,7 +142,7 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void operator()(const query::Interval<T>& iv) const
+    void operator()(const query::Interval<T>& iv)
     {
         handleInterval(iv);
     }
@@ -158,7 +158,7 @@ struct partitionFieldVisitor
         partitions.endRawInsert();
     }
 
-    void operator()(const query::LastT&) const
+    void operator()(const query::LastT&)
     {
         if (op==query::Operator::lt || op==query::Operator::lte)
         {
@@ -170,7 +170,7 @@ struct partitionFieldVisitor
         }
     }
 
-    void operator()(const query::FirstT&) const
+    void operator()(const query::FirstT&)
     {
         if (op==query::Operator::gt || op==query::Operator::gte)
         {
@@ -183,61 +183,63 @@ struct partitionFieldVisitor
     }
 
     template <typename T>
-    void operator()(const T& v) const
+    void operator()(const T& v)
     {
-        if constexpr (std::is_convertible_v<T,common::DateRange>)
-        {
-            handleRange(query::toDateRange(v,model.datePartitionMode()));
-        }
-        else
-        {
-            Assert(false,"Invalid partition field");
-        }
+        handleRange(query::toDateRange(v,model.datePartitionMode()));
     }
 
-    void handleRange(const common::DateRange& range, std::optional<query::Operator> opArg=std::optional<query::Operator>{})
+    void handleRange(const common::DateRange& range, std::optional<query::Operator> opArg=std::optional<query::Operator>{}) const
     {
         auto op_=opArg.value_or(op);
         switch(op_)
         {
-            case(query::Operator::lt):
-            HATN_FALLTHROUGH
-            case(query::Operator::lte):
-            {
-                auto it=std::lower_bound(handler.p()->partitions.begin(),handler.p()->partitions.end(),
-                            range,
-                            std::less<std::shared_ptr<RocksdbPartition>>{}
-                        );
-                if (it!=handler.p()->partitions.end())
-                {
-                    size_t count=handler.p()->partitions.size()-it.index();
-                    partitions.beginRawInsert(count);
-                    for (auto i=it.index();i<handler.p()->partitions.size();i++)
-                    {
-                        partitions.rawInsert(handler.p()->partitions.at(i));
-                    }
-                    partitions.endRawInsert();
-                }
-            }
-            break;
-
             case(query::Operator::gt):
             HATN_FALLTHROUGH
             case(query::Operator::gte):
             {
-                auto it=std::lower_bound(handler.p()->partitions.begin(),handler.p()->partitions.end(),
-                                           range,
-                                           std::less<std::shared_ptr<RocksdbPartition>>{}
-                                           );
+                auto it=handler.p()->partitions.lower_bound(range);
                 if (it!=handler.p()->partitions.end())
                 {
+                    std::cout<<"gt/gte found "<<range.toString()<<" idx="<<it.index()<<" partitions size="<<handler.p()->partitions.size()<<std::endl;
+
+                    size_t count=handler.p()->partitions.size()-it.index();
+                    partitions.beginRawInsert(count);
+                    for (auto i=it.index();i<handler.p()->partitions.size();i++)
+                    {
+                        std::cout<<"gt/gte partition idx="<<i<<std::endl;
+                        partitions.rawInsert(handler.p()->partitions.at(i));
+                    }
+                    partitions.endRawInsert();
+                }
+                else
+                {
+                    std::cout<<"gt/gte not found "<<range.toString()<<std::endl;
+                }
+            }
+            break;
+
+            case(query::Operator::lt):
+            HATN_FALLTHROUGH
+            case(query::Operator::lte):
+            {
+                auto it=handler.p()->partitions.lower_bound(range);
+                if (it!=handler.p()->partitions.end())
+                {
+                    std::cout<<"lt/lte found "<<range.toString()<<" idx="<<it.index()<<" partitions size="<<handler.p()->partitions.size()<<std::endl;
+
                     size_t count=it.index()+1;
                     partitions.beginRawInsert(count);
                     for (auto i=0;i<=it.index();i++)
                     {
+                        std::cout<<"lt/lte partition idx="<<i
+                                  <<" range="<<handler.p()->partitions.at(i)->range.toString()<<std::endl;
                         partitions.rawInsert(handler.p()->partitions.at(i));
                     }
                     partitions.endRawInsert();
+                }
+                else
+                {
+                    std::cout<<"lt/lte not found "<<range.toString()<<std::endl;
                 }
             }
             break;
@@ -307,7 +309,7 @@ bool queryPartitions(
                         _(field0).op,
                         filteredPs
                     };
-                    visitor(_(field0).value);
+                    lib::variantVisit(visitor,_(field0).value.value());
                 }
 
                 // copy filtered partitions to result
@@ -325,7 +327,7 @@ bool queryPartitions(
                 //! @todo optimization: optimize nin and neq operators
 
                 // use all partitions pre-sorted by range
-                for (size_t i=0;i<ps.size();i++)
+                for (size_t i=0;i<_(handler).p()->partitions.size();i++)
                 {
                     _(ps).push_back(_(handler).p()->partitions.at(i));
                 }

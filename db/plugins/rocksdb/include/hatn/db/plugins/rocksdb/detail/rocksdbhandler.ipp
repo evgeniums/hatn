@@ -172,7 +172,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
         bool readOnly;
 
-        common::FlatSet<std::shared_ptr<RocksdbPartition>> partitions;
+        common::FlatSet<std::shared_ptr<RocksdbPartition>,std::less<std::shared_ptr<RocksdbPartition>>> partitions;
         std::shared_ptr<RocksdbPartition> defaultPartition;
         std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 

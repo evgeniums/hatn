@@ -123,6 +123,8 @@ Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object:
     invokeOpenDb(config,ec,records,true);
     HATN_CHECK_EC(ec)
     invokeCloseDb(ec);
+    HATN_CHECK_EC(ec)
+    HATN_CTX_INFO("db created")
     return ec;
 }
 
@@ -143,6 +145,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
     {
         copyRocksdbError(ec,DbError::DB_DESTROY_FAILED,status);
     }
+    HATN_CTX_INFO("db destroyed")
 
     // done
     return OK;
@@ -160,8 +163,6 @@ void RocksdbClient::doCloseDb(Error &ec)
 
 void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records, bool createIfMissing)
 {
-    HATN_CTX_SCOPE("rocksdbinvokeopen")
-
     // load config
     ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
     if (ec)
@@ -276,6 +277,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         }
         return;
     }
+    HATN_CTX_INFO("db opened")
 
     // create handler
     d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
@@ -290,6 +292,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         auto cfHandle=cfHandles[i];
 
         const auto& name=cfHandle->GetName();
+
         if (name=="default")
         {
             d->handler->p()->defaultCf.reset(cfHandle);
@@ -316,11 +319,37 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
             break;
         }
 
-        auto partition=d->handler->partition(partitionDateRange.value());
-        if (!partition)
+        std::shared_ptr<RocksdbPartition> partition;
+        if (partitionDateRange.value().isNull())
         {
-            partition=std::make_shared<RocksdbPartition>();
-            d->handler->insertPartition(partitionDateRange.value(),partition);
+            partition=d->handler->p()->defaultPartition;
+            if (!partition)
+            {
+                partition=std::make_shared<RocksdbPartition>();
+                d->handler->p()->defaultPartition=partition;
+                HATN_CTX_INFO("found default partition")
+            }
+        }
+        else
+        {
+            partition=d->handler->partition(partitionDateRange.value());
+            if (!partition)
+            {
+                HATN_CTX_DEBUG_RECORDS("partition not registered",
+                                       {"range",partitionDateRange->toString()},
+                                       {"cf",parts[1]}
+                                       )
+                HATN_CTX_INFO_RECORDS("found date partition",{"range",partitionDateRange->toString()})
+                partition=std::make_shared<RocksdbPartition>(partitionDateRange.value());
+                d->handler->insertPartition(partition);
+            }
+            else
+            {
+                HATN_CTX_DEBUG_RECORDS("date partition already registered, just add cf",
+                                       {"range",partitionDateRange->toString()},
+                                       {"cf",parts[1]}
+                                       )
+            }
         }
 
         if (parts[1]==RocksdbPartition::CollectionSuffix)
@@ -347,7 +376,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     }
 
     // create default partition
-    if (!ec)
+    if (!ec && !d->handler->p()->defaultPartition)
     {
         auto r=d->handler->createPartition();
         if (r)
@@ -478,8 +507,6 @@ Error RocksdbClient::doMigrateSchema()
 
 Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const std::set<common::DateRange>& dateRanges)
 {
-    HATN_CTX_SCOPE("rocksdbaddpartitions")
-
     for (auto&& range: dateRanges)
     {
         auto r=d->handler->createPartition(range);

@@ -25,6 +25,8 @@
 
 HATN_TEST_NAMESPACE_BEGIN
 
+db::ClientConfig* PrepareDbAndRun::currentCfg=nullptr;
+
 void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfigFile, const std::vector<PartitionRange>& partitions)
 {
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
@@ -60,6 +62,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
             db::ClientConfig cfg{
                 mainCfg, optCfg, cfgPath, cfgPath.copyAppend("options")
             };
+            currentCfg=&cfg;
             base::config_object::LogRecords logRecords;
 
             // destroy existing database
@@ -87,7 +90,10 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
             {
                 BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
             }
-            BOOST_REQUIRE(!ec);
+            if (ec)
+            {
+                BOOST_FAIL(ec.message());
+            }
 
             // add partitions
             for (auto&& partitionRange:partitions)
@@ -98,6 +104,16 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
 
             // invoke test
             fn(plugin,client);
+
+            // close db
+            ec=client->closeDb();
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(fmt::format("failed to close database: {}",ec.message()));
+            }
+
+            // cleanup
+            currentCfg=nullptr;
         }
     );
 }

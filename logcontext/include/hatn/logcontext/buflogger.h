@@ -151,6 +151,12 @@ class TextLogFormatterT
                 {
                     _(buf).append(lib::string_view(" err="));
                     _(ec).codeString(_(buf));
+                    if (_(ec).isType(common::Error::Type::Native))
+                    {
+                        _(buf).append(lib::string_view(" err_msg=\""));
+                        _(buf).append(_(ec).message());
+                        _(buf).append(lib::string_view("\""));
+                    }
                 }
             );
 
