@@ -76,7 +76,7 @@ HATN_DB_MODEL_WITH_CFG(modelExplicit2,explicit_p,ModelConfig("explicit_p2"),pf1I
 
 HATN_DB_IMPLICIT_PARTITION_MODEL_WITH_CFG(modelImplicit1,implicit_p,ModelConfig("implicit_p1"),df2Idx(),df3Idx())
 
-HATN_DB_PARTITION_INDEX(oidIdx2,object::_id,base_fields::df2)
+HATN_DB_UNIQUE_DATE_PARTITION_INDEX(oidIdx2,object::_id,base_fields::df2)
 HATN_DB_EXPLICIT_ID_IDX_MODEL_WITH_CFG(modelImplicit2,implicit_p,ModelConfig("implicit_p2"),oidIdx2(),df3Idx())
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
 
 BOOST_AUTO_TEST_CASE(CrudImplicit)
 {
-    ContextLogger::instance().setDefaultLogLevel(LogLevel::Debug);
+    // ContextLogger::instance().setDefaultLogLevel(LogLevel::Debug);
 
     auto run=[](const auto& model,
                   const auto& obj,
@@ -222,6 +222,8 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
             size_t count=dates.size()*objectsPerPartition;
             Topic topic1{"topic1"};
             std::vector<std::pair<ObjectId,common::Date>> testObjects;
+
+            std::vector<std::decay_t<decltype(obj.fieldValue(partitionField))>> vectorIn;
 
             setSchemaToClient(client,s1);
 
@@ -260,6 +262,13 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 if (partition==0 || partition==6 || partition==11)
                 {
                     testObjects.emplace_back(o.fieldValue(object::_id),dates[partition]);
+                }
+                if ( (partition==2 && vectorIn.size()==0)
+                     || (partition==7 && vectorIn.size()==1)
+                     || (partition==9 && vectorIn.size()==2)
+                    )
+                {
+                    vectorIn.push_back(o.fieldValue(partitionField));
                 }
             }
 
@@ -331,9 +340,48 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                     std::cout<<"By lte partition field "<<i<<":\n"<<r4->at(i).template as<type>()->toString(true)<<std::endl;
                 }
 #endif
+                // find objects from partition by partition field using in vector
+                BOOST_TEST_MESSAGE("Find by partition field using in vector");
+                auto q5=makeQuery(partitionIdx,query::where(partitionField,query::in,vectorIn),topic1);
+                auto r5=client->find(model,q5);
+                BOOST_REQUIRE(!r5);
+                if constexpr (std::is_same<std::decay_t<decltype(partitionField)>,std::decay_t<decltype(object::_id)>>::value)
+                {
+                    BOOST_CHECK_EQUAL(r5->size(),3);
+                }
+                else
+                {
+                    // because query is by date which is only part of the index
+                    BOOST_CHECK_EQUAL(r5->size(),3*objectsPerPartition);
+                }
+#if 0
+                for (size_t i=0;i<r5->size();i++)
+                {
+                    std::cout<<"Partititon field in vector: "<<i<<":\n"<<r5->at(i).template as<type>()->toString(true)<<std::endl;
+                }
+#endif
+                // find objects from partition by partition field using in interval
+                BOOST_TEST_MESSAGE("Find by partition field using in interval");
+
+                auto intv6=query::makeInterval(genFromDate(dates[3].copyAddDays(-14)),
+                                    genFromDate(dates[4].copyAddDays(15))
+                                    );
+                std::cout<<"From "<<intv6.from.value.toString()<< "("<<dates[3].copyAddDays(-14).toString()
+                          <<") to "<<
+                            intv6.to.value.toString()
+                          <<"("<<dates[4].copyAddDays(15).toString()<<")"<<std::endl;
+                auto q6=makeQuery(partitionIdx,query::where(partitionField,query::in,intv6),topic1);
+                auto r6=client->find(model,q6);
+                BOOST_REQUIRE(!r6);
+                BOOST_CHECK_EQUAL(r6->size(),objectsPerPartition*2);
+#if 0
+                for (size_t i=0;i<r6->size();i++)
+                {
+                    std::cout<<"Partititon field in vector: "<<i<<":\n"<<r6->at(i).template as<type>()->toString(true)<<std::endl;
+                }
+#endif
             };
 
-//! @todo Uncomment
 #if 1
             // find objects in currently opened db
             BOOST_TEST_CONTEXT("original db"){findObjects();};
@@ -355,7 +403,6 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 
             // find objects in reopened db
             BOOST_TEST_MESSAGE("Reopen db and re-run objects finding");
-//! @todo Uncomment
 #if 1
             BOOST_TEST_CONTEXT("reopened db"){findObjects();};
 #endif
@@ -529,3 +576,9 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+/**
+ * @todo
+ *
+ * 1. Test unique indexes with partitions.
+ */

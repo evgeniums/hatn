@@ -850,6 +850,12 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
          Error&
         )
     {
+
+//! @todo Log debug
+#if 0
+        std::cout<<"Found key "<<logKey(*key)<<std::endl;
+#endif
+
         // skip indexes below offset in case of one partition and topic
         if (skipBeforeOffset)
         {
@@ -899,7 +905,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
 //! @todo Log debug
-#if 1
+#if 0
             std::cout<<"Looking in partition "<<partition->range.toString()<<std::endl;
 #endif
         }

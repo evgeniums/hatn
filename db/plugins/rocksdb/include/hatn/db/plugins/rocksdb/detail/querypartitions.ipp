@@ -60,22 +60,7 @@ struct partitionFieldVisitor
     mutable query::Operator op;
     FilteredPartitions<CompT>& partitions;
 
-    template <typename T>
-    void operator()(const query::Vector<T>& vec)
-    {
-        if constexpr (std::is_convertible_v<T,common::DateRange>)
-        {
-            if (op==query::Operator::in)
-            {
-                op=query::Operator::eq;
-            }
-            for (const auto& v: vec)
-            {
-                handleRange(query::toDateRange(v,model.datePartitionMode()));
-            }
-        }
-    }
-
+    //! @todo Implement vector of intervals
     template <typename T>
     void operator()(const query::Vector<query::Interval<T>>& vec)
     {
@@ -91,7 +76,7 @@ struct partitionFieldVisitor
     template <typename T>
     void handleInterval(const query::Interval<T>& iv)
     {
-        if constexpr (std::is_convertible_v<T,common::DateRange>)
+        if constexpr (std::is_convertible_v<T,common::DateRange> || std::is_same_v<T,ObjectId>)
         {
             if (iv.from.type==query::IntervalType::First)
             {
@@ -112,14 +97,11 @@ struct partitionFieldVisitor
                 return;
             }
 
-            common::DateRange rangeFrom=iv.from.value;
-            common::DateRange rangeTo=iv.to.value;
+            common::DateRange rangeFrom=query::toDateRange(iv.from.value,model.datePartitionMode());
+            common::DateRange rangeTo=query::toDateRange(iv.to.value,model.datePartitionMode());
 
             // find lowest partition
-            auto it=std::lower_bound(handler.p()->partitions.begin(),handler.p()->partitions.end(),
-                                       rangeFrom,
-                                       std::less<std::shared_ptr<RocksdbPartition>>{}
-                                       );
+            auto it=handler.p()->partitions.lower_bound(rangeFrom);
             if (it!=handler.p()->partitions.end())
             {
                 size_t count=handler.p()->partitions.size()-it.index();
@@ -138,6 +120,10 @@ struct partitionFieldVisitor
 
                 partitions.endRawInsert();
             }
+        }
+        else
+        {
+            Assert(false,"Invalid type for date partition interval");
         }
     }
 
@@ -200,20 +186,13 @@ struct partitionFieldVisitor
                 auto it=handler.p()->partitions.lower_bound(range);
                 if (it!=handler.p()->partitions.end())
                 {
-                    std::cout<<"gt/gte found "<<range.toString()<<" idx="<<it.index()<<" partitions size="<<handler.p()->partitions.size()<<std::endl;
-
                     size_t count=handler.p()->partitions.size()-it.index();
                     partitions.beginRawInsert(count);
                     for (auto i=it.index();i<handler.p()->partitions.size();i++)
                     {
-                        std::cout<<"gt/gte partition idx="<<i<<std::endl;
                         partitions.rawInsert(handler.p()->partitions.at(i));
                     }
                     partitions.endRawInsert();
-                }
-                else
-                {
-                    std::cout<<"gt/gte not found "<<range.toString()<<std::endl;
                 }
             }
             break;
@@ -225,21 +204,13 @@ struct partitionFieldVisitor
                 auto it=handler.p()->partitions.lower_bound(range);
                 if (it!=handler.p()->partitions.end())
                 {
-                    std::cout<<"lt/lte found "<<range.toString()<<" idx="<<it.index()<<" partitions size="<<handler.p()->partitions.size()<<std::endl;
-
                     size_t count=it.index()+1;
                     partitions.beginRawInsert(count);
                     for (auto i=0;i<=it.index();i++)
                     {
-                        std::cout<<"lt/lte partition idx="<<i
-                                  <<" range="<<handler.p()->partitions.at(i)->range.toString()<<std::endl;
                         partitions.rawInsert(handler.p()->partitions.at(i));
                     }
                     partitions.endRawInsert();
-                }
-                else
-                {
-                    std::cout<<"lt/lte not found "<<range.toString()<<std::endl;
                 }
             }
             break;
@@ -309,7 +280,25 @@ bool queryPartitions(
                         _(field0).op,
                         filteredPs
                     };
-                    lib::variantVisit(visitor,_(field0).value.value());
+                    if (_(field0).value.isVectorType())
+                    {
+                        if (visitor.op==query::Operator::in)
+                        {
+                            visitor.op=query::Operator::eq;
+                        }
+                        const auto& m=_(model);
+                        _(field0).value.eachVectorItem(
+                            [&visitor,&m](const auto& v)
+                            {
+                                visitor.handleRange(query::toDateRange(v,m.datePartitionMode()));
+                                return Error{OK};
+                            }
+                        );
+                    }
+                    else
+                    {
+                        lib::variantVisit(visitor,_(field0).value.value());
+                    }
                 }
 
                 // copy filtered partitions to result
