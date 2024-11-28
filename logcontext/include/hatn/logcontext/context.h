@@ -268,6 +268,10 @@ class ContextT : public common::TaskContextValue
                 {
                     m_varStack.resize(scopeCursor->second.varStackOffset);
                 }
+                else
+                {
+                    m_varStack.clear();
+                }
             }
         }
 
