@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(DbPrepare)
         BOOST_TEST_MESSAGE("Handler OK");
     };
 
-    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
+    auto idx1=makeIndex(IndexConfig<UniqueInPartition>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
     auto model1=unitModel<object::TYPE>(ModelConfig{},idx1,idx2,idx3);

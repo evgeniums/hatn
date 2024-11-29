@@ -65,8 +65,6 @@ RocksdbHandler::~RocksdbHandler()
 
 Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool relaxedIfInTransaction)
 {
-    HATN_CTX_SCOPE("rdbtransaction")
-
     // check for nested transaction
     if (tx!=nullptr)
     {
@@ -117,7 +115,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
 
 Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const common::DateRange& range)
 {
-    HATN_CTX_SCOPE("rdbcreatepartition")
+    HATN_CTX_SCOPE("createpartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
 
     if (range.isNull())
@@ -219,7 +217,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
 
 Error RocksdbHandler::deletePartition(const common::DateRange& range)
 {
-    HATN_CTX_SCOPE("rdbdeletepartition")
+    HATN_CTX_SCOPE("deletepartition")
     HATN_CTX_SCOPE_PUSH("partition",range)
 
     if (range.isNull())

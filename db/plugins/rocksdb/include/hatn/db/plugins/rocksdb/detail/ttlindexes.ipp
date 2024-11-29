@@ -151,7 +151,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             const common::DateRange& dateRange
         )
     {
-        HATN_CTX_SCOPE("rdbttlindexprepare")
+        HATN_CTX_SCOPE("ttlidxprepare")
 
         initObject(ttlIndex);
 

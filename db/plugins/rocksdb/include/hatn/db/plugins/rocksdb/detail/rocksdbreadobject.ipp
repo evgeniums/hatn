@@ -66,12 +66,12 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rdbread")
+    HATN_CTX_SCOPE("read")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
     auto idData=objectId.toArray();
     auto idDataStr=lib::string_view{idData.data(),idData.size()};
-    HATN_CTX_SCOPE_PUSH("object",idDataStr)
+    HATN_CTX_SCOPE_PUSH("oid",idDataStr)
 
     // eval partition
     const auto partition=objectPartition(handler,model,objectId,date);

@@ -68,7 +68,7 @@ Error CreateObjectT::operator ()(
 {
     using modelType=std::decay_t<ModelT>;
 
-    HATN_CTX_SCOPE("rdbcreateobject")
+    HATN_CTX_SCOPE("createobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
 
@@ -84,6 +84,10 @@ Error CreateObjectT::operator ()(
         HATN_CTX_SCOPE_ERROR("find-partition");
         return dbError(DbError::PARTITION_NOT_FOUND);
     }
+    if (!partition->range.isNull())
+    {
+        HATN_CTX_SCOPE_PUSH("partition",partition->range)
+    }
 
     // serialize object
     dataunit::WireBufSolid buf{allocatorFactory};
@@ -96,6 +100,7 @@ Error CreateObjectT::operator ()(
         auto rdbTx=RocksdbTransaction::native(tx);
         auto objectId=obj->field(object::_id).value().toArray();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
+        HATN_CTX_SCOPE_PUSH("oid",lib::string_view(objectId.data(),objectId.size()))
 
         // prepare
         Keys keys{allocatorFactory};

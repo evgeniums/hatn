@@ -49,7 +49,12 @@ using IndexFieldInfo=FieldInfo;
 
 #define HDB_TTL(ttl) hana::uint<ttl>
 
-using Unique=hana::true_;
+struct Unique : public hana::true_
+{};
+
+struct UniqueInPartition : public hana::true_
+{};
+
 using NotUnique=hana::false_;
 using DatePartition=hana::true_;
 using NotDatePartition=hana::false_;
@@ -72,6 +77,11 @@ struct IndexConfig
         return UniqueT::value;
     }
 
+    constexpr static auto uniqueC()
+    {
+        return UniqueT{};
+    }
+
     constexpr static bool isDatePartitioned()
     {
         return DatePartitionT::value;
@@ -89,6 +99,7 @@ struct IndexConfig
 };
 constexpr IndexConfig<> DefaultIndexConfig{};
 constexpr IndexConfig<Unique> UniqueIndexConfig{};
+constexpr IndexConfig<UniqueInPartition> UniqueInPartitionIndexConfig{};
 constexpr IndexConfig<NotUnique,DatePartition> PartitionIndexConfig{};
 template <typename TtlT>
 constexpr IndexConfig<NotUnique,NotDatePartition,TtlT> TtlIndexConfig{};
@@ -474,6 +485,17 @@ HATN_DB_NAMESPACE_END
         } \
     }; \
     constexpr _index_##idx idx{};
+
+#define HATN_DB_UNIQUE_IN_PARTITION_INDEX(idx,...) \
+    struct _index_##idx { \
+            const auto& operator()() const \
+        { \
+                static auto idx=makeIndex(UniqueInPartitionIndexConfig,__VA_ARGS__); \
+                return idx; \
+        } \
+    }; \
+    constexpr _index_##idx idx{};
+
 
 #define HATN_DB_PARTITION_INDEX(idx,...) \
     struct _index_##idx { \

@@ -97,8 +97,6 @@ class Indexes
                 bool replace=false
             )
         {
-            HATN_CTX_SCOPE("saveindexes")
-
             auto self=this;
             auto eachIndex=[&,self](auto&& idx, auto&&)
             {

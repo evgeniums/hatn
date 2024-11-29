@@ -75,10 +75,10 @@ HATN_DB_MODEL_WITH_CFG(modelExplicit1,explicit_p,ModelConfig("explicit_p1"),part
 HATN_DB_INDEX(pf1Idx2,explicit_p::pf1,base_fields::df2)
 HATN_DB_MODEL_WITH_CFG(modelExplicit2,explicit_p,ModelConfig("explicit_p2"),partitionPf1Idx1(),pf1Idx2(),df3Idx())
 
-HATN_DB_IMPLICIT_PARTITION_MODEL_WITH_CFG(modelImplicit1,implicit_p,ModelConfig("implicit_p1"),df2Idx(),df3Idx())
+HATN_DB_OID_PARTITION_MODEL_WITH_CFG(modelImplicit1,implicit_p,ModelConfig("implicit_p1"),df2Idx(),df3Idx())
 
-HATN_DB_UNIQUE_INDEX(oidIdx2,object::_id,base_fields::df2)
-HATN_DB_EXPLICIT_ID_IDX_MODEL_WITH_CFG(modelImplicit2,implicit_p,ModelConfig("implicit_p2"),oidPartitionIdx(),oidIdx2(),df3Idx())
+HATN_DB_UNIQUE_IN_PARTITION_INDEX(df2Idx2,base_fields::df2)
+HATN_DB_OID_PARTITION_MODEL_WITH_CFG(modelImplicit2,implicit_p,ModelConfig("implicit_p2"),df2Idx2(),df3Idx())
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
@@ -202,7 +202,8 @@ BOOST_AUTO_TEST_CASE(Crud)
                   const auto& partitionField,
                   const auto& queryIdx,
                   const auto& partitionIdx,
-                  const auto& genFromDate
+                  const auto& genFromDate,
+                  bool checkUnique
                   )
     {
         using type=std::decay_t<decltype(obj)>;
@@ -260,6 +261,41 @@ BOOST_AUTO_TEST_CASE(Crud)
                 }
                 BOOST_REQUIRE(!ec);
 
+                if (partition==1 && i<(objectsPerPartition*3))
+                {
+                    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(true);
+
+                    BOOST_TEST_MESSAGE(fmt::format("Check unique index in partition={}, i={}",partition,i));
+                    int ms=checkUnique?2:1;
+                    common::DateTime dt{dates[partition],common::Time{1,1,ms}};
+                    if (checkUnique)
+                    {
+                        o=makeInitObject<type>();
+                    }
+                    o.setFieldValue(base_fields::df2,static_cast<uint32_t>(i));
+                    o.setFieldValue(base_fields::df3,fmt::format("value_{:04d}",i));
+                    if constexpr (std::is_same<std::decay_t<decltype(partitionField)>,std::decay_t<decltype(object::_id)>>::value)
+                    {
+                        auto df=o.fieldValue(partitionField);
+                        df.setDateTime(dt);
+                        o.setFieldValue(object::_id,df);
+                        o.setFieldValue(object::created_at,dt);
+                        o.setFieldValue(object::updated_at,dt);
+                    }
+                    else
+                    {
+                        o.setFieldValue(partitionField,dt.date());
+                    }
+                    ec=client->create(topic1,model,&o);
+                    if (ec)
+                    {
+                        HATN_CTX_ERROR_RECORDS(ec,"Expected failure on duplicate unique",{"i",i})
+                    }
+                    BOOST_CHECK(ec);
+                    HATN_CTX_SCOPE_UNLOCK()
+
+                    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(false);
+                }
 
                 if (partition==0 || partition==6 || partition==11)
                 {
@@ -639,26 +675,20 @@ BOOST_AUTO_TEST_CASE(Crud)
     };
 
     BOOST_TEST_CONTEXT("modelImplicit1()"){
-        run(modelImplicit1(),implicit_p::type{},object::_id,oidIdx(),oidPartitionIdx(),oidFromDate);
+        run(modelImplicit1(),implicit_p::type{},object::_id,oidIdx(),oidPartitionIdx(),oidFromDate,false);
     }
 
     BOOST_TEST_CONTEXT("modelImplicit2()"){
-        run(modelImplicit2(),implicit_p::type{},object::_id,oidIdx2(),oidPartitionIdx(),oidFromDate);
+        run(modelImplicit2(),implicit_p::type{},object::_id,oidIdx(),oidPartitionIdx(),oidFromDate,true);
     }
 
     BOOST_TEST_CONTEXT("modelExplicit1()"){
-        run(modelExplicit1(),explicit_p::type{},explicit_p::pf1,pf1Idx1(),partitionPf1Idx1(),dateFromDate);
+        run(modelExplicit1(),explicit_p::type{},explicit_p::pf1,pf1Idx1(),partitionPf1Idx1(),dateFromDate,false);
     }
 
     BOOST_TEST_CONTEXT("modelExplicit2()"){
-        run(modelExplicit2(),explicit_p::type{},explicit_p::pf1,pf1Idx2(),partitionPf1Idx1(),dateFromDate);
+        run(modelExplicit2(),explicit_p::type{},explicit_p::pf1,pf1Idx2(),partitionPf1Idx1(),dateFromDate,false);
     }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-/**
- * @todo
- *
- * 1. Test unique indexes with partitions.
- */

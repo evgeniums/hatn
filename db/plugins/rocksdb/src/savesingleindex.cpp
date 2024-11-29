@@ -70,6 +70,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
             }
             if (!status.ok() && (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed))
             {
+                //! @todo Create native error with id/name of duplicate key
                 return dbError(DbError::DUPLICATE_UNIQUE_KEY);
             }
         }

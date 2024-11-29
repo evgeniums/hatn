@@ -191,10 +191,8 @@ struct Model : public ConfigT
         };
         hana::for_each(indexes,eachIndex);
 
-#if 0
         // check unique indexes
         checkUniqueIdx();
-#endif
     }
 
     constexpr static const char* name()
@@ -284,40 +282,17 @@ struct Model : public ConfigT
 
     void checkUniqueIdx()
     {
-        //! @todo Refactor checkUniqueIdx()
-        constexpr auto partitionIdx=findPartitionIndex();
-        if constexpr (partitionIdx != hana::nothing)
+        if constexpr (isDatePartitioned())
         {
-            const auto& v=partitionIdx.value();
-            using pValType=decltype(v);
-            using partitionIdxType=typename std::decay_t<pValType>::type;
             auto check=[](const auto& idx)
             {
                 using type=typename std::decay_t<decltype(idx)>::type;
                 if constexpr (type::unique())
                 {
-                    constexpr auto fields=common::tupleToTupleC(type::fields);
-                    constexpr auto pFields=common::tupleToTupleC(partitionIdxType::fields);
-
-                    auto prefixEquals=common::foreach_if(
-                        pFields,
-                        common::bool_predicate,
-                        [&fields](auto field, auto&& pos)
-                        {
-                            if constexpr (decltype(hana::less(pos,hana::size(fields)))::value)
-                            {
-                                return hana::equal(field,hana::at(fields,pos));
-                            }
-                            else
-                            {
-                                return hana::false_c;
-                            }
-                        }
+                    static_assert(
+                        std::is_same<decltype(type::uniqueC()),UniqueInPartition>::value,
+    "In partitioned models uniqueness is maintained only within scope of a partition, use UniqueInPartition attribute instead of Unique for unique indexes of partitioned models"
                         );
-
-                    static_assert(decltype(prefixEquals)::value,
-                                  "Indexes of partitioned model must start with partition index"
-                                  );
                 }
             };
             constexpr auto xs=common::tupleToTupleCType<Indexes>{};
@@ -531,7 +506,7 @@ struct makeModelWithInfoT
 };
 constexpr makeModelWithInfoT makeModelWithInfo{};
 
-HATN_DB_UNIQUE_INDEX(oidIdx,object::_id)
+HATN_DB_UNIQUE_IN_PARTITION_INDEX(oidIdx,object::_id)
 HATN_DB_PARTITION_INDEX(oidPartitionIdx,object::_id)
 HATN_DB_INDEX(createdAtIdx,object::created_at)
 HATN_DB_INDEX(updatedAtIdx,object::updated_at)
@@ -544,11 +519,6 @@ inline auto objectIndexes()
 inline auto partitionObjectIndexes()
 {
     return hana::make_tuple(oidPartitionIdx(),oidIdx(),createdAtIdx(),updatedAtIdx());
-}
-
-inline auto objectIndexesNoId()
-{
-    return hana::make_tuple(createdAtIdx(),updatedAtIdx());
 }
 
 template <typename UnitType>
@@ -564,7 +534,7 @@ struct makeModelT
 template <typename UnitType> constexpr makeModelT<UnitType> makeModel{};
 
 template <typename UnitType>
-struct makeImplicitPartitionModelT
+struct makeOidPartitionModelT
 {
     template <typename ConfigT, typename ...Indexes>
     auto operator()(ConfigT&& config, Indexes ...indexes) const
@@ -573,19 +543,7 @@ struct makeImplicitPartitionModelT
         return makeModelWithInfo(std::move(m));
     }
 };
-template <typename UnitType> constexpr makeImplicitPartitionModelT<UnitType> makeImplicitPartitionModel{};
-
-template <typename UnitType>
-struct makeExplicitIdIdxModelT
-{
-    template <typename ConfigT, typename ...Indexes>
-    auto operator()(ConfigT&& config, Indexes ...indexes) const
-    {
-        auto m=unitModel<UnitType>.make(std::forward<ConfigT>(config),hana::concat(objectIndexesNoId(),hana::make_tuple(indexes...)));
-        return makeModelWithInfo(std::move(m));
-    }
-};
-template <typename UnitType> constexpr makeExplicitIdIdxModelT<UnitType> makeExplicitIdIdxModel{};
+template <typename UnitType> constexpr makeOidPartitionModelT<UnitType> makeOidPartitionModel{};
 
 template <typename UnitType>
 struct makeModelWithIdxT
@@ -619,21 +577,11 @@ HATN_DB_NAMESPACE_END
     }; \
     constexpr _model_##m m{};
 
-#define HATN_DB_IMPLICIT_PARTITION_MODEL(m,type,...) \
+#define HATN_DB_OID_PARTITION_MODEL(m,type,...) \
 struct _model_##m { \
     const auto& operator()() const \
         { \
-                static auto mm=makeImplicitPartitionModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
-                return mm; \
-        } \
-    }; \
-    constexpr _model_##m m{};
-
-#define HATN_DB_EXPLICIT_ID_IDX_MODEL(m,type,...) \
-struct _model_##m { \
-    const auto& operator()() const \
-        { \
-                static auto mm=makeExplicitIdIdxModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
+                static auto mm=makeOidPartitionModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
                 return mm; \
         } \
     }; \
@@ -649,25 +597,14 @@ struct _model_##m { \
     }; \
     constexpr _model_##m m{};
 
-#define HATN_DB_IMPLICIT_PARTITION_MODEL_WITH_CFG(m,type,cfg,...) \
+#define HATN_DB_OID_PARTITION_MODEL_WITH_CFG(m,type,cfg,...) \
     struct _model_##m { \
             const auto& operator()() const \
         { \
-                static auto mm=makeImplicitPartitionModel< type ::TYPE>(cfg,__VA_ARGS__); \
+                static auto mm=makeOidPartitionModel< type ::TYPE>(cfg,__VA_ARGS__); \
                 return mm; \
         } \
     }; \
     constexpr _model_##m m{};
-
-#define HATN_DB_EXPLICIT_ID_IDX_MODEL_WITH_CFG(m,type,cfg,...) \
-    struct _model_##m { \
-        const auto& operator()() const \
-        { \
-                static auto mm=makeExplicitIdIdxModel< type ::TYPE>(cfg,__VA_ARGS__); \
-                return mm; \
-        } \
-    }; \
-    constexpr _model_##m m{};
-
 
 #endif // HATNDBMODEL_H
