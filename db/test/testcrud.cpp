@@ -92,13 +92,6 @@ BOOST_AUTO_TEST_SUITE(TestCrud, *boost::unit_test::fixture<HATN_TEST_NAMESPACE::
 
 BOOST_AUTO_TEST_CASE(Simple1)
 {
-//! @todo Cleanup
-#if 0
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
-    ctx->beforeThreadProcessing();
-#endif
-
     HATN_CTX_SCOPE("Test Simple1")
     HATN_CTX_INFO("Test start")
 
@@ -277,10 +270,6 @@ BOOST_AUTO_TEST_CASE(Simple1)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
     HATN_CTX_INFO("Test finish")
-//! @todo Cleanup
-#if 0
-    ctx->afterThreadProcessing();
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

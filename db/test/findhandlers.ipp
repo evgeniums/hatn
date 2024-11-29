@@ -496,14 +496,6 @@ void setSchemaToClient(std::shared_ptr<Client> client, const T& schema)
 template <typename InvokerT, typename SkipBoolT=hana::false_>
 void runTest(InvokerT&& invoker, SkipBoolT skipBool=SkipBoolT{})
 {
-
-//! @todo Cleanup
-#if 0
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
-    ctx->beforeThreadProcessing();
-#endif
-
     init();
     registerModels();
     auto s1=initSchema(ModelRef);
@@ -514,11 +506,6 @@ void runTest(InvokerT&& invoker, SkipBoolT skipBool=SkipBoolT{})
         invokeTests(invoker,client,skipBool);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
-
-//! @todo Cleanup
-#if 0
-    ctx->afterThreadProcessing();
-#endif
 }
 
 }

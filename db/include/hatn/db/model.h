@@ -563,8 +563,6 @@ template <typename UnitType> constexpr makeModelWithIdxT<UnitType> makeModelWith
 
 HATN_DB_NAMESPACE_END
 
-//! @todo Macros for making model with Config, e.g. for explicit collection name and date partition mode
-
 #define HATN_DB_MODEL(m,type,...) \
     struct _model_##m { \
         const auto& operator()() const \

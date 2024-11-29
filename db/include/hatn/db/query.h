@@ -676,7 +676,7 @@ struct VectorVisitor
         return common::lib::variantVisit(vis,vec);
     }
 
-    //! @todo Fix it
+    //! @todo Fix vectors of intervals
     // template <typename T>
     // Error operator()(const VectorInterval<T>& vec) const
     // {

@@ -422,13 +422,6 @@ BOOST_AUTO_TEST_CASE(Count)
 
 BOOST_AUTO_TEST_CASE(UniqueIndex)
 {
-//! @todo Cleanup
-#if 0
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
-    ctx->beforeThreadProcessing();
-#endif
-
     HATN_CTX_SCOPE("Test UniqueIndex")
     HATN_CTX_INFO("Test start")
 
@@ -561,20 +554,10 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
     HATN_CTX_INFO("Test end")
-//! @todo Cleanup
-#if 0
-    ctx->afterThreadProcessing();
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(DeleteWithQuery)
 {
-//! @todo Cleanup
-#if 0
-    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>()));
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
-    ctx->beforeThreadProcessing();
-#endif
     HATN_CTX_SCOPE("DeleteWithQuery")
     HATN_CTX_INFO("Test start")
 
@@ -657,10 +640,6 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
     HATN_CTX_INFO("Test end")
-//! @todo Cleanup
-#if 0
-    ctx->afterThreadProcessing();
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(MultipleTopics)
