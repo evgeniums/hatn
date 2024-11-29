@@ -332,6 +332,12 @@ class Result
             return static_cast<bool>(m_error);
         }
 
+        //! Convert to error.
+        operator Error() const noexcept
+        {
+            return m_error;
+        }
+
     private:
 
         T m_value;
@@ -556,6 +562,12 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
         operator bool() const noexcept
         {
             return static_cast<bool>(m_error);
+        }
+
+        //! Convert to error.
+        operator Error() const noexcept
+        {
+            return m_error;
         }
 
     private:
