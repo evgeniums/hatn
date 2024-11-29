@@ -55,6 +55,8 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             Native //!< Native error with extended data.
         };
 
+        //! @todo Use explicit constructors, OK as global const
+
         //! Default constructor.
         template <typename T>
         Error(
