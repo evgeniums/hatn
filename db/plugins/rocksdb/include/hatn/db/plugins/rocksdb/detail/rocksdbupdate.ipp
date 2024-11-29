@@ -150,7 +150,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // extract old keys for updated fields
         const auto& k=key;
-        IndexKeyUpdateSet oldKeys;
+        IndexKeyUpdateSet oldKeys{factory->dataAllocator<IndexKeyUpdate>()};
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
 
         // apply request to object
@@ -177,7 +177,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields
-        IndexKeyUpdateSet newKeys;
+        IndexKeyUpdateSet newKeys{factory->dataAllocator<IndexKeyUpdate>()};
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys);
 
         // find keys difference

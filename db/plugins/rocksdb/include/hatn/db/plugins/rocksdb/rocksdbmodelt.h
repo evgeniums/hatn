@@ -72,8 +72,7 @@ struct IndexKeyUpdateCmp
     }
 };
 
-//! @todo What kind of set to use?
-using IndexKeyUpdateSet=std::set<IndexKeyUpdate,IndexKeyUpdateCmp>;
+using IndexKeyUpdateSet=common::pmr::set<IndexKeyUpdate,IndexKeyUpdateCmp>;
 
 template <typename ObjectT>
 using UpdateIndexKeyExtractor=
