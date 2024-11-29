@@ -34,6 +34,16 @@ struct true_predicate_t
 };
 constexpr true_predicate_t true_predicate{};
 
+struct bool_predicate_t
+{
+    template <typename T>
+    constexpr auto operator()(T&& v) const
+    {
+        return v;
+    }
+};
+constexpr bool_predicate_t bool_predicate{};
+
 struct error_predicate_t
 {
     template <typename T>

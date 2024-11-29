@@ -162,6 +162,7 @@ SET (HEADERS
     include/hatn/common/meta/decaytuple.h
     include/hatn/common/meta/replicatetotuple.h
     include/hatn/common/meta/errorpredicate.h
+    include/hatn/common/meta/foreachif.h
 
     include/hatn/common/allocatoronstack.h
 
