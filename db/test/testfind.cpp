@@ -843,7 +843,6 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-
 /** @todo Test:
  *
  *  1. Test find scalar types - done
@@ -855,10 +854,10 @@ BOOST_AUTO_TEST_SUITE_END()
  *  7. Test timepoint filtering
  *  8. Test limits - done
  *  9. Test partitions - done
- *  10. Test TTL
+ *  10. Test TTL - done
  *  11. Test nested index fields - done
  *  12. Test compound indexes - done
- *  13. Test repeated field indexes
+ *  13. Test repeated field indexes - done
  *  14. Test query offset - done
  *  15. Test delete with query - done
  *  16. Test find-update-create - done

@@ -39,7 +39,7 @@ uint32_t TtlMark::currentTimepoint() noexcept
 
 void TtlMark::refreshCurrentTimepoint()
 {
-    CurrentTimepoint=common::DateTime::secondsSinceEpoch();
+    CurrentTimepoint=static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 //---------------------------------------------------------------
@@ -62,14 +62,18 @@ void TtlMark::fillExpireAt(uint32_t expireAt)
 
 //---------------------------------------------------------------
 
-bool TtlMark::isExpired(uint32_t tp) noexcept
+bool TtlMark::isExpired(uint32_t tp, uint32_t currentTp) noexcept
 {
-    return tp<CurrentTimepoint;
+    if (currentTp==0)
+    {
+        return tp<CurrentTimepoint;
+    }
+    return tp<currentTp;
 }
 
 //---------------------------------------------------------------
 
-bool TtlMark::isExpired(const char *data, size_t size) noexcept
+bool TtlMark::isExpired(const char *data, size_t size, uint32_t currentTp) noexcept
 {
     if (size==0)
     {
@@ -88,7 +92,7 @@ bool TtlMark::isExpired(const char *data, size_t size) noexcept
     memcpy(&tp,data+size-TtlMark::Size,TtlMark::Size-1);
     boost::endian::little_to_native_inplace(tp);
 
-    return isExpired(tp);
+    return isExpired(tp,currentTp);
 }
 
 //---------------------------------------------------------------

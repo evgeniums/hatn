@@ -149,14 +149,14 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
         // extract old keys for updated fields
+        auto ttlUpdated=RocksdbModelT<modelType>::checkTtlFieldUpdated(request);
         const auto& k=key;
         IndexKeyUpdateSet oldKeys{factory->dataAllocator<IndexKeyUpdate>()};
-        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys,ttlUpdated);
 
         // apply request to object
         update::ApplyRequest(obj.get(),request);
-        obj->field(object::updated_at).set(common::DateTime::currentUtc());
-        auto ttlUpdated=RocksdbModelT<modelType>::checkTtlFieldUpdated(request);
+        obj->field(object::updated_at).set(common::DateTime::currentUtc());        
 
         // serialize object
         dataunit::WireBufSolid buf{factory};
@@ -178,7 +178,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // extract new keys for updated fields
         IndexKeyUpdateSet newKeys{factory->dataAllocator<IndexKeyUpdate>()};
-        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys);
+        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys,ttlUpdated);
 
         // find keys difference
         for (auto& newKey : newKeys)
@@ -188,13 +188,14 @@ Result<typename ModelT::SharedPtr> updateSingle(
             {
                 auto& n=const_cast<IndexKeyUpdate&>(static_cast<const IndexKeyUpdate&>(newKey));
                 n.exists=true;
+                n.replace=ttlUpdated;
                 auto& o=const_cast<IndexKeyUpdate&>(static_cast<const IndexKeyUpdate&>(*oldKeyIt));
                 o.exists=true;
             }
         }
 
 //! @maybe Log debug
-#if 0
+#if 1
         std::cout<<"Old keys "<< std::endl;
         for (auto&& it: oldKeys)
         {
@@ -203,7 +204,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         std::cout<<"New keys "<< std::endl;
         for (auto&& it: newKeys)
         {
-            std::cout<< "idx=" << it.indexName << " key=" << logKey(it.key) << " exists=" << it.exists << std::endl;
+            std::cout<< "idx=" << it.indexName << " key=" << logKey(it.key) << " exists=" << it.exists << " replace=" << it.replace << std::endl;
         }
 #endif
 
@@ -218,8 +219,9 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 auto sl=oldKey.keySlice();
                 auto status=rdbTx->Delete(indexCf,sl);
                 if (!status.ok())
-                {
+                {                    
                     HATN_CTX_SCOPE_PUSH("idx_name",oldKey.indexName);
+                    HATN_CTX_SCOPE_ERROR("delete-old")
                     return makeError(DbError::DELETE_INDEX_FAILED,status);
                 }
             }
@@ -233,14 +235,14 @@ Result<typename ModelT::SharedPtr> updateSingle(
             auto indexValue=Keys::indexValueSlices(objectKeyFull);
             for (auto&& newKey : newKeys)
             {
-                if (!newKey.exists)
+                if (!newKey.exists || newKey.replace)
                 {
                     // save new key
-                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique,indexCf,rdbTx,indexValue);
+                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique,indexCf,rdbTx,indexValue,newKey.replace);
                     if (ec)
-                    {
+                    {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",newKey.indexName)
-                        HATN_CTX_SCOPE_LOCK()
+                        HATN_CTX_SCOPE_ERROR("save-new")
                         return ec;
                     }
                 }
@@ -313,7 +315,7 @@ Result<DbObject> UpdateObjectT::operator ()(
     {
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
     }
-    HATN_CTX_DEBUG("")
+    HATN_CTX_DEBUG("see partition")
 
     // construct key
     Keys keys{factory};
@@ -323,9 +325,9 @@ Result<DbObject> UpdateObjectT::operator ()(
 
     // do
     auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),topic.topic(),request,modifyReturn,factory,intx);
-
-    // prepare and reurn result
     HATN_CHECK_RESULT(r)
+
+    // prepare and return result
     if (r.value().isNull())
     {
         return DbObject{};

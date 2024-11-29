@@ -68,10 +68,15 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
                 ROCKSDB_NAMESPACE::PinnableSlice sl;
                 status=tx->Get(ropt,cf,k,&sl);
             }
-            if (!status.ok() && (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed))
+            if (!status.ok())
             {
-                //! @todo Create native error with id/name of duplicate key
-                return dbError(DbError::DUPLICATE_UNIQUE_KEY);
+                if (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed)
+                {
+                    //! @todo Create native error with id/name of duplicate key
+                    return dbError(DbError::DUPLICATE_UNIQUE_KEY);
+                }
+
+                return makeError(DbError::SAVE_INDEX_FAILED,status);
             }
         }
     }
@@ -83,7 +88,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
         ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
 //! @maybe Log debug
 #if 0
-        std::cout<<"Not unique index " << logKey(k) << std::endl;
+        std::cout<<"Not unique index or replace " << logKey(k) << std::endl;
 #endif
         status=tx->Put(cf,keySlices,indexValue);
     }

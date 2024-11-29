@@ -82,15 +82,26 @@ void RocksdbModelT<ModelT>::updatingKeys(
         const lib::string_view& topic,
         const ROCKSDB_NAMESPACE::Slice& objectId,
         const ObjectT* object,
-        IndexKeyUpdateSet& keys
+        IndexKeyUpdateSet& keys,
+        bool ttlUpdated
     )
 {
     for (auto&& field : request)
     {
-        auto range=updateIndexKeyExtractors.equal_range(field.path);
-        for (auto i=range.first;i!=range.second;++i)
+        if (ttlUpdated)
         {
-            (i->second)(keysHandler,topic,objectId,object,keys);
+            for (auto&& it:updateIndexKeyExtractors)
+            {
+                it.second(keysHandler,topic,objectId,object,keys);
+            }
+        }
+        else
+        {
+            auto range=updateIndexKeyExtractors.equal_range(field.path);
+            for (auto it=range.first;it!=range.second;++it)
+            {
+                (it->second)(keysHandler,topic,objectId,object,keys);
+            }
         }
     }
 }

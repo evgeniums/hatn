@@ -42,9 +42,10 @@ struct IndexKeyUpdate
     bool exists;
     bool unique;
     size_t slice2Offset;
+    bool replace;
 
     IndexKeyUpdate(const std::string& indexName, IndexKeySlice k, bool unique)
-        : indexName(indexName),exists(false),unique(unique),slice2Offset(k[0].size())
+        : indexName(indexName),exists(false),unique(unique),slice2Offset(k[0].size()),replace(false)
     {
         key.append(k[0].data(),k[0].size());
         key.append(k[1].data(),k[1].size());
@@ -100,7 +101,8 @@ class RocksdbModelT
             const lib::string_view& topic,
             const ROCKSDB_NAMESPACE::Slice& objectId,
             const ObjectT* object,
-            IndexKeyUpdateSet& keys
+            IndexKeyUpdateSet& keys,
+            bool ttlUpdated=false
         );
 
         static bool checkTtlFieldUpdated(const update::Request& request) noexcept;

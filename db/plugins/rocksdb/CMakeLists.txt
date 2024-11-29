@@ -67,7 +67,7 @@ SET (SCHEMA_SOURCES
     src/saveuniquekey.cpp
     src/savesingleindex.cpp
     src/indexkeysearch.cpp
-    src/ttlmark.cpp
+    src/ttlmark.cpp    
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})
@@ -84,11 +84,13 @@ SET (HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbdriver.h
     include/hatn/db/plugins/rocksdb/rocksdbplugin.h
     include/hatn/db/plugins/rocksdb/rocksdbclient.h
+    include/hatn/db/plugins/rocksdb/ttlcompactionfilter.h
 )
 
 SET (SOURCES
     src/rocksdbplugin.cpp
     src/rocksdbclient.cpp
+    src/ttlcompactionfilter.cpp
 )
 
 BUILD_HATN_PLUGIN(db)

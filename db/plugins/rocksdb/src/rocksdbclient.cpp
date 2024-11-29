@@ -35,6 +35,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
+#include <hatn/db/plugins/rocksdb/ttlcompactionfilter.h>
 
 HATN_DB_USING
 
@@ -81,10 +82,14 @@ class RocksdbClient_p
 {
     public:
 
-    RocksdbConfig cfg;
-    RocksdbOptions opt;
+        RocksdbConfig cfg;
+        RocksdbOptions opt;
 
-    std::unique_ptr<RocksdbHandler> handler;
+        std::unique_ptr<RocksdbHandler> handler;
+        std::unique_ptr<TtlCompactionFilter> ttlCompactionFilter;
+
+        RocksdbClient_p() : ttlCompactionFilter(std::make_unique<TtlCompactionFilter>())
+        {}
 };
 
 //---------------------------------------------------------------
@@ -186,8 +191,10 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::Options options;
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
+    collCfOptions.compaction_filter=d->ttlCompactionFilter.get();
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
     indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
+    indexCfOptions.compaction_filter=d->ttlCompactionFilter.get();
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     options.create_if_missing = createIfMissing;
 
@@ -417,7 +424,6 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         d->handler.reset();
     }
 
-    //! @todo Compaction filter using ttl marks.
     //! @todo Ttl indexes background worker.
 }
 

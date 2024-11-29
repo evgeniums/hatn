@@ -112,18 +112,18 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 
         static void refreshCurrentTimepoint();
 
-        static bool isExpired(uint32_t tp) noexcept;
+        static bool isExpired(uint32_t tp, uint32_t currentTp=0) noexcept;
 
-        static bool isExpired(const char *data, size_t size) noexcept;
+        static bool isExpired(const char *data, size_t size, uint32_t currentTp=0) noexcept;
 
-        static bool isExpired(const ROCKSDB_NAMESPACE::Slice& slice) noexcept
+        static bool isExpired(const ROCKSDB_NAMESPACE::Slice& slice, uint32_t currentTp=0) noexcept
         {
-            return isExpired(slice.data(),slice.size());
+            return isExpired(slice.data(),slice.size(),currentTp);
         }
 
-        static bool isExpired(const ROCKSDB_NAMESPACE::PinnableSlice& slice) noexcept
+        static bool isExpired(const ROCKSDB_NAMESPACE::PinnableSlice& slice, uint32_t currentTp=0) noexcept
         {
-            return isExpired(slice.data(),slice.size());
+            return isExpired(slice.data(),slice.size(),currentTp);
         }
 
         static size_t ttlMarkOffset(const char *data, size_t size) noexcept
