@@ -1057,6 +1057,11 @@ using Operand=ValueT<ValueVariant,ValueType>;
 
 struct Field
 {
+    Field() : fieldInfo(nullptr),
+              op(Operator::eq),
+              order(Order::Asc)
+    {}
+
     template <typename T>
     Field(
         const IndexFieldInfo* fieldInfo,
@@ -1072,6 +1077,11 @@ struct Field
         static_assert(!hana::is_a<VectorIntervalTag,T>,"Vector of intervals is not properly supported yet");
 
         checkOperator();
+    }
+
+    bool isNull() const noexcept
+    {
+        return fieldInfo==nullptr;
     }
 
     bool isScalarOp() const noexcept
@@ -1149,13 +1159,6 @@ struct less<HATN_DB_NAMESPACE::query::Interval<T>>
         {
             return true;
         }
-
-        // if right to less than left to then result is not less
-        // not needed
-        // if (r.to.less(l.to,false,false))
-        // {
-        //     return false;
-        // }
 
         // result is equal or not less
         return false;
@@ -1309,33 +1312,52 @@ auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Ord
     }
 }
 
-template <typename Ts>
+template <typename Ts, typename PartitionT=hana::false_>
 struct whereT
 {
+    using partitionT=PartitionT;
+
     template <typename FieldT, typename ValueT>
     auto and_(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
     {
         auto make=[&]()
         {
-            return hana::append(std::move(conditions),condition(field,op,std::forward<ValueT>(value),order));
+            return hana::append(std::move(_conditions),condition(field,op,std::forward<ValueT>(value),order));
         };
-        return whereT<decltype(make())>{make()};
+        return whereT<decltype(make())>{make(),std::move(_partitions)};
+    }
+
+    template <typename PartitionIndexT, typename FieldT, typename ValueT>
+    auto partitions(const PartitionIndexT& partitionIndex, const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &&
+    {
+        auto make=[&]()
+        {
+            return hana::prepend(condition(field,op,std::forward<ValueT>(value),order),std::cref(partitionIndex));
+        };
+        return whereT<Ts,decltype(make())>{std::move(_conditions),make()};
     }
 
     template <typename Ys>
-    whereT(Ys&& cond) : conditions(std::forward<Ys>(cond))
+    whereT(Ys&& cond) : _conditions(std::forward<Ys>(cond))
+    {}
+
+    template <typename Ys, typename Pt>
+    whereT(Ys&& cond, Pt&& pt)
+        : _conditions(std::forward<Ys>(cond)),
+          _partitions(std::forward<Pt>(pt))
     {}
 
     constexpr static size_t size() noexcept
     {
-        using count=decltype(hana::size(conditions));
+        using count=decltype(hana::size(_conditions));
         return count::value;
     }
 
-    Ts conditions;
+    Ts _conditions;
+    PartitionT _partitions;
 };
 
-//! @note Vectors and strings must be used only by references escept for string_vire strings.
+//! @note Vectors and strings must be used only by references except for string_view strings.
 //! @note Vectors must be sorted, otherwise they will be sorted internally despite const lvalue reference.
 template <typename FieldT, typename ValueT>
 auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
@@ -1345,6 +1367,16 @@ auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::
         return hana::make_tuple(condition(field,op,std::forward<ValueT>(value),order));
     };
     return whereT<decltype(make())>{make()};
+}
+
+template <typename PartitionIndexT, typename FieldT, typename ValueT>
+auto where_partitioned(const PartitionIndexT& partitionIndex, const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
+{
+    auto make=[&]()
+    {
+        return hana::make_tuple(condition(field,op,value,order));
+    };
+    return whereT<decltype(make())>{make()}.partitions(partitionIndex,field,op,value,order);
 }
 
 } // namespace query

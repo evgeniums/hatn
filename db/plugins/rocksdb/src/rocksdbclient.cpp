@@ -546,7 +546,7 @@ Result<std::set<common::DateRange>> RocksdbClient::doListDatePartitions()
             {
                 if (range->isValid())
                 {
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
                     std::cout << "Found partition range " << range->toString() << " for column family " << parts[1] << std::endl;
 #endif

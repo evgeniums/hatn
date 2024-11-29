@@ -41,31 +41,34 @@ void RocksdbModelT<ModelT>::init(const T& model)
 {
     auto eachIndex=[](const auto& idx)
     {
-        auto eachField=[&idx](const auto& field)
+        if constexpr (!std::decay_t<decltype(idx)>::isDatePartitioned())
         {
-            auto handler=[&idx](
-                      Keys& keysHandler,
-                      const lib::string_view& topic,
-                      const ROCKSDB_NAMESPACE::Slice& objectId,
-                      const ObjectT* obj,
-                      IndexKeyUpdateSet& keys
-                    )
+            auto eachField=[&idx](const auto& field)
             {
-                std::ignore=keysHandler.makeIndexKey(topic,objectId,obj,idx,
-                    [&keys,&idx](auto&& key)
-                    {
-                        keys.insert(IndexKeyUpdate{idx.name(),key,idx.unique()});
-                        return Error{OK};
-                    }
-                );
+                auto handler=[&idx](
+                                   Keys& keysHandler,
+                                   const lib::string_view& topic,
+                                   const ROCKSDB_NAMESPACE::Slice& objectId,
+                                   const ObjectT* obj,
+                                   IndexKeyUpdateSet& keys
+                                   )
+                {
+                    std::ignore=keysHandler.makeIndexKey(topic,objectId,obj,idx,
+                                                           [&keys,&idx](auto&& key)
+                                                           {
+                                                               keys.insert(IndexKeyUpdate{idx.name(),key,idx.unique()});
+                                                               return Error{OK};
+                                                           }
+                                                           );
+                };
+                updateIndexKeyExtractors.insert(std::make_pair(fieldPath(field),handler));
+                if (idx.isTtl())
+                {
+                    ttlFields.insert(fieldPath(field));
+                }
             };
-            updateIndexKeyExtractors.insert(std::make_pair(fieldPath(field),handler));
-            if (idx.isTtl())
-            {
-                ttlFields.insert(fieldPath(field));
-            }
-        };
-        hana::for_each(idx.fields,eachField);
+            hana::for_each(idx.fields,eachField);
+        }
     };
     hana::for_each(model.indexes,eachIndex);
 }

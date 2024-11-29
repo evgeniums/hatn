@@ -55,7 +55,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
             std::string bufk;
             ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
 
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
             std::cout<<"Unique index " << logKey(k) << std::endl;
 #endif
@@ -80,7 +80,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
 
         std::string bufk;
         ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
         std::cout<<"Not unique index " << logKey(k) << std::endl;
 #endif

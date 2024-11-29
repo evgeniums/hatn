@@ -245,22 +245,20 @@ bool queryPartitions(
 {
     ps.clear();
 
-    const auto& field0=idxQuery.query.field(0);
     return hana::eval_if(
         hana::bool_<ModelT::isDatePartitioned()>{},
         [&](auto _)
         {
-            bool firtsFieldPartitioned=ModelT::isDatePartitionField(_(field0).fieldInfo->name())
-                                       && (_(field0).op!=query::Operator::nin)
-                                       && (_(field0).op!=query::Operator::neq);
-            if (firtsFieldPartitioned)
+            const auto& partitionQuery=idxQuery.query.partitions();
+            bool withPartitions=!partitionQuery.isNull();
+            if (withPartitions)
             {
                 // partition sets must be ordered by first field
                 auto comp=[&](const std::shared_ptr<RocksdbPartition>& l,
                             const std::shared_ptr<RocksdbPartition>& r
                             )
                 {
-                    if (_(field0).order==query::Order::Desc)
+                    if (_(partitionQuery).order==query::Order::Desc)
                     {
                         return l->range > r->range;
                     }
@@ -278,10 +276,10 @@ bool queryPartitions(
                     partitionFieldVisitor<ModelT,compT> visitor{
                         _(model),
                         _(handler),
-                        _(field0).op,
+                        _(partitionQuery).op,
                         filteredPs
                     };
-                    if (_(field0).value.isVectorType())
+                    if (_(partitionQuery).value.isVectorType())
                     {
                         if (visitor.op==query::Operator::in)
                         {
@@ -294,11 +292,11 @@ bool queryPartitions(
                             vis.handleRange(query::toDateRange(v,m.datePartitionMode()));
                             return common::Error{OK};
                         };
-                        std::ignore=_(field0).value.eachVectorItem(fn);
+                        std::ignore=_(partitionQuery).value.eachVectorItem(fn);
                     }
                     else
                     {
-                        lib::variantVisit(visitor,_(field0).value.value());
+                        lib::variantVisit(visitor,_(partitionQuery).value.value());
                     }
                 }
 
@@ -322,7 +320,7 @@ bool queryPartitions(
                     _(ps).push_back(_(handler).p()->partitions.at(i));
                 }
             }
-            return firtsFieldPartitioned;
+            return withPartitions;
         },
         [&](auto _)
         {

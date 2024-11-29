@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     auto moi1=makeModelWithInfo(mo1);
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx2=makeIndex(IndexConfig<NotUnique,NotDatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
     auto m1=unitModel<nu1::TYPE>(ModelConfig{},idx1,idx2,idx3);
     static_assert(std::is_same<nu1::TYPE,decltype(m1)::UnitType>::value,"");
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
     rdb::RocksdbModels::free();
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx2=makeIndex(IndexConfig<NotUnique,NotDatePartition,HDB_TTL(3600)>{},object::created_at);
     auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
 
     auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig,idx1,idx2,idx3);

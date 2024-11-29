@@ -55,13 +55,17 @@ using DatePartition=hana::true_;
 using NotDatePartition=hana::false_;
 using NotTtl=hana::uint<0>;
 
-struct IndexConfigTag{};
+struct IndexTag{};
 
 template <typename UniqueT=NotUnique,
          typename DatePartitionT=NotDatePartition, typename TtlT=NotTtl>
 struct IndexConfig
 {
-    using hana_tag=IndexConfigTag;
+    using hana_tag=IndexTag;
+
+    static_assert(!DatePartitionT::value || !(UniqueT::value || TtlT::value),
+                  "Partition index must not have any other attributes"
+                  );
 
     constexpr static bool unique()
     {
@@ -86,7 +90,6 @@ struct IndexConfig
 constexpr IndexConfig<> DefaultIndexConfig{};
 constexpr IndexConfig<Unique> UniqueIndexConfig{};
 constexpr IndexConfig<NotUnique,DatePartition> PartitionIndexConfig{};
-constexpr IndexConfig<Unique,DatePartition> UniquePartitionIndexConfig{};
 template <typename TtlT>
 constexpr IndexConfig<NotUnique,NotDatePartition,TtlT> TtlIndexConfig{};
 
@@ -289,7 +292,7 @@ struct makeIndexT
     {
         auto ft1=hana::make_tuple(fields...);
         auto args=hana::eval_if(
-            hana::is_a<IndexConfigTag,ConfigT>,
+            hana::is_a<IndexTag,ConfigT>,
             [&](auto _)
             {
                 return std::make_pair(_(cfg),_(ft1));
@@ -304,8 +307,9 @@ struct makeIndexT
         auto&& ft=args.second;
 
         using isDatePartition=hana::bool_<configT::isDatePartitioned()>;
-        // static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
-        //               "Date partition can be used for index with single field only");
+        static_assert(!isDatePartition::value || (isDatePartition::value && (decltype(hana::size(ft))::value==1)),
+                      "Date partition index can contain only single field");
+
         using firstFieldType=typename std::decay_t<decltype(hana::front(ft))>::Type::type;
         static_assert(!isDatePartition::value || (isDatePartition::value &&
                                                       (std::is_same<firstFieldType,common::DateTime>::value ||
@@ -339,7 +343,14 @@ struct makeIndexT
                 {
                     if (idx.value==0)
                     {
-                        fmt::format_to(std::back_inserter(buf),"idx_{}",field.name());
+                        if constexpr (isDatePartition::value)
+                        {
+                            fmt::format_to(std::back_inserter(buf),"pidx_{}",field.name());
+                        }
+                        else
+                        {
+                            fmt::format_to(std::back_inserter(buf),"idx_{}",field.name());
+                        }
                     }
                     else
                     {
@@ -469,16 +480,6 @@ HATN_DB_NAMESPACE_END
             const auto& operator()() const \
         { \
                 static auto idx=makeIndex(PartitionIndexConfig,__VA_ARGS__); \
-                return idx; \
-        } \
-    }; \
-    constexpr _index_##idx idx{};
-
-#define HATN_DB_UNIQUE_DATE_PARTITION_INDEX(idx,...) \
-    struct _index_##idx { \
-            const auto& operator()() const \
-        { \
-                static auto idx=makeIndex(UniquePartitionIndexConfig,__VA_ARGS__); \
                 return idx; \
         } \
     }; \

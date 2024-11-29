@@ -68,16 +68,17 @@ HATN_DB_INDEX(df3Idx,base_fields::df3)
 
 HATN_DB_MODEL(modelNoP,no_p,df2Idx(),df3Idx())
 
-HATN_DB_PARTITION_INDEX(pf1Idx1,explicit_p::pf1)
-HATN_DB_MODEL_WITH_CFG(modelExplicit1,explicit_p,ModelConfig("explicit_p1"),pf1Idx1(),df2Idx(),df3Idx())
+HATN_DB_PARTITION_INDEX(partitionPf1Idx1,explicit_p::pf1)
+HATN_DB_INDEX(pf1Idx1,explicit_p::pf1)
+HATN_DB_MODEL_WITH_CFG(modelExplicit1,explicit_p,ModelConfig("explicit_p1"),partitionPf1Idx1(),pf1Idx1(),df2Idx(),df3Idx())
 
-HATN_DB_PARTITION_INDEX(pf1Idx2,explicit_p::pf1,base_fields::df2)
-HATN_DB_MODEL_WITH_CFG(modelExplicit2,explicit_p,ModelConfig("explicit_p2"),pf1Idx2(),df3Idx())
+HATN_DB_INDEX(pf1Idx2,explicit_p::pf1,base_fields::df2)
+HATN_DB_MODEL_WITH_CFG(modelExplicit2,explicit_p,ModelConfig("explicit_p2"),partitionPf1Idx1(),pf1Idx2(),df3Idx())
 
 HATN_DB_IMPLICIT_PARTITION_MODEL_WITH_CFG(modelImplicit1,implicit_p,ModelConfig("implicit_p1"),df2Idx(),df3Idx())
 
-HATN_DB_UNIQUE_DATE_PARTITION_INDEX(oidIdx2,object::_id,base_fields::df2)
-HATN_DB_EXPLICIT_ID_IDX_MODEL_WITH_CFG(modelImplicit2,implicit_p,ModelConfig("implicit_p2"),oidIdx2(),df3Idx())
+HATN_DB_UNIQUE_INDEX(oidIdx2,object::_id,base_fields::df2)
+HATN_DB_EXPLICIT_ID_IDX_MODEL_WITH_CFG(modelImplicit2,implicit_p,ModelConfig("implicit_p2"),oidPartitionIdx(),oidIdx2(),df3Idx())
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
@@ -192,13 +193,14 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
     BOOST_TEST_CONTEXT("modelExplicit2()"){run(modelExplicit2());}
 }
 
-BOOST_AUTO_TEST_CASE(CrudImplicit)
+BOOST_AUTO_TEST_CASE(Crud)
 {
     // ContextLogger::instance().setDefaultLogLevel(LogLevel::Debug);
 
     auto run=[](const auto& model,
                   const auto& obj,
                   const auto& partitionField,
+                  const auto& queryIdx,
                   const auto& partitionIdx,
                   const auto& genFromDate
                   )
@@ -287,13 +289,25 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 BOOST_CHECK(r0.value()->fieldValue(base_fields::df3)==lib::string_view("Hello world!"));
 
                 // find all objects from all partitions by partition field
-                BOOST_TEST_MESSAGE("Find all by partition field");
-                auto q1=makeQuery(partitionIdx,query::where(partitionField,query::gte,query::First),topic1);
+                BOOST_TEST_MESSAGE("Find all by partition field with partition query");
+                auto q1=makeQuery(queryIdx,
+                            query::where(partitionField,query::gte,query::First)
+                                        .partitions(partitionIdx,partitionField,query::gte,query::First),
+                            topic1);
                 auto r1=client->find(model,q1);
                 if (r1)
                 {
-                    HATN_CTX_ERROR(r1.error(),"failed to find all by partition field")
+                    HATN_CTX_ERROR(r1.error(),"failed to find all by partitions field")
                 }
+                BOOST_REQUIRE(!r1);
+                BOOST_CHECK_EQUAL(r1->size(),count);
+
+                // check query on partitioned field but without partititions query
+                BOOST_TEST_MESSAGE("Find all by partition field without partition query");
+                auto q1_=makeQuery(queryIdx,
+                                    query::where(partitionField,query::gte,query::First),
+                                    topic1);
+                r1=client->find(model,q1_);
                 BOOST_REQUIRE(!r1);
                 BOOST_CHECK_EQUAL(r1->size(),count);
 #if 0
@@ -302,6 +316,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                     std::cout<<"All by partition field "<<i<<":\n"<<r1->at(i).template as<type>()->toString(true)<<std::endl;
                 }
 #endif
+
                 // find all objects from all partitions by not partition field
                 BOOST_TEST_MESSAGE("Find all by not partition field");
                 auto q2=makeQuery(df3Idx(),query::where(base_fields::df3,query::gte,query::First),topic1);
@@ -314,10 +329,24 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                     std::cout<<"All by not partition field "<<i<<":\n"<<r2->at(i).template as<type>()->toString(true)<<std::endl;
                 }
 #endif
+
+                // find objects in some partitions by not partition field
+                BOOST_TEST_MESSAGE("Find in some partitions by not partition field");
+                auto q2_=makeQuery(df3Idx(),
+                                    query::where(base_fields::df3,query::gte,query::First)
+                                    .partitions(partitionIdx,partitionField,query::gte,dates[dates.size()-2]),
+                                    topic1
+                                 );
+                auto r2_=client->find(model,q2_);
+                BOOST_REQUIRE(!r2_);
+                BOOST_CHECK_EQUAL(r2_->size(),objectsPerPartition*2);
+
                 // find objects from partition by partition field with gte
                 BOOST_TEST_MESSAGE("Find by partition field with gte");
                 auto val3=genFromDate(dates[dates.size()-2]);
-                auto q3=makeQuery(partitionIdx,query::where(partitionField,query::gte,val3),topic1);
+                auto q3=makeQuery(queryIdx,query::where(partitionField,query::gte,val3)
+                                                      .partitions(partitionIdx,partitionField,query::gte,dates[dates.size()-2])
+                                    ,topic1);
                 auto r3=client->find(model,q3);
                 BOOST_REQUIRE(!r3);
                 BOOST_CHECK_EQUAL(r3->size(),objectsPerPartition*2);
@@ -330,7 +359,9 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 // find objects from partition by partition field with lte
                 BOOST_TEST_MESSAGE("Find by partition field with lte");
                 auto val4=genFromDate(dates[1].copyAddDays(1));
-                auto q4=makeQuery(partitionIdx,query::where(partitionField,query::lte,val4,query::Desc),topic1);
+                auto q4=makeQuery(queryIdx,query::where(partitionField,query::lte,val4,query::Desc)
+                                                .partitions(partitionIdx,partitionField,query::lte,dates[1],query::Desc)
+                                    ,topic1);
                 auto r4=client->find(model,q4);
                 BOOST_REQUIRE(!r4);
                 BOOST_CHECK_EQUAL(r4->size(),objectsPerPartition*2);
@@ -342,7 +373,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 #endif
                 // find objects from partition by partition field using in vector
                 BOOST_TEST_MESSAGE("Find by partition field using in vector");
-                auto q5=makeQuery(partitionIdx,query::where(partitionField,query::in,vectorIn),topic1);
+                auto q5=makeQuery(queryIdx,query::where_partitioned(partitionIdx,partitionField,query::in,vectorIn),topic1);
                 auto r5=client->find(model,q5);
                 BOOST_REQUIRE(!r5);
                 if constexpr (std::is_same<std::decay_t<decltype(partitionField)>,std::decay_t<decltype(object::_id)>>::value)
@@ -360,8 +391,8 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                     std::cout<<"Partititon field in vector: "<<i<<":\n"<<r5->at(i).template as<type>()->toString(true)<<std::endl;
                 }
 #endif
-                // find objects from partition by partition field using in interval
-                BOOST_TEST_MESSAGE("Find by partition field using in interval");
+                // find objects from partition by partition field in interval
+                BOOST_TEST_MESSAGE("Find by partition field in interval");
                 auto intv6=query::makeInterval(genFromDate(dates[3].copyAddDays(-14)),
                                     genFromDate(dates[4].copyAddDays(15))
                                     );
@@ -369,7 +400,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                           <<") to "<<
                             intv6.to.value.toString()
                           <<"("<<dates[4].copyAddDays(15).toString()<<")"<<std::endl;
-                auto q6=makeQuery(partitionIdx,query::where(partitionField,query::in,intv6),topic1);
+                auto q6=makeQuery(queryIdx,query::where_partitioned(partitionIdx,partitionField,query::in,intv6),topic1);
                 auto r6=client->find(model,q6);
                 BOOST_REQUIRE(!r6);
                 BOOST_CHECK_EQUAL(r6->size(),objectsPerPartition*2);
@@ -381,11 +412,11 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 #endif
 
                 // find objects from partition by partition field using in interval [First,to]
-                BOOST_TEST_MESSAGE("Find by partition field using in interval [First,to]");
+                BOOST_TEST_MESSAGE("Find by partition field in interval [First,to]");
                 auto intv7=query::makeInterval(query::IntervalType::First,
                                                  genFromDate(dates[2].copyAddDays(15))
                                                  );
-                auto q7=makeQuery(partitionIdx,query::where(partitionField,query::in,intv7),topic1);
+                auto q7=makeQuery(queryIdx,query::where_partitioned(partitionIdx,partitionField,query::in,intv7),topic1);
                 auto r7=client->find(model,q7);
                 BOOST_REQUIRE(!r7);
                 BOOST_CHECK_EQUAL(r7->size(),objectsPerPartition*3);
@@ -401,7 +432,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 auto intv8=query::makeInterval(
                                 genFromDate(dates[10].copyAddDays(-14)),
                                 query::IntervalType::Last);
-                auto q8=makeQuery(partitionIdx,query::where(partitionField,query::in,intv8),topic1);
+                auto q8=makeQuery(queryIdx,query::where_partitioned(partitionIdx,partitionField,query::in,intv8),topic1);
                 auto r8=client->find(model,q8);
                 BOOST_REQUIRE(!r8);
                 BOOST_CHECK_EQUAL(r8->size(),objectsPerPartition*2);
@@ -417,7 +448,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                 auto intv9=query::makeInterval(
                     query::IntervalType::First,
                     query::IntervalType::Last);
-                auto q9=makeQuery(partitionIdx,query::where(partitionField,query::in,intv9),topic1);
+                auto q9=makeQuery(queryIdx,query::where_partitioned(partitionIdx,partitionField,query::in,intv9),topic1);
                 auto r9=client->find(model,q9);
                 BOOST_REQUIRE(!r9);
                 BOOST_CHECK_EQUAL(r9->size(),objectsPerPartition*dates.size());
@@ -453,6 +484,8 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
 #if 1
             BOOST_TEST_CONTEXT("reopened db"){findObjects();};
 #endif
+
+#if 1
             // read-update-delete test objects
             size_t updateCount=0;
             for (auto&& it: testObjects)
@@ -583,7 +616,7 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
                     HATN_CTX_SCOPE_UNLOCK()
                 }
             }
-
+#endif
             // delete objects from default partition
             ec=client->deleteMany(modelNoP(),
                                     makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1)
@@ -606,19 +639,19 @@ BOOST_AUTO_TEST_CASE(CrudImplicit)
     };
 
     BOOST_TEST_CONTEXT("modelImplicit1()"){
-        run(modelImplicit1(),implicit_p::type{},object::_id,oidPartitionIdx(),oidFromDate);
+        run(modelImplicit1(),implicit_p::type{},object::_id,oidIdx(),oidPartitionIdx(),oidFromDate);
     }
 
     BOOST_TEST_CONTEXT("modelImplicit2()"){
-        run(modelImplicit2(),implicit_p::type{},object::_id,oidIdx2(),oidFromDate);
+        run(modelImplicit2(),implicit_p::type{},object::_id,oidIdx2(),oidPartitionIdx(),oidFromDate);
     }
 
     BOOST_TEST_CONTEXT("modelExplicit1()"){
-        run(modelExplicit1(),explicit_p::type{},explicit_p::pf1,pf1Idx1(),dateFromDate);
+        run(modelExplicit1(),explicit_p::type{},explicit_p::pf1,pf1Idx1(),partitionPf1Idx1(),dateFromDate);
     }
 
     BOOST_TEST_CONTEXT("modelExplicit2()"){
-        run(modelExplicit2(),explicit_p::type{},explicit_p::pf1,pf1Idx2(),dateFromDate);
+        run(modelExplicit2(),explicit_p::type{},explicit_p::pf1,pf1Idx2(),partitionPf1Idx1(),dateFromDate);
     }
 }
 

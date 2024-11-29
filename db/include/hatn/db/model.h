@@ -22,6 +22,10 @@
 #include <type_traits>
 #include <set>
 
+#include <hatn/common/meta/tupletypec.h>
+#include <hatn/common/meta/foreachif.h>
+#include <hatn/common/meta/errorpredicate.h>
+
 #include <hatn/common/daterange.h>
 #include <hatn/common/pmr/pmrtypes.h>
 
@@ -176,6 +180,7 @@ struct Model : public ConfigT
             this->setCollection(name());
         }
 
+        // prepare indexes
         auto eachIndex=[this,&i](auto& idx)
         {
             idx.setCollection(this->collection());
@@ -185,6 +190,11 @@ struct Model : public ConfigT
             indexMap.emplace(idx.id(),idx);
         };
         hana::for_each(indexes,eachIndex);
+
+#if 0
+        // check unique indexes
+        checkUniqueIdx();
+#endif
     }
 
     constexpr static const char* name()
@@ -215,18 +225,15 @@ struct Model : public ConfigT
         );
     }
 
-    static bool isDatePartitionField(const std::string& fieldName)
+    template <typename FieldT>
+    static auto isDatePartitionField(const FieldT& /*field*/)
     {
-        auto field=datePartitionField();
-        return field.name()==fieldName;
+        return std::is_same<std::decay_t<decltype(datePartitionField())>,std::decay_t<FieldT>>{};
     }
 
-    constexpr static auto isDatePartitionObjectId() noexcept
+    constexpr static bool isDatePartitionObjectId() noexcept
     {
-        return std::is_same<
-            std::decay_t<decltype(datePartitionField())>,
-            std::decay_t<decltype(object::_id)>
-            >::value;
+        return decltype(isDatePartitionField(object::_id))::value;
     }
 
     constexpr static auto ttlIndexes()
@@ -260,24 +267,63 @@ struct Model : public ConfigT
         return idx.value().id();
     }
 
-    //! @todo Ensure that in partitioned table unique index starts with prefix of the date partition index
-
-    private:
-
-        constexpr static auto findPartitionIndex()
+    constexpr static auto findPartitionIndex()
+    {
+        auto pred=[](auto&& index)
         {
-            auto pred=[](auto&& index)
+            using type=typename std::decay_t<decltype(index)>::type;
+            return hana::bool_<type::isDatePartitioned()>{};
+        };
+
+        constexpr auto xs=common::tupleToTupleCType<Indexes>{};
+        constexpr auto count=hana::count_if(xs,pred);
+        static_assert(hana::less_equal(count,hana::size_c<1>),"Only one date partition index can be specified for a model");
+
+        return hana::find_if(xs,pred);
+    }
+
+    void checkUniqueIdx()
+    {
+        //! @todo Refactor checkUniqueIdx()
+        constexpr auto partitionIdx=findPartitionIndex();
+        if constexpr (partitionIdx != hana::nothing)
+        {
+            const auto& v=partitionIdx.value();
+            using pValType=decltype(v);
+            using partitionIdxType=typename std::decay_t<pValType>::type;
+            auto check=[](const auto& idx)
             {
-                using type=typename std::decay_t<decltype(index)>::type;
-                return hana::bool_<type::isDatePartitioned()>{};
+                using type=typename std::decay_t<decltype(idx)>::type;
+                if constexpr (type::unique())
+                {
+                    constexpr auto fields=common::tupleToTupleC(type::fields);
+                    constexpr auto pFields=common::tupleToTupleC(partitionIdxType::fields);
+
+                    auto prefixEquals=common::foreach_if(
+                        pFields,
+                        common::bool_predicate,
+                        [&fields](auto field, auto&& pos)
+                        {
+                            if constexpr (decltype(hana::less(pos,hana::size(fields)))::value)
+                            {
+                                return hana::equal(field,hana::at(fields,pos));
+                            }
+                            else
+                            {
+                                return hana::false_c;
+                            }
+                        }
+                        );
+
+                    static_assert(decltype(prefixEquals)::value,
+                                  "Indexes of partitioned model must start with partition index"
+                                  );
+                }
             };
-
             constexpr auto xs=common::tupleToTupleCType<Indexes>{};
-            constexpr auto count=hana::count_if(xs,pred);
-            static_assert(hana::less_equal(count,hana::size_c<1>),"Only one date partition index can be specified for a model");
-
-            return hana::find_if(xs,pred);
+            hana::for_each(xs,check);
         }
+    }
 };
 
 /**
@@ -486,7 +532,7 @@ struct makeModelWithInfoT
 constexpr makeModelWithInfoT makeModelWithInfo{};
 
 HATN_DB_UNIQUE_INDEX(oidIdx,object::_id)
-HATN_DB_UNIQUE_DATE_PARTITION_INDEX(oidPartitionIdx,object::_id)
+HATN_DB_PARTITION_INDEX(oidPartitionIdx,object::_id)
 HATN_DB_INDEX(createdAtIdx,object::created_at)
 HATN_DB_INDEX(updatedAtIdx,object::updated_at)
 
@@ -497,7 +543,7 @@ inline auto objectIndexes()
 
 inline auto partitionObjectIndexes()
 {
-    return hana::make_tuple(oidPartitionIdx(),createdAtIdx(),updatedAtIdx());
+    return hana::make_tuple(oidPartitionIdx(),oidIdx(),createdAtIdx(),updatedAtIdx());
 }
 
 inline auto objectIndexesNoId()

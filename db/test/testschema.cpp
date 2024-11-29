@@ -72,6 +72,49 @@ HATN_DB_INDEX(compoundIdx,object::_id,object::created_at)
 
 HATN_DB_INDEX(nestedIdx,nestedField(nu1::nf1,n1::f1))
 
+template <typename ModelT>
+void checkUniqueIdx(const ModelT& model)
+{
+    constexpr auto partitionIdx=ModelT::findPartitionIndex();
+    if constexpr (partitionIdx != hana::nothing)
+    {
+        const auto& v=partitionIdx.value();
+        using pValType=decltype(v);
+        using partitionIdxType=typename std::decay_t<pValType>::type;
+        auto check=[](const auto& idx)
+        {
+            using type=typename std::decay_t<decltype(idx)>::type;
+            if constexpr (type::unique())
+            {
+                constexpr auto fields=common::tupleToTupleC(type::fields);
+                constexpr auto pFields=common::tupleToTupleC(partitionIdxType::fields);
+
+                auto prefixEquals=common::foreach_if(
+                    pFields,
+                    common::bool_predicate,
+                    [&fields](auto field, auto&& pos)
+                    {
+                        if constexpr (decltype(hana::less(pos,hana::size(fields)))::value)
+                        {
+                            return hana::equal(field,hana::at(fields,pos));
+                        }
+                        else
+                        {
+                            return hana::false_c;
+                        }
+                    }
+                    );
+
+                static_assert(decltype(prefixEquals)::value,
+                              "Indexes of partitioned model must start with partition index"
+                              );
+            }
+        };
+        constexpr auto xs=common::tupleToTupleCType<decltype(model.indexes)>{};
+        hana::for_each(xs,check);
+    }
+}
+
 } // anonymous namespace
 
 BOOST_AUTO_TEST_SUITE(TestDbSchema)
@@ -121,23 +164,31 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     BOOST_CHECK_EQUAL(hana::size(idx1.fields),1);
     BOOST_CHECK_EQUAL(hana::front(idx1.fields).name(),"_id");
 
-    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
     BOOST_CHECK_EQUAL(idx2.name(),"idx_created_at");
     BOOST_CHECK(!idx2.unique());
     BOOST_CHECK(idx2.isDatePartitioned());
-    BOOST_CHECK_EQUAL(idx2.ttl(),3600);
     BOOST_CHECK_EQUAL(hana::size(idx2.fields),1);
     BOOST_CHECK_EQUAL(hana::front(idx2.fields).name(),"created_at");
     BOOST_CHECK_EQUAL(idx2.frontField().name(),"created_at");
 
-    auto idx3=makeIndex(IndexConfig<NotUnique,NotDatePartition>{},object::created_at,object::updated_at);
-    BOOST_CHECK_EQUAL(idx3.name(),"idx_created_at_updated_at");
+    auto idx3=makeIndex(IndexConfig<NotUnique,NotDatePartition,HDB_TTL(3600)>{},object::created_at);
+    BOOST_CHECK_EQUAL(idx3.name(),"idx_created_at");
+    BOOST_CHECK(!idx3.unique());
+    BOOST_CHECK(!idx3.isDatePartitioned());
+    BOOST_CHECK_EQUAL(idx3.ttl(),3600);
+    BOOST_CHECK_EQUAL(hana::size(idx3.fields),1);
+    BOOST_CHECK_EQUAL(hana::front(idx3.fields).name(),"created_at");
+    BOOST_CHECK_EQUAL(idx3.frontField().name(),"created_at");
+
+    auto idx4=makeIndex(IndexConfig<NotUnique,NotDatePartition>{},object::created_at,object::updated_at);
+    BOOST_CHECK_EQUAL(idx4.name(),"idx_created_at_updated_at");
 
     static_assert(std::is_same<decltype(object::created_at)::Type::type,common::DateTime>::value,"");
 
-    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::_id);
-    BOOST_CHECK(!idx4.unique());
-    BOOST_CHECK(idx4.isDatePartitioned());
+    auto idx5=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::_id);
+    BOOST_CHECK(!idx5.unique());
+    BOOST_CHECK(idx5.isDatePartitioned());
 
     auto idx6=makeIndex(object::created_at,object::updated_at);
     BOOST_CHECK_EQUAL(idx6.name(),"idx_created_at_updated_at");
@@ -145,14 +196,48 @@ BOOST_AUTO_TEST_CASE(MakeIndex)
     BOOST_CHECK(!idx6.isDatePartitioned());
 }
 
+BOOST_AUTO_TEST_CASE(UniqueIndex)
+{
+    ModelRegistry::free();
+
+    // not partitioned model
+    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id);
+    auto idx2=makeIndex(IndexConfig<>{},object::created_at);
+    auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
+    auto model=unitModel<object::TYPE>(ModelConfig{"not_partitioned"},idx1,idx2,idx3);
+
+    // checkUniqueIdx(model);
+
+    // partitioned model
+    auto idx1_p=makeIndex(IndexConfig<Unique>{},object::created_at,object::_id);
+    auto idx2_p=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
+    auto idx3_p=makeIndex(IndexConfig<>{},object::updated_at);
+    auto model_p=unitModel<object::TYPE>(ModelConfig{"partitioned"},idx1_p,idx2_p,idx3_p);
+
+    // checkUniqueIdx(model_p);
+
+#if 1
+
+    // partitioned model with unique non-partitioned index
+    auto idx1_p1=makeIndex(IndexConfig<Unique>{},object::_id);
+    auto idx2_p1=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
+    auto idx3_p1=makeIndex(IndexConfig<>{},object::updated_at);
+    auto model_p1=unitModel<object::TYPE>(ModelConfig{"partitioned"},idx1_p1,idx2_p1,idx3_p1);
+
+    // checkUniqueIdx(model_p1);
+
+#endif
+}
+
 BOOST_AUTO_TEST_CASE(MakeModel)
 {
     ModelRegistry::free();
 
-    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx1=makeIndex(IndexConfig<>{},object::_id,"idx_id");
+    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
     auto model1=unitModel<object::TYPE>(ModelConfig{"object_collection"},idx1,idx2,idx3);
+
     BOOST_CHECK_EQUAL(model1.collection(),"object_collection");
     BOOST_CHECK_EQUAL(model1.modelIdStr(),"222153d8");
     BOOST_CHECK_EQUAL(model1.modelId(),572609496);
@@ -187,7 +272,7 @@ BOOST_AUTO_TEST_CASE(MakeModel)
     auto model3=unitModel<n1::TYPE>(ModelConfig{"object_collection2"});
     BOOST_CHECK_EQUAL(model3.modelId(),3528016721);
 
-    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},object::created_at);
+    auto idx4=makeIndex(IndexConfig<NotUnique,DatePartition>{},object::created_at);
     auto model4=unitModel<object::TYPE>(ModelConfig{"object_collection3"},idx1,idx4,idx3);
     BOOST_CHECK_EQUAL(model4.modelId(),3432328208);
     BOOST_CHECK(model4.isDatePartitioned());
@@ -216,8 +301,8 @@ BOOST_AUTO_TEST_CASE(NestedIndexField)
     constexpr auto isBackField=hana::or_(hana::is_a<db::FieldTag,decltype(lastArg)>,hana::is_a<NestedFieldTag,decltype(lastArg)>);
     static_assert(decltype(isBackField)::value,"");
 
-    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition,HDB_TTL(3600)>{},nestedField1);
+    auto idx1=makeIndex(IndexConfig<Unique>{},nestedField1,object::_id,"idx_id");
+    auto idx2=makeIndex(IndexConfig<NotUnique,DatePartition>{},nestedField1);
     BOOST_CHECK_EQUAL(idx2.name(),"idx_nf1__f1");
     auto idx3=makeIndex(IndexConfig<>{},object::updated_at);
 

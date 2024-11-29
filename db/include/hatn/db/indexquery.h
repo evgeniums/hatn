@@ -48,10 +48,30 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         IndexQuery(IndexT&& index, const WhereT& where, const TopicsT&... topics)
             : IndexQuery(index.indexInfo(),int(0),topics...)
         {
+            static_assert(hana::is_a<IndexTag,IndexT>, "Invalid type of index for fields query");
+            static_assert(!std::decay_t<IndexT>::isDatePartitioned(), "Partition index can not be used in fields query");
+
+            if constexpr (!std::is_same<typename WhereT::partitionT, hana::false_>::value)
+            {
+                const auto& partitionIdx=hana::at(where._partitions,hana::size_c<0>);
+
+                using partititionIdxType=std::decay_t<decltype(partitionIdx.get())>;
+                static_assert(hana::is_a<IndexTag,partititionIdxType>, "Invalid type of index for partitions query");
+                static_assert(partititionIdxType::isDatePartitioned(), "Ordinary index can not be used in partitions query");
+
+                const auto& field=hana::at(where._partitions,hana::size_c<1>);
+                m_partitions=query::Field{
+                     partitionIdx.get().fieldInfoPos(field.get(),hana::size_c<0>),
+                     hana::at(where._partitions,hana::size_c<2>),
+                     hana::at(where._partitions,hana::size_c<3>),
+                     hana::at(where._partitions,hana::size_c<4>)
+                };
+            }
+
             m_fields.reserve(where.size());
             auto self=this;
             hana::fold(
-                where.conditions,
+                where._conditions,
                 hana::size_c<0>,
                 [self,&index](auto pos,const auto& cond)
                 {
@@ -80,6 +100,11 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         const auto& field(size_t pos) const
         {
             return m_fields[pos];
+        }
+
+        const auto& partitions() const
+        {
+            return m_partitions;
         }
 
         void setLimit(size_t limit) noexcept
@@ -227,6 +252,8 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         common::VectorOnStack<query::Field,PreallocatedFieldsCount> m_fields;
         size_t m_limit;
         size_t m_offset;
+
+        query::Field m_partitions;
 };
 
 struct ModelIndexQuery
@@ -242,6 +269,8 @@ struct ModelIndexQuery
     {
         Assert(query.offset()==0 || query.limit()!=0,"Query offset can be used only if the limit is not zero");
     }
+
+    //! @todo Check and warn if query starts with partition field but partitions query is not set
 };
 
 template <typename IndexT>

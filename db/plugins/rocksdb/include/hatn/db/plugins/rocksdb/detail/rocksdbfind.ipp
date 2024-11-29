@@ -69,7 +69,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
 
     // collect partitions for processing
     index_key_search::Partitions partitions;
-    auto firstFieldPartitioned=index_key_search::queryPartitions(partitions,model,handler,idxQuery);
+    auto withPartitionQuery=index_key_search::queryPartitions(partitions,model,handler,idxQuery);
 
     // make snapshot
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapshot{handler.p()->db};
@@ -77,7 +77,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
-    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single,firstFieldPartitioned);
+    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single,withPartitionQuery);
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result
@@ -103,7 +103,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             // get object from rocksdb            
             auto k=Keys::objectKeyFromIndexValue(key.value.data(),key.value.size());
 
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
             std::cout<<"Find: index key "<< logKey(key.key)<<" object key " << logKey(k) << std::endl;
 #endif
@@ -165,7 +165,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
                 return ec;
             }
 
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
             std::cout<<"Find: object appended to result" << std::endl;
 #endif

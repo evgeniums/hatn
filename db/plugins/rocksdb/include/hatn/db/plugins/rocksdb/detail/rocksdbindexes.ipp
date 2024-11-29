@@ -71,7 +71,7 @@ class Indexes
             return m_keys.makeIndexKey(topic,objectId,object,idx,
                 [&](auto&& key){
 
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
                     std::cout<<"Index " << idx.name() << " " << logKey(key[0]) << std::endl;
 #endif
@@ -102,7 +102,14 @@ class Indexes
             auto self=this;
             auto eachIndex=[&,self](auto&& idx, auto&&)
             {
-                return self->saveIndex(handler,idx,tx,topic,objectId,indexValue,object,replace);
+                if constexpr (!std::decay_t<decltype(idx)>::isDatePartitioned())
+                {
+                    return self->saveIndex(handler,idx,tx,topic,objectId,indexValue,object,replace);
+                }
+                else
+                {
+                    return Error{OK};
+                }
             };
             return HATN_VALIDATOR_NAMESPACE::foreach_if(model.indexes,HATN_COMMON_NAMESPACE::error_predicate,eachIndex);
         }

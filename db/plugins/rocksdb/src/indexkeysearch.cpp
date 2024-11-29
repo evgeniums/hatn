@@ -829,7 +829,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         const Partitions& partitions,
         AllocatorFactory* allocatorFactory,
         bool single,
-        bool firstFieldPartitioned
+        bool withPartitionQuery
     )
 {
     HATN_CTX_SCOPE("indexkeys")
@@ -851,7 +851,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         )
     {
 
-//! @todo Log debug
+//! @maybe Log debug
 #if 0
         std::cout<<"Found key "<<logKey(*key)<<std::endl;
 #endif
@@ -904,8 +904,8 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         {
             HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
-//! @todo Log debug
-#if 0
+//! @maybe Log debug
+#if 1
             std::cout<<"Looking in partition "<<partition->range.toString()<<std::endl;
 #endif
         }
@@ -934,8 +934,8 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
             HATN_CTX_SCOPE_POP()
         }
 
-        // if query starts with partition field then partitions are altready presorted by that field
-        if (firstFieldPartitioned && keys.size()>=partitionLimit)
+        // if query includes partition query then partitions are altready presorted by that field
+        if (withPartitionQuery && keys.size()>=partitionLimit)
         {
             // break iteration if limit reached
             break;

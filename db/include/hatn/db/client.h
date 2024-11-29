@@ -277,12 +277,6 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             checkPartitionField(model);
 
-            using modelType=typename ModelT::ModelType;
-            static_assert(
-                !modelType::isDatePartitioned() || modelType::isDatePartitionObjectId(),
-                "Date must be presented in arguments because partition field is not object::_id"
-                );
-
             HATN_CTX_SCOPE("dbupdate")
             if (m_open)
             {
