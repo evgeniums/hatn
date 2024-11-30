@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
             setSchemaToClient(client,s1);
 
             BOOST_TEST_MESSAGE("Add partitions");
-            auto ec=client->addDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(365));
+            auto ec=client->addDatePartitions(modelInfos,common::Date::currentUtc().copyAddMonths(12));
             BOOST_REQUIRE(!ec);
 
             BOOST_TEST_MESSAGE("List partitions");
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
             BOOST_CHECK_EQUAL(ranges->size(),12+1);
 
             BOOST_TEST_MESSAGE("Delete partitions");
-            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(183),common::Date::currentUtc());
+            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddMonths(6),common::Date::currentUtc());
             BOOST_REQUIRE(!ec);
 
             BOOST_TEST_MESSAGE("List partitions after delete");
@@ -183,7 +183,7 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
             BOOST_CHECK_EQUAL(ranges->size(),6);
 
             BOOST_TEST_MESSAGE("Try to delete already deleted partitions");
-            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddDays(183),common::Date::currentUtc());
+            ec=client->deleteDatePartitions(modelInfos,common::Date::currentUtc().copyAddMonths(6),common::Date::currentUtc());
             BOOST_REQUIRE(!ec);
 
             BOOST_TEST_MESSAGE("List partitions after retry delete");
