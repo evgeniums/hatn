@@ -214,6 +214,11 @@ class DbObject
             return m_shared;
         }
 
+        HATN_DATAUNIT_NAMESPACE::Unit* get() const noexcept
+        {
+            return m_shared.get();
+        }
+
     protected:
 
         HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> m_shared;

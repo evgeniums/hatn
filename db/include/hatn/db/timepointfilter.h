@@ -91,6 +91,27 @@ class TimePointFilter
         TimepointIntervalsPtr m_intervals;
 };
 
+struct makeTpIntervalsT
+{
+    template <typename ...Args>
+    auto operator() (Args&&... args) const
+    {
+        return common::makeShared<TimepointIntervals>(
+            std::initializer_list<TimePointInterval>{std::forward<Args>(args)...}
+        );
+    }
+};
+constexpr makeTpIntervalsT makeTpIntervals{};
+
+struct tpIntervalT
+{
+    auto operator() (const common::DateTime& from, const common::DateTime& to, query::IntervalType toType=query::IntervalType::Open) const
+    {
+        return TimePointInterval{from.toEpoch(),query::IntervalType::Closed,to.toEpoch(),toType};
+    }
+};
+constexpr tpIntervalT tpInterval{};
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNTPFILTER_H

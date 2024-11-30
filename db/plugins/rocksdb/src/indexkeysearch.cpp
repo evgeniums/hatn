@@ -115,7 +115,7 @@ static bool filterIndex(const ModelIndexQuery& idxQuery,
     std::ignore=key;
 
     // filter by timestamp
-    if (pos==0)
+    if (pos==1)
     {
         auto timestamp=Keys::timestampFromIndexValue(value.data(),value.size());
         return idxQuery.query.filterTimePoint(timestamp);

@@ -66,6 +66,9 @@ HATN_DB_TTL_INDEX(f1Idx,5,u1::f1)
 HATN_DB_INDEX(f2Idx,u1::f2)
 HATN_DB_MODEL(model1,u1,f0Idx(),f1Idx(),f2Idx())
 
+HATN_DB_INDEX(f0Idx2,u1::f0)
+HATN_DB_MODEL_WITH_CFG(model2,u1,ModelConfig{"model2"},f0Idx2())
+
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 namespace rdb=HATN_ROCKSDB_NAMESPACE;
 #endif
@@ -74,6 +77,7 @@ void registerModels()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     rdb::RocksdbModels::instance().registerModel(model1());
+    rdb::RocksdbModels::instance().registerModel(model2());
 #endif
 }
 
@@ -244,4 +248,161 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_FIXTURE_TEST_CASE(TimeFilter, HATN_TEST_NAMESPACE::DbTestFixture)
+{
+    auto tpInt1=query::makeInterval(uint32_t(10),uint32_t(100));
+    BOOST_CHECK(tpInt1.contains(50));
+
+    auto tpInt2=query::Interval<uint32_t>(10,query::IntervalType::Closed,100,query::IntervalType::Open);
+    BOOST_CHECK(!tpInt2.contains(1));
+    BOOST_CHECK(tpInt2.contains(50));
+    BOOST_CHECK(tpInt2.contains(10));
+    BOOST_CHECK(!tpInt2.contains(100));
+    BOOST_CHECK(!tpInt2.contains(200));
+
+    auto tpInt3=query::Interval<uint32_t>(10,query::IntervalType::Open,100,query::IntervalType::Open);
+    BOOST_CHECK(!tpInt3.contains(1));
+    BOOST_CHECK(tpInt3.contains(50));
+    BOOST_CHECK(!tpInt3.contains(10));
+    BOOST_CHECK(!tpInt3.contains(100));
+    BOOST_CHECK(!tpInt3.contains(200));
+
+    auto tpInt4=query::Interval<uint32_t>(10,query::IntervalType::Closed,100,query::IntervalType::Closed);
+    BOOST_CHECK(!tpInt4.contains(1));
+    BOOST_CHECK(tpInt4.contains(50));
+    BOOST_CHECK(tpInt4.contains(10));
+    BOOST_CHECK(tpInt4.contains(100));
+    BOOST_CHECK(!tpInt4.contains(200));
+
+    auto tpInt5=query::Interval<uint32_t>(10,query::IntervalType::Open,100,query::IntervalType::Closed);
+    BOOST_CHECK(!tpInt5.contains(1));
+    BOOST_CHECK(tpInt5.contains(50));
+    BOOST_CHECK(!tpInt5.contains(10));
+    BOOST_CHECK(tpInt5.contains(100));
+    BOOST_CHECK(!tpInt5.contains(200));
+
+    auto tpInt6=query::Interval<uint32_t>(10,query::IntervalType::Open,100,query::IntervalType::Open);
+    BOOST_CHECK(!tpInt6.contains(1));
+    BOOST_CHECK(tpInt6.contains(50));
+    BOOST_CHECK(!tpInt6.contains(10));
+    BOOST_CHECK(!tpInt6.contains(100));
+    BOOST_CHECK(!tpInt6.contains(200));
+
+    auto tpInt7=query::Interval<uint32_t>(10,query::IntervalType::First,100,query::IntervalType::Open);
+    BOOST_CHECK(tpInt7.contains(1));
+    BOOST_CHECK(tpInt7.contains(50));
+    BOOST_CHECK(tpInt7.contains(10));
+    BOOST_CHECK(!tpInt7.contains(100));
+    BOOST_CHECK(!tpInt7.contains(200));
+
+    auto tpInt8=query::Interval<uint32_t>(10,query::IntervalType::First,100,query::IntervalType::Closed);
+    BOOST_CHECK(tpInt8.contains(1));
+    BOOST_CHECK(tpInt8.contains(50));
+    BOOST_CHECK(tpInt8.contains(10));
+    BOOST_CHECK(tpInt8.contains(100));
+    BOOST_CHECK(!tpInt8.contains(200));
+
+    auto tpInt9=query::Interval<uint32_t>(10,query::IntervalType::Open,100,query::IntervalType::Last);
+    BOOST_CHECK(!tpInt9.contains(1));
+    BOOST_CHECK(tpInt9.contains(50));
+    BOOST_CHECK(!tpInt9.contains(10));
+    BOOST_CHECK(tpInt9.contains(100));
+    BOOST_CHECK(tpInt9.contains(200));
+
+    auto tpInt10=query::Interval<uint32_t>(10,query::IntervalType::Closed,100,query::IntervalType::Last);
+    BOOST_CHECK(!tpInt10.contains(1));
+    BOOST_CHECK(tpInt10.contains(50));
+    BOOST_CHECK(tpInt10.contains(10));
+    BOOST_CHECK(tpInt10.contains(100));
+    BOOST_CHECK(tpInt10.contains(200));
+
+    init();
+
+    auto s1=initSchema(model2());
+
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    {
+        size_t count=20;
+        setSchemaToClient(client,s1);
+        Topic topic1{"topic1"};
+        std::vector<ObjectId> oids;
+
+        // fill db
+        std::set<size_t> checkVec;
+        for (size_t i=0;i<count;i++)
+        {
+            checkVec.insert(i);
+            auto o=makeInitObject<u1::type>();
+            if ((i>=5 && i<10) || (i>=15 && i<20))
+            {
+                auto dt=common::DateTime::currentUtc();
+                dt.addDays(-i);
+                dt.addSeconds(60);
+                o.setFieldValue(object::created_at,dt);
+                if (i==5 || (i>=15 && i<20))
+                {
+                    checkVec.erase(i);
+                }
+            }
+            o.setFieldValue(u1::f2,static_cast<uint32_t>(i));
+            auto ec=client->create(topic1,model2(),&o);
+            BOOST_REQUIRE(!ec);
+            oids.emplace_back(o.fieldValue(object::_id));
+#if 0
+            std::cout<<"i="<<i<<" created_at="<< o.fieldValue(object::created_at).toEpoch() <<std::endl;
+#endif
+        }
+
+        // read without timepoint filter
+        BOOST_TEST_MESSAGE("read without timepoint filter");
+        auto q1=makeQuery(createdAtIdx(),query::where(object::created_at,query::gte,query::First),topic1);
+        auto r1=client->find(model2(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),count);
+#if 0
+        for (size_t i=0;i<r1->size();i++)
+        {
+            std::cout<<"i="<<i<<":\n"
+            <<   r1->at(i).get()->toString(true)
+            <<std::endl;
+        }
+#endif
+        // read with timepoint filter
+        BOOST_TEST_MESSAGE("read with timepoint filter");
+        auto from1=common::DateTime::currentUtc();
+        from1.addDays(-21);
+        auto to1=common::DateTime::currentUtc();
+        to1.addDays(-14);
+        auto from2=common::DateTime::currentUtc();
+        from2.addDays(-5);
+        auto to2=common::DateTime::currentUtc();
+        to2.addDays(-4);
+        auto tpIntervals=makeTpIntervals(
+                tpInterval(from1,to1),
+                tpInterval(from2,to2)
+            );
+        auto q2=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1);
+        q2.setFilterTimePoints(tpIntervals);
+        r1=client->find(model2(),q2);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),checkVec.size());
+        auto it=checkVec.begin();
+        for (size_t i=0;i<r1->size();i++)
+        {
+#if 0
+            std::cout<<"i="<<i<<":\n"
+                      <<   r1->at(i).get()->toString(true)
+                      <<std::endl;
+#endif
+            BOOST_CHECK_EQUAL(r1->at(i).as<u1::type>()->fieldValue(u1::f2),*it);
+            ++it;
+        }
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
+
+/**
+ * @todo Test if ttl field is not set
+ */

@@ -424,7 +424,7 @@ struct Interval
                 ||
                 ((to.type==IntervalType::Open) && (value < to.value))
                 ||
-                ((to.type==IntervalType::Closed) && (value <= from.value))
+                ((to.type==IntervalType::Closed) && (value <= to.value))
                 )
             {
                 return true;
