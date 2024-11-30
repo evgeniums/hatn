@@ -882,7 +882,7 @@ RocksdbClient::doFindOne(
         const ModelIndexQuery& query
     )
 {
-    HATN_CTX_SCOPE("rdbdoFindOne")
+    HATN_CTX_SCOPE("rdbfindone")
 
     ENSURE_MODEL_SCHEMA
 
@@ -896,6 +896,26 @@ RocksdbClient::doFindOne(
         return Result<DbObject>{DbObject{}};
     }
     return r->at(0);
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doFindCb(
+        const ModelInfo& model,
+        const ModelIndexQuery& query,
+        const FindCb& cb,
+        Transaction* tx,
+        bool forUpdate
+    )
+{
+    HATN_CTX_SCOPE("rdbfindcb")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->findCb(*d->handler,query,cb,tx,forUpdate);
 }
 
 //---------------------------------------------------------------

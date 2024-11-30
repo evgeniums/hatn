@@ -28,6 +28,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbfindcb.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbupdate.ipp>
@@ -104,6 +105,18 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         )
     {
         return Find(model->model,handler,query,single,allocatorFactory);
+    };
+
+    rdbModel->findCb=[model,allocatorFactory]
+        (
+            RocksdbHandler& handler,
+            const ModelIndexQuery& query,
+            const FindCb& cb,
+            Transaction* tx,
+            bool forUpdate
+        )
+    {
+        return FindCbOp(model->model,handler,query,cb,allocatorFactory,tx,forUpdate);
     };
 
     rdbModel->deleteObject=[model,allocatorFactory]

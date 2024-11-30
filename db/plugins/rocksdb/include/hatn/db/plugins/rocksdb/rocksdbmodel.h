@@ -29,6 +29,7 @@
 #include <hatn/db/indexquery.h>
 #include <hatn/db/transaction.h>
 #include <hatn/db/update.h>
+#include <hatn/db/find.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
@@ -139,6 +140,14 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
             RocksdbHandler& handler,
             const ModelIndexQuery& query
             )> count;
+
+        std::function<Error (
+                RocksdbHandler& handler,
+                const ModelIndexQuery& query,
+                const FindCb& cb,
+                Transaction* tx,
+                bool forUpdate
+            )> findCb;
 
     private:
 

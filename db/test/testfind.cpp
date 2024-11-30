@@ -327,9 +327,46 @@ BOOST_AUTO_TEST_CASE(OffsetAndLimit)
         auto r2=client->find(m1_uint32(),q3);
         BOOST_REQUIRE(!r2);
         size_t foundCount=limit;
-        BOOST_REQUIRE_EQUAL(r2.value().size(),limit);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),foundCount);
         BOOST_CHECK_EQUAL(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
         BOOST_CHECK_EQUAL(r2.value().at(foundCount-1).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset+foundCount-1);
+
+        // find with callback
+        size_t checkCount=0;
+        auto cb1=[&](DbObject obj, Error&) -> bool
+        {
+            if (checkCount==0)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
+            }
+            else if (checkCount==foundCount-1)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset+foundCount-1);
+            }
+            checkCount++;
+            return true;
+        };
+        auto ec=client->findCb(m1_uint32(),q3,cb1);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(checkCount,foundCount);
+        auto breakCount=foundCount-5;
+        checkCount=0;
+        auto cb2=[&](DbObject obj, Error&)
+        {
+            if (checkCount==0)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
+            }
+            else if (checkCount==breakCount)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset+breakCount-1);
+            }
+            checkCount++;
+            return checkCount<breakCount;
+        };
+        ec=client->findCb(m1_uint32(),q3,cb2);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(checkCount,breakCount);
 
         // (offset+limit) is above count
         offset=count-10;

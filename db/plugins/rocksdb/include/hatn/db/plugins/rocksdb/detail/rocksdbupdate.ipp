@@ -195,7 +195,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         }
 
 //! @maybe Log debug
-#if 1
+#if 0
         std::cout<<"Old keys "<< std::endl;
         for (auto&& it: oldKeys)
         {

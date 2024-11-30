@@ -81,6 +81,14 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             const ModelIndexQuery& query
         ) override;
 
+        Error doFindCb(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            const FindCb& cb,
+            Transaction* tx,
+            bool forUpdate
+        ) override;
+
         virtual Result<size_t> doCount(
             const ModelInfo& model,
             const ModelIndexQuery& query

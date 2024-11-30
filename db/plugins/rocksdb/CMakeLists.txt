@@ -42,7 +42,7 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbcreateobject.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbreadobject.ipp
-    include/hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp    
+    include/hatn/db/plugins/rocksdb/detail/rocksdbfind.ipp
     include/hatn/db/plugins/rocksdb/detail/querypartitions.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbdeletemany.ipp    
@@ -54,7 +54,8 @@ SET(SCHEMA_DETAIL_HEADERS
     include/hatn/db/plugins/rocksdb/detail/findmany.ipp
     include/hatn/db/plugins/rocksdb/detail/rocksdbcount.ipp
     include/hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp
-    include/hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp    
+    include/hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp
+    include/hatn/db/plugins/rocksdb/detail/rocksdbfindcb.ipp
 )
 
 SET (SCHEMA_SOURCES

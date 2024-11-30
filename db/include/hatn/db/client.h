@@ -39,6 +39,7 @@
 #include <hatn/db/topic.h>
 #include <hatn/db/indexquery.h>
 #include <hatn/db/update.h>
+#include <hatn/db/find.h>
 #include <hatn/db/transaction.h>
 
 HATN_DB_NAMESPACE_BEGIN
@@ -366,8 +367,6 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        //! @todo Add explicit option not to filter timepoints here when they are filtered by query
-
         template <typename ModelT, typename IndexT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> find(
             const std::shared_ptr<ModelT>& model,
@@ -379,30 +378,46 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                auto r=doFind(*model->info,q);
-                HATN_CHECK_RESULT(r)
-                if (!query.hasFilterTimePoints())
-                {
-                    return r;
-                }
-                using unitT=typename ModelT::Type;
-                HATN_COMMON_NAMESPACE::pmr::vector<DbObject> v{r.value().get_allocator()};
-                v.reserve(r.value().size());
-                for (auto&& it:r.value())
-                {
-                    if (query.filterTimePoint(*(it.template unit<unitT>())))
-                    {
-                        v.push_back(it);
-                    }
-                }
-                return v;
+                return doFind(*model->info,q);
             }
 
             HATN_CTX_SCOPE_LOCK()
             return dbError(DbError::DB_NOT_OPEN);
         }
 
-        //! @todo Add find with callback per each found object
+        /**
+         * @brief findCb
+         * @param model
+         * @param query
+         * @param cb
+         * @param tx
+         * @param forUpdate
+         * @return
+         *
+         * @note For partitioned models the order of objects matches query's order only when
+         * the query defines the same sorting for both objects and partitions. Otherwise,
+         * in partitioned models order is maintained only within a scope of each partition.
+         */
+        template <typename ModelT, typename IndexT>
+        Error findCb(
+                const std::shared_ptr<ModelT>& model,
+                const Query<IndexT>& query,
+                const FindCb& cb,
+                Transaction* tx=nullptr,
+                bool forUpdate=false
+            )
+        {
+            HATN_CTX_SCOPE("dbfindcb")
+            if (m_open)
+            {
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+
+                return doFindCb(*model->info,q,cb,tx,forUpdate);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
 
         template <typename ModelT, typename IndexT>
         Result<DbObjectT<typename ModelT::ManagedType>> findOne(
@@ -416,14 +431,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 auto r=doFindOne(*model->info,q);
                 HATN_CHECK_RESULT(r)
-                if (r.value().isNull())
-                {
-                    return DbObjectT<typename ModelT::ManagedType>{};
-                }
-                auto res=DbObjectT<typename ModelT::ManagedType>{r.takeValue()};
-                auto ec=checkTpFilter(res.value().value(),query);
-                HATN_CHECK_EC(ec)
-                return res;
+                return DbObjectT<typename ModelT::ManagedType>{r.takeValue()};
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -605,6 +613,14 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> doFind(
             const ModelInfo& model,
             const ModelIndexQuery& query
+        ) =0;
+
+        virtual Error doFindCb(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            const FindCb& cb,
+            Transaction* tx,
+            bool forUpdate
         ) =0;
 
         virtual Result<DbObject> doFindOne(

@@ -19,6 +19,7 @@ SET (HEADERS
     include/hatn/db/timepointfilter.h
     include/hatn/db/update.h
     include/hatn/db/transaction.h
+    include/hatn/db/find.h
 )
 
 SET (HEADERS
