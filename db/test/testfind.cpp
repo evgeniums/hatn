@@ -916,7 +916,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  4. Test find intervals - done
  *  5. Test find vectors - done
  *  6. Test ordering - done
- *  7. Test timepoint filtering
+ *  7. Test timepoint filtering - done
  *  8. Test limits - done
  *  9. Test partitions - done
  *  10. Test TTL - done
@@ -938,5 +938,5 @@ BOOST_AUTO_TEST_SUITE_END()
  *  26. Implement and test find with callback - done
  *  27. Implement and test repeated subunits
  *  28. Implement anf test delete topic
- *  29. Implement and test model-topic relations (with mergge and TTL)
+ *  29. Implement and test model-topic relations (with merge and TTL)
  */
