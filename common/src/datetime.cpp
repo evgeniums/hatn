@@ -412,7 +412,7 @@ Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision,
                     auto r=extractMs(parts[2]);
                     HATN_CHECK_RESULT(r);
                     millisecond=r.takeValue();
-                    HATN_CHECK_RESULT(t.setMillisecond(millisecond))
+                    HATN_CHECK_EC(t.setMillisecond(millisecond))
                 }
                 return t;
                 break;
@@ -441,7 +441,7 @@ Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision,
             }
         }
 
-        HATN_CHECK_RESULT(validate(hour,minute,second,millisecond))
+        HATN_CHECK_EC(validate(hour,minute,second,millisecond))
         return Time{hour,minute,second,millisecond};
     }
     catch (...)

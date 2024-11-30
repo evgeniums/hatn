@@ -24,6 +24,7 @@
 #include <boost/hana.hpp>
 
 #include <hatn/common/error.h>
+#include <hatn/common/utils.h>
 
 namespace hana=boost::hana;
 
@@ -155,6 +156,8 @@ class Result
                 m_error(std::move(other.m_error))
         {}
 
+        //! @todo Use explicit ctor.
+        //! @todo Use assert instead of ErrorException
         /**
          * @brief Move constructor from other error result.
          * @param other Other result with error to move from.
@@ -162,14 +165,15 @@ class Result
          * @throws ErrorException if other result is valid.
          */
         template <typename T2>
-        Result(
+        /*explicit */Result(
             Result<T2>&& other
             ) : m_error(std::move(other.m_error))
         {
-            if (m_error.isNull())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_NOT_ERROR)};
-            }
+            Assert(m_error.isNull(),"cannot move not error result");
+            // if (m_error.isNull())
+            // {
+            //     throw ErrorException{commonError(CommonError::RESULT_NOT_ERROR)};
+            // }
         }
 
         /**
@@ -383,6 +387,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
             }
         }
 
+        //! @todo Use explicit ctor.
         /**
          * @brief Move constructor from other error result.
          * @param other Other result with error to move from.
@@ -390,7 +395,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          * @throws ErrorException if error is null.
          */
         template <typename T1>
-        Result(
+        /*explicit*/ Result(
             Result<T1>&& other
             ) : m_value(*result_detail::DefaultResult<T>::value()),
             m_error(std::move(other.m_error))
@@ -754,7 +759,14 @@ auto emplaceResult(Args&& ...args) -> decltype(auto)
     return Result<T>(std::forward<Args>(args)...);
 }
 
-#define HATN_CHECK_RESULT(r) HATN_CHECK_EC(r)
+#define HATN_CHECK_RESULT(r) \
+{\
+    if (r)\
+    {\
+        return r.takeError();\
+    }\
+}
+
 #define HATN_BOOL_RESULT(r) HATN_BOOL_EC(r)
 
 #define HATN_BOOL_RESULT_MSG(r,msg) \
