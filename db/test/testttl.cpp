@@ -244,6 +244,30 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_CHECK(r2.error().is(DbError::NOT_FOUND));
         r3=client->read(topic1,model1(),oids[oids.size()-1]);
         BOOST_REQUIRE(!r3);
+
+        // clear all
+        auto r4=client->deleteMany(model1(),q1);
+        BOOST_CHECK(!r4);
+        auto r5=client->count(model1(),q1);
+        BOOST_CHECK(!r5);
+        BOOST_CHECK_EQUAL(r5.value(),0);
+
+        // add object with TTL fields not set
+        auto o6=makeInitObject<u1::type>();
+        o6.setFieldValue(u1::f2,static_cast<uint32_t>(100));
+        ec=client->create(topic1,model1(),&o6);
+        BOOST_REQUIRE(!ec);
+        // wait for 2 seconds
+        BOOST_TEST_MESSAGE("Waiting for 2 seconds...");
+        exec(2);
+        auto q7=makeQuery(createdAtIdx(),query::where(object::created_at,query::gte,query::First),topic1);
+        r5=client->count(model1(),q7);
+        BOOST_CHECK(!r5);
+        BOOST_CHECK_EQUAL(r5.value(),1);
+        r1=client->find(model1(),q7);
+        BOOST_CHECK(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),1);
+        BOOST_CHECK_EQUAL(r1->at(0).as<u1::type>()->fieldValue(u1::f2),100);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -402,7 +426,3 @@ BOOST_FIXTURE_TEST_CASE(TimeFilter, HATN_TEST_NAMESPACE::DbTestFixture)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-/**
- * @todo Test if ttl field is not set
- */
