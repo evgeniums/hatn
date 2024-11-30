@@ -534,6 +534,24 @@ class HATN_COMMON_EXPORT DateTime
         }
 
         /**
+         * @brief Add months.
+         * @param value Months to add.
+         */
+        void addMonths(int value)
+        {
+            m_date.addMonths(value);
+        }
+
+        /**
+         * @brief Add years.
+         * @param value Years to add.
+         */
+        void addYears(int value)
+        {
+            m_date.addYears(value);
+        }
+
+        /**
          * @brief Add hours.
          * @param value Hours to add.
          */

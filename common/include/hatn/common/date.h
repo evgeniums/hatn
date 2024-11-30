@@ -290,14 +290,30 @@ class HATN_COMMON_EXPORT Date
             return toNumber()>=other.toNumber();
         }
 
-        //! @todo Implement add day/month/year
-
         void addDays(int days);
 
         Date copyAddDays(int days)
         {
             auto dt=*this;
             dt.addDays(days);
+            return dt;
+        }
+
+        void addMonths(int months);
+
+        Date copyAddMonths(int months)
+        {
+            auto dt=*this;
+            dt.addMonths(months);
+            return dt;
+        }
+
+        void addYears(int years);
+
+        Date copyAddYears(int years)
+        {
+            auto dt=*this;
+            dt.addYears(years);
             return dt;
         }
 

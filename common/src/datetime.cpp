@@ -237,6 +237,32 @@ void Date::addDays(int value)
 
 //---------------------------------------------------------------
 
+void Date::addMonths(int value)
+{
+    Assert(!isNull(),"Invalid operation for null date");
+
+    auto gd=toBoostDate(*this);
+    gd+=boost::gregorian::months(value);
+    m_year=gd.year();
+    m_month=static_cast<decltype(m_month)>(gd.month());
+    m_day=static_cast<decltype(m_month)>(gd.day());
+}
+
+//---------------------------------------------------------------
+
+void Date::addYears(int value)
+{
+    Assert(!isNull(),"Invalid operation for null date");
+
+    auto gd=toBoostDate(*this);
+    gd+=boost::gregorian::years(value);
+    m_year=gd.year();
+    m_month=static_cast<decltype(m_month)>(gd.month());
+    m_day=static_cast<decltype(m_month)>(gd.day());
+}
+
+//---------------------------------------------------------------
+
 uint8_t Date::dayOfWeek() const
 {
     if (isNull())

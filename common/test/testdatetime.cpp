@@ -185,6 +185,35 @@ BOOST_AUTO_TEST_CASE(TestDate)
     BOOST_CHECK(dt6<dt5);
     BOOST_CHECK(dt5>=dt6);
     BOOST_CHECK(dt6<=dt5);
+
+    // add months
+    dt4=Date{2024,01,22};
+    dt4.addMonths(1);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),02);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),22);
+    dt4=Date{2023,12,31};
+    dt4.addMonths(2);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),02);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),29);
+    dt4=Date{2023,12,30};
+    dt4.addMonths(2);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),02);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),29);
+    dt4=Date{2023,12,27};
+    dt4.addMonths(2);
+    BOOST_CHECK_EQUAL(dt4.year(),2024);
+    BOOST_CHECK_EQUAL(dt4.month(),02);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),27);
+
+    // add years
+    dt4=Date{2023,12,27};
+    dt4.addYears(2);
+    BOOST_CHECK_EQUAL(dt4.year(),2025);
+    BOOST_CHECK_EQUAL(dt4.month(),12);
+    BOOST_CHECK_EQUAL(static_cast<int>(dt4.day()),27);
 }
 
 BOOST_AUTO_TEST_CASE(TestTime)
