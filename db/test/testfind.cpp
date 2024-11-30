@@ -380,6 +380,24 @@ BOOST_AUTO_TEST_CASE(OffsetAndLimit)
         BOOST_CHECK_EQUAL(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
         BOOST_CHECK_EQUAL(r2.value().at(foundCount-1).unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+count-1);
 
+        checkCount=0;
+        auto cb3=[&](DbObject obj, Error&) -> bool
+        {
+            if (checkCount==0)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+offset);
+            }
+            else if (checkCount==foundCount-1)
+            {
+                BOOST_CHECK_EQUAL(obj.unit<u1_uint32::type>()->fieldValue(u1_uint32::f1),startVal+count-1);
+            }
+            checkCount++;
+            return true;
+        };
+        ec=client->findCb(m1_uint32(),q3,cb3);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(checkCount,foundCount);
+
         // offset is above count
         offset=count+10;
         limit=15;
@@ -389,6 +407,16 @@ BOOST_AUTO_TEST_CASE(OffsetAndLimit)
         BOOST_REQUIRE(!r2);
         foundCount=0;
         BOOST_REQUIRE_EQUAL(r2.value().size(),foundCount);
+
+        checkCount=0;
+        auto cb4=[&](DbObject obj, Error&) -> bool
+        {
+            checkCount++;
+            return true;
+        };
+        ec=client->findCb(m1_uint32(),q3,cb4);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(checkCount,foundCount);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -907,6 +935,8 @@ BOOST_AUTO_TEST_SUITE_END()
  *  23. Test update repeated fields - done
  *  24. Test count - done
  *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate - done
- *  26. Implement and test find with callback
+ *  26. Implement and test find with callback - done
  *  27. Implement and test repeated subunits
+ *  28. Implement anf test delete topic
+ *  29. Implement and test model-topic relations (with mergge and TTL)
  */
