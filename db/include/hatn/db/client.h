@@ -395,6 +395,46 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        template <typename ModelT>
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAll(
+                const Topic& topic,
+                const std::shared_ptr<ModelT>& model,
+                query::Order order=query::Asc
+            )
+        {
+            HATN_CTX_SCOPE("dbfindall")
+            if (m_open)
+            {
+                auto query=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First,order),topic);
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+
+                return doFind(*model->info,q);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAllPartitioned(
+            const Topic& topic,
+            const std::shared_ptr<ModelT>& model,
+            query::Order order=query::Asc
+            )
+        {
+            HATN_CTX_SCOPE("dbfindall")
+            if (m_open)
+            {
+                auto query=makeQuery(oidIdx(),query::where_partitioned(oidPartitionIdx(),object::_id,query::gte,query::First,order),topic);
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+
+                return doFind(*model->info,q);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         /**
          * @brief findCb
          * @param model

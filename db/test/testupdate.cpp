@@ -261,8 +261,7 @@ BOOST_AUTO_TEST_CASE(ReadUpdate)
         }
 
         // find all objects
-        auto q1=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topic1);
-        auto r1=client->find(modelPlain(),q1);
+        auto r1=client->findAll(topic1,modelPlain());
         BOOST_REQUIRE(!r1);
         BOOST_REQUIRE_EQUAL(r1->size(),count);
         for (size_t i=0;i<count;i++)

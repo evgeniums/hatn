@@ -347,10 +347,14 @@ BOOST_AUTO_TEST_CASE(Crud)
 
                 // check query on partitioned field but without partititions query
                 BOOST_TEST_MESSAGE("Find all by partition field without partition query");
+#if 0
                 auto q1_=makeQuery(queryIdx,
                                     query::where(partitionField,query::gte,query::First),
                                     topic1);
                 r1=client->find(model,q1_);
+#else
+                r1=client->findAllPartitioned(topic1,model);
+#endif
                 BOOST_REQUIRE(!r1);
                 BOOST_CHECK_EQUAL(r1->size(),count);
 #if 0
