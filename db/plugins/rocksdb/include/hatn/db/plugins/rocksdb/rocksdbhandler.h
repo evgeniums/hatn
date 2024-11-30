@@ -26,6 +26,7 @@
 #include <hatn/db/dberror.h>
 #include <hatn/db/model.h>
 #include <hatn/db/transaction.h>
+#include <hatn/db/topic.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 
@@ -72,6 +73,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
         std::shared_ptr<RocksdbSchema> schema() const noexcept;
 
         Error ensureModelSchema(const ModelInfo &model) const;
+
+        Error deleteTopic(const Topic& topic);
 
     private:
 

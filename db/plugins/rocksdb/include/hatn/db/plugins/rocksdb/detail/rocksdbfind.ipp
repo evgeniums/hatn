@@ -138,8 +138,6 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             }
             if (TtlMark::isExpired(value))
             {
-                //! @todo Do we need it? All object indexes must have the same ttl mark,
-                //! so they would be already filtered.
                 pushLogKey();
                 HATN_CTX_WARN("object expired in rocksdb")
                 HATN_CTX_SCOPE_POP()

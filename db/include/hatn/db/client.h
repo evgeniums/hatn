@@ -65,8 +65,6 @@ class HATN_DB_EXPORT Client : public common::WithID
         Client& operator=(const Client&)=delete;
         Client& operator=(Client&&)=default;
 
-        //! @todo Implement Delete topic
-
         bool isOpen() const noexcept
         {
             return m_open;
@@ -195,6 +193,18 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
+
+        Error deleteTopic(const Topic& topic)
+        {
+            HATN_CTX_SCOPE("dbdeletetopic")
+            if (m_open)
+            {
+                return doDeleteTopic(topic);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
 
         template <typename ModelT>
         Error create(const Topic& topic,
@@ -554,6 +564,8 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Result<std::set<common::DateRange>> doListDatePartitions()=0;
+
+        virtual Error doDeleteTopic(const Topic& topic)=0;
 
         virtual Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
 

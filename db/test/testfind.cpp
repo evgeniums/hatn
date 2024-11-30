@@ -711,7 +711,7 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
 {
     init();
 
-    auto s1=initSchema(m1_uint32());
+    auto s1=initSchema(m1_uint32(),m1_int32());
 
     auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
     {
@@ -902,6 +902,83 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
         BOOST_CHECK_EQUAL(r7.value()->fieldValue(u1_uint32::f1),30);
         BOOST_CHECK(r7.value()->fieldValue(object::_id)==o2->fieldValue(object::_id));
         BOOST_CHECK_EQUAL(std::string(r7.value().topic()),std::string(topics[1]));
+
+        // create objects for another model
+        for (size_t i=0;i<count;i++)
+        {
+            auto o=makeInitObject<u1_int32::type>();
+            o.setFieldValue(u1_int32::f1,int32_t(vals[i]));
+            auto ec=client->create(topics[i],m1_int32(),&o);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // find all objects in all topics
+        auto q6=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topics);
+        auto r8=client->find(m1_int32(),q6);
+        BOOST_REQUIRE(!r8);
+        BOOST_CHECK_EQUAL(r8.value().size(),count);
+        auto r9=client->find(m1_uint32(),q6);
+        BOOST_REQUIRE(!r9);
+        BOOST_CHECK_EQUAL(r9.value().size(),count+1+1);
+#if 0
+        BOOST_TEST_MESSAGE("Read u1_uint32 from all topics before delete topic");
+        for (size_t i=0;i<r9.value().size();i++)
+        {
+            std::cout<<"Topic ="<<std::string(r9->at(i).topic())
+                      << " f1="<<r9->at(i).as<u1_uint32::type>()->fieldValue(u1_uint32::f1)
+                      <<std::endl;
+        }
+#endif
+        // find all objects in topics[2]
+        auto q7=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topics[2]);
+        r8=client->find(m1_int32(),q7);
+        BOOST_REQUIRE(!r8);
+        BOOST_CHECK_EQUAL(r8.value().size(),1);
+        r9=client->find(m1_uint32(),q7);
+        BOOST_REQUIRE(!r9);
+        BOOST_CHECK_EQUAL(r9.value().size(),2);
+
+        // delete topic
+        ec=client->deleteTopic(topics[2]);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"Failed to delete topic")
+        }
+        BOOST_REQUIRE(!ec);
+
+        // find all objects in all topics
+        r8=client->find(m1_int32(),q6);
+        BOOST_REQUIRE(!r8);
+        BOOST_CHECK_EQUAL(r8.value().size(),count-1);
+        r9=client->find(m1_uint32(),q6);
+        BOOST_REQUIRE(!r9);
+        BOOST_CHECK_EQUAL(r9.value().size(),count+1+1-2);
+#if 0
+        BOOST_TEST_MESSAGE("Read u1_uint32 from all topics after delete topic");
+        for (size_t i=0;i<r9.value().size();i++)
+        {
+            std::cout<<"Topic ="<<std::string(r9->at(i).topic())
+                      << " f1="<<r9->at(i).as<u1_uint32::type>()->fieldValue(u1_uint32::f1)
+                      <<std::endl;
+        }
+#endif
+        // find all objects in topics[2]
+        r8=client->find(m1_int32(),q7);
+        BOOST_REQUIRE(!r8);
+        BOOST_CHECK_EQUAL(r8.value().size(),0);
+        r9=client->find(m1_uint32(),q7);
+        BOOST_REQUIRE(!r9);
+        BOOST_CHECK_EQUAL(r9.value().size(),0);
+
+        // write object to topics[2] again
+        auto o3=makeInitObject<u1_uint32::type>();
+        o3.setFieldValue(u1_uint32::f1,30000);
+        ec=client->create(topics[2],m1_uint32(),&o3);
+        BOOST_REQUIRE(!ec);
+        r9=client->find(m1_uint32(),q7);
+        BOOST_REQUIRE(!r9);
+        BOOST_REQUIRE_EQUAL(r9.value().size(),1);
+        BOOST_CHECK_EQUAL(r9->at(0).as<u1_uint32::type>()->fieldValue(u1_uint32::f1),30000);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -910,33 +987,33 @@ BOOST_AUTO_TEST_SUITE_END()
 
 /** @todo Test:
  *
- *  1. Test find scalar types - done
- *  2. Test find strings - done
- *  3. Test find Oid/DateTime/date/Time/DateRange - done
- *  4. Test find intervals - done
- *  5. Test find vectors - done
- *  6. Test ordering - done
- *  7. Test timepoint filtering - done
- *  8. Test limits - done
- *  9. Test partitions - done
- *  10. Test TTL - done
- *  11. Test nested index fields - done
- *  12. Test compound indexes - done
- *  13. Test repeated field indexes - done
- *  14. Test query offset - done
- *  15. Test delete with query - done
- *  16. Test find-update-create - done
- *  17. Test update - done
- *  18. Test find Null - done
- *  19. Test unique indexes - done
+ *  1.  done: Test find scalar types
+ *  2.  done: Test find strings
+ *  3.  done: Test find Oid/DateTime/date/Time/DateRange
+ *  4.  done: Test find intervals
+ *  5.  done: Test find vectors
+ *  6.  done: Test ordering
+ *  7.  done: Test timepoint filtering
+ *  8.  done: Test limits
+ *  9.  done: Test partitions
+ *  10. done: Test TTL
+ *  11. done: Test nested index fields
+ *  12. done: Test compound indexes
+ *  13. done: Test repeated field indexes
+ *  14. done: Test query offset
+ *  15. done: Test delete with query
+ *  16. done: Test find-update-create
+ *  17. done: Test update
+ *  18. done: Test find Null
+ *  19. done: Test unique indexes
  *  20. Test vectors of intervals
  *  21. Test transactions
- *  22. Test update nested fields - done
- *  23. Test update repeated fields - done
- *  24. Test count - done
- *  25. Test multiple topics: find/findOne/findUpdate/findUpdateCreate - done
- *  26. Implement and test find with callback - done
+ *  22. done: Test update nested fields
+ *  23. done: Test update repeated fields
+ *  24. done: Test count
+ *  25. done: Test multiple topics: find/findOne/findUpdate/findUpdateCreate
+ *  26. done: Implement and test find with callback
  *  27. Implement and test repeated subunits
- *  28. Implement anf test delete topic
+ *  28. done: Implement and test delete topic
  *  29. Implement and test model-topic relations (with merge and TTL)
  */

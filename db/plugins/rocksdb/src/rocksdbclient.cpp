@@ -920,4 +920,11 @@ Error RocksdbClient::doFindCb(
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doDeleteTopic(const Topic &topic)
+{
+    return d->handler->deleteTopic(topic);
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

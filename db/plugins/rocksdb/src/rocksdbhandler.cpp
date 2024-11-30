@@ -357,4 +357,74 @@ Error RocksdbHandler::ensureModelSchema(const ModelInfo &model) const
 
 //---------------------------------------------------------------
 
+Error RocksdbHandler::deleteTopic(const Topic& topic)
+{
+    KeyBuf startB;
+    startB.append(topic.topic());
+    startB.append(SeparatorCharStr);
+    ROCKSDB_NAMESPACE::Slice start{startB.data(),startB.size()};
+    KeyBuf stopB;
+    stopB.append(topic.topic());
+    stopB.append(SeparatorCharPlusStr);
+    ROCKSDB_NAMESPACE::Slice stop{stopB.data(),stopB.size()};
+
+    //! @todo Refactor it when TransactionDb supports DeleteRange
+    //! @note Lock any access to a topic when delete topic is called
+
+    ROCKSDB_NAMESPACE::WriteBatch batch;
+
+    // handler to delete from column family using writ batch
+    auto deleteFromCf=[&batch,&start,&stop,this](ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
+    {
+        auto status=batch.DeleteRange(
+                           cf,
+                           start,stop);
+        if (!status.ok())
+        {
+            return makeError(DbError::DELETE_TOPIC_FAILED,status);
+        }
+        return Error{OK};
+    };
+
+    // handler to delete from partition
+    auto deleteFromPartition=[&deleteFromCf](RocksdbPartition* partition)
+    {
+        auto ec=deleteFromCf(partition->collectionCf.get());
+        HATN_CHECK_EC(ec)
+        ec=deleteFromCf(partition->indexCf.get());
+        HATN_CHECK_EC(ec)
+
+        return Error{OK};
+    };
+
+    // delete from default partiton
+    auto ec=deleteFromPartition(d->defaultPartition.get());
+    HATN_CHECK_EC(ec)
+    {
+        // delete from date partitons
+        common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+        for (auto&& partition: d->partitions)
+        {
+            ec=deleteFromPartition(partition.get());
+            HATN_CHECK_EC(ec)
+        }
+    }
+
+    // send write batch to db
+    ROCKSDB_NAMESPACE::TransactionDBWriteOptimizations txOpts;
+    txOpts.skip_concurrency_control=true;
+    txOpts.skip_duplicate_key_check=true;
+    auto opts=d->writeOptions;
+    auto status=d->transactionDb->Write(opts,txOpts,&batch);
+    if (!status.ok())
+    {
+        return makeError(DbError::DELETE_TOPIC_FAILED,status);
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

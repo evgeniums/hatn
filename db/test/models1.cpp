@@ -39,6 +39,7 @@ void registerModels1()
     rdb::RocksdbModels::instance().registerModel(m1_int8());
     rdb::RocksdbModels::instance().registerModel(m1_uint32());
     rdb::RocksdbModels::instance().registerModel(m1_str());
+    rdb::RocksdbModels::instance().registerModel(m1_int32());
 
 #endif    
 }

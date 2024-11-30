@@ -53,7 +53,8 @@
     Do(DbError,PARTITION_LIST_FAILED,_TR("failed to list database partitions","db")) \
     Do(DbError,DELETE_INDEX_FAILED,_TR("failed to delete index from database","db")) \
     Do(DbError,DELETE_OBJECT_FAILED,_TR("failed to delete object from database","db")) \
-    Do(DbError,DELETE_TTL_INDEX_FAILED,_TR("failed to delete ttl index in database","db"))
+    Do(DbError,DELETE_TTL_INDEX_FAILED,_TR("failed to delete ttl index in database","db")) \
+    Do(DbError,DELETE_TOPIC_FAILED,_TR("failed to delete topic from database","db"))
 
 HATN_DB_NAMESPACE_BEGIN
 

@@ -60,6 +60,8 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Result<std::set<common::DateRange>> doListDatePartitions() override;
 
+        Error doDeleteTopic(const Topic& topic) override;
+
         Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
         Result<DbObject> doRead(const Topic& topic,
