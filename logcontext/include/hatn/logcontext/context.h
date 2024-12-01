@@ -445,7 +445,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE_POP() \
     HATN_CTX_IF() \
-        ScopeCtx->popStackVar();
+        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->popStackVar();
 
 #define HATN_CTX_RESET() \
     HATN_CTX_IF() \
