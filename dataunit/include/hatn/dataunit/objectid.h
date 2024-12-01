@@ -194,7 +194,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
 };
 
 //! Definition of DateTime type
-struct HATN_DATAUNIT_EXPORT Oid : public BaseType<ObjectId,std::true_type,ValueType::Custom>
+struct HATN_DATAUNIT_EXPORT OidType : public BaseType<ObjectId,std::true_type,ValueType::Custom>
 {
     using CustomType=std::true_type;
 };
@@ -203,7 +203,7 @@ class OidTraits
 {
     public:
 
-        using TYPE=Oid;
+        using TYPE=OidType;
         using type=ObjectId;
 
         using maxSize=std::integral_constant<int,ObjectId::Length>;
@@ -233,7 +233,7 @@ class OidTraits
 using OidField=CustomField<OidTraits>;
 
 template <>
-struct FieldTmpl<Oid> : public OidField
+struct FieldTmpl<OidType> : public OidField
 {
     using OidField::OidField;
 
@@ -290,7 +290,7 @@ struct FieldReader<TYPE,
                    std::enable_if_t<
                        !FieldType::isRepeatedType::value
                        &&
-                       std::is_same<TYPE,Oid>::value
+                       std::is_same<TYPE,OidType>::value
                        >
                    > : public FieldReaderBase<FieldType>
 {
@@ -314,7 +314,7 @@ struct FieldReader<TYPE,
                    std::enable_if_t<
                        FieldType::isRepeatedType::value
                        &&
-                       std::is_same<TYPE,Oid>::value
+                       std::is_same<TYPE,OidType>::value
                        >
                    > : public FieldReaderBase<FieldType>
 {
@@ -360,7 +360,7 @@ struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<ObjectId,std::decay_t<T>
 
 namespace types
 {
-using TYPE_OBJECT_ID=Oid;
+using TYPE_OBJECT_ID=OidType;
 }
 
 HATN_DATAUNIT_NAMESPACE_END
