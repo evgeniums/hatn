@@ -288,12 +288,12 @@ BOOST_FIXTURE_TEST_CASE(Rollback, HATN_TEST_NAMESPACE::DbTestFixture)
             ec=client->deleteObject(topic1,model1(),oid6,tx);
             HATN_CHECK_EC(ec)
 
-            auto q7=makeQuery(oidIdx(),query::where(db::Oid,query::eq,oid7),topic1);
+            auto q7=makeQuery(oidIdx(),query::where(Oid,query::eq,oid7),topic1);
             ec=client->deleteMany(model1(),q7,tx);
             HATN_CHECK_EC(ec)
 
             std::vector<ObjectId> v89{oid8,oid9};
-            auto q89=makeQuery(oidIdx(),query::where(db::Oid,query::in,v89),topic1);
+            auto q89=makeQuery(oidIdx(),query::where(Oid,query::in,v89),topic1);
             ec=client->updateMany(model1(),q89,setReq89,tx);
             HATN_CHECK_EC(ec)
 
@@ -378,6 +378,89 @@ BOOST_FIXTURE_TEST_CASE(Rollback, HATN_TEST_NAMESPACE::DbTestFixture)
         auto r9=client->read(topic1,model1(),oid9);
         BOOST_REQUIRE(!r9);
         BOOST_CHECK_EQUAL(std::string(r9.value()->fieldValue(u1::f2)),std::string("Updated many"));
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
+{
+    init();
+
+    auto s1=initSchema(model1());
+
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        Topic topic1{"topic1"};
+
+        // create objects
+        auto o=makeInitObject<u1::type>();
+        auto ec=client->create(topic1,model1(),&o);
+        BOOST_REQUIRE(!ec);
+        auto oid=o.fieldValue(object::_id);
+
+        BOOST_TEST_MESSAGE("Increment object's field concurrently");
+        size_t count=10000;
+        int jobs=8;
+        std::atomic<size_t> doneCount{0};
+        auto handler=[&,this](size_t idx)
+        {
+            auto logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+            logCtx->beforeThreadProcessing();
+
+            for (size_t i=0;i<count;i++)
+            {
+                auto tx1=[&](Transaction* tx) -> Error
+                {
+                    auto r=client->read(topic1,model1(),oid,tx,true);
+                    HATN_CHECK_RESULT(r);
+                    auto current=r.value()->fieldValue(u1::f3);
+
+                    auto incReq=update::request(update::field(u1::f1,update::inc,1),
+                                                update::field(u1::f3,update::set,current+10)
+                                               );
+                    auto ec=client->update(topic1,model1(),oid,incReq,tx);
+                    HATN_CHECK_EC(ec);
+                    return Error{OK};
+                };
+                ec=client->transaction(tx1);
+                BOOST_REQUIRE(!ec);
+            }
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
+            if (++doneCount==jobs)
+            {
+                this->quit();
+            }
+
+            logCtx->afterThreadProcessing();
+        };
+
+        // run threads
+        createThreads(jobs+1);
+        thread(0)->start(false);
+        for (int j=0;j<jobs;j++)
+        {
+            thread(j+1)->execAsync(
+                [&handler,j]()
+                {
+                    handler(j);
+                }
+                );
+            thread(j+1)->start(false);
+        }
+        exec(60);
+        thread(0)->stop();
+        for (int j=0;j<jobs;j++)
+        {
+            thread(j+1)->stop();
+        }
+
+        // check result
+        auto r1=client->read(topic1,model1(),oid);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
