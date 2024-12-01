@@ -66,7 +66,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Client& operator=(Client&&)=default;
 
         bool isOpen() const noexcept
-        {
+        {            
             return m_open;
         }
 
@@ -93,6 +93,12 @@ class HATN_DB_EXPORT Client : public common::WithID
             return ec;
         }
 
+        /**
+         * @brief closeDb
+         * @return
+         *
+         * @note Not thread safe! Before closing db make sure that all other threads with db access are not running.
+         */
         Error closeDb()
         {
             HATN_CTX_SCOPE("dbclosedb")
@@ -187,7 +193,7 @@ class HATN_DB_EXPORT Client : public common::WithID
          * @param from
          * @return
          *
-         * @note Lock access to partitions before calling this method.
+         * @note Not thread safe! Before deleting partitions make sure that all other threads with db access are not running.
          */
         Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
                                    const common::Date& from)
@@ -203,6 +209,13 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         static std::set<common::DateRange> datePartitionRanges(const std::vector<ModelInfo>& models, const common::Date& to, const common::Date& from=common::Date{});
 
+        /**
+         * @brief deleteTopic
+         * @param topic
+         * @return
+         *
+         * @note Currently not thread safe per topic. Make sure that other threads do not have access to the topic.
+         */
         Error deleteTopic(const Topic& topic)
         {
             HATN_CTX_SCOPE("dbdeletetopic")
