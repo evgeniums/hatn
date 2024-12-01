@@ -41,7 +41,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         using KeyBufT=common::pmr::string;
 
-        using ObjectKeyValue=std::tuple<std::array<ROCKSDB_NAMESPACE::Slice,8>,uint32_t>;
+        using ObjectKeyValue=std::array<ROCKSDB_NAMESPACE::Slice,8>;
 
         constexpr static const size_t PreallocatedBuffersCount=8;
 
@@ -107,16 +107,18 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
         static ObjectKeyValue makeObjectKeyValue(const std::string& modelId,
                                        const lib::string_view& topic,
                                        const ROCKSDB_NAMESPACE::Slice& objectId,
+                                       uint32_t* timestamp,
                                        const common::DateTime& timepoint,
                                        const TtlMark& ttlMark
                                        ) noexcept
         {
-            return makeObjectKeyValue(modelId,topic,objectId,timepoint,ttlMark.slice());
+            return makeObjectKeyValue(modelId,topic,objectId,timestamp,timepoint,ttlMark.slice());
         }
 
         static ObjectKeyValue makeObjectKeyValue(const std::string& modelId,
                                        const lib::string_view& topic,
                                        const ROCKSDB_NAMESPACE::Slice& objectId,
+                                       uint32_t* timestamp=nullptr,
                                        const common::DateTime& timepoint=common::DateTime{},
                                        const ROCKSDB_NAMESPACE::Slice& ttlMark=ROCKSDB_NAMESPACE::Slice{}
                                        ) noexcept;

@@ -159,7 +159,7 @@ Error DeleteObjectT::operator ()(
     // construct object key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
+    auto objKeyVal=keys.makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
 
     // delete object

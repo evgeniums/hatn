@@ -231,7 +231,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
         if (!newKeys.empty())
         {
             const auto& objectCreatedAt=obj->field(object::created_at).value();
-            auto [objectKeyFull,_]=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,objectCreatedAt,ttlMarkSlice);
+            uint32_t timestamp=0;
+            auto objectKeyFull=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,&timestamp,objectCreatedAt,ttlMarkSlice);
             auto indexValue=Keys::indexValueSlices(objectKeyFull);
             for (auto&& newKey : newKeys)
             {
@@ -320,7 +321,7 @@ Result<DbObject> UpdateObjectT::operator ()(
     // construct key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto [objKeyVal,_]=keys.makeObjectKeyValue(model.modelIdStr(),topic.topic(),objectIdS);
+    auto objKeyVal=keys.makeObjectKeyValue(model.modelIdStr(),topic.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
 
     // do

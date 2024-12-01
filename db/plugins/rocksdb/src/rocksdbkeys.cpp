@@ -36,12 +36,12 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 Keys::ObjectKeyValue Keys::makeObjectKeyValue(const std::string& modelId,
                                const lib::string_view& topic,
                                const ROCKSDB_NAMESPACE::Slice& objectId,
+                               uint32_t* timestamp,
                                const common::DateTime& timepoint,
                                const ROCKSDB_NAMESPACE::Slice& ttlMark
                                ) noexcept
 {
-    auto r=std::make_tuple(std::array<ROCKSDB_NAMESPACE::Slice,8>{},uint32_t{0});
-    auto& parts=std::get<0>(r);
+    auto parts=std::array<ROCKSDB_NAMESPACE::Slice,8>{};
 
     // first byte is version of index format
     parts[0]=ROCKSDB_NAMESPACE::Slice{&ObjectIndexVersion,sizeof(ObjectIndexVersion)};
@@ -54,20 +54,19 @@ Keys::ObjectKeyValue Keys::makeObjectKeyValue(const std::string& modelId,
     parts[5]=objectId;
 
     //! @note timepoint and ttl mark are empty ONLY when key is generated for search
-    if (!timepoint.isNull() && !ttlMark.empty())
+    if (timestamp!= nullptr && !timepoint.isNull() && !ttlMark.empty())
     {
         // 4 bytes for current timestamp
-        uint32_t& timestamp=std::get<1>(r);
-        timestamp=timepoint.toEpoch();
-        boost::endian::native_to_little_inplace(timestamp);
-        parts[6]=ROCKSDB_NAMESPACE::Slice{reinterpret_cast<const char*>(&timestamp),TimestampSize};
+        *timestamp=timepoint.toEpoch();
+        boost::endian::native_to_little_inplace(*timestamp);
+        parts[6]=ROCKSDB_NAMESPACE::Slice{reinterpret_cast<const char*>(timestamp),TimestampSize};
 
         // ttl mark is the last slice
         parts[7]=ttlMark;
     }
 
     // done
-    return r;
+    return parts;
 }
 
 ROCKSDB_NAMESPACE::Slice Keys::objectKeyFromIndexValue(const char* ptr, size_t size)

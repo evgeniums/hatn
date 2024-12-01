@@ -57,6 +57,15 @@ class TimePointFilter
             {
                 for (const auto& tpInterval : *m_intervals)
                 {
+
+//! @maybe Log debug
+#if 0
+                    std::cout << " from="<<tpInterval.from.value
+                              << " tp="<<timepoint
+                              << " to="<<tpInterval.to.value
+                              << " filtered="<<tpInterval.contains(timepoint)
+                              << std::endl;
+#endif
                     if (tpInterval.contains(timepoint))
                     {
                         // filtered

@@ -137,7 +137,7 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
             auto dt=common::DateTime::currentUtc();
             if (i>=(count/4))
             {
-                dt.addSeconds(5);
+                dt.addSeconds(10);
             }
             o.setFieldValue(u1::f2,static_cast<uint32_t>(i));
             o.setFieldValue(u1::f1,dt);
@@ -210,10 +210,15 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
             BOOST_TEST_MESSAGE(fmt::format("failed to re-open database: {}",ec.message()));
         }
         BOOST_REQUIRE(!ec);
+        setSchemaToClient(client,s1);
 
         // read after reopen
         r1=client->find(model1(),q1);
-        BOOST_CHECK(!r1);
+        if (r1)
+        {
+            HATN_CTX_ERROR(r1.error(),"failed to read after reopen");
+        }
+        BOOST_REQUIRE(!r1);
         BOOST_CHECK_EQUAL(r1->size(),3*count/4);
 
         // wait for 3 seconds
@@ -233,6 +238,7 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
             BOOST_TEST_MESSAGE(fmt::format("failed to re-open database: {}",ec.message()));
         }
         BOOST_REQUIRE(!ec);
+        setSchemaToClient(client,s1);
 
         // read after reopen 2
         r1=client->find(model1(),q1);
@@ -243,6 +249,10 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_REQUIRE(r2);
         BOOST_CHECK(r2.error().is(DbError::NOT_FOUND));
         r3=client->read(topic1,model1(),oids[oids.size()-1]);
+        if (r3)
+        {
+            HATN_CTX_ERROR(r3.error(),"failed to read r2 after reopen 2");
+        }
         BOOST_REQUIRE(!r3);
 
         // clear all
@@ -353,7 +363,7 @@ BOOST_FIXTURE_TEST_CASE(TimeFilter, HATN_TEST_NAMESPACE::DbTestFixture)
 
         // fill db
         std::set<size_t> checkVec;
-        for (size_t i=0;i<count;i++)
+        for (int i=0;i<count;i++)
         {
             checkVec.insert(i);
             auto o=makeInitObject<u1::type>();
@@ -401,6 +411,13 @@ BOOST_FIXTURE_TEST_CASE(TimeFilter, HATN_TEST_NAMESPACE::DbTestFixture)
         from2.addDays(-5);
         auto to2=common::DateTime::currentUtc();
         to2.addDays(-4);
+#if 0
+        std::cout<<" from1="<<from1.toIsoString()
+                 <<" to1="<<to1.toIsoString()
+                  <<" from2="<<from2.toIsoString()
+                  <<" to2="<<to2.toIsoString()
+                  <<std::endl;
+#endif
         auto tpIntervals=makeTpIntervals(
                 tpInterval(from1,to1),
                 tpInterval(from2,to2)
