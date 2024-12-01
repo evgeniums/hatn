@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  18. done: Test find Null
  *  19. done: Test unique indexes
  *  20. Test vectors of intervals
- *  21. Test transactions
+ *  21. done: Test transactions
  *  22. done: Test update nested fields
  *  23. done: Test update repeated fields
  *  24. done: Test count

@@ -239,8 +239,6 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
     }
     auto partition=*it;
 
-    //! @todo Drop column families in destructor for multithreaded support
-
     // drop column families
     if (partition->indexCf)
     {

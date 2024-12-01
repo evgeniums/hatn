@@ -180,6 +180,15 @@ class HATN_DB_EXPORT Client : public common::WithID
             return doListDatePartitions();
         }
 
+        /**
+         * @brief deleteDatePartitions
+         * @param models
+         * @param to
+         * @param from
+         * @return
+         *
+         * @note Lock access to partitions before calling this method.
+         */
         Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
                                    const common::Date& from)
         {
