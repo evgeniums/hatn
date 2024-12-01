@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         BOOST_REQUIRE(!ec);
 
         // find object by f_bool
-        auto q=makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false));
+        auto q=makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),"topic1");
         std::cout<<"operand type="<<static_cast<int>(q.fields().at(0).value.typeId())<<std::endl;
         std::cout<<"operand value="<<static_cast<bool>(q.fields().at(0).value.as<query::BoolValue>())<<std::endl;
         common::FmtAllocatedBufferChar buf;

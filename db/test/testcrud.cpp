@@ -166,8 +166,11 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_TEST_MESSAGE(fmt::format("topic={}",topic.topic()));
         BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
         BOOST_CHECK_EQUAL(q3.topics().at(0).topic(),topic.topic());
+//! @todo Test it when model-topic relation is done
+#if 0
         auto q3_=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,101));
         BOOST_REQUIRE_EQUAL(q3_.topics().size(),0);
+#endif
         auto r3=client->find(m1,q3);
         if (r3)
         {

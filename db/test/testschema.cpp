@@ -81,8 +81,8 @@ BOOST_AUTO_TEST_CASE(MakeIndexQuery)
     ObjectId oid1;
     oid1.generate();
 
-    auto q0=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1));
-    BOOST_CHECK_EQUAL(q0.topics().size(),0);
+    auto q0=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1),"topic1");
+    BOOST_CHECK_EQUAL(q0.topics().size(),1);
     BOOST_CHECK_EQUAL(q0.fields().size(),1);
 
     auto q1=makeQuery(oidIdx(),query::where(object::_id,query::Operator::eq,oid1),"topic1");
