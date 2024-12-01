@@ -27,6 +27,7 @@ SET (TEST_SOURCES
 
     ${DB_TEST_SRC}/testpartitions.cpp
     ${DB_TEST_SRC}/testttl.cpp
+    ${DB_TEST_SRC}/testtransaction.cpp
 )
 
 SET (TEST_HEADERS

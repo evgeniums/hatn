@@ -134,8 +134,6 @@ struct partitionFieldVisitor
 
     void allPartitions()
     {
-        common::lib::shared_lock<common::lib::shared_mutex> l{handler.p()->partitionMutex};
-
         const auto& all=handler.p()->partitions;
         partitions.beginRawInsert(all.size());
         for (size_t i=0;i<all.size();i++)

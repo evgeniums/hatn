@@ -239,6 +239,8 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
     }
     auto partition=*it;
 
+    //! @todo Drop column families in destructor for multithreaded support
+
     // drop column families
     if (partition->indexCf)
     {
@@ -402,7 +404,7 @@ Error RocksdbHandler::deleteTopic(const Topic& topic)
     HATN_CHECK_EC(ec)
     {
         // delete from date partitons
-        common::lib::unique_lock<common::lib::shared_mutex> l{d->partitionMutex};
+        common::lib::shared_lock<common::lib::shared_mutex> l{d->partitionMutex};
         for (auto&& partition: d->partitions)
         {
             ec=deleteFromPartition(partition.get());
