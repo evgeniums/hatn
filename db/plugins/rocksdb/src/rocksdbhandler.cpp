@@ -137,12 +137,15 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
         if (it!=d->partitions.end())
         {
             partition=*it;
-            if (partition->collectionCf && partition->indexCf && partition->ttlCf)
-            {
-                HATN_CTX_DEBUG_RECORDS("date partition exists",{"partition",range.toString()});
-                return partition;
-            }
+            Assert(!(partition->collectionCf && partition->indexCf && partition->ttlCf),
+                   "All column families already set"
+                   );
+            return partition;
         }
+    }
+    if (!partition)
+    {
+        partition=std::make_shared<RocksdbPartition>(range);
     }
 
     // create column families
@@ -151,7 +154,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
 
-    if (!partition || !partition->collectionCf)
+    if (!partition->collectionCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->collColumnFamilyOptions,
                                                                          RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Collection,range),
@@ -162,13 +165,10 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
             HATN_CTX_SCOPE_ERROR("collection-column-family")
             return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
-        if (partition)
-        {
-            partition->collectionCf.reset(collectionCf);
-        }
+        partition->collectionCf.reset(collectionCf);
     }
 
-    if (!partition || !partition->indexCf)
+    if (!partition->indexCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->indexColumnFamilyOptions,
                                                                     RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Index,range),
@@ -179,13 +179,10 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
             HATN_CTX_SCOPE_ERROR("index-column-family")
             return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
-        if (partition)
-        {
-            partition->indexCf.reset(indexCf);
-        }
+        partition->indexCf.reset(indexCf);
     }
 
-    if (!partition || !partition->ttlCf)
+    if (!partition->ttlCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->ttlColumnFamilyOptions,
                                                                     RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Ttl,range),
@@ -196,16 +193,12 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
             HATN_CTX_SCOPE_ERROR("ttl-column-family")
             return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
-        if (partition)
-        {
-            partition->ttlCf.reset(ttlCf);
-        }
+        partition->ttlCf.reset(ttlCf);
     }
 
     // keep partition
-    if (!partition && !range.isNull())
+    if (!range.isNull())
     {
-        partition=std::make_shared<RocksdbPartition>(collectionCf,indexCf,ttlCf,range);
         d->partitions.insert(std::move(partition));
     }
 
