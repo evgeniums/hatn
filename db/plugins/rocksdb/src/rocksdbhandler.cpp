@@ -154,6 +154,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
 
+    //! @todo Bulk create column families with CreateColumnFamileis()
     if (!partition->collectionCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->collColumnFamilyOptions,
