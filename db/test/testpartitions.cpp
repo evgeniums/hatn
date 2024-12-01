@@ -328,6 +328,10 @@ BOOST_AUTO_TEST_CASE(Crud)
                 // find object in default partition
                 auto q0=makeQuery(df3Idx(),query::where(base_fields::df3,query::eq,"Hello world!"),topic1);
                 auto r0=client->findOne(modelNoP(),q0);
+                if (r0)
+                {
+                    HATN_CTX_ERROR(r0.error(),"failed to find object in defaule partition")
+                }
                 BOOST_REQUIRE(!r0);
                 BOOST_CHECK(r0.value()->fieldValue(base_fields::df3)==lib::string_view("Hello world!"));
 
@@ -525,6 +529,7 @@ BOOST_AUTO_TEST_CASE(Crud)
                 BOOST_TEST_MESSAGE(fmt::format("failed to re-open database: {}",ec.message()));
             }
             BOOST_REQUIRE(!ec);
+            setSchemaToClient(client,s1);
 
             // find objects in reopened db
             BOOST_TEST_MESSAGE("Reopen db and re-run objects finding");
