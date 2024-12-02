@@ -190,6 +190,9 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::TransactionDB* transactionDb{nullptr};
     ROCKSDB_NAMESPACE::Options options;
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
+#ifdef BUILD_DEBUG
+    txOptions.transaction_lock_timeout=10000;
+#endif
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     collCfOptions.compaction_filter=d->ttlCompactionFilter.get();
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;

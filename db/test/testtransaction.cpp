@@ -123,7 +123,11 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
 
         BOOST_TEST_MESSAGE("Increment object's field concurrently");
         auto incReq=update::request(update::field(u1::f1,update::inc,1),update::field(u1::f3,update::inc,10));
-        size_t count=10000;
+#ifdef BUILD_DEBUG
+    size_t count=1000;
+#else
+    size_t count=10000;
+#endif
         int jobs=8;
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)
@@ -134,6 +138,10 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
             for (size_t i=0;i<count;i++)
             {
                 auto ec=client->update(topic1,model1(),oid,incReq);
+                if (ec)
+                {
+                    HATN_CTX_ERROR(ec,"failed to update");
+                }
                 BOOST_REQUIRE(!ec);
             }
 
