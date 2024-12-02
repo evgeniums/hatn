@@ -55,7 +55,9 @@
     Do(DbError,DELETE_OBJECT_FAILED,_TR("failed to delete object from database","db")) \
     Do(DbError,DELETE_TTL_INDEX_FAILED,_TR("failed to delete ttl index in database","db")) \
     Do(DbError,DELETE_TOPIC_FAILED,_TR("failed to delete topic from database","db")) \
-    Do(DbError,TX_ROLLBACK,_TR("transaction rollback","db"))
+    Do(DbError,TX_ROLLBACK,_TR("transaction rollback","db")) \
+    Do(DbError,MODEL_TOPIC_RELATION_SAVE,_TR("failed to save model-topic relation","db")) \
+    Do(DbError,MODEL_TOPIC_RELATION_DESER,_TR("failed to deserialize model-topic relation","db"))
 
 HATN_DB_NAMESPACE_BEGIN
 

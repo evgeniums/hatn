@@ -75,24 +75,36 @@ bool TtlMark::isExpired(uint32_t tp, uint32_t currentTp) noexcept
 
 bool TtlMark::isExpired(const char *data, size_t size, uint32_t currentTp) noexcept
 {
-    if (size==0)
+    auto tp=ttlMarkTimepoint(data,size);
+    if (tp==0)
     {
         return false;
+    }
+    return isExpired(tp,currentTp);
+}
+
+//---------------------------------------------------------------
+
+uint32_t TtlMark::ttlMarkTimepoint(const char *data, size_t size) noexcept
+{
+    if (size==0)
+    {
+        return 0;
     }
     if (data[size-1]==0)
     {
-        return false;
+        return 0;
     }
     if (size<TtlMark::Size)
     {
-        return false;
+        return 0;
     }
 
     uint32_t tp=0;
     memcpy(&tp,data+size-TtlMark::Size,TtlMark::Size-1);
     boost::endian::little_to_native_inplace(tp);
 
-    return isExpired(tp,currentTp);
+    return tp;
 }
 
 //---------------------------------------------------------------

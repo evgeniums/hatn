@@ -32,6 +32,7 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/ttlmark.h
     include/hatn/db/plugins/rocksdb/indexkeysearch.h
     include/hatn/db/plugins/rocksdb/rocksdbkeys.h
+    include/hatn/db/plugins/rocksdb/modeltopics.h
 )
 
 SET(SCHEMA_DETAIL_HEADERS
@@ -68,7 +69,8 @@ SET (SCHEMA_SOURCES
     src/saveuniquekey.cpp
     src/savesingleindex.cpp
     src/indexkeysearch.cpp
-    src/ttlmark.cpp    
+    src/ttlmark.cpp
+    src/modeltopics.cpp
 )
 
 ADD_LIBRARY(hatnrocksdbschema ${LINK_TYPE} ${SCHEMA_HEADERS} ${SCHEMA_SOURCES} ${SCHEMA_DETAIL_HEADERS})

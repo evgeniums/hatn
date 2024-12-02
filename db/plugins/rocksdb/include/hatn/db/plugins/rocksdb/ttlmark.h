@@ -38,9 +38,35 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
     public:
 
         constexpr static size_t Size=5;
+        using ExpireAt=std::array<char,Size>;
+        constexpr static size_t MinSize=1;
 
         TtlMark(): m_size(0)
         {}
+
+        bool isNull() const noexcept
+        {
+            return m_size==0;
+        }
+
+        void load(const char* data, size_t size)
+        {
+            Assert(size<=Size,"Invalid data size to load TTL");
+            memcpy(m_expireAt.data(),data,size);
+            m_size=size;
+        }
+
+        size_t copy(char* data, size_t maxSize) const
+        {
+            Assert(maxSize>=m_size,"Invalid data size to copy from TTL");
+            memcpy(data,m_expireAt.data(),m_size);
+            return m_size;
+        }
+
+        size_t size() const noexcept
+        {
+            return m_size;
+        }
 
         template <typename ModelT, typename UnitT>
         void fill(
@@ -108,6 +134,11 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
             return ROCKSDB_NAMESPACE::Slice{m_expireAt.data(),m_size};
         }
 
+        uint32_t timepoint() const noexcept
+        {
+            return ttlMarkTimepoint(m_expireAt.data(),m_size);
+        }
+
         static uint32_t currentTimepoint() noexcept;
 
         static void refreshCurrentTimepoint();
@@ -125,6 +156,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
         {
             return isExpired(slice.data(),slice.size(),currentTp);
         }
+
+        static uint32_t ttlMarkTimepoint(const char *data, size_t size) noexcept;
 
         static size_t ttlMarkOffset(const char *data, size_t size) noexcept
         {
@@ -156,12 +189,12 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
         {
             auto offset=ttlMarkOffset(slice.data(),slice.size());
             return ROCKSDB_NAMESPACE::Slice{slice.data()+slice.size()-offset,offset};
-        }
+        }                
 
     private:
 
         size_t m_size;
-        std::array<char,5> m_expireAt; // 4 bytes for uint timepoint + 1 byte for flag (1 - expire, 0 - ttl disabled)
+        ExpireAt m_expireAt; // 4 bytes for uint timepoint + 1 byte for flag (1 - expire, 0 - ttl disabled)
 };
 
 HATN_ROCKSDB_NAMESPACE_END

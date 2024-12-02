@@ -65,6 +65,9 @@ constexpr static const char EmptyCharC=0xF7;
 constexpr static const char* EmptyChar=&EmptyCharC;
 constexpr lib::string_view EmptyCharStr{EmptyChar,1};
 
+//! @todo Validate that topics do not start with internal prefix
+constexpr static const char InternalPrefixC=0xFF;
+
 constexpr static const char NullCharC=0x00;
 constexpr static const char SpaceCharC=32;
 constexpr static const char BackSlashCharC=92;
