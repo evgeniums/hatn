@@ -685,8 +685,9 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
         BOOST_REQUIRE_EQUAL(r4.value().size(),20);
 
         // delete objects
-        ec=client->deleteMany(m1_uint32(),q2);
-        BOOST_REQUIRE(!ec);
+        auto rd=client->deleteMany(m1_uint32(),q2);
+        BOOST_REQUIRE(!rd);
+        BOOST_CHECK_EQUAL(rd.value(),10);
 
         // check objects after delete
         r1=client->find(m1_uint32(),q1);
@@ -703,8 +704,9 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
         BOOST_REQUIRE_EQUAL(r4.value().size(),20);
 
         // bulk delete objects
-        ec=client->deleteManyBulk(m1_uint32(),q3);
-        BOOST_REQUIRE(!ec);
+        rd=client->deleteManyBulk(m1_uint32(),q3);
+        BOOST_REQUIRE(!rd);
+        BOOST_CHECK_EQUAL(rd.value(),10);
 
         // check objects after delete
         r1=client->find(m1_uint32(),q1);

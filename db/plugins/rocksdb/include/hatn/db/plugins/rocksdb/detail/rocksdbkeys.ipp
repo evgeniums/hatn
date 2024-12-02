@@ -112,7 +112,11 @@ Error Keys::iterateIndexFields(
             {
                 fieldToStringBuf(buf,field.value());
             }
-            // else Null index just append separator
+            else
+            {
+                // append Null if value not set
+                fieldToStringBuf(buf,query::Null);
+            }
             buf.append(SeparatorCharStr);
             return iterateIndexFields(
                 buf,

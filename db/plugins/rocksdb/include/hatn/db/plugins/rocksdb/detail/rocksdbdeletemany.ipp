@@ -55,11 +55,12 @@ Result<size_t> DeleteManyT::operator ()(
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 
+    size_t count=0;
     if (bulk)
     {
         auto transactionFn=[&](Transaction* tx)
         {
-            auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
+            auto keyCallback=[&model,&handler,&keys,&tx,&count](RocksdbPartition* partition,
                                                               const lib::string_view& topic,
                                                               ROCKSDB_NAMESPACE::Slice*,
                                                               ROCKSDB_NAMESPACE::Slice* keyValue,
@@ -68,14 +69,19 @@ Result<size_t> DeleteManyT::operator ()(
             {
                 auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
                 ec=DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
+                if (!ec)
+                {
+                    count++;
+                }
                 return !ec;
             };
             return FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
         };
-        return handler.transaction(transactionFn,tx,true);
+        auto ec=handler.transaction(transactionFn,tx,true);
+        HATN_CHECK_EC(ec)
+        return count;
     }
 
-    size_t count=0;
     auto keyCallback=[&model,&handler,&keys,&tx,&count](RocksdbPartition* partition,
                                                       const lib::string_view& topic,
                                                       ROCKSDB_NAMESPACE::Slice*,
@@ -89,7 +95,10 @@ Result<size_t> DeleteManyT::operator ()(
             return DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
         };
         auto ok=!handler.transaction(transactionFn,tx,true);
-        count++;
+        if (ok)
+        {
+            count++;
+        }
         return ok;
     };
     auto ec=FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);

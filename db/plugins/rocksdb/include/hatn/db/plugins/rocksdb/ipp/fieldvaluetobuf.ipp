@@ -116,11 +116,13 @@ struct valueVisitor
     void operator()(const query::LastT&) const
     {
         // replace previous separator with SeparatorCharPlusStr
-        buf[buf.size()-1]=SeparatorCharPlusStr[0];
+        buf[buf.size()-1]=SeparatorCharPlusC;
     }
 
     void operator()(const query::FirstT&) const
-    {}
+    {
+        buf.push_back(NullCharC);
+    }
 
     valueVisitor(BufT& buf, const lib::string_view& sep):buf(buf),sep(&sep)
     {}

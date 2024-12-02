@@ -180,16 +180,22 @@ struct FieldToStringBufT
     }
 
     template <typename BufT>
-    void operator ()(BufT&, const query::NullT&) const
-    {}
+    void operator ()(BufT& buf, const query::NullT&) const
+    {
+        buf.push_back(NullCharC);
+    }
 
     template <typename BufT>
     void operator ()(BufT&, const query::FirstT&) const
-    {}
+    {
+        Assert(false,"Must never call FieldToStringBuf for Firtst");
+    }
 
     template <typename BufT>
     void operator ()(BufT&, const query::LastT&) const
-    {}
+    {
+        Assert(false,"Must never call FieldToStringBuf for Last");
+    }
 
     template <typename BufT>
     void operator ()(BufT& buf, const BufT& val) const
