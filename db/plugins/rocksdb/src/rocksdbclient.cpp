@@ -736,7 +736,24 @@ Result<size_t> RocksdbClient::doDeleteMany(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->deleteMany(*d->handler,query,tx);
+    return rdbModel->deleteMany(*d->handler,query,false,tx);
+}
+
+//---------------------------------------------------------------
+
+Result<size_t> RocksdbClient::doDeleteManyBulk(
+    const ModelInfo &model,
+    const ModelIndexQuery &query,
+    Transaction* tx)
+{
+    HATN_CTX_SCOPE("rdbdeletemanybulk")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    return rdbModel->deleteMany(*d->handler,query,true,tx);
 }
 
 //---------------------------------------------------------------

@@ -113,6 +113,12 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             Transaction* tx
             ) override;
 
+        Result<size_t> doDeleteManyBulk(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            Transaction* tx
+        ) override;
+
         Error doTransaction(const TransactionFn& fn) override;
 
         Error doUpdateObject(const Topic& topic,

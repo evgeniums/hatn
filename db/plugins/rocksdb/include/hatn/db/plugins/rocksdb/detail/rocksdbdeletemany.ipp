@@ -31,6 +31,7 @@ struct DeleteManyT
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
         AllocatorFactory* allocatorFactory,
+        bool bulk,
         Transaction* tx
     ) const;
 };
@@ -42,6 +43,7 @@ Result<size_t> DeleteManyT::operator ()(
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         AllocatorFactory* allocatorFactory,
+        bool bulk,
         Transaction* tx
     ) const
 {
@@ -53,29 +55,30 @@ Result<size_t> DeleteManyT::operator ()(
     using ttlIndexesT=TtlIndexes<modelType>;
     static ttlIndexesT ttlIndexes{};
 
-//! @todo Bulk deletion in one transaction
-#if 0
-    auto transactionFn=[&](Transaction* tx)
+    if (bulk)
     {
-        auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
-                                                          const lib::string_view& topic,
-                                                          ROCKSDB_NAMESPACE::Slice* key,
-                                                          ROCKSDB_NAMESPACE::Slice* keyValue,
-                                                          Error& ec
-                                                          )
+        auto transactionFn=[&](Transaction* tx)
         {
-            auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
-            return !DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
+            auto keyCallback=[&model,&handler,&keys,&tx](RocksdbPartition* partition,
+                                                              const lib::string_view& topic,
+                                                              ROCKSDB_NAMESPACE::Slice*,
+                                                              ROCKSDB_NAMESPACE::Slice* keyValue,
+                                                              Error& ec
+                                                              )
+            {
+                auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
+                ec=DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
+                return !ec;
+            };
+            return FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
         };
-        return FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
-    };
-    return handler.transaction(transactionFn,tx,true);
-#endif
+        return handler.transaction(transactionFn,tx,true);
+    }
 
     size_t count=0;
     auto keyCallback=[&model,&handler,&keys,&tx,&count](RocksdbPartition* partition,
                                                       const lib::string_view& topic,
-                                                      ROCKSDB_NAMESPACE::Slice* key,
+                                                      ROCKSDB_NAMESPACE::Slice*,
                                                       ROCKSDB_NAMESPACE::Slice* keyValue,
                                                       Error& ec
                                                       )

@@ -701,6 +701,24 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
         r4=client->find(m1_uint32(),q4);
         BOOST_REQUIRE(!r4);
         BOOST_REQUIRE_EQUAL(r4.value().size(),20);
+
+        // bulk delete objects
+        ec=client->deleteManyBulk(m1_uint32(),q3);
+        BOOST_REQUIRE(!ec);
+
+        // check objects after delete
+        r1=client->find(m1_uint32(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),10);
+        r2=client->find(m1_uint32(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),0);
+        r3=client->find(m1_uint32(),q3);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),0);
+        r4=client->find(m1_uint32(),q4);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),20);
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 

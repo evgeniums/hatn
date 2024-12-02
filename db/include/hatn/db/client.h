@@ -546,6 +546,24 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT, typename QueryT>
+        Result<size_t> deleteManyBulk(
+            const std::shared_ptr<ModelT>& model,
+            const QueryT& query,
+            Transaction* tx=nullptr
+            )
+        {
+            HATN_CTX_SCOPE("dbdeletemanyb")
+            if (m_open)
+            {
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+                return doDeleteManyBulk(*model->info,q,tx);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT, typename QueryT>
         Result<size_t> updateMany(
                 const std::shared_ptr<ModelT>& model,
                 const QueryT& query,
@@ -723,6 +741,12 @@ class HATN_DB_EXPORT Client : public common::WithID
                                             Transaction* tx)=0;
 
         virtual Result<size_t> doDeleteMany(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            Transaction* tx
+        ) =0;
+
+        virtual Result<size_t> doDeleteManyBulk(
             const ModelInfo& model,
             const ModelIndexQuery& query,
             Transaction* tx

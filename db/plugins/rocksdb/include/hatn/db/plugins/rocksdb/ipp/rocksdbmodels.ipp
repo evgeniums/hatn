@@ -146,10 +146,11 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
+            bool bulk,
             Transaction* tx
         )
     {
-        return DeleteMany(model->model,handler,query,allocatorFactory,tx);
+        return DeleteMany(model->model,handler,query,allocatorFactory,bulk,tx);
     };
 
     rdbModel->updateObjectWithDate=[model,allocatorFactory]

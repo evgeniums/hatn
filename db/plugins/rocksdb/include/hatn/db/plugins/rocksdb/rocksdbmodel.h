@@ -97,6 +97,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
         std::function<Result<size_t> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
+            bool bulk,
             Transaction* tx
             )> deleteMany;
 
