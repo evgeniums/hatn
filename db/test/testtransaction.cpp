@@ -141,8 +141,8 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
                 if (ec)
                 {
                     HATN_CTX_ERROR(ec,"failed to update");
+                    break;
                 }
-                BOOST_REQUIRE(!ec);
             }
 
             HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
@@ -427,12 +427,14 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
                     auto incReq=update::request(update::field(u1::f1,update::inc,1),
                                                 update::field(u1::f3,update::set,current+10)
                                                );
-                    auto ec=client->update(topic1,model1(),oid,incReq,tx);
-                    HATN_CHECK_EC(ec);
-                    return Error{OK};
+                    return client->update(topic1,model1(),oid,incReq,tx);
                 };
                 ec=client->transaction(tx1);
-                BOOST_REQUIRE(!ec);
+                if (ec)
+                {
+                    HATN_CTX_ERROR(ec,"transaction failed")
+                    break;
+                }
             }
 
             HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
