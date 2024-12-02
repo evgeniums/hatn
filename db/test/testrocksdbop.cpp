@@ -22,11 +22,13 @@
 
 #include <hatn/test/multithreadfixture.h>
 
+#include "initdbplugins.h"
 #include "hatn_test_config.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 
 #include <rocksdb/db.h>
+#include <rocksdb/merge_operator.h>
 
 #include <hatn/db/plugins/rocksdb/detail/fieldtostringbuf.ipp>
 
@@ -39,9 +41,11 @@ HATN_ROCKSDB_USING
 
 namespace {
 
-rocksdb::DB* openDatabase(const std::string dbPath)
+rocksdb::DB* openDatabase(const std::string dbPath,
+                          std::shared_ptr<ROCKSDB_NAMESPACE::MergeOperator> mergeOperator=nullptr)
 {
     rocksdb::Options options;
+    options.merge_operator=mergeOperator;
 
     // destroy database if existed
     auto status = rocksdb::DestroyDB(dbPath,options);
@@ -81,6 +85,35 @@ void closeDatabase(rocksdb::DB* db)
 
     delete db;
 }
+
+using namespace ROCKSDB_NAMESPACE;
+class UInt64AddOperator : public AssociativeMergeOperator {
+
+public:
+
+    virtual bool Merge(
+        const Slice&,
+        const Slice* existing_value,
+        const Slice& value,
+        std::string* new_value,
+        ROCKSDB_NAMESPACE::Logger*) const override
+    {
+        uint64_t existing = 0;
+        if (existing_value)
+        {
+            existing=std::stol(existing_value->ToString());
+        }
+        uint64_t oper=std::stol(value.ToString());
+
+        auto newValue = existing + oper;
+        *new_value = fmt::format("{:d}",newValue);
+        return true;
+    }
+
+    virtual const char* Name() const override {
+        return "UInt64AddOperator";
+    }
+};
 
 } // anonymous namespace
 
@@ -273,6 +306,77 @@ BOOST_AUTO_TEST_CASE(RocksdDbIterator)
 
     // close
     closeDatabase(db);
+}
+
+BOOST_FIXTURE_TEST_CASE(ConcurrentMerge, HATN_TEST_NAMESPACE::DbTestFixture)
+{
+    std::string dbPath=hatn::test::MultiThreadFixture::tmpFilePath("rocksdbops");
+
+    // open
+    auto db=openDatabase(dbPath,std::make_shared<UInt64AddOperator>());
+
+    // prepare
+    std::string key{"counter1"};
+    std::string inc{"1"};
+#ifdef BUILD_DEBUG
+    size_t count=1000;
+#else
+    size_t count=100000;
+#endif
+    int jobs=6;
+    std::atomic<size_t> doneCount{0};
+
+    // handler to invoke in threads
+    auto handler=[&doneCount,&db,&key,&inc,jobs,count,this](int idx)
+    {
+        for (size_t i=0;i<count;i++)
+        {
+            auto status=db->Merge(WriteOptions{},key,inc);
+            if (!status.ok())
+            {
+                HATN_TEST_MESSAGE_TS(fmt::format("Failed to merge in thread {}: {}",idx,status.ToString()));
+                break;
+            }
+        }
+
+        HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
+        if (++doneCount==jobs)
+        {
+            this->quit();
+        }
+    };
+
+    // run threads
+    HATN_TEST_MESSAGE_TS(fmt::format("Run threads"));
+    createThreads(jobs+1);
+    thread(0)->start(false);
+    for (int j=0;j<jobs;j++)
+    {
+        thread(j+1)->execAsync(
+            [&handler,j]()
+            {
+                handler(j);
+            }
+            );
+        thread(j+1)->start(false);
+    }
+    exec(60);
+    thread(0)->stop();
+    for (int j=0;j<jobs;j++)
+    {
+        thread(j+1)->stop();
+    }
+
+    // check result
+    std::string readVal;
+    auto status=db->Get(ReadOptions{},key,&readVal);
+    if (!status.ok())
+    {
+        HATN_TEST_MESSAGE_TS(fmt::format("Failed to Get counter: {}",status.ToString()));
+    }
+    BOOST_REQUIRE(status.ok());
+    auto result=std::stol(readVal);
+    BOOST_CHECK_EQUAL(result,count*jobs);
 }
 
 #else
