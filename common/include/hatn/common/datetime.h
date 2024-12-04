@@ -71,7 +71,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param date Date.
          * @param time Time.
          */
-        DateTime(Date date)
+        explicit DateTime(Date date)
             : DateTime(std::move(date),Time{0,0,0,1})
         {}
 
