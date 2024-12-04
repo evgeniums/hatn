@@ -258,7 +258,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
             // delete old ttl index
             TtlMark oldTtlMark;
-            //! @todo optimization Use isNull() for TTL slice instead of creating TtlMark
+            //! @todo optimization: Use isNull() for TTL slice instead of creating TtlMark
             oldTtlMark.load(oldTtlMarkSlice.data(),oldTtlMarkSlice.size());
             if (!oldTtlMark.isNull())
             {
