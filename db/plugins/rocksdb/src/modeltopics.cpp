@@ -52,10 +52,11 @@ Error ModelTopics::update(
     fillRelationKey(modelId,topic,key);
     ROCKSDB_NAMESPACE::Slice ks(key.data(),key.size());
 
-    //! @todo Cleanup
+//! @maybe Log debug
+#if 0
     std::cout << "MergeModelTopic::upate op=" << static_cast<int>(op[0]) << " key=" << logKey(key)
               << " size=" << size << std::endl;
-
+#endif
     auto status=handler.p()->db->Merge(
             handler.p()->writeOptions,
             partition->collectionCf.get(),
@@ -73,9 +74,10 @@ Error ModelTopics::update(
 
 bool ModelTopics::deserializeOperation(const char *data, size_t size, Operation &op)
 {
-    //! @todo Cleanup
+//! @maybe Log debug
+#if 0
     std::cout << "ModelTopics::deserializeOperation size="<<size << std::endl;
-
+#endif
     if (size!=sizeof(Operator))
     {
         return false;
@@ -99,16 +101,21 @@ void ModelTopics::serializeRelation(const Relation &rel, std::string *value)
     memcpy(value->data()+sizeof(rel.version),&count,sizeof(rel.count));
     rel.ttl.copy(value->data()+sizeof(rel.version)+sizeof(rel.count),rel.ttl.size());
 
-    //! @todo Cleanup
+//! @maybe Log debug
+#if 0
     std::cout << "ModelTopics::serializeRelation size="<<value->size() << " expected size="<<newSize  << std::endl;
+#endif
 }
 
 //---------------------------------------------------------------
 
 bool ModelTopics::deserializeRelation(const char *data, size_t size, Relation &rel)
 {
-    //! @todo Cleanup
+
+//! @maybe Log debug
+#if 0
     std::cout << "ModelTopics::deserializeRelation size="<<size << std::endl;
+#endif
 
     if (size!=MinRelationSize && size!=MaxRelationSize)
     {
@@ -203,10 +210,12 @@ Result<size_t> ModelTopics::count(
     {
         if (multipleTopics)
         {
+//! @maybe Log debug
+#if 0
             std::cout << "ModelTopics from " << logKey(ks)
                       << " to " << logKey(ksTo)
                       << std::endl;
-
+#endif
             std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(rdOpts,partition->collectionCf.get())};
             it->SeekToFirst();
             auto hasKey=it->Valid();
@@ -229,10 +238,11 @@ Result<size_t> ModelTopics::count(
             }
         }
         else
-        {            
-            std::cout << "Single topic from " << logKey(ks)
-                      << std::endl;
-
+        {
+//! @maybe Log debug
+#if 0
+            std::cout << "Single topic from " << logKey(ks) << std::endl;
+#endif
             ROCKSDB_NAMESPACE::PinnableSlice readSl;
             auto status=handler.p()->db->Get(rdOpts,partition->collectionCf.get(),ks,&readSl);
             if (!status.ok())
@@ -298,20 +308,10 @@ Result<size_t> ModelTopics::count(
 
 static lib::string_view topicFromKey(const Slice& key)
 {
-#if 0
-    for (size_t i=ModelTopics::KeyPrefixOffset;i<key.size();i++)
-    {
-        if (key[i]==SeparatorCharC)
-        {
-            return lib::string_view{key.data()+ModelTopics::KeyPrefixOffset,i-ModelTopics::KeyPrefixOffset-1};
-        }
-    }
-#else
     if (key.size()>ModelTopics::KeyPrefixOffset)
     {
         return lib::string_view{key.data()+ModelTopics::KeyPrefixOffset,key.size()-ModelTopics::KeyPrefixOffset};
     }
-#endif
     return lib::string_view{};
 }
 
@@ -338,9 +338,10 @@ Result<std::vector<TopicHolder>>
     rdOpts.iterate_lower_bound=&ksFrom;
     rdOpts.iterate_upper_bound=&ksTo;
 
-    std::cout << "Topics from " << logKey(ksFrom)
-              << " to " << logKey(ksTo)
-              << std::endl;
+//! @maybe Log debug
+#if 0
+    std::cout << "Topics from " << logKey(ksFrom) << " to " << logKey(ksTo) << std::endl;
+#endif
 
     std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{
                                                     handler.p()->db->NewIterator(
@@ -355,8 +356,11 @@ Result<std::vector<TopicHolder>>
         auto topic=topicFromKey(it->key());
         topics.emplace_back(topic);
 
+//! @maybe Log debug
+#if 0
         std::cout << "Found topic\"" << topic  << "\" for key=" << logKey(it->key())
                   << " offset=" <<KeyPrefixOffset << std::endl;
+#endif
 
         it->Next();
         hasKey=it->Valid();
@@ -438,20 +442,24 @@ bool MergeModelTopic::FullMergeV2(
         MergeOperationOutput *merge_out
     ) const
 {
-    //! @todo Cleanup
+
+#if 0
     std::cout << "MergeModelTopic::FullMergeV2 operand_list.size()=" << merge_in.operand_list.size()
               << " key=" << logKey(merge_in.key)
               << std::endl;
+#endif
 
     ModelTopics::Relation rel;
     if (merge_in.existing_value!=nullptr)
     {
-        //! @todo Cleanup
+#if 0
         std::cout << "deserialize relation"<<std::endl;
-
+#endif
         if (!ModelTopics::deserializeRelation(merge_in.existing_value->data(),merge_in.existing_value->size(),rel))
         {
+#if 0
             std::cerr<<"failed to deserialize rel"<<std::endl;
+#endif
             return false;
         }
     }
@@ -461,10 +469,14 @@ bool MergeModelTopic::FullMergeV2(
         ModelTopics::Operation op;
         if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
         {
+#if 0
             std::cout<<"try to deserialize rel size=" << it.size() <<std::endl;
+#endif
             if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
             {
+#if 0
                 std::cerr<<"failed to deserialize rel-op"<<std::endl;
+#endif
                 return false;
             }
         }
@@ -472,13 +484,11 @@ bool MergeModelTopic::FullMergeV2(
         {
             mergeRelOp(rel,op);
         }
-
-        //! @todo Cleanup
-        std::cout << "operand op="<<static_cast<uint32_t>(op.op) << std::endl;
     }
-
+#if 0
     std::cout << "rel.count=" << rel.count
               << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+#endif
 
     ModelTopics::serializeRelation(rel,&merge_out->new_value);
     return true;
@@ -488,11 +498,12 @@ bool MergeModelTopic::PartialMergeMulti(const Slice& key,
                        const std::deque<Slice>& operand_list,
                        std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const
 {
-    //! @todo Cleanup
+
+#if 0
     std::cout << "MergeModelTopic::PartialMerge operand_list.size()=" << operand_list.size()
               << " key=" << logKey(key)
               << std::endl;
-
+#endif
     ModelTopics::Relation rel;
 
     for (auto&& it : operand_list)
@@ -505,24 +516,17 @@ bool MergeModelTopic::PartialMergeMulti(const Slice& key,
                 HATN_CTX_ERROR(dbError(DbError::MODEL_TOPIC_RELATION_DESER),"failed to deserialize rel-op")
                 return false;
             }
-            else
-            {
-                //! @todo Cleanup
-                std::cout << "MergeModelTopic::PartialMergeMulti operand is relation"<<std::endl;
-            }
         }
         else
         {
             mergeRelOp(rel,op);
-
-            //! @todo Cleanup
-            std::cout << "MergeModelTopic::PartialMergeMulti operand is operation op="<<static_cast<uint32_t>(op.op) << std::endl;
         }
     }
 
+#if 0
     std::cout << "MergeModelTopic::PartialMergeMulti rel.count=" << rel.count
               << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
-
+#endif
     ModelTopics::serializeRelation(rel,new_value);
     return true;
 }

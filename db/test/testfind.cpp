@@ -1065,5 +1065,5 @@ BOOST_AUTO_TEST_SUITE_END()
  *  26. done: Implement and test find with callback
  *  27. Implement and test updating repeated subunits
  *  28. done: Implement and test delete topic
- *  29. Implement and test model-topic relations (with merge and TTL)
+ *  29. done: Implement and test model-topic relations (with merge and TTL)
  */

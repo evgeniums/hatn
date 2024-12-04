@@ -90,6 +90,21 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             ROCKSDB_NAMESPACE::WriteBatch& batch
         );
 
+        /**
+         * @brief count
+         * @param model
+         * @param topic
+         * @param date
+         * @param handler
+         * @return
+         *
+         * @note Can be very slow for topics with large rate of objects inserts/deletes because Merge
+         * reconstructs a value from the queue of updates on every Get until compaction.
+         * Compaction also can be slow.
+         *
+         * @todo optimization: Maybe it would be better to reimplement it using transactions
+         * instead of Merge.
+         */
         static Result<size_t> count(
             const ModelInfo& model,
             const Topic& topic,
