@@ -53,24 +53,24 @@ using KeyBuf=common::StringOnStackT<PreallocatedKeySize>;
 
 // special symbols start from F5 because such bytes would never appear in UTF-8 strings
 
-constexpr static const char SeparatorCharC=0xF5;
+constexpr static const char SeparatorCharC=static_cast<char>(0xF5);
 constexpr static const char* SeparatorChar=&SeparatorCharC;
 constexpr lib::string_view SeparatorCharStr{SeparatorChar,1};
 
-constexpr static const char SeparatorCharPlusC=0xF6;
+constexpr static const char SeparatorCharPlusC=static_cast<char>(0xF6);
 constexpr static const char* SeparatorCharPlus=&SeparatorCharPlusC;
 constexpr lib::string_view SeparatorCharPlusStr{SeparatorCharPlus,1};
 
-constexpr static const char EmptyCharC=0xF7;
+constexpr static const char EmptyCharC=static_cast<char>(0xF7);
 constexpr static const char* EmptyChar=&EmptyCharC;
 constexpr lib::string_view EmptyCharStr{EmptyChar,1};
 
 //! @todo Validate that topics do not start with internal prefix
-constexpr static const char InternalPrefixC=0xFF;
+constexpr static const char InternalPrefixC=static_cast<char>(0xFF);
 
-constexpr static const char NullCharC=0x00;
-constexpr static const char SpaceCharC=32;
-constexpr static const char BackSlashCharC=92;
+constexpr static const char NullCharC=static_cast<char>(0x00);
+constexpr static const char SpaceCharC=static_cast<char>(32);
+constexpr static const char BackSlashCharC=static_cast<char>(92);
 
 HATN_ROCKSDB_NAMESPACE_END
 

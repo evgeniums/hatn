@@ -189,7 +189,7 @@ BOOST_FIXTURE_TEST_CASE(Rollback, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         Topic topic1{"topic1"};
