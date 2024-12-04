@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/indexkeysearch.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
@@ -79,26 +80,45 @@ Error FindManyT::operator ()(
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
     const auto* snapshot=managedSnapchot.snapshot();
 
+    auto eachTopic=[&](const Topic& topic, const std::shared_ptr<RocksdbPartition>& partition)
+    {
+        HATN_CTX_SCOPE_PUSH("topic",topic.topic())
+
+        index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
+        auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
+                                                 cursor.indexRangeFromSlice(),
+                                                 cursor.indexRangeToSlice()
+                                                 );
+        HATN_CHECK_EC(ec)
+
+        HATN_CTX_SCOPE_POP()
+        return Error{OK};
+    };
+
     // process all partitions
     for (const auto& partition: partitions)
     {
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
 
-        //! @todo If topics are empty in query then find all topics for the model
-
-        // process all topics
-        for (const auto& topic: idxQuery.query.topics())
+        // if topics are empty in query then find all topics for the model
+        if (idxQuery.query.topics().empty())
         {
-            HATN_CTX_SCOPE_PUSH("topic",topic.topic())
-
-            index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
-            auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
-                        cursor.indexRangeFromSlice(),
-                        cursor.indexRangeToSlice()
-                    );
-            HATN_CHECK_EC(ec)
-
-            HATN_CTX_SCOPE_POP()
+            auto topics=ModelTopics::modelTopics(model.modelIdStr(),handler,partition.get());
+            HATN_CHECK_RESULT(topics)
+            for (const auto& topic: topics.value())
+            {
+                auto ec=eachTopic(topic,partition);
+                HATN_CHECK_EC(ec)
+            }
+        }
+        else
+        {
+            // process all topics
+            for (const auto& topic: idxQuery.query.topics())
+            {
+                auto ec=eachTopic(topic,partition);
+                HATN_CHECK_EC(ec)
+            }
         }
 
         HATN_CTX_SCOPE_POP()

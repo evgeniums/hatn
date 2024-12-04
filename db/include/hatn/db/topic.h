@@ -48,6 +48,11 @@ class Topic
             : m_topic(topic)
         {}
 
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        Topic(const HATN_COMMON_NAMESPACE::StringOnStackT<PreallocatedSize,FallbackAllocatorT>& topic)
+            : m_topic(topic)
+        {}
+
         const lib::string_view& topic() const noexcept
         {
             return m_topic;

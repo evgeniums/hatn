@@ -258,7 +258,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
             // delete old ttl index
             TtlMark oldTtlMark;
-            //! @todo Use isNull() for TTL slice
+            //! @todo optimization Use isNull() for TTL slice instead of creating TtlMark
             oldTtlMark.load(oldTtlMarkSlice.data(),oldTtlMarkSlice.size());
             if (!oldTtlMark.isNull())
             {
@@ -283,15 +283,6 @@ Result<typename ModelT::SharedPtr> updateSingle(
     auto ec=handler.transaction(transactionFn,intx,true);
     HATN_CHECK_EC(ec)
 
-#if 0
-    //! @todo cleanup not needed
-    // update model-topic relation
-    ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition,ModelTopics::Operator::Update);
-    if (ec)
-    {
-        HATN_CTX_ERROR(ec,"failed to save model-topic relation")
-    }
-#endif
     // return empty if not found
     if (!found)
     {

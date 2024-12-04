@@ -21,6 +21,8 @@
 
 #include <rocksdb/merge_operator.h>
 
+#include <hatn/common/allocatoronstack.h>
+
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/db/topic.h>
@@ -32,6 +34,8 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+using TopicHolder=HATN_COMMON_NAMESPACE::StringOnStack;
+
 class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 {
     public:
@@ -41,6 +45,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
         constexpr static const uint8_t MinRelationSize=sizeof(uint8_t)+sizeof(uint64_t)+TtlMark::MinSize;
 
         constexpr static const std::array<char,4> RelationKeyPrefix{InternalPrefixC,0,0,1};
+        constexpr static const size_t KeyPrefixOffset=RelationKeyPrefix.size()+HATN_COMMON_NAMESPACE::Crc32HexLength+2;
 
         enum class Operator : uint8_t
         {
@@ -71,6 +76,19 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             Operator action
         );
 
+        static Result<std::vector<TopicHolder>> modelTopics(
+            const std::string& modelId,
+            RocksdbHandler& handler,
+            RocksdbPartition* partition
+        );
+
+        static Result<size_t> count(
+            const ModelInfo& model,
+            const Topic& topic,
+            const HATN_COMMON_NAMESPACE::Date& date,
+            RocksdbHandler& handler
+        );
+
         static bool deserializeRelation(const char* data, size_t size, Relation& rel);
         static void serializeRelation(const Relation& rel, std::string* value);
 
@@ -87,55 +105,26 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             KeyBuf& key,
             bool to=false
         );
-
-        static Result<size_t> count(
-            const ModelInfo& model,
-            const Topic& topic,
-            const HATN_COMMON_NAMESPACE::Date& date,
-            RocksdbHandler& handler
-        );
 };
 
 class HATN_ROCKSDB_SCHEMA_EXPORT MergeModelTopic : public ROCKSDB_NAMESPACE::MergeOperator
 {
+    public:
 
-public:
+        virtual bool FullMergeV2(const MergeOperationInput& merge_in,
+                                 MergeOperationOutput* merge_out) const override;
 
-#if 0
-    virtual bool Merge(
-            const ROCKSDB_NAMESPACE::Slice&,
-            const ROCKSDB_NAMESPACE::Slice* existing_value,
-            const ROCKSDB_NAMESPACE::Slice& value,
-            std::string* new_value,
-            ROCKSDB_NAMESPACE::Logger*
-        ) const override;
-
-    virtual bool PartialMerge(const ROCKSDB_NAMESPACE::Slice& /*key*/,
-                              const ROCKSDB_NAMESPACE::Slice& /*left_operand*/,
-                              const ROCKSDB_NAMESPACE::Slice& /*right_operand*/,
-                              std::string* /*new_value*/,
-                              ROCKSDB_NAMESPACE::Logger* /*logger*/) const;
-    virtual bool FullMerge(const ROCKSDB_NAMESPACE::Slice& key,
-                           const ROCKSDB_NAMESPACE::Slice* existing_value,
-                           const std::deque<std::string>& operand_list,
-                           std::string* new_value,
-                           ROCKSDB_NAMESPACE::Logger*) const override;    
-#endif
-
-    virtual bool FullMergeV2(const MergeOperationInput& merge_in,
-                             MergeOperationOutput* merge_out) const override;
-
-    virtual bool PartialMergeMulti(const ROCKSDB_NAMESPACE::Slice& key,
-                                   const std::deque<ROCKSDB_NAMESPACE::Slice>& operand_list,
-                                   std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const override;
+        virtual bool PartialMergeMulti(const ROCKSDB_NAMESPACE::Slice& key,
+                                       const std::deque<ROCKSDB_NAMESPACE::Slice>& operand_list,
+                                       std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const override;
 
 
-    virtual bool AllowSingleOperand() const override { return true; }
+        virtual bool AllowSingleOperand() const override { return true; }
 
-    virtual const char* Name() const override
-    {
-        return "MergeModelTopic";
-    }
+        virtual const char* Name() const override
+        {
+            return "MergeModelTopic";
+        }
 };
 
 

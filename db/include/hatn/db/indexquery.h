@@ -85,8 +85,6 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
                     return hana::plus(pos,hana::size_c<1>);
                 }
             );
-
-            Assert(!m_topics.empty(),"At least one Topic must be specified");
         }
 
         const IndexInfo* index() const noexcept

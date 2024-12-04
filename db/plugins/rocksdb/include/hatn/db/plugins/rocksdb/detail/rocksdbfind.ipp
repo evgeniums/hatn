@@ -77,7 +77,15 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
-    auto indexKeys=index_key_search::indexKeys(snapshot,handler,idxQuery,partitions,allocatorFactory,single,withPartitionQuery);
+    auto indexKeys=index_key_search::indexKeys(snapshot,
+                                                 handler,
+                                                 model.modelIdStr(),
+                                                 idxQuery,
+                                                 partitions,
+                                                 allocatorFactory,
+                                                 single,
+                                                 withPartitionQuery
+                                              );
     HATN_CHECK_RESULT(indexKeys)
 
     // prepare result

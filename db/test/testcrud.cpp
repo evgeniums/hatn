@@ -157,20 +157,13 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r2.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r2.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
         BOOST_CHECK_EQUAL(r2.value()->fieldValue(simple1::f1),100);
-#ifndef HATN_DB_FIX_READ
         BOOST_CHECK_EQUAL(r2.value()->fieldValue(simple1::f2),std::string("hi"));
-#endif
 
-        // find object
+        // find object in topic
         auto q3=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,100),topic.topic());
         BOOST_TEST_MESSAGE(fmt::format("topic={}",topic.topic()));
         BOOST_REQUIRE_EQUAL(q3.topics().size(),1);
         BOOST_CHECK_EQUAL(q3.topics().at(0).topic(),topic.topic());
-//! @todo Test it when model-topic relation is done
-#if 0
-        auto q3_=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,101));
-        BOOST_REQUIRE_EQUAL(q3_.topics().size(),0);
-#endif
         auto r3=client->find(m1,q3);
         if (r3)
         {

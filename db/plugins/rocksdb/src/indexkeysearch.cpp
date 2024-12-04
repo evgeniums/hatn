@@ -44,6 +44,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
@@ -829,6 +830,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
 Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         const ROCKSDB_NAMESPACE::Snapshot* snapshot,
         RocksdbHandler& handler,
+        const std::string& modelId,
         const ModelIndexQuery& idxQuery,
         const Partitions& partitions,
         AllocatorFactory* allocatorFactory,
@@ -899,7 +901,26 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         }
 
         return true;
-    };    
+    };
+
+    auto eachTopic=[&](const Topic& topic, const std::shared_ptr<RocksdbPartition>& partition)
+    {
+        HATN_CTX_SCOPE_PUSH("topic",topic.topic())
+        HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
+
+        partitionCount=0;
+
+        Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
+        auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
+                               cursor.indexRangeFromSlice(),
+                               cursor.indexRangeToSlice()
+                               );
+        HATN_CHECK_EC(ec)
+
+        HATN_CTX_SCOPE_POP()
+        HATN_CTX_SCOPE_POP()
+        return Error{OK};
+    };
 
     // process all partitions
     for (const auto& partition: partitions)
@@ -914,23 +935,24 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 #endif
         }
 
-        // process all topics
-        for (const auto& topic: idxQuery.query.topics())
+        // iterate topics
+        if (idxQuery.query.topics().empty())
         {
-            HATN_CTX_SCOPE_PUSH("topic",topic.topic())
-            HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
-
-            partitionCount=0;
-
-            Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
-            auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
-                                   cursor.indexRangeFromSlice(),
-                                   cursor.indexRangeToSlice()
-                    );
-            HATN_CHECK_EC(ec)
-
-            HATN_CTX_SCOPE_POP()
-            HATN_CTX_SCOPE_POP()
+            auto topics=ModelTopics::modelTopics(modelId,handler,partition.get());
+            HATN_CHECK_RESULT(topics)
+            for (const auto& topic: topics.value())
+            {
+                auto ec=eachTopic(topic,partition);
+                HATN_CHECK_EC(ec)
+            }
+        }
+        else
+        {
+            for (const auto& topic: idxQuery.query.topics())
+            {
+                auto ec=eachTopic(topic,partition);
+                HATN_CHECK_EC(ec)
+            }
         }
 
         if (!partition->range.isNull())

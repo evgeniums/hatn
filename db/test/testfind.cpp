@@ -759,6 +759,20 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
             oids.emplace_back(o.fieldValue(object::_id));
         }
 
+        // find all objects in all topics
+        auto q0=makeQuery(oidIdx(),query::where(Oid,query::gte,query::First));
+        auto r0=client->find(m1_uint32(),q0);
+        BOOST_REQUIRE(!r0);
+        BOOST_REQUIRE_EQUAL(r0.value().size(),count);
+        BOOST_CHECK(r0.value().at(0).as<u1_uint32::type>()->fieldValue(object::_id)==oids[0]);
+        BOOST_CHECK(r0.value().at(1).as<u1_uint32::type>()->fieldValue(object::_id)==oids[1]);
+        BOOST_CHECK(r0.value().at(2).as<u1_uint32::type>()->fieldValue(object::_id)==oids[2]);
+        BOOST_CHECK(r0.value().at(3).as<u1_uint32::type>()->fieldValue(object::_id)==oids[3]);
+        BOOST_CHECK(r0.value().at(0).topic()==topics[0]);
+        BOOST_CHECK(r0.value().at(1).topic()==topics[1]);
+        BOOST_CHECK(r0.value().at(2).topic()==topics[2]);
+        BOOST_CHECK(r0.value().at(3).topic()==topics[3]);
+
         // find all objects in topics array
         auto q1=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First),topics);
         auto r1=client->find(m1_uint32(),q1);

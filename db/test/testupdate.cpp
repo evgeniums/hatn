@@ -224,6 +224,88 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_AUTO_TEST_CASE(AllTopics)
+{
+    HATN_CTX_SCOPE("AllTopics")
+
+    init();
+
+    auto s1=initSchema(modelPlain());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        std::vector<Topic> topics{"topic1","topic2","topic3","topic4"};
+
+        int16_t val1=100;
+        uint32_t val2=1000;
+        size_t count=100;
+
+        for (size_t i=0;i<count;i++)
+        {
+            auto o1=makeInitObject<plain::type>();
+            o1.setFieldValue(FieldInt16,val1+i);
+            o1.setFieldValue(FieldUInt32,val2+i);
+
+            // create object in db
+            auto ec=client->create(topics[i%topics.size()],modelPlain(),&o1);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // find all objects by first field
+        auto q1=makeQuery(IdxInt16,query::where(FieldInt16,query::lt,val1+count));
+        auto r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count);
+
+        // find all object by second field
+        auto q2=makeQuery(IdxUInt32,query::where(FieldUInt32,query::lt,val2+count));
+        auto r2=client->find(modelPlain(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count);
+
+        // find half of objects by first field
+        auto q3=makeQuery(IdxInt16,query::where(FieldInt16,query::lt,val1+count/2));
+        r1=client->find(modelPlain(),q3);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count/2);
+
+        // find half of object by second field
+        auto q4=makeQuery(IdxUInt32,query::where(FieldUInt32,query::lt,val2+count/2));
+        r2=client->find(modelPlain(),q4);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+
+        // update objects
+        auto inc=count;
+        auto request=update::request(
+            update::field(FieldInt16,update::inc,inc)
+            );
+        auto ru=client->updateMany(modelPlain(),q3,request);
+        BOOST_REQUIRE(!ru);
+        BOOST_CHECK_EQUAL(ru.value(),count/2);
+
+        // find half of objects by first field - changed
+        r1=client->find(modelPlain(),q3);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),0);
+
+        // find all of objects by first field - changed
+        r1=client->find(modelPlain(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value().size(),count/2);
+
+        // find half of object by second field - did not change
+        r2=client->find(modelPlain(),q4);
+        BOOST_REQUIRE(!r2);
+        BOOST_CHECK_EQUAL(r2.value().size(),count/2);
+
+        // find not existant
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_CASE(ReadUpdate)
 {
     HATN_CTX_SCOPE("ReadUpdate")

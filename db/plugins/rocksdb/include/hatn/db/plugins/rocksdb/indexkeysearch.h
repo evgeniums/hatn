@@ -141,6 +141,7 @@ using IndexKeys=common::pmr::set<IndexKey,IndexKeyCompare>;
 Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     RocksdbHandler& handler,
+    const std::string& modelId,
     const ModelIndexQuery& idxQuery,
     const Partitions& partitions,
     AllocatorFactory* allocatorFactory,
