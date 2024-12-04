@@ -22,6 +22,8 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 
@@ -353,6 +355,8 @@ Error RocksdbHandler::ensureModelSchema(const ModelInfo &model) const
 
 Error RocksdbHandler::deleteTopic(const Topic& topic)
 {
+    HATN_CTX_SCOPE("rdbdeltopic")
+
     KeyBuf startB;
     startB.append(topic.topic());
     startB.append(SeparatorCharStr);
@@ -363,11 +367,10 @@ Error RocksdbHandler::deleteTopic(const Topic& topic)
     ROCKSDB_NAMESPACE::Slice stop{stopB.data(),stopB.size()};
 
     //! @todo Refactor it when TransactionDb supports DeleteRange
-    //! @note Lock any access to a topic when delete topic is called
 
     ROCKSDB_NAMESPACE::WriteBatch batch;
 
-    // handler to delete from column family using writ batch
+    // handler to delete from column family using write batch
     auto deleteFromCf=[&batch,&start,&stop,this](ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
     {
         auto status=batch.DeleteRange(
@@ -381,13 +384,18 @@ Error RocksdbHandler::deleteTopic(const Topic& topic)
     };
 
     // handler to delete from partition
-    auto deleteFromPartition=[&deleteFromCf](RocksdbPartition* partition)
+    auto deleteFromPartition=[&topic,&deleteFromCf,&batch,this](RocksdbPartition* partition)
     {
         auto ec=deleteFromCf(partition->collectionCf.get());
         HATN_CHECK_EC(ec)
         ec=deleteFromCf(partition->indexCf.get());
         HATN_CHECK_EC(ec)
 
+        // delete model-topic relations
+        ec=ModelTopics::deleteTopic(topic,*this,partition,batch);
+        HATN_CHECK_EC(ec)
+
+        // done partition
         return Error{OK};
     };
 

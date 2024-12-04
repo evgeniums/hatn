@@ -972,6 +972,14 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
         BOOST_REQUIRE(!r9);
         BOOST_CHECK_EQUAL(r9.value().size(),2);
 
+        // count model objects for topics[2]
+        auto r9_=client->count(m1_uint32(),topics[2]);
+        BOOST_REQUIRE(!r9_);
+        BOOST_CHECK_EQUAL(r9_.value(),2);
+        r9_=client->count(m1_int32(),topics[2]);
+        BOOST_REQUIRE(!r9_);
+        BOOST_CHECK_EQUAL(r9_.value(),1);
+
         // delete topic
         ec=client->deleteTopic(topics[2]);
         if (ec)
@@ -979,6 +987,14 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
             HATN_CTX_ERROR(ec,"Failed to delete topic")
         }
         BOOST_REQUIRE(!ec);
+
+        // count model topic objects for topics[2] after deleting the topic
+        r9_=client->count(m1_uint32(),topics[2]);
+        BOOST_REQUIRE(!r9_);
+        BOOST_CHECK_EQUAL(r9_.value(),0);
+        r9_=client->count(m1_int32(),topics[2]);
+        BOOST_REQUIRE(!r9_);
+        BOOST_CHECK_EQUAL(r9_.value(),0);
 
         // find all objects in all topics
         r8=client->find(m1_int32(),q6);

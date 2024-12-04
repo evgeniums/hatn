@@ -76,10 +76,18 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             Operator action
         );
 
+        //! @todo Add modelTopics() method to db client
         static Result<std::vector<TopicHolder>> modelTopics(
             const std::string& modelId,
             RocksdbHandler& handler,
             RocksdbPartition* partition
+        );
+
+        static Error deleteTopic(
+            const Topic& topic,
+            RocksdbHandler& handler,
+            RocksdbPartition* partition,
+            ROCKSDB_NAMESPACE::WriteBatch& batch
         );
 
         static Result<size_t> count(

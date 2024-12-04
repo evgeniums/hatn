@@ -25,6 +25,7 @@
 #include <hatn/db/plugins/rocksdb/modeltopics.h>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
+#include <hatn/db/plugins/rocksdb/rocksdbschema.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
@@ -369,6 +370,38 @@ Result<std::vector<TopicHolder>>
         return makeError(DbError::MODEL_TOPIC_RELATION_READ,it->status());
     }
     return topics;
+}
+
+//---------------------------------------------------------------
+
+Error ModelTopics::deleteTopic(
+        const Topic& topic,
+        RocksdbHandler &handler,
+        RocksdbPartition *partition,
+        ROCKSDB_NAMESPACE::WriteBatch& batch
+    )
+{
+    HATN_CTX_SCOPE("modeltopicsdeltopic")
+
+    auto schema=handler.schema();
+    auto dbSchema=schema->dbSchema();
+
+    for (auto&& it: dbSchema->models())
+    {
+        const auto& modelId=it.second->modelIdStr();
+        KeyBuf key;
+        fillRelationKey(modelId,topic,key);
+        Slice ks{key.data(),key.size()};
+
+        auto status=batch.Delete(partition->collectionCf.get(),ks);
+        if (!status.ok())
+        {
+            HATN_CTX_SCOPE_PUSH("coll",it.second->collection())
+            return makeError(DbError::MODEL_TOPIC_RELATION_DEL,status);
+        }
+    }
+
+    return OK;
 }
 
 //---------------------------------------------------------------
