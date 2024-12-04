@@ -20,45 +20,44 @@
 
 #include <rocksdb/db.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/db/plugins/rocksdb/modeltopics.h>
-#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
+#include <hatn/db/plugins/rocksdb/rocksdbkeys.h>
+
+#include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
 Error ModelTopics::update(
-        const ModelInfo *model,
+        const std::string& modelId,
         const Topic &topic,
         RocksdbHandler &handler,
         RocksdbPartition* partition,
-        bool addNremove,
-        const TtlMark& ttl
+        Operator action
     )
 {
     std::array<char,MaxOperationSize> op;
 
     size_t size=0;
-    if (addNremove)
-    {
-        op[0]=static_cast<char>(Operator::Add);
-    }
-    else
-    {
-        op[0]=static_cast<char>(Operator::Del);
-    }
+    op[0]=static_cast<char>(action);
     size+=sizeof(Operator);
-    size+=ttl.copy(op.data()+size,TtlMark::Size);
     ROCKSDB_NAMESPACE::Slice ops(op.data(),size);
 
     KeyBuf key;
-    fillRelationKey(model,topic,key);
+    fillRelationKey(modelId,topic,key);
     ROCKSDB_NAMESPACE::Slice ks(key.data(),key.size());
+
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::upate op=" << static_cast<int>(op[0]) << " key=" << logKey(key)
+              << " size=" << size << std::endl;
 
     auto status=handler.p()->db->Merge(
             handler.p()->writeOptions,
-        partition->collectionCf.get(),
+            partition->collectionCf.get(),
             ks,
             ops
         );
@@ -71,64 +70,560 @@ Error ModelTopics::update(
 
 //---------------------------------------------------------------
 
-void ModelTopics::deserializeOperation(const char *data, size_t size, Operation &op)
+bool ModelTopics::deserializeOperation(const char *data, size_t size, Operation &op)
 {
-    Assert(size==(sizeof(Operation)+TtlMark::MinSize) || size==(sizeof(Operation)+TtlMark::Size),"Invalid size of ModelTopics operation");
+    //! @todo Cleanup
+    std::cout << "ModelTopics::deserializeOperation size="<<size << std::endl;
+
+    if (size!=sizeof(Operator))
+    {
+        return false;
+    }
+
     op.op=static_cast<Operator>(data[0]);
-    op.ttl.load(data+sizeof(Operation),size-sizeof(Operation));
+
+    return true;
 }
 
 //---------------------------------------------------------------
 
 void ModelTopics::serializeRelation(const Relation &rel, std::string *value)
 {
-    value->resize(sizeof(rel.version)+sizeof(rel.count)+rel.ttl.size());
+    auto newSize=sizeof(rel.version)+sizeof(rel.count)+rel.ttl.size();
+    value->resize(newSize);
 
-    value[0]=static_cast<char>(rel.version);
+    (*value)[0]=static_cast<char>(rel.version);
 
     uint64_t count=boost::endian::native_to_little(rel.count);
     memcpy(value->data()+sizeof(rel.version),&count,sizeof(rel.count));
     rel.ttl.copy(value->data()+sizeof(rel.version)+sizeof(rel.count),rel.ttl.size());
+
+    //! @todo Cleanup
+    std::cout << "ModelTopics::serializeRelation size="<<value->size() << " expected size="<<newSize  << std::endl;
 }
 
 //---------------------------------------------------------------
 
-Error ModelTopics::deserializeRelation(const char *data, size_t size, Relation &rel)
+bool ModelTopics::deserializeRelation(const char *data, size_t size, Relation &rel)
 {
+    //! @todo Cleanup
+    std::cout << "ModelTopics::deserializeRelation size="<<size << std::endl;
+
     if (size!=MinRelationSize && size!=MaxRelationSize)
     {
-        return dbError(DbError::MODEL_TOPIC_RELATION_DESER);
+        return false;
     }
+
     rel.version=data[0];
     uint64_t count=0;
     memcpy(&count,data+sizeof(rel.version),sizeof(rel.count));
     rel.count=boost::endian::little_to_native(count);
     rel.ttl.load(data+sizeof(rel.version)+sizeof(rel.count),size-sizeof(rel.version)-sizeof(rel.count));
-    return OK;
+
+    return true;
 }
 
 //---------------------------------------------------------------
 
-void ModelTopics::fillRelationKey(const ModelInfo *model, const Topic &topic, KeyBuf& key)
+void ModelTopics::fillRelationKey(const std::string& modelId, const Topic &topic, KeyBuf& key)
 {
     key.clear();
     key.append(RelationKeyPrefix);
     key.append(SeparatorCharStr);
-    key.append(model->modelIdStr());
+    key.append(modelId);
     key.append(SeparatorCharStr);
     key.append(topic.topic());
 }
 
 //---------------------------------------------------------------
 
-void ModelTopics::fillModelKeyPrefix(const ModelInfo *model, KeyBuf& key)
+void ModelTopics::fillModelKeyPrefix(const std::string& modelId, KeyBuf& key, bool to)
 {
     key.clear();
     key.append(RelationKeyPrefix);
     key.append(SeparatorCharStr);
-    key.append(model->modelIdStr());
+    key.append(modelId);
+    if (to)
+    {
+        key.append(SeparatorCharPlusStr);
+    }
+    else
+    {
+        key.append(SeparatorCharStr);
+    }
 }
 
+//---------------------------------------------------------------
+
+Result<size_t> ModelTopics::count(
+        const ModelInfo& model,
+        const Topic &topic,
+        const common::Date &date,
+        RocksdbHandler &handler
+    )
+{
+    // construct keys
+    auto rdOpts=handler.p()->readOptions;
+    KeyBuf key;
+    KeyBuf keyTo;
+    Slice ksTo;
+    Slice ks;
+    bool multipleTopics=topic.topic().empty();
+    if (!multipleTopics)
+    {
+        fillRelationKey(model.modelIdStr(),topic,key);
+        ks=Slice{key.data(),key.size()};
+    }
+    else
+    {
+        fillModelKeyPrefix(model.modelIdStr(),key);
+        ks=Slice{key.data(),key.size()};
+        fillModelKeyPrefix(model.modelIdStr(),keyTo,true);
+        ksTo=Slice{keyTo.data(),keyTo.size()};
+        rdOpts.iterate_lower_bound=&ks;
+        rdOpts.iterate_upper_bound=&ksTo;
+    }
+
+    size_t count=0;
+    auto eachTopic=[&count](const auto& readSl)
+    {
+        Relation rel;
+        auto ok=deserializeRelation(readSl.data(),readSl.size(),rel);
+        if (!ok)
+        {
+            return dbError(DbError::MODEL_TOPIC_RELATION_DESER);
+        }
+
+        count+=rel.count;
+        return Error{OK};
+    };
+
+    auto eachPartition=[multipleTopics,&eachTopic,&handler,&ks,&ksTo,&rdOpts](std::shared_ptr<RocksdbPartition>& partition)
+    {
+        if (multipleTopics)
+        {
+            std::cout << "ModelTopics from " << logKey(ks)
+                      << " to " << logKey(ksTo)
+                      << std::endl;
+
+            std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(rdOpts,partition->collectionCf.get())};
+            it->SeekToFirst();
+            auto hasKey=it->Valid();
+            while (hasKey)
+            {
+                auto relSl=it->value();
+                auto ec=eachTopic(relSl);
+                HATN_CHECK_EC(ec)
+
+                it->Next();
+                hasKey=it->Valid();
+            }
+            if (!it->status().ok())
+            {
+                if (it->status().code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+                {
+                    return Error{OK};
+                }
+                return makeError(DbError::MODEL_TOPIC_RELATION_READ,it->status());
+            }
+        }
+        else
+        {            
+            std::cout << "Single topic from " << logKey(ks)
+                      << std::endl;
+
+            ROCKSDB_NAMESPACE::PinnableSlice readSl;
+            auto status=handler.p()->db->Get(rdOpts,partition->collectionCf.get(),ks,&readSl);
+            if (!status.ok())
+            {
+                if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+                {
+                    return Error{OK};
+                }
+                return makeError(DbError::MODEL_TOPIC_RELATION_READ,status);
+            }
+            auto ec=eachTopic(readSl);
+            HATN_CHECK_EC(ec)
+        }
+
+        return Error{OK};
+    };
+
+    if (!date.isNull())
+    {
+        std::shared_ptr<RocksdbPartition> partition;
+        auto range=datePartition(date,model);
+        if (!range.isNull())
+        {
+            partition=handler.partition(range);
+        }
+        if (!partition)
+        {
+            return dbError(DbError::PARTITION_NOT_FOUND);
+        }
+
+        auto ec=eachPartition(partition);
+        HATN_CHECK_EC(ec)
+    }
+    else
+    {
+        if (model.isDatePartitioned())
+        {
+            std::vector<std::shared_ptr<RocksdbPartition>> partitions;
+            {
+                common::lib::shared_lock<common::lib::shared_mutex> l{handler.p()->partitionMutex};
+                partitions.reserve(handler.p()->partitions.size());
+                for (auto it: handler.p()->partitions)
+                {
+                    partitions.push_back(it);
+                }
+            }
+
+            for (auto&& it: partitions)
+            {
+                auto ec=eachPartition(it);
+                HATN_CHECK_EC(ec)
+            }
+        }
+        else
+        {
+            auto ec=eachPartition(handler.p()->defaultPartition);
+            HATN_CHECK_EC(ec)
+        }
+    }
+
+    return count;
+}
+
+//---------------------------------------------------------------
+#if 0
+bool MergeModelTopic::Merge(const rocksdb::Slice &,
+                            const rocksdb::Slice *existing_value,
+                            const rocksdb::Slice &value,
+                            std::string *new_value,
+                            rocksdb::Logger *) const
+{
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::Merge" << std::endl;
+
+    ModelTopics::Operation op;
+    ModelTopics::deserializeOperation(value.data(),value.size(),op);
+
+    ModelTopics::Relation rel;
+
+    if (existing_value!=nullptr)
+    {
+        auto ec=ModelTopics::deserializeRelation(existing_value->data(),existing_value->size(),rel);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to merge model-topic")
+        }
+    }
+
+    if (op.op==ModelTopics::Operator::Del)
+    {
+        if (rel.count>0)
+        {
+            rel.count--;
+        }
+    }
+    else if (op.op==ModelTopics::Operator::Add)
+    {
+        rel.count++;
+    }
+
+    if (rel.count==0)
+    {
+        // schedule to delete using TTL back in time
+        uint32_t delTp=0x1000;
+        rel.ttl.fillExpireAt(delTp);
+    }
+    else
+    {
+        // set TTL to the latest
+        if (rel.ttl<op.ttl)
+        {
+            rel.ttl=op.ttl;
+        }
+    }
+
+    ModelTopics::serializeRelation(rel,new_value);
+    return true;
+}
+#else
+#if 0
+
+bool MergeModelTopic::PartialMerge(const rocksdb::Slice &key,
+                                   const rocksdb::Slice &left,
+                                   const rocksdb::Slice &right,
+                                   std::string *new_value,
+                                   rocksdb::Logger *) const
+{
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::PartialMerge lef.size()=" << left.size()
+              << " right.size()=" << right.size()
+              << " key=" << logKey(key)
+              << std::endl;
+
+    ModelTopics::Relation rel;
+    ModelTopics::Operation leftOp;
+    ModelTopics::Operation rightOp;
+
+    auto mergeRelOp=[&rel](const ModelTopics::Operation& op)
+    {
+        if (op.op==ModelTopics::Operator::Del)
+        {
+            if (rel.count>0)
+            {
+                rel.count--;
+            }
+        }
+        else if (op.op==ModelTopics::Operator::Add)
+        {
+            rel.count++;
+        }
+
+        if (rel.count==0)
+        {
+            // schedule to delete using TTL back in time
+            uint32_t delTp=0x1000;
+            rel.ttl.fillExpireAt(delTp);
+        }
+        else
+        {
+            // set TTL to the latest
+            if (rel.ttl<op.ttl)
+            {
+                rel.ttl=op.ttl;
+            }
+        }
+    };
+
+    if (left.size()!=0)
+    {
+        if (!ModelTopics::deserializeRelation(left.data(),left.size(),rel))
+        {
+            if (!ModelTopics::deserializeOperation(left.data(),left.size(),leftOp))
+            {
+                HATN_CTX_ERROR(dbError(DbError::MODEL_TOPIC_RELATION_DESER),"failed to deserialize left")
+                return false;
+            }
+            else
+            {
+                mergeRelOp(leftOp);
+
+                //! @todo Cleanup
+                std::cout << "MergeModelTopic::PartialMerge left operand is operation op="<<static_cast<uint32_t>(leftOp.op) << std::endl;
+            }
+        }
+        else
+        {
+            //! @todo Cleanup
+            std::cout << "MergeModelTopic::PartialMerge left operand is relation " << std::endl;
+        }
+    }
+
+    if (right.size()!=0)
+    {
+        //! @todo Cleanup
+        std::cout << "MergeModelTopic::PartialMerge right operand is operation op="<<static_cast<uint32_t>(rightOp.op) << std::endl;
+
+        bool ok=ModelTopics::deserializeOperation(right.data(),right.size(),rightOp);
+        if (!ok)
+        {
+            HATN_CTX_ERROR(dbError(DbError::MODEL_TOPIC_RELATION_DESER),"failed to deserialize right")
+            return false;
+        }
+        mergeRelOp(rightOp);
+    }
+
+    std::cout << "MergeModelTopic::PartialMerge rel.count=" << rel.count
+              << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+
+    ModelTopics::serializeRelation(rel,new_value);
+    return true;
+}
+
+#else
+
+static void mergeRelOp(ModelTopics::Relation &rel, const ModelTopics::Operation& op)
+{
+    if (op.op==ModelTopics::Operator::Del)
+    {
+        if (rel.count>0)
+        {
+            rel.count--;
+        }
+    }
+    else if (op.op==ModelTopics::Operator::Add)
+    {
+        rel.count++;
+    }
+
+    if (rel.count==0)
+    {
+        // schedule to delete using TTL back in time
+        uint32_t delTp=0x1000;
+        rel.ttl.fillExpireAt(delTp);
+    }
+    else if (!rel.ttl.isNull())
+    {
+        // clear TTL
+        rel.ttl.clear();
+    }
+}
+
+#if 0
+bool MergeModelTopic::FullMerge(const rocksdb::Slice &key,
+                                const rocksdb::Slice *existing_value,
+                                const std::deque<std::string> &operand_list,
+                                std::string *new_value,
+                                rocksdb::Logger *) const
+{
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::FullMerge operand_list.size()=" << operand_list.size()
+              << " key=" << logKey(key)
+              << std::endl;
+
+    ModelTopics::Relation rel;
+    if (existing_value!=nullptr)
+    {
+        //! @todo Cleanup
+        std::cout << "deserialize relation"<<std::endl;
+
+        if (!ModelTopics::deserializeRelation(existing_value->data(),existing_value->size(),rel))
+        {
+            std::cerr<<"failed to deserialize rel"<<std::endl;
+            return false;
+        }
+    }
+
+    for (auto&& it : operand_list)
+    {
+        ModelTopics::Operation op;
+        if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
+        {
+            std::cout<<"try to deserialize rel size=" << it.size() <<std::endl;
+            if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
+            {
+                std::cerr<<"failed to deserialize rel-op"<<std::endl;
+                return false;
+            }
+        }
+        else
+        {
+            mergeRelOp(rel,op);
+        }
+
+        //! @todo Cleanup
+        std::cout << "operand op="<<static_cast<uint32_t>(op.op) << std::endl;
+    }
+
+    std::cout << "rel.count=" << rel.count
+              << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+
+    ModelTopics::serializeRelation(rel,new_value);
+    return true;
+
+}
+#endif
+
+bool MergeModelTopic::FullMergeV2(
+        const MergeOperationInput &merge_in,
+        MergeOperationOutput *merge_out
+    ) const
+{
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::FullMergeV2 operand_list.size()=" << merge_in.operand_list.size()
+              << " key=" << logKey(merge_in.key)
+              << std::endl;
+
+    ModelTopics::Relation rel;
+    if (merge_in.existing_value!=nullptr)
+    {
+        //! @todo Cleanup
+        std::cout << "deserialize relation"<<std::endl;
+
+        if (!ModelTopics::deserializeRelation(merge_in.existing_value->data(),merge_in.existing_value->size(),rel))
+        {
+            std::cerr<<"failed to deserialize rel"<<std::endl;
+            return false;
+        }
+    }
+
+    for (auto&& it : merge_in.operand_list)
+    {
+        ModelTopics::Operation op;
+        if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
+        {
+            std::cout<<"try to deserialize rel size=" << it.size() <<std::endl;
+            if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
+            {
+                std::cerr<<"failed to deserialize rel-op"<<std::endl;
+                return false;
+            }
+        }
+        else
+        {
+            mergeRelOp(rel,op);
+        }
+
+        //! @todo Cleanup
+        std::cout << "operand op="<<static_cast<uint32_t>(op.op) << std::endl;
+    }
+
+    std::cout << "rel.count=" << rel.count
+              << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+
+    ModelTopics::serializeRelation(rel,&merge_out->new_value);
+    return true;
+}
+
+bool MergeModelTopic::PartialMergeMulti(const Slice& key,
+                       const std::deque<Slice>& operand_list,
+                       std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const
+{
+    //! @todo Cleanup
+    std::cout << "MergeModelTopic::PartialMerge operand_list.size()=" << operand_list.size()
+              << " key=" << logKey(key)
+              << std::endl;
+
+    ModelTopics::Relation rel;
+
+    for (auto&& it : operand_list)
+    {
+        ModelTopics::Operation op;
+        if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
+        {
+            if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
+            {
+                HATN_CTX_ERROR(dbError(DbError::MODEL_TOPIC_RELATION_DESER),"failed to deserialize rel-op")
+                return false;
+            }
+            else
+            {
+                //! @todo Cleanup
+                std::cout << "MergeModelTopic::PartialMergeMulti operand is relation"<<std::endl;
+            }
+        }
+        else
+        {
+            mergeRelOp(rel,op);
+
+            //! @todo Cleanup
+            std::cout << "MergeModelTopic::PartialMergeMulti operand is operation op="<<static_cast<uint32_t>(op.op) << std::endl;
+        }
+    }
+
+    std::cout << "MergeModelTopic::PartialMergeMulti rel.count=" << rel.count
+              << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+
+    ModelTopics::serializeRelation(rel,new_value);
+    return true;
+}
+
+#endif
+#endif
 //---------------------------------------------------------------
 
 HATN_ROCKSDB_NAMESPACE_END

@@ -33,6 +33,7 @@
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/savesingleindex.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
@@ -79,6 +80,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
     )
 {
     using modelType=std::decay_t<ModelT>;
+    TtlMark ttlMark;
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
@@ -165,7 +167,6 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // save object
         ROCKSDB_NAMESPACE::SliceParts keySlices{&k,1};
-        TtlMark ttlMark;
         auto oldTtlMarkSlice=TtlMark::ttlMark(readSlice);
         auto ttlMarkSlice=oldTtlMarkSlice;
         if (ttlUpdated)
@@ -256,12 +257,22 @@ Result<typename ModelT::SharedPtr> updateSingle(
             using ttlIndexesT=TtlIndexes<modelType>;
 
             // delete old ttl index
-            ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,oldTtlMarkSlice);
-            HATN_CHECK_EC(ec)
+            TtlMark oldTtlMark;
+            //! @todo Use isNull() for TTL slice
+            oldTtlMark.load(oldTtlMarkSlice.data(),oldTtlMarkSlice.size());
+            if (!oldTtlMark.isNull())
+            {
+                ttlIndexesT::deleteTtlIndex(ec,rdbTx,partition,objectIdS,oldTtlMarkSlice);
+                HATN_CHECK_EC(ec)
+
+            }
 
             // save new ttl index
-            ttlIndexesT::saveTtlIndexWithMark(ttlMarkSlice,ec,model,obj.get(),buf,rdbTx,partition,objectIdS,factory);
-            HATN_CHECK_EC(ec)
+            if (!ttlMark.isNull())
+            {
+                ttlIndexesT::saveTtlIndexWithMark(ttlMarkSlice,ec,model,obj.get(),buf,rdbTx,partition,objectIdS,factory);
+                HATN_CHECK_EC(ec)
+            }
         }
 
         // done
@@ -272,6 +283,15 @@ Result<typename ModelT::SharedPtr> updateSingle(
     auto ec=handler.transaction(transactionFn,intx,true);
     HATN_CHECK_EC(ec)
 
+#if 0
+    //! @todo cleanup not needed
+    // update model-topic relation
+    ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition,ModelTopics::Operator::Update);
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to save model-topic relation")
+    }
+#endif
     // return empty if not found
     if (!found)
     {

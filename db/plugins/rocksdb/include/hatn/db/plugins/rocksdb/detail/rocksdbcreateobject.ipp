@@ -40,6 +40,7 @@
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
 #include <hatn/db/plugins/rocksdb/detail/saveobject.ipp>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
@@ -93,6 +94,7 @@ Error CreateObjectT::operator ()(
     dataunit::WireBufSolid buf{allocatorFactory};
     auto ec=serializeObject(obj,buf);
     HATN_CHECK_EC(ec)
+    auto ttlMark=makeTtlMark(model,obj);
 
     // transaction fn
     auto transactionFn=[&](Transaction* tx)
@@ -103,8 +105,7 @@ Error CreateObjectT::operator ()(
         HATN_CTX_SCOPE_PUSH("oid",lib::string_view(objectId.data(),objectId.size()))
 
         // prepare
-        Keys keys{allocatorFactory};
-        auto ttlMark=makeTtlMark(model,obj);
+        Keys keys{allocatorFactory};        
 
         // put serialized object to transaction
         const auto& objectCreatedAt=obj->field(object::created_at).value();
@@ -125,14 +126,23 @@ Error CreateObjectT::operator ()(
         ttlIndexesT::saveTtlIndexWithMark(ttlMark,ec,model,obj,buf,rdbTx,partition.get(),objectIdS,allocatorFactory);
         HATN_CHECK_EC(ec)
 
-        //! @todo Make models-topics relation index
-
         // done
         return Error{OK};
     };
 
     // invoke transaction
-    return handler.transaction(transactionFn,tx,true);
+    ec=handler.transaction(transactionFn,tx,true);
+    HATN_CHECK_EC(ec)
+
+    // save model-topic relation
+    ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition.get(),ModelTopics::Operator::Add);
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to save model-topic relation")
+    }
+
+    // done
+    return OK;
 }
 
 HATN_ROCKSDB_NAMESPACE_END

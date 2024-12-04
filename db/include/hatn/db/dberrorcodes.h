@@ -57,7 +57,8 @@
     Do(DbError,DELETE_TOPIC_FAILED,_TR("failed to delete topic from database","db")) \
     Do(DbError,TX_ROLLBACK,_TR("transaction rollback","db")) \
     Do(DbError,MODEL_TOPIC_RELATION_SAVE,_TR("failed to save model-topic relation","db")) \
-    Do(DbError,MODEL_TOPIC_RELATION_DESER,_TR("failed to deserialize model-topic relation","db"))
+    Do(DbError,MODEL_TOPIC_RELATION_DESER,_TR("failed to deserialize model-topic relation","db")) \
+    Do(DbError,MODEL_TOPIC_RELATION_READ,_TR("failed to read model-topic relation","db"))
 
 HATN_DB_NAMESPACE_BEGIN
 

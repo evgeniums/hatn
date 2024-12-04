@@ -527,6 +527,78 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        /**
+         * @brief count
+         * @param model
+         * @param topic
+         * @return
+         *
+         * @note For rocksdb driver not valid for models with TTL.
+         */
+        template <typename ModelT>
+        Result<size_t> count(
+            const std::shared_ptr<ModelT>& model
+            )
+        {
+            HATN_CTX_SCOPE("dbcountmodel")
+            if (m_open)
+            {
+                return doCount(*model->info,Topic{});
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        /**
+         * @brief count
+         * @param model
+         * @param topic
+         * @return
+         *
+         * @note For rocksdb driver not valid for models with TTL.
+         */
+        template <typename ModelT>
+        Result<size_t> count(
+            const std::shared_ptr<ModelT>& model,
+            const Topic& topic
+            )
+        {
+            HATN_CTX_SCOPE("dbcountmodel")
+            if (m_open)
+            {
+                return doCount(*model->info,topic);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        /**
+         * @brief count
+         * @param model
+         * @param topic
+         * @return
+         *
+         * @note For rocksdb driver not valid for models with TTL.
+         */
+        template <typename ModelT>
+        Result<size_t> count(
+            const std::shared_ptr<ModelT>& model,
+            const common::Date& date,
+            const Topic& topic=Topic{}
+            )
+        {
+            HATN_CTX_SCOPE("dbcountmodel")
+            if (m_open)
+            {
+                return doCount(*model->info,date,topic);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         template <typename ModelT, typename QueryT>
         Result<size_t> deleteMany(
                 const std::shared_ptr<ModelT>& model,
@@ -723,6 +795,17 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Result<size_t> doCount(
             const ModelInfo& model,
             const ModelIndexQuery& query
+        ) =0;
+
+        virtual Result<size_t> doCount(
+            const ModelInfo& model,
+            const Topic& topic
+        ) =0;
+
+        virtual Result<size_t> doCount(
+            const ModelInfo& model,
+            const common::Date& date,
+            const Topic& topic
         ) =0;
 
         virtual Result<size_t> doUpdateMany(

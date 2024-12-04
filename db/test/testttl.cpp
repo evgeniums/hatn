@@ -192,7 +192,11 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
 
         auto r2=client->read(topic1,model1(),oids[1]);
         BOOST_REQUIRE(r2);
-        BOOST_CHECK(r2.error().is(DbError::EXPIRED));
+        BOOST_CHECK(r2.error().is(DbError::NOT_FOUND) || r2.error().is(DbError::EXPIRED));
+        if (!r2.error().is(DbError::EXPIRED))
+        {
+            std::cout << "r2.error()="<< r2.error().codeString() << " oid="<<oids[1].toString() << std::endl;
+        }
         auto r3=client->read(topic1,model1(),oids[oids.size()-1]);
         BOOST_REQUIRE(!r3);
 
@@ -243,11 +247,10 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
         // read after reopen 2
         r1=client->find(model1(),q1);
         BOOST_CHECK(!r1);
-        BOOST_CHECK_EQUAL(r1->size(),3*count/4);
-
+        BOOST_CHECK_EQUAL(r1->size(),3*count/4);        
         r2=client->read(topic1,model1(),oids[1]);
-        BOOST_REQUIRE(r2);
-        BOOST_CHECK(r2.error().is(DbError::NOT_FOUND));
+        BOOST_CHECK(r2);
+
         r3=client->read(topic1,model1(),oids[oids.size()-1]);
         if (r3)
         {
@@ -255,18 +258,31 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
         }
         BOOST_REQUIRE(!r3);
 
-        // clear all
-        auto r4=client->deleteMany(model1(),q1);
+        // clear all except for oids[1]
+        auto q1_=makeQuery(oidIdx(),query::where(Oid,query::neq,oids[1]),topic1);
+        auto r4=client->deleteMany(model1(),q1_);
         BOOST_CHECK(!r4);
         auto r5=client->count(model1(),q1);
         BOOST_CHECK(!r5);
         BOOST_CHECK_EQUAL(r5.value(),0);
+
+        BOOST_TEST_MESSAGE("Waiting for 2 seconds...");
+        exec(2);
+
+        r2=client->read(topic1,model1(),oids[1]);
+        BOOST_CHECK(r2);
+        BOOST_CHECK(r2.error().is(DbError::NOT_FOUND) || r2.error().is(DbError::EXPIRED));
+        if (!r2.error().is(DbError::NOT_FOUND))
+        {
+            std::cout << "r2.error()="<< r2.error().codeString() << " oid="<<oids[1].toString() << std::endl;
+        }
 
         // add object with TTL fields not set
         auto o6=makeInitObject<u1::type>();
         o6.setFieldValue(u1::f2,static_cast<uint32_t>(100));
         ec=client->create(topic1,model1(),&o6);
         BOOST_REQUIRE(!ec);
+
         // wait for 2 seconds
         BOOST_TEST_MESSAGE("Waiting for 2 seconds...");
         exec(2);

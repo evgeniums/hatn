@@ -36,6 +36,7 @@
 #include <hatn/db/plugins/rocksdb/saveuniquekey.h>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/ttlcompactionfilter.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 
 HATN_DB_USING
 
@@ -195,6 +196,8 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 #endif
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     collCfOptions.compaction_filter=d->ttlCompactionFilter.get();
+    collCfOptions.merge_operator=std::make_shared<MergeModelTopic>();
+
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
     indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
     indexCfOptions.compaction_filter=d->ttlCompactionFilter.get();
@@ -676,6 +679,28 @@ Result<size_t> RocksdbClient::doCount(
     return rdbModel->count(*d->handler,query);
 }
 
+//---------------------------------------------------------------
+
+Result<size_t> RocksdbClient::doCount(
+    const ModelInfo &model,
+    const Topic& topic
+    )
+{
+    HATN_CTX_SCOPE("rdbcountmodel")
+    return ModelTopics::count(model,topic,common::Date{},*d->handler);
+}
+
+//---------------------------------------------------------------
+
+Result<size_t> RocksdbClient::doCount(
+    const ModelInfo &model,
+    const common::Date& date,
+    const Topic& topic
+    )
+{
+    HATN_CTX_SCOPE("rdbcountmodel")
+    return ModelTopics::count(model,topic,date,*d->handler);
+}
 //---------------------------------------------------------------
 
 Error RocksdbClient::doDeleteObject(

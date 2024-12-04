@@ -78,6 +78,12 @@ IF(WIN32)
     # @TODO Fix PUBLIC
     TARGET_COMPILE_DEFINITIONS(hatnrocksdbschema PUBLIC -DBUILD_HATN_ROCKSDB_SCHEMA)
 ENDIF(WIN32)
+
+IF (MINGW AND BUILD_DEBUG)
+    # Fix string table overflow when compiling in debug mode
+    SET_SOURCE_FILES_PROPERTIES(src/indexkeysearch.cpp PROPERTIES COMPILE_FLAGS -Os)
+ENDIF ()
+
 TARGET_LINK_LIBRARIES(hatnrocksdbschema PUBLIC hatndb)
 TARGET_INCLUDE_DIRECTORIES(hatnrocksdbschema PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 LINK_ROCKSDB(hatnrocksdbschema)

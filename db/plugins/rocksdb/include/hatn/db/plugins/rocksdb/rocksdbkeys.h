@@ -200,10 +200,20 @@ KeyBuf logKey(const T& key)
     for (size_t i=0;i<key.size();i++)
     {
         auto ch=*(key.data()+i);
-        if (ch<SpaceCharC)
+        if (uint8_t(ch)>=uint8_t(SeparatorCharC) || uint8_t(ch)<uint8_t(SpaceCharC))
         {
-            buf.push_back(BackSlashCharC);
-            buf.append(std::to_string(ch));
+            if (uint8_t(ch)>9)
+            {
+                buf.push_back(BackSlashCharC);
+            }
+            switch (ch)
+            {
+                case (SeparatorCharC): buf.append("0"); break;
+                case (SeparatorCharPlusC): buf.append("1"); break;
+                case (EmptyCharC): buf.append("2"); break;
+                case (InternalPrefixC): buf.append("FF"); break;
+                default: buf.append(fmt::format("{:02d}",ch));
+            }
         }
         else
         {

@@ -266,7 +266,10 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         AllocatorFactory* allocatorFactory
         )
     {
-        return saveTtlIndexWithMark(ttlMark.slice(),ec,model,obj,buf,tx,partition,objectIdSlice,allocatorFactory);
+        if (!ttlMark.isNull())
+        {
+            saveTtlIndexWithMark(ttlMark.slice(),ec,model,obj,buf,tx,partition,objectIdSlice,allocatorFactory);
+        }
     }
 };
 

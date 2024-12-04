@@ -37,9 +37,10 @@ uint32_t TtlMark::currentTimepoint() noexcept
 
 //---------------------------------------------------------------
 
-void TtlMark::refreshCurrentTimepoint()
+uint32_t TtlMark::refreshCurrentTimepoint()
 {
     CurrentTimepoint=static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    return CurrentTimepoint;
 }
 
 //---------------------------------------------------------------

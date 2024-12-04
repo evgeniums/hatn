@@ -35,6 +35,8 @@
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
+
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbkeys.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
@@ -109,9 +111,19 @@ struct DeleteObjectT
 
         // delete ttl index
         TtlMark ttlMarkObj{model,&unit};
-        auto ttlMark=ttlMarkObj.slice();
-        ttlIndexes.deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
-        HATN_CHECK_EC(ec)
+        if (!ttlMarkObj.isNull())
+        {
+            auto ttlMark=ttlMarkObj.slice();
+            ttlIndexes.deleteTtlIndex(ec,rdbTx,partition,objectIdS,ttlMark);
+            HATN_CHECK_EC(ec)
+        }
+
+        // update model-topic relation
+        ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition,ModelTopics::Operator::Del);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to save model-topic relation")
+        }
 
         // done
         return OK;

@@ -473,6 +473,16 @@ class ModelInfo
         void* m_nativeModel;
 };
 
+inline HATN_COMMON_NAMESPACE::DateRange datePartition(const HATN_COMMON_NAMESPACE::Date& date, const ModelInfo& model)
+{
+    if (model.isDatePartitioned())
+    {
+        return HATN_COMMON_NAMESPACE::DateRange{date,model.datePartitionMode()};
+    }
+    return HATN_COMMON_NAMESPACE::DateRange{};
+}
+
+
 template <typename ModelT>
 struct ModelWithInfo
 {

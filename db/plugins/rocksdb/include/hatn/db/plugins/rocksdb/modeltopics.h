@@ -19,6 +19,8 @@
 #ifndef HATNROCKSDBMODELTOPICS_H
 #define HATNROCKSDBMODELTOPICS_H
 
+#include <rocksdb/merge_operator.h>
+
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/db/topic.h>
@@ -35,57 +37,107 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
     public:
 
         constexpr static const uint8_t Version=1;
-        constexpr static const uint8_t MaxRelationSize=sizeof(uint8_t)+sizeof(size_t)+TtlMark::Size;
-        constexpr static const uint8_t MinRelationSize=sizeof(uint8_t)+sizeof(size_t)+TtlMark::MinSize;
+        constexpr static const uint8_t MaxRelationSize=sizeof(uint8_t)+sizeof(uint64_t)+TtlMark::Size;
+        constexpr static const uint8_t MinRelationSize=sizeof(uint8_t)+sizeof(uint64_t)+TtlMark::MinSize;
 
         constexpr static const std::array<char,4> RelationKeyPrefix{InternalPrefixC,0,0,1};
 
         enum class Operator : uint8_t
         {
             Add,
-            Del
+            Del,
+            Update
         };
 
         struct Relation
         {
-            uint8_t version;
-            uint64_t count;
+            uint8_t version=Version;
+            uint64_t count=0;
             TtlMark ttl;
         };
 
         struct Operation
         {
-            Operator op;
-            TtlMark ttl;
+            Operator op=Operator::Add;
         };
 
         constexpr static const size_t MaxOperationSize=sizeof(Operator)+TtlMark::Size;
 
         static Error update(
-            const ModelInfo* model,
+            const std::string& modelId,
             const Topic& topic,
             RocksdbHandler& handler,
             RocksdbPartition* partition,
-            bool addNremove,
-            const TtlMark& ttl=TtlMark{}
+            Operator action
         );
 
-        static Error deserializeRelation(const char* data, size_t size, Relation& rel);
+        static bool deserializeRelation(const char* data, size_t size, Relation& rel);
         static void serializeRelation(const Relation& rel, std::string* value);
 
-        static void deserializeOperation(const char* data, size_t size, Operation& op);
+        static bool deserializeOperation(const char* data, size_t size, Operation& op);
 
         static void fillRelationKey(
-            const ModelInfo* model,
+            const std::string& modelId,
             const Topic& topic,
             KeyBuf& key
         );
 
         static void fillModelKeyPrefix(
-            const ModelInfo* model,
-            KeyBuf& key
+            const std::string& modelId,
+            KeyBuf& key,
+            bool to=false
+        );
+
+        static Result<size_t> count(
+            const ModelInfo& model,
+            const Topic& topic,
+            const HATN_COMMON_NAMESPACE::Date& date,
+            RocksdbHandler& handler
         );
 };
+
+class HATN_ROCKSDB_SCHEMA_EXPORT MergeModelTopic : public ROCKSDB_NAMESPACE::MergeOperator
+{
+
+public:
+
+#if 0
+    virtual bool Merge(
+            const ROCKSDB_NAMESPACE::Slice&,
+            const ROCKSDB_NAMESPACE::Slice* existing_value,
+            const ROCKSDB_NAMESPACE::Slice& value,
+            std::string* new_value,
+            ROCKSDB_NAMESPACE::Logger*
+        ) const override;
+
+    virtual bool PartialMerge(const ROCKSDB_NAMESPACE::Slice& /*key*/,
+                              const ROCKSDB_NAMESPACE::Slice& /*left_operand*/,
+                              const ROCKSDB_NAMESPACE::Slice& /*right_operand*/,
+                              std::string* /*new_value*/,
+                              ROCKSDB_NAMESPACE::Logger* /*logger*/) const;
+    virtual bool FullMerge(const ROCKSDB_NAMESPACE::Slice& key,
+                           const ROCKSDB_NAMESPACE::Slice* existing_value,
+                           const std::deque<std::string>& operand_list,
+                           std::string* new_value,
+                           ROCKSDB_NAMESPACE::Logger*) const override;    
+#endif
+
+    virtual bool FullMergeV2(const MergeOperationInput& merge_in,
+                             MergeOperationOutput* merge_out) const override;
+
+    virtual bool PartialMergeMulti(const ROCKSDB_NAMESPACE::Slice& key,
+                                   const std::deque<ROCKSDB_NAMESPACE::Slice>& operand_list,
+                                   std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const override;
+
+
+    virtual bool AllowSingleOperand() const override { return true; }
+
+    virtual const char* Name() const override
+    {
+        return "MergeModelTopic";
+    }
+};
+
 
 HATN_ROCKSDB_NAMESPACE_END
 

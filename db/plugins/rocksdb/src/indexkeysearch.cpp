@@ -16,7 +16,11 @@
 
 /****************************************************************************/
 
-#include <cstddef>
+#if defined(__MINGW32__) && defined(BUILD_DEBUG)
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <vector>
 
 #include "rocksdb/comparator.h"
 

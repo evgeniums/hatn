@@ -94,12 +94,12 @@ Result<size_t> DeleteManyT::operator ()(
             auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
             return DeleteObject.doDelete(model,handler,partition,topic,objectKey,keys,ttlIndexes,tx);
         };
-        auto ok=!handler.transaction(transactionFn,tx,true);
-        if (ok)
+        ec=handler.transaction(transactionFn,tx,true);
+        if (!ec)
         {
             count++;
         }
-        return ok;
+        return !ec;
     };
     auto ec=FindMany(model,handler,idxQuery,allocatorFactory,keyCallback);
     HATN_CHECK_EC(ec)

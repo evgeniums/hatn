@@ -41,19 +41,34 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
         using ExpireAt=std::array<char,Size>;
         constexpr static size_t MinSize=1;
 
-        TtlMark(): m_size(0)
-        {}
+        TtlMark(): m_size(1)
+        {
+            m_expireAt[0]=0;
+        }
 
         bool isNull() const noexcept
         {
-            return m_size==0;
+            return m_size<=1;
+        }
+
+        void clear()
+        {
+            m_size=1;
+            m_expireAt[0]=0;
         }
 
         void load(const char* data, size_t size)
         {
-            Assert(size<=Size,"Invalid data size to load TTL");
-            memcpy(m_expireAt.data(),data,size);
-            m_size=size;
+            if (size==0)
+            {
+                clear();
+            }
+            else
+            {
+                Assert(size<=Size,"Invalid data size to load TTL");
+                memcpy(m_expireAt.data(),data,size);
+                m_size=size;
+            }
         }
 
         size_t copy(char* data, size_t maxSize) const
@@ -141,7 +156,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
 
         static uint32_t currentTimepoint() noexcept;
 
-        static void refreshCurrentTimepoint();
+        static uint32_t refreshCurrentTimepoint();
 
         static bool isExpired(uint32_t tp, uint32_t currentTp=0) noexcept;
 
@@ -189,7 +204,24 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
         {
             auto offset=ttlMarkOffset(slice.data(),slice.size());
             return ROCKSDB_NAMESPACE::Slice{slice.data()+slice.size()-offset,offset};
-        }                
+        }
+
+        bool operator <(const TtlMark& other) const noexcept
+        {
+            if (m_size<other.size())
+            {
+                return true;
+            }
+            if (m_size>other.size())
+            {
+                return true;
+            }
+            if (m_size==0 || m_size==1)
+            {
+                return false;
+            }
+            return timepoint()<other.timepoint();
+        }
 
     private:
 
