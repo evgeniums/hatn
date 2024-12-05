@@ -167,6 +167,7 @@ SET (HEADERS
     include/hatn/common/allocatoronstack.h
 
     include/hatn/common/crc32.h
+    include/hatn/common/objectguard.h
 
     include/hatn/common/experimental/stats/stats.h
 )
@@ -240,6 +241,7 @@ SET (SOURCES
     src/datetime.cpp
 
     src/taskcontext.cpp
+    src/objectguard.cpp
 )
 
 SET (SOURCES

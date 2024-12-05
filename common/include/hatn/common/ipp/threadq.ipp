@@ -28,7 +28,7 @@ namespace detail
 
 //---------------------------------------------------------------
 template <typename TaskT, template <typename> class Traits>
-void ThreadQ<TaskT,Traits>::setCurrent(ThreadQ<TaskT,Traits> *interface)
+void ThreadQ<TaskT,Traits>::setCurrent(selfType *interface)
 {
     detail::ThreadQCurrent<TaskT,Traits> =interface;
 }

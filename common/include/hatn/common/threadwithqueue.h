@@ -130,7 +130,7 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
         void clearQueue();
 
         //! Set thread queue interface if this thread is a part of thread pool
-        void setThreadQ(ThreadQ<TaskT,ThreadWithQueueTraits>* interface) noexcept;
+        void setThreadQ(ThreadQ<TaskT,ThreadWithQueueTraits>* iface) noexcept;
 
         //! Get thread queue interface if this thread is a part of thread pool
         ThreadQ<TaskT,ThreadWithQueueTraits>* threadQueueInterface() const noexcept;

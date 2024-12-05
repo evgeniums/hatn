@@ -278,6 +278,7 @@ class ThreadQ : public WithTraits<Traits<TaskT>>
     public:
 
         using base=WithTraits<Traits<TaskT>>;
+        using selfType=ThreadQ<TaskT,Traits>;
 
         //! Ctor
         template <typename ... Args>
@@ -351,7 +352,7 @@ class ThreadQ : public WithTraits<Traits<TaskT>>
     protected:
 
         //! Set current thread interface with thread locality
-        static void setCurrent(ThreadQ<TaskT,Traits>* interface);
+        static void setCurrent(selfType* iface);
 };
 
 //---------------------------------------------------------------
