@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asio/tcpserver.cpp
+
+/** @file network/asio/tcpserver.cpp
   *
   *   TCP server built on boost asio
   *
@@ -36,7 +36,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-// #include <hatn/common/types.h>
 #include <hatn/common/error.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
@@ -47,11 +46,9 @@
 #include <hatn/common/loggermoduleimp.h>
 INIT_LOG_MODULE(asiotcpserver,HATN_NETWORK_EXPORT)
 
-namespace hatn {
+HATN_NETWORK_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
-using namespace common;
-
-namespace network {
 namespace asio {
 
 /********************* TcpServerConfig **********************/
@@ -202,5 +199,5 @@ Error TcpServer::close()
 
 //---------------------------------------------------------------
 } // namespace asio
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END

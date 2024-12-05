@@ -1,14 +1,16 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+
   */
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file socks5client.cpp
+
+/** @file network/socks5client.cpp
   *
   *   Class to parse and construct messages of SOCKS5 protocol
   *
@@ -23,11 +25,8 @@
 #include <hatn/common/loggermoduleimp.h>
 INIT_LOG_MODULE(socks5client,HATN_NETWORK_EXPORT)
 
-namespace hatn {
-
-using namespace common;
-
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
 namespace {
 
@@ -331,7 +330,7 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
             break;
 
         case(State::ReceiveAddress):
-        {            
+        {
             if (m_addressType==ADDRESS_IP4)
             {
                 auto& firstOctet=m_addressLength; // for IPv4 we kept first octet in address length field
@@ -459,12 +458,12 @@ void Socks5Client::sendConnectRequest() noexcept
     headerPtr->version()=SOCKS5_VERSION;
     headerPtr->reserved()=0;
     if (m_udp)
-    {        
+    {
         headerPtr->command()=COMMAND_UDP_ASSOCIATE;
         // DCS_DEBUG_ID(socks5client,"Sending UDP associate");
     }
     else
-    {        
+    {
         headerPtr->command()=COMMAND_CONNECT;
         // DCS_DEBUG_ID(socks5client,"Sending TCP connect");
     }
@@ -581,5 +580,6 @@ bool Socks5Client::unwrapUdpPacket(Target &source,ByteArray &packet)
 }
 
 //---------------------------------------------------------------
-} // namespace network
-} // namespace hatn
+HATN_NETWORK_NAMESPACE_END
+
+

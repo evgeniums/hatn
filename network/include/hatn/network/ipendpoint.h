@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/ipendpoint.h
+
+/** @file network/ipendpoint.h
   *
   *  Network IP endpoint
   *
@@ -22,8 +22,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/endpoint.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Version of IP protocol
 enum class IpVersion : int

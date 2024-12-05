@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/network.сpp
+
+/** @file network/network.сpp
   *
   *     Hatn Network Library
   *
@@ -19,9 +19,8 @@
 #include <hatn/common/loggermoduleimp.h>
 INIT_LOG_MODULE(network,HATN_NETWORK_EXPORT)
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
-    } // namespace network
-} // namespace hatn
+    
+HATN_NETWORK_NAMESPACE_END

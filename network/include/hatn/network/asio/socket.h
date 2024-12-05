@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asio/socket.h
+
+/** @file network/asio/socket.h
   *
   *   Sockets based on boost asio
   *
@@ -44,8 +44,7 @@
 
 #include <hatn/network/network.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
 
 //! Base class template for raw sockets over boost asio sockets
@@ -134,7 +133,7 @@ inline bool fillAsioBuffers(
 }
 
 } // namespace asio
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNASIOSOCKET_H

@@ -1,13 +1,9 @@
 /*
    Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+*/
 
 /****************************************************************************/
-/*
-    
-*/
+
 /** \file resolverinterface.сpp
   *
   *     Resolver interface to use in environment.
@@ -16,8 +12,7 @@
 
 #include <hatn/network/resolverinterface.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 DCS_CUID_INIT(TcpResolverInterface)
 
@@ -30,5 +25,5 @@ UdpResolverInterface::~UdpResolverInterface()
 {}
 
 //---------------------------------------------------------------
-    } // namespace network
-} // namespace hatn
+    
+HATN_NETWORK_NAMESPACE_END

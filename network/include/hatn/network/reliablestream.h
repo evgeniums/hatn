@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/reliablestream.h
+
+/** @file network/reliablestream.h
   *
   *   Base class for reliable streams
   *
@@ -28,8 +28,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/endpoint.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Reliable stream
 template <typename Traits> using ReliableStream=common::StreamWithIDThread<Traits>;
@@ -45,7 +44,7 @@ template <typename EndpointT,typename Traits> class ReliableStreamWithEndpoints 
         using ReliableStream<Traits>::ReliableStream;
 };
 
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNRELIABLESTREAM_H

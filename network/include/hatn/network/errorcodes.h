@@ -2,34 +2,34 @@
 #define HATNNETWORKENUMS_H
 
 #include <hatn/common/error.h>
+#include <hatn/network/network.h>
 
-namespace hatn {
-    namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
-        //! Error codes
-        enum class ErrorCode : int
-        {
-            OK=static_cast<int>(common::CommonError::OK),
-            NOT_APPLICABLE,
-            NOT_SUPPORTED,
+//! Error codes
+enum class ErrorCode : int
+{
+    OK=static_cast<int>(common::CommonError::OK),
+    NOT_APPLICABLE,
+    NOT_SUPPORTED,
 
-            OPEN_FAILED,
-            ADDRESS_IN_USE,
-            CONNECT_FAILED,
+    OPEN_FAILED,
+    ADDRESS_IN_USE,
+    CONNECT_FAILED,
 
-            DNS_FAILED=0x100,
+    DNS_FAILED=0x100,
 
-            PROXY_ERRORS=0x200,
-            PROXY_AUTH_FAILED=PROXY_ERRORS,
-            PROXY_FAILED,
-            PROXY_UNSUPPORTED_VERSION,
-            PROXY_UNSUPPORTED_AUTH_METHOD,
-            PROXY_REPORTED_ERROR,
-            PROXY_UNSUPPORTED_IP_PROTOCOL,
-            PROXY_MAILFORMED_DATA,
-            PROXY_INVALID_PARAMETERS
-        };
-    }
-}
+    PROXY_ERRORS=0x200,
+    PROXY_AUTH_FAILED=PROXY_ERRORS,
+    PROXY_FAILED,
+    PROXY_UNSUPPORTED_VERSION,
+    PROXY_UNSUPPORTED_AUTH_METHOD,
+    PROXY_REPORTED_ERROR,
+    PROXY_UNSUPPORTED_IP_PROTOCOL,
+    PROXY_MAILFORMED_DATA,
+    PROXY_INVALID_PARAMETERS
+};
 
+
+HATN_NETWORK_NAMESPACE_END
 #endif // HATNNETWORK_H

@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asio/tcpserverconfig.h
+
+/** @file network/asio/tcpserverconfig.h
   *
   *   Interface for Asio TCP server configuration
   *
@@ -26,8 +26,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/asio/socket.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
 
 //! Interface for Asio TCP server configuration
@@ -79,7 +78,7 @@ class HATN_NETWORK_EXPORT TcpServerConfig : public common::Interface<TcpServerCo
 };
 
 } // namespace asio
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNASIOTCPSERVERCONFIG_H

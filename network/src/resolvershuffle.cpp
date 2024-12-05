@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/resolvershuffle.cpp
+
+/** @file network/resolvershuffle.cpp
   *
   *   Class for shuffling DNS resolver result
   *
@@ -18,11 +18,8 @@
 
 #include <hatn/network/resolvershuffle.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
 /********************** ResolverShuffle **************************/
 
@@ -62,5 +59,5 @@ void ResolverShuffle::shuffle(std::vector<asio::IpEndpoint> &endpoints)
 }
 
 //---------------------------------------------------------------
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END

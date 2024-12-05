@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asiotcpstream.cpp
+
+/** @file network/asiotcpstream.cpp
   *
   *   Stream over ASIO TCP socket
   *
@@ -47,11 +47,9 @@
 #include <hatn/common/loggermoduleimp.h>
 INIT_LOG_MODULE(asiotcpstream,HATN_NETWORK_EXPORT)
 
-namespace hatn {
+HATN_NETWORK_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
-using namespace common;
-
-namespace network {
 namespace asio {
 
 /*********************** TcpStream **************************/
@@ -361,5 +359,5 @@ void TcpStreamTraits::write(
 
 //---------------------------------------------------------------
 } // namespace asio
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END

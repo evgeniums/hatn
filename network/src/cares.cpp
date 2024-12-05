@@ -1,13 +1,9 @@
 /*
    Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+*/
 
 /****************************************************************************/
-/*
-    
-*/
+
 /** \file network/asio/cares.cpp
   *
   *   DNS resolver that uses c-ares resolving library
@@ -109,5 +105,5 @@ bool CaresError::isNull() const noexcept
 
 //---------------------------------------------------------------
 } // namespace dns
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END

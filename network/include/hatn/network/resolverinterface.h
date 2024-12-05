@@ -1,13 +1,9 @@
 /*
    Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+*/
 
 /****************************************************************************/
-/*
-    
-*/
+
 /** \file network/resolverinterface.h
   *
   *     Resolvers interface to use in environment
@@ -26,8 +22,7 @@
 #include <hatn/network/resolver.h>
 #include <hatn/network/network.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Resolver interface to use in environment
 template <network::Protocol proto> class ResolverInterface : public common::Interface<ResolverInterface<proto>>
@@ -85,6 +80,6 @@ class HATN_NETWORK_EXPORT UdpResolverInterface : public ResolverInterface<networ
 };
 
 //---------------------------------------------------------------
-    } // namespace network
-} // namespace hatn
+    
+HATN_NETWORK_NAMESPACE_END
 #endif // HATNNETWORKRESOLVERINTERFACE_H

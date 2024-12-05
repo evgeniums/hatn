@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/error.сpp
+
+/** @file network/error.сpp
   *
   *     Error classes for Hatn Network Library
   *
@@ -17,8 +17,7 @@
 #include <hatn/common/translate.h>
 #include <hatn/network/error.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 /********************** NetworkErrorCategory **************************/
 
@@ -106,5 +105,5 @@ std::string NetworkErrorCategory::message(int code) const
 }
 
 //---------------------------------------------------------------
-    } // namespace network
-} // namespace hatn
+    
+HATN_NETWORK_NAMESPACE_END

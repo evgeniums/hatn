@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
-    
-    
-  */
+ Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/unreliablechannel.h
+
+/** @file network/unreliablechannel.h
   *
   *     Base classes for unreliable channels
   *
@@ -30,8 +30,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/endpoint.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Asynchronous unreliable channel
 template <typename EndpointT, typename Traits> class UnreliableChannel
@@ -230,6 +229,6 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
 };
 
 //---------------------------------------------------------------
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 #endif // HATNUNRELIABLECHANNEL_H

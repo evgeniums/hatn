@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/resolver.h
+
+/** @file network/resolver.h
   *
   *   DNS resolver
   *
@@ -34,8 +34,7 @@
 
 DECLARE_LOG_MODULE_EXPORT(dnsresolver,HATN_NETWORK_EXPORT)
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Nameserver
 struct NameServer
@@ -298,7 +297,7 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
         }
 };
 
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNNETWORKRESOLVER_H

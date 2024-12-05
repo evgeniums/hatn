@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asio/caresolver.h
+
+/** @file network/asio/caresolver.h
   *
   *   DNS resolver that uses c-ares resolving library ans ASIO events
   *
@@ -24,8 +24,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/resolver.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
 //! c-ares library initialization and cleanup
 class HATN_NETWORK_EXPORT CaresLib
@@ -253,7 +252,7 @@ class CaResolverV : public ResolverTmlV<CaResolver>
 };
 
 } // namespace asio
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNCARESOLVER_H

@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file network/asio/ipendpoint.h
+
+/** @file network/asio/ipendpoint.h
   *
   *  Network IP address and endpoint, uses BOOST ASIO as backend.
   *
@@ -29,8 +29,7 @@
 #include <hatn/network/network.h>
 #include <hatn/network/ipendpoint.h>
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
 
 //! Wrapper class to convert hatn::network::Protocol to boost asio ip protocol

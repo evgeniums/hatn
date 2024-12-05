@@ -1,14 +1,14 @@
 /*
-   Copyright (c) 2019 - current, Evgeny Sidorov (esid1976@gmail.com), All rights reserved
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
     
-    
-  */
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
 
 /****************************************************************************/
-/*
-    
-*/
-/** \file socks5client.h
+
+/** @file network/socks5client.h
   *
   *   Class to parse and construct messages of SOCKS5 protocol
   *
@@ -33,8 +33,7 @@
 
 DECLARE_LOG_MODULE_EXPORT(socks5client,HATN_NETWORK_EXPORT)
 
-namespace hatn {
-namespace network {
+HATN_NETWORK_NAMESPACE_BEGIN
 
     /**
      * @brief Parse and construct messages of SOCKS5 protocol
@@ -246,7 +245,7 @@ namespace network {
             Target m_result;
     };
 
-} // namespace network
-} // namespace hatn
+
+HATN_NETWORK_NAMESPACE_END
 
 #endif // HATNNETWORKSOCKS5_H
