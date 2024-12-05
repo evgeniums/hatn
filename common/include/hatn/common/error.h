@@ -28,6 +28,7 @@
 #include <hatn/common/common.h>
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/errorcategory.h>
+#include <hatn/common/format.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -38,21 +39,43 @@ class ApiError;
 /**
  * @brief The Error class.
  *
- * @todo Test performance.
  */
 class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 {
     public:
 
-        //! Default constructor for std error category.
+        /**
+         * @brief Type of the error.
+         */
+        enum class Type : uint8_t
+        {
+            Default, //!< Default type with ErrorCategory
+            System, //!< std::error_code
+            Boost, //!< boost::system::error_code
+            Native //!< Native error with extended data.
+        };
+
+        //! @todo Use explicit constructors, OK as global const
+
+        //! Default constructor.
         template <typename T>
         Error(
                 T code,
-                const std::error_category* category=&CommonErrorCategory::getCategory()
+                const ErrorCategory* category=&CommonErrorCategory::getCategory()
             ) noexcept
             : m_code(static_cast<int>(code)),
-              m_extended(category)
-       {}
+              m_data(category)
+        {}
+
+        //! Constructor for std error category.
+        template <typename T>
+        Error(
+            T code,
+            const std::error_category* category
+            ) noexcept
+            : m_code(static_cast<int>(code)),
+              m_data(category)
+        {}
 
         //! Constructor for boost error category.
         template <typename T>
@@ -61,7 +84,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
                 const boost::system::error_category* category
               ) noexcept
             : m_code(static_cast<int>(code)),
-              m_extended(category)
+              m_data(category)
         {}
 
         //! Constructor from native error.
@@ -71,7 +94,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
                 std::shared_ptr<NativeError>&& error
               ) noexcept
             : m_code(static_cast<int>(code)),
-              m_extended(std::move(error))
+              m_data(std::move(error))
         {}
 
         Error(CommonError code=CommonError::OK) : Error(static_cast<int>(code))
@@ -83,102 +106,311 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         Error& operator=(const Error&)=default;
         Error& operator=(Error&&) =default;
 
-        //! Get message
-        inline std::string message() const
+        /**
+         * @brief Check if this error of some type.
+         * @param t Type to check for.
+         * @return Operation result.
+         */
+        bool isType(Type t) const noexcept
         {
-            switch (lib::variantIndex(m_extended))
-            {
-                case(0):
-                {
-                    auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
-                    return systemCat->message(m_code);
-                }
-
-                case(1):
-                {
-                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
-                    return boostCat->message(m_code);
-                }
-
-                case(2):
-                {
-                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
-                    if (nativeError)
-                    {
-                        return nativeMessage(nativeError);
-                    }
-                }
-            }
-
-            return CommonErrorCategory::getCategory().message(m_code);
+            return type()==t;
         }
 
-        //! Get value
+        /**
+         * @brief Get error type.
+         * @return Error type.
+         */
+        Type type() const noexcept
+        {
+            return static_cast<Type>(lib::variantIndex(m_data));
+        }
+
+        //! Get error message.
+        inline std::string message() const
+        {
+            FmtAllocatedBufferChar buf;
+            message(buf);
+            return fmtBufToString(buf);
+        }
+
+        /**
+         * @brief Get single level code string if error is of default type.
+         * @return String representation of error code.
+         */
+        inline const char* error() const
+        {
+            if (isType(Type::Default))
+            {
+
+                auto cat=lib::variantGet<const ErrorCategory*>(m_data);
+                return cat->codeString(m_code);
+            }
+
+            return "";
+        }
+
+        /**
+         * @brief Append string represetnation of error code to the buffer.
+         * @param buf Buffer to append to.
+         *
+         * String representation depends on the error type and in some cases may be nested.
+         */
+        template <typename BufT>
+        inline void codeString(BufT& buf) const
+        {
+            switch (type())
+            {
+                case(Type::Default):
+                {
+                    auto cat=lib::variantGet<const ErrorCategory*>(m_data);
+                    defaultCatCodeString(cat,buf);
+                }
+                break;
+
+                case(Type::System):
+                {
+                    auto cat=lib::variantGet<const std::error_category*>(m_data);
+                    systemCatCodeString(cat,buf);
+                }
+                break;
+
+                case(Type::Boost):
+                {
+                    auto cat=lib::variantGet<const boost::system::error_category*>(m_data);
+                    boostCatCodeString(cat,buf);
+                }
+                break;
+
+                case(Type::Native):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
+                    if (nativeError)
+                    {
+                        nativeCodeString(nativeError,buf);
+                    }
+                }
+                break;
+            }
+        }
+
+        /**
+         * @brief Get string representation of error code.
+         * @return Operation result.
+         */
+        inline std::string codeString() const
+        {
+            FmtAllocatedBufferChar buf;
+            codeString(buf);
+            return fmtBufToString(buf);
+        }
+
+        /**
+         * @brief Append error message to buffer.
+         * @param buf Buffer to append to.
+         */
+        template <typename BufT>
+        inline void message(BufT& buf) const
+        {
+            switch (type())
+            {
+                case(Type::Default):
+                {
+                    auto defaultCat=lib::variantGet<const ErrorCategory*>(m_data);
+                    buf.append(defaultCat->message(m_code));
+                }
+                break;
+
+                case(Type::System):
+                {
+                    auto systemCat=lib::variantGet<const std::error_category*>(m_data);
+                    buf.append(systemCat->message(m_code));
+                }
+                break;
+
+                case(Type::Boost):
+                {
+                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_data);
+                    buf.append(lib::string_view(boostCat->message(m_code)));
+                }
+                break;
+
+                case(Type::Native):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
+                    if (nativeError)
+                    {
+                        nativeMessage(nativeError,buf);
+                    }
+                }
+                break;
+            }
+        }
+
+        //! Get error code.
         inline int value() const noexcept
         {
             return m_code;
         }
 
-        //! Set value
+        //! Set error code.
         inline void setValue(int code) noexcept
         {
             m_code=code;
         }
 
-        //! Map to platform independent error code
+        //! Get error code.
+        inline int code() const noexcept
+        {
+            return m_code;
+        }
+
+        template <typename T>
+        bool is(T code) const noexcept
+        {
+            return static_cast<int>(code)==m_code;
+        }
+
+        //! Set error code.
+        template <typename T>
+        inline void setCode(T code, const ErrorCategory* category=&CommonErrorCategory::getCategory()) noexcept
+        {
+            m_code=static_cast<int>(code);
+            m_data=category;
+        }
+
+        //! Map to platform independent error code if applicable.
         inline int errorCondition() const noexcept
         {
-            if (lib::variantIndex(m_extended)==0)
+            switch (type())
             {
-                auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
-                return systemCat->default_error_condition(m_code).value();
-            }
+                case(Type::Default):
+                {
+                    return m_code;
+                }
+                break;
 
-            if (lib::variantIndex(m_extended)==1)
-            {
-                auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
-                return boostCat->default_error_condition(m_code).value();
+                case(Type::System):
+                {
+                    auto systemCat=lib::variantGet<const std::error_category*>(m_data);
+                    return systemCat->default_error_condition(m_code).value();
+                }
+                break;
+
+                case(Type::Boost):
+                {
+                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_data);
+                    return boostCat->default_error_condition(m_code).value();
+                }
+                break;
+
+                case(Type::Native):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
+                    if (nativeError)
+                    {
+                        return nativeErrorCondition(nativeError);
+                    }
+                }
+                break;
             }
 
             return m_code;
         }
 
-        //! Get native error
+        //! Get native error.
         inline const NativeError* native() const noexcept
         {
-            if (lib::variantIndex(m_extended)==2)
+            if (isType(Type::Native))
             {
-                return lib::variantGet<std::shared_ptr<NativeError>>(m_extended).get();
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_data).get();
             }
             return nullptr;
         }
 
-        //! Set native error
-        inline void setNative(int code, std::shared_ptr<NativeError>&& error) noexcept
+        //! Get native error.
+        inline NativeError* native() noexcept
         {
-            m_code=code;
-            m_extended=std::move(error);
+            if (isType(Type::Native))
+            {
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_data).get();
+            }
+            return nullptr;
         }
 
-        //! Get system error category.
-        inline const std::error_category* category() const
+        //! Set native error.
+        template <typename T>
+        inline void setNative(T code, std::shared_ptr<NativeError>&& error) noexcept
         {
-            switch (lib::variantIndex(m_extended))
-            {
-                case(0):
-                {
-                    auto systemCat=lib::variantGet<const std::error_category*>(m_extended);
-                    return systemCat;
-                }
+            m_code=static_cast<int>(code);
+            m_data=std::move(error);
+        }
 
-                case(2):
+        //! Set native error.
+        inline void setNative(std::shared_ptr<NativeError>&& error) noexcept
+        {
+            m_data=std::move(error);
+        }
+
+        //! Get error category.
+        inline const ErrorCategory* category() const
+        {
+            switch (type())
+            {
+                case(Type::Default):
                 {
-                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    auto defaultCat=lib::variantGet<const ErrorCategory*>(m_data);
+                    return defaultCat;
+                }
+                break;
+
+                case(Type::Native):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
                     if (nativeError)
                     {
                         return nativeCategory(nativeError);
                     }
                 }
+                break;
+
+                default:
+                    return nullptr;
+            }
+
+            return nullptr;
+        }
+
+        //! Get system error category.
+        inline const std::error_category* systemCategory() const
+        {
+            switch (type())
+            {
+                case(Type::Default):
+                {
+                    auto defaultCat=lib::variantGet<const ErrorCategory*>(m_data);
+                    return defaultCat;
+                }
+                break;
+
+                case(Type::System):
+                {
+                    auto systemCat=lib::variantGet<const std::error_category*>(m_data);
+                    return systemCat;
+                }
+                break;
+
+                case(Type::Native):
+                {
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
+                    if (nativeError)
+                    {
+                        return nativeSystemCategory(nativeError);
+                    }
+                }
+                break;
+
+                default:
+                    return nullptr;
             }
 
             return nullptr;
@@ -187,47 +419,52 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         //! Get boost error category.
         inline const boost::system::error_category* boostCategory() const
         {
-            switch (lib::variantIndex(m_extended))
+            switch (type())
             {
-                case(0):
+                case(Type::Boost):
                 {
-                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_extended);
+                    auto boostCat=lib::variantGet<const boost::system::error_category*>(m_data);
                     return boostCat;
                 }
+                break;
 
-                case(2):
+                case(Type::Native):
                 {
-                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_extended);
+                    const auto& nativeError=lib::variantGet<std::shared_ptr<NativeError>>(m_data);
                     if (nativeError)
                     {
                         return nativeBoostCategory(nativeError);
                     }
                 }
+                break;
+
+                default:
+                    return nullptr;
             }
 
             return nullptr;
         }
 
 
-        //! Bool operator
+        //! Bool operator.
         inline operator bool() const noexcept
         {
             return m_code!=static_cast<int>(CommonError::OK);
         }
 
-        //! Comparison operator
+        //! Comparison operator.
         inline bool operator ==(const Error& other) const noexcept
         {
             if (
                 other.value()!=this->value()
                     ||
-                lib::variantIndex(other.m_extended)!=lib::variantIndex(this->m_extended)
+                other.type()!=this->type()
                )
             {
                 return false;
             }
 
-            if (lib::variantIndex(m_extended)!=2 && other.m_extended!=this->m_extended)
+            if (!isType(Type::Native) && other.m_data!=this->m_data)
             {
                 return false;
             }
@@ -252,27 +489,65 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
 
         inline void reset() noexcept
         {
-            m_extended=&CommonErrorCategory::getCategory();
+            m_data=&CommonErrorCategory::getCategory();
             m_code=static_cast<int>(CommonError::OK);
         }
 
+        /**
+         * @brief Get API error if applicable.
+         * @return Pointer to API error object or nullptr.
+         */
         const ApiError* apiError() const noexcept;
 
+        /**
+         * @brief Stack this error with next error.
+         * @param next Next error.
+         *
+         * This error will be swapped with the next error with moving this error to the next error as a prev error.
+         */
         void stackWith(Error&& next);
+
+        void setPrevError(Error&& prev);
 
     private:
 
         bool compareNative(const Error& other) const noexcept;
-        const std::error_category* nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
+        const ErrorCategory* nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
+        const std::error_category* nativeSystemCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
         const boost::system::error_category* nativeBoostCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept;
-        std::string nativeMessage(const std::shared_ptr<NativeError>& nativeError) const;
+        int nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError) const noexcept;
+
+        template <typename BufT>
+        void nativeMessage(const std::shared_ptr<NativeError>& nativeError, BufT& buf) const;
+
+        template <typename BufT>
+        void nativeCodeString(const std::shared_ptr<NativeError>& nativeError, BufT& buf) const;
 
         int32_t m_code;
 
-        lib::variant<const std::error_category*,
+        lib::variant<const ErrorCategory*,
+                     const std::error_category*,
                      const boost::system::error_category*,
                      std::shared_ptr<NativeError>
-                     > m_extended;
+                     > m_data;
+
+        template <typename BufT>
+        inline void defaultCatCodeString(const ErrorCategory* cat, BufT& buf) const
+        {
+            buf.append(lib::string_view(cat->codeString(m_code)));
+        }
+
+        template <typename BufT>
+        inline void systemCatCodeString(const std::error_category* cat, BufT& buf) const
+        {
+            fmt::format_to(std::back_inserter(buf),"std-{}-{}({})",cat->name(),m_code,cat->message(m_code));
+        }
+
+        template <typename BufT>
+        inline void boostCatCodeString(const boost::system::error_category* cat, BufT& buf) const
+        {
+            fmt::format_to(std::back_inserter(buf),"boost-{}-{}({})",cat->name(),m_code,cat->message(m_code));
+        }
 };
 
 //! hatn error exception
@@ -340,6 +615,13 @@ inline common::Error makeBoostError(boost::system::errc::errc_t ec)
     return common::Error(static_cast<int>(ec),&boost::system::generic_category());
 }
 
+//! Set error code.
+template <typename T>
+inline void setError(Error& ec, T code) noexcept
+{
+    ec.setCode(static_cast<int>(code));
+}
+
 HATN_NAMESPACE_END
 
 #define HATN_CHECK_RETURN(Eval) \
@@ -363,7 +645,7 @@ HATN_NAMESPACE_END
 {\
     if (ec)\
     {\
-        return !ec;\
+        return false;\
     }\
 }
 
@@ -382,6 +664,14 @@ HATN_NAMESPACE_END
     if (ec)\
     {\
         throw ::hatn::common::ErrorException(ec);\
+    }\
+}
+
+#define HATN_CHECK_EMPTY_RETURN(ec) \
+{\
+    if (ec)\
+    {\
+        return;\
     }\
 }
 

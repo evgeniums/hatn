@@ -27,8 +27,7 @@
 #include "hatn_test_config.h"
 #include <hatn/test/multithreadfixture.h>
 
-namespace hatn {
-namespace test {
+HATN_TEST_NAMESPACE_BEGIN
 
 class PluginList
 {
@@ -52,14 +51,14 @@ class PluginList
             {
                 if (HATN_TEST_PLUGINS.find(it->name)==HATN_TEST_PLUGINS.end()
                     &&
-                    HATN_TEST_PLUGINS.find(std::string("hatn")+it->name)==HATN_TEST_PLUGINS.end()
+                    HATN_TEST_PLUGINS.find(std::string(HATN_COMMON_NAMESPACE::HatnVendor)+it->name)==HATN_TEST_PLUGINS.end()
                    )
                 {
                     common::PluginLoader::instance().free(it.get());
                 }
             }
             auto tmpPlugins=common::PluginLoader::instance().listPlugins(type);
-            std::string dr("hatn");
+            std::string dr{HATN_COMMON_NAMESPACE::HatnVendor};
             for (auto&& it:tmpPlugins)
             {
                 if (HATN_TEST_PLUGINS.find(it->name)==HATN_TEST_PLUGINS.end())
@@ -113,6 +112,15 @@ class PluginList
                 return fmt::format("{}/{}/assets",MultiThreadFixture::assetsPath(),module);
             }
             return fmt::format("{}/plugins/{}/{}/assets",MultiThreadFixture::assetsPath(),module,pluginName);
+        }
+
+        static std::string assetsFilePath(const std::string& module, const std::string& file, const std::string& pluginName=std::string())
+        {
+            if (pluginName.empty())
+            {
+                return fmt::format("{}/{}/assets/{}",MultiThreadFixture::assetsPath(),module,file);
+            }
+            return fmt::format("{}/plugins/{}/{}/assets/{}",MultiThreadFixture::assetsPath(),module,pluginName,file);
         }
 
         static std::string linefromFile(const std::string &fname)
@@ -186,6 +194,6 @@ class PluginTest
         PluginList::Context m_ctx;
 };
 
-}
-}
+HATN_TEST_NAMESPACE_END
+
 #endif // HATNTESTPLUGINLIST_H

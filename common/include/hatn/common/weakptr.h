@@ -23,6 +23,8 @@
 #include <hatn/common/pointers/mempool/weakptr.h>
 #include <hatn/common/pointers/std/weakptr.h>
 
+#include <hatn/common/sharedptr.h>
+
 HATN_COMMON_NAMESPACE_BEGIN
 
 #ifdef HATN_SMARTPOINTERS_STD
@@ -32,6 +34,12 @@ HATN_COMMON_NAMESPACE_BEGIN
     //! Weak pointer
     template <typename T> using WeakPtr=pointers_mempool::WeakPtr<T>;
 #endif
+
+template <typename T>
+auto toWeakPtr(const SharedPtr<T>& ptr)
+{
+    return WeakPtr<T>(ptr);
+}
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

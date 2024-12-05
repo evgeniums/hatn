@@ -36,18 +36,27 @@ template <typename T> class WeakPtr final
         WeakPtr(
                 const SharedPtr<T>& sharedPtr=SharedPtr<T>()
             ):p(sharedPtr.p)
-        {
-        }
+        {}
 
         //! Move ctor
         WeakPtr(WeakPtr<T>&& ptr) noexcept
             :p(std::move(ptr.p))
-        {
-        }
+        {}
 
         //! Copy ctor
         WeakPtr(const WeakPtr<T>& ptr):p(ptr.p)
+        {}
+
+        //! Swap pointers.
+        void swap(WeakPtr<T>& other) noexcept
         {
+            p.swap(other.p);
+        }
+
+        //! Swap pointers.
+        friend void swap(WeakPtr<T>& lhs, WeakPtr<T>& rhs) noexcept
+        {
+            std::swap(lhs.p,rhs.p);
         }
 
         //! Assignment operator

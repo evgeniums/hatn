@@ -24,6 +24,7 @@
 #include "hatn_test_config.h"
 
 #include <hatn/common/result.h>
+#include <hatn/common/errorcodes.h>
 
 HATN_USING
 HATN_COMMON_USING
@@ -196,6 +197,22 @@ BOOST_AUTO_TEST_CASE(HoldReferenceAccessors)
     BOOST_CHECK_EQUAL(val.value,1);
     BOOST_CHECK_EQUAL(r1->value,1);
     BOOST_CHECK_EQUAL((*r1).value,1);
+}
+
+enum class Errors : int
+{
+    HATN_COMMON_ERRORS(HATN_ERROR_CODE)
+};
+
+const char* const ErrorStrings[] = {
+    HATN_COMMON_ERRORS(HATN_ERROR_STR)
+};
+
+BOOST_AUTO_TEST_CASE(ErrorDefinition)
+{
+    BOOST_CHECK_EQUAL(int(Errors::OK),int(CommonError::OK));
+    BOOST_CHECK_EQUAL(errorString(Errors::OK,ErrorStrings),"OK");
+    BOOST_CHECK_EQUAL(errorString(Errors::UNKNOWN,ErrorStrings),"UNKNOWN");
 }
 
 //! @todo Add explicit tests for errors. Though, they are implicitly tested in other tests where Result is used.

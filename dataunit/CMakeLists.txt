@@ -19,15 +19,20 @@ SET (HEADERS
     include/hatn/dataunit/fields/bytes.h
     include/hatn/dataunit/fields/subunit.h
     include/hatn/dataunit/fields/repeated.h
+    include/hatn/dataunit/fields/custom.h
+    include/hatn/dataunit/fields/datetime.h
+    include/hatn/dataunit/fields/date.h
+    include/hatn/dataunit/fields/time.h
+    include/hatn/dataunit/fields/daterange.h
 
     include/hatn/dataunit/unittraits.h
 
-    include/hatn/dataunit/detail/unittraits.ipp
-    include/hatn/dataunit/detail/syntax.ipp
-    include/hatn/dataunit/detail/types.ipp
+    include/hatn/dataunit/ipp/unittraits.ipp
+    include/hatn/dataunit/ipp/syntax.ipp
+    include/hatn/dataunit/ipp/types.ipp
 
     include/hatn/dataunit/fieldserialization.h
-    include/hatn/dataunit/detail/fieldserialization.ipp
+    include/hatn/dataunit/ipp/fieldserialization.ipp
 
     include/hatn/dataunit/updatefilter.h
     include/hatn/dataunit/updatenotifier.h
@@ -44,16 +49,19 @@ SET (HEADERS
     include/hatn/dataunit/wirebuf.h
     include/hatn/dataunit/wirebufsolid.h
     include/hatn/dataunit/wirebufchained.h
-    include/hatn/dataunit/detail/wirebuf.ipp
+    include/hatn/dataunit/ipp/wirebuf.ipp
 
     include/hatn/dataunit/visitors.h
     include/hatn/dataunit/tags.h
 
     include/hatn/dataunit/unitmeta.h
-    include/hatn/dataunit/detail/unitmeta.ipp
+    include/hatn/dataunit/ipp/unitmeta.ipp
     include/hatn/dataunit/unitmacros.h
     include/hatn/dataunit/datauniterror.h
     include/hatn/dataunit/datauniterrorcodes.h
+
+    include/hatn/dataunit/objectid.h
+    include/hatn/dataunit/ipp/objectid.ipp
 )
 
 SET (SOURCES
@@ -64,6 +72,7 @@ SET (SOURCES
     src/field.cpp
     src/unitstrings.cpp
     src/datauniterror.cpp
+    src/objectid.cpp
 )
 
 # check if string literals are suuported by compiler

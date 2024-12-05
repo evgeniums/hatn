@@ -6,21 +6,12 @@ export repo_path=https://github.com/facebook/$lib_name
 
 source $scripts_root/../desktop/scripts/clonegit.sh
 
-cd $folder/..
-patch_file=$scripts_root/libs/rocksdb-android.patch
-if ! patch -R -p0 -s -f --dry-run <$patch_file > /dev/null; then
-  echo "rocksdb distro must be patched with $patch_file"
-  patch -p0 <$patch_file
-  echo "rocksdb patched"
-fi
-cd - > /dev/null
-
 cd $lib_build_dir
 
 set LZ4_INCLUDE=$root_dir/include
 set LZ4_LIB_RELEASE=$root_dir/lib/liblz4.a
 
-export CXXFLAGS=-fPIC
+export CXXFLAGS="-DOS_LINUX -fPIC"
 
 toolchain_name=$toolchain-linux-android-clang
 if [ "$toolchain" = "arm-linux-androideabi" ];
@@ -29,11 +20,11 @@ then
 else
 	if [ "$toolchain" = "i686" ];
 	then
-		export CXXFLAGS="-fPIC -D__i386__"
+	    export CXXFLAGS="-DOS_LINUX -fPIC -D__i386__"
 	fi
 fi
 
-echo "Android platform is $platform, toolchain $toolchain_name, compiler $toolchain_clangpp"
+echo "Android platform is $platform, toolchain $toolchain_name, compiler $toolchain_clangpp, folder \"$folder\""
 
 cmake -G "Unix Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
@@ -49,6 +40,10 @@ cmake -G "Unix Makefiles" \
 	    -Dlz4_LIBRARIES=$toolchain_install_path/lib/liblz4.a \
 	    -DROCKSDB_BUILD_SHARED=0 \
 	    -DDISABLE_MARCH_NATIVE=1 \
+	    -DWITH_PERF_CONTEXT=0 \
+	    -DWITH_IOSTATS_CONTEXT=0 \
+	    -DUSE_RTTI=1 \
+	    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
 	    $folder
 
 make -j$build_workers install

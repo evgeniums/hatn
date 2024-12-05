@@ -31,7 +31,7 @@
 HATN_BASE_NAMESPACE_BEGIN
 
 //! Error category for hatnbase.
-class HATN_BASE_EXPORT BaseErrorCategory : public std::error_category
+class HATN_BASE_EXPORT BaseErrorCategory : public common::ErrorCategory
 {
 public:
 
@@ -43,6 +43,9 @@ public:
 
     //! Get description for the code
     virtual std::string message(int code) const override;
+
+    //! Get string representation of the code.
+    virtual const char* codeString(int code) const override;
 
     //! Get category
     static const BaseErrorCategory& getCategory() noexcept;

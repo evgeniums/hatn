@@ -40,27 +40,30 @@ class HATN_COMMON_EXPORT NativeError
         NativeError(
                 std::string nativeMessage,
                 int nativeCode=-1,
-                const std::error_category* category=nullptr
+                const ErrorCategory* category=nullptr
             ) : m_nativeMessage(std::move(nativeMessage)),
                 m_nativeCode(nativeCode),
                 m_category(category),
+                m_systemCategory(nullptr),
                 m_boostCategory(nullptr)
         {}
 
         //! Ctor
         NativeError(
                 int nativeCode,
-                const std::error_category* category=nullptr
+                const ErrorCategory* category=nullptr
             ) : m_nativeCode(nativeCode),
                 m_category(category),
+                m_systemCategory(nullptr),
                 m_boostCategory(nullptr)
         {}
 
         //! Ctor
         NativeError(
-                const std::error_category* category
+                const ErrorCategory* category
             ) : m_nativeCode(-1),
                 m_category(category),
+                m_systemCategory(nullptr),
                 m_boostCategory(nullptr)
         {}
 
@@ -68,6 +71,7 @@ class HATN_COMMON_EXPORT NativeError
         NativeError(
         ) : m_nativeCode(-1),
             m_category(nullptr),
+            m_systemCategory(nullptr),
             m_boostCategory(nullptr)
         {}
 
@@ -86,17 +90,42 @@ class HATN_COMMON_EXPORT NativeError
         //! Get error message.
         std::string message() const
         {
+            FmtAllocatedBufferChar buf;
+            message(buf);
+            return fmtBufToString(buf);
+        }
+
+        template <typename BufT>
+        void message(BufT& buf) const
+        {
             auto msg=nativeMessage();
             if (m_prevError)
             {
-                auto prevMsg=m_prevError->message();
                 if (msg.empty())
                 {
-                    return prevMsg;
+                    m_prevError->message(buf);
                 }
-                msg=fmt::format("{}: {}", msg, prevMsg);
+                else
+                {
+                    buf.append(msg);
+                    buf.append(lib::string_view(": "));
+                    m_prevError->message(buf);
+                }
             }
-            return msg;
+            else
+            {
+                buf.append(msg);
+            }
+        }
+
+        template <typename BufT>
+        void codeString(BufT& buf) const
+        {
+            if (m_prevError)
+            {
+                buf.append(lib::string_view(":"));
+                m_prevError->codeString(buf);
+            }
         }
 
         //! Get native error code.
@@ -106,14 +135,25 @@ class HATN_COMMON_EXPORT NativeError
         }
 
         //! Get category.
-        const std::error_category* category() const noexcept
+        const ErrorCategory* category() const noexcept
         {
             return m_category;
         }
 
-        void setCategory(const std::error_category* cat) noexcept
+        void setCategory(const ErrorCategory* cat) noexcept
         {
             m_category=cat;
+        }
+
+        //! Get system category.
+        const std::error_category* systemCategory() const noexcept
+        {
+            return m_systemCategory;
+        }
+
+        void setSystemCategory(const std::error_category* cat) noexcept
+        {
+            m_systemCategory=cat;
         }
 
         const boost::system::error_category* boostCategory() const noexcept
@@ -129,10 +169,15 @@ class HATN_COMMON_EXPORT NativeError
         //! Compare with other error.
         inline bool isEqual(const NativeError& other) const noexcept
         {
-            if (other.category()!=this->category()
-               ||
+            if (
                 other.nativeCode()!=this->nativeCode()
-               ||
+                ||
+                other.category()!=this->category()
+                ||
+                other.systemCategory()!=this->systemCategory()
+                ||
+                other.boostCategory()!=this->boostCategory()
+                ||
                 other.nativeMessage()!=this->nativeMessage()
                )
             {
@@ -186,7 +231,8 @@ class HATN_COMMON_EXPORT NativeError
 
         std::string m_nativeMessage;
         int m_nativeCode;
-        const std::error_category* m_category;
+        const ErrorCategory* m_category;
+        const std::error_category* m_systemCategory;
         const boost::system::error_category* m_boostCategory;
 
         lib::optional<Error> m_prevError;

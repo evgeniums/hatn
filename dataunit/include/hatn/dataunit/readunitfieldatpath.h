@@ -37,7 +37,17 @@ struct getUnitFieldAtPathT
     template <typename UnitT, typename PathT>
     auto operator () (const UnitT& unit, const PathT& path) const -> decltype(auto)
     {
-        return HATN_VALIDATOR_NAMESPACE::get_member(unit,path.path());
+        return hana::eval_if(
+            hana::is_a<hana::tuple_tag,PathT>,
+            [&](auto _)
+            {
+                return HATN_VALIDATOR_NAMESPACE::get_member(_(unit),_(path));
+            },
+            [&](auto _)
+            {
+                return HATN_VALIDATOR_NAMESPACE::get_member(_(unit),_(path).path());
+            }
+        );
     }
 };
 /** Callable for getting value of dataunit's field at some path. **/

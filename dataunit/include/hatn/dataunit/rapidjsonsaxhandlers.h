@@ -31,13 +31,16 @@ namespace rapidjson { using SizeType=size_t; }
 #include <rapidjson/reader.h>
 
 #include <hatn/thirdparty/base64/base64.h>
+
+#include <hatn/common/datetime.h>
+
 #include <hatn/dataunit/dataunit.h>
 
 #include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/rapidjsonstream.h>
-#include <hatn/dataunit/detail/types.ipp>
+#include <hatn/dataunit/ipp/types.ipp>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 namespace json {
@@ -58,7 +61,8 @@ struct ReaderBase
     {}
 };
 
-template <typename T,typename T1> inline void pushHandler(
+template <typename T,typename T1>
+void pushHandler(
             Unit* topUnit,
             T* obj,
             int scopes=0,
@@ -80,7 +84,8 @@ template <typename T,typename T1> inline void pushHandler(
     topUnit->pushJsonParseHandler(handler);
 }
 
-template <typename T> struct ReaderBaseHandler : public ReaderBase
+template <typename T>
+struct ReaderBaseHandler : public ReaderBase
 {
     ReaderBaseHandler(
             Unit* topUnit,
@@ -213,19 +218,23 @@ struct FieldReaderBase : public ReaderBaseHandler<FieldReaderBase<FieldType,Enco
 };
 
 
-template <typename TYPE,typename FieldType,typename=void> struct FieldReader
+template <typename TYPE,typename FieldType,typename=void>
+struct FieldReader
 {
 };
 
 //! JSON read handler for integer fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                            !FieldType::isRepeatedType::value
-                                                            &&
-                                                            std::is_integral<typename TYPE::type>::value
-                                                        >>
-                                                    : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                        !decltype(meta::is_custom_type<TYPE>())::value
+                        &&
+                        !FieldType::isRepeatedType::value
+                        &&
+                        std::is_integral<typename TYPE::type>::value
+                    >>
+                : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -237,14 +246,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable integer fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                std::is_integral<typename TYPE::type>::value
-                                                            >
-                                                         > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            std::is_integral<typename TYPE::type>::value
+                        >
+                     > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -254,11 +266,11 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
         return true;
     }
 
-    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
 
     bool EndArray(SizeType)
     {
@@ -267,14 +279,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for floating point fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                            !FieldType::isRepeatedType::value
-                                                            &&
-                                                            std::is_floating_point<typename TYPE::type>::value
-                                                        >>
-                                                    : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                        !decltype(meta::is_custom_type<TYPE>())::value
+                        &&
+                        !FieldType::isRepeatedType::value
+                        &&
+                        std::is_floating_point<typename TYPE::type>::value
+                    >>
+                : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -287,14 +302,17 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable floating point fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                std::is_floating_point<typename FieldType::type>::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            std::is_floating_point<typename FieldType::type>::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -304,12 +322,12 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
         return true;
     }
 
-    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
-    bool Double(double val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->addValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Bool(bool val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int(int val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint(unsigned val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Int64(int64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Uint64(uint64_t val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
+    bool Double(double val) { pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);this->m_field->appendValue(static_cast<typename FieldType::type>(val)); return true; }
 
     bool EndArray(SizeType)
     {
@@ -318,16 +336,19 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
 };
 
 //! JSON read handler for byte fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                !FieldType::isRepeatedType::value
-                                                                &&
-                                                                TYPE::isBytesType::value
-                                                                &&
-                                                                !TYPE::isStringType::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            !FieldType::isRepeatedType::value
+                            &&
+                            TYPE::isBytesType::value
+                            &&
+                            !TYPE::isStringType::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -342,6 +363,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             FieldType::isRepeatedType::value
                             &&
                             TYPE::isBytesType::value
@@ -362,7 +385,7 @@ struct FieldReader<TYPE,
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
 
-        auto&& val=this->m_field->createAndAddValue();
+        auto&& val=this->m_field->createAndAppendValue();
         common::Base64::from(data,size,*val.buf());
         return true;
     }
@@ -378,6 +401,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             !FieldType::isRepeatedType::value
                             &&
                             TYPE::isStringType::value
@@ -394,14 +419,17 @@ struct FieldReader<TYPE,
 };
 
 //! JSON read handler for repeatable string fields
-template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
-                                                        FieldType,
-                                                        std::enable_if_t<
-                                                                FieldType::isRepeatedType::value
-                                                                &&
-                                                                TYPE::isStringType::value
-                                                            >
-                                                        > : public FieldReaderBase<FieldType>
+template <typename TYPE,typename FieldType>
+struct FieldReader<TYPE,
+                    FieldType,
+                    std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
+                            FieldType::isRepeatedType::value
+                            &&
+                            TYPE::isStringType::value
+                        >
+                    > : public FieldReaderBase<FieldType>
 {
     using json::FieldReaderBase<FieldType>::FieldReaderBase;
 
@@ -414,7 +442,7 @@ template <typename TYPE,typename FieldType> struct FieldReader<TYPE,
     bool String(const typename FieldReaderBase<FieldType>::Ch* data, SizeType size, bool)
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
-        this->m_field->addValue(data,size);
+        this->m_field->appendValue(data,size);
         return true;
     }
 
@@ -429,6 +457,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                     FieldType,
                     std::enable_if_t<
+                            !decltype(meta::is_custom_type<TYPE>())::value
+                            &&
                             !FieldType::isRepeatedType::value
                             &&
                             TYPE::isUnitType::value
@@ -454,6 +484,8 @@ template <typename TYPE,typename FieldType>
 struct FieldReader<TYPE,
                 FieldType,
                 std::enable_if_t<
+                    !decltype(meta::is_custom_type<TYPE>())::value
+                    &&
                     FieldType::isRepeatedType::value
                     &&
                     TYPE::isUnitType::value
@@ -465,7 +497,7 @@ struct FieldReader<TYPE,
     bool Null()
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
-        this->m_field->createAndAddValue();
+        this->m_field->createAndAppendValue();
         return true;
     }
 
@@ -479,7 +511,7 @@ struct FieldReader<TYPE,
     {
         pushHandler<FieldType,FieldReader<TYPE,FieldType>>(this->m_topUnit,this->m_field,this->m_scopes);
 
-        auto val=this->m_field->createAndAddValue();
+        auto& val=this->m_field->createAndAppendValue();
         pushHandler<Unit,UnitReader>(this->m_topUnit,val.mutableValue(),this->m_scopes,1);
         return true;
     }
@@ -524,7 +556,8 @@ class Writer
 };
 
 //! JSON write handler
-template <typename T, typename StreamT> class WriterTmpl : public Writer
+template <typename T, typename StreamT>
+class WriterTmpl : public Writer
 {
     public:
 
@@ -575,62 +608,58 @@ template <typename T, typename StreamT> class WriterTmpl : public Writer
 };
 
 //! Field write handlers
-template <typename T,typename=void>
+template <typename T,typename Type,typename=void>
 struct Fieldwriter
 {
-};
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<!std::is_scalar<T>::value>>
-{
-    inline static bool write(const T&,json::Writer*)
+    static bool write(const T&,json::Writer*)
     {
         return false;
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_signed<T>::value && !std::is_floating_point<T>::value && !std::is_same<int64_t,T>::value && !std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_signed<T>::value && !std::is_floating_point<T>::value && !std::is_same<int64_t,T>::value && !std::is_same<Bool,Type>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_unsigned<T>::value && !std::is_same<uint64_t,T>::value && !std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_unsigned<T>::value && !std::is_same<uint64_t,T>::value && !std::is_same<Bool,Type>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<uint64_t,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<uint64_t,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Uint64(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<int64_t,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<int64_t,T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Int64(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_same<bool,T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<Bool,Type>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Bool(val);
     }
 };
-template <typename T>
-struct Fieldwriter<T,std::enable_if_t<std::is_floating_point<T>::value>>
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_floating_point<T>::value>>
 {
-    inline static bool write(const T& val,json::Writer* writer)
+    static bool write(const T& val,json::Writer* writer)
     {
         return writer->Double(static_cast<double>(val));
     }

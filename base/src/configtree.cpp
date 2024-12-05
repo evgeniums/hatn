@@ -67,7 +67,7 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
                 auto view=current->template asArray<ConfigTree>();
                 HATN_CHECK_RESULT(view)
 
-                if (pos.value()<0 || pos.value()>=view->size())
+                if (pos.value()>=view->size())
                 {
                     return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
                 }
@@ -114,7 +114,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
             current->toMap();
         }
 
-        size_t pos=-1;
+        size_t pos{0};
         if (current->type()==config_tree::Type::ArrayTree)
         {
             auto tryPos=path.numberAt(i);
@@ -148,7 +148,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
             auto view=current->template asArray<ConfigTree>();
             HATN_CHECK_RESULT(view)
 
-            if (pos<0 || pos>=view->size())
+            if (pos>=view->size())
             {
                 return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
             }

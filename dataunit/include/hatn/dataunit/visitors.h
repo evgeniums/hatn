@@ -38,7 +38,23 @@
 #include <hatn/dataunit/wirebuf.h>
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/unit.h>
-#include <hatn/dataunit/detail/wirebuf.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
+
+//! @todo Move to common lib
+
+struct true_predicate_t
+{
+    template <typename T>
+    constexpr bool operator()(T&&) const
+    {
+        return true;
+    }
+};
+constexpr true_predicate_t true_predicate{};
+
+HATN_DATAUNIT_META_NAMESPACE_END
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -49,18 +65,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 #endif
 
 //---------------------------------------------------------------
-
-namespace meta {
-struct true_predicate_t
-{
-    template <typename T>
-    constexpr bool operator()(T&&) const
-    {
-        return true;
-    }
-};
-constexpr true_predicate_t true_predicate{};
-}
 
 struct HATN_DATAUNIT_EXPORT visitors
 {

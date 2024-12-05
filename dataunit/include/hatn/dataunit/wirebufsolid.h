@@ -191,8 +191,31 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
             bool inlineBuffer,
             AllocatorFactory* factory=AllocatorFactory::getDefault()
             ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{data,size,inlineBuffer},size,factory)
+        {}
+
+        WireBufSolid(
+            const char* data,
+            size_t size,
+            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{data,size,false},size,factory)
+        {}
+
+        void load(
+            const char* data,
+            size_t size
+            )
         {
-            setUseInlineBuffers(inlineBuffer);
+            setSize(size);
+            mainContainer()->load(data,size);
+        }
+
+        void loadInline(
+            const char* data,
+            size_t size
+            )
+        {
+            setSize(size);
+            mainContainer()->loadInline(data,size);
         }
 
         ~WireBufSolid()=default;

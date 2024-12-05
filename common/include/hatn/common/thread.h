@@ -48,6 +48,8 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+using ThreadId=FixedByteArrayThrow16;
+
 class Thread_p;
 
 //! hatn thread
@@ -59,7 +61,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 
         //! Constructor
         Thread(
-            FixedByteArrayThrow16 id="unknown", //!< Thread's ID
+            ThreadId id="unknown", //!< Thread's ID
             bool newThread=true //!< If false then no actual thread will be started, only asioContext will run
         );
 
@@ -206,7 +208,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
         bool isStarted() const noexcept;
 
         //! Get ID
-        const FixedByteArrayThrow16& id() const noexcept;
+        const ThreadId& id() const noexcept;
 
         //! Get number of pending handlers
         int pendingHandlersCount() const noexcept;

@@ -35,16 +35,29 @@ namespace hana=boost::hana;
 struct UnitFieldUpdater
 {    
     template <typename UnitT, typename PathT>
-    static auto fieldAtPath(UnitT&& unit, PathT&& path) -> decltype(auto)
+    static auto& fieldAtPath(UnitT& unit, PathT&& path)
     {
         return hana::fold(
             path.path(),
-            std::forward<UnitT>(unit),
-            [](auto&& parent, auto&& key) -> decltype(auto)
+            unit,
+            [](auto& parent, auto&& key) -> decltype(auto)
             {
                 return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
             }
         );
+    }
+
+    template <typename UnitT, typename PathT>
+    static const auto& fieldAtPath(const UnitT& unit, PathT&& path)
+    {
+        return hana::fold(
+            path.path(),
+            unit,
+            [](const auto& parent, auto&& key) -> decltype(auto)
+            {
+                return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
+            }
+            );
     }
 
     template <typename UnitT, typename PathT, typename ...Args>
@@ -77,41 +90,6 @@ struct UnitFieldUpdater
     static void clear(UnitT&& unit, PathT&& path)
     {
         fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path)).fieldClear();
-#if 0
-        auto& field=fieldAtPath(std::forward<UnitT>(unit),std::forward<PathT>(path));
-        using fieldT=std::decay_t<decltype(field)>;
-
-        hana::if_(
-            std::is_base_of<BytesType,fieldT>{},
-            [](auto&& field)
-            {
-                field.buf()->clear();
-            },
-            [](auto&& field)
-            {
-                hana::if_(
-                    std::is_base_of<UnitType,fieldT>{},
-                    [](auto&& field)
-                    {
-                        field.mutableValue()->clear();
-                    },
-                    [](auto&& field)
-                    {
-                        hana::if_(
-                            std::is_base_of<RepeatedType,fieldT>{},
-                            [](auto&& field)
-                            {
-                                field.clearArray();
-                            },
-                            [](auto&&)
-                            {
-                            }
-                        )(std::forward<decltype(field)>(field));
-                    }
-                )(std::forward<decltype(field)>(field));
-            }
-        )(field);
-#endif
     }
 
     template <typename UnitT, typename PathT>
@@ -188,7 +166,7 @@ struct UnitFieldUpdater
                     std::is_base_of<RepeatedType,fieldT>{},
                     [](auto&& field, auto&&... args)
                     {
-                        field.appendValues(std::forward<decltype(args)>(args)...);
+                        field.append(std::forward<decltype(args)>(args)...);
                     },
                     [](auto&&, auto&&...)
                     {
@@ -208,7 +186,7 @@ struct UnitFieldUpdater
             std::is_base_of<RepeatedType,fieldT>{},
             [&size](auto&& field)
             {
-                field.addValues(size);
+                field.appendValues(size);
             },
             [](auto&&)
             {

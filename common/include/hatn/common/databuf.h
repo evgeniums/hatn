@@ -129,6 +129,13 @@ template <typename DataPointerT> struct DataBufWrapper
         m_size=size;
     }
 
+    template <typename ContainerT>
+    void set(const ContainerT& container) noexcept
+    {
+        m_buf=reinterpret_cast<DataPointerT>(container.data());
+        m_size=container.size();
+    }
+
     inline void rebind(char* buf) noexcept
     {
         m_buf=const_cast<DataPointerT>(buf);

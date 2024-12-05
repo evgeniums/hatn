@@ -22,8 +22,6 @@
 
 #include <hatn/common/common.h>
 
-#include <hatn/common/memorypool/pool.h>
-
 #include <hatn/common/pointers/mempool/managedobject.h>
 #include <hatn/common/pointers/mempool/weakptr.h>
 #include <hatn/common/pointers/mempool/sharedptr.h>
@@ -38,12 +36,15 @@ template <typename T, typename=void> struct SharedCreator
 };
 template <typename T> struct SharedCreator<T,std::enable_if_t<std::is_base_of<ManagedObject,T>::value>>
 {
-    template <typename ... Args> inline static SharedPtr<T> allocate(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
+    template <typename ... Args>
+    inline static SharedPtr<T> allocate(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
     {
         auto ptr=pmr::allocateConstruct(allocator,std::forward<Args>(args)...);
         return SharedPtr<T>(ptr,ptr,allocator.resource());
     }
-    template <typename ... Args> inline static SharedPtr<T> make(Args&&... args)
+
+    template <typename ... Args>
+    inline static SharedPtr<T> make(Args&&... args)
     {
         auto allocator=pmr::polymorphic_allocator<T>(pmr::get_default_resource());
         return allocate(allocator,std::forward<Args>(args)...);
@@ -51,12 +52,15 @@ template <typename T> struct SharedCreator<T,std::enable_if_t<std::is_base_of<Ma
 };
 template <typename T> struct SharedCreator<T,std::enable_if_t<!std::is_base_of<ManagedObject,T>::value>>
 {
-    template <typename ... Args> inline static SharedPtr<T> allocate(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
+    template <typename ... Args>
+    inline static SharedPtr<T> allocate(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
     {
         auto ptr=SharedCreator<ManagedWrapper<T>>::allocate(allocator,std::forward<Args>(args)...);
         return ptr.template staticCast<T>();
     }
-    template <typename ... Args> inline static SharedPtr<T> make(Args&&... args)
+
+    template <typename ... Args>
+    inline static SharedPtr<T> make(Args&&... args)
     {
         auto ptr=SharedCreator<ManagedWrapper<T>>::make(std::forward<Args>(args)...);
         return ptr.template staticCast<T>();
@@ -81,12 +85,15 @@ struct Pointers
     template <typename T> using EnableSharedFromThis=pointers_mempool::EnableSharedFromThis<T>;
 
     //! Make shared object
-    template <typename T,typename ... Args> inline static SharedPtr<T> makeShared(Args&&... args)
+    template <typename T,typename ... Args>
+    inline static SharedPtr<T> makeShared(Args&&... args)
     {
         return SharedCreator<T>::make(std::forward<Args>(args)...);
     }
+
     //! Allocate shared object using allocator, const for use with temporary created allocated
-    template <typename T,typename ... Args> inline static SharedPtr<T> allocateShared(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
+    template <typename T,typename ... Args>
+    inline static SharedPtr<T> allocateShared(const pmr::polymorphic_allocator<T>& allocator,Args&&... args)
     {
         return SharedCreator<T>::allocate(allocator,std::forward<Args>(args)...);
     }

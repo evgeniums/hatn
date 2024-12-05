@@ -21,7 +21,7 @@
 #ifndef HATNDATAUNITTYPES_H
 #define HATNDATAUNITTYPES_H
 
-#include <hatn/dataunit/detail/types.ipp>
+#include <hatn/dataunit/ipp/types.ipp>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
@@ -45,7 +45,8 @@ using namespace types;
     TYPE_FLOAT,\
     TYPE_DOUBLE,\
     TYPE_BYTES, \
-    TYPE_STRING
+    TYPE_STRING, \
+    TYPE_DATETIME
 
 template <int Length> using FixedStringType = detail::FixedString<Length>;
 

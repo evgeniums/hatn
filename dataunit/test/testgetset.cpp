@@ -14,8 +14,8 @@
 
 #include <hatn/test/multithreadfixture.h>
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 
 //#define HATN_TEST_LOG_CONSOLE
 
@@ -149,7 +149,7 @@ void checkScalarField(ObjT* obj,
     auto field=obj->fieldById(FieldT::id());
     T val=valPos;
     valSample=checkValsPos[0];
-    field->setValue(val);
+    field->setV(val);
     BOOST_CHECK(field->equals(val));
     BOOST_CHECK(field->less(valSample)==checkValsPosResults[0]);
     valSample=checkValsPos[1];
@@ -157,7 +157,7 @@ void checkScalarField(ObjT* obj,
     valSample=checkValsPos[2];
     BOOST_CHECK(field->less(valSample)==checkValsPosResults[2]);
     valSample=0;
-    field->getValue(valSample);
+    field->getV(valSample);
     BOOST_CHECK_EQUAL(val,valSample);
 
     BOOST_CHECK(field->less(int8ValSamplePos)==checkValsPosResults[3]);
@@ -177,7 +177,7 @@ void checkScalarField(ObjT* obj,
     {
         val=valNeg;
         valSample=checkValsNeg[0];
-        field->setValue(val);
+        field->setV(val);
         BOOST_CHECK(field->equals(val));
         BOOST_CHECK(field->less(valSample)==checkValsNegResults[0]);
         valSample=checkValsNeg[1];
@@ -185,7 +185,7 @@ void checkScalarField(ObjT* obj,
         valSample=checkValsNeg[2];
         BOOST_CHECK(field->less(valSample)==checkValsNegResults[2]);
         valSample=0;
-        field->getValue(valSample);
+        field->getV(valSample);
         BOOST_CHECK_EQUAL(val,valSample);
 
         BOOST_CHECK(field->less(int8ValSamplePos)==checkValsNegResults[3]);
@@ -220,11 +220,11 @@ void checkScalarTypes(T* obj)
     BOOST_CHECK_EQUAL(scalar_types::type_enum.id(),12);
 
     auto boolField=obj->fieldById(scalar_types::type_bool.id());
-    boolField->setValue(true);
+    boolField->setV(true);
     BOOST_CHECK(boolField->equals(true));
     BOOST_CHECK(!boolField->less(false));
     bool boolVal=false;
-    boolField->getValue(boolVal);
+    boolField->getV(boolVal);
     BOOST_CHECK_EQUAL(boolVal,true);
 
     BOOST_TEST_CONTEXT("int8_t")
@@ -411,7 +411,7 @@ void checkByteField(ObjT* obj, bool shared)
     ByteArray sample3("Hello world from Hatn");
     ByteArray sample4("Zaza text");
 
-    field->setValue(sample1);
+    field->setV(sample1);
 
     BOOST_CHECK(field->equals(sample1.data(),sample1.size()));
     BOOST_CHECK(field->lexEquals(sample1.data(),sample1.size()));
@@ -485,7 +485,10 @@ void checkScalarArray(
         const std::vector<T>& vec
     )
 {
-    ObjT obj1;
+    auto o=std::make_shared<ObjT>();
+
+    ObjT obj1=std::move(*o);
+    o.reset();
 
     auto field1=obj1.fieldById(FieldT::id());
     BOOST_REQUIRE(field1);
@@ -517,7 +520,7 @@ void checkScalarArray(
 
     for (size_t i=0;i<vec.size();i++)
     {
-        field1->arrayAdd(vec[i]);
+        field1->arrayAppend(vec[i]);
     }
     BOOST_CHECK_EQUAL(field1->arraySize(),vec.size());
     BOOST_CHECK(!field1->arrayEmpty());
@@ -552,7 +555,10 @@ BOOST_FIXTURE_TEST_CASE(TestScalarArrays,Env)
 template <typename ObjT, typename FieldT>
 void checkByteArray(bool shared)
 {
-    ObjT obj1;
+    // testing move ctor
+    auto o=std::make_shared<ObjT>();
+    ObjT obj1=std::move(*o);    
+    o.reset();
 
     std::vector<ByteArray> vec={"one","two","three","four","five"};
 
@@ -614,7 +620,7 @@ void checkByteArray(bool shared)
 
     for (size_t i=0;i<vec.size();i++)
     {
-        field2->arrayBufAddValue(vec[i]);
+        field2->arrayBufAppendValue(vec[i]);
     }
     BOOST_CHECK_EQUAL(field2->arraySize(),vec.size());
     BOOST_CHECK(!field2->arrayEmpty());

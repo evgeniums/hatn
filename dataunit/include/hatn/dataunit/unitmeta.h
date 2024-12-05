@@ -37,9 +37,7 @@ namespace hana=boost::hana;
 #include <hatn/dataunit/fields/repeated.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
-HATN_DATAUNIT_NAMESPACE_BEGIN
-
-namespace meta {
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
 #ifdef HATN_STRING_LITERAL
 
@@ -488,79 +486,81 @@ constexpr check_names_unique_t check_names_unique{};
 
 //---------------------------------------------------------------
 
-struct make_index_map_t
-{
-    template <typename TypesC>
-    constexpr auto operator()(TypesC typesC) const
-    {
-        constexpr auto indexes=hana::make_range(hana::int_c<0>,hana::size(typesC));
-        constexpr auto pairs=hana::zip_with(hana::make_pair,typesC,hana::unpack(indexes,hana::make_tuple));
-        return hana::unpack(pairs,hana::make_map);
-    }
-};
-constexpr make_index_map_t make_index_map{};
-
-//---------------------------------------------------------------
-
-template <typename MapT>
-constexpr MapT fields_map_inst{};
-
-template <typename ConfT, typename MapT>
+template <typename ConfT, typename ToFieldCFn>
 struct unit_conf : public ConfT
 {
-    constexpr static auto& fields_map=fields_map_inst<MapT>;
+    using to_field_c=ToFieldCFn;
 };
+
+struct to_type_c_t
+{
+    template <typename T>
+    auto operator() (T) const noexcept
+    {
+        using field_type=typename T::type;
+        return hana::type_c<field_type>;
+    }
+};
+constexpr to_type_c_t to_type_c{};
+
+struct to_shared_type_c_t
+{
+    template <typename T>
+    auto operator() (T) const noexcept
+    {
+        using field_type=typename T::shared_type;
+        return hana::type_c<field_type>;
+    }
+};
+constexpr to_shared_type_c_t to_shared_type_c{};
 
 template <typename ConfT>
 struct unit
 {
     template <typename FieldsT, typename FieldFn>
-    constexpr static auto make(FieldsT fields, FieldFn to_field_c)
+    constexpr static auto make(FieldsT fields, FieldFn /*to_field_c*/)
     {
-        auto to_field_traits_c=[](auto x)
-        {
-            using field_c=typename decltype(x)::type;
-            using field_type=typename field_c::traits;
-            return hana::type_c<field_type>;
-        };
-
-        auto fields_c=hana::transform(fields,to_field_c);
-        auto field_traits_c=hana::transform(fields,to_field_traits_c);
-        constexpr auto unit_c=hana::unpack(hana::prepend(fields_c,hana::type_c<unit_conf<ConfT,decltype(make_index_map(field_traits_c))>>),hana::template_<DataUnit>);
+        constexpr auto unit_c=hana::unpack(
+            hana::prepend(fields,hana::type_c<unit_conf<ConfT,FieldFn>>),
+            hana::template_<DataUnit>
+        );
         return unit_c;
     }
 
     template <typename FieldsT>
     constexpr static auto type_c(FieldsT fields)
     {        
-        auto to_field_c=[](auto x)
-        {
-            using field_c=typename decltype(x)::type;
-            using field_type=typename field_c::type;
-            return hana::type_c<field_type>;
-        };
-        return make(fields,to_field_c);
+        return make(fields,to_type_c);
     }
 
     template <typename FieldsT>
     constexpr static auto shared_type_c(FieldsT fields)
     {
-        auto to_field_c=[](auto x)
-        {
-            using field_c=typename decltype(x)::type;
-            using field_type=typename field_c::shared_type;
-            return hana::type_c<field_type>;
-        };
-        return make(fields,to_field_c);
+        return make(fields,to_shared_type_c);
     }
 };
+
+struct managed_unit_tag
+{};
 
 template <typename UnitT>
 class managed_unit : public ManagedUnit<UnitT>,
                      public common::WithStaticAllocator<managed_unit<UnitT>>
 {
     public:
+
+        using hana_tag=managed_unit_tag;
+
         using ManagedUnit<UnitT>::ManagedUnit;
+
+        inline managed_unit<UnitT>* castToManagedUnit(Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
+        inline const managed_unit<UnitT>* castToManagedUnit(const Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
 };
 
 template <typename SharedUnitT>
@@ -568,15 +568,34 @@ class shared_managed_unit : public ManagedUnit<SharedUnitT>,
                             public common::WithStaticAllocator<shared_managed_unit<SharedUnitT>>
 {
     public:
+
+        using hana_tag=managed_unit_tag;
+
         using ManagedUnit<SharedUnitT>::ManagedUnit;
+
+        inline shared_managed_unit<SharedUnitT>* castToManagedUnit(Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
+        inline const shared_managed_unit<SharedUnitT>* castToManagedUnit(const Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
 };
 
 //---------------------------------------------------------------
+
+struct unit_tag
+{};
 
 template <typename BaseT, typename UniqueType=void>
 class unit_t : public BaseT
 {
         public:
+
+            using hana_tag=unit_tag;
+
+            using unit_type=unit_t<BaseT,UniqueType>;
 
             unit_t(AllocatorFactory* factory=AllocatorFactory::getDefault());
 
@@ -605,6 +624,7 @@ class unit_t : public BaseT
             {
                 return common::dynamicCastWithSample(unit,this);
             }
+
             virtual int serialize(WireData& wired,bool topLevel=true) const override;
 #if 0
             // Maybe implement virtual serialization
@@ -624,12 +644,12 @@ class unit_t : public BaseT
 //---------------------------------------------------------------
 
 template <typename FieldsT>
-constexpr FieldsT field_ids_instance{};
+constexpr FieldsT field_id_s_instance{};
 
 template <typename UnitT, typename ManagedT, typename FieldsT>
 struct unit_traits
 {
-    constexpr static const auto& fields=field_ids_instance<FieldsT>;
+    constexpr static const auto& fields=field_id_s_instance<FieldsT>;
 
     using type=UnitT;
     using managed=ManagedT;
@@ -639,6 +659,7 @@ template <typename traits, typename shared_traits>
 struct subunit : public types::TYPE_DATAUNIT
 {
         using type=typename traits::type;
+        using managed=typename traits::managed;
         using shared_type=common::SharedPtr<typename shared_traits::managed>;
         using base_shared_type=typename shared_traits::type;
         using Hatn=std::true_type;
@@ -704,8 +725,7 @@ constexpr auto is_basic_type()
 }
 
 //---------------------------------------------------------------
-} // namespace meta
 
-HATN_DATAUNIT_NAMESPACE_END
+HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNDATAUNITMETA_H

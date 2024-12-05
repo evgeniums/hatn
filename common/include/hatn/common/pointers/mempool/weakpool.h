@@ -59,7 +59,7 @@ class HATN_COMMON_EXPORT WeakPool final : public Singleton
          * @brief Get pool instance
          * @return Pool instance
          */
-        inline static WeakPool* instance()
+        static WeakPool* instance()
         {
             Assert(m_instance,"Memory pool for managed weak pointers is not intialized!");
             return m_instance;

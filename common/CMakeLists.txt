@@ -11,9 +11,10 @@ ENDIF()
 
 ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)
-INCLUDE(thirdparty/md5/md5.cmake)
+INCLUDE(thirdparty/crc32/crc32.cmake)
 INCLUDE(thirdparty/base64/base64.cmake)
 INCLUDE(thirdparty/fameta/fameta.cmake)
+INCLUDE(thirdparty/shortallocator/shortallocator.cmake)
 
 IF (NOT HATNCOMMON_PYTHON_SCRIPTS_DIR)
     INCLUDE(hatn/Scripts)
@@ -33,8 +34,11 @@ SET (HEADERS
     ${HEADERS}
 
     include/hatn/common/common.h
+    include/hatn/common/ignorewarnings.h
     include/hatn/common/error.h
     include/hatn/common/nativeerror.h
+    include/hatn/common/errorcodes.h
+    include/hatn/common/commonerrorcodes.h
     include/hatn/common/errorcategory.h
     include/hatn/common/errorstack.h
     include/hatn/common/apierror.h
@@ -68,15 +72,14 @@ SET (HEADERS
     include/hatn/common/sharedlocker.h
     include/hatn/common/interface.h
     include/hatn/common/environment.h
-    include/hatn/common/threadqueueinterface.h
-    include/hatn/common/threadqueueinterfaceimpl.h
+    include/hatn/common/threadq.h
     include/hatn/common/threadwithqueue.h
-    include/hatn/common/threadwithqueueimpl.h
     include/hatn/common/threadpoolwithqueues.h
     include/hatn/common/stream.h
     include/hatn/common/timer.h
     include/hatn/common/asiotimer.h
     include/hatn/common/syncinvoker.h
+    include/hatn/common/taskcontext.h
 
     include/hatn/common/memorypool/pool.h
     include/hatn/common/memorypool/rawblock.h
@@ -99,8 +102,7 @@ SET (HEADERS
 
     include/hatn/common/format.h
     include/hatn/common/threadcategory.h
-    include/hatn/common/threadcategoriespool.h
-    include/hatn/common/threadcategoriespoolimpl.h
+    include/hatn/common/threadcategoriespool.h    
     include/hatn/common/multithreadenvironment.h
     include/hatn/common/builder.h
     include/hatn/common/factory.h
@@ -130,7 +132,6 @@ SET (HEADERS
 
     include/hatn/common/featureset.h
     include/hatn/common/containerutils.h
-    include/hatn/common/objectguard.h
     include/hatn/common/objecttraits.h
 
     include/hatn/common/spanbuffer.h
@@ -143,6 +144,11 @@ SET (HEADERS
     include/hatn/common/singleton.h
     include/hatn/common/runonscopeexit.h
 
+    include/hatn/common/date.h
+    include/hatn/common/time.h
+    include/hatn/common/datetime.h
+    include/hatn/common/daterange.h
+
     include/hatn/common/meta/consttraits.h
     include/hatn/common/meta/pointertraits.h
     include/hatn/common/meta/movereference.h
@@ -152,8 +158,25 @@ SET (HEADERS
     include/hatn/common/meta/compilecounter.h
     include/hatn/common/meta/enumint.h
     include/hatn/common/meta/dynamiccastwithsample.h
+    include/hatn/common/meta/tupletypec.h
+    include/hatn/common/meta/decaytuple.h
+    include/hatn/common/meta/replicatetotuple.h
+    include/hatn/common/meta/errorpredicate.h
+    include/hatn/common/meta/foreachif.h
+
+    include/hatn/common/allocatoronstack.h
+
+    include/hatn/common/crc32.h
 
     include/hatn/common/experimental/stats/stats.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+    include/hatn/common/ipp/error.ipp
+    include/hatn/common/ipp/threadq.ipp
+    include/hatn/common/ipp/threadwithqueue.ipp
+    include/hatn/common/ipp/threadcategoriespool.ipp
 )
 
 SET (HEADERS
@@ -197,7 +220,6 @@ SET (SOURCES
 
     src/threadcategory.cpp
     src/multithreadenvironment.cpp
-    src/threadqueueinterface.cpp
     src/factory.cpp
 
     src/pointers/mempool/managedobject.cpp
@@ -211,11 +233,13 @@ SET (SOURCES
     src/pmr/allocatorfactory.cpp
 
     src/elapsedtimer.cpp
-    src/objectguard.cpp
 
     src/plainfile.cpp
 
     src/singleton.cpp
+    src/datetime.cpp
+
+    src/taskcontext.cpp
 )
 
 SET (SOURCES
@@ -241,10 +265,13 @@ ENDIF(APPLE)
 
 INSTALL_MODULE()
 
+# @todo Fix fmt linking
 INCLUDE(hatn/deps/fmt)
-IF (NOT FMT_HEADER_ONLY)
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC fmt)
-ENDIF(NOT FMT_HEADER_ONLY)
+# IF (NOT FMT_HEADER_ONLY)
+#     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC fmt)
+# ELSE()
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC fmt-header-only)
+# ENDIF(NOT FMT_HEADER_ONLY)
 IF (NOT SYSTEM_FMTLIB)
     TARGET_INCLUDE_DIRECTORIES(
         ${PROJECT_NAME} INTERFACE

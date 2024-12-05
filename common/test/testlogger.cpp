@@ -5,6 +5,8 @@
 
 #include <hatn/common/thread.h>
 #include <hatn/common/logger.h>
+#include <hatn/common/loggermodule.h>
+#include <hatn/common/loggermoduleimp.h>
 #include <hatn/test/multithreadfixture.h>
 #include <hatn/common/translate.h>
 
@@ -312,7 +314,7 @@ BOOST_FIXTURE_TEST_CASE(Debug,MultiThreadFixture)
     std::vector<std::string> tagsStr;
     tagsStr.push_back("Some tag");
 
-    LOG_MODULE(global)::i()->configure(LoggerVerbosity::DEBUG,7,std::move(contextsStr),std::move(tagsStr));
+    HATN_LOG_MODULE(global)::i()->configure(LoggerVerbosity::DEBUG,7,std::move(contextsStr),std::move(tagsStr));
 
     pmr::CStringVector tags;
     tags.push_back("Some tag");

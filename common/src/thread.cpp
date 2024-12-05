@@ -46,7 +46,7 @@
 #include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
 
-#include <hatn/common/threadcategoriespoolimpl.h>
+#include <hatn/common/ipp/threadcategoriespool.ipp>
 #include <hatn/common/loggermoduleimp.h>
 
 DECLARE_LOG_MODULE(thread)
@@ -171,7 +171,7 @@ class Thread_p
 {
     public:
 
-        FixedByteArrayThrow16 id;
+        ThreadId id;
         bool newThread=false;
 
         std::shared_ptr<boost::asio::io_context> asioContext;
@@ -194,7 +194,7 @@ class Thread_p
         uint32_t timerIncId;
 
         Thread_p(
-                FixedByteArrayThrow16 id,
+                ThreadId id,
                 bool newThread
             ) : id(std::move(id)),
                 newThread(newThread),
@@ -212,7 +212,7 @@ class Thread_p
 
 //---------------------------------------------------------------
 Thread::Thread(
-        FixedByteArrayThrow16 id,
+        ThreadId id,
         bool newThread
     ) : d(std::make_unique<Thread_p>(std::move(id),newThread))
 {
@@ -470,7 +470,7 @@ std::shared_ptr<Thread> Thread::mainThread() noexcept
 }
 
 //---------------------------------------------------------------
-const FixedByteArrayThrow16& Thread::id() const noexcept
+const ThreadId& Thread::id() const noexcept
 {
     return d->id;
 }
@@ -517,4 +517,5 @@ void Thread::uninstallTimer(uint32_t id, bool wait)
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<Thread>;
 
 //---------------------------------------------------------------
+
 HATN_COMMON_NAMESPACE_END

@@ -13,6 +13,7 @@ SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testinheritance.cpp
     ${DATAUNIT_TEST_SRC}/testerrors.cpp
     ${DATAUNIT_TEST_SRC}/testtags.cpp
+    ${DATAUNIT_TEST_SRC}/testdatetimefield.cpp
 )
 
 SET (TEST_HEADERS

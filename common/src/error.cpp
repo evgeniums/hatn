@@ -21,11 +21,12 @@
 #include <hatn/common/translate.h>
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
-#include <hatn/common/errorstack.h>
+
+#include <hatn/common/ipp/error.ipp>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-/********************** NativeError **************************/
+/********************** ApiError **************************/
 
 ApiError::~ApiError()=default;
 
@@ -38,6 +39,17 @@ int ApiError::apiCode() const noexcept
         return m_error->value();
     }
     return 0;
+}
+
+//---------------------------------------------------------------
+
+const char* ApiError::apiStatus() const noexcept
+{
+    if (m_error!=nullptr)
+    {
+        return m_error->error();
+    }
+    return DefaultStatus;
 }
 
 //---------------------------------------------------------------
@@ -89,9 +101,16 @@ bool Error::compareNative(const Error& other) const noexcept
 
 //---------------------------------------------------------------
 
-const std::error_category* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+const ErrorCategory* Error::nativeCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
 {
     return nativeError->category();
+}
+
+//---------------------------------------------------------------
+
+const std::error_category* Error::nativeSystemCategory(const std::shared_ptr<NativeError>& nativeError) const noexcept
+{
+    return nativeError->systemCategory();
 }
 
 //---------------------------------------------------------------
@@ -103,47 +122,58 @@ const boost::system::error_category* Error::nativeBoostCategory(const std::share
 
 //---------------------------------------------------------------
 
-std::string Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError) const
+int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError) const noexcept
 {
-    auto msg=nativeError->message();
-    if (nativeError->category()!=nullptr)
+    if (nativeError->prevError()!=nullptr)
     {
-        if (!msg.empty())
-        {
-            return fmt::format("{}: {}", nativeError->category()->message(m_code), msg);
-        }
-        return nativeError->category()->message(m_code);
+        return nativeError->prevError()->errorCondition();
+    }
+    else if (nativeError->category()!=nullptr)
+    {
+        return nativeError->category()->default_error_condition(m_code).value();
+    }
+    else if (nativeError->systemCategory()!=nullptr)
+    {
+        return nativeError->systemCategory()->default_error_condition(m_code).value();
     }
     else if (nativeError->boostCategory()!=nullptr)
     {
-        if (!msg.empty())
-        {
-            return fmt::format("{}: {}", nativeError->boostCategory()->message(m_code), msg);
-        }
-        return nativeError->boostCategory()->message(m_code);
+        return nativeError->boostCategory()->default_error_condition(m_code).value();
     }
-    return msg;
+    return m_code;
+}
+
+//---------------------------------------------------------------
+
+void Error::setPrevError(Error &&prev)
+{
+    auto n=native();
+    if (n==nullptr)
+    {
+        auto newNative=std::make_shared<NativeError>(category());
+        newNative->setBoostCategory(boostCategory());
+        newNative->setSystemCategory(systemCategory());
+        newNative->setPrevError(std::move(prev));
+        setNative(std::move(newNative));
+    }
+    else
+    {
+        n->setPrevError(std::move(prev));
+    }
 }
 
 //---------------------------------------------------------------
 
 void Error::stackWith(Error&& next)
 {
-    auto nextNative=const_cast<NativeError*>(next.native());
-    if (nextNative!=nullptr)
-    {
-        nextNative->setPrevError(std::move(*this));
-    }
-    else
-    {
-        auto newNextNative=std::make_shared<NativeError>(next.category());
-        newNextNative->setBoostCategory(next.boostCategory());
-        newNextNative->setPrevError(std::move(*this));
-
-        next.setNative(next.value(),std::move(newNextNative));
-    }
+    next.setPrevError(std::move(*this));
     *this=std::move(next);
 }
+
+//---------------------------------------------------------------
+
+template HATN_COMMON_EXPORT void Error::nativeMessage<FmtAllocatedBufferChar>(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
+template HATN_COMMON_EXPORT void Error::nativeCodeString<FmtAllocatedBufferChar>(const std::shared_ptr<NativeError>& nativeError, FmtAllocatedBufferChar& buf) const;
 
 /********************** CommonErrorCategory **************************/
 
@@ -161,51 +191,19 @@ std::string CommonErrorCategory::message(int code) const
     std::string result;
     switch (code)
     {
-        case (static_cast<int>(CommonError::OK)):
-            result=_TR("OK");
-        break;
-        case (static_cast<int>(CommonError::INVALID_SIZE)):
-            result=_TR("invalid size");
-        break;
-        case (static_cast<int>(CommonError::INVALID_ARGUMENT)):
-            result=_TR("invalid argument");
-        break;
-        case (static_cast<int>(CommonError::UNSUPPORTED)):
-            result=_TR("operation is not supported");
-        break;
-        case (static_cast<int>(CommonError::INVALID_FILENAME)):
-            result=_TR("invalide file name");
-        break;
-        case (static_cast<int>(CommonError::FILE_FLUSH_FAILED)):
-            result=_TR("failed to flush file");
-        break;
-        case (static_cast<int>(CommonError::FILE_ALREADY_OPEN)):
-            result=_TR("file is already open");
-        break;
-        case (static_cast<int>(CommonError::FILE_WRITE_FAILED)):
-            result=_TR("failed to write file");
-        break;
-        case (static_cast<int>(CommonError::FILE_NOT_OPEN)):
-            result=_TR("file not open");
-        break;
-        case (static_cast<int>(CommonError::TIMEOUT)):
-            result=_TR("operation timeout");
-        break;
-        case (static_cast<int>(CommonError::NOT_IMPLEMENTED)):
-            result=_TR("requested operation with provided arguments not implemented yet");
-            break;
-        case (static_cast<int>(CommonError::RESULT_ERROR)):
-            result=_TR("cannot get value of error result");
-            break;
 
-        case (static_cast<int>(CommonError::RESULT_NOT_ERROR)):
-            result=_TR("cannot move not error result");
-            break;
+        HATN_COMMON_ERRORS(HATN_ERROR_MESSAGE)
 
         default:
             result=_TR("unknown error");
     }
     return result;
+}
+
+//---------------------------------------------------------------
+const char* CommonErrorCategory::codeString(int code) const
+{
+    return errorString(code,CommonErrorStrings);
 }
 
 //---------------------------------------------------------------

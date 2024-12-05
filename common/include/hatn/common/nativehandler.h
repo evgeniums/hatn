@@ -110,7 +110,8 @@ class NativeHandlerContainer : public BaseT
 
         NativeHandlerContainer(NativeHandlerContainer&& other) noexcept : m_native(std::move(other.m_native))
         {}
-        inline NativeHandlerContainer& operator=(NativeHandlerContainer&& other) noexcept
+
+        NativeHandlerContainer& operator=(NativeHandlerContainer&& other) noexcept
         {
             if (&other!=this)
             {
@@ -119,14 +120,11 @@ class NativeHandlerContainer : public BaseT
             return *this;
         }
 
-        //! Destructor
-        virtual ~NativeHandlerContainer()=default;
-
         /**
          * @brief Get native object
          * @return Native object
          */
-        inline Native& nativeHandler() noexcept
+        Native& nativeHandler() noexcept
         {
             return m_native;
         }
@@ -135,7 +133,7 @@ class NativeHandlerContainer : public BaseT
          * @brief Get native object
          * @return Native object
          */
-        inline const Native& nativeHandler() const noexcept
+        const Native& nativeHandler() const noexcept
         {
             return m_native;
         }

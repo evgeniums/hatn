@@ -393,6 +393,9 @@ class FieldTmplBytes : public Field, public BytesType
             return CanChainBlocks;
         }
 
+        using Field::less;
+        using Field::equals;
+
         virtual bool less(const char* data, size_t length) const override{return buf()->isLess(data,length);}
         virtual bool equals(const char* data, size_t length) const override {return buf()->isEqual(data,length);}
 
@@ -413,14 +416,14 @@ class FieldTmplBytes : public Field, public BytesType
             return boost::algorithm::iequals(buf()->stringView(),common::lib::string_view(data,length));
         }
 
-        virtual void setValue(const char* data, size_t length) override {buf()->load(data,length);}
-        virtual void bufResize(size_t size) override {buf()->resize(size);}
+        virtual void setV(const char* data, size_t length) override {this->markSet();buf()->load(data,length);}
+        virtual void bufResize(size_t size) override {this->markSet();buf()->resize(size);}
         virtual void bufReserve(size_t size) override {buf()->reserve(size);}
         virtual const char* bufCStr() override {return c_str();}
         virtual char* bufData() const override {return dataPtr();}
         virtual char* bufData() override {return dataPtr();}
         virtual size_t bufSize() const override {return dataSize();}
-        virtual void bufCreateShared() override {prepareSharedStorage(m_value,m_factory);}
+        virtual void bufCreateShared() override {this->markSet();prepareSharedStorage(m_value,m_factory);}
         virtual size_t bufCapacity() const override {return buf()->capacity();}
         virtual bool bufEmpty() const override {return buf()->isEmpty();}
 

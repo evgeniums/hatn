@@ -8,6 +8,7 @@
 #include <hatn/common/pmr/singlepoolmemoryresource.h>
 
 #include <hatn/common/elapsedtimer.h>
+#include <hatn/common/makeshared.h>
 
 HATN_USING
 HATN_COMMON_USING
@@ -960,10 +961,10 @@ static void checkParallelAllocateDeallocateGb(Env* env)
 
     // init handler for periodic invokations of garbage collector
     std::atomic<bool> stopGb(false);
-    AsioHighResolutionTimer gbTimer(env->thread(0).get());
-    gbTimer.setSingleShot(false);
-    gbTimer.setPeriodUs(1000);
-    gbTimer.start(
+    auto gbTimer=makeShared<AsioHighResolutionTimer>(env->thread(0).get());
+    gbTimer->setSingleShot(false);
+    gbTimer->setPeriodUs(1000);
+    gbTimer->start(
         [&pool,&stopGb](TimerTypes::Status status)
         {
             if (status==TimerTypes::Timeout)
@@ -982,7 +983,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     );
 
     // init test quick timer
-    AsioDeadlineTimer quitTimer(env->thread(0).get(),
+    auto quitTimer=makeShared<AsioDeadlineTimer>(env->thread(0).get(),
         [env](TimerTypes::Status status)
         {
             if (status==TimerTypes::Timeout)
@@ -992,16 +993,16 @@ static void checkParallelAllocateDeallocateGb(Env* env)
             return true;
         }
     );
-    quitTimer.setSingleShot(true);
-    quitTimer.setPeriodUs(5000000);
+    quitTimer->setSingleShot(true);
+    quitTimer->setPeriodUs(5000000);
 
     std::atomic<size_t> doneCount(0);
 
     // sample working handler that allocates/deallocates blocks in the pool copies data between blocks
 #ifdef _MSC_VER
-    auto handler=[&pool,&contexts,&doneCount,&quitTimer,count,chunkCount,threadCount](size_t threadIdx)
+    auto handler=[&pool,&contexts,&doneCount,quitTimer,count,chunkCount,threadCount](size_t threadIdx)
 #else
-    auto handler=[&pool,&contexts,&doneCount,&quitTimer](size_t threadIdx)
+    auto handler=[&pool,&contexts,&doneCount,quitTimer](size_t threadIdx)
 #endif
     {
         auto& ctx=contexts[threadIdx];
@@ -1097,7 +1098,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
         HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",threadIdx));
         if ((doneCount.fetch_add(1)+1)==threadCount)
         {
-            quitTimer.start();
+            quitTimer->start();
         }
     };
 
@@ -1142,7 +1143,7 @@ static void checkParallelAllocateDeallocateGb(Env* env)
     auto elapsedStr=elapsed.toString();
     BOOST_TEST_MESSAGE(fmt::format("Elapsed {}",elapsedStr));
 
-    gbTimer.cancel();
+    gbTimer->cancel();
     gbLock.lock();
     stopGb.store(true,std::memory_order_release);
     gbLock.unlock();

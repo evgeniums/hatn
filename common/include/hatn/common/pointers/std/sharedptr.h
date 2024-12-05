@@ -66,22 +66,28 @@ template <typename T> class SharedPtr
 
         using hana_tag=shared_pointer_tag;
 
+        //! Default ctor
+        SharedPtr() noexcept
+        {}
+
+        //! Ctor from nullptr
+        explicit SharedPtr(std::nullptr_t ptr) noexcept : p(ptr)
+        {}
+
         //! Ctor from object
-        explicit SharedPtr(T* obj=nullptr):p(obj,&DeleteHelper<T>::del)
-        {
-        }
+        explicit SharedPtr(T* obj) noexcept
+            :p(obj,&DeleteHelper<T>::del)
+        {}
 
         //! Move ctor
         SharedPtr(SharedPtr<T>&& ptr) noexcept
             :p(std::move(ptr.p))
-        {
-        }
+        {}
 
         //! Copy ctor
         SharedPtr(const SharedPtr<T>& ptr)  noexcept
             :p(ptr.p)
-        {
-        }
+        {}
 
         //! Ctor with implicit casting
         template <typename Y> SharedPtr(
@@ -92,8 +98,7 @@ template <typename T> class SharedPtr
         //! Move ctor from std::shared_ptr
         SharedPtr(std::shared_ptr<T>&& ptr) noexcept
             :p(std::move(ptr))
-        {
-        }
+        {}
 
         //! Assignment operator
         SharedPtr& operator=(const SharedPtr<T>& ptr) noexcept
@@ -119,6 +124,18 @@ template <typename T> class SharedPtr
         ~SharedPtr()
         {
             reset();
+        }
+
+        //! Swap pointers.
+        void swap(SharedPtr<T>& other) noexcept
+        {
+            p.swap(other);
+        }
+
+        //! Swap pointers.
+        friend void swap(SharedPtr<T>& lhs, SharedPtr<T>& rhs) noexcept
+        {
+            std::swap(lhs.p,rhs.p);
         }
 
         //! Make dynamic cast

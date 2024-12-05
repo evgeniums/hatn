@@ -434,7 +434,7 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
     static auto dummy##Name=HATN_Log<HATN_Log_##Name>::i();
 
 //! Helper for calling debug module
-#define LOG_MODULE(Name) HATN_Log<HATN_Log_##Name>
+#define HATN_LOG_MODULE(Name) HATN_Log<HATN_Log_##Name>
 #define LOGGER_FILTER_AND_LOG(LogRec,Msg) if (!LogRec.isNull()) ::hatn::common::Logger(LogRec)<<Msg;
 #define _DSC_EXPAND(x) x
 
@@ -451,10 +451,10 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
 
 #define LOGGER_FILTER_CHECK(LogRec) (!LogRec.isNull())
 
-#define HATN_LOG(Verbosity,Name,...) _HATN_MACRO_DO(LOG_MODULE(Name)::f(Verbosity),__VA_ARGS__)
-#define HATN_LOG_TAGS(Verbosity,Name,Tags,...) _HATN_MACRO_DO(LOG_MODULE(Name)::f(Verbosity,Tags),__VA_ARGS__)
-#define HATN_LOG_CONTEXT(Verbosity,Name,Context,...) _HATN_MACRO_DO(LOG_MODULE(Name)::f(Verbosity,Context),__VA_ARGS__)
-#define HATN_LOG_CONTEXT_TAGS(Verbosity,Name,Context,Tags,...) _HATN_MACRO_DO(LOG_MODULE(Name)::f(Verbosity,Context,Tags),__VA_ARGS__)
+#define HATN_LOG(Verbosity,Name,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::f(Verbosity),__VA_ARGS__)
+#define HATN_LOG_TAGS(Verbosity,Name,Tags,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::f(Verbosity,Tags),__VA_ARGS__)
+#define HATN_LOG_CONTEXT(Verbosity,Name,Context,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::f(Verbosity,Context),__VA_ARGS__)
+#define HATN_LOG_CONTEXT_TAGS(Verbosity,Name,Context,Tags,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::f(Verbosity,Context,Tags),__VA_ARGS__)
 
 #define HATN_INFO(Name,...) HATN_LOG(::hatn::common::LoggerVerbosity::INFO,Name,__VA_ARGS__)
 #define HATN_INFO_TAGS(Name,Tags,...) HATN_LOG_TAGS(::hatn::common::LoggerVerbosity::INFO,Name,Tags,__VA_ARGS__)
@@ -476,11 +476,11 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
 #define HATN_FATAL_CONTEXT(Name,Context,...) HATN_LOG_CONTEXT(::hatn::common::LoggerVerbosity::FATAL,Name,Context,__VA_ARGS__)
 #define HATN_FATAL_CONTEXT_TAGS(Name,Context,Tags,...) HATN_LOG_CONTEXT_TAGS(::hatn::common::LoggerVerbosity::FATAL,Name,Context,Tags,__VA_ARGS__)
 
-#define HATN_DEBUG(Name,...) _HATN_MACRO_DO(LOG_MODULE(Name)::df(),__VA_ARGS__)
-#define HATN_DEBUG_LVL(Name,Level,...) _HATN_MACRO_DO(LOG_MODULE(Name)::df(Level),__VA_ARGS__)
-#define HATN_DEBUG_TAGS(Name,Tags,Level,...) _HATN_MACRO_DO(LOG_MODULE(Name)::df(Tags,Level),__VA_ARGS__)
-#define HATN_DEBUG_CONTEXT(Name,Context,Level,...) _HATN_MACRO_DO(LOG_MODULE(Name)::df(Context,Level),__VA_ARGS__)
-#define HATN_DEBUG_CONTEXT_TAGS(Name,Context,Tags,Level,...) _HATN_MACRO_DO(LOG_MODULE(Name)::df(Context,Tags,Level),__VA_ARGS__)
+#define HATN_DEBUG(Name,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::df(),__VA_ARGS__)
+#define HATN_DEBUG_LVL(Name,Level,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::df(Level),__VA_ARGS__)
+#define HATN_DEBUG_TAGS(Name,Tags,Level,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::df(Tags,Level),__VA_ARGS__)
+#define HATN_DEBUG_CONTEXT(Name,Context,Level,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::df(Context,Level),__VA_ARGS__)
+#define HATN_DEBUG_CONTEXT_TAGS(Name,Context,Tags,Level,...) _HATN_MACRO_DO(HATN_LOG_MODULE(Name)::df(Context,Tags,Level),__VA_ARGS__)
 
 #define G_INFO(...)  HATN_INFO(global,__VA_ARGS__)
 #define G_WARN(...)  HATN_WARN(global,__VA_ARGS__)
@@ -495,15 +495,15 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
 
 #define HATN_FORMAT(Format,...) _,(Format,__VA_ARGS__)
 
-#define HATN_LOG_CHECK(Verbosity,Name) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::f(Verbosity))
-#define HATN_LOG_CHECK_TAGS(Verbosity,Name,Tags) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::f(Verbosity,Tags))
-#define HATN_LOG_CHECK_CONTEXT(Verbosity,Name,Context) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::f(Verbosity,Context))
-#define HATN_LOG_CHECK_CONTEXT_TAGS(Verbosity,Name,Context,Tags) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::f(Verbosity,Context,Tags))
+#define HATN_LOG_CHECK(Verbosity,Name) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::f(Verbosity))
+#define HATN_LOG_CHECK_TAGS(Verbosity,Name,Tags) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::f(Verbosity,Tags))
+#define HATN_LOG_CHECK_CONTEXT(Verbosity,Name,Context) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::f(Verbosity,Context))
+#define HATN_LOG_CHECK_CONTEXT_TAGS(Verbosity,Name,Context,Tags) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::f(Verbosity,Context,Tags))
 
-#define HATN_DEBUG_CHECK(Name) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::df())
-#define HATN_DEBUG_CHECK_LVL(Name,Level) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::df(Level))
-#define HATN_DEBUG_CHECK_TAGS(Name,Tags,Level) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::df(Tags,Level))
-#define HATN_DEBUG_CHECK_CONTEXT(Name,Context,Level) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::df(Context,Level))
-#define HATN_DEBUG_CHECK_CONTEXT_TAGS(Name,Context,Tags,Level) LOGGER_FILTER_CHECK(LOG_MODULE(Name)::df(Context,Tags,Level))
+#define HATN_DEBUG_CHECK(Name) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::df())
+#define HATN_DEBUG_CHECK_LVL(Name,Level) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::df(Level))
+#define HATN_DEBUG_CHECK_TAGS(Name,Tags,Level) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::df(Tags,Level))
+#define HATN_DEBUG_CHECK_CONTEXT(Name,Context,Level) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::df(Context,Level))
+#define HATN_DEBUG_CHECK_CONTEXT_TAGS(Name,Context,Tags,Level) LOGGER_FILTER_CHECK(HATN_LOG_MODULE(Name)::df(Context,Tags,Level))
 
 #endif // HATNLOGGER_H

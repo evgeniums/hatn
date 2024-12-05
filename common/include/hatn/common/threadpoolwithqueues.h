@@ -24,10 +24,61 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-template <typename TaskType> class ThreadPoolWithQueues_p;
+template <typename TaskT>
+class ThreadPoolWithQueuesTraits_p;
+
+template <typename TaskT>
+class ThreadPoolWithQueuesTraits
+{
+    public:
+
+        ThreadPoolWithQueuesTraits();
+
+        //! Post task
+        void postTask(TaskT task);
+
+        //! Post prepared task
+        void post(TaskT* task);
+
+        /**
+                 * @brief Set new queue
+                 * @param queue
+                 *
+                 * Not thread safe, call it only in setup routines before running thread
+                 */
+        void setQueue(Queue<TaskT>* queue);
+
+        /**
+                 * @brief Prepare queue item and create task object
+                 * @return Prepared task object that can be filled in the caller and then pushed back to the queue
+                 */
+        TaskT* prepare();
+
+        /**
+                 * @brief Set max number of tasks per sinle io_context loop (default 64)
+                 * @param count
+                 *
+                 * Set this parameter before starting thread, though it is not critical to set it in runtime but take into account that parameter isn't atomic.
+                 */
+        void setMaxTasksPerLoop(int count);
+
+        //! Get max number of tasks per single io_context loop
+        int maxTasksPerLoop() const;
+
+        //! Check if interface includes current thread
+        bool containsCurrentThread() const;
+
+    private:
+
+        std::unique_ptr<ThreadPoolWithQueuesTraits_p<TaskT>> d;
+
+        template <typename T> friend
+            class ThreadPoolWithQueues;
+};
 
 //! hatn pool of threads with queues
-template <typename TaskType> class ThreadPoolWithQueues : public ThreadQueueInterface<TaskType>
+template <typename TaskT>
+class ThreadPoolWithQueues : public ThreadQ<TaskT,ThreadPoolWithQueuesTraits>
 {
     public:
 
@@ -35,7 +86,7 @@ template <typename TaskType> class ThreadPoolWithQueues : public ThreadQueueInte
         ThreadPoolWithQueues(
             size_t threadCount, //!< Number of threads in the pool
             const FixedByteArrayThrow16& id, //!< Base id for threads in pool
-            Queue<TaskType>* queue=nullptr //!< Master queue object, if null then default queue with mutex is constructed
+            Queue<TaskT>* queue=nullptr //!< Master queue object, if null then default queue with mutex is constructed
         );
 
         //! Start threads
@@ -45,61 +96,22 @@ template <typename TaskType> class ThreadPoolWithQueues : public ThreadQueueInte
         void stop();
 
         //! Destructor
-        virtual ~ThreadPoolWithQueues();
+        ~ThreadPoolWithQueues();
 
         ThreadPoolWithQueues(const ThreadPoolWithQueues&)=delete;
         ThreadPoolWithQueues(ThreadPoolWithQueues&&) noexcept;
         ThreadPoolWithQueues& operator=(const ThreadPoolWithQueues&)=delete;
         ThreadPoolWithQueues& operator=(ThreadPoolWithQueues&&) noexcept;
 
-        //! Post prepared task
-        void post(
-            TaskType* task
-        ) override;
-
-        /**
-         * @brief Set new queue
-         * @param queue
-         *
-         * Not thread safe, call it only in setup routines before running threads
-         */
-        void setQueue(Queue<TaskType>* queue) override;
-
-        /**
-         * @brief Prepare queue item and create task object
-         * @return Prepared task object that can be filled in the caller and then pushed back to the queue
-         */
-        TaskType* prepare() override;
-
-        /**
-         * @brief Set max number of tasks per sinle io_context loop (default 64)
-         * @param count
-         *
-         * Set this parameter before starting thread, though it is not critical to set it in runtime but take into account that parameter isn't atomic.
-         */
-        void setMaxTasksPerLoop(int count) override;
-
-        //! Get max number of tasks per single io_context loop
-        int maxTasksPerLoop() const override;
-
-        //! Check if interface includes current thread
-        bool containsCurrentThread() const override;
-
         //! Get thread count
         size_t threadCount() const;
 
         //! Get thread
-        ThreadWithQueue<TaskType>* thread(size_t num);
-
-    private:
-
-        virtual void doPostTask(
-            TaskType task
-        ) override;
-
-        std::unique_ptr<ThreadPoolWithQueues_p<TaskType>> d;
+        ThreadWithQueue<TaskT>* thread(size_t num);
 };
 
 //---------------------------------------------------------------
+
 HATN_COMMON_NAMESPACE_END
+
 #endif // HATNTHREADPOOLWITHQUEUES_H

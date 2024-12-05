@@ -52,7 +52,13 @@ enum class ValueType : int
     Double,
     String,
     Bytes,
-    Dataunit
+    Dataunit,
+    DateTime,
+    Date,
+    Time,
+    DateRange,
+
+    Custom=256
 };
 
 namespace types {
@@ -98,5 +104,21 @@ constexpr auto IsString=hana::bool_c<
 }
 
 HATN_DATAUNIT_NAMESPACE_END
+
+HATN_DATAUNIT_META_NAMESPACE_BEGIN
+
+template <typename Type>
+constexpr auto is_custom_type()
+{
+    auto check=[](auto x) -> decltype(hana::bool_c<decltype(x)::type::CustomType::value>)
+    {
+        return hana::bool_c<decltype(x)::type::CustomType::value>;
+    };
+
+    auto ok=hana::sfinae(check)(hana::type_c<Type>);
+    return hana::equal(ok,hana::just(hana::true_c));
+}
+
+HATN_DATAUNIT_META_NAMESPACE_END
 
 #endif // HATNFIELDVALUETYPES_H

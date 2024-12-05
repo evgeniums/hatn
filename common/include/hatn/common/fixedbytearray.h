@@ -68,6 +68,9 @@ struct FixedByteArrayTraits<T,false>
 
 }
 
+struct FixedByteArrayTag
+{};
+
 /**
  * @brief Byte array with fixed capacity
  */
@@ -75,6 +78,8 @@ template <size_t CapacityS, bool ThrowOnOverflow=false>
 class FixedByteArray
 {
     public:
+
+        using hana_tag=FixedByteArrayTag;
 
         using value_type=char;
         using type=FixedByteArray<CapacityS,ThrowOnOverflow>;
@@ -104,25 +109,25 @@ class FixedByteArray
         }
 
         //! Ctor from string
-        FixedByteArray(const std::string& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const std::string& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from std::vector
-        FixedByteArray(const std::vector<char>& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const std::vector<char>& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from ByteArray
-        FixedByteArray(const ByteArray& other)
-            : FixedByteArray()
-        {
-            load(other.data(),other.size());
-        }
+        FixedByteArray(const ByteArray& buf)
+            : FixedByteArray(buf.data(),buf.size())
+        {}
+
+        //! Ctor from string_view.
+        FixedByteArray(
+            const lib::string_view& buf
+            ) : FixedByteArray(buf.data(),buf.size())
+        {}
 
         //! Ctor from data buffer
         FixedByteArray(
@@ -456,22 +461,86 @@ class FixedByteArray
             return !(*this==data);
         }
 
+        //! @todo Test comparison operators.
+
         //! Overload == operator
-        template <typename T> inline bool operator == (const T& other) const noexcept
+        template <typename T>
+        inline bool operator == (const T& other) const noexcept
         {
             return isEqual(other.data(),other.size());
         }
 
         //! Overload != operator
-        template <typename T> inline bool operator != (const T& other) const noexcept
+        template <typename T>
+        inline bool operator != (const T& other) const noexcept
         {
             return !isEqual(other.data(),other.size());
+        }
+
+        //! Overload < operator
+        template <typename T>
+        inline bool operator <(const T& other) const noexcept
+        {
+            if (m_size==other.size())
+            {
+                return memcmp(data(),other.data(),m_size)<0;
+            }
+            return m_size<other.size();
+        }
+
+        //! Overload > operator
+        template <typename T>
+        inline bool operator >(const T& other) const noexcept
+        {
+            if (m_size==other.size())
+            {
+                return memcmp(data(),other.data(),m_size)>0;
+            }
+            return m_size>other.size();
+        }
+
+        //! Overload >= operator
+        template <typename T>
+        inline bool operator >=(const T& other) const noexcept
+        {
+            if (m_size>other.size())
+            {
+                return true;
+            }
+            else if (m_size<other.size())
+            {
+                return false;
+            }
+
+            return memcmp(data(),other.data(),m_size)>=0;
+        }
+
+        //! Overload >= operator
+        template <typename T>
+        inline bool operator <=(const T& other) const noexcept
+        {
+            if (m_size<other.size())
+            {
+                return true;
+            }
+            else if (m_size>other.size())
+            {
+                return false;
+            }
+
+            return memcmp(data(),other.data(),m_size)<=0;
         }
 
         //! Get string view
         inline lib::string_view stringView() const noexcept
         {
             return lib::string_view(privDataConst(),m_size);
+        }
+
+        //! Get string view
+        inline operator lib::string_view() const noexcept
+        {
+            return stringView();
         }
 
         //! Get string view of array's part
@@ -503,14 +572,14 @@ class FixedByteArray
             return m_size<size;
         }
 
-        friend inline bool operator <(const FixedByteArray& left,const FixedByteArray& right) noexcept
-        {
-            if (left.m_size==right.m_size)
-            {
-                return memcmp(left.data(),right.data(),left.m_size)<0;
-            }
-            return left.m_size<right.m_size;
-        }
+        // friend inline bool operator <(const FixedByteArray& left,const FixedByteArray& right) noexcept
+        // {
+        //     if (left.m_size==right.m_size)
+        //     {
+        //         return memcmp(left.data(),right.data(),left.m_size)<0;
+        //     }
+        //     return left.m_size<right.m_size;
+        // }
 
         //! Check if array is empty
         inline bool isEmpty() const noexcept
@@ -791,4 +860,46 @@ namespace detail
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
+
+namespace std {
+
+template <size_t Length>
+struct less<HATN_COMMON_NAMESPACE::FixedByteArray<Length>>
+{
+    bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
+    {
+        return l<r;
+    }
+
+    bool operator()(const HATN_COMMON_NAMESPACE::lib::string_view& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
+    {
+        return !(r>=l);
+    }
+
+    bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::lib::string_view& r) const
+    {
+        return l<r;
+    }
+
+    // template <typename T1, typename T2>
+    // bool operator()(const T1& l, const T2& r) const
+    // {
+    //     return l<r;
+    // }
+
+    template <typename T1>
+    bool operator()(const T1& l, const char* r) const
+    {
+        return l<HATN_COMMON_NAMESPACE::lib::string_view(r);
+    }
+
+    template <typename T2>
+    bool operator()(const char* l, const T2& r) const
+    {
+        return HATN_COMMON_NAMESPACE::lib::string_view(l)<r;
+    }
+};
+
+} // namespace std
+
 #endif // HATNFIXEDBYTEARRAY_H

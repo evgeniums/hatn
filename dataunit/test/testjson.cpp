@@ -444,7 +444,7 @@ template <typename traits> void checkRepeatedUnit()
 
     for (int i=0;i<n;i++)
     {
-        auto& obj=field1.createAndAddValue();
+        auto& obj=field1.createAndAppendValue();
         fillUnitFields(*obj.mutableValue(),i);
     }
 
@@ -493,10 +493,10 @@ BOOST_FIXTURE_TEST_CASE(TestRepeatedUint32,Env)
     wire_uint32_repeated::type unit1;
     auto& field1=unit1.field(wire_uint32_repeated::f0);
     BOOST_CHECK(!field1.isSet());
-    field1.addValue(123);
-    field1.addValue(456);
-    field1.addValue(789);
-    field1.addValue(555);
+    field1.appendValue(123);
+    field1.appendValue(456);
+    field1.appendValue(789);
+    field1.appendValue(555);
     BOOST_CHECK(field1.isSet());
     BOOST_CHECK_EQUAL(field1.count(),4);
     BOOST_CHECK_EQUAL(field1.value(0),123);
@@ -530,11 +530,11 @@ template <typename traits> void checkRepeatedDouble()
 {
     typename traits::type unit1;
     auto& field1=unit1.field(traits::fields.f0);
-    field1.addValue(0.);
-    field1.addValue(10.2);
-    field1.addValue(20.3);
-    field1.addValue(30.4);
-    field1.addValue(130.);
+    field1.appendValue(0.);
+    field1.appendValue(10.2);
+    field1.appendValue(20.3);
+    field1.appendValue(30.4);
+    field1.appendValue(130.);
 
     BOOST_CHECK(field1.isSet());
     BOOST_CHECK_EQUAL(field1.count(),5);
@@ -642,10 +642,10 @@ template <typename traits> void checkRepeatedString(bool fixed)
     {
         typename traits::type unit1;
         auto& field1=unit1.field(traits::fields.f0);
-        field1.addValue("Value1");
-        field1.addValue("Value2");
-        field1.addValue("Value3");
-        field1.addValue("Value4");
+        field1.appendValue("Value1");
+        field1.appendValue("Value2");
+        field1.appendValue("Value3");
+        field1.appendValue("Value4");
 
         auto json=unit1.toString(PrettyFormat,MaxDecimalPlaces);
 #ifdef HATN_TEST_LOG_CONSOLE
@@ -687,9 +687,9 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
 {
     default_fields::type unit1;
     auto& field1=unit1.field(default_fields::type_double_repeated);
-    field1.addValues(7);
+    field1.appendValues(7);
     auto& field2=unit1.field(default_fields::type_enum_repeated);
-    field2.addValues(5);
+    field2.appendValues(5);
 
     auto json=unit1.toString(PrettyFormat,MaxDecimalPlaces);
 #ifdef HATN_TEST_LOG_CONSOLE
@@ -726,5 +726,7 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
     auto jsonCheck=unit2.toString(PrettyFormat,MaxDecimalPlaces);
     BOOST_CHECK_EQUAL(json,jsonCheck);
 }
+
+//! @todo Test Object ID, DateTime, Date, Time, DateRange
 
 BOOST_AUTO_TEST_SUITE_END()

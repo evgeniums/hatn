@@ -25,8 +25,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/timer.h>
-
-#include <hatn/common/objectguard.h>
+#include <hatn/common/sharedptr.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -34,7 +33,7 @@ class Thread;
 
 //! Traits for timer class using boost asio timers
 template <typename NativeT,typename TimerT>
-class AsioTimerTraits : public WithGuard
+class AsioTimerTraits
 {
     public:
 
@@ -92,7 +91,8 @@ class AsioTimerTraits : public WithGuard
 
 //! Timer class using boost asio timers
 template <typename NativeT>
-class AsioTimer : public Timer<AsioTimerTraits<NativeT,AsioTimer<NativeT>>>
+class AsioTimer : public Timer<AsioTimerTraits<NativeT,AsioTimer<NativeT>>>,
+                  public EnableSharedFromThis<AsioTimer<NativeT>>
 {
     public:
 

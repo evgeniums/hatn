@@ -20,7 +20,7 @@
 #include <hatn/common/environment.h>
 #include <hatn/common/threadcategoriespool.h>
 #include <hatn/common/thread.h>
-#include <hatn/common/threadqueueinterface.h>
+#include <hatn/common/threadq.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -36,13 +36,13 @@ class MultiThreadEnvironment : public Environment
         }
 
         //! Pool of threads with queues of plain tasks
-        inline TaskThreadCategoriesPool& taskThreadPool() noexcept
+        ThreadCategoriesPool<Task>& taskThreadPool() noexcept
         {
             return m_taskThreadPool;
         }
 
         //! Pool of threads with queues of tasks with contexts
-        TaskWithContextThreadCategoriesPool& taskWithContextThreadPool() noexcept
+        ThreadCategoriesPool<TaskWithContext>& taskWithContextThreadPool() noexcept
         {
             return m_taskWithContextThreadPool;
         }
@@ -50,8 +50,8 @@ class MultiThreadEnvironment : public Environment
     private:
 
         ThreadCategoriesPool<Thread> m_threadPool;
-        TaskThreadCategoriesPool m_taskThreadPool;
-        TaskWithContextThreadCategoriesPool m_taskWithContextThreadPool;
+        ThreadCategoriesPool<Task> m_taskThreadPool;
+        ThreadCategoriesPool<TaskWithContext> m_taskWithContextThreadPool;
 };
 
 HATN_COMMON_NAMESPACE_END

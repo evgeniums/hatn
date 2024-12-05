@@ -33,12 +33,17 @@ HATN_TEST_USING
 
 namespace {
 
-void expectedError(const Error& ec, const std::string& msg=std::string())
+void expectedError(const Error& ec, const std::string& msg=std::string(), const std::string& code=std::string())
 {
-    BOOST_TEST_MESSAGE(fmt::format("Expeceted error: {}",ec.message()));
+    BOOST_TEST_MESSAGE(fmt::format("Expected error: {}",ec.message()));
     if (!msg.empty())
     {
         BOOST_CHECK_EQUAL(msg,ec.message());
+    }
+    BOOST_TEST_MESSAGE(fmt::format("Expected error code: {}",ec.codeString()));
+    if (!code.empty())
+    {
+        BOOST_CHECK_EQUAL(code,ec.codeString());
     }
 }
 
@@ -725,23 +730,38 @@ BOOST_AUTO_TEST_CASE(LoadWithErrors)
 
     auto r1=loader.createFromFile("not-existent-file.jsonc");
     BOOST_REQUIRE(r1);
-    expectedError(r1.error(),"failed to parse configuration file: file not found: not-existent-file.jsonc");
+    expectedError(r1.error(),
+                  "failed to parse configuration file: file not found: not-existent-file.jsonc",
+                  "CONFIG_PARSE_ERROR"
+                  );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config5.jsonc"));
     BOOST_REQUIRE(r1);
-    expectedError(r1.error(),"failed to parse configuration file: include file not found: not-existent-include.jsonc");
+    expectedError(r1.error(),
+                  "failed to parse configuration file: include file not found: not-existent-include.jsonc",
+                  "CONFIG_PARSE_ERROR"
+                  );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config6.xml"));
     BOOST_REQUIRE(r1);
-    expectedError(r1.error());
+    expectedError(r1.error(),
+                  "",
+                  "CONFIG_LOAD_ERROR:UNSUPPORTED_CONFIG_FORMAT"
+                  );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc"));
     BOOST_REQUIRE(r1);
-    expectedError(r1.error());
+    expectedError(r1.error(),
+                  "",
+                  "CONFIG_LOAD_ERROR:CONFIG_PARSE_ERROR"
+                  );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc"));
     BOOST_REQUIRE(r1);
-    expectedError(r1.error());
+    expectedError(r1.error(),
+                  "",
+                  "CONFIG_LOAD_ERROR:CONFIG_PARSE_ERROR"
+                  );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -4,7 +4,9 @@ FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
     SET (PLUGIN_SRC_DIR "${HATN_SOURCE_DIR}/${MODULE_NAME}/plugins/${PLUGIN_NAME}")
     SET (MODULE_DST_DIR "plugins/${MODULE_NAME}")
 
-    IF (NOT BUILD_STATIC)
+    IF (BUILD_STATIC)
+        SET(PLUGIN_SRC_DIRS ${PLUGIN_SRC_DIRS} ${PLUGIN_SRC_DIR}/include PARENT_SCOPE)
+    ELSE(BUILD_STATIC)
         ADD_CUSTOM_TARGET(plugin-${MODULE_NAME}-hatn${PLUGIN_NAME} ALL DEPENDS hatn${PLUGIN_NAME})
         CONSTRUCT_LIBNAMES("hatn${PLUGIN_NAME}${LIB_POSTFIX}" "${MODULE_NAME}/plugins/${PLUGIN_NAME}" ${MODULE_DST_DIR})
         ADD_CUSTOM_COMMAND(TARGET plugin-${MODULE_NAME}-hatn${PLUGIN_NAME} POST_BUILD
@@ -12,9 +14,10 @@ FUNCTION(TEST_HATN_MODULE_PLUGIN MODULE_NAME PLUGIN_NAME)
                     ${SRC_LIB}
                     ${DST_LIB}
                   )
-    ENDIF(NOT BUILD_STATIC)
+    ENDIF(BUILD_STATIC)
 
     IF (EXISTS ${PLUGIN_SRC_DIR}/test/assets)
+        MESSAGE(STATUS "Copying test assets for plugin \"${PLUGIN_NAME}\" for module \"${MODULE_NAME}\" from ${PLUGIN_SRC_DIR}/test/assets to ${MODULE_DST_DIR}/hatn${PLUGIN_NAME}/assets")
         COPY_PATH_BINDIR(${PLUGIN_SRC_DIR}/test/assets ${MODULE_DST_DIR}/hatn${PLUGIN_NAME}/assets)
     ENDIF()
 ENDFUNCTION(TEST_HATN_MODULE_PLUGIN)
@@ -28,12 +31,14 @@ FUNCTION(TEST_HATN_MODULE_PLUGINS MODULE)
                 SUBDIRLIST(PLUGIN_LIST ${MODULE_PLUGINS_PATH})
                 FOREACH(plugin ${PLUGIN_LIST})
                     TEST_HATN_MODULE_PLUGIN(${MODULE_NAME} ${plugin})
+                    SET(PLUGIN_SRC_DIRS ${PLUGIN_SRC_DIRS} PARENT_SCOPE)
                 ENDFOREACH()
             ENDIF()
             BREAK()
         ELSE ()
             IF (EXISTS "${MODULE_PLUGINS_PATH}/${plugin_name}")
                 TEST_HATN_MODULE_PLUGIN(${MODULE_NAME} ${plugin_name})
+                SET(PLUGIN_SRC_DIRS ${PLUGIN_SRC_DIRS} PARENT_SCOPE)
             ENDIF()
         ENDIF()
     ENDFOREACH()
@@ -183,17 +188,16 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 	
 	FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
 
-                MESSAGE(STATUS "Reading tests source file ${SOURCE_FILE_NAME}")
+                MESSAGE(STATUS "Reading test source file ${SOURCE_FILE_NAME}")
 
-		FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
+                FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
 
-                STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+                STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *[\\),]" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
 
 		IF (FOUND_TEST_SUITE)
 
-			STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
-			
-			MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
+                        STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})
+                        MESSAGE(STATUS "Found test suite ${SUITE_NAME}")
 			
                         STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
                         IF (BUILD_IOS)
@@ -213,6 +217,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
 				LIST (APPEND TEST_SUITES ${SUITE_NAME})
 
+                                MESSAGE(STATUS "Adding ${SOURCE_FILE_NAME} to test ${TARGET_EXE}")
                                 ADD_EXECUTABLE(${TARGET_EXE} ${SOURCE_FILE_NAME} ${SOURCES} ${HATN_TEST_THREAD_SOURCES})
                                 TARGET_INCLUDE_DIRECTORIES(${TARGET_EXE} PRIVATE ${TEST_BINARY_DIR})
                                 IF(NOT "${MODULE_TEST_LIB}" STREQUAL "")
@@ -264,6 +269,33 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 		ENDIF()
 
 	ENDFOREACH()
+
+        FOREACH(SOURCE_FILE_NAME ${TEST_SOURCES})
+
+            FILE(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
+
+            SET(FOUND_SUITES "")
+            STRING(REGEX MATCHALL "// HATN_TEST_SUITE [A-Za-z_0-9]+" HATN_SUITES "${SOURCE_FILE_CONTENTS}")
+            FOREACH(HIT ${HATN_SUITES})
+
+                    STRING(REGEX REPLACE "// HATN_TEST_SUITE ([A-Za-z_0-9]+)" "\\1" SUITE_NAME ${HIT})
+                    IF (${SUITE_NAME} IN_LIST TEST_SUITES)
+
+                        STRING (TOLOWER ${MODULE_NAME}${SUITE_NAME} TARGET_EXE)
+                        IF (BUILD_IOS)
+                            SET (TEST_EXEC_CMD ${BINDIR}/${TARGET_EXE}.app/${TARGET_EXE})
+                        ELSE ()
+                            SET (TEST_EXEC_CMD ${TARGET_EXE})
+                        ENDIF()
+
+                        TARGET_SOURCES(${TARGET_EXE} PRIVATE ${SOURCE_FILE_NAME})
+
+                        MESSAGE(STATUS "Adding ${SOURCE_FILE_NAME} to test ${TARGET_EXE}")
+                    ENDIF()
+
+            ENDFOREACH()
+
+        ENDFOREACH()
 
 	SET_PROPERTY(GLOBAL PROPERTY HATN_TEST_SUITES "${TEST_SUITES}")
 

@@ -130,7 +130,8 @@ struct JsonR<T,Repeated,
                     >
                 >
 {
-    template <typename T1> inline static void push(
+    template <typename T1>
+    static void push(
             Unit* topUnit,
             T1* field
         )

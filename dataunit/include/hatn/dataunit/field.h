@@ -54,12 +54,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         //! Ctor
         Field(ValueType type, Unit* unit, bool array=false);
 
-        virtual ~Field();
-        Field(const Field& other)=default;
-        Field& operator=(const Field& other)=default;
-        Field(Field&& other) =default;
-        Field& operator =(Field&& other) =default;
-
         //! Load field from wire
         inline bool load(WireData& wired, AllocatorFactory *factory)
         {
@@ -111,6 +105,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             m_set=enable;
         }
 
+        constexpr static bool fieldHasDefaultValue() noexcept
+        {
+            return false;
+        }
+
+        constexpr static bool fieldIsParseToSharedArrays() noexcept
+        {
+            return false;
+        }
+
         //! Check if field is required
         virtual bool isRequired() const noexcept =0;
         //! Get field ID
@@ -150,11 +154,6 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
         {}
 
-        bool fieldIsParseToSharedArrays() const noexcept
-        {
-            return false;
-        }
-
         virtual void pushJsonParseHandler(Unit*)=0;
 
         virtual bool toJSON(json::Writer* writer) const=0;
@@ -180,6 +179,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return m_array;
         }
 
+        virtual bool isFloatingPoint() const noexcept
+        {
+            return false;
+        }
+
+        virtual bool isUnsigned() const noexcept
+        {
+            return false;
+        }
+
     protected:
 
         //! Load field from wire
@@ -190,10 +199,17 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 
     private:
 
+        void setParent(Unit* unit)
+        {
+            m_unit=unit;
+        }
+
         bool m_set;
         Unit* m_unit;
         ValueType m_valueTypeId;
         bool m_array;
+
+        friend class Unit;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

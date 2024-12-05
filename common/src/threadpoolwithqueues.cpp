@@ -14,24 +14,27 @@
 
 #include <set>
 
-#include <hatn/common/threadcategoriespoolimpl.h>
 #include <hatn/common/threadpoolwithqueues.h>
+
+#include <hatn/common/ipp/threadcategoriespool.ipp>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-/********************** ThreadPoolWithQueues **************************/
+/********************** ThreadPoolWithQueuesTraits **************************/
 
-template <typename TaskType> class ThreadPoolWithQueues_p
+template <typename TaskT>
+class ThreadPoolWithQueuesTraits_p
 {
     public:
 
-        std::set<ThreadWithQueue<TaskType>*> threads;
+        //! @todo Use flatmap set
+        std::set<ThreadWithQueue<TaskT>*> threads;
         int maxHandlersPerLoop=0;
-        std::vector<std::shared_ptr<ThreadWithQueue<TaskType>>> threadStorage;
+        std::vector<std::shared_ptr<ThreadWithQueue<TaskT>>> threadStorage;
 
-        ThreadWithQueue<TaskType>* selectThread()
+        ThreadWithQueue<TaskT>* selectThread()
         {
-            ThreadWithQueue<TaskType>* thread=*threads.begin();
+            ThreadWithQueue<TaskT>* thread=*threads.begin();
             size_t minDepth=std::numeric_limits<size_t>::max();
             for (auto&& it:threads)
             {
@@ -51,72 +54,38 @@ template <typename TaskType> class ThreadPoolWithQueues_p
 };
 
 //---------------------------------------------------------------
-template <typename TaskType> ThreadPoolWithQueues<TaskType>::ThreadPoolWithQueues(
-        size_t threadCount,
-        const FixedByteArrayThrow16& id,
-        Queue<TaskType>* queue
-    ) : d(std::make_unique<ThreadPoolWithQueues_p<TaskType>>())
-{
-    Assert(threadCount>0,"Thread count must be positive number");
-    auto i=threadCount;
-    while(i>0)
-    {
-        Queue<TaskType>* threadQueue=nullptr;
-        if (i==1)
-        {
-            threadQueue=queue;
-        }
-        else if (queue!=nullptr)
-        {
-            threadQueue=queue->buildQueue();
-        }
-        std::string name(id.c_str());
-        std::string num=std::to_string(i);
-        auto nameLength=name.length()+num.length();
-        if (nameLength>16)
-        {
-            name=name.substr(0,16-num.length());
-        }
-        name+=num;
-        auto thread=std::make_shared<ThreadWithQueue<TaskType>>(name.c_str(),threadQueue);
-        thread->setThreadQueueInterface(this);
-        d->threadStorage.push_back(thread);
-        d->threads.insert(thread.get());
-        --i;
-    }
-}
+
+template <typename TaskT>
+ThreadPoolWithQueuesTraits<TaskT>::ThreadPoolWithQueuesTraits(
+    ) : d(std::make_unique<ThreadPoolWithQueuesTraits_p<TaskT>>())
+{}
 
 //---------------------------------------------------------------
-template <typename TaskType> ThreadPoolWithQueues<TaskType>::~ThreadPoolWithQueues()
-{
-    stop();
-}
 
-template <typename TaskType> ThreadPoolWithQueues<TaskType>::ThreadPoolWithQueues(ThreadPoolWithQueues<TaskType>&&) noexcept=default;
-template <typename TaskType> ThreadPoolWithQueues<TaskType>& ThreadPoolWithQueues<TaskType>::operator=(ThreadPoolWithQueues<TaskType>&&) noexcept=default;
-
-//---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::doPostTask(
-        TaskType task
+template <typename TaskT>
+void ThreadPoolWithQueuesTraits<TaskT>::postTask(
+    TaskT task
     )
 {
     d->selectThread()->postTask(std::move(task));
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::post(
-        TaskType* task
+template <typename TaskT>
+void ThreadPoolWithQueuesTraits<TaskT>::post(
+    TaskT* task
     )
 {
     if (task->queueItem->m_data!=nullptr)
     {
-        auto thread=reinterpret_cast<ThreadWithQueue<TaskType>*>(task->queueItem->m_data);
+        auto thread=reinterpret_cast<ThreadWithQueue<TaskT>*>(task->queueItem->m_data);
         thread->post(task);
     }
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> TaskType* ThreadPoolWithQueues<TaskType>::prepare()
+template <typename TaskT>
+TaskT* ThreadPoolWithQueuesTraits<TaskT>::prepare()
 {
     auto thread=d->selectThread();
     auto task=thread->prepare();
@@ -125,7 +94,8 @@ template <typename TaskType> TaskType* ThreadPoolWithQueues<TaskType>::prepare()
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::setMaxTasksPerLoop(int count)
+template <typename TaskT>
+void ThreadPoolWithQueuesTraits<TaskT>::setMaxTasksPerLoop(int count)
 {
     d->maxHandlersPerLoop=count;
     for (auto&& it:d->threads)
@@ -135,13 +105,15 @@ template <typename TaskType> void ThreadPoolWithQueues<TaskType>::setMaxTasksPer
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> int ThreadPoolWithQueues<TaskType>::maxTasksPerLoop() const
+template <typename TaskT>
+int ThreadPoolWithQueuesTraits<TaskT>::maxTasksPerLoop() const
 {
     return d->maxHandlersPerLoop;
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::setQueue(Queue<TaskType>* queue)
+template <typename TaskT>
+void ThreadPoolWithQueuesTraits<TaskT>::setQueue(Queue<TaskT>* queue)
 {
     Assert(queue,"Queue can not be nullptr");
     auto i=d->threads.size();
@@ -159,7 +131,8 @@ template <typename TaskType> void ThreadPoolWithQueues<TaskType>::setQueue(Queue
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> bool ThreadPoolWithQueues<TaskType>::containsCurrentThread() const
+template <typename TaskT>
+bool ThreadPoolWithQueuesTraits<TaskT>::containsCurrentThread() const
 {
     auto current=Thread::currentThread();
     for (auto&& it:d->threads)
@@ -172,41 +145,106 @@ template <typename TaskType> bool ThreadPoolWithQueues<TaskType>::containsCurren
     return false;
 }
 
+/********************** ThreadPoolWithQueues **************************/
+
 //---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::start()
+
+template <typename TaskT>
+ThreadPoolWithQueues<TaskT>::ThreadPoolWithQueues(
+        size_t threadCount,
+        const FixedByteArrayThrow16& id,
+        Queue<TaskT>* queue
+    )
 {
-    for (auto&& it:d->threads)
+    Assert(threadCount>0,"Thread count must be positive number");
+    auto i=threadCount;
+    while(i>0)
+    {
+        Queue<TaskT>* threadQueue=nullptr;
+        if (i==1)
+        {
+            threadQueue=queue;
+        }
+        else if (queue!=nullptr)
+        {
+            threadQueue=queue->buildQueue();
+        }
+        std::string name(id.c_str());
+        std::string num=std::to_string(i);
+        auto nameLength=name.length()+num.length();
+        if (nameLength>16)
+        {
+            name=name.substr(0,16-num.length());
+        }
+        name+=num;
+        auto thread=std::make_shared<ThreadWithQueue<TaskT>>(name.c_str(),threadQueue);
+
+        this->traits().d->threadStorage.push_back(thread);
+        this->traits().d->threads.insert(thread.get());
+        --i;
+    }
+}
+
+//---------------------------------------------------------------
+
+template <typename TaskT>
+ThreadPoolWithQueues<TaskT>::~ThreadPoolWithQueues()
+{
+    stop();
+}
+
+template <typename TaskT>
+ThreadPoolWithQueues<TaskT>::ThreadPoolWithQueues(ThreadPoolWithQueues<TaskT>&&) noexcept=default;
+
+template <typename TaskT>
+ThreadPoolWithQueues<TaskT>& ThreadPoolWithQueues<TaskT>::operator=(ThreadPoolWithQueues<TaskT>&&) noexcept=default;
+
+//---------------------------------------------------------------
+
+template <typename TaskT>
+void ThreadPoolWithQueues<TaskT>::start()
+{
+    for (auto&& it:this->traits().d->threads)
     {
         it->start();
     }
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> void ThreadPoolWithQueues<TaskType>::stop()
+
+template <typename TaskT>
+void ThreadPoolWithQueues<TaskT>::stop()
 {
-    for (auto&& it:d->threads)
+    for (auto&& it:this->traits().d->threads)
     {
         it->stop();
     }
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> size_t ThreadPoolWithQueues<TaskType>::threadCount() const
+
+template <typename TaskT>
+size_t ThreadPoolWithQueues<TaskT>::threadCount() const
 {
-    return d->threadStorage.size();
+    return this->traits().d->threadStorage.size();
 }
 
 //---------------------------------------------------------------
-template <typename TaskType> ThreadWithQueue<TaskType>* ThreadPoolWithQueues<TaskType>::thread(size_t num)
+
+template <typename TaskT>
+ThreadWithQueue<TaskT>* ThreadPoolWithQueues<TaskT>::thread(size_t num)
 {
-    if (num>d->threadStorage.size())
+    if (num>this->traits().d->threadStorage.size())
     {
         return nullptr;
     }
-    return d->threadStorage[num].get();
+    return this->traits().d->threadStorage[num].get();
 }
 
 //---------------------------------------------------------------
+
+template class HATN_COMMON_EXPORT ThreadPoolWithQueuesTraits<Task>;
+template class HATN_COMMON_EXPORT ThreadPoolWithQueuesTraits<TaskWithContext>;
 template class HATN_COMMON_EXPORT ThreadPoolWithQueues<Task>;
 template class HATN_COMMON_EXPORT ThreadPoolWithQueues<TaskWithContext>;
 
@@ -214,4 +252,5 @@ template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadPoolWithQueues<Task
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadPoolWithQueues<TaskWithContext>>;
 
 //---------------------------------------------------------------
+
 HATN_COMMON_NAMESPACE_END

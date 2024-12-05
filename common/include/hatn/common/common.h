@@ -31,6 +31,7 @@
 #endif
 
 #include <hatn/common/config.h>
+#include <hatn/common/ignorewarnings.h>
 
 // define export symbols for windows platform
 #ifndef HATN_COMMON_EXPORT
@@ -43,60 +44,6 @@
 #  else
 #    define HATN_COMMON_EXPORT
 #  endif
-#endif
-
-
-//! @todo Move it to separate header.
-#ifdef __GNUC__
-
-    #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN \
-        _Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
-
-    #define HATN_IGNORE_UNUSED_FUNCTION_END \
-        _Pragma("GCC diagnostic pop")
-
-    #define HATN_IGNORE_UNUSED_VARIABLE_BEGIN \
-        _Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic ignored \"-Wunused-variable\"")
-
-    #define HATN_IGNORE_UNUSED_VARIABLE_END \
-        _Pragma("GCC diagnostic pop")
-
-    #define HATN_IGNORE_UNUSED_CONST_VARIABLE_BEGIN \
-        _Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic ignored \"-Wunused-const-variable\"")
-
-    #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
-        _Pragma("GCC diagnostic pop")
-
-    #if defined(__clang__)
-
-    #define HATN_IGNORE_STRING_LITERAL_BEGIN \
-    _Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic ignored \"-Wgnu-string-literal-operator-template\"")
-
-    #define HATN_IGNORE_STRING_LITERAL_END \
-        _Pragma("GCC diagnostic pop")
-
-    #else
-
-    #define HATN_IGNORE_STRING_LITERAL_BEGIN
-    #define HATN_IGNORE_STRING_LITERAL_END
-
-    #endif
-
-#else
-
-    #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN
-    #define HATN_IGNORE_UNUSED_FUNCTION_END
-    #define HATN_IGNORE_UNUSED_VARIABLE_BEGIN
-    #define HATN_IGNORE_UNUSED_VARIABLE_END
-    #define HATN_IGNORE_UNUSED_CONST_VARIABLE_BEGIN
-    #define HATN_IGNORE_UNUSED_CONST_VARIABLE_END
-    #define HATN_IGNORE_STRING_LITERAL_BEGIN
-    #define HATN_IGNORE_STRING_LITERAL_END
-
 #endif
 
 #define HATN_COMMON_NAMESPACE_BEGIN namespace hatn { namespace common {

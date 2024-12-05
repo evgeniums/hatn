@@ -12,8 +12,8 @@
 #include <hatn/validator/operators/lexicographical.hpp>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 
 #include "testfieldpath.h"
 
@@ -159,8 +159,8 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedScalarField,Env)
 
     type obj;
 
-    obj.field(fields.type_int8).addValue(100);
-    obj.field(fields.type_int8).addValue(10);
+    obj.field(fields.type_int8).appendValue(100);
+    obj.field(fields.type_int8).appendValue(10);
 
     obj.field(fields.type_int8).setValue(0,50);
 
@@ -183,8 +183,8 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedSubunitField,Env)
 {
     subunit_arrays::type obj;
 
-    obj.field(subunit_arrays::scalar).addValue(scalar_types::type());
-    obj.field(subunit_arrays::scalar).addValue(scalar_types::type());
+    obj.field(subunit_arrays::scalar).appendValue(scalar_types::type());
+    obj.field(subunit_arrays::scalar).appendValue(scalar_types::type());
     obj.field(subunit_arrays::scalar).field(1).field(scalar_types::type_int8).set(100);
 
     auto val=getUnitFieldAtPath(obj,vld::_[subunit_arrays::scalar][1][scalar_types::type_int8]);

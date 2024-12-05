@@ -13,14 +13,15 @@
  *
  */
 
-#include <hatn/common/threadwithqueueimpl.h>
-#include <hatn/common/threadqueueinterfaceimpl.h>
+#include <hatn/common/ipp/threadq.ipp>
+#include <hatn/common/ipp/threadcategoriespool.ipp>
+#include <hatn/common/ipp/threadwithqueue.ipp>
 
 #include <hatn/common/format.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-template class HATN_COMMON_EXPORT ThreadQueueInterface<TaskInlineContext<FmtAllocatedBufferChar>>;
+template class HATN_COMMON_EXPORT ThreadQ<TaskInlineContext<FmtAllocatedBufferChar>,ThreadWithQueueTraits>;
 template class HATN_COMMON_EXPORT ThreadWithQueue<TaskInlineContext<FmtAllocatedBufferChar>>;
 
 //---------------------------------------------------------------

@@ -42,7 +42,7 @@ static_assert(decltype(meta::is_basic_type<Type>())::value || hana::is_a<repeate
     static_assert(decltype(meta::is_unit_type<Type>())::value,"Only dataunit types can be used in this expression for "#FieldName);
 
 #define HDU_V2_IS_FIELD_TYPE(FieldName,Type) \
-static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_basic_type<Type>())::value,"Invalid field type for "#FieldName);
+static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_basic_type<Type>())::value || decltype(meta::is_custom_type<Type>())::value,"Invalid field type for "#FieldName);
 
 #define HDU_V2_CHECK_ID(FieldName,Id) \
     static_assert(std::is_integral<decltype(Id)>::value && Id>0,"ID must be positive integer for "#FieldName);
@@ -68,7 +68,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
     {\
         struct strings\
         {\
-                constexpr static const char* name=#FieldName;\
+            constexpr static const char* name=#FieldName;\
         };\
         using traits=field_traits<field_generator,\
                        strings,\
@@ -85,7 +85,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
     };\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits FieldName{};\
     constexpr typename field<HATN_COUNTER_GET(c)>::traits inst_##FieldName{};\
-    template <> struct field_id<HATN_COUNTER_GET(c)+1> : public field_id<HATN_COUNTER_GET(c)>\
+    template <> struct field_id_<HATN_COUNTER_GET(c)+1> : public field_id_<HATN_COUNTER_GET(c)>\
     {\
         constexpr static const auto& FieldName=inst_##FieldName;\
     };\
@@ -201,8 +201,8 @@ enum class EnumName : int {__VA_ARGS__};
     struct c{};\
     HATN_COUNTER_MAKE(c);\
     template <int N> struct field{};\
-    template <int N> struct field_id{};\
-    template <> struct field_id<0>{using hana_tag=field_id_tag;}; \
+    template <int N> struct field_id_{};\
+    template <> struct field_id_<0>{using hana_tag=field_id_tag;}; \
     __VA_ARGS__ \
     namespace {HATN_MAYBE_CONSTEXPR auto field_defs=concat_fields(base_fields,make_fields_tuple<field,HATN_COUNTER_GET(c)>());}\
     static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
@@ -216,10 +216,10 @@ enum class EnumName : int {__VA_ARGS__};
     using managed=managed_unit<type>;\
     using shared_managed=shared_managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
-    struct field_ids_t : public field_id<HATN_COUNTER_GET(c)>{};\
-    constexpr field_ids_t fields{};\
-    struct traits : public unit_traits<type,managed,field_ids_t>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,field_ids_t>{};\
+    struct field_id_s_t : public field_id_<HATN_COUNTER_GET(c)>{};\
+    constexpr field_id_s_t fields{};\
+    struct traits : public unit_traits<type,managed,field_id_s_t>{};\
+    struct shared_traits : public unit_traits<shared_type,shared_managed,field_id_s_t>{};\
     struct TYPE : public subunit<traits,shared_traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
@@ -296,5 +296,19 @@ enum class EnumName : int {__VA_ARGS__};
                               ))
 
 #define HDU_V2_INSTANTIATE(...) HDU_V2_EXPAND(HDU_V2_VARG_SELECT_INST(__VA_ARGS__)(__VA_ARGS__))
+
+#define HDU_V2_INSTANTIATE_EMPTY(UnitName) \
+    template class HATN_DATAUNIT_NAMESPACE::EmptyUnit<UnitName::conf>;
+
+#ifdef _MSC_VER
+
+    #define HDU_V2_EXPORT_EMPTY(UnitName,Export) \
+        template class Export HATN_DATAUNIT_NAMESPACE::EmptyUnit<UnitName::conf>;
+
+#else
+
+    #define HDU_V2_EXPORT_EMPTY(UnitName,Export) HDU_V2_INSTANTIATE_EMPTY(UnitName)
+
+#endif
 
 #endif // HATNDATAUNITMACROS_H

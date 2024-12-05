@@ -14,7 +14,7 @@
 #include <hatn/common/pmr/poolmemoryresource.h>
 #include <hatn/common/memorypool/newdeletepool.h>
 
-#include <hatn/dataunit/detail/fieldserialization.ipp>
+#include <hatn/dataunit/ipp/fieldserialization.ipp>
 #include <hatn/dataunit/visitors.h>
 
 #include <hatn/test/multithreadfixture.h>
@@ -329,6 +329,7 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         typeChecks<decltype(fields.type_int8),traits>(allTypes);
     }
 
+#if 1
     BOOST_TEST_CONTEXT("Copy construct")
     {
         auto allTypesCopy=allTypes;
@@ -340,6 +341,16 @@ BOOST_FIXTURE_TEST_CASE(TestBasic,Env)
         allTypesCopyOp=allTypes;
         typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesCopyOp);
     }
+
+    BOOST_TEST_CONTEXT("Move construct")
+    {
+        auto allTypes1=std::make_shared<type>();
+        typeChecks<decltype(fields.type_int8),traits>(*allTypes1);
+        auto allTypesMove=std::move(*allTypes1);
+        allTypes1.reset();
+        typeCheckIsSet<decltype(fields.type_int8),traits>(allTypesMove);
+    }
+#endif
 
     using extTraits=ext1::traits;
     const auto extFields=extTraits::fields;
@@ -627,10 +638,10 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedUint32,::hatn::test::MultiThre
     wire_uint32_repeated::type unit1;
     auto& field1=unit1.field(wire_uint32_repeated::f0);
     BOOST_CHECK(!field1.isSet());
-    field1.addValue(123);
-    field1.addValue(456);
-    field1.addValue(789);
-    field1.addValue(555);
+    field1.appendValue(123);
+    field1.appendValue(456);
+    field1.appendValue(789);
+    field1.appendValue(555);
     BOOST_CHECK(field1.isSet());
     BOOST_CHECK_EQUAL(field1.count(),4);
     BOOST_CHECK_EQUAL(field1.value(0),123);
@@ -667,11 +678,11 @@ void serializeCheckRepeatedDouble()
 
     typename traits::type unit1;
     auto& field1=unit1.field(fields.f0);
-    field1.addValue(0.);
-    field1.addValue(10.2);
-    field1.addValue(20.3);
-    field1.addValue(30.4);
-    field1.addValue(130.);
+    field1.appendValue(0.);
+    field1.appendValue(10.2);
+    field1.appendValue(20.3);
+    field1.appendValue(30.4);
+    field1.appendValue(130.);
 
     BOOST_CHECK(field1.isSet());
     BOOST_CHECK_EQUAL(field1.count(),5);
@@ -978,7 +989,7 @@ template <typename traits> void checkRepeatedUnitFields()
     using allTypesTraits=all_types::traits;
     const auto& fields1=allTypesTraits::fields;
 
-    auto& obj1=field1.createAndAddValue();
+    auto& obj1=field1.createAndAppendValue();
     typeChecks<decltype(fields1.type_int8),allTypesTraits>(*obj1.mutableValue());
     field1.clear();
 }
@@ -1001,7 +1012,7 @@ template <typename traits, typename WiredT> void checkSerializeRepeatedSimpleUni
     typename traits::type unit1;
     auto& field1=unit1.field(fields.f0);
     BOOST_CHECK(!field1.isSet());
-    auto& field1_1=field1.createAndAddValue();
+    auto& field1_1=field1.createAndAppendValue();
     auto* obj1=field1_1.mutableValue();
     auto& obj1_field1=obj1->field(simple_int8::type_int8);
     obj1_field1.set(100);
@@ -1378,7 +1389,7 @@ template <typename traits> void checkSerializeRepeatedUnit()
 
     for (int i=0;i<n;i++)
     {
-        auto& obj=field1.createAndAddValue();
+        auto& obj=field1.createAndAppendValue();
         fillUnitFields(*obj.mutableValue(),i);
     }
 
@@ -1442,18 +1453,18 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
     auto unit3=factory->createObject<tree::managed>(factory);
     auto unit4=factory->createObject<tree::managed>(factory);
 
-    unit2->field(tree::children).addValues(2);
-    unit3->field(tree::children).addValues(3);
-    unit4->field(tree::children).addValues(4);
+    unit2->field(tree::children).appendValues(2);
+    unit3->field(tree::children).appendValues(3);
+    unit4->field(tree::children).appendValues(4);
 
     unit2->field(tree::f0).set(15);
     unit3->field(tree::f0).set(25);
     unit4->field(tree::f0).set(35);
 
-    unit->field(tree::children).addValue(unit1);
-    unit->field(tree::children).addValue(unit2);
-    unit->field(tree::children).addValue(unit3);
-    unit->field(tree::children).addValue(unit4);
+    unit->field(tree::children).appendValue(unit1);
+    unit->field(tree::children).appendValue(unit2);
+    unit->field(tree::children).appendValue(unit3);
+    unit->field(tree::children).appendValue(unit4);
 
     size_t count=0;
     size_t levelCount=0;

@@ -30,6 +30,51 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+template <typename LeftT, typename RightT, typename=void>
+struct safe_eq
+{
+    template <typename LeftT1, typename RightT1>
+    constexpr static bool f(const LeftT1&, const RightT1&) noexcept
+    {
+        return false;
+    }
+};
+
+/**
+ * @brief Safe equal to if operation is possible.
+ */
+template <typename LeftT, typename RightT>
+struct safe_eq<LeftT,RightT,
+               std::enable_if_t
+               <
+                   std::is_same<
+                       bool,
+                       decltype(
+                           std::declval<std::decay_t<LeftT>>()==std::declval<std::decay_t<RightT>>()
+                           )
+                       >::value
+                       &&
+                        (
+                           (std::is_arithmetic<std::decay_t<LeftT>>::value
+                                &&
+                            std::is_arithmetic<std::decay_t<RightT>>::value
+                            )
+                           ||
+                           std::is_same<std::decay_t<RightT>,std::decay_t<LeftT>>::value
+                           ||
+                           !(std::is_convertible<LeftT,bool>::value || std::is_convertible<RightT,bool>::value)
+                       )
+                   >
+               >
+{
+    template <typename LeftT1, typename RightT1>
+    constexpr static bool f(const LeftT1& left, const RightT1& right) noexcept
+    {
+        return left == right;
+    }
+};
+
+
 //! Helper fpr comparation of scalar fields.
 template <typename LeftT, typename RightT, typename=void>
 struct ScalarCompare
@@ -40,7 +85,7 @@ struct ScalarCompare
     }
     constexpr static bool equal(const LeftT& left, const RightT& right) noexcept
     {
-        return left == right;
+        return safe_eq<LeftT,RightT>::f(left,right);
     }
 };
 
@@ -93,7 +138,9 @@ struct ScalarCompare<LeftT, RightT,
 
 template <typename LeftT,typename RightT>
 struct ScalarCompare<LeftT,RightT,
-                    std::enable_if_t<!std::is_same<LeftT, bool>::value && std::is_same<RightT, bool>::value>
+                    std::enable_if_t<!std::is_same<LeftT, bool>::value
+                                                     &&
+                    std::is_same<RightT, bool>::value>
                 >
 {
     constexpr static bool less(const LeftT& left, const RightT& right) noexcept
@@ -102,7 +149,18 @@ struct ScalarCompare<LeftT,RightT,
     }
     constexpr static bool equal(const LeftT& left, const RightT& right) noexcept
     {
-        return static_cast<bool>(left)==right;
+        return hana::eval_if(
+            std::is_convertible<LeftT,bool>{},
+            [&](auto _)
+            {
+                bool l=static_cast<bool>(_(left));
+                return safe_eq<bool,RightT>::f(l,_(right));
+            },
+            [&](auto _)
+            {
+                return safe_eq<LeftT,RightT>::f(_(left),_(right));
+            }
+        );
     }
 };
 template <typename LeftT, typename RightT>
@@ -139,12 +197,6 @@ class Scalar : public Field
         constexpr static auto typeId=Type::typeId;
         constexpr static auto isArray=isRepeatedType{};
 
-        //! Move ctor
-        explicit Scalar(type&& defaultValue)
-            : m_value(std::move(defaultValue))
-        {
-        }
-
         //! Ctor with default value
         Scalar(Unit* unit,const type& defaultValue)
             : Field(Type::typeId,unit),
@@ -178,14 +230,15 @@ class Scalar : public Field
         }
 
         //! Set field
-        inline void set(const type& val)
+        template <typename T>
+        void set(const T& val)
         {
             this->markSet(true);
-            m_value=val;
+            m_value=static_cast<type>(val);
         }
 
         //! Get default value
-        type defaultValue() const
+        auto defaultValue() const
         {
             return fieldDefaultValue();
         }
@@ -250,11 +303,13 @@ class Scalar : public Field
         }
 
         //! Format as JSON element
-        template <typename Y> inline static bool formatJSON(const Y& val,
-                               json::Writer* writer
+        template <typename Y>
+        static bool formatJSON(
+                    const Y& val,
+                    json::Writer* writer
                 )
         {
-            return json::Fieldwriter<Y>::write(val,writer);
+            return json::Fieldwriter<Y,Type>::write(val,writer);
         }
 
         //! Serialize as JSON element
@@ -282,12 +337,19 @@ class Scalar : public Field
         template <typename T>
         inline void setVal(const T &val) noexcept
         {
-            m_value=static_cast<decltype(m_value)>(val);
+            set(static_cast<decltype(m_value)>(val));
         }
-        template <typename T>
-        inline void getVal(T &val) const noexcept
+        template <typename T1>
+        inline void getVal(T1 &val) const noexcept
         {
-            val=static_cast<T>(m_value);
+            val=static_cast<T1>(m_value);
+        }
+
+        template <typename T1>
+        inline void incVal(const T1 &val) noexcept
+        {
+            this->markSet();
+            m_value=static_cast<decltype(m_value)>(m_value+val);
         }
 
         virtual bool less(bool val) const override {return lessThan(val);}
@@ -314,29 +376,51 @@ class Scalar : public Field
         virtual bool equals(float val) const override {return equalTo(val);}
         virtual bool equals(double val) const override {return equalTo(val);}
 
-        virtual void setValue(bool val) override {setVal(val);}
-        virtual void setValue(uint8_t val) override {setVal(val);}
-        virtual void setValue(uint16_t val) override {setVal(val);}
-        virtual void setValue(uint32_t val) override {setVal(val);}
-        virtual void setValue(uint64_t val) override {setVal(val);}
-        virtual void setValue(int8_t val) override {setVal(val);}
-        virtual void setValue(int16_t val) override {setVal(val);}
-        virtual void setValue(int32_t val) override {setVal(val);}
-        virtual void setValue(int64_t val) override {setVal(val);}
-        virtual void setValue(float val) override {setVal(val);}
-        virtual void setValue(double val) override {setVal(val);}
+        virtual void setV(bool val) override {setVal(val);}
+        virtual void setV(uint8_t val) override {setVal(val);}
+        virtual void setV(uint16_t val) override {setVal(val);}
+        virtual void setV(uint32_t val) override {setVal(val);}
+        virtual void setV(uint64_t val) override {setVal(val);}
+        virtual void setV(int8_t val) override {setVal(val);}
+        virtual void setV(int16_t val) override {setVal(val);}
+        virtual void setV(int32_t val) override {setVal(val);}
+        virtual void setV(int64_t val) override {setVal(val);}
+        virtual void setV(float val) override {setVal(val);}
+        virtual void setV(double val) override {setVal(val);}
 
-        virtual void getValue(bool& val) const override {getVal(val);}
-        virtual void getValue(uint8_t& val) const override {getVal(val);}
-        virtual void getValue(uint16_t& val) const override {getVal(val);}
-        virtual void getValue(uint32_t& val) const override {getVal(val);}
-        virtual void getValue(uint64_t& val) const override {getVal(val);}
-        virtual void getValue(int8_t& val) const override {getVal(val);}
-        virtual void getValue(int16_t& val) const override {getVal(val);}
-        virtual void getValue(int32_t& val) const override {getVal(val);}
-        virtual void getValue(int64_t& val) const override {getVal(val);}
-        virtual void getValue(float& val) const override {getVal(val);}
-        virtual void getValue(double& val) const override {getVal(val);}
+        virtual void getV(bool& val) const override {getVal(val);}
+        virtual void getV(uint8_t& val) const override {getVal(val);}
+        virtual void getV(uint16_t& val) const override {getVal(val);}
+        virtual void getV(uint32_t& val) const override {getVal(val);}
+        virtual void getV(uint64_t& val) const override {getVal(val);}
+        virtual void getV(int8_t& val) const override {getVal(val);}
+        virtual void getV(int16_t& val) const override {getVal(val);}
+        virtual void getV(int32_t& val) const override {getVal(val);}
+        virtual void getV(int64_t& val) const override {getVal(val);}
+        virtual void getV(float& val) const override {getVal(val);}
+        virtual void getV(double& val) const override {getVal(val);}
+
+        virtual void incV(uint8_t val) override {incVal(val);}
+        virtual void incV(uint16_t val) override {incVal(val);}
+        virtual void incV(uint32_t val) override {incVal(val);}
+        virtual void incV(uint64_t val) override {incVal(val);}
+        virtual void incV(int8_t val) override {incVal(val);}
+        virtual void incV(int16_t val) override {incVal(val);}
+        virtual void incV(int32_t val) override {incVal(val);}
+        virtual void incV(int64_t val) override {incVal(val);}
+        virtual void incV(float val) override {incVal(val);}
+        virtual void incV(double val) override {incVal(val);}
+
+
+        virtual bool isFloatingPoint() const noexcept override
+        {
+            return std::is_floating_point<type>::value;
+        }
+
+        virtual bool isUnsigned() const noexcept override
+        {
+            return std::is_unsigned<type>::value;
+        }
 
     protected:
 
@@ -377,6 +461,24 @@ class VarInt : public Scalar<Type>
         {
             this->markSet(VariableSer<typename Type::type>::deserialize(this->m_value,wired));
             return this->isSet();
+        }
+
+        //! Get field size
+        virtual size_t size() const noexcept override
+        {
+            return fieldSize();
+        }
+
+        //! Get size of value
+        static size_t valueSize(const type&) noexcept
+        {
+            return fieldSize();
+        }
+
+        constexpr static size_t fieldSize() noexcept
+        {
+            // varint can take +1 byte more than size of value
+            return sizeof(type)+1;
         }
 
     protected:
@@ -500,6 +602,36 @@ template <>
         : public VarInt<TYPE_BOOL>
 {
     using VarInt<TYPE_BOOL>::VarInt;
+
+    //! Get field
+    inline auto get() noexcept
+    {
+        return static_cast<bool>(this->m_value);
+    }
+
+    //! Get const field
+    inline auto get() const noexcept
+    {
+        return static_cast<bool>(this->m_value);
+    }
+
+    //! Get value
+    inline auto value() const noexcept
+    {
+        return get();
+    }
+
+    //! Get default value
+    inline auto fieldDefaultValue() const
+    {
+        return false;
+    }
+
+    //! Get default value
+    inline auto defaultValue() const
+    {
+        return false;
+    }
 };
 
 /**  Field template for float type */

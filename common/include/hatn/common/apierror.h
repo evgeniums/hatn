@@ -32,6 +32,8 @@ class HATN_COMMON_EXPORT ApiError
 {
     public:
 
+        constexpr static const char* DefaultStatus="success";
+
         virtual ~ApiError();
 
         ApiError(const Error* error=nullptr):m_error(error)
@@ -48,6 +50,7 @@ class HATN_COMMON_EXPORT ApiError
         }
 
         virtual int apiCode() const noexcept;
+        virtual const char* apiStatus() const noexcept;
         virtual std::string apiMessage() const;
         virtual std::string apiFamily() const;
 

@@ -30,23 +30,6 @@ INIT_LOG_MODULE(application,HATN_COMMON_EXPORT)
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-#if __cplusplus < 201703L
-static void UnexpectedHandler()
-{
-    try {
-        throw;
-    }
-    catch(const std::exception &e)
-    {
-        HATN_FATAL(application,"UNEXPECTED std::exception:" << e.what());
-    }
-    catch(...)
-    {
-        HATN_FATAL(application,"UNKNOWN UNEXPECTED EXCEPTION");
-    }
-    abort();
-}
-#endif
 static void TerminateHandler()
 {
     HATN_FATAL(application,"TERMINATE HANDLER");
@@ -395,9 +378,6 @@ std::shared_ptr<AppOptionsBase> Application::createConfig() const
 //---------------------------------------------------------------
 int Application::exec()
 {
-#if __cplusplus < 201703L
-    std::set_unexpected(&UnexpectedHandler);
-#endif
     std::set_terminate(&TerminateHandler);
     int ret=0;
     try

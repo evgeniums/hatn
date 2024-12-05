@@ -40,6 +40,10 @@ namespace memorypool {
 class MemBlockSize;
 }
 
+namespace pmr {
+class AllocatorFactory;
+}
+
  /**
  * @brief Byte array that uses memory pool for data buffers
  *
@@ -60,6 +64,15 @@ class HATN_COMMON_EXPORT ByteArray
         //! Default ctor
         ByteArray(
             pmr::memory_resource* resource=pmr::get_default_resource() //!< Memory resource for allocator
+        ) noexcept;
+
+        ByteArray(
+            const common::pmr::polymorphic_allocator<char>& alloc
+        ) noexcept : ByteArray(alloc.resource())
+        {}
+
+        ByteArray(
+            pmr::AllocatorFactory* factory
         ) noexcept;
 
         //! Ctor from null-terminated const char* string
@@ -732,6 +745,8 @@ class HATN_COMMON_EXPORT ByteArray
 
     private:
 
+        HATN_IGNORE_UNINITIALIZED_BEGIN
+
         struct BufCtrl final
         {
             std::array<char,PREALLOCATED_SIZE> preallocated;
@@ -846,6 +861,8 @@ class HATN_COMMON_EXPORT ByteArray
             }
 
         };
+
+        HATN_IGNORE_UNINITIALIZED_END
 
         BufCtrl d;
 

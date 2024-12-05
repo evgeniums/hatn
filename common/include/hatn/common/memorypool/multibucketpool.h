@@ -117,7 +117,7 @@ class MultiBucketPoolTraits : public WithTraits<SyncInvoker>
         void garbageCollectorSync(bool force=false);
 
         PoolT* m_pool;
-        AsioDeadlineTimer m_gbCollectTimer;
+        SharedPtr<AsioDeadlineTimer> m_gbCollectTimer;
 
         typename SyncInvoker::SyncT::template Atomic<BucketT*> m_headBucket;
         typename SyncInvoker::SyncT::template Atomic<int> m_bucketsCount;

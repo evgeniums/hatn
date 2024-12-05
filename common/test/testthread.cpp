@@ -45,7 +45,7 @@ std::unique_ptr<pmr::memory_resource> makeResource(const MemResourceConfig& conf
 }
 }
 
-struct TestStruct : public EnableManaged<TestStruct>
+struct TestStruct : public TaskContext
 {
     uint32_t m_id;
 
@@ -199,7 +199,7 @@ void testContextQueue(TaskWithContextQueue* queue, MultiThreadFixture* testFxt, 
     {
         auto ptr0=allocateShared<TestStruct>(allocator,20);
 
-        auto handler=[&counter,&ptr0](const SharedPtr<ManagedObject>& ptr)
+        auto handler=[&counter,&ptr0](const SharedPtr<TaskContext>& ptr)
         {
             if (strcmp(Thread::currentThreadID(),"test")==0)
             {
@@ -221,50 +221,22 @@ void testContextQueue(TaskWithContextQueue* queue, MultiThreadFixture* testFxt, 
         BOOST_CHECK_EQUAL(counter,0);
         thread->start();
 
-        auto* task=thread->prepare();
-        task->context=ptr0.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr0.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr0.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
-
-        task=thread->prepare();
-        task->context=ptr0.staticCast<ManagedObject>();
-        task->handler=handler;
-        thread->post(task);
+        for (size_t i=0;i<8;i++)
+        {
+            auto* task=thread->prepare();
+            task->setContext(ptr);
+            if (i==0 || i>4)
+            {
+                task->setGuard(ptr0);
+            }
+            task->setHandler(handler);
+            thread->post(task);
+        }
 
         testFxt->exec(1);
 
         BOOST_CHECK_EQUAL(counter,5);
-        BOOST_CHECK_EQUAL(ptr->m_id,static_cast<uint32_t>(14));
+        BOOST_CHECK_EQUAL(ptr->m_id,static_cast<uint32_t>(15));
 
         thread->stop();
         thread.reset();
@@ -942,26 +914,26 @@ BOOST_FIXTURE_TEST_CASE(TestAsioTimer,MultiThreadFixture, *boost::unit_test::dis
     createThreads(4);
 
     auto worker1=thread(0);
-    AsioHighResolutionTimer timer1(worker1.get(),task1);
-    timer1.setPeriodUs(1);
-    timer1.setSingleShot(false);
-    timer1.start();
+    auto timer1=makeShared<AsioHighResolutionTimer>(worker1.get(),task1);
+    timer1->setPeriodUs(1);
+    timer1->setSingleShot(false);
+    timer1->start();
 
     auto worker2=thread(1);
-    AsioDeadlineTimer timer2(worker2.get(),task2);
-    timer2.setPeriodUs(1000);
-    timer2.setSingleShot(false);
-    timer2.start();
+    auto timer2=makeShared<AsioDeadlineTimer>(worker2.get(),task2);
+    timer2->setPeriodUs(1000);
+    timer2->setSingleShot(false);
+    timer2->start();
 
     auto worker3=thread(2);
-    AsioHighResolutionTimer timer3(worker3.get(),task3);
-    timer3.setPeriodUs(1);
-    timer3.start();
+    auto timer3=makeShared<AsioHighResolutionTimer>(worker3.get(),task3);
+    timer3->setPeriodUs(1);
+    timer3->start();
 
     auto worker4=thread(3);
-    AsioDeadlineTimer timer4(worker4.get(),task4);
-    timer4.setPeriodUs(1000);
-    timer4.start();
+    auto timer4=makeShared<AsioDeadlineTimer>(worker4.get(),task4);
+    timer4->setPeriodUs(1000);
+    timer4->start();
 
     worker1->start();
     worker2->start();
@@ -970,20 +942,20 @@ BOOST_FIXTURE_TEST_CASE(TestAsioTimer,MultiThreadFixture, *boost::unit_test::dis
 
     exec(5);
 
-    timer1.cancel();
-    timer2.cancel();
-    timer3.cancel();
-    timer4.cancel();
+    timer1->cancel();
+    timer2->cancel();
+    timer3->cancel();
+    timer4->cancel();
 
     worker1->stop();
     worker2->stop();
     worker3->stop();
     worker4->stop();
 
-    timer1.reset();
-    timer2.reset();
-    timer3.reset();
-    timer4.reset();
+    timer1->reset();
+    timer2->reset();
+    timer3->reset();
+    timer4->reset();
 
     BOOST_TEST_MESSAGE(fmt::format("Counter1 {}",counter1));
     BOOST_TEST_MESSAGE(fmt::format("Counter2 {}",counter2));

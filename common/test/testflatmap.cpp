@@ -8,6 +8,9 @@
 
 #include <hatn/common/elapsedtimer.h>
 #include <hatn/common/flatmap.h>
+#include <hatn/common/stdwrappers.h>
+#include <hatn/common/allocatoronstack.h>
+#include <hatn/common/fixedbytearray.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -181,7 +184,118 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapOps)
     BOOST_REQUIRE(it10==fm.end());
 }
 
-#define TEST_FLATMAP_PERFORMANCE
+BOOST_AUTO_TEST_CASE(CheckFlatMapComp)
+{
+    common::FlatMap<uint32_t,std::string,std::less<>> m1;
+    m1[1]="a";
+
+    auto it1=m1.find(uint32_t(1));
+    BOOST_REQUIRE(it1!=m1.end());
+    std::string v1=it1->second;
+    BOOST_CHECK_EQUAL(v1,"a");
+
+    const auto& m1_=m1;
+    auto it1_=m1_.find(uint32_t(1));
+    BOOST_REQUIRE(it1_!=m1_.end());
+    std::string v1_=it1_->second;
+    BOOST_CHECK_EQUAL(v1_,"a");
+
+    common::FlatMap<std::string,uint32_t,std::less<>> m2;
+    m2["a"]=1;
+
+    lib::string_view s2("a");
+    auto it2=m2.find(s2);
+    BOOST_REQUIRE(it2!=m2.end());
+    uint32_t v2=it2->second;
+    BOOST_CHECK_EQUAL(v2,1);
+
+    common::FlatMap<std::string,uint32_t,std::less<>> m3;
+    m3["0000"]=1;
+    m3["0001"]=2;
+    m3["0002"]=3;
+    m3["0003"]=4;
+    m3["0004"]=5;
+    m3["0010"]=10;
+    m3["0011"]=11;
+
+    BOOST_CHECK_EQUAL(m3.begin().index(),0);
+
+    std::string s3("0003");
+    auto it3=m3.lower_bound(s3);
+    BOOST_CHECK_EQUAL(m3.begin().index(),0);
+    BOOST_CHECK_EQUAL(it3.index(),3);
+    BOOST_CHECK(it3!=m3.begin());
+    BOOST_REQUIRE(it3!=m3.end());
+    auto it3_=m3.upper_bound(s3);
+    BOOST_CHECK_EQUAL(it3_.index(),4);
+    BOOST_CHECK(it3_!=m3.begin());
+    BOOST_REQUIRE(it3_!=m3.end());
+
+    std::string s4("0001");
+    auto it4=m3.lower_bound(s4);
+    BOOST_CHECK(it4!=m3.begin());
+    BOOST_REQUIRE(it4!=m3.end());
+    BOOST_CHECK_EQUAL(it4.index(),1);
+    BOOST_CHECK(it3!=it4);
+    auto it4_=m3.upper_bound(s4);
+    BOOST_CHECK_EQUAL(it4_.index(),2);
+    BOOST_CHECK(it4_!=m3.begin());
+    BOOST_REQUIRE(it4_!=m3.end());
+
+    std::string s5("0007");
+    auto it5=m3.lower_bound(s5);
+    BOOST_CHECK(it5!=m3.begin());
+    BOOST_REQUIRE(it5!=m3.end());
+    BOOST_CHECK_EQUAL(it5.index(),5);
+    auto it5_=m3.upper_bound(s5);
+    BOOST_CHECK_EQUAL(it5_.index(),5);
+    BOOST_CHECK(it5_!=m3.begin());
+    BOOST_REQUIRE(it5_!=m3.end());
+}
+
+BOOST_AUTO_TEST_CASE(CheckVectorOnStack)
+{
+    VectorOnStack<FixedByteArray64,256> v1;
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_CHECK_EQUAL(v1.size(),0);
+
+    v1.reserve(256);
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_CHECK_EQUAL(v1.size(),0);
+
+    v1.push_back("hi");
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),1);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+
+    v1.resize(50);
+
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),50);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+
+    v1.push_back("hello");
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),51);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hi");
+    BOOST_CHECK_EQUAL(v1[50].c_str(),"hello");
+
+    v1.clear();
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),0);
+
+    v1.push_back("hello");
+    BOOST_CHECK_EQUAL(v1.capacity(),256);
+    BOOST_REQUIRE_EQUAL(v1.size(),1);
+    BOOST_CHECK_EQUAL(v1[0].c_str(),"hello");
+
+    //! @todo Test allocation in heap when size exceeds preallocated
+}
+
+// #define TEST_FLATMAP_PERFORMANCE
 
 #ifdef TEST_FLATMAP_PERFORMANCE
 

@@ -330,7 +330,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          *
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers.
          *
-         * @todo Use non polymorphic variant.
          */
         virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
         {
@@ -340,8 +339,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         /**
          * @brief Check if shared byte arrays must be used for parsing
          * @return Boolean flag
-         *
-         * @todo Use non polymorphic variant.
          */
         virtual bool isParseToSharedArrays() const noexcept override
         {

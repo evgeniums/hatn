@@ -40,7 +40,7 @@ namespace rapidjson { using SizeType=size_t; }
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
 #include <hatn/dataunit/stream.h>
-#include <hatn/dataunit/detail/wirebuf.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/unit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -387,6 +387,13 @@ void Unit::pushJsonParseHandler(const JsonParseHandler &handler)
 
 //---------------------------------------------------------------
 common::SharedPtr<Unit> Unit::createManagedUnit() const
+{
+    Assert(false,"A managed DataUnit can be created only by other managed unit");
+    return common::SharedPtr<Unit>();
+}
+
+//---------------------------------------------------------------
+common::SharedPtr<Unit> Unit::toManagedUnit() const
 {
     Assert(false,"A managed DataUnit can be created only by other managed unit");
     return common::SharedPtr<Unit>();

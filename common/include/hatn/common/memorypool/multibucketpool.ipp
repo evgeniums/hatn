@@ -21,6 +21,7 @@
 
 #include <hatn/common/memorypool/multibucketpool.h>
 #include <hatn/common/memorypool/preallocatedbucket.ipp>
+#include <hatn/common/makeshared.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 namespace memorypool {
@@ -35,7 +36,7 @@ MultiBucketPoolTraits<SyncInvoker>::MultiBucketPoolTraits(
         size_t initialChunksPerBucket
     )  : WithTraits<SyncInvoker>(thread),
          m_pool(pool),
-         m_gbCollectTimer(thread),
+         m_gbCollectTimer(makeShared<AsioDeadlineTimer>(thread)),
          m_headBucket(nullptr),
          m_bucketsCount(0),
          m_scheduleDropCount(0),
@@ -46,7 +47,7 @@ MultiBucketPoolTraits<SyncInvoker>::MultiBucketPoolTraits(
          m_createdBucketSinceLastGbCollecting(false),
          m_freedBucketSinceLastGbCollecting(false)
 {
-    m_gbCollectTimer.setSingleShot(false);
+    m_gbCollectTimer->setSingleShot(false);
     setGarbageCollectorEnabled(true);
 }
 
@@ -54,7 +55,7 @@ MultiBucketPoolTraits<SyncInvoker>::MultiBucketPoolTraits(
 template <typename SyncInvoker>
 MultiBucketPoolTraits<SyncInvoker>::~MultiBucketPoolTraits()
 {
-    m_gbCollectTimer.cancel();
+    m_gbCollectTimer->cancel();
     doClear();
 }
 
@@ -380,12 +381,12 @@ void MultiBucketPoolTraits<SyncInvoker>::garbageCollectorSync(bool force)
 template <typename SyncInvoker>
 void MultiBucketPoolTraits<SyncInvoker>::setGarbageCollectorEnabled(bool enable)
 {
-    m_gbCollectTimer.cancel();
+    m_gbCollectTimer->cancel();
     m_garbageCollectorEnable=enable;
     if (enable)
     {
-        m_gbCollectTimer.setPeriodUs(m_garbageCollectorPeriod*1000);
-        m_gbCollectTimer.start(
+        m_gbCollectTimer->setPeriodUs(m_garbageCollectorPeriod*1000);
+        m_gbCollectTimer->start(
             [this](TimerTypes::Status status)
             {
                 if (status==TimerTypes::Timeout)
@@ -428,7 +429,7 @@ void MultiBucketPoolTraits<SyncInvoker>::deallocateRawBlock(RawBlock *rawBlock) 
 template <typename SyncInvoker>
 void MultiBucketPoolTraits<SyncInvoker>::setGarbageCollectorPeriod(uint32_t milliseconds)
 {
-    m_gbCollectTimer.cancel();
+    m_gbCollectTimer->cancel();
     m_garbageCollectorPeriod=milliseconds;
     setGarbageCollectorEnabled(isGarbageCollectorEnabled());
 }

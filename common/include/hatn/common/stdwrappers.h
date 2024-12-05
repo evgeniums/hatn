@@ -22,17 +22,22 @@
 
 #if __cplusplus < 201703L
     #include <boost/utility/string_view.hpp>
+    #include <boost/thread/shared_mutex.hpp>
+    #include <boost/thread/locks.hpp>
+    #include <boost/thread/lock_types.hpp>
     #define HATN_MAYBE_CONSTEXPR
 #else
     #define HATN_MAYBE_CONSTEXPR constexpr
+    #include <shared_mutex>
 #endif
 
-#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
+#if __cplusplus < 201703L
     #include <boost/variant.hpp>
     #include <boost/optional.hpp>
 #else
     #include <variant>
     #include <optional>
+    #include <mutex>
 #endif
 
 #include <fmt/core.h>
@@ -45,42 +50,65 @@ namespace lib
 
 #if __cplusplus < 201703L
     using string_view=boost::string_view;
+    using shared_mutex=boost::shared_mutex;
+    template <typename T> using shared_lock=boost::shared_lock<T>;
+    template <typename T> using unique_lock=boost::unique_lock<T>;
 #else
     using string_view=std::string_view;
+    using shared_mutex=std::shared_mutex;
+    template <typename T> using shared_lock=std::shared_lock<T>;
+    template <typename T> using unique_lock=std::unique_lock<T>;
 #endif
+
 template <typename T> string_view toStringView(const T& buf) noexcept
 {
     return string_view(buf.data(),buf.size());
 }
 
-#if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
+#if __cplusplus < 201703L
     template <typename ...Types> using variant=boost::variant<Types...>;
-    template <typename T,typename ...Types> constexpr T& variantGet(variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr T& variantGet(variant<Types...>& var) noexcept
     {
         return boost::get<T>(var);
     }
-    template <typename T,typename ...Types> constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
         return boost::get<T>(var);
     }
-    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    template <typename ...Types>
+    constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
     {
         return static_cast<std::size_t>(var.which());
+    }
+    template<typename Visitor, typename Variant>
+    decltype(auto) variantVisit(Visitor&& vis, Variant&& var)
+    {
+        return boost::apply_visitor(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=boost::optional<T>;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
-    template <typename T,typename ...Types> constexpr T& variantGet(variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr T& variantGet(variant<Types...>& var) noexcept
     {
         return std::get<T>(var);
     }
-    template <typename T,typename ...Types> constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    template <typename T,typename ...Types>
+    constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
         return std::get<T>(var);
     }
-    template <typename ...Types> constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
+    template <typename ...Types>
+    constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
     {
         return var.index();
+    }
+    template<typename Visitor, typename Variant>
+    decltype(auto) variantVisit(Visitor&& vis, Variant&& var)
+    {
+        return std::visit(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=std::optional<T>;
     #define HATN_VARIANT_CPP17

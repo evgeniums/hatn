@@ -144,7 +144,7 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
 {
     auto makeError=[&filename](const ConfigTreePath& path, const Error& origin)
     {
-        auto msg=fmt::format(_TR("invalid format of include: {} at path {} in file {}","base"), origin.message(), path.path(), filename);
+        auto msg=fmt::format(_TR("invalid format of include: {} at path \"{}\" in file \"{}\"","base"), origin.message(), path.path(), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
 
@@ -396,27 +396,18 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
     HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain))
     HATN_CHECK_RETURN(target.merge(std::move(next),root))
 
-    // process relative paths in string parameters
-    if (!m_relFilePathPrefix.empty())
+    auto handleSubstitution=[&target](const std::string& prefix, const std::string& substitute)
     {
-        lib::filesystem::path filePath{filename};
-        auto rootFilePath=lib::filesystem::canonical(filePath.parent_path());
-        auto substitute=rootFilePath.string();
-        if (boost::algorithm::ends_with(m_relFilePathPrefix,"/"))
-        {
-            substitute+=lib::filesystem::path::preferred_separator;
-        }
-
-        auto handler=[this,&substitute](const ConfigTreePath&, ConfigTree& value)
+        auto handler=[&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
         {
             if (value.type(true)==config_tree::Type::String)
             {
                 auto str=value.asString();
                 if (str.isValid())
                 {
-                    if (boost::algorithm::starts_with(str.value(),m_relFilePathPrefix))
+                    if (boost::algorithm::starts_with(str.value(),prefix))
                     {
-                        value.set(boost::algorithm::replace_first_copy(str.value(),m_relFilePathPrefix,substitute));
+                        value.set(boost::algorithm::replace_first_copy(str.value(),prefix,substitute));
                     }
                 }
             }
@@ -427,9 +418,9 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
                 {
                     for (size_t i=0;i<arr->size();i++)
                     {
-                        if (boost::algorithm::starts_with(arr->at(i),m_relFilePathPrefix))
+                        if (boost::algorithm::starts_with(arr->at(i),prefix))
                         {
-                            boost::algorithm::replace_first(arr->at(i),m_relFilePathPrefix,substitute);
+                            boost::algorithm::replace_first(arr->at(i),prefix,substitute);
                         }
                     }
                 }
@@ -438,6 +429,28 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
             return Error();
         };
         std::ignore=target.each(handler);
+    };
+
+    // substitute prefixes
+    for (auto&& it : m_prefixSubstitutions)
+    {
+        if (!it.first.empty())
+        {
+            handleSubstitution(it.first,it.second);
+        }
+    }
+
+    // process relative paths in string parameters
+    if (!m_relFilePathPrefix.empty())
+    {
+        lib::filesystem::path filePath{filename};
+        auto rootFilePath=lib::filesystem::canonical(filePath.parent_path());
+        auto substitute=rootFilePath.string();
+        if (boost::algorithm::ends_with(m_relFilePathPrefix,"/"))
+        {
+            substitute+=lib::filesystem::path::preferred_separator;
+        }
+        handleSubstitution(m_relFilePathPrefix,substitute);
     }
     return OK;
 }

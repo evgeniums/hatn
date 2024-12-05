@@ -52,6 +52,31 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 struct shared_pointer_tag{};
 
+//! Random nubers generator.
+class HATN_COMMON_EXPORT Random
+{
+    public:
+
+        //! Generate random value uniformly distributed in range.
+        /**
+         * @brief Get random value uniformly distributed in range.
+         * @param min Min value.
+         * @param max max value.
+         * @return Generated value.
+         */
+        static uint32_t uniform(const uint32_t& min, const uint32_t& max);
+
+        /**
+         * @brief Generate random value less than max.
+         * @param max Max value.
+         * @return Generated value.
+         */
+        static uint32_t generate(const uint32_t& max)
+        {
+            return uniform(0,max);
+        }
+};
+
 //! Common utils
 struct HATN_COMMON_EXPORT Utils final
 {
@@ -61,9 +86,6 @@ struct HATN_COMMON_EXPORT Utils final
     Utils(Utils&&) =delete;
     Utils& operator=(const Utils&)=delete;
     Utils& operator=(Utils&&) =delete;
-
-    //! Get random value uniformelly distributed in range
-    static uint32_t uniformRand(uint32_t min, uint32_t max) noexcept;
 
     //! Safe any to bool conversion
     template <typename T>
@@ -127,6 +149,14 @@ struct HATN_COMMON_EXPORT Utils final
         return strcmp(l,r);
     }
 };
+
+template<class T, size_t N>
+using CArray = T[N];
+
+template<class T, size_t N>
+CArray<T, N>& asCArray(std::array<T, N>& a) {
+    return reinterpret_cast<T(&)[N]>(*a.data());
+}
 
 #define Assert(condition,message) assert((condition) && message); if (!(condition)) throw std::runtime_error(message);
 #define AssertThrow(condition,message) if (!(condition)) {throw std::runtime_error(message);}

@@ -1,8 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 
 using namespace hatn::dataunit;
 using namespace hatn::dataunit::types;
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(ResetClearV2)
     auto& repeated2=v1.field(fields1.repeated2);
     BOOST_CHECK(!repeated2.isSet());
     BOOST_CHECK_EQUAL(0,repeated2.count());
-    repeated2.addValues(3);
+    repeated2.appendValues(3);
     BOOST_CHECK(repeated2.isSet());
     BOOST_CHECK_EQUAL(3,repeated2.count());
     BOOST_CHECK_EQUAL(10,repeated2.at(0));
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(ResetClearV2)
     repeated2.clear();
     BOOST_CHECK(repeated2.isSet());
     BOOST_CHECK_EQUAL(0,repeated2.count());
-    repeated2.addValues(3);
+    repeated2.appendValues(3);
     BOOST_CHECK(repeated2.isSet());
     BOOST_CHECK_EQUAL(3,repeated2.count());
     BOOST_CHECK_EQUAL(10,repeated2.value().at(0));

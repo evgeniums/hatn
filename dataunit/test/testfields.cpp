@@ -4,8 +4,8 @@
 #define HDU_V2_UNIT_EXPORT
 
 #include <hatn/dataunit/syntax.h>
-#include <hatn/dataunit/detail/unitmeta.ipp>
-#include <hatn/dataunit/detail/unittraits.ipp>
+#include <hatn/dataunit/ipp/unitmeta.ipp>
+#include <hatn/dataunit/ipp/unittraits.ipp>
 
 #include <hatn/dataunit/unitstrings.h>
 

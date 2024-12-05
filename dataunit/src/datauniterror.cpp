@@ -74,23 +74,20 @@ std::string DataunitErrorCategory::message(int code) const
     std::string result;
     switch (code)
     {
-    case (static_cast<int>(UnitError::OK)):
-        result=common::CommonErrorCategory::getCategory().message(code);
-        break;
 
-    case (static_cast<int>(UnitError::PARSE_ERROR)):
-        result=_TR("failed to parse object","dataunit");
-        break;
+        HATN_DATAUNIT_ERRORS(HATN_ERROR_MESSAGE)
 
-    case (static_cast<int>(UnitError::SERIALIZE_ERROR)):
-        result=_TR("failed to serialize object","dataunit");
-        break;
-
-    default:
-        result=_TR("unknown error");
+        default:
+            result=_TR("unknown error");
     }
 
     return result;
+}
+
+//---------------------------------------------------------------
+const char* DataunitErrorCategory::codeString(int code) const
+{
+    return errorString(code,UnitErrorStrings);
 }
 
 //---------------------------------------------------------------
