@@ -108,7 +108,7 @@ using ContextAlloc=common::AllocatorOnStack<T,N>;
 
 template <typename Config=DefaultConfig,
          typename ThreadCursorDataT=ThreadCursorData>
-class ContextT : public common::TaskContextValue
+class ContextT : public common::TaskSubcontext
 {
     public:
 
@@ -130,7 +130,7 @@ class ContextT : public common::TaskContextValue
         using tagSetAllocatorT=ContextAlloc<tagT,config::TagSetSize>;
 
         ContextT(common::TaskContext* taskCtx)
-            :   TaskContextValue(taskCtx),
+            :   TaskSubcontext(taskCtx),
                 m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_logLevel(LogLevel::Default),
@@ -398,21 +398,12 @@ class ContextT : public common::TaskContextValue
 };
 using Context=ContextT<>;
 
-template <typename ContextT=Context>
-class ContextWrapperT : public common::TaskContextWrapper<ContextT>
-{
-    public:
-
-        using common::TaskContextWrapper<ContextT>::TaskContextWrapper;
-};
-using ContextWrapper=ContextWrapperT<>;
-
 HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
 
 #define HATN_CTX_IF() \
-    if (HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()!=nullptr)
+    if (HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()!=nullptr)
 
 #define HATN_CTX_SCOPE_DEFER() \
     auto _ctxOnExit=[ScopeCtx]{ \
@@ -422,7 +413,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
     std::ignore=_ctxScopeGuard;
 
 #define HATN_CTX_SCOPE(Name) \
-    auto ScopeCtx=HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(); \
+    auto ScopeCtx=HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(); \
     HATN_CTX_IF() \
     { ScopeCtx->enterScope(Name); } \
     HATN_CTX_SCOPE_DEFER()
@@ -437,7 +428,7 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE_PUSH(Name,Value) \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->pushStackVar(Name,Value);
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->pushStackVar(Name,Value);
 
 #define HATN_CTX_SCOPE_PUSH_(Name,Value) \
     HATN_CTX_IF() \
@@ -445,26 +436,26 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 
 #define HATN_CTX_SCOPE_POP() \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->popStackVar();
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->popStackVar();
 
 #define HATN_CTX_RESET() \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->reset();
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->reset();
 
 #define HATN_CTX_RESET_STACKS() \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->resetStacks();
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->resetStacks();
 
 #define HATN_CTX_SCOPE_ERROR(Error) \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->describeScopeError(Error);
 
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(true);
 
 #define HATN_CTX_SCOPE_UNLOCK() \
     HATN_CTX_IF() \
-        HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(false);
+        HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLocked(false);
 
 #endif // HATNLOGCONTEXT_H

@@ -61,9 +61,9 @@ class TextLogFormatterT
         {
             // add time point and context ID
     #if __cplusplus >= 201703L
-            auto tp=std::chrono::floor<std::chrono::microseconds>(ctx->taskCtx()->now());
+            auto tp=std::chrono::floor<std::chrono::microseconds>(ctx->mainCtx().now());
     #else
-            auto tp=ctx->taskCtx()->now();
+            auto tp=ctx->mainCtx().now();
     #endif
             fmt::format_to(std::back_inserter(buf),"{:%m%dT%H:%M:%S}"
                                                     " lvl={}"
@@ -71,11 +71,11 @@ class TextLogFormatterT
                            tp,
                            logLevelName(level)
                         );
-            buf.append(ctx->taskCtx()->id());
-            if (!ctx->taskCtx()->name().empty())
+            buf.append(ctx->mainCtx().id());
+            if (!ctx->mainCtx().name().empty())
             {
                 buf.append(lib::string_view(" op="));
-                buf.append(ctx->taskCtx()->name());
+                buf.append(ctx->mainCtx().name());
             }
 
             // check if it is a CLOSE request and add DONE with elapsed microseconds and api status if applicable
@@ -116,7 +116,7 @@ class TextLogFormatterT
                     }
                 },
                 [&](auto _){
-                    fmt::format_to(std::back_inserter(_(buf))," DONE={}",_(ctx)->taskCtx()->finishMicroseconds());
+                    fmt::format_to(std::back_inserter(_(buf))," DONE={}",_(ctx)->mainCtx().finishMicroseconds());
                     hana::eval_if(
                         std::is_same<WithApiStatusT,hana::true_>{},
                         [&](auto _)

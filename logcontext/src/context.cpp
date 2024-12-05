@@ -22,7 +22,6 @@
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 template class HATN_LOGCONTEXT_EXPORT ContextT<DefaultConfig,ThreadCursorData>;
-template class HATN_LOGCONTEXT_EXPORT ContextWrapperT<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 

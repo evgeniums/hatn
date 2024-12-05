@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(CreateLogContext)
 {
     BOOST_TEST_MESSAGE(fmt::format("Context size {}",sizeof(Context)));
 
-    HATN_COMMON_NAMESPACE::ThreadLocalContext<Context> tlCtx;
+    ThreadSubcontext<Context> tlCtx;
     BOOST_CHECK(tlCtx.value()==nullptr);
 
     Context sl{nullptr};
@@ -181,13 +181,12 @@ BOOST_AUTO_TEST_CASE(CreateLogContext)
     tlCtx.reset();
     BOOST_CHECK(tlCtx.value()==nullptr);
 
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    auto ctx=makeTaskContext<Context>();
     ctx->beforeThreadProcessing();
     BOOST_CHECK(tlCtx.value()!=nullptr);
 
-    auto& wrapper=ctx->get<ContextWrapper>();
-    auto wrappedCtx=wrapper.value();
-    BOOST_CHECK(tlCtx.value()==wrappedCtx);
+    auto& subctx=ctx->get<Context>();
+    BOOST_CHECK(tlCtx.value()==&subctx);
 
     ctx->afterThreadProcessing();
     BOOST_CHECK(tlCtx.value()==nullptr);
@@ -201,9 +200,9 @@ class TestLoggerHandler : public LoggerHandler
         void log(
             LogLevel level,
             const Context* ctx,
-            HATN_COMMON_NAMESPACE::pmr::string msg,
+            pmr::string msg,
             lib::string_view module=lib::string_view{},
-            HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
+            pmr::vector<Record> records=pmr::vector<Record>{}
             ) override
         {
 #if __cplusplus < 201703L
@@ -227,9 +226,9 @@ class TestLoggerHandler : public LoggerHandler
             LogLevel level,
             const Error& ec,
             const Context* ctx,
-            HATN_COMMON_NAMESPACE::pmr::string msg,
+            pmr::string msg,
             lib::string_view module=lib::string_view{},
-            HATN_COMMON_NAMESPACE::pmr::vector<Record> records=HATN_COMMON_NAMESPACE::pmr::vector<Record>{}
+            pmr::vector<Record> records=pmr::vector<Record>{}
         ) override
         {
 #if __cplusplus < 201703L
@@ -293,11 +292,10 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     auto handler=std::make_shared<StreamLogger>();
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
-    auto ctx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    auto ctx=makeTaskContext<Context>();
 
-    auto& wrapper=ctx->get<ContextWrapper>();
-    auto logCtx=wrapper.value();
-    logCtx->taskCtx()->setTz(DateTime::localTz());
+    auto& logCtx=ctx->get<Context>();
+    logCtx.mainCtx().setTz(DateTime::localTz());
 
     ctx->beforeThreadProcessing();
 
@@ -320,7 +318,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_TRACE("Trace with module",sample_module);
 
     BOOST_TEST_MESSAGE("Log with context log level=ANY");
-    logCtx->setLogLevel(LogLevel::Any);
+    logCtx.setLogLevel(LogLevel::Any);
 
     HATN_CTX_FATAL(ec,"Fatal without module");
     HATN_CTX_FATAL(ec,"Fatal with module",sample_module);
@@ -338,12 +336,11 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
 
     auto r1=makeRecord("r1","hello");
     auto r2=makeRecord("r2",12345);
-    auto r3=makeRecord("r3",HATN_COMMON_NAMESPACE::Date::currentUtc());
+    auto r3=makeRecord("r3",Date::currentUtc());
 
     HATN_CTX_FATAL(ec,"Fatal without module");
-    HATN_CTX_FATAL_RECORDS(ec,"Fatal with records without module",{"r1","hello"},{"r2",12345},{"r3",HATN_COMMON_NAMESPACE::Date::currentUtc()});
+    HATN_CTX_FATAL_RECORDS(ec,"Fatal with records without module",{"r1","hello"},{"r2",12345},{"r3",Date::currentUtc()});
 
-#if 1
     HATN_CTX_FATAL_RECORDS_M(ec,"Fatal with records with module",sample_module,r1,r2,r3);
     HATN_CTX_ERROR_RECORDS(ec,"Error with records without module",r1,r2,r3);
     HATN_CTX_ERROR_RECORDS_M(ec,"Error with records with module",sample_module,r1,r2,r3);
@@ -363,7 +360,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     Error ec1{CommonError::NOT_IMPLEMENTED};
     HATN_CTX_CLOSE(ec1,"Closing context with error");
     HATN_CTX_CLOSE_API(ec1,"Closing context with API status and error");
-#endif
+
     ctx->afterThreadProcessing();
 
     BOOST_CHECK(true);
@@ -374,10 +371,10 @@ BOOST_AUTO_TEST_CASE(ScopeOperations)
     auto handler=std::make_shared<StreamLogger>();
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
-    auto taskCtx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    auto taskCtx=makeTaskContext<Context>();
     taskCtx->setName("test_task");
-    auto& wrapper=taskCtx->get<ContextWrapper>();
-    auto logCtx=wrapper.value();
+    auto& wrapper=taskCtx->get<Context>();
+    auto logCtx=&wrapper;
 
     taskCtx->beforeThreadProcessing();
 
@@ -450,7 +447,7 @@ BOOST_AUTO_TEST_CASE(ScopeMacros)
     auto handler=std::make_shared<StreamLogger>();
     ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
 
-    auto taskCtx=HATN_COMMON_NAMESPACE::makeTaskContext<ContextWrapper>();
+    auto taskCtx=makeTaskContext<Context>();
     taskCtx->setName("test_task");
     taskCtx->beforeThreadProcessing();
 
