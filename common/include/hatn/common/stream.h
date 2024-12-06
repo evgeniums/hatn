@@ -683,7 +683,7 @@ class StreamTmplV : public WithImpl<ImplStreamT>, public BaseStreamT
         }
 };
 
-//! Breadge for cross-connecting two stream chains
+//! Bridge for cross-connecting two stream chains
 class StreamBridge
 {
     private:
