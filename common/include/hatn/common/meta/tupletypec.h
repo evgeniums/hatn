@@ -63,16 +63,31 @@ constexpr auto tupleCToTupleType(T tc) noexcept
     return boost::hana::unpack(tc,boost::hana::template_<boost::hana::tuple>);
 }
 
+template <typename T>
+constexpr auto tupleCToStdTupleType(T tc) noexcept
+{
+    return boost::hana::unpack(tc,boost::hana::template_<std::tuple>);
+}
+
 }
 
 template <typename T>
 using tupleCToTupleTypeC=decltype(detail::tupleCToTupleType(std::declval<T>()));
 
+template <typename T>
+using tupleCToStdTupleTypeC=decltype(detail::tupleCToStdTupleType(std::declval<T>()));
+
 /**
- * Convert type of tuple of type_c to type of tuple of types.
+ * Convert type of tuple of type_c to type of hana::tuple of types.
  */
 template <typename T>
 using tupleCToTupleType=typename tupleCToTupleTypeC<T>::type;
+
+/**
+ * Convert type of tuple of type_c to type of hana::tuple of types.
+ */
+template <typename T>
+using tupleCToStdTupleType=typename tupleCToStdTupleTypeC<T>::type;
 
 HATN_COMMON_NAMESPACE_END
 

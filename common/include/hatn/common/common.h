@@ -64,4 +64,6 @@
 
 #define HATN_TEST_USING using namespace hatn::test;
 
+#define HATN_NO_EXPORT
+
 #endif // HATNCOMMON_H

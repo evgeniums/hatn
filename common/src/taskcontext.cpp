@@ -50,9 +50,9 @@ void TaskContext::afterThreadProcessing()
 
 //---------------------------------------------------------------
 
-Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(const TaskContextId& id)
+Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(const lib::string_view& id)
 {
-    if (id.size()<id.capacity())
+    if (id.size()<TaskContextId::capacity())
     {
         return commonError(CommonError::INVALID_DATETIME_FORMAT);
     }

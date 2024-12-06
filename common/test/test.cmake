@@ -21,14 +21,15 @@ SET(TEST_SOURCES
     ${COMMON_TEST_SRC}/testflatmap.cpp
     ${COMMON_TEST_SRC}/testresult.cpp
     ${COMMON_TEST_SRC}/testdatetime.cpp
+    ${COMMON_TEST_SRC}/testtaskcontext.cpp
 )
 
-IF(ENABLE_TRANSLATIONS)
-  SET(TEST_SOURCES
-     ${TEST_SOURCES}
-     ${COMMON_TEST_SRC}/testtranslation.cpp
-  )
-ENDIF(ENABLE_TRANSLATIONS)
+# IF(ENABLE_TRANSLATIONS)
+#   SET(TEST_SOURCES
+#      ${TEST_SOURCES}
+#      ${COMMON_TEST_SRC}/testtranslation.cpp
+#   )
+# ENDIF(ENABLE_TRANSLATIONS)
 
 IF(MINGW)
     IF(BUILD_STATIC)

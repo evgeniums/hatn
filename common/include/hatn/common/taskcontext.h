@@ -25,6 +25,7 @@
 #include <chrono>
 
 #include <boost/hana.hpp>
+#include <boost/hana/ext/std/tuple.hpp>
 
 namespace hana=boost::hana;
 
@@ -72,11 +73,12 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
         /**
          * @brief Constructor.
-         * @param id ID of task.
+         * @param id ID of task
          * @param tz imezone to use for measuring task's times.
+         *
          */
-        TaskContext(TaskContextId id, int8_t tz=DateTime::defaultTz())
-                                : m_id(std::move(id)),
+        TaskContext(const lib::string_view& id, int8_t tz=DateTime::defaultTz())
+                                : m_id(id),
                                   m_steadyStarted(nowSteady()),
                                   m_tz(tz)
         {
@@ -91,6 +93,19 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
             }
             adjustTz(m_started);
         }
+
+        /**
+         * @brief Constructor form tuple.
+         * @param ts Tuple with arguments to passed to other constructors.
+         */
+        template <template <typename ...> class Ts, typename ...Types>
+        TaskContext(
+                Ts<Types...>&& ts
+            ) : TaskContext(
+                std::forward<Ts<Types...>>(ts),
+                std::make_index_sequence<std::tuple_size<std::remove_reference_t<Ts<Types...>>>::value>{}
+            )
+        {}
 
         /**
          * @brief Adjust timezone of a timepoint.
@@ -129,7 +144,7 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
          * @param id Task ID.
          * @return Start time of a task.
          */
-        static Result<std::chrono::time_point<Clock>> extractStarted(const TaskContextId& id);
+        static Result<std::chrono::time_point<Clock>> extractStarted(const lib::string_view& id);
 
         /**
          * @brief Method to invoke just after the task enters a thread.
@@ -145,7 +160,7 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
          * @brief Get ID of the task.
          * @return ID of the task.
          */
-        const TaskContextId& id() const noexcept
+        lib::string_view id() const noexcept
         {
             return m_id;
         }
@@ -154,9 +169,9 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
          * @brief Set ID of the task.
          * @param id New ID.
          */
-        void setId(TaskContextId id) noexcept
+        void setId(const lib::string_view& id) noexcept
         {
-            m_id=std::move(id);
+            m_id=id;
         }
 
         /**
@@ -264,6 +279,13 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
     private:
 
+        template <typename Ts, std::size_t... I>
+        TaskContext(
+            Ts&& ts,
+            std::index_sequence<I...>
+            ) : TaskContext(std::get<I>(std::forward<Ts>(ts))...)
+        {}
+
         TaskContextName m_name;
         TaskContextId m_id;
 
@@ -274,6 +296,31 @@ class HATN_COMMON_EXPORT TaskContext : public ManagedObject
 
         int8_t m_tz;
 };
+
+namespace detail {
+
+template <typename Subcontexts>
+struct SubcontextRefs
+{
+    constexpr static auto toRefs()
+    {
+        tupleToTupleCType<Subcontexts> tc;
+        auto rtc=hana::transform(
+            tc,
+            [](auto&& v)
+            {
+                using type=typename std::decay_t<decltype(v)>::type;
+                return hana::type_c<std::reference_wrapper<const type>>;
+            }
+            );
+        return hana::unpack(rtc,hana::template_<hana::tuple>);
+    }
+
+    using typeC=decltype(toRefs());
+    using type=typename typeC::type;
+};
+
+}
 
 /**
  * @brief Base class for task subcontexts.
@@ -290,7 +337,7 @@ class TaskSubcontext
          * @brief Constructor.
          * @param taskContext Main task context.
          */
-        TaskSubcontext(TaskContext* mainContext) : m_mainCtx(*mainContext)
+        TaskSubcontext(TaskContext* mainContext=nullptr) : m_mainCtx(mainContext)
         {}
 
         /**
@@ -299,7 +346,7 @@ class TaskSubcontext
          */
         const TaskContext& mainCtx() const noexcept
         {
-            return m_mainCtx;
+            return *m_mainCtx;
         }
 
         /**
@@ -308,12 +355,58 @@ class TaskSubcontext
          */
         TaskContext& mainCtx() noexcept
         {
-            return m_mainCtx;
+            return *m_mainCtx;
+        }
+
+        void setMainCtx(TaskContext* mainContext)
+        {
+            m_mainCtx=mainContext;
         }
 
     private:
 
-        TaskContext& m_mainCtx;
+        TaskContext *m_mainCtx;
+};
+
+/**
+ * @brief Helper to wrap arbitrary type to task subcontext.
+ */
+template <typename T>
+class TaskSubcontextT : public TaskSubcontext, public T
+{
+    public:
+
+        template <typename ...Args>
+        TaskSubcontextT(
+            TaskContext* mainContext,
+            Args&& ...args
+            ) : TaskSubcontext(mainContext),
+                T(std::forward<Args>(args)...)
+        {}
+
+        template <typename ...Args>
+        TaskSubcontextT(
+            Args&& ...args
+            ) : T(std::forward<Args>(args)...)
+        {}
+
+        template <template <typename ...> class Ts, typename ...Types>
+        TaskSubcontextT(
+            Ts<Types...>&& ts
+            ) : TaskSubcontextT(
+                std::forward<Ts<Types...>>(ts),
+                std::make_index_sequence<std::tuple_size<std::remove_reference_t<Ts<Types...>>>::value>{}
+                )
+        {}
+
+    private:
+
+        template <typename Ts, std::size_t... I>
+        TaskSubcontextT(
+            Ts&& ts,
+            std::index_sequence<I...>
+            ) : TaskSubcontextT(std::get<I>(std::forward<Ts>(ts))...)
+        {}
 };
 
 /**
@@ -343,31 +436,6 @@ class ThreadSubcontext
     // static void reset() noexcept;
 };
 
-namespace detail {
-
-template <typename Subcontexts>
-struct SubcontextRefs
-{
-    constexpr static auto toRefs()
-    {
-        tupleToTupleCType<Subcontexts> tc;
-        auto rtc=hana::transform(
-            tc,
-            [](auto&& v)
-            {
-                using type=typename std::decay_t<decltype(v)>::type;
-                return hana::type_c<std::reference_wrapper<const type>>;
-            }
-        );
-        return hana::unpack(rtc,hana::template_<hana::tuple>);
-    }
-
-    using typeC=decltype(toRefs());
-    using type=typename typeC::type;
-};
-
-}
-
 /**
  * @brief Template for actual task contexts.
  *
@@ -384,15 +452,41 @@ class ActualTaskContext : public BaseTaskContext
         using selfT=ActualTaskContext<Subcontexts,BaseTaskContext>;
 
         /**
-         * @brief Constructor.
-         * @param args Arguments to forward to base class.
+         * @brief Constructor from tuples of tuples.
+         * @param baseTs Arguments to forward to base class.
+         * @param tts Tuple of tuples to forward to constructors of subcontexts.
          */
-        template <typename ...Args>
-        ActualTaskContext(Args&& ...args):
-            BaseTaskContext(std::forward<Args>(args)...),
-            m_subcontexts(replicateThis(this)),
+        template <typename BaseTs, typename Tts>
+        ActualTaskContext(BaseTs&& baseTs, Tts&& tts):
+            BaseTaskContext(std::forward<BaseTs>(baseTs)),
+            m_subcontexts(std::forward<Tts>(tts)),
             m_refs(subctxRefs())
         {
+            hana::for_each(
+                m_subcontexts,
+                [this](auto&& subCtx)
+                {
+                    subCtx.setMainCtx(this);
+                }
+                );
+        }
+
+        /**
+         * @brief Constructor from tuples of tuples.
+         * @param tts Tuple of tuples to forward to constructors of subcontexts.
+         */
+        template <typename Tts>
+        ActualTaskContext(Tts&& tts)
+            : m_subcontexts(std::forward<Tts>(tts)),
+              m_refs(subctxRefs())
+        {
+            hana::for_each(
+                m_subcontexts,
+                [this](auto&& subCtx)
+                {
+                    subCtx.setMainCtx(this);
+                }
+                );
         }
 
         /**
@@ -463,17 +557,19 @@ class ActualTaskContext : public BaseTaskContext
         template <typename T>
         const T& get() const
         {
+            using subcontextT=TaskSubcontextT<T>;
+
             auto wrapper=hana::find_if(
                 m_refs,
                 [](auto&& v)
                 {
                     using crefT=std::decay_t<decltype(v)>;
                     using type=std::decay_t<typename crefT::type>;
-                    return std::is_same<T,type>{};
+                    return std::is_same<subcontextT,type>{};
                 }
             );
 
-            auto t=hana::type_c<T>;
+            auto t=hana::type_c<subcontextT>;
             auto b=hana::type_c<BaseTaskContext>;
 
             return hana::eval_if(
@@ -513,11 +609,12 @@ class ActualTaskContext : public BaseTaskContext
 
         auto subctxRefs() const
         {
-            return hana::transform(
+            return hana::fold(
                 m_subcontexts,
-                [](const auto& v)
+                hana::make_tuple(),
+                [](auto&& ts, const auto& subctx)
                 {
-                    return std::cref(v);
+                    return hana::append(ts,std::cref(subctx));
                 }
             );
         }
@@ -525,6 +622,36 @@ class ActualTaskContext : public BaseTaskContext
         Subcontexts m_subcontexts;
         typename detail::SubcontextRefs<Subcontexts>::type m_refs;
 };
+
+/**
+ * @brief Helper for forwarding arguments to constructor of a subcontext.
+ * @param args Arguments to forward.
+ */
+template <typename... Args>
+constexpr auto subcontext(Args&&... args) noexcept
+{
+    return std::forward_as_tuple(std::forward<Args>(args)...);
+}
+
+/**
+ * @brief Helper for forwarding arguments to constructor of base context of ActualTaskContext.
+ * @param args Arguments to forward.
+ */
+template <typename... Args>
+constexpr auto basecontext(Args&&... args) noexcept
+{
+    return std::forward_as_tuple(std::forward<Args>(args)...);
+}
+
+/**
+ * @brief Helper for forwarding packed arguments to constroctors of subcontexts of ActualTaskContext.
+ * @param args Packs of arguments to forward.
+ */
+template <typename... Args>
+constexpr auto subcontexts(Args&&... args) noexcept
+{
+    return std::forward_as_tuple(std::forward<Args>(args)...);
+}
 
 namespace detail {
 
@@ -547,8 +674,15 @@ struct ActualTaskContexTraits
                 return hana::make_pair(_(xs),hana::type_c<TaskContext>);
             }
         );
-        auto wrappersC=hana::first(tc);
-        using wrappersT=common::tupleCToTupleType<std::decay_t<decltype(wrappersC)>>;
+        auto wrappersC=hana::transform(
+                hana::first(tc),
+                [](auto&& v)
+                {
+                    using type=typename std::decay_t<decltype(v)>::type;
+                    return hana::type_c<TaskSubcontextT<type>>;
+                }
+            );
+        using wrappersT=common::tupleCToStdTupleType<std::decay_t<decltype(wrappersC)>>;
         auto base=hana::second(tc);
         return hana::template_<ActualTaskContext>(hana::type_c<wrappersT>,base);
     }
@@ -566,16 +700,34 @@ struct ActualTaskContexTraits
  * The first type can also be hana::is_a(TaskContexTag), i.e. some other ActualTaskContext that will
  * be used as a base class for created ActualTaskContext.
  *
- * Arguments of a functor operator are forwarded to constructor of the base class.
+ * Arguments are forwarded to constructor of ActualTaskContext. For arguments packing use
+ * basecontext(), subcontexts() and subcontext() heplers, e.g. :
+ * <pre>
+ * auto ctx=makeTaskContext<Type1,Type2,Type3>(
+ *              basecontext(base-ctor-args...),
+ *              subcontexts(
+ *                  subcontext(type1-ctor-args...),
+ *                  subcontext(type2-ctor-args...),
+ *                  subcontext(type3-ctor-args...)
+ *              )
+ *          );
+ * </pre>
  */
 template <typename ...Types>
 struct makeTaskContextT
 {
-    template <typename ...Args>
-    auto operator()(Args&&... args) const
+    using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
+
+    template <typename BaseArgs, typename SubcontextsArgs>
+    auto operator()(BaseArgs&& baseArgs, SubcontextsArgs&& subcontextsArgs) const
     {
-        using type=typename detail::ActualTaskContexTraits<Types...>::type;
-        return makeShared<type>(std::forward<Args>(args)...);
+        return makeShared<type>(std::forward<BaseArgs>(baseArgs),std::forward<SubcontextsArgs>(subcontextsArgs));
+    }
+
+    template <typename SubcontextsArgs>
+    auto operator()(SubcontextsArgs&& subcontextsArgs) const
+    {
+        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs));
     }
 };
 template <typename ...Types>
@@ -584,16 +736,23 @@ constexpr makeTaskContextT<Types...> makeTaskContext{};
 /**
  * @brief Helper to allocate actual task context.
  *
- * @see makeTaskContextT for more details. The first argument of dunctor operator is an allocator.
+ * @see makeTaskContextT for more details. The first argument of functor operator is an allocator.
  */
 template <typename ...Types>
 struct allocateTaskContextT
 {
-    template <typename ...Args>
-    auto operator()(const pmr::polymorphic_allocator<typename detail::ActualTaskContexTraits<Types...>::type>& allocator, Args&&... args) const
+    using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
+
+    template <typename BaseArgs, typename SubcontextsArgs>
+    auto operator()(const pmr::polymorphic_allocator<type>& allocator, BaseArgs&& baseArgs, SubcontextsArgs&& subcontextsArgs) const
     {
-        using type=typename detail::ActualTaskContexTraits<Types...>::type;
-        return allocateShared<type>(allocator,std::forward<Args>(args)...);
+        return allocateShared<type>(allocator,std::forward<BaseArgs>(baseArgs),std::forward<SubcontextsArgs>(subcontextsArgs));
+    }
+
+    template <typename SubcontextsArgs>
+    auto operator()(const pmr::polymorphic_allocator<type>& allocator, SubcontextsArgs&& subcontextsArgs) const
+    {
+        return allocateShared<type>(allocator,std::forward<SubcontextsArgs>(subcontextsArgs));
     }
 };
 template <typename ...Types>
@@ -601,40 +760,56 @@ constexpr allocateTaskContextT<Types...> allocateTaskContext{};
 
 HATN_COMMON_NAMESPACE_END
 
-#define HATN_TASK_CONTEXT_DECLARE(Type,Export) \
+#define HATN_TASK_CONTEXT_EXPAND(x) x
+#define HATN_TASK_CONTEXT_GET_ARG3(arg1, arg2, arg3, ...) arg3
+
+#define HATN_TASK_CONTEXT_DECLARE_EXPORT(Type,Export) \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
     HATN_COMMON_NAMESPACE_BEGIN \
     template <> \
-    class Export ThreadSubcontext<Type> \
+    class Export ThreadSubcontext<TaskSubcontextT<Type>> \
     { \
         public: \
-            static Type* value() noexcept; \
-            static void setValue(Type* val) noexcept; \
+            static TaskSubcontextT<Type>* value() noexcept; \
+            static void setValue(TaskSubcontextT<Type>* val) noexcept; \
             static void reset() noexcept; \
     }; \
     HATN_COMMON_NAMESPACE_END \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
+#define HATN_TASK_CONTEXT_DECLARE_NO_EXPORT(Type) \
+    HATN_TASK_CONTEXT_DECLARE_EXPORT(Type,HATN_NO_EXPORT)
+
+#define HATN_TASK_CONTEXT_DECLARE_SELECT(...) \
+    HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_GET_ARG3(__VA_ARGS__, \
+                                                    HATN_TASK_CONTEXT_DECLARE_EXPORT, \
+                                                    HATN_TASK_CONTEXT_DECLARE_NO_EXPORT \
+                                                    ))
+
+#define HATN_TASK_CONTEXT_DECLARE(...) HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_DECLARE_SELECT(__VA_ARGS__)(__VA_ARGS__))
+
 #define HATN_TASK_CONTEXT_DEFINE(Type) \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
+    HATN_IGNORE_UNUSED_FUNCTION_BEGIN \
     namespace { \
-        thread_local static Type* ThreadSubcontextValue{nullptr}; \
+        thread_local static TaskSubcontextT<Type>* TSInstance_##Type{nullptr}; \
     } \
     HATN_COMMON_NAMESPACE_BEGIN \
-    Type* ThreadSubcontext<Type>::value() noexcept \
+    TaskSubcontextT<Type>* ThreadSubcontext<TaskSubcontextT<Type>>::value() noexcept \
     { \
-            return ThreadSubcontextValue; \
+            return TSInstance_##Type; \
     } \
-    void ThreadSubcontext<Type>::setValue(Type* val) noexcept \
+    void ThreadSubcontext<TaskSubcontextT<Type>>::setValue(TaskSubcontextT<Type>* val) noexcept \
     { \
-            ThreadSubcontextValue=val; \
+            TSInstance_##Type=val; \
     } \
-    void ThreadSubcontext<Type>::reset() noexcept \
+    void ThreadSubcontext<TaskSubcontextT<Type>>::reset() noexcept \
     { \
-            ThreadSubcontextValue=nullptr; \
+            TSInstance_##Type=nullptr; \
     } \
-    template class ThreadSubcontext<Type>; \
+    template class ThreadSubcontext<TaskSubcontextT<Type>>; \
     HATN_COMMON_NAMESPACE_END \
+    HATN_IGNORE_UNUSED_FUNCTION_END \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
 
 #endif // HATNTASKCONTEXT_H
