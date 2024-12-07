@@ -86,9 +86,7 @@ MultiThreadFixture::~MultiThreadFixture()
     d->threads.clear();
     Thread::releaseMainThread();
 
-    std::cout << "MultiThreadFixture::~MultiThreadFixture() before WeakPool::free" << std::endl;
     pointers_mempool::WeakPool::free();
-    std::cout << "MultiThreadFixture::~MultiThreadFixture() after WeakPool::free" << std::endl;
 }
 
 //---------------------------------------------------------------
