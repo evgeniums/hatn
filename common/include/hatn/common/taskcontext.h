@@ -452,6 +452,22 @@ class ActualTaskContext : public BaseTaskContext
         using selfT=ActualTaskContext<Subcontexts,BaseTaskContext>;
 
         /**
+         * @brief Default constructor.
+         */
+        ActualTaskContext()
+            : m_subcontexts(),
+              m_refs(subctxRefs())
+        {
+            hana::for_each(
+                m_subcontexts,
+                [this](auto&& subCtx)
+                {
+                    subCtx.setMainCtx(this);
+                }
+            );
+        }
+
+        /**
          * @brief Constructor from tuples of tuples.
          * @param baseTs Arguments to forward to base class.
          * @param tts Tuple of tuples to forward to constructors of subcontexts.
@@ -555,7 +571,7 @@ class ActualTaskContext : public BaseTaskContext
          * @return Const reference to subcontext.
          */
         template <typename T>
-        const T& get() const
+        const TaskSubcontextT<T>& get() const
         {
             using subcontextT=TaskSubcontextT<T>;
 
@@ -594,10 +610,10 @@ class ActualTaskContext : public BaseTaskContext
          * @return Reference to subcontext.
          */
         template <typename T>
-        T& get()
+        TaskSubcontextT<T>& get()
         {
             auto constSelf=const_cast<const selfT*>(this);
-            return const_cast<T&>(constSelf->template get<T>());
+            return const_cast<TaskSubcontextT<T>&>(constSelf->template get<T>());
         }
 
     private:
@@ -729,6 +745,11 @@ struct makeTaskContextT
     {
         return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs));
     }
+
+    auto operator()() const
+    {
+        return makeShared<type>();
+    }
 };
 template <typename ...Types>
 constexpr makeTaskContextT<Types...> makeTaskContext{};
@@ -753,6 +774,11 @@ struct allocateTaskContextT
     auto operator()(const pmr::polymorphic_allocator<type>& allocator, SubcontextsArgs&& subcontextsArgs) const
     {
         return allocateShared<type>(allocator,std::forward<SubcontextsArgs>(subcontextsArgs));
+    }
+
+    auto operator()(const pmr::polymorphic_allocator<type>& allocator) const
+    {
+        return allocateShared<type>(allocator);
     }
 };
 template <typename ...Types>
@@ -788,28 +814,44 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_TASK_CONTEXT_DECLARE(...) HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_DECLARE_SELECT(__VA_ARGS__)(__VA_ARGS__))
 
-#define HATN_TASK_CONTEXT_DEFINE(Type) \
+#define HATN_THREAD_SUBCONTEXT(Type) \
+    HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_COMMON_NAMESPACE::TaskSubcontextT<Type>>::value()
+
+#define HATN_TASK_CONTEXT_DEFINE_NAME(Type,Name) \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_BEGIN \
     HATN_IGNORE_UNUSED_FUNCTION_BEGIN \
+    HATN_IGNORE_UNUSED_VARIABLE_BEGIN \
     namespace { \
-        thread_local static TaskSubcontextT<Type>* TSInstance_##Type{nullptr}; \
+        thread_local static HATN_COMMON_NAMESPACE::TaskSubcontextT<Type>* TSInstance_##Name{nullptr}; \
     } \
     HATN_COMMON_NAMESPACE_BEGIN \
     TaskSubcontextT<Type>* ThreadSubcontext<TaskSubcontextT<Type>>::value() noexcept \
     { \
-            return TSInstance_##Type; \
+            return TSInstance_##Name; \
     } \
     void ThreadSubcontext<TaskSubcontextT<Type>>::setValue(TaskSubcontextT<Type>* val) noexcept \
     { \
-            TSInstance_##Type=val; \
+            TSInstance_##Name=val; \
     } \
     void ThreadSubcontext<TaskSubcontextT<Type>>::reset() noexcept \
     { \
-            TSInstance_##Type=nullptr; \
+            TSInstance_##Name=nullptr; \
     } \
     template class ThreadSubcontext<TaskSubcontextT<Type>>; \
     HATN_COMMON_NAMESPACE_END \
+    HATN_IGNORE_UNUSED_VARIABLE_END \
     HATN_IGNORE_UNUSED_FUNCTION_END \
     HATN_IGNORE_INSTANTIATION_AFTER_SPECIALIZATION_END
+
+#define HATN_TASK_CONTEXT_DEFINE_NO_NAME(Type) \
+    HATN_TASK_CONTEXT_DEFINE_NAME(Type,Type)
+
+#define HATN_TASK_CONTEXT_DEFINE_SELECT(...) \
+    HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_GET_ARG3(__VA_ARGS__, \
+                                                    HATN_TASK_CONTEXT_DEFINE_NAME, \
+                                                    HATN_TASK_CONTEXT_DEFINE_NO_NAME \
+                                                    ))
+
+#define HATN_TASK_CONTEXT_DEFINE(...) HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_DEFINE_SELECT(__VA_ARGS__)(__VA_ARGS__))
 
 #endif // HATNTASKCONTEXT_H

@@ -3,12 +3,10 @@
 #include <boost/test/unit_test.hpp>
 namespace tt = boost::test_tools;
 
-#include <hatn/validator/utils/reference_wrapper.hpp>
 #include <hatn/common/taskcontext.h>
 
 HATN_USING
 HATN_COMMON_USING
-HATN_VALIDATOR_USING
 
 namespace {
 
