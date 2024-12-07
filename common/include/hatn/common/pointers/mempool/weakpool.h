@@ -32,51 +32,48 @@
 HATN_COMMON_NAMESPACE_BEGIN
 namespace pointers_mempool {
 
-//! Singleton memory pool for control structures of weak pointers
+//! Singleton memory pool for control structures of weak pointers.
 class HATN_COMMON_EXPORT WeakPool final : public Singleton
 {
     public:
 
         HATN_SINGLETON_DECLARE()
 
-        //! Number of objects in pool's bucket
+        //! Number of objects in pool's bucket.
         static size_t DefaultObjectsCount; // default count is 4096
 
         /**
-         * @brief Init pool instance
-         * @param memResource Memory resource for polymorphic_allocator
-         * @param WeakPool will own the memory resource and destroy it in destructor
-         * @return Pool instance
+         * @brief Init pool instance.
+         * @param memResource Memory resource for polymorphic_allocator.
+         * @param WeakPool will own the memory resource and destroy it in destructor.
+         * @return Pool instance.
          *
-         * @attention Call init() only in the main thread before all other threads start
+         * @attention Call init() only in the main thread before all other threads start.
          */
-        static WeakPool* init(
+        static WeakPool& init(
             pmr::memory_resource* memResource=pmr::get_default_resource(),
             bool ownMemResource=false
         );
 
         /**
-         * @brief Get pool instance
-         * @return Pool instance
+         * @brief Get pool instance.
+         * @return Pool instance.
          */
-        static WeakPool* instance()
-        {
-            Assert(m_instance,"Memory pool for managed weak pointers is not intialized!");
-            return m_instance;
-        }
+        static WeakPool& instance();
 
         /**
-         * @brief Release pool instance
+         * @brief Release pool instance.
          *
-         * @attention For thread safety call free() only in the main thread after all other threads have stopped
+         * @attention For thread safety call free() only in the main thread after all other threads have stopped.
          */
         static void free() noexcept;
 
-        //! Create WeakCtrl object
+        //! Create WeakCtrl object.
         inline WeakCtrl* allocate(ManagedObject* obj)
         {
-            auto* ctrl=m_allocator.allocate(1);
-            m_allocator.construct(ctrl,obj);
+            assert(m_allocator);
+            auto* ctrl=m_allocator->allocate(1);
+            m_allocator->construct(ctrl,obj);
             auto* actualCtrl=obj->setWeakCtrl(ctrl);
             if (ctrl!=actualCtrl)
             {
@@ -86,22 +83,25 @@ class HATN_COMMON_EXPORT WeakPool final : public Singleton
             return ctrl;
         }
 
-        //! Create WeakCtrl object
+        //! Create WeakCtrl object.
         inline void deallocate(WeakCtrl* ctrl) noexcept
         {
-            pmr::destroyDeallocate(ctrl,m_allocator);
+            assert(m_allocator);
+            pmr::destroyDeallocate(ctrl,*m_allocator);
+        }
+
+        bool isValid() const noexcept
+        {
+            return static_cast<bool>(m_allocator);
         }
 
     private:
 
-        WeakPool(
-            pmr::memory_resource* memResource,
-            bool ownMemResource
-        );
+        WeakPool() : m_ownedMemResource(nullptr)
+        {}
 
-        static WeakPool* m_instance;
-        std::unique_ptr<pmr::memory_resource> m_ownedMemResource;
-        pmr::polymorphic_allocator<WeakCtrl> m_allocator;
+        pmr::memory_resource* m_ownedMemResource;
+        std::unique_ptr<pmr::polymorphic_allocator<WeakCtrl>> m_allocator;
 };
 
 //---------------------------------------------------------------
@@ -109,7 +109,7 @@ inline void WeakCtrl::reset() noexcept
 {
     if (m_refCount.fetch_sub(1, std::memory_order_acquire) == 1)
     {
-        WeakPool::instance()->deallocate(this);
+        WeakPool::instance().deallocate(this);
     }
 }
 

@@ -220,7 +220,7 @@ class WeakPtr final
             }
             else
             {
-                d=WeakPool::instance()->allocate(SharedPtrBase<T>::template m(&sharedPtr));
+                d=WeakPool::instance().allocate(SharedPtrBase<T>::template m(&sharedPtr));
                 addRef(); // this one is for shared pointer
             }
             addRef(); // this one is for weak pointer
