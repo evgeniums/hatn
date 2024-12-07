@@ -23,35 +23,43 @@ namespace pointers_mempool {
 
 HATN_SINGLETON_INIT(WeakPool)
 
-WeakPool* WeakPool::m_instance=nullptr;
 size_t WeakPool::DefaultObjectsCount=4096;
 
 //---------------------------------------------------------------
-WeakPool* WeakPool::init(
+
+WeakPool& WeakPool::instance()
+{
+    static WeakPool m_instance;
+    return m_instance;
+}
+
+//---------------------------------------------------------------
+WeakPool& WeakPool::init(
         pmr::memory_resource *memResource,
         bool ownMemResource
     )
 {
-    m_instance=new WeakPool(memResource,ownMemResource);
-    return m_instance;
+    instance().m_ownedMemResource=ownMemResource?memResource:nullptr;
+    if (!instance().m_allocator)
+    {
+        instance().m_allocator.reset(new pmr::polymorphic_allocator<WeakCtrl>{memResource});
+    }
+    return instance();
 }
 
 //---------------------------------------------------------------
 void WeakPool::free() noexcept
 {
-    delete m_instance;
-    m_instance=nullptr;
+    if (instance().m_ownedMemResource!=nullptr)
+    {
+        instance().m_allocator.reset();
+        delete instance().m_ownedMemResource;
+    }
+    instance().m_ownedMemResource=nullptr;
 }
 
 //---------------------------------------------------------------
-WeakPool::WeakPool(
-        pmr::memory_resource *memResource,
-        bool ownMemResource
-    ) : m_ownedMemResource(ownMemResource?memResource:nullptr),
-        m_allocator(memResource)
-{
-}
 
-//---------------------------------------------------------------
-        } // namespace pointers_mempool
+} // namespace pointers_mempool
+
 HATN_COMMON_NAMESPACE_END
