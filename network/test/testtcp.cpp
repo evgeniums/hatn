@@ -100,7 +100,6 @@ BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
     }
 }
 
-#if 1
 BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
 {
     uint16_t portNumber1=11511;
@@ -197,9 +196,6 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
         thread1->stop();
     }
 }
-#endif
-
-#if 1
 
 static uint16_t genPortNumber()
 {
@@ -398,13 +394,14 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
     }
 }
 
-#endif
+#if 1
 
-#if 0
 constexpr static const size_t dataSize=0x20000;
+
+template <typename T>
 static void readNext(const hatn::common::Error& ec,
                      size_t size,
-                     hatn::network::asio::TcpStream* client,
+                     T* client,
                      size_t& recvSize,
                      std::array<char,dataSize>& recvBuf,
                      const std::function<void()>& checkDone,
@@ -420,7 +417,7 @@ static void readNext(const hatn::common::Error& ec,
     recvSize+=size;
     if (recvSize>=dataSize)
     {
-        G_DEBUG("Read done "<<client->id().c_str()<<" recvSize="<<recvSize);
+        // G_DEBUG("Read done "<<client->id().c_str()<<" recvSize="<<recvSize);
 
         checkDone();
         return;
@@ -430,12 +427,12 @@ static void readNext(const hatn::common::Error& ec,
     {
         space=dataSize-recvSize;
     }
-    G_DEBUG("Read "<<client->id().c_str()<<" space="<<space<<" recvSize="<<recvSize);
+    // G_DEBUG("Read "<<client->id().c_str()<<" space="<<space<<" recvSize="<<recvSize);
 
     client->read(recvBuf.data()+recvSize,space,
                        [client,&recvSize,&recvBuf,checkDone,&mutex](const hatn::common::Error& ec1, size_t rxSize)
                        {
-                            G_DEBUG("Read cb recvSize="<<rxSize<<" ec1="<<ec1.value());
+                            // G_DEBUG("Read cb recvSize="<<rxSize<<" ec1="<<ec1.value());
 
                             readNext(
                                         ec1,rxSize,client,recvSize,recvBuf,checkDone,mutex
@@ -478,12 +475,12 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
         bool isIpv6=i==1;
         if (!isIpv6)
         {
-            G_DEBUG("Begin IPv4");
+            BOOST_TEST_MESSAGE("Begin IPv4");
             serverEndpoint.setAddress(boost::asio::ip::address_v4::loopback());
         }
         else
         {
-            G_DEBUG("Begin IPv6");
+            BOOST_TEST_MESSAGE("Begin IPv6");
             serverEndpoint.setAddress(boost::asio::ip::address_v6::loopback());
         }
 
@@ -496,8 +493,8 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
             }
         };
 
-        std::shared_ptr<hatn::network::asio::TcpServer> server;
-        std::shared_ptr<hatn::network::asio::TcpStream> client,serverClient;
+        asio::TcpServerSharedCtx server;
+        asio::TcpStreamSharedCtx client,serverClient;
 
         auto acceptCb=[&mutex,&serverClient,&serverSendBuf,&serverRecvBuf,&checkDone,&serverRxSize](const hatn::common::Error& ec)
         {
@@ -505,7 +502,7 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                 hatn::common::MutexScopedLock l(mutex);
                 BOOST_REQUIRE(!ec);
             }
-            serverClient->write(serverSendBuf.data(),serverSendBuf.size(),
+            (*serverClient)->write(serverSendBuf.data(),serverSendBuf.size(),
                                 [&mutex](const hatn::common::Error& ec1, size_t size)
                                 {
                                     hatn::common::MutexScopedLock l(mutex);
@@ -513,26 +510,26 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                                     BOOST_CHECK_EQUAL(size,dataSize);
                                 }
                         );
-            readNext(ec,0,serverClient.get(),serverRxSize,serverRecvBuf,checkDone,mutex);
+            readNext(ec,0,&serverClient->get(),serverRxSize,serverRecvBuf,checkDone,mutex);
         };
 
-        G_DEBUG("Run server");
+        BOOST_TEST_MESSAGE("Run server");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
+        auto ec=thread0->execSync(
                         [&server,&mutex,&serverEndpoint,&serverClient,&acceptCb,isIpv6]()
                         {
-                            server=std::make_shared<hatn::network::asio::TcpServer>(isIpv6?"server-6":"server-4");
-                            auto ec=server->listen(serverEndpoint);
+                            server=asio::makeTcpServerCtx(isIpv6?"server-6":"server-4");
+                            auto ec=(*server)->listen(serverEndpoint);
                             {
                                 hatn::common::MutexScopedLock l(mutex);
                                 BOOST_REQUIRE(!ec);
                             }
 
-                            serverClient=std::make_shared<hatn::network::asio::TcpStream>(isIpv6?"serverClient-6":"serverClient-4");
-                            server->accept(serverClient->socket(),acceptCb);
+                            serverClient=asio::makeTcpStreamCtx(isIpv6?"serverClient-6":"serverClient-4");
+                            (*server)->accept((*serverClient)->socket(),acceptCb);
                         }
-        ));
+        );
+        BOOST_REQUIRE(!ec);
 
         auto connectCb=[&thread1,&client,&checkDone,&mutex,
                         clientSendBuf1,clientSendBuf2,
@@ -558,7 +555,7 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         );
             offset+=dataSize/4;
 
-            client->write(std::move(bufs),
+            (*client)->write(std::move(bufs),
                                 [&mutex,client,offset,clientSendBuf2](const hatn::common::Error& ec1, size_t size, const hatn::common::SpanBuffers&)
                                 {
                                     {
@@ -574,25 +571,24 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                                     };
 
                                     hatn::common::SpanBuffer buf(clientSendBuf2,offset,dataSize/4);
-                                    client->write(std::move(buf),cb1);
+                                    (*client)->write(std::move(buf),cb1);
                                 }
                         );
-            readNext(ec,0,client.get(),clientRxSize,clientRecvBuf,checkDone,mutex);
+            readNext(ec,0,&client->get(),clientRxSize,clientRecvBuf,checkDone,mutex);
         };
 
-        G_DEBUG("Connect clients");
+        BOOST_TEST_MESSAGE("Connect clients");
 
         thread1->execAsync(
                         [&client,&serverEndpoint,&connectCb,isIpv6]()
                         {
-                            client=std::make_shared<hatn::network::asio::TcpStream>(isIpv6?"client-6":"client-4");
-                            client->setRemoteEndpoint(serverEndpoint);
-                            client->prepare(connectCb);
+                            client=asio::makeTcpStreamCtx(isIpv6?"client-6":"client-4");
+                            (*client)->setRemoteEndpoint(serverEndpoint);
+                            (*client)->prepare(connectCb);
                         }
         );
 
-        G_DEBUG("Exec ...");
-
+        BOOST_TEST_MESSAGE("Exec 10 seconds...");
         exec(10);
 
         auto closeCb=[&mutex](const hatn::common::Error& ec)
@@ -603,38 +599,41 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
             }
         };
 
-        G_DEBUG("Close clients");
+        BOOST_TEST_MESSAGE("Close clients");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread1->execSync(
+        ec=thread1->execSync(
                         [&client,&closeCb]()
                         {
-                            client->close(closeCb);
+                            (*client)->close(closeCb);
                         }
-        ));
+        );
+        BOOST_REQUIRE(!ec);
 
-        G_DEBUG("Close server");
+        BOOST_TEST_MESSAGE("Close server");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
+        ec=thread0->execSync(
                         [&serverClient,&mutex,&closeCb,&server]()
                         {
-                            serverClient->close(closeCb);
-                            auto ec=server->close();
+                            (*serverClient)->close(closeCb);
+                            auto ec=(*server)->close();
                             {
                                 hatn::common::MutexScopedLock l(mutex);
                                 BOOST_CHECK(!ec);
                             }
                         }
-        ));
+        );
+        BOOST_REQUIRE(!ec);
+
+        BOOST_TEST_MESSAGE("Exec 1 second...");
+        exec(1);
 
         if (!isIpv6)
         {
-            G_DEBUG("End IPv4");
+            BOOST_TEST_MESSAGE("End IPv4");
         }
         else
         {
-            G_DEBUG("End IPv6");
+            BOOST_TEST_MESSAGE("End IPv6");
         }
 
         {
