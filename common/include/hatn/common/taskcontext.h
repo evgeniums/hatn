@@ -50,7 +50,7 @@ using TaskContextName=FixedByteArray32;
  * A task context is a holder of task's state. A task context can be forwarded from one thread to another
  * and it lives until the task is finished.
  */
-class HATN_COMMON_EXPORT TaskContext : public ManagedObject
+class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
 {
     public:
 
@@ -368,20 +368,66 @@ class TaskSubcontext
         TaskContext *m_mainCtx;
 };
 
+struct TaskSubcontextTag{};
+
 /**
  * @brief Helper to wrap arbitrary type to task subcontext.
  */
-template <typename T>
+template <typename T, typename =hana::when<true>>
 class TaskSubcontextT : public TaskSubcontext, public T
 {
     public:
+
+        using hana_tag=TaskSubcontextTag;
 
         template <typename ...Args>
         TaskSubcontextT(
             TaskContext* mainContext,
             Args&& ...args
             ) : TaskSubcontext(mainContext),
-                T(std::forward<Args>(args)...)
+            T(std::forward<Args>(args)...)
+        {}
+
+        template <typename ...Args>
+        TaskSubcontextT(
+            Args&& ...args
+            ) : T(std::forward<Args>(args)...)
+        {}
+
+        template <template <typename ...> class Ts, typename ...Types>
+        TaskSubcontextT(
+            Ts<Types...>&& ts
+            ) : TaskSubcontextT(
+                std::forward<Ts<Types...>>(ts),
+                std::make_index_sequence<std::tuple_size<std::remove_reference_t<Ts<Types...>>>::value>{}
+                )
+        {}
+
+    private:
+
+        template <typename Ts, std::size_t... I>
+        TaskSubcontextT(
+            Ts&& ts,
+            std::index_sequence<I...>
+            ) : TaskSubcontextT(std::get<I>(std::forward<Ts>(ts))...)
+        {}
+};
+
+/**
+ * @brief Helper to wrap arbitrary type to task subcontext.
+ */
+template <typename T>
+class TaskSubcontextT<T,hana::when<std::is_base_of<TaskSubcontext,T>::value>> : public T
+{
+    public:
+
+        using hana_tag=TaskSubcontextTag;
+
+        template <typename ...Args>
+        TaskSubcontextT(
+            TaskContext* mainContext,
+            Args&& ...args
+            ) : T(mainContext,std::forward<Args>(args)...)
         {}
 
         template <typename ...Args>
@@ -571,7 +617,7 @@ class ActualTaskContext : public BaseTaskContext
          * @return Const reference to subcontext.
          */
         template <typename T>
-        const TaskSubcontextT<T>& get() const
+        const TaskSubcontextT<T>& get() const noexcept
         {
             using subcontextT=TaskSubcontextT<T>;
 
@@ -610,10 +656,44 @@ class ActualTaskContext : public BaseTaskContext
          * @return Reference to subcontext.
          */
         template <typename T>
-        TaskSubcontextT<T>& get()
+        TaskSubcontextT<T>& get() noexcept
         {
             auto constSelf=const_cast<const selfT*>(this);
             return const_cast<TaskSubcontextT<T>&>(constSelf->template get<T>());
+        }
+
+        const auto& get() const noexcept
+        {
+            using st=decltype(hana::size(m_subcontexts));
+            static_assert(st::value==1,"This method can be used only for contexts with single cubcontext");
+            return hana::front(m_subcontexts);
+        }
+
+        const auto& operator *() const noexcept
+        {
+            return get();
+        }
+
+        const auto* operator ->() const noexcept
+        {
+            return &get();
+        }
+
+        auto& get() noexcept
+        {
+            using st=decltype(hana::size(m_subcontexts));
+            static_assert(st::value==1,"This method can be used only for contexts with single cubcontext");
+            return hana::front(m_subcontexts);
+        }
+
+        auto& operator *() noexcept
+        {
+            return get();
+        }
+
+        auto* operator ->() noexcept
+        {
+            return &get();
         }
 
     private:
@@ -695,7 +775,17 @@ struct ActualTaskContexTraits
                 [](auto&& v)
                 {
                     using type=typename std::decay_t<decltype(v)>::type;
-                    return hana::type_c<TaskSubcontextT<type>>;
+                    return hana::eval_if(
+                        hana::is_a<TaskSubcontextTag,type>,
+                        [&](auto&&)
+                        {
+                            return hana::type_c<type>;
+                        },
+                        [&](auto&&)
+                        {
+                            return hana::type_c<TaskSubcontextT<type>>;
+                        }
+                    );
                 }
             );
         using wrappersT=common::tupleCToStdTupleType<std::decay_t<decltype(wrappersC)>>;
