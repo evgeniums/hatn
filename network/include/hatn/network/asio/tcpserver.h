@@ -23,7 +23,7 @@
 #include <hatn/common/environment.h>
 #include <hatn/common/interface.h>
 #include <hatn/common/objectid.h>
-#include <hatn/common/objectguard.h>
+#include <hatn/common/taskcontext.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/asio/ipendpoint.h>
@@ -40,8 +40,7 @@ class TcpServer_p;
 
 //! TCP server built on boost asio
 class HATN_NETWORK_EXPORT TcpServer final
-        : public common::WithGuard,
-          public common::WithIDThread
+        : public common::WithIDThread
 {
     public:
 

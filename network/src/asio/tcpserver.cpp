@@ -39,6 +39,7 @@
 #include <hatn/common/error.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
+#include <hatn/common/weakptr.h>
 
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
@@ -172,9 +173,7 @@ void TcpServer::accept(
         }
     };
 
-    d->acceptor.async_accept(socket.socket(),
-        guardedAsyncHandler(cb)
-    );
+    d->acceptor.async_accept(socket.socket(),cb);
 }
 
 //---------------------------------------------------------------

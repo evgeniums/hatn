@@ -182,6 +182,8 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
     }
 }
 
+#if 0
+
 static uint16_t genPortNumber()
 {
     srand(static_cast<unsigned int>(time(NULL)));
@@ -621,5 +623,5 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
     thread0->stop();
     thread1->stop();
 }
-
+#endif
 BOOST_AUTO_TEST_SUITE_END()

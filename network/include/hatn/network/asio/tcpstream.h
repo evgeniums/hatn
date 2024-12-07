@@ -19,8 +19,6 @@
 #ifndef HATNASIOTCPSTREAM_H
 #define HATNASIOTCPSTREAM_H
 
-#include <hatn/common/objectguard.h>
-
 #include <hatn/network/network.h>
 #include <hatn/network/reliablestream.h>
 
@@ -36,8 +34,7 @@ namespace asio {
 class TcpStream;
 
 //! TcpStream handler traits
-class HATN_NETWORK_EXPORT TcpStreamTraits : public common::WithGuard,
-                                            public WithSocket<TcpSocket>
+class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
 {
     public:
 

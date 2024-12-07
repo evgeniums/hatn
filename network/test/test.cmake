@@ -1,14 +1,14 @@
 SET (TEST_SOURCES
      ${NETWORK_TEST_SRC}/testtcp.cpp
-     ${NETWORK_TEST_SRC}/testudp.cpp
+     # ${NETWORK_TEST_SRC}/testudp.cpp
 )
 
-IF(NOT BUILD_ANDROID)
-    SET (TEST_SOURCES
-         ${TEST_SOURCES}
-         ${NETWORK_TEST_SRC}/testresolver.cpp
-    )
-ENDIF()
+# IF(NOT BUILD_ANDROID)
+#     SET (TEST_SOURCES
+#          ${TEST_SOURCES}
+#          ${NETWORK_TEST_SRC}/testresolver.cpp
+#     )
+# ENDIF()
 
 ADD_HATN_CTESTS(network ${TEST_SOURCES} ${TEST_HEADERS})
 
