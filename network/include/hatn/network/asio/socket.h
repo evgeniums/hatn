@@ -48,8 +48,7 @@ HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
 
 //! Base class template for raw sockets over boost asio sockets
-template <typename T>
-class Socket final
+template <typename T> class Socket final
 {
     public:
 
@@ -82,15 +81,12 @@ using UdpSocket=Socket<boost::asio::ip::udp::socket>;
 
 //! Base template for classes containing socket
 template <typename SocketT>
-class SocketCtx : public common::TaskSubcontext
+class WithSocket
 {
     public:
 
         //! Ctor
-        SocketCtx(
-                common::TaskContext* mainCtx,
-                boost::asio::io_context& asioContext
-            ) : m_socket(asioContext)
+        WithSocket(boost::asio::io_context& asioContext):m_socket(asioContext)
         {}
 
         //! Get asio UDP socket
@@ -115,8 +111,6 @@ class SocketCtx : public common::TaskSubcontext
 
         SocketT m_socket;
 };
-using TcpSocketCtx=SocketCtx<TcpSocket>;
-using UdpSocketCtx=SocketCtx<UdpSocket>;
 
 inline bool fillAsioBuffers(
         const common::SpanBuffers& buffers,

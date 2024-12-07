@@ -31,7 +31,7 @@
 HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Reliable stream
-template <typename Traits> using ReliableStream=common::StreamWithIDThread<Traits>;
+template <typename Traits> using ReliableStream=common::StreamWithThread<Traits>;
 
 //! Reliable stream with endpoints
 template <typename EndpointT,typename Traits> class ReliableStreamWithEndpoints :

@@ -40,7 +40,6 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
 
         //! Ctor
         TcpStreamTraits(
-            common::Thread* thread,
             TcpStream* stream
         );
 
@@ -87,25 +86,20 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
     private:
 
         TcpStream* m_stream;
+
+        common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
 };
 
 //! Stream over ASIO TCP socket
-class HATN_NETWORK_EXPORT TcpStream final :
-            public ReliableStreamWithEndpoints<TcpEndpoint,TcpStreamTraits>
+class HATN_NETWORK_EXPORT TcpStream : public common::TaskSubcontext,
+                                      public ReliableStreamWithEndpoints<TcpEndpoint,TcpStreamTraits>
 {
     public:
 
         //! Constructor
         TcpStream(
-            common::Thread* thread, //!< Thread the socket lives in
-            common::STR_ID_TYPE id=common::STR_ID_TYPE() //!< Socket ID
+            common::Thread* thread=common::Thread::currentThread() //!< Thread the socket lives in
         );
-
-        //! Constructor
-        TcpStream(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE() //!< Socket ID
-        ) : TcpStream(common::Thread::currentThread(),std::move(id))
-        {}
 
         ~TcpStream()=default;
         TcpStream(const TcpStream&)=delete;
@@ -133,8 +127,40 @@ class HATN_NETWORK_EXPORT TcpStream final :
         }
 };
 
+struct makeTcpStreamCtxT
+{
+    auto operator()(const lib::string_view& id, common::Thread* thread) const
+    {
+        return common::makeTaskContext<TcpStream>(
+            common::basecontext(id),
+            common::subcontexts(
+                common::subcontext(thread)
+                )
+            );
+    }
+
+    auto operator()(const lib::string_view& id) const
+    {
+        return common::makeTaskContext<TcpStream>(
+            common::basecontext(id),
+            common::subcontexts(
+                common::subcontext()
+                )
+            );
+    }
+
+    auto operator()() const
+    {
+        return common::makeTaskContext<TcpStream>();
+    }
+};
+constexpr makeTcpStreamCtxT makeTcpStreamCtx{};
+using TcpStreamSharedCtx=decltype(makeTcpStreamCtx(""));
+
 } // namespace asio
 
 HATN_NETWORK_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE(HATN_NETWORK_NAMESPACE::asio::TcpStream,HATN_NETWORK_EXPORT)
 
 #endif // HATNASIOTCPSTREAM_H
