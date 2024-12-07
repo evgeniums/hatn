@@ -607,11 +607,14 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
 };
 
 //! Template class with sharedFromThis() method
-template <typename T, bool=true> class EnableSharedFromThis
+template <typename T, bool=true>
+class EnableSharedFromThis
 {
+    //! @todo Detect if T is derived from ManagedObject
 };
 
-template <typename T> class EnableSharedFromThis<T,false>
+template <typename T>
+class EnableSharedFromThis<T,false>
 {
     public:
 
@@ -623,7 +626,8 @@ template <typename T> class EnableSharedFromThis<T,false>
         }
 };
 
-template <typename T> class EnableSharedFromThis<T,true> : public ManagedObject
+template <typename T>
+class EnableSharedFromThis<T,true> : public ManagedObject
 {
     public:
 
