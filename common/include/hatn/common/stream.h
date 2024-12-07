@@ -322,6 +322,21 @@ class StreamGatherTraits : public Traits
         }
 };
 
+//! Stream with thread
+template <typename Traits>
+class StreamWithThread : public WithThread, public Stream<Traits>
+{
+    public:
+
+        template <typename ...Args>
+        StreamWithThread(
+            Thread* thread,
+            Args&& ...traitsArgs
+            ) : WithThread(thread),
+                Stream<Traits>(std::forward<Args>(traitsArgs)...)
+        {}
+};
+
 //! Stream with thread and ID
 template <typename Traits>
 class StreamWithIDThread :
