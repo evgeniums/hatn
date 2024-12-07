@@ -7,9 +7,12 @@
 
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
-#include <hatn/network/asio/tcpstream.h>
+// #include <hatn/network/asio/tcpstream.h>
 
 #define HATN_TEST_LOG_CONSOLE
+
+HATN_COMMON_USING
+HATN_NETWORK_USING
 
 namespace {
 
@@ -58,10 +61,12 @@ BOOST_AUTO_TEST_SUITE(Tcp)
 
 BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
 {
-    hatn::network::asio::TcpServer server1(mainThread().get(),"server1");
+    auto server1Ctx=asio::makeTcpServerCtx("server1",mainThread().get());
+    auto& server1=server1Ctx->get<asio::TcpServer>();
 
-    hatn::network::asio::TcpServerConfig config(10);
-    hatn::network::asio::TcpServer server2(&config,mainThread().get(),"server2");
+    asio::TcpServerConfig config(10);
+    auto server2Ctx=asio::makeTcpServerCtx("server1",mainThread().get(),&config);
+    auto& server2=server2Ctx->get<asio::TcpServer>();
 
     BOOST_CHECK_EQUAL(server1.thread(),server2.thread());
 
@@ -73,9 +78,14 @@ BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
         auto ec=thread0->execSync(
                 [&config,thread0]()
                 {
-                    hatn::network::asio::TcpServer server3("server3");
-                    hatn::network::asio::TcpServer server4(&config,"server4");
-                    hatn::network::asio::TcpServer server5(&config,thread0,"server5");
+                    auto server3Ctx=asio::makeTcpServerCtx("server3");
+                    auto& server3=server3Ctx->get<asio::TcpServer>();
+                    auto server4Ctx=asio::makeTcpServerCtx("server4",&config);
+                    auto& server4=server4Ctx->get<asio::TcpServer>();
+                    auto server5Ctx=asio::makeTcpServerCtx("server5",thread0,&config);
+                    auto& server5=server5Ctx->get<asio::TcpServer>();
+
+                    BOOST_CHECK_EQUAL(server3.thread(),thread0);
                     BOOST_CHECK_EQUAL(server3.thread(),server4.thread());
                     BOOST_CHECK_EQUAL(server4.thread(),server5.thread());
                 }
@@ -85,6 +95,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
     }
 }
 
+#if 1
 BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
 {
     uint16_t portNumber1=11511;
@@ -97,8 +108,8 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
     hatn::common::Thread* thread1=thread(1).get();
 
     {
-        std::shared_ptr<hatn::network::asio::TcpServer> server1,server2,server3,server4;
-        std::shared_ptr<hatn::network::asio::TcpServer> server5,server6,server7,server8;
+        asio::TcpServerSharedCtx server1,server2,server3,server4;
+        asio::TcpServerSharedCtx server5,server6,server7,server8;
 
         thread0->start();
         thread1->start();
@@ -107,24 +118,24 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
         thread0->execSync(
                         [&server1,&server2,&server3,&server4,portNumber1,portNumber2,portNumber3,portNumber4]()
                         {
-                            server1=std::make_shared<hatn::network::asio::TcpServer>("server1");
+                            server1=asio::makeTcpServerCtx("server1");
                             hatn::network::asio::TcpEndpoint ep1("127.0.0.1",portNumber1);
-                            auto ec=server1->listen(ep1);
+                            auto ec=(*server1)->listen(ep1);
                             BOOST_CHECK(!ec);
 
-                            server2=std::make_shared<hatn::network::asio::TcpServer>("server2");
+                            server2=asio::makeTcpServerCtx("server2");
                             hatn::network::asio::TcpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
-                            ec=server2->listen(ep2);
+                            ec=(*server2)->listen(ep2);
                             BOOST_CHECK(!ec);
 
-                            server3=std::make_shared<hatn::network::asio::TcpServer>("server3");
+                            server3=asio::makeTcpServerCtx("server3");
                             hatn::network::asio::TcpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
-                            ec=server3->listen(ep3);
+                            ec=(*server3)->listen(ep3);
                             BOOST_CHECK(!ec);
 
-                            server4=std::make_shared<hatn::network::asio::TcpServer>("server4");
+                            server4=asio::makeTcpServerCtx("server4");
                             hatn::network::asio::TcpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
-                            ec=server4->listen(ep4);
+                            ec=(*server4)->listen(ep4);
                             BOOST_CHECK(!ec);
                         }
                     ));
@@ -133,27 +144,27 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
         thread1->execSync(
                         [&server5,&server6,&server7,&server8,portNumber1,portNumber2,portNumber3,portNumber4]()
                         {
-                            server5=std::make_shared<hatn::network::asio::TcpServer>("server5");
+                            server5=asio::makeTcpServerCtx("server5");
                             hatn::network::asio::TcpEndpoint ep1("127.0.0.1",portNumber1);
-                            auto ec=server5->listen(ep1);
+                            auto ec=(*server5)->listen(ep1);
                             BOOST_CHECK(ec);
                             BOOST_CHECK_EQUAL(ec.errorCondition(),boost::system::errc::address_in_use);
 
-                            server6=std::make_shared<hatn::network::asio::TcpServer>("server6");
+                            server6=asio::makeTcpServerCtx("server6");
                             hatn::network::asio::TcpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
-                            ec=server6->listen(ep2);
+                            ec=server6->get<asio::TcpServer>().listen(ep2);
                             BOOST_CHECK(ec);
                             BOOST_CHECK_EQUAL(ec.errorCondition(),boost::system::errc::address_in_use);
 
-                            server7=std::make_shared<hatn::network::asio::TcpServer>("server7");
+                            server7=asio::makeTcpServerCtx("server7");
                             hatn::network::asio::TcpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
-                            ec=server7->listen(ep3);
+                            ec=server7->get<asio::TcpServer>().listen(ep3);
                             BOOST_CHECK(ec);
                             BOOST_CHECK_EQUAL(ec.errorCondition(),boost::system::errc::address_in_use);
 
-                            server8=std::make_shared<hatn::network::asio::TcpServer>("server8");
+                            server8=asio::makeTcpServerCtx("server8");
                             hatn::network::asio::TcpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
-                            ec=server8->listen(ep4);
+                            ec=server8->get<asio::TcpServer>().listen(ep4);
                             BOOST_CHECK(ec);
                             BOOST_CHECK_EQUAL(ec.errorCondition(),boost::system::errc::address_in_use);
                         }
@@ -163,16 +174,16 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
         thread0->execSync(
                         [&server1,&server2,&server3,&server4]()
                         {
-                            auto ec=server1->close();
+                            auto ec=server1->get<asio::TcpServer>().close();
                             BOOST_CHECK(!ec);
 
-                            ec=server2->close();
+                            ec=server2->get<asio::TcpServer>().close();
                             BOOST_CHECK(!ec);
 
-                            ec=server3->close();
+                            ec=server3->get<asio::TcpServer>().close();
                             BOOST_CHECK(!ec);
 
-                            ec=server4->close();
+                            ec=server4->get<asio::TcpServer>().close();
                             BOOST_CHECK(!ec);
                         }
                     ));
@@ -181,6 +192,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerListen,Env)
         thread1->stop();
     }
 }
+#endif
 
 #if 0
 

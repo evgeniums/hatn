@@ -20,9 +20,6 @@
 #define HATNASIOTCPSERVER_H
 
 #include <hatn/common/error.h>
-#include <hatn/common/environment.h>
-#include <hatn/common/interface.h>
-#include <hatn/common/objectid.h>
 #include <hatn/common/taskcontext.h>
 
 #include <hatn/network/network.h>
@@ -39,34 +36,23 @@ class TcpServerConfig;
 class TcpServer_p;
 
 //! TCP server built on boost asio
-class HATN_NETWORK_EXPORT TcpServer final
-        : public common::WithIDThread
+class HATN_NETWORK_EXPORT TcpServer : public common::TaskSubcontext, public common::WithThread
 {
     public:
 
         using Callback=std::function<void (const common::Error&)>;
 
         //! Constructor
-        TcpServer(common::STR_ID_TYPE id=common::STR_ID_TYPE());
-
-        //! Constructor
         TcpServer(
             common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            const TcpServerConfig* config=nullptr
         );
 
         //! Constructor
         TcpServer(
-            TcpServerConfig* config,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        );
-
-        //! Constructor
-        TcpServer(
-            TcpServerConfig* config,
-            common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        );
+            const TcpServerConfig* config=nullptr
+            ) : TcpServer(common::Thread::currentThread(),config)
+        {}
 
         //! Destructor is intentionally not virtual as is is a final class
         ~TcpServer();
@@ -95,7 +81,34 @@ class HATN_NETWORK_EXPORT TcpServer final
         std::unique_ptr<TcpServer_p> d;
 };
 
+struct makeTcpServerCtxT
+{
+    auto operator()(const lib::string_view& id, common::Thread* thread,const TcpServerConfig* config=nullptr) const
+    {
+        return common::makeTaskContext<TcpServer>(
+            common::basecontext(id),
+            common::subcontexts(
+                common::subcontext(thread,config)
+                )
+            );
+    }
+
+    auto operator()(const lib::string_view& id, const TcpServerConfig* config=nullptr) const
+    {
+        return common::makeTaskContext<TcpServer>(
+            common::basecontext(id),
+            common::subcontexts(
+                common::subcontext(config)
+                )
+            );
+    }
+};
+constexpr makeTcpServerCtxT makeTcpServerCtx{};
+using TcpServerSharedCtx=decltype(makeTcpServerCtx(""));
+
 } // namespace asio
 HATN_NETWORK_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE(HATN_NETWORK_NAMESPACE::asio::TcpServer,HATN_NETWORK_EXPORT)
 
 #endif // HATNASIOTCPSERVER_H

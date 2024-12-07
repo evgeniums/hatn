@@ -20,8 +20,6 @@
 #define HATNASIOTCPSERVERCONFIG_H
 
 #include <hatn/common/error.h>
-#include <hatn/common/environment.h>
-#include <hatn/common/interface.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/asio/socket.h>
@@ -29,12 +27,10 @@
 HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
 
-//! Interface for Asio TCP server configuration
-class HATN_NETWORK_EXPORT TcpServerConfig : public common::Interface<TcpServerConfig>
+//! Interface for ASIO TCP server configuration
+class HATN_NETWORK_EXPORT TcpServerConfig
 {
     public:
-
-        HATN_CUID_DECLARE()
 
         //! Ctor
         TcpServerConfig(
@@ -50,10 +46,10 @@ class HATN_NETWORK_EXPORT TcpServerConfig : public common::Interface<TcpServerCo
         TcpServerConfig& operator=(TcpServerConfig&&) =default;
 
         //! Set acceptor options throwing exception on error
-        inline void setOptions(boost::asio::ip::tcp::acceptor& acceptor)
+        inline void fillAcceptorOptions(boost::asio::ip::tcp::acceptor& acceptor) const
         {
             boost::system::error_code ec;
-            setOptions(acceptor,ec);
+            fillAcceptorOptions(acceptor,ec);
             if (ec)
             {
                 throw boost::system::system_error(ec);
@@ -61,7 +57,7 @@ class HATN_NETWORK_EXPORT TcpServerConfig : public common::Interface<TcpServerCo
         }
 
         //! Set acceptor options without throwing exceptions
-        virtual void setOptions(boost::asio::ip::tcp::acceptor& acceptor, boost::system::error_code& ec) noexcept
+        virtual void fillAcceptorOptions(boost::asio::ip::tcp::acceptor& acceptor, boost::system::error_code& ec) const
         {
             std::ignore=acceptor;
             std::ignore=ec;
