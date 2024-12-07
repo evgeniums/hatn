@@ -116,7 +116,7 @@ class StreamLoggerTraits : public BufToStream
         }
 };
 
-template <typename ContextT=Context>
+template <typename ContextT=Subcontext>
 using StreamLoggerT=BufLoggerT<StreamLoggerTraits,ContextT>;
 
 using StreamLogger=StreamLoggerT<>;

@@ -68,7 +68,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
     if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
             Level, \
-            HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
             #Module ) \
     )
 
@@ -77,7 +77,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
     { \
         HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
             Level, \
-            HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
             Msg, \
             #Module \
         ); \
@@ -89,7 +89,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       #Module \
                     ); \
@@ -99,7 +99,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
             Level, \
-            HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value() \
+            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context) \
         ) \
     )
 
@@ -108,7 +108,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
     { \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
                       Level, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg \
                     ); \
     }
@@ -119,7 +119,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logClose( \
                       HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
                       Err, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg \
                     ); \
     }
@@ -130,7 +130,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logCloseApi( \
                            HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
                            Err, \
-                           HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                           HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                            Msg \
                     ); \
     }
@@ -141,7 +141,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg \
                     ); \
     }
@@ -184,7 +184,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
     { \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
                       Level, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       {__VA_ARGS__}, \
                       #Module \
@@ -197,7 +197,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       {__VA_ARGS__}, \
                       #Module \
@@ -209,7 +209,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
     { \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
               Level, \
-              HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+              HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
               Msg, \
               {__VA_ARGS__}, \
               HATN_COMMON_NAMESPACE::lib::string_view{} \
@@ -222,7 +222,7 @@ if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
                       Level, \
                       Err, \
-                      HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_LOGCONTEXT_NAMESPACE::Context>::value(), \
+                      HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       {__VA_ARGS__}, \
                       HATN_COMMON_NAMESPACE::lib::string_view{} \

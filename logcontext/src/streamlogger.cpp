@@ -22,7 +22,7 @@
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template class HATN_LOGCONTEXT_EXPORT BufLoggerT<StreamLoggerTraits,Context>;
+template class HATN_LOGCONTEXT_EXPORT BufLoggerT<StreamLoggerTraits>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 

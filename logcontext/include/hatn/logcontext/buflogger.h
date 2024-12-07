@@ -30,7 +30,7 @@
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template <typename ContextT=Context>
+template <typename ContextT=Subcontext>
 class TextLogFormatterT
 {
     public:
@@ -215,7 +215,7 @@ class TextLogFormatterT
 };
 using TextLogFormatter=TextLogFormatterT<>;
 
-template <typename Traits, typename ContextT=Context>
+template <typename Traits, typename ContextT=Subcontext>
 class BufLoggerT : public LoggerHandlerT<ContextT>,
                    public common::WithTraits<Traits>
 {

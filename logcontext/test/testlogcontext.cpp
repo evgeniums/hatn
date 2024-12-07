@@ -171,10 +171,10 @@ BOOST_AUTO_TEST_CASE(CreateLogContext)
 {
     BOOST_TEST_MESSAGE(fmt::format("Context size {}",sizeof(Context)));
 
-    ThreadSubcontext<Context> tlCtx;
+    ThreadSubcontext<TaskSubcontextT<Context>> tlCtx;
     BOOST_CHECK(tlCtx.value()==nullptr);
 
-    Context sl{nullptr};
+    TaskSubcontextT<Context> sl{};
     tlCtx.setValue(&sl);
     BOOST_CHECK(tlCtx.value()==&sl);
 

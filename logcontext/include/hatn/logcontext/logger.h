@@ -35,7 +35,7 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
 
-template <typename ContextT=Context>
+template <typename ContextT=Subcontext>
 class LoggerBaseT
 {
     public:
@@ -237,7 +237,7 @@ class LoggerBaseT
 
 using LoggerBase=LoggerBaseT<>;
 
-template <typename ContextT=Context>
+template <typename ContextT=Subcontext>
 class LoggerHandlerT
 {
     public:
@@ -319,7 +319,7 @@ class LoggerHandlerT
 };
 using LoggerHandler=LoggerHandlerT<>;
 
-template <typename ContextT=Context>
+template <typename ContextT=Subcontext>
 class LoggerHandlerTraitsT
 {
     public:
@@ -424,7 +424,7 @@ class LoggerHandlerTraitsT
 };
 using LoggerHandlerTraits=LoggerHandlerTraitsT<>;
 
-template <template <typename> class Traits=LoggerHandlerTraitsT, typename ContextT=Context>
+template <template <typename> class Traits=LoggerHandlerTraitsT, typename ContextT=Subcontext>
 class LoggerT : public LoggerBaseT<ContextT>,
                 public common::WithTraits<Traits<ContextT>>
 {
