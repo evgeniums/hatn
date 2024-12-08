@@ -57,7 +57,6 @@ class MultiThreadFixture_p
     public:
 
         std::map<int,std::shared_ptr<Thread>> threads;
-        std::shared_ptr<boost::asio::deadline_timer> timer;
         bool timeouted=false;
 };
 
@@ -72,7 +71,6 @@ MultiThreadFixture::MultiThreadFixture(
         mainThread=std::make_shared<Thread>("main",false);
     }
     Thread::setMainThread(mainThread);
-    d->timer=std::make_shared<boost::asio::deadline_timer>(mainThread->asioContextRef());
 
     pointers_mempool::WeakPool::init();
 }
@@ -81,8 +79,6 @@ MultiThreadFixture::MultiThreadFixture(
 MultiThreadFixture::~MultiThreadFixture()
 {
     boost::system::error_code ec;
-    d->timer->cancel(ec);
-    d->timer.reset();
     d->threads.clear();
     Thread::releaseMainThread();
 
@@ -144,7 +140,6 @@ void MultiThreadFixture::destroyThreads()
 //---------------------------------------------------------------
 void MultiThreadFixture::quit()
 {
-    d->timer->cancel();
     mainThread()->stop();
     d->timeouted=false;
 }
