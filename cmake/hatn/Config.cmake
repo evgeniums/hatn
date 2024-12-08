@@ -249,6 +249,12 @@ ELSE(WIN32)
     ENDIF()
 ENDIF(WIN32)
 
+IF ($ENV{BUILD_DRMEMORY})
+    IF (MINGW)
+        MESSAGE(STATUS "Building for Dr.Memory")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -gdwarf-2")
+    ENDIF ()
+ENDIF ()
 
 IF(NOT BUILD_STATIC)
     INCLUDE(hatn/ConfigDynamic)
