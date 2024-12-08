@@ -29,7 +29,7 @@
 #include <hatn/common/objecttraits.h>
 
 #include <hatn/network/network.h>
-#include <hatn/network/error.h>
+#include <hatn/network/networkerror.h>
 #include <hatn/network/asio/ipendpoint.h>
 
 DECLARE_LOG_MODULE_EXPORT(dnsresolver,HATN_NETWORK_EXPORT)

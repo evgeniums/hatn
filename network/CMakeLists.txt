@@ -2,8 +2,8 @@ PROJECT(hatnnetwork)
 
 SET (HEADERS
     include/hatn/network/network.h
-    include/hatn/network/error.h
-    include/hatn/network/errorcodes.h
+    include/hatn/network/networkerror.h
+    include/hatn/network/networkerrorcodes.h
     include/hatn/network/endpoint.h
     include/hatn/network/ipendpoint.h
     include/hatn/network/reliablestream.h

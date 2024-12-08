@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file network/error.h
+/** @file network/networkerror.h
   *
   *  Error classes for Hatn Network Library.
   *
@@ -20,8 +20,9 @@
 #define HATNNETWORKERROR_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/nativeerror.h>
 
-#include <hatn/network/errorcodes.h>
+#include <hatn/network/networkerrorcodes.h>
 #include <hatn/network/network.h>
 
 HATN_NETWORK_NAMESPACE_BEGIN
@@ -41,23 +42,49 @@ class HATN_NETWORK_EXPORT NetworkErrorCategory : public common::ErrorCategory
         virtual std::string message(int code) const;
 
         //! Get string representation of the code.
-        virtual const char* codeString(int code) const
-        {
-            //! @todo Implement
-            std::ignore=code;
-            return nullptr;
-        }
+        virtual const char* codeString(int code) const;
 
         //! Get category
         static const NetworkErrorCategory& getCategory() noexcept;
 };
 
-//! Make network error object from code
-inline ::hatn::common::Error makeError(ErrorCode code) noexcept
+/**
+ * @brief Make error object from code.
+ * @param code Error code.
+ * @return Error object.
+ */
+inline Error networkError(NetworkError code) noexcept
 {
-    return ::hatn::common::Error(static_cast<int>(code),&NetworkErrorCategory::getCategory());
+    return Error(code,&NetworkErrorCategory::getCategory());
 }
 
+/**
+ * @brief Make error object from code and native error.
+ * @param code Error code.
+ * @param native Native error.
+ * @return Error object.
+ */
+inline Error networkError(NetworkError code, std::shared_ptr<common::NativeError> err) noexcept
+{
+    err->setCategory(&NetworkErrorCategory::getCategory());
+    return Error(code,std::move(err));
+}
+
+/**
+ * @brief Make ErrorResult from dbError
+ * @param code Error code
+ * @return ErrorResult
+ */
+inline ErrorResult networkErrorResult(NetworkError code) noexcept
+{
+    return ErrorResult{networkError(code)};
+}
+
+inline void setNetworkErrorCode(Error& ec, NetworkError code)
+{
+    ec.setCode(code,&NetworkErrorCategory::getCategory());
+}
 
 HATN_NETWORK_NAMESPACE_END
+
 #endif // HATNNETWORKERROR_H
