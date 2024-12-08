@@ -34,6 +34,7 @@
     Do(CommonError,FILE_READ_FAILED,_TR("failed to read file")) \
     Do(CommonError,FILE_NOT_OPEN,_TR("file not open")) \
     Do(CommonError,TIMEOUT,_TR("operation timeout")) \
+    Do(CommonError,ABORTED,_TR("operation aborted")) \
     Do(CommonError,RESULT_ERROR,_TR("cannot get value of error result")) \
     Do(CommonError,RESULT_NOT_ERROR,_TR("cannot move not error result")) \
     Do(CommonError,NOT_IMPLEMENTED,_TR("requested operation with provided arguments not implemented yet")) \
