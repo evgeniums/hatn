@@ -52,6 +52,55 @@ HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpStream,TcpStream)
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
 
+namespace {
+
+template <typename Fn>
+bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback)
+{
+    auto ctx=wptr.lock();
+    if (!ctx)
+    {
+        callback(commonError(CommonError::ABORTED));
+        return false;
+    }
+    ctx->enterAsyncHandler();
+    return true;
+}
+
+template <typename Fn>
+bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, size_t size)
+{
+    auto ctx=wptr.lock();
+    if (!ctx)
+    {
+        callback(commonError(CommonError::ABORTED),size);
+        return false;
+    }
+    ctx->enterAsyncHandler();
+    return true;
+}
+
+template <typename Fn>
+bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, int size)
+{
+    return enterHandler(wptr,callback,static_cast<size_t>(size));
+}
+
+template <typename Fn, typename BuffersT>
+bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, BuffersT&& buffers)
+{
+    auto ctx=wptr.lock();
+    if (!ctx)
+    {
+        callback(commonError(CommonError::ABORTED),0,std::forward<BuffersT>(buffers));
+        return false;
+    }
+    ctx->enterAsyncHandler();
+    return true;
+}
+
+}
+
 namespace asio {
 
 /*********************** TcpStream **************************/
@@ -119,10 +168,14 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         }
     }
 
+    m_stream->mainCtx().leaveAsyncHandler();
     m_stream->thread()->execAsync(
-        [callback{std::move(callback)},ret{std::move(ret)}]()
+        [callback{std::move(callback)},wptr{ctxWeakPtr()},ret{std::move(ret)}]()
         {
-            callback(ret);
+            if (enterHandler(wptr,callback))
+            {
+                callback(ret);
+            }
         }
     );
 }
@@ -159,52 +212,55 @@ void TcpStreamTraits::prepare(
         }
     }
 
-    // connect to remote endpoint
-    if (!ec)
+    // return if error
+    if (ec)
     {
-        auto ep=m_stream->remoteEndpoint().toBoostEndpoint();
-        rawSocket().async_connect(
-                        ep,
-                        [callback{std::move(callback)},ep,wptr{ctxWeakPtr()},this](const boost::system::error_code &ec)
-                        {
-                            auto ctx=wptr.lock();
-                            if (!ctx)
-                            {
-                                //! @todo callback with cancelled error
-                                return;
-                            }
-
-                            if (!ec)
-                            {
-                                m_stream->updateEndpoints();
-#if 0
-                                DCS_DEBUG_ID(asiotcpstream,HATN_FORMAT("TCP socket connected to {}:{} from {}:{}",m_stream->remoteEndpoint().address().to_string(),m_stream->remoteEndpoint().port(),
-                                                                      m_stream->localEndpoint().address().to_string(),m_stream->localEndpoint().port()));
-#endif
-                            }
-                            else
-                            {
-                                // DCS_DEBUG_ID(asiotcpstream,HATN_FORMAT("TCP socket failed to connect to {}:{}, error: ({}) {}",ep.address().to_string(),ep.port(),ec.value(),ec.message()));
-                                if (rawSocket().lowest_layer().is_open())
-                                {
-                                    boost::system::error_code ec1;
-                                    rawSocket().lowest_layer().close(ec1);
-                                }
-                            }
-
-                            callback(makeBoostError(ec));
-                        }
-                    );
-    }
-    else
-    {
+        m_stream->mainCtx().leaveAsyncHandler();
         m_stream->thread()->execAsync(
-                        [callback{std::move(callback)},ec{std::move(ec)}]()
-                        {
-                            callback(makeBoostError(ec));
-                        }
-                    );
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},ec{std::move(ec)}]()
+            {
+                if (enterHandler(wptr,callback))
+                {
+                    callback(makeBoostError(ec));
+                }
+            }
+        );
+        return;
     }
+
+    // connect to remote endpoint
+    auto ep=m_stream->remoteEndpoint().toBoostEndpoint();
+    m_stream->mainCtx().leaveAsyncHandler();
+    rawSocket().async_connect(
+                    ep,
+                    [callback{std::move(callback)},ep,wptr{ctxWeakPtr()},this](const boost::system::error_code &ec)
+                    {
+                        if (!enterHandler(wptr,callback))
+                        {
+                            return;
+                        }
+
+                        if (!ec)
+                        {
+                            m_stream->updateEndpoints();
+#if 0
+                            DCS_DEBUG_ID(asiotcpstream,HATN_FORMAT("TCP socket connected to {}:{} from {}:{}",m_stream->remoteEndpoint().address().to_string(),m_stream->remoteEndpoint().port(),
+                                                                  m_stream->localEndpoint().address().to_string(),m_stream->localEndpoint().port()));
+#endif
+                        }
+                        else
+                        {
+                            // DCS_DEBUG_ID(asiotcpstream,HATN_FORMAT("TCP socket failed to connect to {}:{}, error: ({}) {}",ep.address().to_string(),ep.port(),ec.value(),ec.message()));
+                            if (rawSocket().lowest_layer().is_open())
+                            {
+                                boost::system::error_code ec1;
+                                rawSocket().lowest_layer().close(ec1);
+                            }
+                        }
+
+                        callback(makeBoostError(ec));
+                    }
+                );
 }
 
 //---------------------------------------------------------------
@@ -214,48 +270,47 @@ void TcpStreamTraits::read(
         std::function<void (const common::Error &, size_t)> callback
     )
 {
-    if (m_stream->isActive())
+    if (!m_stream->isActive())
     {
-        if (buf==nullptr || maxSize==0)
-        {
-            m_stream->thread()->execAsync(
-                [callback{std::move(callback)}]()
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()}]()
+            {
+                if (enterHandler(wptr,callback,0))
+                {
+                    callback(makeBoostError(boost::asio::error::eof),0);
+                }
+            }
+        );
+        return;
+    }
+
+    if (buf==nullptr || maxSize==0)
+    {
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()}]()
+            {
+                if (enterHandler(wptr,callback,0))
                 {
                     callback(common::Error(),0);
                 }
-            );
-        }
-        else
-        {
-            rawSocket().async_receive(
-                        boost::asio::buffer(buf,maxSize),
-                        [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
-                            {
-                                auto ctx=wptr.lock();
-                                if (!ctx)
-                                {
-                                    //! @todo callback with cancelled error
-                                    return;
-                                }
-
-                                if (m_stream->isActive())
-                                {
-                                    callback(makeBoostError(ec),size);
-                                }
-                            }
-                        );
-        }
-    }
-    else
-    {
-        m_stream->thread()->execAsync(
-            [callback{std::move(callback)}]()
-            {
-                auto ec=boost::asio::error::eof;
-                callback(makeBoostError(ec),0);
             }
         );
+        return;
     }
+
+    m_stream->mainCtx().leaveAsyncHandler();
+    rawSocket().async_receive(
+                boost::asio::buffer(buf,maxSize),
+                [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
+                    {
+                        if (enterHandler(wptr,callback,0))
+                        {
+                            callback(makeBoostError(ec),size);
+                        }
+                    }
+                );
 }
 
 //---------------------------------------------------------------
@@ -265,47 +320,47 @@ void TcpStreamTraits::write(
         std::function<void (const common::Error &, size_t)> callback
     )
 {
-    if (m_stream->isActive())
+    if (!m_stream->isActive())
     {
-        if (buf==nullptr || size==0)
-        {
-            m_stream->thread()->execAsync(
-                [callback{std::move(callback)}]()
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()}]()
+            {
+                if (enterHandler(wptr,callback,0))
+                {
+                    callback(makeBoostError(boost::asio::error::eof),0);
+                }
+            }
+        );
+        return;
+    }
+
+    if (buf==nullptr || size==0)
+    {
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()}]()
+            {
+                if (enterHandler(wptr,callback,0))
                 {
                     callback(common::Error(),0);
                 }
-            );
-        }
-        else
-        {
-            rawSocket().async_send(
-                            boost::asio::buffer(buf,size),
-                            [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
-                            {
-                                auto ctx=wptr.lock();
-                                if (!ctx)
-                                {
-                                    //! @todo callback with cancelled error
-                                    return;
-                                }
-
-                                if (m_stream->isActive())
-                                {
-                                    callback(makeBoostError(ec),size);
-                                }
-                            }
-                        );
-        }
-    }
-    else
-    {
-        m_stream->thread()->execAsync(
-            [callback{std::move(callback)}]()
-            {
-                callback(makeBoostError(boost::asio::error::eof),0);
             }
         );
+        return;
     }
+
+    m_stream->mainCtx().leaveAsyncHandler();
+    rawSocket().async_send(
+                    boost::asio::buffer(buf,size),
+                    [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
+                    {
+                        if (enterHandler(wptr,callback,0))
+                        {
+                            callback(makeBoostError(ec),size);
+                        }
+                    }
+                );
 }
 
 //---------------------------------------------------------------
@@ -314,58 +369,63 @@ void TcpStreamTraits::write(
         std::function<void (const Error &, size_t, SpanBuffers)> callback
     )
 {
-    if (m_stream->isActive())
+    if (!m_stream->isActive())
     {
-        if (buffers.empty())
-        {
-            m_stream->thread()->execAsync(
-                [callback{std::move(callback)},buffers{std::move(buffers)}]()
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)}]()
+            {
+                if (enterHandler(wptr,callback,std::move(buffers)))
+                {
+                    callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
+                }
+            }
+        );
+        return;
+    }
+
+    if (buffers.empty())
+    {
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)}]()
+            {
+                if (enterHandler(wptr,callback,std::move(buffers)))
                 {
                     callback(common::Error(),0,std::move(buffers));
                 }
-            );
-        }
-        else
-        {
-            pmr::vector<boost::asio::const_buffer> asioBuffers;
-            if (!fillAsioBuffers(buffers,asioBuffers))
-            {
-                m_stream->thread()->execAsync(
-                    [callback{std::move(callback)},buffers{std::move(buffers)}]()
-                    {
-                        callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffers));
-                    }
-                );
-                return;
-            }
-            rawSocket().async_send(
-                            asioBuffers,
-                            [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t size)
-                            {
-                                auto ctx=wptr.lock();
-                                if (!ctx)
-                                {
-                                    //! @todo callback with cancelled error
-                                    return;
-                                }
-
-                                if (m_stream->isActive())
-                                {
-                                    callback(makeBoostError(ec),size,std::move(buffers));
-                                }
-                            }
-                        );
-        }
-    }
-    else
-    {
-        m_stream->thread()->execAsync(
-            [callback{std::move(callback)},buffers{std::move(buffers)}]()
-            {
-                callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
             }
         );
+        return;
     }
+
+    pmr::vector<boost::asio::const_buffer> asioBuffers;
+    if (!fillAsioBuffers(buffers,asioBuffers))
+    {
+        m_stream->mainCtx().leaveAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)}]()
+            {
+                if (enterHandler(wptr,callback,std::move(buffers)))
+                {
+                    callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffers));
+                }
+            }
+        );
+        return;
+    }
+
+    m_stream->mainCtx().leaveAsyncHandler();
+    rawSocket().async_send(
+                    asioBuffers,
+                    [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t size)
+                    {
+                        if (enterHandler(wptr,callback,std::move(buffers)))
+                        {
+                            callback(makeBoostError(ec),size,std::move(buffers));
+                        }
+                    }
+                );
 }
 
 //---------------------------------------------------------------
