@@ -20,6 +20,8 @@ SET (HEADERS
     include/hatn/network/asio/udpchannel.h
     include/hatn/network/asio/caresolver.h
 
+    include/hatn/network/asio/detail/asiohandler.ipp
+
 #    include/hatn/network/resolverinterface.h
 
     include/hatn/network/socks5client.h
