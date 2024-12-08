@@ -101,7 +101,7 @@ struct ThreadCursorData
 };
 
 template <typename CursorDataT=ThreadCursorData>
-using ThreadCursorT=std::pair<common::ThreadId,CursorDataT>;
+using ThreadCursorT=std::pair<lib::string_view,CursorDataT>;
 
 template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
@@ -228,20 +228,21 @@ class ContextT
             m_globalVarMap.erase(key);
         }
 
-        void acquireThread(const common::ThreadId& id)
+        void acquireThread()
         {
             m_threadStack.emplace_back(
-                std::make_pair(id,ThreadCursorDataT{m_scopeStack.size()})
+                std::make_pair(common::Thread::currentThreadID(),ThreadCursorDataT{m_scopeStack.size()})
             );
         }
 
-        void releaseThread(const common::ThreadId& id)
+        void releaseThread()
         {
             if (m_threadStack.empty())
             {
                 return;
             }
 
+            lib::string_view id{common::Thread::currentThreadID()};
             int pos=int(m_threadStack.size())-1;
             for (;pos>=0;pos--)
             {
@@ -251,8 +252,32 @@ class ContextT
                 }
             }
 
-            Assert(pos>=0,"Can not release thread that was not aquired");
+            Assert(pos>=0,"Can not release thread that was not acquired");
             m_threadStack.resize(pos);
+        }
+
+        inline void enterAsyncHandler()
+        {
+            acquireThread();
+        }
+
+        inline void leaveAsyncHandler()
+        {
+            releaseThread();
+        }
+
+        inline void enterLoop()
+        {
+            Assert(!m_loopScopeIdx,"Nested loops not suported by LogContext");
+            m_loopScopeIdx=m_currentScopeIdx;
+        }
+
+        inline void leaveLoop()
+        {
+            Assert(m_loopScopeIdx,"Not in a loop by LogContext");
+            m_currentScopeIdx=m_loopScopeIdx.value();
+            restoreStackCursors();
+            m_loopScopeIdx.reset();
         }
 
         void setStackLockingEnabled(bool enable) noexcept
@@ -276,18 +301,9 @@ class ContextT
             m_lockStack=enable;
 
             // restore stack cursors to current scope
-            if (locked && !m_lockStack)
+            if (locked)
             {
-                m_scopeStack.resize(m_currentScopeIdx);
-                const auto* scopeCursor=currentScope();
-                if (scopeCursor!=nullptr)
-                {
-                    m_varStack.resize(scopeCursor->second.varStackOffset);
-                }
-                else
-                {
-                    m_varStack.clear();
-                }
+                restoreStackCursors();
             }
         }
 
@@ -377,6 +393,23 @@ class ContextT
 
     private:
 
+        void restoreStackCursors()
+        {
+            if (!m_lockStack)
+            {
+                m_scopeStack.resize(m_currentScopeIdx);
+                const auto* scopeCursor=currentScope();
+                if (scopeCursor!=nullptr)
+                {
+                    m_varStack.resize(scopeCursor->second.varStackOffset);
+                }
+                else
+                {
+                    m_varStack.clear();
+                }
+            }
+        }
+
         size_t m_currentScopeIdx;
         bool m_lockStack;
         LogLevel m_logLevel;
@@ -394,6 +427,7 @@ class ContextT
         common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
 
         bool m_enableStackLocking;
+        lib::optional<size_t> m_loopScopeIdx;
 };
 using Context=ContextT<>;
 using Subcontext=HATN_COMMON_NAMESPACE::TaskSubcontextT<Context>;
