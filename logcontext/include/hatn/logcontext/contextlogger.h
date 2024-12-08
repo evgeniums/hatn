@@ -64,8 +64,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_GET_ARG5(arg1, arg2, arg3, arg4, arg5, ...) arg5
 
 #define HATN_CTX_LOG_IF_1(Level,Module) \
-    {HATN_LOG_MODULE(Module)* _{nullptr}; std::ignore=_;} \
-    if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
+    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
             Level, \
             HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -96,12 +95,12 @@ HATN_LOGCONTEXT_NAMESPACE_END
     }
 
 #define HATN_CTX_LOG_IF_0(Level) \
-if (HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
-            Level, \
-            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context) \
-        ) \
-    )
+    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
+                HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
+                Level, \
+                HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context) \
+            ) \
+        )
 
 #define HATN_CTX_LOG_0(Level,Msg) \
     HATN_CTX_LOG_IF_0(Level) \
