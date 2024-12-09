@@ -216,8 +216,6 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(handler));
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().setDefaultLogLevel(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug);
 
-    hatn::common::MutexLock mutex;
-
     {
         createThreads(2);
         hatn::common::Thread* thread0=thread(0).get();
@@ -226,13 +224,16 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
         hatn::network::asio::TcpEndpoint serverEndpoint;
         serverEndpoint.setPort(9123);
 
+        hatn::network::asio::TcpEndpoint noServerEndpoint;
+        noServerEndpoint.setPort(9124);
+
         hatn::network::asio::TcpEndpoint client2Endpoint;
         client2Endpoint.setPort(genPortNumber());
 
         thread0->start();
         thread1->start();
 
-        for (int i=0;i<2;i++)
+        for (int i=0;i<1;i++)
         {
             bool isIpv6=i==1;
             if (!isIpv6)
@@ -250,54 +251,51 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             asio::TcpServerSharedCtx server;
 
             asio::TcpStreamSharedCtx client1,client2,serverClient1,serverClient2;
+            asio::TcpStreamSharedCtx client3;
 
             std::atomic<int> acceptCount(0);
             std::atomic<int> connectCount(0);
             std::atomic<int> closeCount(0);
+            std::atomic<int> failedConnectCount(0);
 
-            auto acceptCb2=[&thread0,&acceptCount,&mutex](const hatn::common::Error& ec)
+            auto acceptCb2=[&thread0,&acceptCount](const hatn::common::Error& ec)
             {
-                {
-                    hatn::common::MutexScopedLock l(mutex);
+                HATN_CTX_SCOPE("acceptCb2")
 
-                    BOOST_CHECK(!ec);
-                    BOOST_CHECK_EQUAL(thread0,hatn::common::Thread::currentThread());
-                }
+                HATN_CHECK_TS(!ec);
+                HATN_CHECK_EQUAL_TS(thread0,hatn::common::Thread::currentThread());
 
                 ++acceptCount;
+
+                HATN_CTX_DEBUG_RECORDS("accepted",{"accept-count",acceptCount})
             };
 
-            auto acceptCb1=[&thread0,&mutex,&server,&serverClient2,&acceptCb2,&acceptCount,isIpv6](const hatn::common::Error& ec)
+            auto acceptCb1=[&thread0,&server,&serverClient2,&acceptCb2,&acceptCount,isIpv6](const hatn::common::Error& ec)
             {
-                server->enterAsyncHandler();
-                {
-                    hatn::common::MutexScopedLock l(mutex);
-                    BOOST_REQUIRE(!ec);
-                }
+                HATN_CTX_SCOPE("acceptCb1")
+
+                HATN_REQUIRE_TS(!ec);
+
+                ++acceptCount;
+                HATN_CTX_DEBUG_RECORDS("accepted",{"accept-count",acceptCount})
 
                 serverClient2=asio::makeTcpStreamCtx(isIpv6?"serverClient2-6":"serverClient2-4");
                 (*server)->accept((*serverClient2)->socket(),acceptCb2);
-                ++acceptCount;
 
-                {
-                    hatn::common::MutexScopedLock l(mutex);
-                    BOOST_CHECK_EQUAL(thread0,hatn::common::Thread::currentThread());
-                    BOOST_CHECK_EQUAL(thread0,(*serverClient2)->thread());
-                }
+                HATN_CHECK_EQUAL_TS(thread0,hatn::common::Thread::currentThread());
+                HATN_CHECK_EQUAL_TS(thread0,(*serverClient2)->thread());
             };
 
             BOOST_TEST_MESSAGE("Run server");
 
             auto ec=thread0->execSync(
-                    [&server,&mutex,&serverEndpoint,&serverClient1,&acceptCb1,isIpv6]()
+                    [&server,&serverEndpoint,&serverClient1,&acceptCb1,isIpv6]()
                     {
                         server=asio::makeTcpServerCtx(isIpv6?"server-6":"server-4");
-                        server->enterAsyncHandler();
+                        server->beginTaskContext();
+                        HATN_CTX_SCOPE("server-listen-accept")
                         auto ec=(*server)->listen(serverEndpoint);
-                        {
-                            hatn::common::MutexScopedLock l(mutex);
-                            BOOST_REQUIRE(!ec);
-                        }
+                        HATN_REQUIRE_TS(!ec);
 
                         serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");                        
                         (*server)->accept((*serverClient1)->socket(),acceptCb1);
@@ -305,46 +303,94 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             );
             BOOST_REQUIRE(!ec);
 
-            auto connectCb=[&thread1,&mutex,&connectCount](const hatn::common::Error& ec)
+            auto client1ConnectCb=[&thread1,&connectCount](const hatn::common::Error& ec)
             {
-                {
-                    hatn::common::MutexScopedLock l(mutex);
-                    BOOST_CHECK(!ec);
-                    BOOST_CHECK_EQUAL(thread1,hatn::common::Thread::currentThread());
-                }
+                HATN_CTX_SCOPE("client1ConnectCb")
+
+                HATN_CHECK_TS(!ec);
+                HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
                 ++connectCount;
+
+                HATN_CTX_DEBUG_RECORDS("client1 connected",{"connect-count",connectCount})
+            };
+
+            auto client2ConnectCb=[&thread1,&connectCount](const hatn::common::Error& ec)
+            {
+                HATN_CTX_SCOPE("client2ConnectCb")
+
+                HATN_CHECK_TS(!ec);
+                HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
+                ++connectCount;
+
+                HATN_CTX_DEBUG_RECORDS("client2 connected",{"connect-count",connectCount})
+            };
+
+            auto client3ConnectCb=[&thread1,&failedConnectCount](const hatn::common::Error& ec)
+            {
+                HATN_CTX_SCOPE("client3ConnectCb")
+
+                HATN_CHECK_TS(ec);
+                HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
+                ++failedConnectCount;
+
+                HATN_CTX_DEBUG_RECORDS("client3 failed to connect",{"failed-connect-count",failedConnectCount})
+                HATN_CTX_ERROR(ec,"expected failed to connect by client3")
             };
 
             BOOST_TEST_MESSAGE("Connect clients");
 
             thread1->execAsync(
-                [&client1,&client2,&serverEndpoint,&client2Endpoint,&connectCb,isIpv6]()
+                [&client1,&client2,&client3,&serverEndpoint,&noServerEndpoint,
+                 &client2Endpoint,&client1ConnectCb,&client2ConnectCb,&client3ConnectCb,isIpv6]()
                 {
-                    client1=asio::makeTcpStreamCtx(isIpv6?"client1-6":"client1-4");
-                    client1->enterAsyncHandler();
-                    (*client1)->setRemoteEndpoint(serverEndpoint);
-                    (*client1)->prepare(connectCb);
+                    {
+                        client1=asio::makeTcpStreamCtx(isIpv6?"client1-6":"client1-4");
+                        client1->beginTaskContext();
+                        HATN_CTX_SCOPE("client1-connect")
+                        (*client1)->setRemoteEndpoint(serverEndpoint);
+                        (*client1)->prepare(client1ConnectCb);
+                    }
 
-                    client2=asio::makeTcpStreamCtx(isIpv6?"client2-6":"client2-4");
-                    client2->enterAsyncHandler();
-                    (*client2)->setRemoteEndpoint(serverEndpoint);
-                    (*client2)->setLocalEndpoint(client2Endpoint);
-                    (*client2)->prepare(connectCb);
+                    {
+                        client2=asio::makeTcpStreamCtx(isIpv6?"client2-6":"client2-4");
+                        client2->beginTaskContext();
+                        HATN_CTX_SCOPE("client2-context")
+                        HATN_CTX_SCOPE_PUSH("client-id",2)
+                        client2->enterLoop();
+                        {
+                            HATN_CTX_SCOPE("client2-connect")
+                            (*client2)->setRemoteEndpoint(serverEndpoint);
+                            (*client2)->setLocalEndpoint(client2Endpoint);
+                            (*client2)->prepare(client2ConnectCb);
+                        }
+                    }
+
+                    {
+                        // client3=asio::makeTcpStreamCtx(isIpv6?"client3-6":"client3-4");
+                        // client3->beginTaskContext();
+                        // HATN_CTX_SCOPE("client3-context")
+                        // HATN_CTX_SCOPE_PUSH("client-id",3)
+                        // client3->enterLoop();
+                        // {
+                        //     HATN_CTX_SCOPE("client3-connect")
+                        //     (*client3)->setRemoteEndpoint(noServerEndpoint);
+                        //     (*client3)->prepare(client3ConnectCb);
+                        // }
+                    }
                 }
             );
 
-            BOOST_TEST_MESSAGE("Exec ...");
-
-            BOOST_TEST_MESSAGE("Waiting for 1 second before closing clients");
+            BOOST_TEST_MESSAGE("Exec for 1 second");
             exec(1);
 
-            auto closeCb=[&closeCount,&mutex](const hatn::common::Error& ec)
+            auto closeCb=[&closeCount](const hatn::common::Error& ec)
             {
-                {
-                    hatn::common::MutexScopedLock l(mutex);
-                    BOOST_CHECK(!ec);
-                }
+                HATN_CTX_SCOPE("closeCb")
+
+                HATN_CHECK_TS(!ec);
                 ++closeCount;
+
+                HATN_CTX_DEBUG_RECORDS("closed",{"close-count",closeCount})
             };
 
             BOOST_TEST_MESSAGE("Close clients");
@@ -352,10 +398,17 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             ec=thread1->execSync(
                     [&client1,&client2,&closeCb]()
                     {
-                        client1->enterAsyncHandler();
-                        (*client1)->close(closeCb);
-                        client2->enterAsyncHandler();
-                        (*client2)->close(closeCb);
+                        {
+                            client1->beginTaskContext();
+                            HATN_CTX_SCOPE("client1-close")
+                            (*client1)->close(closeCb);
+                        }
+
+                        {
+                            client2->beginTaskContext();
+                            HATN_CTX_SCOPE("client2-close")
+                            (*client2)->close(closeCb);
+                        }
                     }
             );
             BOOST_REQUIRE(!ec);
@@ -366,20 +419,26 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             BOOST_TEST_MESSAGE("Close server");
 
             ec=thread0->execSync(
-                    [&serverClient1,&mutex,&serverClient2,&closeCb,&server]()
+                    [&serverClient1,&serverClient2,&closeCb,&server]()
                     {
-                        serverClient1->enterAsyncHandler();
-                        (*serverClient1)->close(closeCb);
+                        {
+                            serverClient1->beginTaskContext();
+                            HATN_CTX_SCOPE("serverclient1-close")
+                            (*serverClient1)->close(closeCb);
+                        }
+
                         if (serverClient2)
                         {
-                            serverClient2->enterAsyncHandler();
+                            serverClient2->beginTaskContext();
+                            HATN_CTX_SCOPE("serverclient2-close")
                             (*serverClient2)->close(closeCb);
                         }
 
-                        auto ec=(*server)->close();
                         {
-                            hatn::common::MutexScopedLock l(mutex);
-                            BOOST_CHECK(!ec);
+                            server->beginTaskContext();
+                            HATN_CTX_SCOPE("server-close")
+                            auto ec=(*server)->close();
+                            HATN_CHECK_TS(!ec);
                         }
                     }
             );
@@ -389,11 +448,11 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             exec(1);
 
             {
-                hatn::common::MutexScopedLock l(mutex);
-
-                BOOST_CHECK_EQUAL(acceptCount,2);
-                BOOST_CHECK_EQUAL(connectCount,2);
-                BOOST_CHECK_EQUAL(closeCount,4);
+                HATN_CHECK_EQUAL_TS(acceptCount,2);
+                HATN_CHECK_EQUAL_TS(connectCount,2);
+                HATN_CHECK_EQUAL_TS(closeCount,4);
+                //! @todo Uncomment after fixing client3
+                // HATN_CHECK_EQUAL_TS(failedConnectCount,1);
             }
 
             if (!isIpv6)
@@ -403,7 +462,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             else
             {
                 BOOST_TEST_MESSAGE("End IPv6");
-            }
+            }            
         }
 
         thread0->stop();

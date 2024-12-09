@@ -41,20 +41,21 @@
 #include <hatn/common/thread.h>
 #include <hatn/common/weakptr.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
-
-#include <hatn/common/loggermoduleimp.h>
-INIT_LOG_MODULE(asiotcpserver,HATN_NETWORK_EXPORT)
 
 HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServer,TcpServer)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
 
-namespace asio {
+namespace {
+    constexpr const char* LogModule="asio";
+}
 
-//! @todo Refactor TcpServer logging
+namespace asio {
 
 /*********************** TcpServer **************************/
 
@@ -94,6 +95,8 @@ Error TcpServer::listen(
         const TcpEndpoint &endpoint
     )
 {
+    HATN_CTX_SCOPE("tcpserverlisten")
+
     Error res;
     auto ep=endpoint.toBoostEndpoint();
 
@@ -116,12 +119,10 @@ Error TcpServer::listen(
         // listen for incoming connections
         d->acceptor.listen(listenBacklog);
 
-        // DCS_DEBUG_ID(asiotcpserver,HATN_FORMAT("TCP server is listening on {}:{}",endpoint.address().to_string(),endpoint.port()));
+        HATN_CTX_INFO_RECORDS_M("TCP server is listening",LogModule,{"local_ip",endpoint.address().to_string()},{"local_port",endpoint.port()})
     }
     catch (boost::system::system_error& ec)
-    {
-        // DCS_WARN_ID(asiotcpserver,HATN_FORMAT("TCP server failed to initialize for {}:{} ({}) {}",endpoint.address().to_string(),endpoint.port(),ec.code().value(),ec.what()));
-
+    {        
         // fill error
         res=makeBoostError(ec.code());
     }
@@ -136,11 +137,15 @@ void TcpServer::accept(
         TcpServer::Callback callback
     )
 {
+    HATN_CTX_SCOPE("tcpserveraccept")
+
     auto serverMainCtx=mainCtx().sharedFromThis();
     auto serverWptr=toWeakPtr(serverMainCtx);
 
+    mainCtx().acquireAsyncHandler();
     auto cb=[callback{std::move(callback)},
              serverWptr{std::move(serverWptr)},
+             &socket,
              this](const boost::system::error_code &ec)
     {
         auto serverMainCtx=serverWptr.lock();
@@ -149,19 +154,20 @@ void TcpServer::accept(
             callback(commonError(CommonError::ABORTED));
             return;
         }
+        mainCtx().releaseAsyncHandler();
 
-        if (!d->closed)
+        if (d->closed)
         {
-            if (ec && ec!=boost::system::errc::operation_canceled)
-            {
-                // DCS_WARN_ID(asiotcpserver,HATN_FORMAT("TCP server failed to accept ({}) {}",ec.value(),ec.message()));
-            }
-            else
-            {
-                // DCS_DEBUG_ID(asiotcpserver,HATN_FORMAT("New connection to TCP server from {}:{}",sPtr->socket().remote_endpoint().address().to_string(),sPtr->socket().remote_endpoint().port()));
-            }
-            callback(makeBoostError(ec));
+            callback(commonError(CommonError::ABORTED));
+            mainCtx().leaveLoop();
+            return;
         }
+        if (!ec)
+        {
+            HATN_CTX_DEBUG_RECORDS_M("new connection to TCP server",LogModule,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
+        }
+        callback(makeBoostError(ec));
+        mainCtx().leaveLoop();
     };
 
     d->acceptor.async_accept(socket.socket(),cb);
@@ -170,18 +176,16 @@ void TcpServer::accept(
 //---------------------------------------------------------------
 Error TcpServer::close()
 {
+    HATN_CTX_SCOPE("tcpserverclose")
+
     boost::system::error_code ec;
     if (!d->closed&&d->acceptor.is_open())
     {
         d->closed=true;
         d->acceptor.close(ec);
-        if (ec)
+        if (!ec)
         {
-            // DCS_WARN_ID(asiotcpserver,HATN_FORMAT("TCP server failed to close ({}) {}",ec.value(),ec.message()));
-        }
-        else
-        {
-            // DCS_DEBUG_ID(asiotcpserver,"TCP server closed");
+            HATN_CTX_DEBUG("TCP server closed",LogModule)
         }
     }
     return makeBoostError(ec);

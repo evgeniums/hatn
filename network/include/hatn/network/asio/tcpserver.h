@@ -28,8 +28,6 @@
 #include <hatn/network/asio/ipendpoint.h>
 #include <hatn/network/asio/socket.h>
 
-DECLARE_LOG_MODULE_EXPORT(asiotcpserver,HATN_NETWORK_EXPORT)
-
 HATN_NETWORK_NAMESPACE_BEGIN
 
 namespace asio {
