@@ -203,17 +203,33 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         {}
 
         /**
+         * @brief Method to invoke just before posting context to async handler.
+         */
+        void acquireAsyncHandler()
+        {
+            afterThreadProcessing();
+        }
+
+        /**
          * @brief Method to invoke just after the task enters async handler.
          */
-        void enterAsyncHandler()
+        void releaseAsyncHandler()
         {
             beforeThreadProcessing();
         }
 
         /**
-         * @brief Method to invoke just before the task leaves async handler.
+         * @brief Begin task context.
          */
-        void leaveAsyncHandler()
+        void beginTaskContext()
+        {
+            beforeThreadProcessing();
+        }
+
+        /**
+         * @brief End task context.
+         */
+        void endTaskContext()
         {
             afterThreadProcessing();
         }
@@ -426,15 +442,15 @@ class TaskSubcontext
         }
 
         template <typename T>
-        static auto hasAsyncHandlerFns(const T& arg)
+        static auto hasAsyncHandlerFns(T arg)
         {
-            return hana::is_valid([](const auto& v) -> decltype((void)hana::traits::declval(v).enterAsyncHandler()){})(arg);
+            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).acquireAsyncHandler()){})(arg);
         }
 
         template <typename T>
-        static auto hasLoopFns(const T& arg)
+        static auto hasLoopFns(T arg)
         {
-            return hana::is_valid([](const auto& v) -> decltype((void)hana::traits::declval(v).enterLoop()){})(arg);
+            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).enterLoop()){})(arg);
         }
 
     private:
@@ -667,10 +683,10 @@ class ActualTaskContext : public BaseTaskContext
                     using type=typename std::decay_t<decltype(subcontext)>;
                     ThreadSubcontext<type>::setValue(&subcontext);
                     hana::eval_if(
-                        TaskSubcontext::hasAsyncHandlerFns(subcontext),
+                        TaskSubcontext::hasAsyncHandlerFns(hana::type_c<type>),
                         [&](auto _)
                         {
-                            _(subcontext).enterAsyncHandler();
+                            _(subcontext).releaseAsyncHandler();
                         },
                         [&](auto)
                         {}
@@ -692,15 +708,14 @@ class ActualTaskContext : public BaseTaskContext
 
             boost::hana::for_each(
                 m_subcontexts,
-                [](const auto& subcontext)
+                [](auto& subcontext)
                 {
-                    using type=typename std::decay_t<decltype(subcontext)>;                    
-
+                    using type=typename std::decay_t<decltype(subcontext)>;
                     hana::eval_if(
-                        TaskSubcontext::hasAsyncHandlerFns(subcontext),
+                        TaskSubcontext::hasAsyncHandlerFns(hana::type_c<type>),
                         [&](auto _)
                         {
-                            _(subcontext).leaveAsyncHandler();
+                            _(subcontext).acquireAsyncHandler();
                         },
                         [&](auto)
                         {}
@@ -726,8 +741,9 @@ class ActualTaskContext : public BaseTaskContext
                 m_subcontexts,
                 [](auto& subcontext)
                 {
+                    using type=typename std::decay_t<decltype(subcontext)>;
                     hana::eval_if(
-                        TaskSubcontext::hasLoopFns(subcontext),
+                        TaskSubcontext::hasLoopFns(hana::type_c<type>),
                         [&](auto _)
                         {
                             _(subcontext).enterLoop();
@@ -754,8 +770,9 @@ class ActualTaskContext : public BaseTaskContext
                 m_subcontexts,
                 [](auto& subcontext)
                 {
+                    using type=typename std::decay_t<decltype(subcontext)>;
                     hana::eval_if(
-                        TaskSubcontext::hasLoopFns(subcontext),
+                        TaskSubcontext::hasLoopFns(hana::type_c<type>),
                         [&](auto _)
                         {
                             _(subcontext).leaveLoop();
