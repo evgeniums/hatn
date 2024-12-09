@@ -22,8 +22,6 @@
 #include "hatn_test_config.h"
 
 #include <hatn/common/datetime.h>
-#include <hatn/common/logger.h>
-#include <hatn/common/loggermoduleimp.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
@@ -34,9 +32,7 @@
 HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
 
-#define NONE_EXPORT
-DECLARE_LOG_MODULE_EXPORT(sample_module,NONE_EXPORT)
-INIT_LOG_MODULE(sample_module,NONE_EXPORT)
+constexpr const char* sample_module="sample_module";
 
 BOOST_AUTO_TEST_SUITE(TestLogContext)
 
@@ -167,6 +163,12 @@ BOOST_AUTO_TEST_CASE(FormatLogValue)
     BOOST_CHECK_EQUAL(str,r.toString());
 }
 
+template <typename T>
+static auto hasAsyncHandlerFns(T arg)
+{
+    return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).acquireAsyncHandler()){})(arg);
+}
+
 BOOST_AUTO_TEST_CASE(CreateLogContext)
 {
     BOOST_TEST_MESSAGE(fmt::format("Context size {}",sizeof(Context)));
@@ -179,17 +181,28 @@ BOOST_AUTO_TEST_CASE(CreateLogContext)
     BOOST_CHECK(tlCtx.value()==&sl);
 
     tlCtx.reset();
-    BOOST_CHECK(tlCtx.value()==nullptr);
+    BOOST_CHECK(tlCtx.value()==nullptr);    
 
     auto ctx=makeTaskContext<Context>();
+
+    const auto& subCtx=hana::front(ctx->subcontexts());
+    using subCtxT=std::decay_t<decltype(subCtx)>;
+    // auto& subCtx1=const_cast<subCtxT&>(subCtx);
+    // using t=typename decltype(subCtx.acquireAsyncHandler())::nothing;
+    // using t=typename decltype((void)hana::traits::declval(hana::type_c<subCtxT>))::nothing;
+    static_assert(decltype(TaskSubcontext::hasAsyncHandlerFns(hana::type_c<subCtxT>))::value,"");
+
+    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),0);
     ctx->beforeThreadProcessing();
     BOOST_CHECK(tlCtx.value()!=nullptr);
+    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),0);
 
     auto& subctx=ctx->get<Context>();
     BOOST_CHECK(tlCtx.value()==&subctx);
 
     ctx->afterThreadProcessing();
     BOOST_CHECK(tlCtx.value()==nullptr);
+    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),1);
 }
 
 #if 0

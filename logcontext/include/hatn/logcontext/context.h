@@ -77,6 +77,7 @@ struct ScopeCursorData
 {
     size_t scopeStackOffset=0;
     size_t varStackOffset=0;
+    size_t varStackSize=0;
     common::ThreadId threadId;
     const char* error;
 };
@@ -98,10 +99,13 @@ struct DefaultConfig
 struct ThreadCursorData
 {
     size_t scopeStackOffset=0;
+
+    ThreadCursorData(size_t scopeStackOffset=0) : scopeStackOffset(scopeStackOffset)
+    {}
 };
 
 template <typename CursorDataT=ThreadCursorData>
-using ThreadCursorT=std::pair<lib::string_view,CursorDataT>;
+using ThreadCursorT=CursorDataT;
 
 template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
@@ -160,7 +164,7 @@ class ContextT
         {
             m_currentScopeIdx++;
             Assert(m_currentScopeIdx<=config::ScopeDepth,"Reached depth of scope stack");
-            m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
+            m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
         }
 
         /**
@@ -188,7 +192,7 @@ class ContextT
             if (!m_threadStack.empty())
             {
                 const auto& threadCursor=m_threadStack.back();
-                freeScope=scopeCursor->second.scopeStackOffset>threadCursor.second.scopeStackOffset;
+                freeScope=scopeCursor->second.scopeStackOffset>threadCursor.scopeStackOffset;
             }
             if (freeScope)
             {
@@ -207,6 +211,8 @@ class ContextT
         void pushStackVar(const lib::string_view& key, T&& value)
         {
             m_varStack.emplace_back(key,std::forward<T>(value));
+            auto* scopeCursor=currentScope();
+            scopeCursor->second.varStackSize=m_varStack.size();
         }
 
         void popStackVar() noexcept
@@ -214,6 +220,8 @@ class ContextT
             if (!m_lockStack)
             {
                 m_varStack.pop_back();
+                auto* scopeCursor=currentScope();
+                scopeCursor->second.varStackSize=m_varStack.size();
             }
         }
 
@@ -231,37 +239,24 @@ class ContextT
         void acquireThread()
         {
             m_threadStack.emplace_back(
-                std::make_pair(common::Thread::currentThreadID(),ThreadCursorDataT{m_scopeStack.size()})
+                m_scopeStack.size()
             );
         }
 
         void releaseThread()
         {
-            if (m_threadStack.empty())
+            if (!m_threadStack.empty())
             {
-                return;
+                m_threadStack.pop_back();
             }
-
-            lib::string_view id{common::Thread::currentThreadID()};
-            int pos=int(m_threadStack.size())-1;
-            for (;pos>=0;pos--)
-            {
-                if (m_threadStack[pos].first==id)
-                {
-                    break;
-                }
-            }
-
-            Assert(pos>=0,"Can not release thread that was not acquired");
-            m_threadStack.resize(pos);
         }
 
-        inline void enterAsyncHandler()
+        inline void acquireAsyncHandler()
         {
             acquireThread();
         }
 
-        inline void leaveAsyncHandler()
+        inline void releaseAsyncHandler()
         {
             releaseThread();
         }
@@ -274,10 +269,16 @@ class ContextT
 
         inline void leaveLoop()
         {
-            Assert(m_loopScopeIdx,"Not in a loop by LogContext");
-            m_currentScopeIdx=m_loopScopeIdx.value();
-            restoreStackCursors();
-            m_loopScopeIdx.reset();
+            if (!m_loopScopeIdx)
+            {
+                m_currentScopeIdx=0;
+            }
+            else
+            {
+                m_currentScopeIdx=m_loopScopeIdx.value();
+                m_loopScopeIdx.reset();
+            }
+            restoreStackCursors();            
         }
 
         void setStackLockingEnabled(bool enable) noexcept
@@ -391,6 +392,11 @@ class ContextT
             return m_tags;
         }
 
+        const auto& threadStack() const noexcept
+        {
+            return m_threadStack;
+        }
+
     private:
 
         void restoreStackCursors()
@@ -401,7 +407,7 @@ class ContextT
                 const auto* scopeCursor=currentScope();
                 if (scopeCursor!=nullptr)
                 {
-                    m_varStack.resize(scopeCursor->second.varStackOffset);
+                    m_varStack.resize(scopeCursor->second.varStackSize);
                 }
                 else
                 {
