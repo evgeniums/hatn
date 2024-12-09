@@ -149,28 +149,74 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         /**
          * @brief Method to invoke just after the task enters a thread.
          */
-        virtual void beforeThreadProcessing();
+        virtual void beforeThreadProcessing()
+        {
+            beforeThreadProcessingNV();
+        }
 
         /**
          * @brief Method to invoke just before the task leaves a thread.
          */
-        virtual void afterThreadProcessing();
+        virtual void afterThreadProcessing()
+        {
+            afterThreadProcessingNV();
+        }
 
+        /**
+         * @brief Method to invoke just after the task enters async loop.
+         */
+        virtual void enterLoop()
+        {
+            enterLoopNV();
+        }
+
+        /**
+         * @brief Method to invoke just before the task leaves async loop.
+         */
+        virtual void leaveLoop()
+        {
+            leaveLoopNV();
+        }
+
+        /**
+         * @brief Non-virtual vertion of beforeThreadProcessing
+         */
+        void beforeThreadProcessingNV()
+        {}
+
+        /**
+         * @brief Non-virtual vertion of afterThreadProcessing
+         */
+        void afterThreadProcessingNV()
+        {}
+
+        /**
+         * @brief Non-virtual vertion of enterLoopNV
+         */
+        void enterLoopNV()
+        {}
+
+        /**
+         * @brief Non-virtual vertion of leaveLoopNV
+         */
+        void leaveLoopNV()
+        {}
+
+        /**
+         * @brief Method to invoke just after the task enters async handler.
+         */
         void enterAsyncHandler()
         {
             beforeThreadProcessing();
         }
 
+        /**
+         * @brief Method to invoke just before the task leaves async handler.
+         */
         void leaveAsyncHandler()
         {
             afterThreadProcessing();
         }
-
-        virtual void enterLoop()
-        {}
-
-        virtual void leaveLoop()
-        {}
 
         /**
          * @brief Get ID of the task.
@@ -513,7 +559,7 @@ class ThreadSubcontext
 /**
  * @brief Template for actual task contexts.
  *
- *  Actual task context is a main task context with a tuple of subcontexts.
+ *  Actual task context is a main task context containing a tuple of subcontexts.
  *  Actual task context must be derived either from TaskContext or from other ActualTaskContext.
  *
  *  To create an actual task context either makeTaskContext() or allocateTaskContext() helpers can be used.
@@ -544,12 +590,12 @@ class ActualTaskContext : public BaseTaskContext
 
         /**
          * @brief Constructor from tuples of tuples.
+         * @param tts Tuple of tuples to forward to constructors of subcontexts of this class.
          * @param baseTs Arguments to forward to base class.
-         * @param tts Tuple of tuples to forward to constructors of subcontexts.
          */
-        template <typename BaseTs, typename Tts>
-        ActualTaskContext(BaseTs&& baseTs, Tts&& tts):
-            BaseTaskContext(std::forward<BaseTs>(baseTs)),
+        template <typename Tts, typename ...BaseTs>
+        ActualTaskContext(Tts&& tts, BaseTs&& ...baseTs):
+            BaseTaskContext(std::forward<BaseTs>(baseTs)...),
             m_subcontexts(std::forward<Tts>(tts)),
             m_refs(subctxRefs())
         {
@@ -559,25 +605,7 @@ class ActualTaskContext : public BaseTaskContext
                 {
                     subCtx.setMainCtx(this);
                 }
-                );
-        }
-
-        /**
-         * @brief Constructor from tuples of tuples.
-         * @param tts Tuple of tuples to forward to constructors of subcontexts.
-         */
-        template <typename Tts>
-        ActualTaskContext(Tts&& tts)
-            : m_subcontexts(std::forward<Tts>(tts)),
-              m_refs(subctxRefs())
-        {
-            hana::for_each(
-                m_subcontexts,
-                [this](auto&& subCtx)
-                {
-                    subCtx.setMainCtx(this);
-                }
-                );
+            );
         }
 
         /**
@@ -592,11 +620,43 @@ class ActualTaskContext : public BaseTaskContext
         /**
          * @brief Method to invoke just after the task enters a thread.
          */
-        void beforeThreadProcessing() override
+        virtual void beforeThreadProcessing() override
+        {
+            beforeThreadProcessingNV();
+        }
+
+        /**
+         * @brief Method to invoke just before the task leaves a thread.
+         */
+        virtual void afterThreadProcessing() override
+        {
+            afterThreadProcessingNV();
+        }
+
+        /**
+         * @brief Method to invoke just after the task enters async loop.
+         */
+        virtual void enterLoop() override
+        {
+            enterLoopNV();
+        }
+
+        /**
+         * @brief Method to invoke just before the task leaves async loop.
+         */
+        virtual void leaveLoop() override
+        {
+            leaveLoopNV();
+        }
+
+        /**
+         * @brief Method to invoke just after the task enters a thread.
+         */
+        void beforeThreadProcessingNV()
         {
             hana::eval_if(
                 isNestedTaskContext,
-                [this](){BaseTaskContext::beforeThreadProcessing();},
+                [this](){BaseTaskContext::beforeThreadProcessingNV();},
                 [](){}
             );
 
@@ -622,11 +682,11 @@ class ActualTaskContext : public BaseTaskContext
         /**
          * @brief Method to invoke just before the task leaves a thread.
          */
-        void afterThreadProcessing() override
+        void afterThreadProcessingNV()
         {
             hana::eval_if(
                 isNestedTaskContext,
-                [this](){BaseTaskContext::afterThreadProcessing();},
+                [this](){BaseTaskContext::afterThreadProcessingNV();},
                 [](){}
             );
 
@@ -654,11 +714,11 @@ class ActualTaskContext : public BaseTaskContext
         /**
          * @brief Method to invoke just after the task enters a loop, usually async loop but can also be a recursion.
          */
-        void enterLoop() override
+        void enterLoopNV()
         {
             hana::eval_if(
                 isNestedTaskContext,
-                [this](){BaseTaskContext::enterLoop();},
+                [this](){BaseTaskContext::enterLoopNV();},
                 [](){}
             );
 
@@ -682,11 +742,11 @@ class ActualTaskContext : public BaseTaskContext
         /**
          * @brief Method to invoke just before the task leaves a loop, usually async loop but can also be a recursion.
          */
-        void leaveLoop() override
+        void leaveLoopNV()
         {
             hana::eval_if(
                 isNestedTaskContext,
-                [this](){BaseTaskContext::leaveLoop();},
+                [this](){BaseTaskContext::leaveLoopNV();},
                 [](){}
             );
 
@@ -744,20 +804,17 @@ class ActualTaskContext : public BaseTaskContext
                 }
             );
 
-            auto t=hana::type_c<subcontextT>;
-            auto b=hana::type_c<BaseTaskContext>;
-
+            const auto* self=this;
             return hana::eval_if(
                 hana::equal(wrapper,hana::nothing),
-                [&](auto _)
-                {
-                    using type=typename std::decay_t<decltype(_(t))>::type;
-                    static_assert(!std::is_same<type,TaskContext>::value,"Unknown context wrapper type");
+                [&](auto _) -> const TaskSubcontextT<T>&
+                {                    
+                    static_assert(!std::is_same<BaseTaskContext,TaskContext>::value,"Unknown context wrapper type");
 
-                    using base=typename std::decay_t<decltype(_(b))>::type;
-                    return base::template get<type>();
+                    const auto* base=static_cast<const BaseTaskContext*>(_(self));
+                    return base->template get<T>();
                 },
-                [&](auto _)
+                [&](auto _) -> const TaskSubcontextT<T>&
                 {
                     return _(wrapper).value();
                 }
@@ -775,35 +832,71 @@ class ActualTaskContext : public BaseTaskContext
             return const_cast<TaskSubcontextT<T>&>(constSelf->template get<T>());
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Const reference to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         const auto& get() const noexcept
         {
             using st=decltype(hana::size(m_subcontexts));
-            static_assert(st::value==1,"This method can be used only for contexts with single cubcontext");
+            static_assert(st::value==1,"This method can be used only for contexts with single subcontext");
             return hana::front(m_subcontexts);
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Const reference to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         const auto& operator *() const noexcept
         {
             return get();
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Const pointer to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         const auto* operator ->() const noexcept
         {
             return &get();
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Reference to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         auto& get() noexcept
         {
             using st=decltype(hana::size(m_subcontexts));
-            static_assert(st::value==1,"This method can be used only for contexts with single cubcontext");
+            static_assert(st::value==1,"This method can be used only for contexts with single subcontext");
             return hana::front(m_subcontexts);
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Reference to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         auto& operator *() noexcept
         {
             return get();
         }
 
+        /**
+         * @brief Get single subcontext of this context.
+         * @return Pointer to subcontext.
+         *
+         * @note Can be used only with single subcontexts.
+         */
         auto* operator ->() noexcept
         {
             return &get();
@@ -865,13 +958,13 @@ struct ActualTaskContexTraits
     constexpr static auto typeFn()
     {
         auto xs=hana::tuple_t<Types...>;
-        auto first=hana::front(xs);
-        using firstT=typename std::decay_t<decltype(first)>::type;
+        auto last=hana::back(xs);
+        using lastT=typename std::decay_t<decltype(last)>::type;
         auto tc=hana::eval_if(
-            hana::is_a<TaskContexTag,firstT>,
+            hana::is_a<TaskContexTag,lastT>,
             [&](auto _)
             {
-                return hana::make_pair(hana::drop_front(_(xs)),_(first));
+                return hana::make_pair(hana::drop_back(_(xs)),_(last));
             },
             [&](auto _)
             {
@@ -907,6 +1000,9 @@ struct ActualTaskContexTraits
 
 }
 
+template <typename ...Types>
+using TaskContextType=typename common::detail::ActualTaskContexTraits<Types...>::type;
+
 /**
  * @brief Helper to make actual task context.
  *
@@ -915,15 +1011,15 @@ struct ActualTaskContexTraits
  * be used as a base class for created ActualTaskContext.
  *
  * Arguments are forwarded to constructor of ActualTaskContext. For arguments packing use
- * basecontext(), subcontexts() and subcontext() heplers, e.g. :
+ * basecontext(), subcontexts() and subcontext() heplers, e.g.:
  * <pre>
- * auto ctx=makeTaskContext<Type1,Type2,Type3>(
- *              basecontext(base-ctor-args...),
+ * auto ctx=makeTaskContext<Type1,Type2,Type3>(              
  *              subcontexts(
  *                  subcontext(type1-ctor-args...),
  *                  subcontext(type2-ctor-args...),
  *                  subcontext(type3-ctor-args...)
- *              )
+ *              ),
+ *              basecontext(base-ctor-args...)
  *          );
  * </pre>
  */
@@ -932,10 +1028,10 @@ struct makeTaskContextT
 {
     using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
 
-    template <typename BaseArgs, typename SubcontextsArgs>
-    auto operator()(BaseArgs&& baseArgs, SubcontextsArgs&& subcontextsArgs) const
+    template <typename SubcontextsArgs, typename ...BaseArgs>
+    auto operator()(SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
     {
-        return makeShared<type>(std::forward<BaseArgs>(baseArgs),std::forward<SubcontextsArgs>(subcontextsArgs));
+        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs),std::forward<BaseArgs>(baseArgs)...);
     }
 
     template <typename SubcontextsArgs>
@@ -962,10 +1058,10 @@ struct allocateTaskContextT
 {
     using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
 
-    template <typename BaseArgs, typename SubcontextsArgs>
-    auto operator()(const pmr::polymorphic_allocator<type>& allocator, BaseArgs&& baseArgs, SubcontextsArgs&& subcontextsArgs) const
+    template <typename SubcontextsArgs, typename ...BaseArgs>
+    auto operator()(const pmr::polymorphic_allocator<type>& allocator, SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
     {
-        return allocateShared<type>(allocator,std::forward<BaseArgs>(baseArgs),std::forward<SubcontextsArgs>(subcontextsArgs));
+        return allocateShared<type>(allocator,std::forward<SubcontextsArgs>(subcontextsArgs),std::forward<BaseArgs>(baseArgs)...);
     }
 
     template <typename SubcontextsArgs>

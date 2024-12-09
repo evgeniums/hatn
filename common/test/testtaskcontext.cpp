@@ -327,6 +327,23 @@ struct makeTaskContextT1
 template <typename ...Types>
 constexpr makeTaskContextT1<Types...> makeTaskContext1{};
 
+struct B1
+{
+    B1(uint32_t val=0):val1(val)
+    {}
+
+    uint32_t val1;
+};
+using B1Ctx=common::TaskContextType<B1>;
+
+struct B2
+{
+    B2(std::string val=std::string()):val1(val)
+    {}
+
+    std::string val1;
+};
+
 }
 
 HATN_TASK_CONTEXT_DECLARE(A1)
@@ -337,6 +354,12 @@ HATN_TASK_CONTEXT_DEFINE(A2)
 
 HATN_TASK_CONTEXT_DECLARE(A3,HATN_NO_EXPORT)
 HATN_TASK_CONTEXT_DEFINE(A3)
+
+HATN_TASK_CONTEXT_DECLARE(B1)
+HATN_TASK_CONTEXT_DEFINE(B1)
+
+HATN_TASK_CONTEXT_DECLARE(B2)
+HATN_TASK_CONTEXT_DEFINE(B2)
 
 BOOST_AUTO_TEST_SUITE(TestTaskContext)
 
@@ -386,10 +409,10 @@ BOOST_AUTO_TEST_CASE(MakeContext)
 
     std::cout << "Create ctx1" << std::endl;
     ActualTaskContext<std::tuple<A1Ctx>> ctx1{
-        std::forward_as_tuple("ctx1"),
         std::forward_as_tuple(
             std::forward_as_tuple(uint32_t(100),"Hello!",100.20,a0,A00{},A01{})
-        )
+        ),
+        "ctx1"
     };
 
     auto& subctx1=ctx1.get<A1>();
@@ -400,30 +423,30 @@ BOOST_AUTO_TEST_CASE(MakeContext)
 
     std::cout << "Create ctx2" << std::endl;
     auto ctx2=makeTaskContext1<A1>(
-                    basecontext("ctx2"),
                     subcontexts(
                         subcontext(uint32_t(100),"Hello!",100.20,a0,A00{},A01{})
-                    )
+                    ),
+                    "ctx2"
                 );
 
     std::cout << "Create ctx3_" << std::endl;
     ActualTaskContext<std::tuple<A1Ctx,A2Ctx>> ctx3_{
-        std::forward_as_tuple("ctx3_"),
         std::forward_as_tuple(
                 std::forward_as_tuple(uint32_t(100),"Hello!",100.20,a0,A00{},A01{}),
                 std::forward_as_tuple(uint32_t(200),"Hi!",200.10,a0,A00{},A01{})
-            )
+            ),
+        "ctx3_"
     };
     std::ignore=ctx3_;
 
     std::cout << "Create ctx3" << std::endl;
     auto ctx3=makeTaskContext<A1,A2,A3>(
-                basecontext("ctx3"),
                 subcontexts(
                     subcontext(uint32_t(100),"Hello!",100.20,a0,A00{},A01{}),
                     subcontext(uint32_t(200),"Hi!",200.10,a0,A00{},A01{}),
                     subcontext()
-                )
+                ),
+                "ctx3"
             );
     BOOST_CHECK_EQUAL(std::string(ctx3->id()),std::string("ctx3"));
     auto& subctx3_1=ctx3->get<A1>();
@@ -460,12 +483,12 @@ BOOST_AUTO_TEST_CASE(MakeContext)
     pmr::polymorphic_allocator<ctx5Type> alloc5;
     auto ctx5=allocateTaskContext<A1,A2,A3>(
         alloc5,
-        basecontext("ctx5"),
         subcontexts(
             subcontext(uint32_t(100),"Hello!",100.20,a0,A00{},A01{}),
             subcontext(uint32_t(200),"Hi!",200.10,a0,A00{},A01{}),
             subcontext()
-            )
+            ),
+        "ctx5"
         );
     BOOST_CHECK_EQUAL(std::string(ctx5->id()),std::string("ctx5"));
     auto& subctx5_1=ctx5->get<A1>();
@@ -497,6 +520,174 @@ BOOST_AUTO_TEST_CASE(MakeContext)
     BOOST_CHECK_EQUAL(subctx6_2.var1,200);
     BOOST_CHECK_EQUAL(subctx6_2.var2,std::string("Hi!"));
     BOOST_TEST(subctx6_2.var3==200.10,tt::tolerance(0.001));
+}
+
+BOOST_AUTO_TEST_CASE(NestedContext)
+{
+    auto xs=hana::tuple_t<B2,B1Ctx>;
+    auto last=hana::back(xs);
+    using lastT=typename decltype(last)::type;
+    static_assert(hana::is_a<TaskContexTag,lastT>,"");
+    auto tc=hana::make_pair(hana::drop_back(xs),last);
+    auto base=hana::second(tc);
+
+    auto wrappersC=hana::transform(
+        hana::first(tc),
+        [](auto&& v)
+        {
+            using type=typename std::decay_t<decltype(v)>::type;
+            return hana::eval_if(
+                hana::is_a<TaskSubcontextTag,type>,
+                [&](auto&&)
+                {
+                    return hana::type_c<type>;
+                },
+                [&](auto&&)
+                {
+                    return hana::type_c<TaskSubcontextT<type>>;
+                }
+                );
+        }
+        );
+    using wrappersT=common::tupleCToStdTupleType<std::decay_t<decltype(wrappersC)>>;
+    auto tmpl=hana::template_<ActualTaskContext>(hana::type_c<wrappersT>,base);
+    using type0=typename decltype(tmpl)::type;
+    type0 tt0;
+    type0 tt1{
+        subcontexts(
+            subcontext("Hello!")
+        )
+    };
+    B1Ctx b1{
+        subcontexts(
+            subcontext(100)
+        ),
+        basecontext("ctx3")
+    };
+    static_assert(std::is_base_of<B1Ctx,type0>::value,"");
+    type0 tt2(
+        subcontexts(
+            subcontext("Hello!")
+        ),
+        subcontexts(
+            subcontext(100)
+        ),
+        basecontext("ctx3")
+    );
+
+    using type1=TaskContextType<B2,B1Ctx>;
+    type1 ctx0;
+    type1 ctx1(
+        subcontexts(
+            subcontext("Hello!")
+        ),
+        subcontexts(
+            subcontext(100)
+        ),
+        "ctx1"
+    );
+    type1 ctx2(
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            )
+    );
+    type1 ctx3(
+        subcontexts(
+            subcontext("Hello!")
+            )
+    );
+    type1 ctx4;
+
+    BOOST_CHECK_EQUAL(std::string(ctx1.id()),std::string("ctx1"));
+    BOOST_CHECK_EQUAL(ctx1.get().val1,std::string("Hello!"));
+    BOOST_CHECK_EQUAL(ctx1.get<B1>().val1,100);
+
+    auto sctx1=makeTaskContext<B2,B1Ctx>(
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            ),
+        "ctx1"
+        );
+    auto sctx2=makeTaskContext<B2,B1Ctx>(
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            )
+        );
+    auto sctx3=makeTaskContext<B2,B1Ctx>(
+        subcontexts(
+            subcontext("Hello!")
+            )
+        );
+    auto sctx4=makeTaskContext<B2,B1Ctx>();
+    auto sctx5=makeTaskContext<B2,B1Ctx>(
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            ),
+        basecontext("ctx5",3)
+    );
+    auto sctx6=makeTaskContext<B2,B1Ctx>(
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            ),
+        "ctx6",
+        5
+    );
+
+    BOOST_CHECK_EQUAL(std::string(sctx1->id()),std::string("ctx1"));
+    BOOST_CHECK_EQUAL(sctx1->get().val1,std::string("Hello!"));
+    BOOST_CHECK_EQUAL(sctx1->get<B1>().val1,100);
+    BOOST_CHECK_EQUAL(std::string(sctx5->id()),std::string("ctx5"));
+    BOOST_CHECK_EQUAL(static_cast<int>(sctx5->tz()),static_cast<int>(3));
+    BOOST_CHECK_EQUAL(std::string(sctx6->id()),std::string("ctx6"));
+    BOOST_CHECK_EQUAL(static_cast<int>(sctx6->tz()),static_cast<int>(5));
+
+    pmr::polymorphic_allocator<TaskContextType<B2,B1Ctx>> alloc;
+    auto actx1=allocateTaskContext<B2,B1Ctx>(
+        alloc,
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            ),
+        "ctx1"
+        );
+    auto actx2=allocateTaskContext<B2,B1Ctx>(
+        alloc,
+        subcontexts(
+            subcontext("Hello!")
+            ),
+        subcontexts(
+            subcontext(100)
+            )
+        );
+    auto actx3=allocateTaskContext<B2,B1Ctx>(
+        alloc,
+        subcontexts(
+            subcontext("Hello!")
+            )
+        );
+    auto actx4=allocateTaskContext<B2,B1Ctx>(alloc);
+
+    BOOST_CHECK_EQUAL(std::string(actx1->id()),std::string("ctx1"));
+    BOOST_CHECK_EQUAL(actx1->get().val1,std::string("Hello!"));
+    BOOST_CHECK_EQUAL(actx1->get<B1>().val1,100);
+    BOOST_CHECK_EQUAL(b1.get<B1>().val1,100);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

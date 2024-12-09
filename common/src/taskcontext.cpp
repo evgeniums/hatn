@@ -38,18 +38,6 @@ std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextI
 
 //---------------------------------------------------------------
 
-void TaskContext::beforeThreadProcessing()
-{
-}
-
-//---------------------------------------------------------------
-
-void TaskContext::afterThreadProcessing()
-{
-}
-
-//---------------------------------------------------------------
-
 Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(const lib::string_view& id)
 {
     if (id.size()<TaskContextId::capacity())
