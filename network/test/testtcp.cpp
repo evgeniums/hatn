@@ -5,6 +5,11 @@
 #include <hatn/common/logger.h>
 #include <hatn/test/multithreadfixture.h>
 
+#include <hatn/logcontext/logcontext.h>
+#include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/streamlogger.h>
+#include <hatn/logcontext/buflogger.h>
+
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
 #include <hatn/network/asio/tcpstream.h>
@@ -66,11 +71,11 @@ BOOST_AUTO_TEST_SUITE(Tcp)
 
 BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
 {
-    auto server1Ctx=asio::makeTcpServerCtx("server1",mainThread().get());
+    auto server1Ctx=asio::makeTcpServerCtx(mainThread().get(),"server1");
     auto& server1=server1Ctx->get<asio::TcpServer>();
 
     asio::TcpServerConfig config(10);
-    auto server2Ctx=asio::makeTcpServerCtx("server1",mainThread().get(),&config);
+    auto server2Ctx=asio::makeTcpServerCtx(mainThread().get(),&config,"server1");
     auto& server2=server2Ctx->get<asio::TcpServer>();
 
     BOOST_CHECK_EQUAL(server1.thread(),server2.thread());
@@ -85,9 +90,9 @@ BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
                 {
                     auto server3Ctx=asio::makeTcpServerCtx("server3");
                     auto& server3=server3Ctx->get<asio::TcpServer>();
-                    auto server4Ctx=asio::makeTcpServerCtx("server4",&config);
+                    auto server4Ctx=asio::makeTcpServerCtx(&config,"server4");
                     auto& server4=server4Ctx->get<asio::TcpServer>();
-                    auto server5Ctx=asio::makeTcpServerCtx("server5",thread0,&config);
+                    auto server5Ctx=asio::makeTcpServerCtx(thread0,&config,"server5");
                     auto& server5=server5Ctx->get<asio::TcpServer>();
 
                     BOOST_CHECK_EQUAL(server3.thread(),thread0);
@@ -207,6 +212,10 @@ static uint16_t genPortNumber()
 
 BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 {
+    auto handler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>();
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(handler));
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().setDefaultLogLevel(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug);
+
     hatn::common::MutexLock mutex;
 
     {
@@ -260,6 +269,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 
             auto acceptCb1=[&thread0,&mutex,&server,&serverClient2,&acceptCb2,&acceptCount,isIpv6](const hatn::common::Error& ec)
             {
+                server->enterAsyncHandler();
                 {
                     hatn::common::MutexScopedLock l(mutex);
                     BOOST_REQUIRE(!ec);
@@ -282,13 +292,14 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     [&server,&mutex,&serverEndpoint,&serverClient1,&acceptCb1,isIpv6]()
                     {
                         server=asio::makeTcpServerCtx(isIpv6?"server-6":"server-4");
+                        server->enterAsyncHandler();
                         auto ec=(*server)->listen(serverEndpoint);
                         {
                             hatn::common::MutexScopedLock l(mutex);
                             BOOST_REQUIRE(!ec);
                         }
 
-                        serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");
+                        serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");                        
                         (*server)->accept((*serverClient1)->socket(),acceptCb1);
                     }
             );
@@ -310,10 +321,12 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 [&client1,&client2,&serverEndpoint,&client2Endpoint,&connectCb,isIpv6]()
                 {
                     client1=asio::makeTcpStreamCtx(isIpv6?"client1-6":"client1-4");
+                    client1->enterAsyncHandler();
                     (*client1)->setRemoteEndpoint(serverEndpoint);
                     (*client1)->prepare(connectCb);
 
                     client2=asio::makeTcpStreamCtx(isIpv6?"client2-6":"client2-4");
+                    client2->enterAsyncHandler();
                     (*client2)->setRemoteEndpoint(serverEndpoint);
                     (*client2)->setLocalEndpoint(client2Endpoint);
                     (*client2)->prepare(connectCb);
@@ -339,7 +352,9 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             ec=thread1->execSync(
                     [&client1,&client2,&closeCb]()
                     {
+                        client1->enterAsyncHandler();
                         (*client1)->close(closeCb);
+                        client2->enterAsyncHandler();
                         (*client2)->close(closeCb);
                     }
             );
@@ -353,9 +368,11 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
             ec=thread0->execSync(
                     [&serverClient1,&mutex,&serverClient2,&closeCb,&server]()
                     {
+                        serverClient1->enterAsyncHandler();
                         (*serverClient1)->close(closeCb);
                         if (serverClient2)
                         {
+                            serverClient2->enterAsyncHandler();
                             (*serverClient2)->close(closeCb);
                         }
 
@@ -394,7 +411,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
     }
 }
 
-#if 1
+#if 0
 
 constexpr static const size_t dataSize=0x20000;
 

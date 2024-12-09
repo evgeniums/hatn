@@ -19,6 +19,8 @@
 #ifndef HATNASIOTCPSTREAM_H
 #define HATNASIOTCPSTREAM_H
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/network/network.h>
 #include <hatn/network/reliablestream.h>
 
@@ -127,29 +129,37 @@ class HATN_NETWORK_EXPORT TcpStream : public common::TaskSubcontext,
 
 struct makeTcpStreamCtxT
 {
-    auto operator()(const lib::string_view& id, common::Thread* thread) const
+    template <typename ...BaseArgs>
+    auto operator()(common::Thread* thread, BaseArgs&&... args) const
     {
-        return common::makeTaskContext<TcpStream>(
-            common::basecontext(id),
-            common::subcontexts(
-                common::subcontext(thread)
-                )
+        return common::makeTaskContext<TcpStream,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+                common::subcontexts(
+                    common::subcontext(thread)
+                ),
+                common::subcontexts(
+                    common::subcontext()
+                ),
+                std::forward<BaseArgs>(args)...
             );
     }
 
-    auto operator()(const lib::string_view& id) const
+    template <typename ...BaseArgs>
+    auto operator()(BaseArgs&&... args) const
     {
-        return common::makeTaskContext<TcpStream>(
-            common::basecontext(id),
-            common::subcontexts(
-                common::subcontext()
-                )
+        return common::makeTaskContext<TcpStream,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+                common::subcontexts(
+                    common::subcontext()
+                    ),
+                common::subcontexts(
+                    common::subcontext()
+                    ),
+                std::forward<BaseArgs>(args)...
             );
     }
 
     auto operator()() const
     {
-        return common::makeTaskContext<TcpStream>();
+        return common::makeTaskContext<TcpStream,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>();
     }
 };
 constexpr makeTcpStreamCtxT makeTcpStreamCtx{};

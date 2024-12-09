@@ -22,6 +22,8 @@
 #include <hatn/common/error.h>
 #include <hatn/common/taskcontext.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/network/network.h>
 #include <hatn/network/asio/ipendpoint.h>
 #include <hatn/network/asio/socket.h>
@@ -83,24 +85,93 @@ class HATN_NETWORK_EXPORT TcpServer : public common::TaskSubcontext, public comm
 
 struct makeTcpServerCtxT
 {
-    auto operator()(const lib::string_view& id, common::Thread* thread,const TcpServerConfig* config=nullptr) const
+    template <typename ...BaseArgs>
+    auto operator()(common::Thread* thread, const TcpServerConfig* config, BaseArgs&&... args) const
     {
-        return common::makeTaskContext<TcpServer>(
-            common::basecontext(id),
-            common::subcontexts(
-                common::subcontext(thread,config)
-                )
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+                common::subcontexts(
+                    common::subcontext(thread,config)
+                    ),
+                common::subcontexts(
+                    common::subcontext()
+                    ),
+                std::forward<BaseArgs>(args)...
             );
     }
 
-    auto operator()(const lib::string_view& id, const TcpServerConfig* config=nullptr) const
+    template <typename ...BaseArgs>
+    auto operator()(common::Thread* thread, TcpServerConfig* config, BaseArgs&&... args) const
     {
-        return common::makeTaskContext<TcpServer>(
-            common::basecontext(id),
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+            common::subcontexts(
+                common::subcontext(thread,config)
+                ),
+            common::subcontexts(
+                common::subcontext()
+                ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+
+    template <typename ...BaseArgs>
+    auto operator()(common::Thread* thread, BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+                common::subcontexts(
+                    common::subcontext(thread)
+                    ),
+                common::subcontexts(
+                    common::subcontext()
+                    ),
+                std::forward<BaseArgs>(args)...
+            );
+    }
+
+    template <typename ...BaseArgs>
+    auto operator()(const TcpServerConfig* config, BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+                common::subcontexts(
+                    common::subcontext(config)
+                    ),
+                common::subcontexts(
+                    common::subcontext()
+                    ),
+                std::forward<BaseArgs>(args)...
+            );
+    }
+
+    template <typename ...BaseArgs>
+    auto operator()(TcpServerConfig* config, BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
             common::subcontexts(
                 common::subcontext(config)
-                )
+                ),
+            common::subcontexts(
+                common::subcontext()
+                ),
+            std::forward<BaseArgs>(args)...
             );
+    }
+
+    template <typename ...BaseArgs>
+    auto operator()(BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+            common::subcontexts(
+                common::subcontext()
+                ),
+            common::subcontexts(
+                common::subcontext()
+                ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+
+    auto operator()() const
+    {
+        return common::makeTaskContext<TcpServer,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>();
     }
 };
 constexpr makeTcpServerCtxT makeTcpServerCtx{};

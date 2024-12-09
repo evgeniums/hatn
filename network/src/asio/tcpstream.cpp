@@ -120,7 +120,7 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
                 HATN_CTX_WARN_RECORDS_M("failed to close",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
                 throw boost::system::system_error(ec);
             }
-            HATN_CTX_DEBUG("closed",LogModule)
+            HATN_CTX_DEBUG("stream closed",LogModule)
         }
         catch (const boost::system::system_error& e)
         {
@@ -170,7 +170,7 @@ void TcpStreamTraits::prepare(
             rawSocket().bind(localEp,ec);
             if (!ec)
             {
-                HATN_CTX_DEBUG("local socket bound",LogModule);
+                HATN_CTX_DEBUG("socket bound",LogModule);
             }
             else
             {
@@ -210,7 +210,7 @@ void TcpStreamTraits::prepare(
                             return;
                         }
 
-                        HATN_CTX_SCOPE("connect-cb")
+                        HATN_CTX_SCOPE("tcpconnectcb")
 
                         if (!ec)
                         {
@@ -220,7 +220,7 @@ void TcpStreamTraits::prepare(
                                 HATN_CTX_SCOPE_PUSH("local_ip",m_stream->localEndpoint().address().to_string())
                                 HATN_CTX_SCOPE_PUSH("local_port",m_stream->localEndpoint().port())
                             }
-                            HATN_CTX_DEBUG("connected",LogModule);
+                            HATN_CTX_DEBUG("client connected",LogModule);
                         }
                         else
                         {
