@@ -60,8 +60,8 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
         typedef std::thread::id NativeID;
 
         //! Constructor
-        Thread(
-            ThreadId id="unknown", //!< Thread's ID
+        explicit Thread(
+            lib::string_view id="unknown", //!< Thread's ID
             bool newThread=true //!< If false then no actual thread will be started, only asioContext will run
         );
 

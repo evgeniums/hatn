@@ -194,7 +194,7 @@ class Thread_p
         uint32_t timerIncId;
 
         Thread_p(
-                ThreadId id,
+                lib::string_view id,
                 bool newThread
             ) : id(std::move(id)),
                 newThread(newThread),
@@ -212,7 +212,7 @@ class Thread_p
 
 //---------------------------------------------------------------
 Thread::Thread(
-        ThreadId id,
+        lib::string_view id,
         bool newThread
     ) : d(std::make_unique<Thread_p>(std::move(id),newThread))
 {
