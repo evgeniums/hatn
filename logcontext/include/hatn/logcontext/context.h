@@ -432,6 +432,27 @@ class ContextT
 using Context=ContextT<>;
 using Subcontext=HATN_COMMON_NAMESPACE::TaskSubcontextT<Context>;
 
+struct makeLogCtxT
+{
+    template <typename ...BaseArgs>
+    auto operator()(BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<Context>(
+                common::subcontexts(
+                    common::subcontext()
+                ),
+                std::forward<BaseArgs>(args)...
+            );
+    }
+
+    auto operator()() const
+    {
+        return common::makeTaskContext<Context>();
+    }
+};
+constexpr makeLogCtxT makeLogCtx{};
+using LogCtxType=common::TaskContextType<Context>;
+
 HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
