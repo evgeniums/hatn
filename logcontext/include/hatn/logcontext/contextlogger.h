@@ -68,7 +68,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
             HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
             Level, \
             HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
-            #Module ) \
+            Module ) \
     )
 
 #define HATN_CTX_LOG_1(Level,Msg,Module) \
@@ -78,7 +78,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
             Level, \
             HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
             Msg, \
-            #Module \
+            Module \
         ); \
     }
 
@@ -90,7 +90,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
-                      #Module \
+                      Module \
                     ); \
     }
 
@@ -186,7 +186,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       {__VA_ARGS__}, \
-                      #Module \
+                      Module \
                     ); \
     }
 
@@ -199,7 +199,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
                       {__VA_ARGS__}, \
-                      #Module \
+                      Module \
                     ); \
     }
 

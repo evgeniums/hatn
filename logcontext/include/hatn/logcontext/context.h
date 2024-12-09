@@ -175,14 +175,14 @@ class ContextT
                 m_lockStack=true;
             }
             auto* scopeCursor=currentScope();
-            Assert(scopeCursor!=nullptr,"Forbidden in empty scope stack");
+            Assert(scopeCursor!=nullptr,"describeScopeError() forbidden in empty scope stack");
             scopeCursor->second.error=err;
         }
 
         void leaveScope()
         {
             const auto* scopeCursor=currentScope();
-            Assert(scopeCursor!=nullptr,"Forbidden in empty scope stack");
+            Assert(scopeCursor!=nullptr,"leaveScope() forbidden in empty scope stack");
             bool freeScope=true;
 
             if (!m_threadStack.empty())
