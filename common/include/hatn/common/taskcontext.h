@@ -163,22 +163,6 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         }
 
         /**
-         * @brief Method to invoke just after the task enters async loop.
-         */
-        virtual void enterLoop()
-        {
-            enterLoopNV();
-        }
-
-        /**
-         * @brief Method to invoke just before the task leaves async loop.
-         */
-        virtual void leaveLoop()
-        {
-            leaveLoopNV();
-        }
-
-        /**
          * @brief Non-virtual vertion of beforeThreadProcessing
          */
         void beforeThreadProcessingNV()
@@ -191,21 +175,9 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         {}
 
         /**
-         * @brief Non-virtual vertion of enterLoopNV
+         * @brief Method to invoke in the end of async handler.
          */
-        void enterLoopNV()
-        {}
-
-        /**
-         * @brief Non-virtual vertion of leaveLoopNV
-         */
-        void leaveLoopNV()
-        {}
-
-        /**
-         * @brief Method to invoke just before posting context to async handler.
-         */
-        void acquireAsyncHandler()
+        void onAsyncHandlerExit()
         {
             afterThreadProcessing();
         }
@@ -213,7 +185,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         /**
          * @brief Method to invoke just after the task enters async handler.
          */
-        void releaseAsyncHandler()
+        void onAsyncHandlerEnter()
         {
             beforeThreadProcessing();
         }
@@ -444,13 +416,7 @@ class TaskSubcontext
         template <typename T>
         static auto hasAsyncHandlerFns(T arg)
         {
-            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).acquireAsyncHandler()){})(arg);
-        }
-
-        template <typename T>
-        static auto hasLoopFns(T arg)
-        {
-            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).enterLoop()){})(arg);
+            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).onAsyncHandlerEnter()){})(arg);
         }
 
     private:
@@ -650,22 +616,6 @@ class ActualTaskContext : public BaseTaskContext
         }
 
         /**
-         * @brief Method to invoke just after the task enters async loop.
-         */
-        virtual void enterLoop() override
-        {
-            enterLoopNV();
-        }
-
-        /**
-         * @brief Method to invoke just before the task leaves async loop.
-         */
-        virtual void leaveLoop() override
-        {
-            leaveLoopNV();
-        }
-
-        /**
          * @brief Method to invoke just after the task enters a thread.
          */
         void beforeThreadProcessingNV()
@@ -686,7 +636,7 @@ class ActualTaskContext : public BaseTaskContext
                         TaskSubcontext::hasAsyncHandlerFns(hana::type_c<type>),
                         [&](auto _)
                         {
-                            _(subcontext).releaseAsyncHandler();
+                            _(subcontext).onAsyncHandlerEnter();
                         },
                         [&](auto)
                         {}
@@ -715,71 +665,13 @@ class ActualTaskContext : public BaseTaskContext
                         TaskSubcontext::hasAsyncHandlerFns(hana::type_c<type>),
                         [&](auto _)
                         {
-                            _(subcontext).acquireAsyncHandler();
+                            _(subcontext).onAsyncHandlerExit();
                         },
                         [&](auto)
                         {}
                     );
 
                     ThreadSubcontext<type>::setValue(nullptr);
-                }
-            );
-        }
-
-        /**
-         * @brief Method to invoke just after the task enters a loop, usually async loop but can also be a recursion.
-         */
-        void enterLoopNV()
-        {
-            hana::eval_if(
-                isNestedTaskContext,
-                [this](){BaseTaskContext::enterLoopNV();},
-                [](){}
-            );
-
-            boost::hana::for_each(
-                m_subcontexts,
-                [](auto& subcontext)
-                {
-                    using type=typename std::decay_t<decltype(subcontext)>;
-                    hana::eval_if(
-                        TaskSubcontext::hasLoopFns(hana::type_c<type>),
-                        [&](auto _)
-                        {
-                            _(subcontext).enterLoop();
-                        },
-                        [&](auto)
-                        {}
-                    );
-                }
-            );
-        }
-
-        /**
-         * @brief Method to invoke just before the task leaves a loop, usually async loop but can also be a recursion.
-         */
-        void leaveLoopNV()
-        {
-            hana::eval_if(
-                isNestedTaskContext,
-                [this](){BaseTaskContext::leaveLoopNV();},
-                [](){}
-            );
-
-            boost::hana::for_each(
-                m_subcontexts,
-                [](auto& subcontext)
-                {
-                    using type=typename std::decay_t<decltype(subcontext)>;
-                    hana::eval_if(
-                        TaskSubcontext::hasLoopFns(hana::type_c<type>),
-                        [&](auto _)
-                        {
-                            _(subcontext).leaveLoop();
-                        },
-                        [&](auto)
-                        {}
-                    );
                 }
             );
         }
