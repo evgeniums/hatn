@@ -69,6 +69,8 @@ struct Env : public ::hatn::test::MultiThreadFixture
 
 BOOST_AUTO_TEST_SUITE(Tcp)
 
+#if 1
+
 BOOST_FIXTURE_TEST_CASE(TcpServerCtor,Env)
 {
     auto server1Ctx=asio::makeTcpServerCtx(mainThread().get(),"server1");
@@ -209,6 +211,7 @@ static uint16_t genPortNumber()
     uint16_t maxPort=31000;
     return (minPort + (rand() % static_cast<uint16_t>(maxPort - minPort + 1)));
 }
+#endif
 
 BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 {
@@ -226,6 +229,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 
         hatn::network::asio::TcpEndpoint noServerEndpoint;
         noServerEndpoint.setPort(9124);
+        noServerEndpoint.setAddress("127.0.0.1");
 
         hatn::network::asio::TcpEndpoint client2Endpoint;
         client2Endpoint.setPort(genPortNumber());
@@ -233,6 +237,15 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
         thread0->start();
         thread1->start();
 
+        thread0->execSync(
+            []()
+            {
+                auto client3=asio::makeTcpStreamCtx("client3-6");
+                client3.reset();
+            }
+        );
+
+#if 1
         for (int i=0;i<1;i++)
         {
             bool isIpv6=i==1;
@@ -334,7 +347,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 ++failedConnectCount;
 
                 HATN_CTX_DEBUG_RECORDS("client3 failed to connect",{"failed-connect-count",failedConnectCount})
-                HATN_CTX_ERROR(ec,"expected failed to connect by client3")
+                HATN_CTX_ERROR(ec,"expected failure to connect by client3")
             };
 
             BOOST_TEST_MESSAGE("Connect clients");
@@ -366,16 +379,16 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     }
 
                     {
-                        // client3=asio::makeTcpStreamCtx(isIpv6?"client3-6":"client3-4");
-                        // client3->beginTaskContext();
-                        // HATN_CTX_SCOPE("client3-context")
-                        // HATN_CTX_SCOPE_PUSH("client-id",3)
-                        // client3->enterLoop();
-                        // {
-                        //     HATN_CTX_SCOPE("client3-connect")
-                        //     (*client3)->setRemoteEndpoint(noServerEndpoint);
-                        //     (*client3)->prepare(client3ConnectCb);
-                        // }
+                        client3=asio::makeTcpStreamCtx(isIpv6?"client3-6":"client3-4");
+                        client3->beginTaskContext();
+                        HATN_CTX_SCOPE("client3-context")
+                        HATN_CTX_SCOPE_PUSH("client-id",3)
+                        client3->enterLoop();
+                        {
+                            HATN_CTX_SCOPE("client3-connect")
+                            (*client3)->setRemoteEndpoint(noServerEndpoint);
+                            (*client3)->prepare(client3ConnectCb);
+                        }
                     }
                 }
             );
@@ -451,8 +464,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_CHECK_EQUAL_TS(acceptCount,2);
                 HATN_CHECK_EQUAL_TS(connectCount,2);
                 HATN_CHECK_EQUAL_TS(closeCount,4);
-                //! @todo Uncomment after fixing client3
-                // HATN_CHECK_EQUAL_TS(failedConnectCount,1);
+                HATN_CHECK_EQUAL_TS(failedConnectCount,1);
             }
 
             if (!isIpv6)
@@ -464,7 +476,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 BOOST_TEST_MESSAGE("End IPv6");
             }            
         }
-
+#endif
         thread0->stop();
         thread1->stop();
     }

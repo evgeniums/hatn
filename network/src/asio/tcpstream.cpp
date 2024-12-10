@@ -98,6 +98,11 @@ void TcpStreamTraits::cancel()
 //---------------------------------------------------------------
 void TcpStreamTraits::close(const std::function<void (const Error &)> &callback, bool destroying)
 {
+    if (destroying)
+    {
+        return;
+    }
+
     HATN_CTX_SCOPE("tcpstreamclose")
 
     common::Error ret;
@@ -107,13 +112,10 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         {
             boost::system::error_code ec;
 
-            if (!destroying)
+            rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
+            if (ec)
             {
-                rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
-                if (ec)
-                {
-                    HATN_CTX_WARN_RECORDS_M("failed to shutdown",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
-                }
+                HATN_CTX_WARN_RECORDS_M("failed to shutdown",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
             }
 
             rawSocket().lowest_layer().close(ec);
@@ -130,17 +132,20 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         }
     }
 
-    m_stream->mainCtx().acquireAsyncHandler();
-    m_stream->thread()->execAsync(
-        [callback{std::move(callback)},wptr{ctxWeakPtr()},ret{std::move(ret)},this]()
-        {
-            if (detail::enterHandler(wptr,callback))
+    if (callback)
+    {
+        m_stream->mainCtx().acquireAsyncHandler();
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},ret{std::move(ret)},this]()
             {
-                callback(ret);
-                m_stream->mainCtx().leaveLoop();
+                if (detail::enterHandler(wptr,callback))
+                {
+                    callback(ret);
+                    m_stream->mainCtx().leaveLoop();
+                }
             }
-        }
-    );
+        );
+    }
 }
 
 //---------------------------------------------------------------
