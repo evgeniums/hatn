@@ -546,6 +546,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         template <typename BufT>
         inline void boostCatCodeString(const boost::system::error_category* cat, BufT& buf) const
         {
+            //! @todo Handle boost system errors in more convenient way
             fmt::format_to(std::back_inserter(buf),"boost-{}-{}({})",cat->name(),m_code,cat->message(m_code));
         }
 };
