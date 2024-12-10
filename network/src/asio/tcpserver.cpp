@@ -46,6 +46,8 @@
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
 
+#include <hatn/network/asio/detail/asiohandler.ipp>
+
 HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServer,TcpServer)
 
 HATN_NETWORK_NAMESPACE_BEGIN
@@ -137,12 +139,9 @@ void TcpServer::accept(
         TcpServer::Callback callback
     )
 {
-    HATN_CTX_SCOPE("tcpserveraccept")
-
     auto serverMainCtx=mainCtx().sharedFromThis();
     auto serverWptr=toWeakPtr(serverMainCtx);
 
-    mainCtx().acquireAsyncHandler();
     auto cb=[callback{std::move(callback)},
              serverWptr{std::move(serverWptr)},
              &socket,
@@ -154,12 +153,12 @@ void TcpServer::accept(
             callback(commonError(CommonError::ABORTED));
             return;
         }
-        mainCtx().releaseAsyncHandler();
+        mainCtx().onAsyncHandlerEnter();
+        HATN_CTX_SCOPE("tcpserveraccept")
 
         if (d->closed)
         {
             callback(commonError(CommonError::ABORTED));
-            mainCtx().leaveLoop();
             return;
         }
         if (!ec)
@@ -167,7 +166,7 @@ void TcpServer::accept(
             HATN_CTX_DEBUG_RECORDS_M("new connection to TCP server",LogModule,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
         }
         callback(makeBoostError(ec));
-        mainCtx().leaveLoop();
+        mainCtx().onAsyncHandlerExit();
     };
 
     d->acceptor.async_accept(socket.socket(),cb);

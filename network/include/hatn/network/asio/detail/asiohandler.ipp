@@ -38,7 +38,7 @@ bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& ca
         callback(commonError(CommonError::ABORTED));
         return false;
     }
-    ctx->releaseAsyncHandler();
+    ctx->onAsyncHandlerEnter();
     return true;
 }
 
@@ -51,7 +51,7 @@ bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& ca
         callback(commonError(CommonError::ABORTED),size);
         return false;
     }
-    ctx->releaseAsyncHandler();
+    ctx->onAsyncHandlerEnter();
     return true;
 }
 
@@ -70,8 +70,13 @@ bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& ca
         callback(commonError(CommonError::ABORTED),0,std::forward<BuffersT>(buffers));
         return false;
     }
-    ctx->releaseAsyncHandler();
+    ctx->onAsyncHandlerEnter();
     return true;
+}
+
+inline void leaveHandler(common::TaskContext& ctx)
+{
+    ctx.onAsyncHandlerExit();
 }
 
 }

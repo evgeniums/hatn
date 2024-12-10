@@ -87,7 +87,8 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
 
         TcpStream* m_stream;
 
-        common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
+        inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
+        inline void leaveHandler();
 };
 
 //! Stream over ASIO TCP socket

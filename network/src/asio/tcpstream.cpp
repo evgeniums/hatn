@@ -134,14 +134,14 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
 
     if (callback)
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},ret{std::move(ret)},this]()
             {
                 if (detail::enterHandler(wptr,callback))
                 {
+                    HATN_CTX_SCOPE("tcpstreamclose")
                     callback(ret);
-                    m_stream->mainCtx().leaveLoop();
+                    m_stream->mainCtx().onAsyncHandlerExit();
                 }
             }
         );
@@ -194,14 +194,14 @@ void TcpStreamTraits::prepare(
     // return if error
     if (ec)
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},ec{std::move(ec)},this]()
             {
                 if (detail::enterHandler(wptr,callback))
                 {
+                    HATN_CTX_SCOPE("tcpstreamprepare")
                     callback(makeBoostError(ec));
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
@@ -209,7 +209,6 @@ void TcpStreamTraits::prepare(
     }
 
     // connect to remote endpoint
-    m_stream->mainCtx().acquireAsyncHandler();
     rawSocket().async_connect(
                     ep,
                     [bind,callback{std::move(callback)},ep,wptr{ctxWeakPtr()},this](const boost::system::error_code &ec)
@@ -218,6 +217,7 @@ void TcpStreamTraits::prepare(
                         {
                             return;
                         }
+                        HATN_CTX_SCOPE("tcpsocketconnect")
 
                         if (!ec)
                         {
@@ -231,20 +231,19 @@ void TcpStreamTraits::prepare(
                         }
                         else
                         {
-                            // HATN_CTX_SCOPE_ERROR("socket-connect")
-                            // if (rawSocket().lowest_layer().is_open())
-                            // {
-                            //     boost::system::error_code ec1;
-                            //     rawSocket().lowest_layer().close(ec1);
-                            //     if (ec1)
-                            //     {
-                            //         HATN_CTX_WARN_RECORDS_M("failed to close",LogModule,{"err_code",ec1.value()},{"err_msg",ec1.message()})
-                            //     }
-                            // }
+                            if (rawSocket().lowest_layer().is_open())
+                            {
+                                boost::system::error_code ec1;
+                                rawSocket().lowest_layer().close(ec1);
+                                if (ec1)
+                                {
+                                    HATN_CTX_WARN_RECORDS_M("failed to close",LogModule,{"err_code",ec1.value()},{"err_msg",ec1.message()})
+                                }
+                            }
                         }
 
                         callback(makeBoostError(ec));
-                        m_stream->mainCtx().leaveLoop();
+                        leaveHandler();
                     }
                 );
 }
@@ -258,14 +257,14 @@ void TcpStreamTraits::read(
 {
     if (!m_stream->isActive())
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},this]()
             {
                 if (detail::enterHandler(wptr,callback,0))
                 {
+                    HATN_CTX_SCOPE("tcpsocketread")
                     callback(makeBoostError(boost::asio::error::eof),0);
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
@@ -274,21 +273,19 @@ void TcpStreamTraits::read(
 
     if (buf==nullptr || maxSize==0)
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},this]()
             {
                 if (detail::enterHandler(wptr,callback,0))
                 {
                     callback(common::Error(),0);
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
         return;
     }
 
-    m_stream->mainCtx().acquireAsyncHandler();
     rawSocket().async_receive(
                 boost::asio::buffer(buf,maxSize),
                 [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
@@ -296,7 +293,7 @@ void TcpStreamTraits::read(
                         if (detail::enterHandler(wptr,callback,0))
                         {
                             callback(makeBoostError(ec),size);
-                            m_stream->mainCtx().leaveLoop();
+                            leaveHandler();
                         }
                     }
                 );
@@ -311,14 +308,13 @@ void TcpStreamTraits::write(
 {
     if (!m_stream->isActive())
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},this]()
             {
                 if (detail::enterHandler(wptr,callback,0))
                 {
                     callback(makeBoostError(boost::asio::error::eof),0);
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
@@ -327,21 +323,19 @@ void TcpStreamTraits::write(
 
     if (buf==nullptr || size==0)
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},this]()
             {
                 if (detail::enterHandler(wptr,callback,0))
                 {
                     callback(common::Error(),0);
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
         return;
     }
 
-    m_stream->mainCtx().acquireAsyncHandler();
     rawSocket().async_send(
                     boost::asio::buffer(buf,size),
                     [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
@@ -349,7 +343,7 @@ void TcpStreamTraits::write(
                         if (detail::enterHandler(wptr,callback,0))
                         {
                             callback(makeBoostError(ec),size);
-                            m_stream->mainCtx().leaveLoop();
+                            leaveHandler();
                         }
                     }
                 );
@@ -363,14 +357,13 @@ void TcpStreamTraits::write(
 {
     if (!m_stream->isActive())
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this]()
             {
                 if (detail::enterHandler(wptr,callback,std::move(buffers)))
                 {
                     callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
@@ -379,14 +372,13 @@ void TcpStreamTraits::write(
 
     if (buffers.empty())
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this]()
             {
                 if (detail::enterHandler(wptr,callback,std::move(buffers)))
                 {
                     callback(common::Error(),0,std::move(buffers));
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
@@ -396,21 +388,19 @@ void TcpStreamTraits::write(
     pmr::vector<boost::asio::const_buffer> asioBuffers;
     if (!fillAsioBuffers(buffers,asioBuffers))
     {
-        m_stream->mainCtx().acquireAsyncHandler();
         m_stream->thread()->execAsync(
             [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this]()
             {
                 if (detail::enterHandler(wptr,callback,std::move(buffers)))
                 {
                     callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffers));
-                    m_stream->mainCtx().leaveLoop();
+                    leaveHandler();
                 }
             }
         );
         return;
     }
 
-    m_stream->mainCtx().acquireAsyncHandler();
     rawSocket().async_send(
                     asioBuffers,
                     [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t size)
@@ -418,7 +408,7 @@ void TcpStreamTraits::write(
                         if (detail::enterHandler(wptr,callback,std::move(buffers)))
                         {
                             callback(makeBoostError(ec),size,std::move(buffers));
-                            m_stream->mainCtx().leaveLoop();
+                            leaveHandler();
                         }
                     }
                 );
@@ -426,9 +416,16 @@ void TcpStreamTraits::write(
 
 //---------------------------------------------------------------
 
-common::WeakPtr<common::TaskContext> TcpStreamTraits::ctxWeakPtr() const
+inline common::WeakPtr<common::TaskContext> TcpStreamTraits::ctxWeakPtr() const
 {
     return toWeakPtr(m_stream->mainCtx().sharedFromThis());
+}
+
+//---------------------------------------------------------------
+
+inline void TcpStreamTraits::leaveHandler()
+{
+    m_stream->mainCtx().onAsyncHandlerExit();
 }
 
 //---------------------------------------------------------------

@@ -21,43 +21,14 @@ HATN_NETWORK_USING
 
 namespace {
 
-#if 0
-static void setLogHandler()
-{
-    auto handler=[](const ::hatn::common::FmtAllocatedBufferChar &s)
-    {
-        #ifdef HATN_TEST_LOG_CONSOLE
-            std::cout<<::hatn::common::lib::toStringView(s)<<std::endl;
-        #else
-            std::ignore=s;
-        #endif
-    };
-
-    ::hatn::common::Logger::setOutputHandler(handler);
-    ::hatn::common::Logger::setFatalLogHandler(handler);
-    // ::hatn::common::Logger::setDefaultVerbosity(::hatn::common::LoggerVerbosity::DEBUG);
-}
-#endif
 struct Env : public ::hatn::test::MultiThreadFixture
 {
     Env()
     {
-#if 0
-        if (!::hatn::common::Logger::isRunning())
-        {
-            ::hatn::common::Logger::setFatalTracing(false);
-
-            setLogHandler();
-            ::hatn::common::Logger::start();
-        }
-#endif
     }
 
     ~Env()
     {
-#if 0
-        ::hatn::common::Logger::stop();
-#endif
     }
 
     Env(const Env&)=delete;
@@ -237,7 +208,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
         thread0->start();
         thread1->start();
 
-        thread0->execSync(
+        std::ignore=thread0->execSync(
             []()
             {
                 auto client3=asio::makeTcpStreamCtx("client3-6");
@@ -312,6 +283,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 
                         serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");                        
                         (*server)->accept((*serverClient1)->socket(),acceptCb1);
+                        server->onAsyncHandlerExit();
                     }
             );
             BOOST_REQUIRE(!ec);
@@ -362,6 +334,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                         HATN_CTX_SCOPE("client1-connect")
                         (*client1)->setRemoteEndpoint(serverEndpoint);
                         (*client1)->prepare(client1ConnectCb);
+                        client1->onAsyncHandlerExit();
                     }
 
                     {
@@ -369,12 +342,13 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                         client2->beginTaskContext();
                         HATN_CTX_SCOPE("client2-context")
                         HATN_CTX_SCOPE_PUSH("client-id",2)
-                        client2->enterLoop();
+                        HATN_CTX_STACK_BARRIER_ON("client2-context")
                         {
                             HATN_CTX_SCOPE("client2-connect")
                             (*client2)->setRemoteEndpoint(serverEndpoint);
                             (*client2)->setLocalEndpoint(client2Endpoint);
                             (*client2)->prepare(client2ConnectCb);
+                            client2->onAsyncHandlerExit();
                         }
                     }
 
@@ -383,11 +357,12 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                         client3->beginTaskContext();
                         HATN_CTX_SCOPE("client3-context")
                         HATN_CTX_SCOPE_PUSH("client-id",3)
-                        client3->enterLoop();
+                        HATN_CTX_STACK_BARRIER_ON("client2-context")
                         {
                             HATN_CTX_SCOPE("client3-connect")
                             (*client3)->setRemoteEndpoint(noServerEndpoint);
                             (*client3)->prepare(client3ConnectCb);
+                            client3->onAsyncHandlerExit();
                         }
                     }
                 }
@@ -415,12 +390,14 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                             client1->beginTaskContext();
                             HATN_CTX_SCOPE("client1-close")
                             (*client1)->close(closeCb);
+                            client1->onAsyncHandlerExit();
                         }
 
                         {
                             client2->beginTaskContext();
                             HATN_CTX_SCOPE("client2-close")
                             (*client2)->close(closeCb);
+                            client2->onAsyncHandlerExit();
                         }
                     }
             );
@@ -438,6 +415,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                             serverClient1->beginTaskContext();
                             HATN_CTX_SCOPE("serverclient1-close")
                             (*serverClient1)->close(closeCb);
+                            serverClient1->onAsyncHandlerExit();
                         }
 
                         if (serverClient2)
@@ -445,6 +423,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                             serverClient2->beginTaskContext();
                             HATN_CTX_SCOPE("serverclient2-close")
                             (*serverClient2)->close(closeCb);
+                            serverClient2->onAsyncHandlerExit();
                         }
 
                         {
@@ -452,6 +431,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                             HATN_CTX_SCOPE("server-close")
                             auto ec=(*server)->close();
                             HATN_CHECK_TS(!ec);
+                            server->onAsyncHandlerExit();
                         }
                     }
             );
@@ -598,14 +578,14 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
             readNext(ec,0,&serverClient->get(),serverRxSize,serverRecvBuf,checkDone);
             HATN_REQUIRE_TS(!ec);
 
-            // HATN_CTX_DEBUG("server write")
+            HATN_CTX_DEBUG("server write")
             (*serverClient)->write(serverSendBuf.data(),serverSendBuf.size(),
                                 [](const hatn::common::Error& ec1, size_t size)
                                 {
                                     HATN_REQUIRE_TS(!ec1);
                                     HATN_CHECK_EQUAL_TS(size,dataSize);
                                 }
-                        );            
+                        );
         };
 
         BOOST_TEST_MESSAGE("Run server");
@@ -623,6 +603,7 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                             serverClient=asio::makeTcpStreamCtx(isIpv6?"serverClient-6":"serverClient-4");
                             HATN_CTX_DEBUG("accept")
                             (*server)->accept((*serverClient)->socket(),acceptCb);
+                            server->onAsyncHandlerExit();
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -631,52 +612,66 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         clientSendBuf1,clientSendBuf2,
                         &clientRecvBuf,&clientRxSize](const hatn::common::Error& ec)
         {
-            HATN_CTX_SCOPE("connectCb")
+            {
+                HATN_CTX_SCOPE("connectCb")
 
-            HATN_REQUIRE_TS(!ec);
-            HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
+                HATN_REQUIRE_TS(!ec);
+                HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
 
-            HATN_CTX_DEBUG("connected")
+                hatn::common::SpanBuffers bufs;
+                bufs.push_back(
+                                hatn::common::SpanBuffer(clientSendBuf1)
+                            );
+                size_t offset=dataSize/4;
+                bufs.push_back(
+                                hatn::common::SpanBuffer(clientSendBuf2,offset,dataSize/4)
+                            );
+                offset+=dataSize/4;
+                bufs.push_back(
+                                hatn::common::SpanBuffer(clientSendBuf2,offset,dataSize/4)
+                            );
+                offset+=dataSize/4;
 
-            hatn::common::SpanBuffers bufs;
-            bufs.push_back(
-                            hatn::common::SpanBuffer(clientSendBuf1)
-                        );
-            size_t offset=dataSize/4;
-            bufs.push_back(
-                            hatn::common::SpanBuffer(clientSendBuf2,offset,dataSize/4)
-                        );
-            offset+=dataSize/4;
-            bufs.push_back(
-                            hatn::common::SpanBuffer(clientSendBuf2,offset,dataSize/4)
-                        );
-            offset+=dataSize/4;
+                HATN_CTX_DEBUG("before readNext")
+                readNext(ec,0,&client->get(),clientRxSize,clientRecvBuf,checkDone);
+                HATN_CTX_DEBUG("after readNext")
 
-            readNext(ec,0,&client->get(),clientRxSize,clientRecvBuf,checkDone);
-
-            (*client)->write(std::move(bufs),
-                                [client,offset,clientSendBuf2](const hatn::common::Error& ec1, size_t size, const hatn::common::SpanBuffers&)
-                                {
-                                    HATN_CTX_SCOPE("writeCb")
-
-                                    HATN_REQUIRE_TS(!ec1);
-                                    HATN_CHECK_EQUAL_TS(size,dataSize-dataSize/4);
-
-                                    HATN_CTX_DEBUG_RECORDS("written",{"writtenSize",size})
-
-                                    auto&& cb1=[](const hatn::common::Error& ec2, size_t size2, const hatn::common::SpanBuffer&)
+                HATN_CTX_DEBUG("before write")
+                (*client)->write(std::move(bufs),
+                                    [client,offset,clientSendBuf2](const hatn::common::Error& ec1, size_t size, const hatn::common::SpanBuffers&)
                                     {
-                                        HATN_CTX_SCOPE("writeCb1")
-                                        HATN_CTX_DEBUG_RECORDS("written",{"writtenSize2",size2})
+                                        HATN_CTX_SCOPE("writeCb")
 
-                                        HATN_REQUIRE_TS(!ec2);
-                                        HATN_CHECK_EQUAL_TS(size2,dataSize/4);
-                                    };
+                                        HATN_REQUIRE_TS(!ec1);
+                                        HATN_CHECK_EQUAL_TS(size,dataSize-dataSize/4);
 
-                                    hatn::common::SpanBuffer buf(clientSendBuf2,offset,dataSize/4);
-                                    (*client)->write(std::move(buf),cb1);
-                                }
-                        );            
+                                        HATN_CTX_DEBUG_RECORDS("written",{"writtenSize",size})
+
+                                        auto&& cb1=[](const hatn::common::Error& ec2, size_t size2, const hatn::common::SpanBuffer&)
+                                        {
+                                            HATN_CTX_SCOPE("writeCb1")
+                                            HATN_CTX_DEBUG_RECORDS("written",{"writtenSize2",size2})
+
+                                            HATN_REQUIRE_TS(!ec2);
+                                            HATN_CHECK_EQUAL_TS(size2,dataSize/4);
+                                        };
+
+                                        hatn::common::SpanBuffer buf(clientSendBuf2,offset,dataSize/4);
+                                        (*client)->write(std::move(buf),cb1);
+                                    }
+                            );
+                HATN_CTX_DEBUG("after write")
+            }
+
+            HATN_CTX_STACK_BARRIER_OFF("client-prepare")
+            HATN_CTX_DEBUG("after barrier off")
+            HATN_CTX_SCOPE("client-run-1")
+            HATN_CTX_STACK_BARRIER_ON("client-run")
+            {
+                HATN_CTX_SCOPE("client-run-2")
+                HATN_CTX_STACK_BARRIER_ON("client-run2")
+            }
+            HATN_CTX_DEBUG("after new barrier on")
         };
 
         BOOST_TEST_MESSAGE("Connect clients");
@@ -686,10 +681,20 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         {
                             client=asio::makeTcpStreamCtx(isIpv6?"client-6":"client-4");
                             client->beginTaskContext();
-                            HATN_CTX_SCOPE("client-connect")
-                            HATN_CTX_DEBUG("connecting")
-                            (*client)->setRemoteEndpoint(serverEndpoint);
-                            (*client)->prepare(connectCb);
+                            HATN_CTX_SCOPE("client-context")
+                            HATN_CTX_STACK_BARRIER_ON("client-context")
+                            {
+                                HATN_CTX_SCOPE("client-prepare")
+                                HATN_CTX_STACK_BARRIER_ON("client-prepare")
+                                {
+                                    HATN_CTX_SCOPE("client-connect")
+                                    HATN_CTX_STACK_BARRIER_ON("client-connect")
+                                    HATN_CTX_DEBUG("connecting")
+                                    (*client)->setRemoteEndpoint(serverEndpoint);
+                                    (*client)->prepare(connectCb);
+                                    client->onAsyncHandlerExit();
+                                }
+                            }
                         }
         );
 
@@ -707,8 +712,10 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         [&client,&closeCb]()
                         {
                             client->beginTaskContext();
+                            HATN_CTX_STACK_BARRIER_RESTORE("client-context")
                             HATN_CTX_SCOPE("client-close")
                             (*client)->close(closeCb);
+                            client->onAsyncHandlerExit();
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -722,12 +729,14 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                                 serverClient->beginTaskContext();
                                 HATN_CTX_SCOPE("serverclient-close")
                                 (*serverClient)->close(closeCb);
+                                serverClient->onAsyncHandlerExit();
                             }
 
                             {
                                 server->beginTaskContext();
                                 HATN_CTX_SCOPE("server-close")
                                 auto ec=(*server)->close();
+                                server->onAsyncHandlerExit();
                                 HATN_CHECK_TS(!ec);
                             }
                         }
