@@ -14,6 +14,7 @@ ADD_HATN_CTESTS(network ${TEST_SOURCES} ${TEST_HEADERS})
 
 FUNCTION(TestNetwork)
     COPY_LIBRARY_HERE(hatncommon${LIB_POSTFIX} ../common/)
+    COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
     COPY_LIBRARY_HERE(hatnnetwork${LIB_POSTFIX} ../network/)
 ENDFUNCTION(TestNetwork)
 
