@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file network/asio/detail/asiohandler.ipp
+/** @file network/detail/asynchandler.ipp
   *
   */
 
@@ -25,12 +25,10 @@
 
 HATN_NETWORK_NAMESPACE_BEGIN
 
-namespace asio {
-
 namespace detail {
 
 template <typename Fn>
-bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback)
+bool enterAsyncHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback)
 {
     auto ctx=wptr.lock();
     if (!ctx)
@@ -43,7 +41,7 @@ bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& ca
 }
 
 template <typename Fn>
-bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, size_t size)
+bool enterAsyncHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, size_t size)
 {
     auto ctx=wptr.lock();
     if (!ctx)
@@ -56,32 +54,30 @@ bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& ca
 }
 
 template <typename Fn>
-bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, int size)
+bool enterAsyncHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, int size)
 {
-    return enterHandler(wptr,callback,static_cast<size_t>(size));
+    return enterAsyncHandler(wptr,callback,static_cast<size_t>(size));
 }
 
-template <typename Fn, typename BuffersT>
-bool enterHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, BuffersT&& buffers)
+template <typename Fn, typename ArgT>
+bool enterAsyncHandler(const common::WeakPtr<common::TaskContext>& wptr, const Fn& callback, ArgT&& arg)
 {
     auto ctx=wptr.lock();
     if (!ctx)
     {
-        callback(commonError(CommonError::ABORTED),0,std::forward<BuffersT>(buffers));
+        callback(commonError(CommonError::ABORTED),0,std::forward<ArgT>(arg));
         return false;
     }
     ctx->onAsyncHandlerEnter();
     return true;
 }
 
-inline void leaveHandler(common::TaskContext& ctx)
+inline void leaveAsyncHandler(common::TaskContext& ctx)
 {
     ctx.onAsyncHandlerExit();
 }
 
 }
-
-} // namespace asio
 
 HATN_NETWORK_NAMESPACE_END
 

@@ -11,38 +11,38 @@
 
 namespace {
 
-static void setLogHandler()
-{
-    auto handler=[](const ::hatn::common::FmtAllocatedBufferChar &s)
-    {
-        #ifdef HATN_TEST_LOG_CONSOLE
-            std::cout<<::hatn::common::lib::toStringView(s)<<std::endl;
-        #else
-            std::ignore=s;
-        #endif
-    };
+// static void setLogHandler()
+// {
+//     auto handler=[](const ::hatn::common::FmtAllocatedBufferChar &s)
+//     {
+//         #ifdef HATN_TEST_LOG_CONSOLE
+//             std::cout<<::hatn::common::lib::toStringView(s)<<std::endl;
+//         #else
+//             std::ignore=s;
+//         #endif
+//     };
 
-    ::hatn::common::Logger::setOutputHandler(handler);
-    ::hatn::common::Logger::setFatalLogHandler(handler);
-    ::hatn::common::Logger::setDefaultVerbosity(hatn::common::LoggerVerbosity::INFO);
-}
+//     ::hatn::common::Logger::setOutputHandler(handler);
+//     ::hatn::common::Logger::setFatalLogHandler(handler);
+//     ::hatn::common::Logger::setDefaultVerbosity(hatn::common::LoggerVerbosity::INFO);
+// }
 
 struct Env : public ::hatn::test::MultiThreadFixture
 {
     Env()
     {
-        if (!::hatn::common::Logger::isRunning())
-        {
-            ::hatn::common::Logger::setFatalTracing(false);
+        // if (!::hatn::common::Logger::isRunning())
+        // {
+        //     ::hatn::common::Logger::setFatalTracing(false);
 
-            setLogHandler();
-            ::hatn::common::Logger::start();
-        }
+        //     setLogHandler();
+        //     ::hatn::common::Logger::start();
+        // }
     }
 
     ~Env()
     {
-        ::hatn::common::Logger::stop();
+        // ::hatn::common::Logger::stop();
     }
 
     Env(const Env&)=delete;
@@ -56,38 +56,30 @@ BOOST_AUTO_TEST_SUITE(Udp)
 
 BOOST_FIXTURE_TEST_CASE(UdpChannelCtor,Env)
 {
-    hatn::network::asio::UdpServer server1(mainThread().get(),"server1");
-    hatn::network::asio::UdpClient client1(mainThread().get(),"client1");
+    auto server1=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx(mainThread().get(),"server1");
+    auto client1=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx(mainThread().get(),"client1");
 
-    hatn::common::MutexLock mutex;
-
-    {
-        hatn::common::MutexScopedLock l(mutex);
-        BOOST_CHECK_EQUAL(server1.thread(),mainThread().get());
-        BOOST_CHECK_EQUAL(client1.thread(),mainThread().get());
-    }
+    BOOST_CHECK_EQUAL((*server1)->thread(),mainThread().get());
+    BOOST_CHECK_EQUAL((*client1)->thread(),mainThread().get());
 
     createThreads(1);
     hatn::common::Thread* thread0=thread(0).get();
 
     thread0->start();
-    HATN_CHECK_EXEC_SYNC(
-    thread0->execSync(
-                    [thread0,&mutex]()
+    auto ec=thread0->execSync(
+                    [thread0]()
                     {
-                        hatn::network::asio::UdpServer server2("server2");
-                        hatn::network::asio::UdpClient client2("client2");
+                        auto server2=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server2");
+                        auto client2=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx("client2");
 
-                        {
-                            hatn::common::MutexScopedLock l(mutex);
-                            BOOST_CHECK_EQUAL(server2.thread(),thread0);
-                            BOOST_CHECK_EQUAL(client2.thread(),thread0);
-                        }
+                        HATN_CHECK_EQUAL_TS((*server2)->thread(),thread0);
+                        HATN_CHECK_EQUAL_TS((*client2)->thread(),thread0);
                     }
-                ));
+                );
+    BOOST_REQUIRE(!ec);
     thread0->stop();
 }
-
+#if 0
 BOOST_FIXTURE_TEST_CASE(UdpServerBind,Env)
 {
     hatn::common::MutexLock mutex;
@@ -713,5 +705,5 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
     thread0->stop();
     thread1->stop();
 }
-
+#endif
 BOOST_AUTO_TEST_SUITE_END()

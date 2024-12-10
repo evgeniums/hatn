@@ -22,38 +22,35 @@
 #include <functional>
 
 #include <hatn/common/error.h>
-#include <hatn/common/objectid.h>
 #include <hatn/common/containerutils.h>
 #include <hatn/common/stream.h>
 #include <hatn/common/spanbuffer.h>
+#include <hatn/common/taskcontext.h>
+
+#include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/endpoint.h>
 
+#include <hatn/network/detail/asynchandler.ipp>
+
 HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Asynchronous unreliable channel
-template <typename EndpointT, typename Traits> class UnreliableChannel
-        : public common::WithPrepareClose<Traits>,
-          public common::WithIDThread,
-          public WithLocalEndpoint<EndpointT>
+template <typename EndpointT, typename Traits>
+class UnreliableChannel : public common::TaskSubcontext,
+                          public common::WithThread,
+                          public common::WithPrepareClose<Traits>,
+                          public WithLocalEndpoint<EndpointT>
 {
     public:
 
         template <typename ...Args>
         UnreliableChannel(
                 common::Thread* thread,
-                common::STR_ID_TYPE id,
                 Args&& ...traitsArgs
-        ) : common::WithPrepareClose<Traits>(std::forward<Args>(traitsArgs)...),
-            common::WithIDThread(thread,std::move(id))
-        {}
-
-        template <typename ...Args>
-        UnreliableChannel(
-                common::Thread* thread,
-                Args&& ...traitsArgs
-        ) : UnreliableChannel(thread,common::STR_ID_TYPE(),std::forward<Args>(traitsArgs)...)
+        ) : common::WithThread(thread),
+            common::WithPrepareClose<Traits>(std::forward<Args>(traitsArgs)...)
         {}
 
         ~UnreliableChannel()=default;
@@ -61,11 +58,21 @@ template <typename EndpointT, typename Traits> class UnreliableChannel
         UnreliableChannel(UnreliableChannel&&) =delete;
         UnreliableChannel& operator=(const UnreliableChannel&)=delete;
         UnreliableChannel& operator=(UnreliableChannel&&) =delete;
+
+        inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const
+        {
+            return common::toWeakPtr(mainCtx().sharedFromThis());
+        }
+
+        inline void leaveAsyncHandler()
+        {
+            mainCtx().onAsyncHandlerExit();
+        }
 };
 
 //! Asynchronous unreliable channel to multiple endpoints
-template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
-        public UnreliableChannel<EndpointT,Traits>
+template <typename EndpointT,typename Traits>
+class UnreliableChannelMultiple : public UnreliableChannel<EndpointT,Traits>
 {
     public:
 
@@ -75,7 +82,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
         inline void receiveFrom(
             char* buf,
             size_t maxSize,
-            std::function<void (const common::Error&,size_t,const EndpointT&)> callback
+            std::function<void (const Error&,size_t,const EndpointT&)> callback
         )
         {
             this->traits().receiveFrom(buf,maxSize,std::move(callback));
@@ -86,20 +93,20 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
             const char* buf,
             size_t size,
             const EndpointT& endpoint,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             this->traits().sendTo(buf,size,endpoint,std::move(callback));
         }
 
         /**
-         * @brief Send container to channel
+         * @brief Send data from container to channel
          */
         template <typename ContainerT>
         inline void sendTo(
             const ContainerT& container,
             const EndpointT& endpoint,
-            std::function<void (const common::Error&,size_t)> callback,
+            std::function<void (const Error&,size_t)> callback,
             size_t offset=0,
             size_t size=0
         )
@@ -111,7 +118,17 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
             }
             else
             {
-                callback(common::Error(common::CommonError::INVALID_SIZE),0);
+                this->thread()->execAsync(
+                    [callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback))
+                        {
+                            HATN_CTX_SCOPE("unrcontainersendto")
+                            callback(Error(CommonError::INVALID_SIZE),0);
+                            this->leaveAsyncHandler();
+                        }
+                    }
+                );
             }
         }
 
@@ -119,16 +136,27 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
         inline void sendTo(
             common::SpanBuffer buffer,
             const EndpointT& endpoint,
-            std::function<void (const common::Error&,size_t,common::SpanBuffer)> callback
+            std::function<void (const Error&,size_t,common::SpanBuffer)> callback
         )
         {
             auto span=buffer.span();
             if (!span.first)
             {
-                callback(common::Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                this->thread()->execAsync(
+                    [buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback))
+                        {
+                            HATN_CTX_SCOPE("unrbufsendto")
+                            callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            this->leaveAsyncHandler();
+                        }
+                    }
+                );
+
                 return;
             }
-            auto&& cb=[buffer{std::move(buffer)},callback{std::move(callback)}](const common::Error& ec,size_t size) mutable
+            auto cb=[buffer{std::move(buffer)},callback{std::move(callback)}](const Error& ec,size_t size)
             {
                 callback(ec,size,std::move(buffer));
             };
@@ -139,7 +167,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
         inline void sendTo(
             common::SpanBuffers buffers,
             const EndpointT& endpoint,
-            std::function<void (const common::Error&,size_t,common::SpanBuffers)> callback
+            std::function<void (const Error&,size_t,common::SpanBuffers)> callback
         )
         {
             this->traits().sendTo(std::move(buffers),endpoint,std::move(callback));
@@ -147,9 +175,9 @@ template <typename EndpointT,typename Traits> class UnreliableChannelMultiple :
 };
 
 //! Asynchronous unreliable channel to single endpoint
-template <typename EndpointT,typename Traits> class UnreliableChannelSingle
-        :   public UnreliableChannel<EndpointT,Traits>,
-            public WithRemoteEndpoint<EndpointT>
+template <typename EndpointT,typename Traits>
+class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
+                                public WithRemoteEndpoint<EndpointT>
 {
     public:
 
@@ -159,7 +187,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
         inline void receive(
             char* buf,
             size_t maxSize,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             this->traits().receive(buf,maxSize,std::move(callback));
@@ -169,7 +197,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
         inline void send(
             const char* buf,
             size_t size,
-            std::function<void (const common::Error&,size_t)> callback
+            std::function<void (const Error&,size_t)> callback
         )
         {
             this->traits().send(buf,size,std::move(callback));
@@ -183,7 +211,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
         template <typename ContainerT>
         inline void send(
             const ContainerT& container,
-            std::function<void (const common::Error&,size_t)> callback,
+            std::function<void (const Error&,size_t)> callback,
             size_t offset=0,
             size_t size=0
         )
@@ -195,25 +223,51 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
             }
             else
             {
-                callback(common::Error(common::CommonError::INVALID_SIZE),0);
+                this->thread()->execAsync(
+                    [callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback))
+                        {
+                            HATN_CTX_SCOPE("unrsinglelcontainersend")
+                            callback(Error(CommonError::INVALID_SIZE),0);
+                            this->leaveAsyncHandler();
+                        }
+                    }
+                );
             }
         }
 
         //! Send managed buffer to channel
         inline void send(
             common::SpanBuffer buffer,
-            std::function<void (const common::Error&,size_t,common::SpanBuffer)> callback
+            std::function<void (const Error&,size_t,common::SpanBuffer)> callback
         )
         {
             auto span=buffer.span();
             if (!span.first)
             {
-                callback(common::Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                this->thread()->execAsync(
+                    [buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback))
+                        {
+                            HATN_CTX_SCOPE("unrsinglelbufsendto")
+                            callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            this->leaveAsyncHandler();
+                        }
+                    }
+                );
+
                 return;
             }
-            auto&& cb=[buffer{std::move(buffer)},callback{std::move(callback)}](const common::Error& ec,size_t size) mutable
+            auto cb=[buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this](const Error& ec,size_t size)
             {
-                callback(ec,size,std::move(buffer));
+                if (detail::enterAsyncHandler(wptr,callback))
+                {
+                    HATN_CTX_SCOPE("unrlbufsendto")
+                    callback(ec,size,std::move(buffer));
+                    this->leaveAsyncHandler();
+                }
             };
             send(span.second.data(),span.second.size(),std::move(cb));
         }
@@ -221,7 +275,7 @@ template <typename EndpointT,typename Traits> class UnreliableChannelSingle
         //! Send scattered buffers to channel
         inline void send(
             common::SpanBuffers buffers,
-            std::function<void (const common::Error&,size_t,common::SpanBuffers)> callback
+            std::function<void (const Error&,size_t,common::SpanBuffers)> callback
         )
         {
             this->traits().send(std::move(buffers),std::move(callback));

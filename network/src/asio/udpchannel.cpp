@@ -10,19 +10,18 @@
 
 /** @file network/asio/asioudpchannel.cpp
   *
-  *     UDP channels
-  *
-  */
+  *   UDP channels using boost.asio backend.
+*/
 
 /****************************************************************************/
 
 #include <hatn/common/thread.h>
 
-#include <hatn/network/error.h>
+#include <hatn/network/networkerror.h>
 #include <hatn/network/asio/udpchannel.h>
 
-#include <hatn/common/loggermoduleimp.h>
-INIT_LOG_MODULE(asioudpchannel,HATN_NETWORK_EXPORT)
+HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::UdpServer,UdpServer)
+HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::UdpClient,UdpClient)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
@@ -34,24 +33,18 @@ namespace asio {
 //---------------------------------------------------------------
 template <typename UdpChannelT>
 UdpChannelTraits<UdpChannelT>::UdpChannelTraits(
-        UdpChannelT* channel,
-        Thread *thread
-    ) : WithSocket<UdpSocket>(thread->asioContextRef()),
+        UdpChannelT* channel
+    ) : WithSocket<UdpSocket>(channel->thread()->asioContextRef()),
         m_channel(channel)
 {
 }
 
 //---------------------------------------------------------------
 template <typename UdpChannelT>
-const char* UdpChannelTraits<UdpChannelT>::idStr() const noexcept
-{
-    return channel()->id().c_str();
-}
-
-//---------------------------------------------------------------
-template <typename UdpChannelT>
 void UdpChannelTraits<UdpChannelT>::cancel()
 {
+    HATN_CTX_SCOPE("udpchannelcancel")
+
     boost::system::error_code ec;
     rawSocket().cancel(ec);
     if (ec)
@@ -64,8 +57,14 @@ void UdpChannelTraits<UdpChannelT>::cancel()
 template <typename UdpChannelT>
 void UdpChannelTraits<UdpChannelT>::close(const std::function<void (const Error &)> &callback, bool destroying)
 {
-    std::ignore=destroying;
-    common::Error ret;
+    if (destroying)
+    {
+        return;
+    }
+
+    HATN_CTX_SCOPE("udpchannelclose")
+
+    Error ret;
     if (rawSocket().lowest_layer().is_open())
     {
         try
@@ -87,7 +86,17 @@ void UdpChannelTraits<UdpChannelT>::close(const std::function<void (const Error 
     }
     if (callback)
     {
-        callback(ret);
+        channel()->thread()->execAsync(
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},ret{std::move(ret)},this]()
+            {
+                if (detail::enterAsyncHandler(wptr,callback))
+                {
+                    HATN_CTX_SCOPE("udpchannelclose")
+                    callback(ret);
+                    channel()->leaveAsyncHandler();
+                }
+            }
+        );
     }
 }
 
@@ -95,7 +104,7 @@ void UdpChannelTraits<UdpChannelT>::close(const std::function<void (const Error 
 template <typename UdpChannelT>
 void UdpChannelTraits<UdpChannelT>::bind(
     UdpEndpoint endpoint,
-    std::function<void (const common::Error &)> callback
+    std::function<void (const Error &)> callback
 )
 {
     channel()->setLocalEndpoint(std::move(endpoint));
@@ -106,7 +115,9 @@ void UdpChannelTraits<UdpChannelT>::bind(
 template <typename UdpChannelT>
 void UdpChannelTraits<UdpChannelT>::bind(std::function<void (const Error &)> callback)
 {
-    common::Error err;
+    HATN_CTX_SCOPE("udpchannelbind")
+
+    Error err;
     auto endpoint=channel()->localEndpoint().toBoostEndpoint();
     if (!this->rawSocket().is_open())
     {
@@ -138,9 +149,14 @@ void UdpChannelTraits<UdpChannelT>::bind(std::function<void (const Error &)> cal
         // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket {}:{} is open already",endpoint.address().to_string(),endpoint.port()));
     }
     channel()->thread()->execAsync(
-                    [callback{std::move(callback)},err{std::move(err)}]()
+                    [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},err{std::move(err)},this]()
                     {
-                        callback(err);
+                        if (detail::enterAsyncHandler(wptr,callback))
+                        {
+                            HATN_CTX_SCOPE("udpchannelbind")
+                            callback(err);
+                            channel()->leaveAsyncHandler();
+                        }
                     }
                 );
 }
@@ -154,27 +170,34 @@ void UdpChannelMultipleTraits::receiveFrom(
         std::function<void (const Error &, size_t, const UdpEndpoint &)> callback
     )
 {
+    HATN_CTX_SCOPE("udpmultirecvfrom")
     if (channel()->isActive())
     {
-        std::function<void (const boost::system::error_code &, size_t)>&& cb=[callback{std::move(callback)},this](const boost::system::error_code &ec, size_t bytesTransferred)
-        {
-            if (channel()->isActive())
-            {
-                callback(makeBoostError(ec),bytesTransferred,UdpEndpoint(m_rxBoostEndpoint));
-            }
-        };
         rawSocket().async_receive_from(
                     boost::asio::buffer(buf,maxSize),
                     m_rxBoostEndpoint,
-                    guardedAsyncHandler(std::move(cb))
+                    [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec, size_t bytesTransferred)
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback,UdpEndpoint{}))
+                        {
+                            HATN_CTX_SCOPE("udpmultirecvfrom")
+                            callback(makeBoostError(ec),bytesTransferred,UdpEndpoint(m_rxBoostEndpoint));
+                            channel()->leaveAsyncHandler();
+                        }
+                    }
         );
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)}]()
-            {
-                callback(makeBoostError(boost::asio::error::eof),0,UdpEndpoint());
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
+            {                
+                if (detail::enterAsyncHandler(wptr,callback,UdpEndpoint{}))
+                {
+                    HATN_CTX_SCOPE("udpmultirecvfrom")
+                    callback(makeBoostError(boost::asio::error::eof),0,UdpEndpoint{});
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -188,28 +211,35 @@ void UdpChannelMultipleTraits::sendTo(
         std::function<void (const Error &, size_t)> callback
     )
 {
+    HATN_CTX_SCOPE("udpmultisendto")
     if (channel()->isActive())
     {
         auto ep=endpoint.toBoostEndpoint();
-        std::function<void (const boost::system::error_code &, size_t)>&& cb=[callback{std::move(callback)},this](const boost::system::error_code &ec, size_t bytesTransferred)
-        {
-            if (channel()->isActive())
-            {
-                callback(makeBoostError(ec),bytesTransferred);
-            }
-        };
         rawSocket().async_send_to(
                     boost::asio::buffer(buf,size),
                     ep,
-                    guardedAsyncHandler(std::move(cb))
+                    [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec, size_t bytesTransferred)
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback,0))
+                        {
+                            HATN_CTX_SCOPE("udpmultisendto")
+                            callback(makeBoostError(ec),bytesTransferred);
+                            channel()->leaveAsyncHandler();
+                        }
+                    }
         );
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)}]()
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
             {
-                callback(makeBoostError(boost::asio::error::eof),0);
+                if (detail::enterAsyncHandler(wptr,callback,0))
+                {
+                    HATN_CTX_SCOPE("udpmultisendto")
+                    callback(makeBoostError(boost::asio::error::eof),0);
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -219,9 +249,11 @@ void UdpChannelMultipleTraits::sendTo(
 void UdpChannelMultipleTraits::sendTo(
         common::SpanBuffers buffers,
         const UdpEndpoint& endpoint,
-        std::function<void (const common::Error&,size_t,common::SpanBuffers)> callback
+        std::function<void (const Error&,size_t,common::SpanBuffers)> callback
     )
 {
+    HATN_CTX_SCOPE("udpmultispansendto")
+
     if (channel()->isActive())
     {
         auto&& ep=endpoint.toBoostEndpoint();
@@ -229,34 +261,43 @@ void UdpChannelMultipleTraits::sendTo(
         if (!fillAsioBuffers(buffers,asioBuffers))
         {
             channel()->thread()->execAsync(
-                [callback{std::move(callback)},buffers{std::move(buffers)}]()
+                [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},buffers{std::move(buffers)},this]()
                 {
-                    callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffers));
+                    if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
+                    {
+                        HATN_CTX_SCOPE("udpmultispansendto")
+                        callback(Error(CommonError::INVALID_SIZE),0,std::move(buffers));
+                        channel()->leaveAsyncHandler();
+                    }
                 }
             );
             return;
         }
         rawSocket().async_send_to(
                     asioBuffers,
-                    ep,
-                    guardedAsyncHandler(
-                        [callback{std::move(callback)},buffers{std::move(buffers)},this]
-                        (const boost::system::error_code &ec, size_t bytesTransferred)
+                    ep,            
+                    [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t bytesTransferred)
+                    {
+                        if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
                         {
-                            if (channel()->isActive())
-                            {
-                                callback(makeBoostError(ec),bytesTransferred,std::move(buffers));
-                            }
+                            HATN_CTX_SCOPE("udpmultispansendto")
+                            callback(makeBoostError(ec),bytesTransferred,std::move(buffers));
+                            channel()->leaveAsyncHandler();
                         }
-                    )
+                    }
         );
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)},buffers{std::move(buffers)}]() mutable
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},buffers{std::move(buffers)},this]()
             {
-                callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
+                if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
+                {
+                    HATN_CTX_SCOPE("udpmultispansendto")
+                    callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -269,15 +310,33 @@ void UdpChannelSingleTraits::prepare(
         std::function<void (const Error &)> callback
     )
 {
-    auto&& cb=[callback{std::move(callback)},this](const Error &ec) mutable
+    HATN_CTX_SCOPE("udpsingleprepare")
+
+    auto cb=[callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const Error &ec)
     {
+        if (!detail::enterAsyncHandler(wptr,callback))
+        {
+            return;
+        }
+
+        HATN_CTX_SCOPE("udpsingleconnect")
+
         if (ec)
         {
             callback(ec);
+            channel()->leaveAsyncHandler();
             return;
         }
-        std::function<void (const boost::system::error_code &)>&& cb1=[callback{std::move(callback)},this](const boost::system::error_code &ec1) mutable
+
+        auto cb1=[callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec1)
         {
+            if (!detail::enterAsyncHandler(wptr,callback))
+            {
+                return;
+            }
+
+            HATN_CTX_SCOPE("udpsingleconnect")
+
             if (!ec1)
             {
                 channel()->localEndpoint()=rawSocket().local_endpoint();
@@ -290,12 +349,15 @@ void UdpChannelSingleTraits::prepare(
             {
                 // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket failed to connect to {}:{} : ({}) {}",channel()->remoteEndpoint().address().to_string(),channel()->remoteEndpoint().port(),ec1.value(),ec1.message()));
             }
+
             callback(makeBoostError(ec1));
+            channel()->leaveAsyncHandler();
         };
         rawSocket().async_connect(
             channel()->remoteEndpoint().toBoostEndpoint(),
-            guardedAsyncHandler(cb1)
+            std::move(cb1)
         );
+        channel()->leaveAsyncHandler();
     };
     if (channel()->localEndpoint().port()!=0 ||
             (channel()->localEndpoint().address()!=boost::asio::ip::address_v4::any()
@@ -308,21 +370,41 @@ void UdpChannelSingleTraits::prepare(
     }
     else
     {
-        cb(Error());
+        channel()->thread()->execAsync(
+            [cb{std::move(cb)},callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
+            {
+                if (detail::enterAsyncHandler(wptr,callback))
+                {
+                    HATN_CTX_SCOPE("udpsingleprepare")
+                    cb(Error());
+                }
+            }
+        );
     }
 }
 
 //---------------------------------------------------------------
-void UdpChannelSingleTraits::send(const char *buf, size_t size, std::function<void (const Error &, size_t)> callback)
+void UdpChannelSingleTraits::send(
+        const char *buf,
+        size_t size,
+        std::function<void (const Error &, size_t)> callback
+    )
 {
+    HATN_CTX_SCOPE("udpsinglesend")
+
     if (channel()->isActive())
     {
         if (buf==nullptr || size==0)
         {
             channel()->thread()->execAsync(
-                [callback{std::move(callback)}]()
+                [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
                 {
-                    callback(common::Error(),0);
+                    if (detail::enterAsyncHandler(wptr,callback,0))
+                    {
+                        HATN_CTX_SCOPE("udpsinglesend")
+                        callback(Error(),0);
+                        channel()->leaveAsyncHandler();
+                    }
                 }
             );
         }
@@ -330,28 +412,33 @@ void UdpChannelSingleTraits::send(const char *buf, size_t size, std::function<vo
         {
             rawSocket().async_send(
                             boost::asio::buffer(buf,size),
-                            guardedAsyncHandler(
-                                [callback{std::move(callback)},this](const boost::system::error_code &ec, size_t size)
+                            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
+                            {
+                                if (detail::enterAsyncHandler(wptr,callback,0))
                                 {
-                                    if (channel()->isActive())
+                                    HATN_CTX_SCOPE("udpsinglesend")
+                                    if (ec)
                                     {
-                                        if (ec)
-                                        {
-                                            // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket failed to send: ({}) {}",ec.value(),ec.message()));
-                                        }
-                                        callback(makeBoostError(ec),size);
+                                        // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket failed to send: ({}) {}",ec.value(),ec.message()));
                                     }
+                                    callback(makeBoostError(ec),size);
+                                    channel()->leaveAsyncHandler();
                                 }
-                            )
+                            }
                         );
         }
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)}]()
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
             {
-                callback(makeBoostError(boost::asio::error::eof),0);
+                if (detail::enterAsyncHandler(wptr,callback,0))
+                {
+                    HATN_CTX_SCOPE("udpsinglesend")
+                    callback(makeBoostError(boost::asio::error::eof),0);
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -362,42 +449,54 @@ void UdpChannelSingleTraits::send(SpanBuffers buffers,
                                   std::function<void (const Error &, size_t, SpanBuffers)> callback
                                   )
 {
+    HATN_CTX_SCOPE("udpsinglespansend")
+
     if (channel()->isActive())
     {
         pmr::vector<boost::asio::const_buffer> asioBuffers;
         if (!fillAsioBuffers(buffers,asioBuffers))
         {
             channel()->thread()->execAsync(
-                [callback{std::move(callback)},buffers{std::move(buffers)}]() mutable
+                [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},buffers{std::move(buffers)},this]()
                 {
-                    callback(common::Error(CommonError::INVALID_SIZE),0,std::move(buffers));
+                   if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
+                   {
+                       HATN_CTX_SCOPE("udpsinglespansend")
+                       callback(Error(CommonError::INVALID_SIZE),0,std::move(buffers));
+                       channel()->leaveAsyncHandler();
+                   }
                 }
             );
             return;
         }
         rawSocket().async_send(
                         asioBuffers,
-                        guardedAsyncHandler(
-                            [callback{std::move(callback)},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t size)
-                            {
-                                if (channel()->isActive())
+                        [callback{std::move(callback)},buffers{std::move(buffers)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
+                        {
+                           if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
+                           {
+                                HATN_CTX_SCOPE("udpsinglespansend")
+                                if (ec)
                                 {
-                                    if (ec)
-                                    {
-                                        // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket failed to send: ({}) {}",ec.value(),ec.message()));
-                                    }
-                                    callback(makeBoostError(ec),size,std::move(buffers));
+                                    // DCS_WARN_ID(asioudpchannel,HATN_FORMAT("UDP socket failed to send: ({}) {}",ec.value(),ec.message()));
                                 }
-                            }
-                        )
+                                callback(makeBoostError(ec),size,std::move(buffers));
+                                channel()->leaveAsyncHandler();
+                           }
+                        }
                     );
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)},buffers{std::move(buffers)}]() mutable
+            [callback{std::move(callback)},buffers{std::move(buffers)},wptr{channel()->ctxWeakPtr()},this]()
             {
-                callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
+                if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
+                {
+                    HATN_CTX_SCOPE("udpsinglespansend")
+                    callback(makeBoostError(boost::asio::error::eof),0,std::move(buffers));
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -406,14 +505,21 @@ void UdpChannelSingleTraits::send(SpanBuffers buffers,
 //---------------------------------------------------------------
 void UdpChannelSingleTraits::receive(char *buf, size_t maxSize, std::function<void (const Error &, size_t)> callback)
 {
+    HATN_CTX_SCOPE("udpsinglerecv")
+
     if (channel()->isActive())
     {
         if (buf==nullptr || maxSize==0)
         {
             channel()->thread()->execAsync(
-                [callback{std::move(callback)}]()
+                [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
                 {
-                    callback(common::Error(),0);
+                    if (detail::enterAsyncHandler(wptr,callback,0))
+                    {
+                        HATN_CTX_SCOPE("udpsinglerecv")
+                        callback(Error(),0);
+                        channel()->leaveAsyncHandler();
+                    }
                 }
             );
         }
@@ -421,25 +527,29 @@ void UdpChannelSingleTraits::receive(char *buf, size_t maxSize, std::function<vo
         {
             rawSocket().async_receive(
                         boost::asio::buffer(buf,maxSize),
-                        guardedAsyncHandler(
-                            [callback{std::move(callback)},this](const boost::system::error_code &ec, size_t size)
+                        [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const boost::system::error_code &ec, size_t size)
+                        {
+                            if (detail::enterAsyncHandler(wptr,callback,0))
                             {
-                                if (channel()->isActive())
-                                {
-                                    callback(makeBoostError(ec),size);
-                                }
+                                HATN_CTX_SCOPE("udpsinglerecv")
+                                callback(makeBoostError(ec),size);
+                                channel()->leaveAsyncHandler();
                             }
-                        )
+                        }
                     );
         }
     }
     else
     {
         channel()->thread()->execAsync(
-            [callback{std::move(callback)}]()
+            [callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
             {
-                auto ec=boost::asio::error::eof;
-                callback(makeBoostError(ec),0);
+                if (detail::enterAsyncHandler(wptr,callback,0))
+                {
+                    HATN_CTX_SCOPE("udpsinglerecv")
+                    callback(makeBoostError(boost::asio::error::eof),0);
+                    channel()->leaveAsyncHandler();
+                }
             }
         );
     }
@@ -448,12 +558,10 @@ void UdpChannelSingleTraits::receive(char *buf, size_t maxSize, std::function<vo
 /********************** UdpChannelMultiple **************************/
 
 //---------------------------------------------------------------
-UdpChannelMultiple::UdpChannelMultiple(Thread *thread, STR_ID_TYPE id)
+UdpChannelMultiple::UdpChannelMultiple(Thread *thread)
     : UnreliableChannelMultiple<UdpEndpoint,UdpChannelMultipleTraits>(
                 thread,
-                std::move(id),
-                this,
-                thread
+                this
           )
 {
 }
@@ -461,12 +569,10 @@ UdpChannelMultiple::UdpChannelMultiple(Thread *thread, STR_ID_TYPE id)
 /********************** UdpChannelSingle **************************/
 
 //---------------------------------------------------------------
-UdpChannelSingle::UdpChannelSingle(Thread *thread, STR_ID_TYPE id)
+UdpChannelSingle::UdpChannelSingle(Thread *thread)
     : UnreliableChannelSingle<UdpEndpoint,UdpChannelSingleTraits>(                
                 thread,
-                std::move(id),
-                this,
-                thread
+                this
           )
 {
 }

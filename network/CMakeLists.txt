@@ -20,7 +20,7 @@ SET (HEADERS
     include/hatn/network/asio/udpchannel.h
     include/hatn/network/asio/caresolver.h
 
-    include/hatn/network/asio/detail/asiohandler.ipp
+    include/hatn/network/detail/asynchandler.ipp
 
 #    include/hatn/network/resolverinterface.h
 
@@ -36,7 +36,7 @@ SET (SOURCES
 
     src/asio/tcpstream.cpp
     src/asio/tcpserver.cpp
-    # src/asio/udpchannel.cpp
+    src/asio/udpchannel.cpp
     # src/asio/caresolver.cpp
 
 #    src/resolverinterface.cpp

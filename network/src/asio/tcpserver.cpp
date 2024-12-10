@@ -46,8 +46,6 @@
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
 
-#include <hatn/network/asio/detail/asiohandler.ipp>
-
 HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServer,TcpServer)
 
 HATN_NETWORK_NAMESPACE_BEGIN

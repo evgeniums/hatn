@@ -19,6 +19,8 @@
 #ifndef HATNASIOTCPSTREAM_H
 #define HATNASIOTCPSTREAM_H
 
+#include <hatn/common/taskcontext.h>
+
 #include <hatn/logcontext/context.h>
 
 #include <hatn/network/network.h>
@@ -88,7 +90,7 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
         TcpStream* m_stream;
 
         inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
-        inline void leaveHandler();
+        inline void leaveAsyncHandler();
 };
 
 //! Stream over ASIO TCP socket

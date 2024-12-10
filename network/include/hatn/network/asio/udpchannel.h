@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
 
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,8 +10,7 @@
 
 /** @file network/asio/asioudpchannel.h
   *
-  *     UDP channels
-  *
+  *     UDP channels using boost.asio backend.
   */
 
 /****************************************************************************/
@@ -19,15 +18,11 @@
 #ifndef HATNUDPCHANNEL_H
 #define HATNUDPCHANNEL_H
 
-#include <hatn/common/objectguard.h>
-
 #include <hatn/network/network.h>
 #include <hatn/network/unreliablechannel.h>
 
 #include <hatn/network/asio/ipendpoint.h>
 #include <hatn/network/asio/socket.h>
-
-DECLARE_LOG_MODULE_EXPORT(asioudpchannel,HATN_NETWORK_EXPORT)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 
@@ -35,16 +30,13 @@ namespace asio {
 
 //! Asynchronous UDP channel
 template <typename UdpChannelT>
-class UdpChannelTraits
-        : public common::WithGuard,
-          public WithSocket<UdpSocket>
+class UdpChannelTraits : public WithSocket<UdpSocket>
 {
     public:
 
         //! Constructor
         UdpChannelTraits(
-            UdpChannelT* channel,
-            common::Thread* thread
+            UdpChannelT* channel
         );
 
         //! Open and bind ASIO UDP socket
@@ -67,7 +59,6 @@ class UdpChannelTraits
             return rawSocket().is_open();
         }
 
-        const char* idStr() const noexcept;
         void cancel();
 
     protected:
@@ -90,15 +81,15 @@ template class HATN_NETWORK_EXPORT UdpChannelTraits<UdpChannelMultiple>;
 template class HATN_NETWORK_EXPORT UdpChannelTraits<UdpChannelSingle>;
 #endif
 
-class HATN_NETWORK_EXPORT UdpChannelMultipleTraits final : public UdpChannelTraits<UdpChannelMultiple>
+class HATN_NETWORK_EXPORT UdpChannelMultipleTraits : public UdpChannelTraits<UdpChannelMultiple>
 {
     public:
 
         using UdpChannelTraits<UdpChannelMultiple>::UdpChannelTraits;
 
         /**
-         * @brief Prepare channel: open and bind ASIO UDP socket
-         * @param callback Status of preparation
+         * @brief Prepare channel: open and bind ASIO socket, connect to remote socket.
+         * @param callback Callback to call with result of operation.
          */
         inline void prepare(
             std::function<void (const common::Error &)> callback
@@ -143,8 +134,8 @@ class HATN_NETWORK_EXPORT UdpChannelSingleTraits final : public UdpChannelTraits
         using UdpChannelTraits<UdpChannelSingle>::UdpChannelTraits;
 
         /**
-         * @brief Prepare channel: open and bind ASIO socket, connect to remote socket
-         * @param callback Status of preparation
+         * @brief Prepare channel: open and bind ASIO socket, connect to remote socket.
+         * @param callback Callback to call with result of operation.
          */
         void prepare(
             std::function<void (const common::Error &)> callback
@@ -172,20 +163,13 @@ class HATN_NETWORK_EXPORT UdpChannelSingleTraits final : public UdpChannelTraits
 };
 
 //! Asynchronous UDP channel to multiple endpoints
-class HATN_NETWORK_EXPORT UdpChannelMultiple final
-        :  public UnreliableChannelMultiple<UdpEndpoint,UdpChannelMultipleTraits>
+class HATN_NETWORK_EXPORT UdpChannelMultiple : public UnreliableChannelMultiple<UdpEndpoint,UdpChannelMultipleTraits>
 {
     public:
 
         UdpChannelMultiple(
-            common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            common::Thread* thread=common::Thread::currentThread()
         );
-
-        UdpChannelMultiple(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : UdpChannelMultiple(common::Thread::currentThread(),std::move(id))
-        {}
 
         //! Open and bind ASIO UDP socket
         void bind(
@@ -206,20 +190,13 @@ class HATN_NETWORK_EXPORT UdpChannelMultiple final
 };
 
 //! Asynchronous UDP channel to single endpoint
-class HATN_NETWORK_EXPORT UdpChannelSingle final
-        :  public UnreliableChannelSingle<UdpEndpoint,UdpChannelSingleTraits>
+class HATN_NETWORK_EXPORT UdpChannelSingle : public UnreliableChannelSingle<UdpEndpoint,UdpChannelSingleTraits>
 {
     public:
 
         UdpChannelSingle(
-            common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            common::Thread* thread=common::Thread::currentThread()
         );
-
-        UdpChannelSingle(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : UdpChannelSingle(common::Thread::currentThread(),std::move(id))
-        {}
 
         //! Open and bind ASIO UDP socket
         void bind(
@@ -242,8 +219,55 @@ class HATN_NETWORK_EXPORT UdpChannelSingle final
 using UdpClient=UdpChannelSingle;
 using UdpServer=UdpChannelMultiple;
 
+template <typename T>
+struct makeTypeCtxT
+{
+    template <typename ...BaseArgs>
+    auto operator()(common::Thread* thread, BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<T,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+            common::subcontexts(
+                common::subcontext(thread)
+                ),
+            common::subcontexts(
+                common::subcontext()
+                ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+
+    template <typename ...BaseArgs>
+    auto operator()(BaseArgs&&... args) const
+    {
+        return common::makeTaskContext<T,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>(
+            common::subcontexts(
+                common::subcontext()
+                ),
+            common::subcontexts(
+                common::subcontext()
+                ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+
+    auto operator()() const
+    {
+        return common::makeTaskContext<T,HATN_LOGCONTEXT_NAMESPACE::LogCtxType>();
+    }
+};
+
+constexpr makeTypeCtxT<UdpServer> makeUdpServerCtx{};
+using UdpServerSharedCtx=decltype(makeUdpServerCtx(""));
+
+constexpr makeTypeCtxT<UdpClient> makeUdpClientCtx{};
+using UdpClientSharedCtx=decltype(makeUdpClientCtx(""));
+
 //---------------------------------------------------------------
 } // namespace asio
 
 HATN_NETWORK_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE(HATN_NETWORK_NAMESPACE::asio::UdpServer,HATN_NETWORK_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_NETWORK_NAMESPACE::asio::UdpClient,HATN_NETWORK_EXPORT)
+
 #endif // HATNUDPCHANNEL_H
