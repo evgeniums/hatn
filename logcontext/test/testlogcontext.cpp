@@ -184,25 +184,14 @@ BOOST_AUTO_TEST_CASE(CreateLogContext)
     BOOST_CHECK(tlCtx.value()==nullptr);    
 
     auto ctx=makeTaskContext<Context>();
-
-    const auto& subCtx=hana::front(ctx->subcontexts());
-    using subCtxT=std::decay_t<decltype(subCtx)>;
-    // auto& subCtx1=const_cast<subCtxT&>(subCtx);
-    // using t=typename decltype(subCtx.acquireAsyncHandler())::nothing;
-    // using t=typename decltype((void)hana::traits::declval(hana::type_c<subCtxT>))::nothing;
-    static_assert(decltype(TaskSubcontext::hasAsyncHandlerFns(hana::type_c<subCtxT>))::value,"");
-
-    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),0);
     ctx->beforeThreadProcessing();
     BOOST_CHECK(tlCtx.value()!=nullptr);
-    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),0);
 
     auto& subctx=ctx->get<Context>();
     BOOST_CHECK(tlCtx.value()==&subctx);
 
     ctx->afterThreadProcessing();
     BOOST_CHECK(tlCtx.value()==nullptr);
-    BOOST_CHECK_EQUAL(ctx->get().threadStack().size(),1);
 }
 
 #if 0

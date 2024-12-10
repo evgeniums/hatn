@@ -69,7 +69,7 @@ inline const char* logLevelName(LogLevel level) noexcept
 constexpr size_t MaxVarStackSize=16;
 constexpr size_t MaxVarMapSize=8;
 constexpr size_t MaxScopeDepth=16;
-constexpr size_t MaxThreadDepth=4;
+constexpr size_t MaxBarrierDepth=4;
 constexpr size_t MaxTagLength=8;
 constexpr size_t MaxTagSetSize=8;
 
@@ -91,27 +91,28 @@ struct DefaultConfig
     constexpr static const size_t VarStackSize=MaxVarStackSize;
     constexpr static const size_t VarMapSize=MaxVarMapSize;
     constexpr static const size_t ScopeDepth=MaxScopeDepth;
-    constexpr static const size_t ThreadDepth=MaxThreadDepth;
+    constexpr static const size_t BarrierDepth=MaxBarrierDepth;
     constexpr static const size_t TagLength=MaxTagLength;
     constexpr static const size_t TagSetSize=MaxTagSetSize;
 };
 
-struct ThreadCursorData
+struct BarrierCursorData
 {
-    size_t scopeStackOffset=0;
+    const char* name;
+    size_t scopeStackOffset;
 
-    ThreadCursorData(size_t scopeStackOffset=0) : scopeStackOffset(scopeStackOffset)
+    BarrierCursorData(const char* name="", size_t scopeStackOffset=0)
+        : name(name),
+          scopeStackOffset(scopeStackOffset)
     {}
 };
 
-template <typename CursorDataT=ThreadCursorData>
-using ThreadCursorT=CursorDataT;
+using BarrierCursor=BarrierCursorData;
 
 template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
 
-template <typename Config=DefaultConfig,
-         typename ThreadCursorDataT=ThreadCursorData>
+template <typename Config=DefaultConfig>
 class ContextT
 {
     public:
@@ -123,7 +124,7 @@ class ContextT
         using recordT=RecordT<valueT,keyT>;
         using scopeCursorDataT=ScopeCursorData;
         using scopeCursorT=ScopeCursor;
-        using threadCursorT=ThreadCursorT<ThreadCursorDataT>;
+        using barrierCursorT=BarrierCursor;
         using tagT=common::FixedByteArray<config::TagLength>;
         using tagRecordT=std::pair<tagT,LogLevel>;
 
@@ -147,7 +148,6 @@ class ContextT
         void enterScope(const char* name)
         {
             m_currentScopeIdx++;
-            Assert(m_currentScopeIdx<=config::ScopeDepth,"Reached depth of scope stack");
             m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
         }
 
@@ -173,10 +173,9 @@ class ContextT
             Assert(scopeCursor!=nullptr,"leaveScope() forbidden in empty scope stack");
             bool freeScope=true;
 
-            if (!m_threadStack.empty())
+            if (!m_barrierStack.empty())
             {
-                const auto& threadCursor=m_threadStack.back();
-                freeScope=scopeCursor->second.scopeStackOffset>threadCursor.scopeStackOffset;
+                freeScope=scopeCursor->second.scopeStackOffset >= m_barrierStack.back().scopeStackOffset;
             }
             if (freeScope)
             {
@@ -220,49 +219,94 @@ class ContextT
             m_globalVarMap.erase(key);
         }
 
-        void acquireThread()
+        inline void stackBarrierOn(const char* name)
         {
-            m_threadStack.emplace_back(
-                m_scopeStack.size()
-            );
+            m_barrierStack.emplace_back(name,m_currentScopeIdx);
         }
 
-        void releaseThread()
+        void stackBarrierOff(const char* name)
         {
-            if (!m_threadStack.empty())
+            if (m_barrierStack.empty())
             {
-                m_threadStack.pop_back();
+                return;
+            }
+
+            bool restore=false;
+            size_t idx=m_barrierStack.size()-1;
+            for (;idx>=0;idx--)
+            {
+                if (std::strcmp(m_barrierStack[idx].name,name)==0)
+                {
+                    restore=true;
+                    break;
+                }
+            }
+            if (restore)
+            {
+                m_barrierStack.resize(idx);
+                if (m_barrierStack.empty())
+                {
+                    m_currentScopeIdx=0;
+                }
+                else
+                {
+                    m_currentScopeIdx=m_barrierStack.back().scopeStackOffset;
+                }
+                restoreStackCursors();
             }
         }
 
-        inline void acquireAsyncHandler()
+        void stackBarrierRestore(const char* name)
         {
-            acquireThread();
+            if (m_barrierStack.empty())
+            {
+                return;
+            }
+
+            bool restore=false;
+            size_t idx=m_barrierStack.size()-1;
+            for (;idx>=0;idx--)
+            {
+                if (std::strcmp(m_barrierStack[idx].name,name)==0)
+                {
+                    restore=true;
+                    break;
+                }
+            }
+            if (restore)
+            {
+                m_barrierStack.resize(idx+1);
+                if (m_barrierStack.empty())
+                {
+                    m_currentScopeIdx=0;
+                }
+                else
+                {
+                    m_currentScopeIdx=m_barrierStack.back().scopeStackOffset;
+                }
+                restoreStackCursors();
+            }
         }
 
-        inline void releaseAsyncHandler()
+        inline void stackBarrierLastOff()
         {
-            releaseThread();
-        }
-
-        inline void enterLoop()
-        {
-            Assert(!m_loopScopeIdx,"Nested loops not suported by LogContext");
-            m_loopScopeIdx=m_currentScopeIdx;
-        }
-
-        inline void leaveLoop()
-        {
-            if (!m_loopScopeIdx)
+            if (m_barrierStack.empty())
             {
                 m_currentScopeIdx=0;
             }
             else
             {
-                m_currentScopeIdx=m_loopScopeIdx.value();
-                m_loopScopeIdx.reset();
+                m_barrierStack.pop_back();
+                if (m_barrierStack.empty())
+                {
+                    m_currentScopeIdx=0;
+                }
+                else
+                {
+                    m_currentScopeIdx=m_barrierStack.back().scopeStackOffset;
+                }
             }
-            restoreStackCursors();            
+            restoreStackCursors();
         }
 
         void setStackLockingEnabled(bool enable) noexcept
@@ -346,7 +390,7 @@ class ContextT
             m_currentScopeIdx=0;
             m_scopeStack.clear();
             m_varStack.clear();
-            m_threadStack.clear();
+            m_barrierStack.clear();
         }
 
         void reset()
@@ -376,9 +420,9 @@ class ContextT
             return m_tags;
         }
 
-        const auto& threadStack() const noexcept
+        const auto& barrierStack() const noexcept
         {
-            return m_threadStack;
+            return m_barrierStack;
         }
 
     private:
@@ -406,12 +450,11 @@ class ContextT
 
         HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
-        HATN_COMMON_NAMESPACE::VectorOnStack<threadCursorT,config::ThreadDepth> m_threadStack;
+        HATN_COMMON_NAMESPACE::VectorOnStack<barrierCursorT,config::BarrierDepth> m_barrierStack;
         HATN_COMMON_NAMESPACE::FlatMapOnStack<keyT,valueT,config::VarMapSize,std::less<keyT>> m_globalVarMap;
         HATN_COMMON_NAMESPACE::FlatSetOnStack<tagT,config::TagSetSize,std::less<tagT>> m_tags;
 
         bool m_enableStackLocking;
-        lib::optional<size_t> m_loopScopeIdx;
 };
 using Context=ContextT<>;
 using Subcontext=HATN_COMMON_NAMESPACE::TaskSubcontextT<Context>;
@@ -496,5 +539,21 @@ HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXP
 #define HATN_CTX_SCOPE_UNLOCK() \
     HATN_CTX_IF() \
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(false);
+
+#define HATN_CTX_STACK_BARRIER_ON(Name) \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOn(Name);
+
+#define HATN_CTX_STACK_BARRIER_OFF(Name) \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOff(Name);
+
+#define HATN_CTX_STACK_BARRIER_RESTORE(Name) \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierRestore(Name);
+
+#define HATN_CTX_STACK_BARRIER_LAST_OFF() \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierLastOff();
 
 #endif // HATNLOGCONTEXT_H
