@@ -298,10 +298,132 @@ template <typename T, size_t PreallocatedSize=DefaultPreallocatedVectorSize>
 using VectorOnStack=VectorOnStackT<T,PreallocatedSize,polymorphic_allocator<char>>;
 }
 
+/********************** FlatMapOnStack **************************/
+
+constexpr size_t DefaultPreallocatedMapSize=8;
+
+template <typename KeyT, typename ValueT,
+         size_t PreallocatedSize=DefaultPreallocatedMapSize,
+         typename CompareT=std::less<KeyT>,
+         typename FallbackAllocatorT=std::allocator<std::pair<KeyT,ValueT>>
+         >
+using PreallocatedFlatMapT = FlatMap<KeyT,ValueT,CompareT,AllocatorOnStack<std::pair<KeyT,ValueT>,PreallocatedSize,alignof(std::max_align_t),FallbackAllocatorT>>;
+
+template <typename KeyT, typename ValueT,
+         size_t PreallocatedSize=DefaultPreallocatedMapSize,
+         typename CompareT=std::less<KeyT>,
+         typename FallbackAllocatorT=std::allocator<std::pair<KeyT,ValueT>>
+         >
+class FlatMapOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>,
+                        public PreallocatedFlatMapT<KeyT,ValueT,PreallocatedSize,CompareT,FallbackAllocatorT>
+{
+    public:
+
+        using ArenaHolderT=ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>;
+        using BaseT=PreallocatedFlatMapT<KeyT,ValueT,PreallocatedSize,CompareT,FallbackAllocatorT>;
+        using AllocaT=typename BaseT::allocator_type;
+
+        template <typename ...Args>
+        FlatMapOnStackT(Args&&... args) : ArenaHolderT(),
+            BaseT(std::forward<Args>(args)...,AllocaT{this->m_arena})
+        {
+            this->reserve(PreallocatedSize);
+        }
+
+        FlatMapOnStackT(std::initializer_list<typename BaseT::ItemT> elements) : ArenaHolderT(),
+            BaseT(std::move(elements),AllocaT{this->m_arena})
+        {
+            this->reserve(PreallocatedSize);
+        }
+
+        FlatMapOnStackT() : ArenaHolderT(),
+            BaseT(AllocaT{this->m_arena})
+        {
+            this->reserve(PreallocatedSize);
+        }
+
+        ~FlatMapOnStackT()
+        {
+            this->clear();
+            this->shrinkToFit();
+        }
+
+        FlatMapOnStackT(const FlatMapOnStackT& other) : ArenaHolderT(),
+            BaseT(AllocaT{this->m_arena})
+        {
+            this->reserve(PreallocatedSize);
+            append(other);
+        }
+
+        FlatMapOnStackT(FlatMapOnStackT&& other) : ArenaHolderT(),
+            BaseT(AllocaT{this->m_arena})
+        {
+            this->reserve(PreallocatedSize);
+            append(other);
+            other.clear();
+        }
+
+        FlatMapOnStackT& operator =(const FlatMapOnStackT& other)
+        {
+            if (this==&other)
+            {
+                return *this;
+            }
+
+            this->clear();
+            append(other);
+            return *this;
+        }
+
+        FlatMapOnStackT& operator =(FlatMapOnStackT&& other)
+        {
+            if (this==&other)
+            {
+                return *this;
+            }
+
+            this->clear();
+            append(other);
+            other.clear();
+            return *this;
+        }
+
+    private:
+
+        template <typename T1>
+        void append(T1&& other)
+        {
+            this->beginRawInsert(other.size());
+            for (size_t i=0;i<other.size();i++)
+            {
+                this->rawInsert(other.at(i));
+            }
+            this->endRawInsert(false);
+        }
+};
+
+template <typename KeyT, typename ValueT,
+         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         typename CompareT=std::less<KeyT>
+         >
+using FlatMapOnStack=FlatMapOnStackT<KeyT,ValueT,PreallocatedSize,CompareT>;
+
+namespace pmr
+{
+//! @todo pmr allocator with custom memory resource
+template <typename KeyT, typename ValueT,
+         size_t PreallocatedSize=DefaultPreallocatedMapSize,
+         typename CompareT=std::less<KeyT>
+         >
+using FlatMapOnStack=FlatMapOnStackT<KeyT,ValueT,PreallocatedSize,CompareT,polymorphic_allocator<char>>;
+}
+
 /********************** FlatSetOnStack **************************/
 
+constexpr size_t DefaultPreallocatedSetSize=DefaultPreallocatedVectorSize;
+
 template <typename T,
-         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         size_t PreallocatedSize=DefaultPreallocatedSetSize,
          typename CompareT=std::less<T>,
          typename FallbackAllocatorT=std::allocator<T>
          >
@@ -401,7 +523,7 @@ public:
 };
 
 template <typename T,
-         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         size_t PreallocatedSize=DefaultPreallocatedSetSize,
          typename CompareT=std::less<T>
          >
 using FlatSetOnStack=FlatSetOnStackT<T,PreallocatedSize,CompareT>;
@@ -410,7 +532,7 @@ namespace pmr
 {
 //! @todo pmr allocator with custom memory resource
 template <typename T,
-         size_t PreallocatedSize=DefaultPreallocatedVectorSize,
+         size_t PreallocatedSize=DefaultPreallocatedSetSize,
          typename CompareT=std::less<T>
          >
 using FlatSetOnStack=FlatSetOnStackT<T,PreallocatedSize,CompareT,polymorphic_allocator<char>>;
