@@ -24,7 +24,8 @@
 HATN_NETWORK_NAMESPACE_BEGIN
 
 //! Base class for endpoints of channels and streams
-template <typename AddressT, typename PortT, typename TypeT> class Endpoint
+template <typename AddressT, typename PortT, typename TypeT>
+class Endpoint
 {
     public:
 
@@ -182,7 +183,8 @@ template <typename Type,Type defaultV> struct TypeWithDefault
 };
 
 //! Class with local endpoints
-template <typename EndpointT> class WithLocalEndpoint
+template <typename EndpointT>
+class WithLocalEndpoint
 {
     public:
 
@@ -210,7 +212,8 @@ template <typename EndpointT> class WithLocalEndpoint
 };
 
 //! Class with remote endpoints
-template <typename EndpointT> class WithRemoteEndpoint
+template <typename EndpointT>
+class WithRemoteEndpoint
 {
     public:
 
