@@ -127,26 +127,10 @@ class ContextT
         using tagT=common::FixedByteArray<config::TagLength>;
         using tagRecordT=std::pair<tagT,LogLevel>;
 
-        using varStackAllocatorT=ContextAlloc<recordT,config::VarStackSize>;
-        using varMapAllocatorT=ContextAlloc<recordT,config::VarMapSize>;
-        using scopeStackAllocatorT=ContextAlloc<scopeCursorT,config::ScopeDepth>;
-        using threadStackAllocatorT=ContextAlloc<threadCursorT,config::ThreadDepth>;
-        using tagSetAllocatorT=ContextAlloc<tagT,config::TagSetSize>;
-
         ContextT()
             :   m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_logLevel(LogLevel::Default),
-                m_scopeStackArena(),
-                m_varStackArena(),
-                m_threadStackArena(),
-                m_varMapArena(),
-                m_tagSetArena(),
-                m_scopeStack(m_scopeStackArena),
-                m_varStack(m_varStackArena),
-                m_threadStack(m_threadStackArena),
-                m_globalVarMap(m_varMapArena),
-                m_tags(m_tagSetArena),
                 m_enableStackLocking(true)
         {}
 
@@ -420,17 +404,11 @@ class ContextT
         bool m_lockStack;
         LogLevel m_logLevel;
 
-        typename scopeStackAllocatorT::arena_type m_scopeStackArena;
-        typename varStackAllocatorT::arena_type m_varStackArena;
-        typename threadStackAllocatorT::arena_type m_threadStackArena;
-        typename varMapAllocatorT::arena_type m_varMapArena;
-        typename tagSetAllocatorT::arena_type m_tagSetArena;
-
-        std::vector<scopeCursorT,scopeStackAllocatorT> m_scopeStack;
-        std::vector<recordT,varStackAllocatorT> m_varStack;
-        std::vector<threadCursorT,threadStackAllocatorT> m_threadStack;
-        common::FlatMap<keyT,valueT,std::less<keyT>,varMapAllocatorT> m_globalVarMap;
-        common::FlatSet<tagT,std::less<tagT>,tagSetAllocatorT> m_tags;
+        HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
+        HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
+        HATN_COMMON_NAMESPACE::VectorOnStack<threadCursorT,config::ThreadDepth> m_threadStack;
+        HATN_COMMON_NAMESPACE::FlatMapOnStack<keyT,valueT,config::VarMapSize,std::less<keyT>> m_globalVarMap;
+        HATN_COMMON_NAMESPACE::FlatSetOnStack<tagT,config::TagSetSize,std::less<tagT>> m_tags;
 
         bool m_enableStackLocking;
         lib::optional<size_t> m_loopScopeIdx;
