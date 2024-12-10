@@ -78,7 +78,6 @@ MultiThreadFixture::MultiThreadFixture(
 //---------------------------------------------------------------
 MultiThreadFixture::~MultiThreadFixture()
 {
-    boost::system::error_code ec;
     d->threads.clear();
     Thread::releaseMainThread();
 
