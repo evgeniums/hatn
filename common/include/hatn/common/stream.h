@@ -107,7 +107,7 @@ class WithPrepareClose : public WithTraits<Traits>,
         ~WithPrepareClose()
         {
             this->m_destroying=true;
-            // we believe that Traits::close() will not touch any resources in derived object
+            //! @note Traits::close() must not touch any resources in derived object!
             close();
         }
 
