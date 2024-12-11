@@ -424,6 +424,8 @@ class TaskSubcontext
         TaskContext *m_mainCtx;
 };
 
+using TaskContextShared=SharedPtr<TaskContext>;
+
 struct TaskSubcontextTag{};
 
 /**
