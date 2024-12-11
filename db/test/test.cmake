@@ -16,6 +16,9 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testfindembedded.cpp
     ${DB_TEST_SRC}/modelembedded.cpp
 
+    ${DB_TEST_SRC}/testfindcompound.cpp
+    ${DB_TEST_SRC}/modelcompound.cpp
+
     ${DB_TEST_SRC}/testfindcompound2.cpp
     ${DB_TEST_SRC}/modelcompound2.cpp
 

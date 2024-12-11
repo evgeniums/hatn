@@ -132,7 +132,7 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)
         {
-            auto logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+            auto logCtx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
             logCtx->beforeThreadProcessing();
 
             for (size_t i=0;i<count;i++)
@@ -413,7 +413,7 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)
         {
-            auto logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+            auto logCtx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
             logCtx->beforeThreadProcessing();
 
             for (size_t i=0;i<count;i++)

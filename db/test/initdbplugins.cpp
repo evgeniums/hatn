@@ -62,9 +62,9 @@ void DbTestFixture::setup()
     HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(
         std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>())
     );
-    m_logCtx=HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>();
+    m_logCtx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
     m_logCtx->beforeThreadProcessing();
-    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(false);
+    HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLockingEnabled(false);
 }
 
 void DbTestFixture::teardown()

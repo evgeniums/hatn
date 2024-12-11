@@ -114,7 +114,7 @@ class DbTestFixture : public MultiThreadFixture
 
     private:
 
-        decltype(HATN_COMMON_NAMESPACE::makeTaskContext<HATN_LOGCONTEXT_NAMESPACE::ContextWrapper>()) m_logCtx;
+        HATN_COMMON_NAMESPACE::SharedPtr<HATN_LOGCONTEXT_NAMESPACE::LogCtxType> m_logCtx;
 };
 
 HATN_TEST_NAMESPACE_END
