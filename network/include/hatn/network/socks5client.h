@@ -21,37 +21,28 @@
 
 #include <functional>
 
-#include <hatn/common/logger.h>
 #include <hatn/common/error.h>
-#include <hatn/common/interface.h>
 #include <hatn/common/bytearray.h>
-#include <hatn/common/objectid.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/asio/ipendpoint.h>
 
-DECLARE_LOG_MODULE_EXPORT(socks5client,HATN_NETWORK_EXPORT)
-
 HATN_NETWORK_NAMESPACE_BEGIN
 
     /**
-     * @brief Parse and construct messages of SOCKS5 protocol
+     * @brief Parse and construct messages of SOCKS5 protocol.
      *
      * This class only processes requests and responses depending on the current state and data of the last response.
      * It does not make any system calls, neither it handles any sockets.
-     * Just put received responses to it and ask for prepared requests.
-     * The client will give you the answer what to do next.
+     * Just provide responses received from SOCKS5 server to its input and get back prepared requests
+     * with actual status and the next step to do.
      * Network operations must be performed somewhere else.
      *
      */
-    class HATN_NETWORK_EXPORT Socks5Client final
-            :   public common::WithID,
-                public common::Interface<Socks5Client>
+    class HATN_NETWORK_EXPORT Socks5Client
     {
         public:
-
-            HATN_CUID_DECLARE()
 
             //! Connection parameters
             struct HATN_NETWORK_EXPORT Target
@@ -88,7 +79,6 @@ HATN_NETWORK_NAMESPACE_BEGIN
 
             //! Constructor
             Socks5Client(
-                common::STR_ID_TYPE id=common::STR_ID_TYPE(),
                 common::pmr::AllocatorFactory* allocatorFactory=common::pmr::AllocatorFactory::getDefault()
             );
 
@@ -176,7 +166,7 @@ HATN_NETWORK_NAMESPACE_BEGIN
 
             //! Reset buffers
             /**
-             * \attention This method invalidates buffers, so never call it while any async operation with the buffers is in progress.
+             * @attention This method invalidates buffers, so never call it while any async operation with the buffers is in progress.
              * Note, that the buffers will be auto reset on success when initialization of connection to proxy server is finished.
              */
             inline void resetBuffers() noexcept

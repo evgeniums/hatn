@@ -12,18 +12,15 @@
 
 /** @file network/socks5client.cpp
   *
-  *   Class to parse and construct messages of SOCKS5 protocol
+  *   Class to parse and construct messages of SOCKS5 protocol.
   *
   */
 
 /****************************************************************************/
 
-#include <hatn/network/errorcodes.h>
-#include <hatn/network/error.h>
+#include <hatn/network/networkerrorcodes.h>
+#include <hatn/network/networkerror.h>
 #include <hatn/network/socks5client.h>
-
-#include <hatn/common/loggermoduleimp.h>
-INIT_LOG_MODULE(socks5client,HATN_NETWORK_EXPORT)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
@@ -148,16 +145,12 @@ namespace {
     };
 }
 
-HATN_CUID_INIT(Socks5Client)
-
 /*********************** Socks5Client **************************/
 
 //---------------------------------------------------------------
 Socks5Client::Socks5Client(
-        common::STR_ID_TYPE id,
         common::pmr::AllocatorFactory* allocatorFactory
-    ) : common::WithID(std::move(id)),
-        m_state(State::Idle),
+    ) : m_state(State::Idle),
         m_request(allocatorFactory->dataMemoryResource()),
         m_response(allocatorFactory->dataMemoryResource()),
         m_udp(false),
@@ -179,7 +172,7 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
 
             if (!m_destination.isValid())
             {
-                m_error=makeError(ErrorCode::PROXY_INVALID_PARAMETERS);
+                m_error=networkError(NetworkError::PROXY_INVALID_PARAMETERS);
                 ret=Socks5Client::StepStatus::Fail;
 #if 0
                 DCS_WARN_ID(socks5client,HATN_FORMAT("Invalid destination address {} or domain {} or port {}",
@@ -213,7 +206,7 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
 
             if (response->version()!=SOCKS5_VERSION)
             {
-                m_error=makeError(ErrorCode::PROXY_UNSUPPORTED_VERSION);
+                m_error=networkError(NetworkError::PROXY_UNSUPPORTED_VERSION);
                 ret=Socks5Client::StepStatus::Fail;
                 // DCS_WARN_ID(socks5client,HATN_FORMAT("Negotiation response, unsupported version={}",static_cast<uint32_t>(response->version())));
             }
@@ -248,7 +241,7 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
                 }
                 else
                 {
-                    m_error=makeError(ErrorCode::PROXY_UNSUPPORTED_AUTH_METHOD);
+                    m_error=networkError(NetworkError::PROXY_UNSUPPORTED_AUTH_METHOD);
                     ret=Socks5Client::StepStatus::Fail;
                     // DCS_WARN_ID(socks5client,HATN_FORMAT("Negotiation response, unsupported auth method={}",static_cast<uint32_t>(response->method())));
                 }
@@ -260,13 +253,13 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
         {
             if (static_cast<uint8_t>(m_response[0])!=SOCKS5_AUTH_VERSION)
             {
-                m_error=makeError(ErrorCode::PROXY_UNSUPPORTED_VERSION);
+                m_error=networkError(NetworkError::PROXY_UNSUPPORTED_VERSION);
                 ret=Socks5Client::StepStatus::Fail;
                 // DCS_WARN_ID(socks5client,HATN_FORMAT("Unsupported auth version {}",static_cast<uint32_t>(m_response[0])));
             }
             else if (m_response[1]!=0)
             {
-                m_error=makeError(ErrorCode::PROXY_AUTH_FAILED);
+                m_error=networkError(NetworkError::PROXY_AUTH_FAILED);
                 ret=Socks5Client::StepStatus::Fail;
                 // DCS_WARN_ID(socks5client,HATN_FORMAT("Auth failed {}",static_cast<uint32_t>(m_response[1])));
             }
@@ -286,13 +279,13 @@ Socks5Client::StepStatus Socks5Client::nextRequest()
             if (headerPtr->version()!=SOCKS5_VERSION)
             {
                 // DCS_WARN_ID(socks5client,HATN_FORMAT("Unsupported SOCKS proxy version {} when trying to connect",static_cast<uint32_t>(headerPtr->version())));
-                m_error=makeError(ErrorCode::PROXY_UNSUPPORTED_VERSION);
+                m_error=networkError(NetworkError::PROXY_UNSUPPORTED_VERSION);
                 ret=Socks5Client::StepStatus::Fail;
             }
             else if (headerPtr->command()!=RESP_SUCCESS)
             {
                 // DCS_WARN_ID(socks5client,HATN_FORMAT("Proxy responed with error {}",static_cast<uint32_t>(headerPtr->command())));
-                m_error=makeError(ErrorCode::PROXY_REPORTED_ERROR);
+                m_error=networkError(NetworkError::PROXY_REPORTED_ERROR);
                 ret=Socks5Client::StepStatus::Fail;
             }
             else

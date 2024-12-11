@@ -22,8 +22,6 @@ SET (HEADERS
 
     include/hatn/network/detail/asynchandler.ipp
 
-#    include/hatn/network/resolverinterface.h
-
     include/hatn/network/socks5client.h
 )
 
@@ -39,9 +37,7 @@ SET (SOURCES
     src/asio/udpchannel.cpp
     src/asio/caresolver.cpp
 
-#    src/resolverinterface.cpp
-
-    # src/socks5client.cpp
+    src/socks5client.cpp
 )
 
 BUILD_HATN_MODULE()
