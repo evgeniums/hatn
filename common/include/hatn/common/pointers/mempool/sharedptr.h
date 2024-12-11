@@ -631,9 +631,15 @@ class EnableSharedFromThis<T,true> : public ManagedObject
 {
     public:
 
-        //! Make shared pointer from this object
+    //! Make shared pointer from this object
     SharedPtr<T> sharedFromThis() const noexcept
     {
+        // check if this object is in a SharedPtr
+        if (this->refCount()==0)
+        {
+            return SharedPtr<T>{};
+        }
+
         auto self=const_cast<EnableSharedFromThis*>(this);
         return SharedPtr<T>(static_cast<T*>(self),self);
     }

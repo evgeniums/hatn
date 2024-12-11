@@ -61,6 +61,12 @@ class ManagedObject
             return m_refCount;
         }
 
+        //! Get reference count
+        inline int refCount() const noexcept
+        {
+            return m_refCount;
+        }
+
         //! Get control structure for weak pointers
         inline WeakCtrl* weakCtrl() const noexcept
         {
