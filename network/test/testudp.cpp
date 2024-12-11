@@ -2,7 +2,8 @@
 
 #include <hatn/common/locker.h>
 
-#include <hatn/common/logger.h>
+#include <hatn/logcontext/streamlogger.h>
+
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/network/asio/udpchannel.h>
@@ -11,38 +12,14 @@
 
 namespace {
 
-// static void setLogHandler()
-// {
-//     auto handler=[](const ::hatn::common::FmtAllocatedBufferChar &s)
-//     {
-//         #ifdef HATN_TEST_LOG_CONSOLE
-//             std::cout<<::hatn::common::lib::toStringView(s)<<std::endl;
-//         #else
-//             std::ignore=s;
-//         #endif
-//     };
-
-//     ::hatn::common::Logger::setOutputHandler(handler);
-//     ::hatn::common::Logger::setFatalLogHandler(handler);
-//     ::hatn::common::Logger::setDefaultVerbosity(hatn::common::LoggerVerbosity::INFO);
-// }
-
 struct Env : public ::hatn::test::MultiThreadFixture
 {
     Env()
     {
-        // if (!::hatn::common::Logger::isRunning())
-        // {
-        //     ::hatn::common::Logger::setFatalTracing(false);
-
-        //     setLogHandler();
-        //     ::hatn::common::Logger::start();
-        // }
     }
 
     ~Env()
     {
-        // ::hatn::common::Logger::stop();
     }
 
     Env(const Env&)=delete;
@@ -63,7 +40,7 @@ BOOST_FIXTURE_TEST_CASE(UdpChannelCtor,Env)
     BOOST_CHECK_EQUAL((*client1)->thread(),mainThread().get());
 
     createThreads(1);
-    hatn::common::Thread* thread0=thread(0).get();
+    auto* thread0=thread(0).get();
 
     thread0->start();
     auto ec=thread0->execSync(
@@ -79,203 +56,220 @@ BOOST_FIXTURE_TEST_CASE(UdpChannelCtor,Env)
     BOOST_REQUIRE(!ec);
     thread0->stop();
 }
-#if 0
+
 BOOST_FIXTURE_TEST_CASE(UdpServerBind,Env)
 {
-    hatn::common::MutexLock mutex;
-
     uint16_t portNumber1=11511;
     uint16_t portNumber2=11712;
     uint16_t portNumber3=11513;
     uint16_t portNumber4=11714;
 
     createThreads(2);
-    hatn::common::Thread* thread0=thread(0).get();
-    hatn::common::Thread* thread1=thread(1).get();
+    auto* thread0=thread(0).get();
+    auto* thread1=thread(1).get();
 
     {
-        std::shared_ptr<hatn::network::asio::UdpServer> server1,server2,server3,server4;
-        std::shared_ptr<hatn::network::asio::UdpServer> server5,server6,server7,server8;
-        std::shared_ptr<hatn::network::asio::UdpServer> server9,server10;
+        HATN_NETWORK_NAMESPACE::asio::UdpServerSharedCtx server1,server2,server3,server4;
+        HATN_NETWORK_NAMESPACE::asio::UdpServerSharedCtx server5,server6,server7,server8;
+        HATN_NETWORK_NAMESPACE::asio::UdpServerSharedCtx server9,server10;
 
         thread0->start();
         thread1->start();
 
-        auto bindOk=[&mutex](const hatn::common::Error &ec)
+        std::atomic<size_t> okCount{0};
+        auto bindOk=[&okCount](const HATN_COMMON_NAMESPACE::Error &ec)
         {
-            hatn::common::MutexScopedLock l(mutex);
-            BOOST_CHECK(!ec);
+            HATN_CHECK_TS(!ec);
+            okCount++;
         };
-        auto bindFail=[&mutex](const hatn::common::Error &ec)
-        {
-            hatn::common::MutexScopedLock l(mutex);
-            BOOST_CHECK(ec);
-            BOOST_CHECK_EQUAL(ec.errorCondition(),boost::system::errc::address_in_use);
+
+        std::atomic<size_t> failCount{0};
+        auto bindFail=[&failCount](const HATN_COMMON_NAMESPACE::Error &ec)
+        {            
+            HATN_CHECK_TS(ec);
+            HATN_CHECK_EQUAL_TS(ec.errorCondition(),boost::system::errc::address_in_use);
+            failCount++;
         };
 
         auto ec=thread0->execSync(
-                        [&bindOk,&server1,&server2,&server3,&server4,portNumber1,portNumber2,portNumber3,portNumber4,&server9,&server10]()
+                        [&bindOk,&server1,&server2,&server3,&server4,
+                         portNumber1,portNumber2,portNumber3,portNumber4,&server9,&server10]()
                         {
-                            server1=std::make_shared<hatn::network::asio::UdpServer>("server1");
-                            hatn::network::asio::UdpEndpoint ep1("127.0.0.1",portNumber1);
-                            server1->bind(ep1,bindOk);
+                            server1=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server1");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep1("127.0.0.1",portNumber1);
+                            (*server1)->bind(ep1,bindOk);
 
-                            server2=std::make_shared<hatn::network::asio::UdpServer>("server2");
-                            hatn::network::asio::UdpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
-                            server2->bind(ep2,bindOk);
+                            server2=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server2");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
+                            (*server2)->bind(ep2,bindOk);
 
-                            server3=std::make_shared<hatn::network::asio::UdpServer>("server3");
-                            hatn::network::asio::UdpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
-                            server3->bind(ep3,bindOk);
+                            server3=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server3");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
+                            (*server3)->bind(ep3,bindOk);
 
-                            server4=std::make_shared<hatn::network::asio::UdpServer>("server4");
-                            hatn::network::asio::UdpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
-                            server4->bind(ep4,bindOk);
+                            server4=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server4");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
+                            (*server4)->bind(ep4,bindOk);
 
-                            server9=std::make_shared<hatn::network::asio::UdpServer>("server9");
-                            hatn::network::asio::UdpEndpoint ep5(boost::asio::ip::address_v4::any());
-                            server9->bind(ep5,bindOk);
+                            server9=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server9");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep5(boost::asio::ip::address_v4::any());
+                            (*server9)->bind(ep5,bindOk);
 
-                            server10=std::make_shared<hatn::network::asio::UdpServer>("server10");
-                            hatn::network::asio::UdpEndpoint ep6(boost::asio::ip::address_v6::any());
-                            server10->bind(ep6,bindOk);
+                            server10=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server10");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep6(boost::asio::ip::address_v6::any());
+                            (*server10)->bind(ep6,bindOk);
                         }
                     );
         BOOST_REQUIRE(!ec);
+        exec(1);
 
         ec=thread1->execSync(
-                        [&bindFail,&server5,&server6,&server7,&server8,portNumber1,portNumber2,portNumber3,portNumber4]()
+                        [&bindFail,&server5,&server6,&server7,&server8,
+                        portNumber1,portNumber2,portNumber3,portNumber4]()
                         {
-                            server5=std::make_shared<hatn::network::asio::UdpServer>("server5");
-                            hatn::network::asio::UdpEndpoint ep1("127.0.0.1",portNumber1);
-                            server5->bind(ep1,bindFail);
+                            server5=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server5");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep1("127.0.0.1",portNumber1);
+                            (*server5)->bind(ep1,bindFail);
 
-                            server6=std::make_shared<hatn::network::asio::UdpServer>("server6");
-                            hatn::network::asio::UdpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
-                            server6->bind(ep2,bindFail);
+                            server6=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server6");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep2(boost::asio::ip::address_v4::any(),portNumber2);
+                            (*server6)->bind(ep2,bindFail);
 
-                            server7=std::make_shared<hatn::network::asio::UdpServer>("server7");
-                            hatn::network::asio::UdpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
-                            server7->bind(ep3,bindFail);
+                            server7=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server7");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep3(boost::asio::ip::address_v6::loopback(),portNumber3);
+                            (*server7)->bind(ep3,bindFail);
 
-                            server8=std::make_shared<hatn::network::asio::UdpServer>("server8");
-                            hatn::network::asio::UdpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
-                            server8->bind(ep4,bindFail);
+                            server8=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx("server8");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint ep4(boost::asio::ip::address_v6::any(),portNumber4);
+                            (*server8)->bind(ep4,bindFail);
                         }
                     );
         BOOST_REQUIRE(!ec);
+        exec(1);
 
+        std::atomic<size_t> closeCount{0};
         ec=thread0->execSync(
-                        [&mutex,&server1,&server2,&server3,&server4,&server9,&server10]()
+                        [&closeCount,&server1,&server2,&server3,&server4,&server9,&server10]()
                         {
-                            auto closeOk=[&mutex](const hatn::common::Error &ec)
+                            auto closeOk=[&closeCount](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
+                                HATN_CHECK_TS(!ec);
+                                closeCount++;
                             };
 
-                            server1->close(closeOk);
-                            server2->close(closeOk);
-                            server3->close(closeOk);
-                            server4->close(closeOk);
+                            (*server1)->close(closeOk);
+                            (*server2)->close(closeOk);
+                            (*server3)->close(closeOk);
+                            (*server4)->close(closeOk);
 
-                            server9->close(closeOk);
-                            server10->close(closeOk);
+                            (*server9)->close(closeOk);
+                            (*server10)->close(closeOk);
                         }
                     );
         BOOST_REQUIRE(!ec);
+        exec(1);
 
         thread0->stop();
         thread1->stop();
+
+        BOOST_CHECK_EQUAL(static_cast<size_t>(okCount),6);
+        BOOST_CHECK_EQUAL(static_cast<size_t>(failCount),4);
+        BOOST_CHECK_EQUAL(static_cast<size_t>(closeCount),6);
     }
 }
 
-BOOST_FIXTURE_TEST_CASE(UdpClientConnect,Env)
+BOOST_FIXTURE_TEST_CASE(UdpClientPrepare,Env)
 {
-    hatn::common::MutexLock mutex;
-
     uint16_t serverPortNumber=11511;
     uint16_t portNumber1=11712;
     uint16_t portNumber2=11513;
 
     createThreads(1);
-    hatn::common::Thread* thread0=thread(0).get();
+    HATN_COMMON_NAMESPACE::Thread* thread0=thread(0).get();
 
     {
-        std::shared_ptr<hatn::network::asio::UdpClient> client1,client2,client3,client4;
+        HATN_NETWORK_NAMESPACE::asio::UdpClientSharedCtx client1,client2,client3,client4;
 
         thread0->start();
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
-                        [&mutex,&client1,&client2,&client3,&client4,portNumber1,portNumber2,serverPortNumber]()
+        std::atomic<size_t> prepareCount{0};
+
+        auto ec=thread0->execSync(
+                        [&prepareCount,&client1,&client2,&client3,&client4,portNumber1,portNumber2,serverPortNumber]()
                         {
-                            client1=std::make_shared<hatn::network::asio::UdpClient>("client1");
-                            hatn::network::asio::UdpEndpoint serverEp1(boost::asio::ip::address_v4::loopback(),serverPortNumber);
-                            client1->setRemoteEndpoint(serverEp1);
-                            auto connectCb1=[&mutex,&client1](const hatn::common::Error &ec)
+                            client1=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx("client1");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint serverEp1(boost::asio::ip::address_v4::loopback(),serverPortNumber);
+                            (*client1)->setRemoteEndpoint(serverEp1);
+                            auto prepareCb1=[&prepareCount,&client1](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
-                                BOOST_CHECK_EQUAL(client1->localEndpoint().address().to_string(),"127.0.0.1");
+                                HATN_CHECK_TS(!ec);
+                                HATN_CHECK_EQUAL_TS((*client1)->localEndpoint().address().to_string(),"127.0.0.1");
+                                prepareCount++;
                             };
-                            client1->prepare(connectCb1);
+                            (*client1)->prepare(prepareCb1);
 
-                            client2=std::make_shared<hatn::network::asio::UdpClient>("client2");
-                            hatn::network::asio::UdpEndpoint serverEp2(boost::asio::ip::address_v6::loopback(),serverPortNumber);
-                            client2->setRemoteEndpoint(serverEp2);
-                            auto connectCb2=[&mutex,&client2](const hatn::common::Error &ec)
+                            client2=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx("client2");
+                            HATN_NETWORK_NAMESPACE::asio::UdpEndpoint serverEp2(boost::asio::ip::address_v6::loopback(),serverPortNumber);
+                            (*client2)->setRemoteEndpoint(serverEp2);
+                            auto prepareCb2=[&prepareCount,&client2](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
-                                BOOST_CHECK_EQUAL(client2->localEndpoint().address().to_string(),"::1");
+                                HATN_CHECK_TS(!ec);
+                                HATN_CHECK_EQUAL_TS((*client2)->localEndpoint().address().to_string(),"::1");
+                                prepareCount++;
                             };
-                            client2->prepare(connectCb2);
+                            (*client2)->prepare(prepareCb2);
 
-                            client3=std::make_shared<hatn::network::asio::UdpClient>("client3");
-                            client3->setRemoteEndpoint(serverEp1);
-                            client3->setLocalEndpoint(hatn::network::asio::UdpEndpoint(boost::asio::ip::address_v4::any(),portNumber1));
-                            auto connectCb3=[&mutex,&client3,portNumber1](const hatn::common::Error &ec)
+                            client3=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx("client3");
+                            (*client3)->setRemoteEndpoint(serverEp1);
+                            (*client3)->setLocalEndpoint(HATN_NETWORK_NAMESPACE::asio::UdpEndpoint(boost::asio::ip::address_v4::any(),portNumber1));
+                            auto prepareCb3=[&prepareCount,&client3,portNumber1](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
-                                BOOST_CHECK_EQUAL(client3->localEndpoint().address().to_string(),"127.0.0.1");
-                                BOOST_CHECK_EQUAL(client3->localEndpoint().port(),portNumber1);
+                                HATN_CHECK_TS(!ec);
+                                HATN_CHECK_EQUAL_TS((*client3)->localEndpoint().address().to_string(),"127.0.0.1");
+                                HATN_CHECK_EQUAL_TS((*client3)->localEndpoint().port(),portNumber1);
+                                prepareCount++;
                             };
-                            client3->prepare(connectCb3);
+                            (*client3)->prepare(prepareCb3);
 
-                            client4=std::make_shared<hatn::network::asio::UdpClient>("client4");
-                            client4->setRemoteEndpoint(serverEp2);
-                            client4->setLocalEndpoint(hatn::network::asio::UdpEndpoint(boost::asio::ip::address_v6::any(),portNumber2));
-                            auto connectCb4=[&mutex,&client4,portNumber2](const hatn::common::Error &ec)
+                            client4=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx("client4");
+                            (*client4)->setRemoteEndpoint(serverEp2);
+                            (*client4)->setLocalEndpoint(HATN_NETWORK_NAMESPACE::asio::UdpEndpoint(boost::asio::ip::address_v6::any(),portNumber2));
+                            auto prepareCb4=[&prepareCount,&client4,portNumber2](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
-                                BOOST_CHECK_EQUAL(client4->localEndpoint().address().to_string(),"::1");
-                                BOOST_CHECK_EQUAL(client4->localEndpoint().port(),portNumber2);
+                                HATN_CHECK_TS(!ec);
+                                HATN_CHECK_EQUAL_TS((*client4)->localEndpoint().address().to_string(),"::1");
+                                HATN_CHECK_EQUAL_TS((*client4)->localEndpoint().port(),portNumber2);
+                                prepareCount++;
                             };
-                            client4->prepare(connectCb4);
+                            (*client4)->prepare(prepareCb4);
                         }
-                    ));
+                    );
+        BOOST_REQUIRE(!ec);
 
         exec(1);
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
-                        [&mutex,&client1,&client2,&client3,&client4]()
+        std::atomic<size_t> closeCount{0};
+        ec=thread0->execSync(
+                        [&closeCount,&client1,&client2,&client3,&client4]()
                         {
-                            auto closeOk=[&mutex](const hatn::common::Error &ec)
+                            auto closeOk=[&closeCount](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                hatn::common::MutexScopedLock l(mutex);
-                                BOOST_CHECK(!ec);
+                                HATN_CHECK_TS(!ec);
+                                closeCount++;
                             };
 
-                            client1->close(closeOk);
-                            client2->close(closeOk);
-                            client3->close(closeOk);
-                            client4->close(closeOk);
+                            (*client1)->close(closeOk);
+                            (*client2)->close(closeOk);
+                            (*client3)->close(closeOk);
+                            (*client4)->close(closeOk);
                         }
-                    ));
+                    );
+        BOOST_REQUIRE(!ec);
+
+        exec(1);
+
+        BOOST_CHECK_EQUAL(static_cast<size_t>(closeCount),4);
+        BOOST_CHECK_EQUAL(static_cast<size_t>(prepareCount),4);
 
         thread0->stop();
     }
@@ -296,22 +290,24 @@ constexpr static const size_t dataSize=512;
     #endif
 #endif
 
-static void sendNextServerScattered(hatn::network::asio::UdpServer* server,
+static void sendNextServerScattered(HATN_NETWORK_NAMESPACE::asio::UdpServer* server,
       std::array<char,dataSize>& buf,
-      const hatn::network::asio::UdpEndpoint& ep,
+      const HATN_NETWORK_NAMESPACE::asio::UdpEndpoint& ep,
       size_t& packetsToSend,
       size_t& txPacketsCount,
       bool append
 );
 
-static void sendNextServer(hatn::network::asio::UdpServer* server,
+static void sendNextServer(HATN_NETWORK_NAMESPACE::asio::UdpServer* server,
               std::array<char,dataSize>& buf,
-              const hatn::network::asio::UdpEndpoint& ep,
+              const HATN_NETWORK_NAMESPACE::asio::UdpEndpoint& ep,
               size_t& packetsToSend,
               size_t& txPacketsCount,
               bool append
               )
 {
+    HATN_CTX_SCOPE("sendNextServer")
+
     if (append)
     {
         ++packetsToSend;
@@ -319,12 +315,13 @@ static void sendNextServer(hatn::network::asio::UdpServer* server,
     if (packetsToSend>0)
     {
         --packetsToSend;
-        hatn::common::SpanBuffer cbuf(
-                                            hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize)
+        HATN_COMMON_NAMESPACE::SpanBuffer cbuf(
+                                            HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize)
                                            );
         server->sendTo(std::move(cbuf),ep,
-                       [server,&buf,&ep,&packetsToSend,&txPacketsCount](const hatn::common::Error& ec,size_t size,const hatn::common::SpanBuffer&)
+                       [server,&buf,&ep,&packetsToSend,&txPacketsCount](const HATN_COMMON_NAMESPACE::Error& ec,size_t size,const HATN_COMMON_NAMESPACE::SpanBuffer&)
                         {
+                            HATN_CTX_SCOPE("sendNextServerCb")
                             if (!ec)
                             {
                                 if (size!=dataSize)
@@ -340,14 +337,16 @@ static void sendNextServer(hatn::network::asio::UdpServer* server,
     }
 }
 
-static void sendNextServerScattered(hatn::network::asio::UdpServer* server,
+static void sendNextServerScattered(HATN_NETWORK_NAMESPACE::asio::UdpServer* server,
           std::array<char,dataSize>& buf,
-          const hatn::network::asio::UdpEndpoint& ep,
+          const HATN_NETWORK_NAMESPACE::asio::UdpEndpoint& ep,
           size_t& packetsToSend,
           size_t& txPacketsCount,
           bool append
     )
 {
+    HATN_CTX_SCOPE("sendNextServerScattered")
+
     if (append)
     {
         ++packetsToSend;
@@ -356,11 +355,11 @@ static void sendNextServerScattered(hatn::network::asio::UdpServer* server,
     {
         --packetsToSend;
 
-        hatn::common::SpanBuffers bufs;
+        HATN_COMMON_NAMESPACE::SpanBuffers bufs;
         bufs.emplace_back(
-                            hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize/4)
+                            HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize/4)
                     );
-        auto sharedBuf=hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize);
+        auto sharedBuf=HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize);
         size_t offset=dataSize/4;
         bufs.emplace_back(
                         sharedBuf,offset,dataSize/4
@@ -375,8 +374,9 @@ static void sendNextServerScattered(hatn::network::asio::UdpServer* server,
                     );
 
         server->sendTo(std::move(bufs),ep,
-                       [server,&buf,&ep,&packetsToSend,&txPacketsCount](const hatn::common::Error& ec,size_t size,const hatn::common::SpanBuffers&)
+                       [server,&buf,&ep,&packetsToSend,&txPacketsCount](const HATN_COMMON_NAMESPACE::Error& ec,size_t size,const HATN_COMMON_NAMESPACE::SpanBuffers&)
                         {
+                            HATN_CTX_SCOPE("sendNextServerScatteredCb")
                             if (!ec)
                             {
                                 if (size!=dataSize)
@@ -392,16 +392,18 @@ static void sendNextServerScattered(hatn::network::asio::UdpServer* server,
     }
 }
 
-static void recvNext(hatn::network::asio::UdpServer* server,
+static void recvNext(HATN_NETWORK_NAMESPACE::asio::UdpServer* server,
               std::array<char,dataSize>& buf,
               size_t& rxPacketCount,
               size_t& packetsToSend,
               size_t& txPacketsCount
               )
 {
+    HATN_CTX_SCOPE("recvNext")
     server->receiveFrom(buf.data(),buf.size(),
-                            [server,&buf,&rxPacketCount,&packetsToSend,&txPacketsCount](const hatn::common::Error& ec,size_t size,const hatn::network::asio::UdpEndpoint& ep)
+                            [server,&buf,&rxPacketCount,&packetsToSend,&txPacketsCount](const HATN_COMMON_NAMESPACE::Error& ec,size_t size,const HATN_NETWORK_NAMESPACE::asio::UdpEndpoint& ep)
                             {
+                                HATN_CTX_SCOPE("recvNextCb")
                                 if (!ec)
                                 {
                                     if (size!=dataSize)
@@ -411,7 +413,7 @@ static void recvNext(hatn::network::asio::UdpServer* server,
 
                                     if (++rxPacketCount==TxPacketCount)
                                     {
-                                        G_DEBUG("Finished receiving on server");
+                                        BOOST_TEST_MESSAGE("Finished receiving on server");
                                     }
 
                                     sendNextServer(server,buf,ep,packetsToSend,txPacketsCount,true);
@@ -419,19 +421,21 @@ static void recvNext(hatn::network::asio::UdpServer* server,
                                 }
                                 else
                                 {
-                                    G_INFO(HATN_FORMAT("Failed to recv {} packet on server: ({}) {}",rxPacketCount,ec.value(),ec.message()));
+                                    HATN_CTX_INFO_RECORDS("Failed to recv packet on server",{"packet_id",rxPacketCount},{"ec_code",ec.value()},{"ec_message",ec.message()});
                                 }
                             }
                         );
 }
-static void recvNextClient(hatn::network::asio::UdpClient* client,
+static void recvNextClient(HATN_NETWORK_NAMESPACE::asio::UdpClient* client,
               std::array<char,dataSize>& buf,
               size_t& rxPacketCount
               )
 {
+    HATN_CTX_SCOPE("recvNextClient")
     client->receive(buf.data(),buf.size(),
-                            [client,&buf,&rxPacketCount](const hatn::common::Error& ec,size_t size)
+                            [client,&buf,&rxPacketCount](const HATN_COMMON_NAMESPACE::Error& ec,size_t size)
                             {
+                                HATN_CTX_SCOPE("recvNextClientCb")
                                 ++rxPacketCount;
                                 if (!ec)
                                 {
@@ -444,31 +448,33 @@ static void recvNextClient(hatn::network::asio::UdpClient* client,
                                 }
                                 else
                                 {
-                                    G_INFO(HATN_FORMAT("Failed to recv {} packet on client: ({}) {}",rxPacketCount,ec.value(),ec.message()));
+                                    HATN_CTX_INFO_RECORDS("Failed to recv packet on client",{"packet_id",rxPacketCount},{"ec_code",ec.value()},{"ec_message",ec.message()});
                                 }
                             }
                         );
 }
 
-static void sendNextScatter(hatn::network::asio::UdpClient* client,
+static void sendNextScatter(HATN_NETWORK_NAMESPACE::asio::UdpClient* client,
       std::array<char,dataSize>& buf,
       size_t& txPacketCount,
       hatn::test::MultiThreadFixture* mainLoop
 );
 
-static void sendNext(hatn::network::asio::UdpClient* client,
+static void sendNext(HATN_NETWORK_NAMESPACE::asio::UdpClient* client,
               std::array<char,dataSize>& buf,
               size_t& txPacketCount,
               hatn::test::MultiThreadFixture* mainLoop
               )
 {
+    HATN_CTX_SCOPE("sendNext")
     if (txPacketCount<TxPacketCount)
     {
         ++txPacketCount;
-        hatn::common::SpanBuffer cbuf(hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize));
+        HATN_COMMON_NAMESPACE::SpanBuffer cbuf(HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize));
         client->send(std::move(cbuf),
-                                [client,&buf,&txPacketCount,mainLoop](const hatn::common::Error& ec,size_t size,const hatn::common::SpanBuffer&)
+                                [client,&buf,&txPacketCount,mainLoop](const HATN_COMMON_NAMESPACE::Error& ec,size_t size,const HATN_COMMON_NAMESPACE::SpanBuffer&)
                                 {
+                                    HATN_CTX_SCOPE("sendNextCb")
                                     if (!ec)
                                     {
                                         if (size!=dataSize)
@@ -479,16 +485,14 @@ static void sendNext(hatn::network::asio::UdpClient* client,
                                     }
                                     else
                                     {
-                                        G_INFO(HATN_FORMAT("Failed to send {} packet: ({}) {}",txPacketCount,ec.value(),ec.message()));
+                                        HATN_CTX_INFO_RECORDS("Failed to send packet on client",{"packet_id",txPacketCount},{"ec_code",ec.value()},{"ec_message",ec.message()});
                                     }
                                 }
                             );
     }
     else
     {
-        {
-            G_DEBUG("Finished sending");
-        }
+        HATN_CTX_INFO("finished sending");
 
         mainLoop->mainThread()->installTimer(5000*1000,
                                              [mainLoop]()
@@ -501,21 +505,22 @@ static void sendNext(hatn::network::asio::UdpClient* client,
     }
 }
 
-static void sendNextScatter(hatn::network::asio::UdpClient* client,
+static void sendNextScatter(HATN_NETWORK_NAMESPACE::asio::UdpClient* client,
               std::array<char,dataSize>& buf,
               size_t& txPacketCount,
               hatn::test::MultiThreadFixture* mainLoop
     )
 {
+    HATN_CTX_SCOPE("sendNextScatter")
     if (txPacketCount<TxPacketCount)
     {
         ++txPacketCount;
 
-        hatn::common::SpanBuffers bufs;
+        HATN_COMMON_NAMESPACE::SpanBuffers bufs;
         bufs.emplace_back(
-                            hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize/4)
+                            HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize/4)
                     );
-        auto sharedBuf=hatn::common::makeShared<hatn::common::ByteArrayManaged>(buf.data(),dataSize);
+        auto sharedBuf=HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>(buf.data(),dataSize);
         size_t offset=dataSize/4;
         bufs.emplace_back(
                         sharedBuf,offset,dataSize/4
@@ -530,8 +535,9 @@ static void sendNextScatter(hatn::network::asio::UdpClient* client,
                     );
 
         client->send(std::move(bufs),
-                        [client,&buf,&txPacketCount,mainLoop](const hatn::common::Error& ec,size_t size,const hatn::common::SpanBuffers&)
+                        [client,&buf,&txPacketCount,mainLoop](const HATN_COMMON_NAMESPACE::Error& ec,size_t size,const HATN_COMMON_NAMESPACE::SpanBuffers&)
                         {
+                            HATN_CTX_SCOPE("sendNextScatterCb")
                             if (!ec)
                             {
                                 if (size!=dataSize)
@@ -542,16 +548,14 @@ static void sendNextScatter(hatn::network::asio::UdpClient* client,
                             }
                             else
                             {
-                                G_INFO(HATN_FORMAT("Failed to send {} packet: ({}) {}",txPacketCount,ec.value(),ec.message()));
+                                HATN_CTX_INFO_RECORDS("Failed to send packet on client",{"packet_id",txPacketCount},{"ec_code",ec.value()},{"ec_message",ec.message()});
                             }
                         }
                     );
     }
     else
     {
-        {
-            G_DEBUG("Finished sending");
-        }
+        HATN_CTX_INFO("finished scattered sending");
 
         mainLoop->mainThread()->installTimer(5000*1000,
                                              [mainLoop]()
@@ -566,13 +570,15 @@ static void sendNextScatter(hatn::network::asio::UdpClient* client,
 
 BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
 {
-    hatn::common::MutexLock mutex;
+    auto handler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>();
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(handler));
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().setDefaultLogLevel(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug);
 
     createThreads(2);
-    hatn::common::Thread* thread0=thread(0).get();
-    hatn::common::Thread* thread1=thread(1).get();
+    auto* thread0=thread(0).get();
+    auto* thread1=thread(1).get();
 
-    hatn::network::asio::UdpEndpoint serverEndpoint;
+    HATN_NETWORK_NAMESPACE::asio::UdpEndpoint serverEndpoint;
     serverEndpoint.setPort(19123);
 
     thread0->start();
@@ -594,116 +600,143 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
         bool isIpv6=i==1;
         if (!isIpv6)
         {
-            G_DEBUG("Begin IPv4");
+            BOOST_TEST_MESSAGE("Begin IPv4");
             serverEndpoint.setAddress(boost::asio::ip::address_v4::loopback());
         }
         else
         {
-            G_DEBUG("Begin IPv6");
+            BOOST_TEST_MESSAGE("Begin IPv6");
             serverEndpoint.setAddress(boost::asio::ip::address_v6::loopback());
         }
 
-        std::shared_ptr<hatn::network::asio::UdpServer> server;
-        std::shared_ptr<hatn::network::asio::UdpClient> client;
+        HATN_NETWORK_NAMESPACE::asio::UdpServerSharedCtx server;
+        HATN_NETWORK_NAMESPACE::asio::UdpClientSharedCtx client;
 
-        G_DEBUG("Run server");
+        BOOST_TEST_MESSAGE("Run server");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
-                        [&server,&serverEndpoint,&rxPacketCount,&serverRecvBuf,&mutex,&serverPacketsToSend,&serverTxPacketCount,isIpv6]()
+        auto ec=thread0->execSync(
+                        [&server,&serverEndpoint,&rxPacketCount,&serverRecvBuf,&serverPacketsToSend,&serverTxPacketCount,isIpv6]()
                         {
-                            server=std::make_shared<hatn::network::asio::UdpServer>(isIpv6?"server-6":"server-4");
-                            auto bindOk=[&server,&rxPacketCount,&mutex,&serverRecvBuf,&serverPacketsToSend,&serverTxPacketCount](const hatn::common::Error &ec)
-                            {
-                                {
-                                    hatn::common::MutexScopedLock l(mutex);
-                                    BOOST_REQUIRE(!ec);
-                                }
-                                recvNext(server.get(),serverRecvBuf,rxPacketCount,serverPacketsToSend,serverTxPacketCount);
-                            };
-                            server->bind(serverEndpoint,bindOk);
-                        }
-        ));
+                            server=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx(isIpv6?"server-6":"server-4");
+                            server->beginTaskContext();
 
-        auto connectCb=[&thread1,&client,&mutex,&clientSendBuf,&txPacketCount,&clientRecvBuf,&clientRxPacketCount,this](const hatn::common::Error& ec)
+                            HATN_CTX_SCOPE("serverbind")
+                            HATN_CTX_DEBUG("binding server")
+
+                            auto bindOk=[&server,&rxPacketCount,&serverRecvBuf,&serverPacketsToSend,&serverTxPacketCount](const HATN_COMMON_NAMESPACE::Error &ec)
+                            {
+                                HATN_CTX_SCOPE("serverbindcb")
+                                HATN_CTX_DEBUG("server bound")
+
+                                HATN_REQUIRE_TS(!ec);
+                                recvNext(&server->get(),serverRecvBuf,rxPacketCount,serverPacketsToSend,serverTxPacketCount);
+                            };
+                            (*server)->bind(serverEndpoint,bindOk);
+                        }
+        );
+        BOOST_REQUIRE(!ec);
+
+        auto connectCb=[&thread1,&client,&clientSendBuf,&txPacketCount,&clientRecvBuf,&clientRxPacketCount,this](const HATN_COMMON_NAMESPACE::Error& ec)
         {
-            {
-                hatn::common::MutexScopedLock l(mutex);
-                BOOST_REQUIRE(!ec);
-                BOOST_CHECK_EQUAL(thread1,hatn::common::Thread::currentThread());
-            }
-            G_DEBUG("Start sending ...");
-            recvNextClient(client.get(),clientRecvBuf,clientRxPacketCount);
-            sendNext(client.get(),clientSendBuf,txPacketCount,this);
+            HATN_CTX_SCOPE("connectCb")
+            HATN_CTX_DEBUG("client connected")
+
+            HATN_REQUIRE_TS(!ec);
+            HATN_CHECK_EQUAL_TS(thread1,HATN_COMMON_NAMESPACE::Thread::currentThread());
+            BOOST_TEST_MESSAGE("Sending/receiving...");
+            recvNextClient(&client->get(),clientRecvBuf,clientRxPacketCount);
+            sendNext(&client->get(),clientSendBuf,txPacketCount,this);
         };
 
-        G_DEBUG("Connect client");
+        BOOST_TEST_MESSAGE("Connect client");
 
         thread1->execAsync(
                         [&client,&serverEndpoint,&connectCb,isIpv6]()
                         {
-                            client=std::make_shared<hatn::network::asio::UdpClient>(isIpv6?"client-6":"client-4");
-                            client->setRemoteEndpoint(serverEndpoint);
-                            client->prepare(connectCb);
+                            client=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx(isIpv6?"client-6":"client-4");
+                            client->beginTaskContext();
+
+                            HATN_CTX_SCOPE("clientPrepare")
+                            HATN_CTX_DEBUG("client preparing")
+
+                            (*client)->setRemoteEndpoint(serverEndpoint);
+                            (*client)->prepare(connectCb);
                         }
         );
 
-        G_DEBUG("Exec ...");
-
+        BOOST_TEST_MESSAGE("Exec for 20 seconds...");
         exec(20);
 
-        auto closeCb=[&mutex](const hatn::common::Error& ec)
+        auto clientCloseCb=[](const HATN_COMMON_NAMESPACE::Error& ec)
         {
-            {
-                hatn::common::MutexScopedLock l(mutex);
-                BOOST_CHECK(!ec);
-            }
+            HATN_CTX_SCOPE("clientCloseCb")
+            HATN_CTX_DEBUG("client closed")
+
+            HATN_CHECK_TS(!ec);
         };
 
-        G_DEBUG("Close client");
+        BOOST_TEST_MESSAGE("Close client");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread1->execSync(
-                        [&client,&closeCb]()
+        ec=thread1->execSync(
+                        [&client,&clientCloseCb]()
                         {
-                            client->close(closeCb);
+                            client->beginTaskContext();
+
+                            HATN_CTX_SCOPE("clientclose")
+                            HATN_CTX_DEBUG("client closing")
+
+                            (*client)->close(clientCloseCb);
                         }
-        ));
+        );
+        BOOST_REQUIRE(!ec);
 
-        G_DEBUG("Close server");
+        BOOST_TEST_MESSAGE("Close server");
 
-        HATN_CHECK_EXEC_SYNC(
-        thread0->execSync(
-                        [&closeCb,&server]()
+        auto serverCloseCb=[](const HATN_COMMON_NAMESPACE::Error& ec)
+        {
+            HATN_CTX_SCOPE("serverCloseCb")
+            HATN_CTX_DEBUG("server closed")
+
+            HATN_CHECK_TS(!ec);
+        };
+
+        ec=thread0->execSync(
+                        [&serverCloseCb,&server]()
                         {
-                            server->close(closeCb);
+                            server->beginTaskContext();
+                            HATN_CTX_SCOPE("serverclose")
+                            HATN_CTX_DEBUG("server closing")
+
+                            (*server)->close(serverCloseCb);
                         }
-        ));
+        );
+        BOOST_REQUIRE(!ec);
+        exec(1);
 
         if (!isIpv6)
         {
-            G_DEBUG("End IPv4");
+            BOOST_TEST_MESSAGE("End IPv4");
         }
         else
         {
-            G_DEBUG("End IPv6");
+            BOOST_TEST_MESSAGE("End IPv6");
         }
 
         {
-            hatn::common::MutexScopedLock l(mutex);
-            BOOST_CHECK_EQUAL(txPacketCount,TxPacketCount);
-            BOOST_CHECK(rxPacketCount>(TxPacketCount/2));
-            BOOST_CHECK_EQUAL(rxPacketCount,serverTxPacketCount);
-            BOOST_CHECK(clientRxPacketCount>(serverTxPacketCount/2));
+            HATN_CHECK_EQUAL_TS(txPacketCount,TxPacketCount);
+            HATN_CHECK_TS(rxPacketCount>(TxPacketCount/2));
+            HATN_CHECK_EQUAL_TS(rxPacketCount,serverTxPacketCount);
+            HATN_CHECK_TS(clientRxPacketCount>(serverTxPacketCount/2));
         }
-        G_INFO(HATN_FORMAT("Server received {} of {} packets",rxPacketCount,TxPacketCount));
-        G_INFO(HATN_FORMAT("Client received {} of {} packets",clientRxPacketCount,serverTxPacketCount));
+        BOOST_TEST_MESSAGE(fmt::format("Server received {} of {} packets",rxPacketCount,TxPacketCount));
+        BOOST_TEST_MESSAGE(fmt::format("Client received {} of {} packets",clientRxPacketCount,serverTxPacketCount));
     }
 
+    BOOST_TEST_MESSAGE("Waiting for 3 seconds");
     exec(3);
 
     thread0->stop();
     thread1->stop();
 }
-#endif
+
 BOOST_AUTO_TEST_SUITE_END()

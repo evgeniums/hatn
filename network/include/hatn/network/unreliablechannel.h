@@ -145,7 +145,7 @@ class UnreliableChannelMultiple : public UnreliableChannel<EndpointT,Traits>
                 this->thread()->execAsync(
                     [buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
                     {
-                        if (detail::enterAsyncHandler(wptr,callback))
+                        if (detail::enterAsyncHandler(wptr,callback,buffer))
                         {
                             HATN_CTX_SCOPE("unrbufsendto")
                             callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
@@ -249,7 +249,7 @@ class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
                 this->thread()->execAsync(
                     [buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this]()
                     {
-                        if (detail::enterAsyncHandler(wptr,callback))
+                        if (detail::enterAsyncHandler(wptr,callback,buffer))
                         {
                             HATN_CTX_SCOPE("unrsinglelbufsendto")
                             callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
@@ -262,7 +262,7 @@ class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
             }
             auto cb=[buffer{std::move(buffer)},callback{std::move(callback)},wptr{this->ctxWeakPtr()},this](const Error& ec,size_t size)
             {
-                if (detail::enterAsyncHandler(wptr,callback))
+                if (detail::enterAsyncHandler(wptr,callback,buffer))
                 {
                     HATN_CTX_SCOPE("unrlbufsendto")
                     callback(ec,size,std::move(buffer));
