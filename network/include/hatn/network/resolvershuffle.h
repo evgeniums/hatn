@@ -33,7 +33,8 @@ class HATN_NETWORK_EXPORT ResolverShuffle final
         {
             NONE=0,
             RANDOM=0x1,
-            APPEND_FALLBACK_PORTS=(0x1<<1)
+            APPEND_FALLBACK_PORTS=(0x1<<1),
+            RANDOM_APPEND_FALLBACK_PORTS=0x1 | (0x1<<1)
         };
 
         //! Ctor

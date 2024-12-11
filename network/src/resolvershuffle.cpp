@@ -16,6 +16,8 @@
 
 /****************************************************************************/
 
+#include <hatn/common/utils.h>
+
 #include <hatn/network/resolvershuffle.h>
 
 HATN_NETWORK_NAMESPACE_BEGIN
@@ -30,10 +32,18 @@ void ResolverShuffle::shuffle(std::vector<asio::IpEndpoint> &endpoints)
     bool appendPorts=(m_mode&ResolverShuffle::APPEND_FALLBACK_PORTS)&&!m_fallBackPorts.empty();
     if (shuffleRandom||appendPorts)
     {
-        std::vector<asio::IpEndpoint> newEp(endpoints.size()*(m_fallBackPorts.size()+1));
+        std::vector<asio::IpEndpoint> newEp;
+        if (appendPorts)
+        {
+            newEp.resize(endpoints.size()*(m_fallBackPorts.size()+1));
+        }
+        else
+        {
+            newEp.resize(endpoints.size());
+        }
         if (shuffleRandom)
         {
-            auto offset=rand()%endpoints.size();
+            auto offset=common::Random::generate(endpoints.size()-1);
             for (size_t i=0;i<endpoints.size();i++)
             {
                 auto j=static_cast<size_t>((i+offset)%endpoints.size());
@@ -42,6 +52,11 @@ void ResolverShuffle::shuffle(std::vector<asio::IpEndpoint> &endpoints)
         }
         if (appendPorts)
         {
+            for (size_t j=0;j<endpoints.size();j++)
+            {
+                newEp[j]=endpoints[j];
+            }
+
             for (size_t i=0;i<m_fallBackPorts.size();i++)
             {
                 auto offset=(i+1)*endpoints.size();

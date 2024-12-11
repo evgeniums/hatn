@@ -8,51 +8,22 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/network/asio/caresolver.h>
+#include <hatn/network/resolvershuffle.h>
 
 #define HATN_TEST_LOG_CONSOLE
 
 namespace {
 
-static void setLogHandler()
-{
-    auto handler=[](const HATN_COMMON_NAMESPACE::FmtAllocatedBufferChar &s)
-    {
-        #ifdef HATN_TEST_LOG_CONSOLE
-            std::cout<<HATN_COMMON_NAMESPACE::lib::toStringView(s)<<std::endl;
-        #else
-            std::ignore=s;
-        #endif
-    };
-    HATN_COMMON_NAMESPACE::Logger::setOutputHandler(handler);
-    HATN_COMMON_NAMESPACE::Logger::setFatalLogHandler(handler);
-}
-
 struct Env : public HATN_TEST_NAMESPACE::MultiThreadFixture
 {
     Env()
     {
-        if (!HATN_COMMON_NAMESPACE::Logger::isRunning())
-        {
-            HATN_COMMON_NAMESPACE::Logger::setFatalTracing(false);
-
-            HATN_COMMON_NAMESPACE::Logger::start();
-        }
-        else
-        {
-            BOOST_REQUIRE(HATN_COMMON_NAMESPACE::Logger::isSeparateThread());
-        }
-        setLogHandler();
-        std::vector<std::string> modules={"dnsresolver;debug;1","global;debug;1"};
-        HATN_COMMON_NAMESPACE::Logger::configureModules(modules);
-
         std::ignore=::HATN_NETWORK_NAMESPACE::CaresLib::init();
     }
 
     ~Env()
     {
         ::HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
-        HATN_COMMON_NAMESPACE::Logger::stop();
-        HATN_COMMON_NAMESPACE::Logger::resetModules();
     }
 
     Env(const Env&)=delete;
@@ -316,5 +287,58 @@ BOOST_FIXTURE_TEST_CASE(ResolveGoogleServer,Env)
 {
     checkResolve(this,true);
 }
+
+BOOST_AUTO_TEST_CASE(Shuffle)
+{
+    HATN_NETWORK_NAMESPACE::ResolverShuffle shuffle;
+
+    std::vector<HATN_NETWORK_NAMESPACE::asio::IpEndpoint> eps0{
+        HATN_NETWORK_NAMESPACE::asio::IpEndpoint("8.8.8.8",80),
+        HATN_NETWORK_NAMESPACE::asio::IpEndpoint("1.1.1.1",80),
+        HATN_NETWORK_NAMESPACE::asio::IpEndpoint("2001:4860:4860::8888",80),
+        HATN_NETWORK_NAMESPACE::asio::IpEndpoint("2001:4860:4860::8844",80)
+    };
+    std::vector<uint16_t> ports{8080,9090};
+    shuffle.loadFallbackPorts(ports);
+
+    auto log=[](const auto& eps)
+    {
+        for (auto&& ep:eps)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("Endpoint {}:{}",ep.address().to_string(),ep.port()));
+        }
+    };
+
+    HATN_TEST_MESSAGE_TS("Before shuffle");
+    log(eps0);
+
+    auto eps1=eps0;
+    shuffle.shuffle(eps1);
+    HATN_TEST_MESSAGE_TS("After shuffle mode NONE");
+    log(eps1);
+    BOOST_CHECK_EQUAL(eps1.size(),eps0.size());
+
+    auto eps2=eps0;
+    shuffle.setMode(HATN_NETWORK_NAMESPACE::ResolverShuffle::Mode::RANDOM);
+    shuffle.shuffle(eps2);
+    HATN_TEST_MESSAGE_TS("After shuffle mode RANDOM");
+    log(eps2);
+    BOOST_CHECK_EQUAL(eps2.size(),eps0.size());
+
+    auto eps3=eps0;
+    shuffle.setMode(HATN_NETWORK_NAMESPACE::ResolverShuffle::Mode::APPEND_FALLBACK_PORTS);
+    shuffle.shuffle(eps3);
+    HATN_TEST_MESSAGE_TS("After shuffle mode APPEND_FALLBACK_PORTS");
+    log(eps3);
+    BOOST_CHECK_EQUAL(eps3.size(),eps0.size()*3);
+
+    auto eps4=eps0;
+    shuffle.setMode(HATN_NETWORK_NAMESPACE::ResolverShuffle::Mode::RANDOM_APPEND_FALLBACK_PORTS);
+    shuffle.shuffle(eps4);
+    HATN_TEST_MESSAGE_TS("After shuffle mode RANDOM+APPEND_FALLBACK_PORTS");
+    log(eps4);
+    BOOST_CHECK_EQUAL(eps4.size(),eps0.size()*3);
+}
+
 #endif
 BOOST_AUTO_TEST_SUITE_END()
