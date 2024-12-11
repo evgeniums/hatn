@@ -715,15 +715,20 @@ class ActualTaskContext : public BaseTaskContext
                 }
             );
 
+            auto tc=hana::type_c<T>;
+            auto bc=hana::type_c<BaseTaskContext>;
+
             const auto* self=this;
             return hana::eval_if(
                 hana::equal(wrapper,hana::nothing),
                 [&](auto _) -> const TaskSubcontextT<T>&
-                {                    
-                    static_assert(!std::is_same<BaseTaskContext,TaskContext>::value,"Unknown context wrapper type");
+                {
+                    using baseT=typename std::decay_t<decltype(_(bc))>::type;
+                    static_assert(!std::is_same<baseT,TaskContext>::value,"Unknown context wrapper type");
 
-                    const auto* base=static_cast<const BaseTaskContext*>(_(self));
-                    return base->template get<T>();
+                    using type=typename std::decay_t<decltype(_(tc))>::type;
+                    const auto* base=static_cast<const baseT*>(_(self));
+                    return base->template get<type>();
                 },
                 [&](auto _) -> const TaskSubcontextT<T>&
                 {

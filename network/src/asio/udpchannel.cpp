@@ -312,7 +312,7 @@ void UdpChannelSingleTraits::prepare(
 {
     HATN_CTX_SCOPE("udpsingleprepare")
 
-    auto cb=[callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this](const Error &ec)
+    auto cb=[callback,wptr{channel()->ctxWeakPtr()},this](const Error &ec)
     {
         if (!detail::enterAsyncHandler(wptr,callback))
         {
@@ -371,7 +371,7 @@ void UdpChannelSingleTraits::prepare(
     else
     {
         channel()->thread()->execAsync(
-            [cb{std::move(cb)},callback{std::move(callback)},wptr{channel()->ctxWeakPtr()},this]()
+            [cb{std::move(cb)},callback,wptr{channel()->ctxWeakPtr()}]()
             {
                 if (detail::enterAsyncHandler(wptr,callback))
                 {
