@@ -505,13 +505,13 @@ void checkScalarArray(
 
     for (size_t i=0;i<vec.size();i++)
     {
-        field1->arraySet(i,vec[i]);
+        field1->arraySet(i,T(vec[i]));
     }
     for (size_t i=0;i<vec.size();i++)
     {
         T val=static_cast<T>(0);
         field1->arrayGet(i,val);
-        BOOST_CHECK_EQUAL(val,vec[i]);
+        BOOST_CHECK_EQUAL(val,T(vec[i]));
     }
 
     field1->arrayClear();
@@ -520,7 +520,7 @@ void checkScalarArray(
 
     for (size_t i=0;i<vec.size();i++)
     {
-        field1->arrayAppend(vec[i]);
+        field1->arrayAppend(T(vec[i]));
     }
     BOOST_CHECK_EQUAL(field1->arraySize(),vec.size());
     BOOST_CHECK(!field1->arrayEmpty());
