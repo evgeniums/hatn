@@ -46,7 +46,8 @@ class AsioTimerTraits
         ) : m_timer(timer),
             m_native(thread->asioContextRef()),
             m_periodUs(0),
-            m_running(false)
+            m_running(false),
+            m_autoAsyncGuard(true)
        {}
 
         //! Start timer
@@ -81,12 +82,26 @@ class AsioTimerTraits
             return m_running.load();
         }
 
+        void setAutoAsyncGuardEnabled(bool enable) noexcept
+        {
+            m_autoAsyncGuard=enable;
+        }
+
+        bool isAutoAsyncGuardEnabled() const noexcept
+        {
+            return m_autoAsyncGuard;
+        }
+
     private:
 
         TimerT* m_timer;
         NativeT m_native;
         uint64_t m_periodUs;
         std::atomic<bool> m_running;
+
+        bool m_autoAsyncGuard;
+
+        inline void invokeHandler(const boost::system::error_code& ec);
 };
 
 //! Timer class using boost asio timers

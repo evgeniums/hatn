@@ -36,42 +36,61 @@ inline void expiresFromNow(boost::asio::high_resolution_timer& timer,uint64_t pe
 
 //---------------------------------------------------------------
 template <typename NativeT,typename TimerT>
+void AsioTimerTraits<NativeT,TimerT>::invokeHandler(const boost::system::error_code& ec)
+{
+    m_running=false;
+    if (ec)
+    {
+        if (m_timer->handler())
+        {
+            m_timer->handler()(TimerT::Status::Cancel);
+        }
+    }
+    else
+    {
+        if (m_timer->handler())
+        {
+            m_timer->handler()(TimerT::Status::Timeout);
+            if (!m_timer->isSingleShot())
+            {
+                m_timer->start();
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------------
+template <typename NativeT,typename TimerT>
 void AsioTimerTraits<NativeT,TimerT>::start()
 {
     m_running=true;
     expiresFromNow(m_native,m_periodUs);
-    auto sharedTimer=m_timer->sharedFromThis();
-    Assert(sharedTimer,"Asio timer must be used within SharedPtr only");
-    m_native.async_wait(        
-        [this,timer{toWeakPtr(sharedTimer)}](const boost::system::error_code& ec)
-        {
-            auto t=timer.lock();
-            if (t.isNull())
-            {
-                return;
-            }
 
-            m_running=false;
-            if (ec)
+    if (m_autoAsyncGuard)
+    {
+        auto sharedTimer=m_timer->sharedFromThis();
+        Assert(sharedTimer,"Asio timer must be used within SharedPtr only");
+        m_native.async_wait(
+                [this,timer{toWeakPtr(sharedTimer)}](const boost::system::error_code& ec)
+                {
+                    auto t=timer.lock();
+                    if (t.isNull())
+                    {
+                        return;
+                    }
+                    invokeHandler(ec);
+                }
+            );
+    }
+    else
+    {
+        m_native.async_wait(
+            [this](const boost::system::error_code& ec)
             {
-                if (m_timer->handler())
-                {
-                    m_timer->handler()(TimerT::Status::Cancel);
-                }
+                invokeHandler(ec);
             }
-            else
-            {
-                if (m_timer->handler())
-                {
-                    m_timer->handler()(TimerT::Status::Timeout);
-                }
-                if (!m_timer->isSingleShot())
-                {
-                    m_timer->start();
-                }
-            }
-        }
-    );
+        );
+    }
 }
 
 //---------------------------------------------------------------

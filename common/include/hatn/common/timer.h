@@ -143,7 +143,7 @@ class Timer : public WithTraits<Traits>, public TimerTypes
          * Not thread safe. Call it only either in timer's thread or when a thread is stopped.
          */
         inline void reset() noexcept
-        {            
+        {
             m_handler=TimerTypes::HandlerType();
         }
 
@@ -165,6 +165,25 @@ class Timer : public WithTraits<Traits>, public TimerTypes
         inline TimerTypes::HandlerType& handler() noexcept
         {
             return m_handler;
+        }
+
+        /**
+         * @brief Enable/disable automatic guarding of asynchronous operations.
+         * @param enable true/false enables/disables automatic guarding.
+         *
+         * If enabled then a copy of shared pointer of the timer will be automatically created and
+         * stored in async operations run by start(). This is enabled by default.
+         * If such guarding not needed then it must be explicitly disabled
+         * with setAutoAsyncGuardEnabled(false).
+         */
+        void setAutoAsyncGuardEnabled(bool enable) noexcept
+        {
+            this->traits().setAutoAsyncGuardEnabled(enable);
+        }
+
+        bool isAutoAsyncGuardEnabled() const noexcept
+        {
+            return this->traits().isAutoAsyncGuardEnabled();
         }
 
     private:
