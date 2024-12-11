@@ -28,6 +28,11 @@ HATN_COMMON_USING
 //---------------------------------------------------------------
 void ResolverShuffle::shuffle(std::vector<asio::IpEndpoint> &endpoints)
 {
+    if (endpoints.empty())
+    {
+        return;
+    }
+
     bool shuffleRandom=m_mode&ResolverShuffle::RANDOM;
     bool appendPorts=(m_mode&ResolverShuffle::APPEND_FALLBACK_PORTS)&&!m_fallBackPorts.empty();
     if (shuffleRandom||appendPorts)
@@ -43,7 +48,7 @@ void ResolverShuffle::shuffle(std::vector<asio::IpEndpoint> &endpoints)
         }
         if (shuffleRandom)
         {
-            auto offset=common::Random::generate(endpoints.size()-1);
+            auto offset=common::Random::generate(static_cast<uint32_t>((endpoints.size()))-1);
             for (size_t i=0;i<endpoints.size();i++)
             {
                 auto j=static_cast<size_t>((i+offset)%endpoints.size());
