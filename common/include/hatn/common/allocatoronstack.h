@@ -149,6 +149,24 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             BaseT::append(lib::string_view{range.data(),range.size()});
         }
 
+        void append(const char symbol)
+        {
+            this->push_back(symbol);
+        }
+
+        template <typename ContiguousRange>
+        void load(const ContiguousRange& range)
+        {
+            this->clear();
+            append(range);
+        }
+
+        void load(const char* data, size_t size)
+        {
+            this->clear();
+            this->append(data,size);
+        }
+
         operator lib::string_view() const noexcept
         {
             return lib::string_view{this->data(),this->size()};
