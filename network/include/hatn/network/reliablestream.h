@@ -22,7 +22,7 @@
 #include <functional>
 
 #include <hatn/common/error.h>
-#include <hatn/common/objectid.h>
+#include <hatn/common/withthread.h>
 #include <hatn/common/stream.h>
 
 #include <hatn/network/network.h>
