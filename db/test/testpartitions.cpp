@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(Crud)
 
                 if (partition==1 && i<(objectsPerPartition*3))
                 {
-                    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(true);
+                    HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLockingEnabled(true);
 
                     BOOST_TEST_MESSAGE(fmt::format("Check unique index in partition={}, i={}",partition,i));
                     int ms=checkUnique?2:1;
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(Crud)
                     BOOST_CHECK(ec);
                     HATN_CTX_SCOPE_UNLOCK()
 
-                    HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(false);
+                    HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLockingEnabled(false);
                 }
 
                 if (partition==0 || partition==6 || partition==11)

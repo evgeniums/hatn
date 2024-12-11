@@ -150,7 +150,7 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
             // test updating ttl field
             if (i==2)
             {
-                HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(true);
+                HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLockingEnabled(true);
 
                 auto dt1=common::DateTime::currentUtc();
                 dt1.addSeconds(50);
@@ -163,7 +163,7 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
                 }
                 BOOST_REQUIRE(!ec);
 
-                HATN_COMMON_NAMESPACE::ThreadLocalContext<HATN_LOGCONTEXT_NAMESPACE::Context>::value()->setStackLockingEnabled(false);
+                HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLockingEnabled(false);
             }
             // update another TTL field, ensure that least ttl is used
             if (i==count-5)
