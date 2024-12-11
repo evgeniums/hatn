@@ -66,6 +66,12 @@ template <> struct FromBoostProtocol<boost::asio::ip::udp>
 using IpAddress=boost::asio::ip::address;
 using IpEndpoint=network::IpEndpoint<IpAddress>;
 
+template <typename T>
+auto makeAddress(T&& addr)
+{
+    return boost::asio::ip::make_address(std::forward<T>(addr));
+}
+
 //! Template class for IP protocol endpoints using Boost ASIO
 template <IpProtocol ProtoT>
 class IpEndpointT final : public IpEndpoint

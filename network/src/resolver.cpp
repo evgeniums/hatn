@@ -20,10 +20,6 @@
 
 #include <hatn/network/resolver.h>
 
-#include <hatn/common/loggermoduleimp.h>
-INIT_LOG_MODULE(dnsresolver,HATN_NETWORK_EXPORT)
-
 HATN_NETWORK_NAMESPACE_BEGIN
-
 
 HATN_NETWORK_NAMESPACE_END

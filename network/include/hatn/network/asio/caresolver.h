@@ -10,7 +10,7 @@
 
 /** @file network/asio/caresolver.h
   *
-  *   DNS resolver that uses c-ares resolving library ans ASIO events
+  *   DNS resolver that uses c-ares resolving library and ASIO events
   *
   */
 
@@ -23,6 +23,35 @@
 
 #include <hatn/network/network.h>
 #include <hatn/network/resolver.h>
+
+#define HATN_CARES_ERRORS(Do) \
+    Do(CaresError,ARES_SUCCESS,_TR("OK")) \
+    Do(CaresError,ARES_ENODATA,_TR("DNS server returned answer with no data","cares")) \
+    Do(CaresError,ARES_EFORMERR,_TR("DNS server claims query was misformatted","cares")) \
+    Do(CaresError,ARES_ESERVFAIL,_TR("DNS server returned general failure","cares")) \
+    Do(CaresError,ARES_ENOTFOUND,_TR("Domain name not found","cares")) \
+    Do(CaresError,ARES_ENOTIMP,_TR("DNS server does not implement requested operation","cares")) \
+    Do(CaresError,ARES_EREFUSED,_TR("DNS server refused query","cares")) \
+    Do(CaresError,ARES_EBADQUERY,_TR("Misformatted DNS query","cares")) \
+    Do(CaresError,ARES_EBADNAME,_TR("Misformatted domain name","cares")) \
+    Do(CaresError,ARES_EBADFAMILY,_TR("Unsupported address family","cares")) \
+    Do(CaresError,ARES_EBADRESP,_TR("Misformatted DNS reply","cares")) \
+    Do(CaresError,ARES_ECONNREFUSED,_TR("Could not contact DNS servers","cares")) \
+    Do(CaresError,ARES_ETIMEOUT,_TR("Timeout while contacting DNS servers","cares")) \
+    Do(CaresError,ARES_EOF,_TR("End of file","cares")) \
+    Do(CaresError,ARES_EFILE,_TR("Error reading file","cares")) \
+    Do(CaresError,ARES_ENOMEM,_TR("Out of memory","cares")) \
+    Do(CaresError,ARES_EDESTRUCTION,_TR("Channel is being destroyed","cares")) \
+    Do(CaresError,ARES_EBADSTR,_TR("Misformatted string","cares")) \
+    Do(CaresError,ARES_EBADFLAGS,_TR("Illegal flags specified","cares")) \
+    Do(CaresError,ARES_ENONAME,_TR("Given hostname is not numeric","cares")) \
+    Do(CaresError,ARES_EBADHINTS,_TR("Illegal hints flags specified","cares")) \
+    Do(CaresError,ARES_ENOTINITIALIZED,_TR("c-ares library initialization not yet performed","cares")) \
+    Do(CaresError,ARES_ELOADIPHLPAPI,_TR("Error loading iphlpapi.dll","cares")) \
+    Do(CaresError,ARES_EADDRGETNETWORKPARAMS,_TR("Could not find GetNetworkParams function","cares")) \
+    Do(CaresError,ARES_ECANCELLED,_TR("DNS query cancelled","cares")) \
+    Do(CaresError,ARES_ESERVICE,_TR("Invalid service name or number","cares")) \
+    Do(CaresError,ARES_ENOSERVER,_TR("No DNS servers were configured","cares"))
 
 HATN_NETWORK_NAMESPACE_BEGIN
 
@@ -38,8 +67,18 @@ class HATN_NETWORK_EXPORT CaresLib
         CaresLib& operator=(const CaresLib&)=delete;
         CaresLib& operator=(CaresLib&&) =delete;
 
-        //! Initialize library
-        static common::Error init(
+        //! Initialize c-ares library
+
+        /**
+         * @brief Init the c-ares library.
+         * @param allocatorFactory pmr allocator factory.
+         * @return Initialization status.
+         *
+         * @note On Android the library must be also initialized using JNI by
+         * passing Connectivity Manager from java to ares_library_init_android().
+         * This can take place any time after calling init().
+         */
+        static Error init(
             common::pmr::AllocatorFactory* allocatorFactory=nullptr
         );
 
@@ -57,13 +96,29 @@ class HATN_NETWORK_EXPORT CaresLib
         static common::pmr::AllocatorFactory *m_allocatorFactory;
 };
 
+//! Error codes of c-ares.
+enum class CaresError : int
+{
+    HATN_CARES_ERRORS(HATN_ERROR_CODE)
+};
 
-//! Errors of c-ares library
+//! c-ares errors codes as strings.
+constexpr const char* const CaresErrorStrings[] = {
+    HATN_CARES_ERRORS(HATN_ERROR_STR)
+};
+
+//! c-ares error code to string.
+inline const char* caresErrorString(CaresError code)
+{
+    return errorString(code,CaresErrorStrings);
+}
+
+//! Error category of c-ares library
 class HATN_NETWORK_EXPORT CaresErrorCategory final : public common::ErrorCategory
 {
     public:
 
-        //! Name of the category
+        //! Name of the category.
         virtual const char *name() const noexcept override
         {
             return "hatn.network.cares";
@@ -72,22 +127,17 @@ class HATN_NETWORK_EXPORT CaresErrorCategory final : public common::ErrorCategor
         //! Get description for the code
         virtual std::string message(int code) const override;
 
-        //! Get category
-        static const CaresErrorCategory& getCategory() noexcept;
-
         //! Get string representation of the code.
-        virtual const char* codeString(int code) const
-        {
-            //! @todo Implement
-            std::ignore=code;
-            return nullptr;
-        }
+        virtual const char* codeString(int code) const override;
+
+        //! Get category.
+        static const CaresErrorCategory& getCategory() noexcept;
 };
 
 //! Make Error form c-ares error code
-inline common::Error makeCaresError(int code) noexcept
+inline Error caresError(int code) noexcept
 {
-    return ::hatn::common::Error(code,&CaresErrorCategory::getCategory());
+    return Error(code,&CaresErrorCategory::getCategory());
 }
 
 namespace asio {
@@ -106,11 +156,10 @@ class HATN_NETWORK_EXPORT CaResolverTraits
          * @param nameServers Override system's name servers
          * @param resolvConfPath Override system's resolv.conf or similar file
          *
-         * @throws common::ErrorException if initialization fails
+         * @throws ErrorException if initialization fails
          */
         CaResolverTraits(
             CaResolver* resolver,
-            common::Thread* thread,
             const std::vector<NameServer>& nameServers,
             const std::string& resolvConfPath=std::string()
         );
@@ -128,32 +177,33 @@ class HATN_NETWORK_EXPORT CaResolverTraits
         bool isUseLocalHostsFile() const noexcept;
 
         void resolveName(
-            const char* hostName,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& hostName,
+            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             uint16_t port,
             IpVersion ipVersion
         );
         void resolveService(
-            const char* name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
+            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion
         );
         void resolveMx(
-            const char* name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
+            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion
         );
         void cancel();
         void cleanup();
-
-        const char* idStr() const noexcept;
 
     private:
 
         std::shared_ptr<CaResolverTraits_p> d;
 };
 
-//! DNS resolver that uses c-ares resolving library ans ASIO events
+//! DNS resolver that uses c-ares resolving library and ASIO events
 class CaResolver : public Resolver<CaResolverTraits>
 {
     public:
@@ -163,20 +213,16 @@ class CaResolver : public Resolver<CaResolverTraits>
          * @param thread Thread to work in
          * @param nameServers Override system's name servers
          * @param resolvConfPath Override system's resolv.conf or similar file
-         * @param id ID of this resolver
          *
-         * @throws common::ErrorException if initialization fails
+         * @throws ErrorException if initialization fails
          */
         CaResolver(
             common::Thread* thread,
             const std::vector<NameServer>& nameServers,
-            const std::string& resolvConfPath=std::string(),
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            const std::string& resolvConfPath=std::string()
         ) : Resolver<CaResolverTraits>(
                 thread,
-                std::move(id),
                 this,
-                thread,
                 nameServers,
                 resolvConfPath
             )
@@ -185,10 +231,9 @@ class CaResolver : public Resolver<CaResolverTraits>
         /**
          * @brief Overloaded constructor, see full constructor above
          */
-        CaResolver(
-            const std::vector<NameServer>& nameServers,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        )  : CaResolver(common::Thread::currentThread(),nameServers,std::string(),std::move(id))
+        explicit CaResolver(
+            const std::vector<NameServer>& nameServers
+        )  : CaResolver(common::Thread::currentThread(),nameServers)
         {}
 
         /**
@@ -196,26 +241,22 @@ class CaResolver : public Resolver<CaResolverTraits>
          */
         CaResolver(
             common::Thread* thread,
-            const std::string& resolvConfPath,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : CaResolver(thread,std::vector<NameServer>(),resolvConfPath,std::move(id))
+            const std::string& resolvConfPath
+        ) : CaResolver(thread,std::vector<NameServer>(),resolvConfPath)
         {}
 
         /**
          * @brief Overloaded constructor, see full constructor above
          */
-        CaResolver(
-            common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : CaResolver(thread,std::vector<NameServer>(),std::string(),std::move(id))
+        explicit CaResolver(
+            common::Thread* thread
+        ) : CaResolver(thread,std::vector<NameServer>())
         {}
 
         /**
          * @brief Overloaded constructor, see full constructor above
          */
-        CaResolver(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : CaResolver(common::Thread::currentThread(),std::vector<NameServer>(),std::string(),std::move(id))
+        CaResolver() : CaResolver(common::Thread::currentThread(),std::vector<NameServer>(),std::string())
         {}
 
         //! Enable using local hosts file (default true)

@@ -24,15 +24,14 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/fixedbytearray.h>
-#include <hatn/common/objectid.h>
-#include <hatn/common/logger.h>
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/withthread.h>
+#include <hatn/common/taskcontext.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/networkerror.h>
 #include <hatn/network/asio/ipendpoint.h>
-
-DECLARE_LOG_MODULE_EXPORT(dnsresolver,HATN_NETWORK_EXPORT)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 
@@ -43,10 +42,8 @@ struct NameServer
     uint16_t udpPort=53;
     uint16_t tcpPort=53;
 
-    NameServer(const char* addr):address(asio::IpAddress::from_string(addr))
-    {}
-
-    NameServer(const std::string& addr):address(asio::IpAddress::from_string(addr))
+    template <typename T>
+    NameServer(T&& addr):address(asio::makeAddress(std::forward<T>(addr)))
     {}
 };
 
@@ -56,27 +53,18 @@ struct NameServer
  * It can be used to resolve hostnames into IPv4 and/or IPv6 addresses as well as to resolve SRV records.
  */
 template <typename Traits>
-class Resolver : public common::WithTraits<Traits>,
-                 public common::WithIDThread
+class Resolver : public common::WithThread,
+                 public common::WithTraits<Traits>
 {
     public:
 
         //! Ctor
         template <typename ...Args>
-        Resolver(
-                common::Thread* thread,
-                common::STR_ID_TYPE id,
-                Args&& ...traitsArgs
-        ) : common::WithTraits<Traits>(std::forward<Args>(traitsArgs)...),
-            common::WithIDThread(thread,std::move(id))
-        {}
-
-        //! Ctor
-        template <typename ...Args>
-        Resolver(
+        explicit Resolver(
                 common::Thread* thread,
                 Args&& ...traitsArgs
-        ) : Resolver(thread,common::STR_ID_TYPE(),std::forward<Args>(traitsArgs)...)
+        ) : common::WithThread(thread),
+            common::WithTraits<Traits>(std::forward<Args>(traitsArgs)...)
         {}
 
         //! Dtor
@@ -92,50 +80,56 @@ class Resolver : public common::WithTraits<Traits>,
         Resolver& operator=(Resolver&&) =default;
 
         /**
-         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records
-         * @param hostName Name of the host
-         * @param callback Callback to invoke with query result
-         * @param port Port number to use in result endpoints
-         * @param ipVersion Version of IP protocol to use in queries and to filter result
+         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records.
+         * @param hostName Name of the host.
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param port Port number to use in result endpoints.
+         * @param ipVersion Version of IP protocol to use in queries and to filter result.
          */
         void resolveName(
-            const char* hostName,
+            const lib::string_view& hostName,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             uint16_t port=0,
             IpVersion ipVersion=IpVersion::ALL
         )
         {
-            this->traits().resolveName(hostName,std::move(callback),port,ipVersion);
+            this->traits().resolveName(hostName,std::move(callback),context,port,ipVersion);
         }
 
         /**
-         * @brief Resolve host by service as defined in SRV records
+         * @brief Resolve host by service as defined in SRV records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         void resolveService(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         )
         {
-            this->traits().resolveService(name,std::move(callback),ipVersion);
+            this->traits().resolveService(name,std::move(callback),context,ipVersion);
         }
 
         /**
-         * @brief Resolve mx records
+         * @brief Resolve mx records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         void resolveMx(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         )
         {
-            this->traits().resolveMx(name,std::move(callback),ipVersion);
+            this->traits().resolveMx(name,std::move(callback),context,ipVersion);
         }
 
         //! Cancel all pending queries
@@ -151,6 +145,8 @@ class Resolver : public common::WithTraits<Traits>,
         }
 };
 
+using ServiceName=common::StringOnStackT<256>;
+
 //! Base polymorphic resolver class
 class ResolverV
 {
@@ -163,13 +159,13 @@ class ResolverV
          * @param protocol
          * @return Formatted name
          */
-        inline static common::FixedByteArrayThrow256 makeServiceName(
-                const char* domain,
-                const char* service,
+        inline static ServiceName makeServiceName(
+                const lib::string_view& domain,
+                const lib::string_view& service,
                 IpProtocol protocol
             )
         {
-            common::FixedByteArrayThrow256 result;
+            ServiceName result;
             result.append('_');
             result.append(service);
             result.append('.');
@@ -194,40 +190,46 @@ class ResolverV
         ResolverV& operator=(ResolverV&&) =default;
 
         /**
-         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records
-         * @param hostName Name of the host
-         * @param callback Callback to invoke with query result
-         * @param port Port number to use in result endpoints
-         * @param ipVersion Version of IP protocol to use in queries and to filter result
+         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records.
+         * @param hostName Name of the host.
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param port Port number to use in result endpoints.
+         * @param ipVersion Version of IP protocol to use in queries and to filter result.
          */
         virtual void resolveName(
-            const char* hostName,
+            const lib::string_view& hostName,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             uint16_t port=0,
             IpVersion ipVersion=IpVersion::ALL
         )=0;
 
         /**
-         * @brief Resolve host by service as defined in SRV records
+         * @brief Resolve host by service as defined in SRV records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveService(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         ) =0;
 
         /**
-         * @brief Resolve mx records
+         * @brief Resolve mx records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveMx(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         ) =0;
 
@@ -244,50 +246,56 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
         using common::WithImpl<ImplT>::WithImpl;
 
         /**
-         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records
-         * @param hostName Name of the host
-         * @param callback Callback to invoke with query result
-         * @param port Port number to use in result endpoints
-         * @param ipVersion Version of IP protocol to use in queries and to filter result
+         * @brief Resolve host by name as defined in either system hosts files or in A or in AAAA or in CNAME records.
+         * @param hostName Name of the host.
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param port Port number to use in result endpoints.
+         * @param ipVersion Version of IP protocol to use in queries and to filter result.
          */
         virtual void resolveName(
-            const char* hostName,
+            const lib::string_view& hostName,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             uint16_t port=0,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveName(hostName,std::move(callback),port,ipVersion);
+            this->impl().resolveName(hostName,std::move(callback),context,port,ipVersion);
         }
 
         /**
-         * @brief Resolve host by service as defined in SRV records
+         * @brief Resolve host by service as defined in SRV records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveService(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveService(name,std::move(callback),ipVersion);
+            this->impl().resolveService(name,std::move(callback),context,ipVersion);
         }
 
         /**
-         * @brief Resolve mx records
+         * @brief Resolve mx records.
          * @param name Full name of the service, e.g. _sip._tcp.example.com
-         * @param callback Callback to invoke with query result
-         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records
+         * @param callback Callback to invoke with query result.
+         * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
+         * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveMx(
-            const char* name,
+            const lib::string_view& name,
             std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveMx(name,std::move(callback),ipVersion);
+            this->impl().resolveMx(name,std::move(callback),context,ipVersion);
         }
 
         //! Cancel all pending queries
@@ -296,7 +304,6 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
             this->impl().cancel();
         }
 };
-
 
 HATN_NETWORK_NAMESPACE_END
 

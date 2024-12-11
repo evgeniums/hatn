@@ -19,6 +19,10 @@
 #include <ares.h>
 #include <ares_build.h>
 
+#if defined(CARES_HAVE_WINSOCK2_H)
+#define HAVE_CLOSESOCKET
+#endif
+
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET (ares_socket_t)(~0)
 #endif
@@ -48,18 +52,26 @@
 
 #include <hatn/common/thread.h>
 #include <hatn/common/asiotimer.h>
+#include <hatn/common/translate.h>
 
+#include <hatn/network/networkerrorcodes.h>
 #include <hatn/network/asio/caresolver.h>
 
 HATN_NETWORK_NAMESPACE_BEGIN
-HATN_COMMON_USING
+
+using StringBuf=common::StringOnStackT<256>;
 
 static const int CHECK_TIMEOUTS_PERIOD=1000; // ms
 
 /********************** CaresLib **************************/
 
-pmr::AllocatorFactory* CaresLib::m_allocatorFactory=nullptr;
-static std::unique_ptr<common::pmr::polymorphic_allocator<char>> Allocator;
+common::pmr::AllocatorFactory* CaresLib::m_allocatorFactory=nullptr;
+
+namespace {
+
+std::unique_ptr<common::pmr::polymorphic_allocator<char>> Allocator;
+
+} // anonymous namespace
 
 static void* myMalloc(size_t size)
 {
@@ -90,7 +102,7 @@ static void* myRealloc(void *ptr, size_t size)
 }
 
 //---------------------------------------------------------------
-common::Error CaresLib::init(pmr::AllocatorFactory *allocatorFactory)
+Error CaresLib::init(common::pmr::AllocatorFactory *allocatorFactory)
 {
     int res=ARES_SUCCESS;
     if (allocatorFactory!=nullptr)
@@ -105,9 +117,9 @@ common::Error CaresLib::init(pmr::AllocatorFactory *allocatorFactory)
     }
     if (res!=ARES_SUCCESS)
     {
-        return makeCaresError(res);
+        return caresError(res);
     }
-    return common::Error();
+    return Error();
 }
 
 //---------------------------------------------------------------
@@ -123,14 +135,29 @@ void CaresLib::cleanup()
 //---------------------------------------------------------------
 std::string CaresErrorCategory::message(int code) const
 {
-    return std::string(ares_strerror(code));
+    std::string result;
+    switch (code)
+    {
+        HATN_CARES_ERRORS(HATN_ERROR_MESSAGE)
+
+        default:
+            result=_TR("unknown error");
+    }
+
+    return result;
 }
 
-static CaresErrorCategory CaresErrorCategoryInstance;
+//---------------------------------------------------------------
+const char* CaresErrorCategory::codeString(int code) const
+{
+    return errorString(code,CaresErrorStrings);
+}
+
 //---------------------------------------------------------------
 const CaresErrorCategory& CaresErrorCategory::getCategory() noexcept
 {
-    return CaresErrorCategoryInstance;
+    static CaresErrorCategory inst;
+    return inst;
 }
 
 namespace asio {
@@ -163,16 +190,18 @@ enum class QueryStep : int
     Done
 };
 
-struct Query : public EnableManaged<Query>
+struct Query : public common::EnableManaged<Query>
 {
     Query(
             std::weak_ptr<CaResolverTraits_p> impl,
             std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
+            const common::TaskContextShared& context,
             IpVersion ipVersion,
-            const char* name=nullptr,
+            const lib::string_view& name=lib::string_view{},
             uint16_t port=0
           ) : callback(std::move(callback)),
               impl(std::move(impl)),
+              context(context),
               name(name),
               port(port),
               ipVersion(ipVersion),
@@ -184,17 +213,18 @@ struct Query : public EnableManaged<Query>
 
     std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback;
     std::weak_ptr<CaResolverTraits_p> impl;
-    FixedByteArray256 name;
+    common::WeakPtr<common::TaskContext> context;
+    StringBuf name;
     uint16_t port;
     IpVersion ipVersion;
 
     std::vector<asio::IpEndpoint> endpoints;
-    std::vector<std::pair<FixedByteArray256,uint16_t>> intermediateEndpoints; // for SRV and CNAME
+    std::vector<std::pair<StringBuf,uint16_t>> intermediateEndpoints; // for SRV and CNAME
     QueryStep step;
     size_t depth;
     size_t intermediateIndex;
 
-    EmbeddedSharedPtr<Query> cyclicRefToSelf;
+    common::EmbeddedSharedPtr<Query> cyclicRefToSelf;
     Error lastError;
 };
 
@@ -221,12 +251,12 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
 {
     public:
 
-        CaResolverTraits_p(CaResolver* resolver,CaResolverTraits* obj, Thread* thread, bool useLocalHostsFile) noexcept
+        CaResolverTraits_p(CaResolver* resolver,CaResolverTraits* obj, common::Thread* thread, bool useLocalHostsFile) noexcept
             : channel(nullptr),
               obj(obj),
               cancel(false),
               useLocalHostsFile(useLocalHostsFile),
-              timeoutsTimer(thread),
+              timeoutsTimer(common::makeShared<common::AsioDeadlineTimer>(thread)),
               closedSocketFd(ARES_SOCKET_BAD),
               m_resolver(resolver),
               m_thread(thread)
@@ -258,11 +288,11 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
         };
 
         std::map<ares_socket_t,Socket> sockets;
-        AsioDeadlineTimer timeoutsTimer;
+        common::SharedPtr<common::AsioDeadlineTimer> timeoutsTimer;
         ares_socket_t closedSocketFd;
 
         CaResolver* m_resolver;
-        Thread* m_thread;
+        common::Thread* m_thread;
 
         ares_socket_t addSocket(int af, int type, int protocol)
         {
@@ -334,7 +364,7 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
             return sclose(sockID);
         }
 
-        int parseHostEnt(const SharedPtr<Query>& query,struct hostent* host)
+        int parseHostEnt(const common::SharedPtr<Query>& query,struct hostent* host)
         {
             int res=ARES_ENOTFOUND;
             if (host->h_addr_list!=NULL && (host->h_addrtype==AF_INET || host->h_addrtype==AF_INET6))
@@ -369,11 +399,13 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
             return res;
         }
 
-        void processQuery(SharedPtr<Query> query)
+        void processQuery(common::SharedPtr<Query> query)
         {
-            if (cancel)
+            auto ctx=query->context.lock();
+            if (cancel || !ctx)
             {
                 query->cyclicRefToSelf.reset();
+                query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
                 return;
             }
             auto self=shared_from_this();
@@ -385,11 +417,13 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
             );
         }
 
-        void processQueryAsync(const SharedPtr<Query>& query)
+        void processQueryAsync(const common::SharedPtr<Query>& query)
         {
-            if (cancel)
+            auto ctx=query->context.lock();
+            if (cancel || !ctx)
             {
                 query->cyclicRefToSelf.reset();
+                query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
                 return;
             }
 
@@ -529,7 +563,8 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
         }
 };
 
-template <typename SocketClass> static void waitSocketEvent(std::shared_ptr<CaResolverTraits_p> impl,CaResolverTraits_p::Socket& s, ares_socket_t socketFd, typename SocketClass::wait_type waitType)
+template <typename SocketClass>
+static void waitSocketEvent(std::shared_ptr<CaResolverTraits_p> impl,CaResolverTraits_p::Socket& s, ares_socket_t socketFd, typename SocketClass::wait_type waitType)
 {
     // DCS_DEBUG_LVL(dnsresolver,1,HATN_FORMAT("Wait socket event id={}, direction={}",socketFd,static_cast<int>(waitType)));
 
@@ -566,7 +601,8 @@ template <typename SocketClass> static void waitSocketEvent(std::shared_ptr<CaRe
                 );
 }
 
-template <typename SocketClass> static void socketStateChanged(std::shared_ptr<CaResolverTraits_p> impl,CaResolverTraits_p::Socket& s,ares_socket_t socketFd,int readable,int writable)
+template <typename SocketClass>
+static void socketStateChanged(std::shared_ptr<CaResolverTraits_p> impl,CaResolverTraits_p::Socket& s,ares_socket_t socketFd,int readable,int writable)
 {
     // DCS_DEBUG_LVL(dnsresolver,1,HATN_FORMAT("Socket state changed id={}, readable={}, writable={}",socketFd,readable,writable));
 
@@ -617,26 +653,28 @@ static int fClose(ares_socket_t sockID, void *data)
 static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
 {
     auto q=reinterpret_cast<Query*>(arg);
-    SharedPtr<Query> query=q->cyclicRefToSelf;
-    auto obj=q->impl.lock();
+    auto query=q->cyclicRefToSelf;
+    auto obj=query->impl.lock();
+    auto ctx=query->context.lock();
 
-    if (!obj || obj->cancel || status==ARES_ECANCELLED)
+    if (!obj || !ctx || obj->cancel || status==ARES_ECANCELLED)
     {
+        query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
         return;
     }
 
-    auto checkResult=[](int result,common::Error& err)
+    auto checkResult=[](int result,Error& err)
     {        
         if (result==ARES_SUCCESS)
         {
             return true;
         }
-        err=makeCaresError(result);
+        err=caresError(result);
         return false;
     };
 
-    common::Error& err=query->lastError;
-    err=makeCaresError(status);
+    Error& err=query->lastError;
+    err=caresError(status);
     struct hostent* host=nullptr;
     int naddrttl=MAX_ADDRTTL_RECORDS;
     switch (q->step)
@@ -669,9 +707,9 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
             }
 
             // go to IPv6 step if not timeouted and not DNS server connection refused
-            if (err.value()!=(ARES_ETIMEOUT+static_cast<int>(ErrorCode::DNS_FAILED))
+            if (err.value()!=ARES_ETIMEOUT
                 &&
-                err.value()!=(ARES_ECONNREFUSED+static_cast<int>(ErrorCode::DNS_FAILED))
+                err.value()!=ARES_ECONNREFUSED
                 )
             {
                 q->step=QueryStep::RecordAAAA;
@@ -878,16 +916,15 @@ static ares_socket_functions SocketFunctions={
 //---------------------------------------------------------------
 CaResolverTraits::CaResolverTraits(
         CaResolver* resolver,
-        Thread *thread,
         const std::vector<NameServer> &nameServers,
         const std::string &resolvConfPath
-    ) : d(std::make_shared<CaResolverTraits_p>(resolver,this,thread,true))
+    ) : d(std::make_shared<CaResolverTraits_p>(resolver,this,resolver->thread(),true))
 {
     auto checkStatus=[](int status)
     {
         if (status!=ARES_SUCCESS)
         {
-            throw ErrorException(makeCaresError(status));
+            throw common::ErrorException(caresError(status));
         }
     };
 
@@ -938,19 +975,19 @@ CaResolverTraits::CaResolverTraits(
         // set socket functions
         ares_set_socket_functions(d->channel,&SocketFunctions,d.get());
     }
-    catch (const ErrorException&)
+    catch (const common::ErrorException&)
     {
         ares_destroy(d->channel);
         throw;
     }
 
     auto pimpl=d;
-    d->timeoutsTimer.setSingleShot(false);
-    d->timeoutsTimer.setPeriodUs(CHECK_TIMEOUTS_PERIOD*1000);
-    d->timeoutsTimer.start(
-        [pimpl{std::move(pimpl)}](AsioDeadlineTimer::Status status)
+    d->timeoutsTimer->setSingleShot(false);
+    d->timeoutsTimer->setPeriodUs(CHECK_TIMEOUTS_PERIOD*1000);
+    d->timeoutsTimer->start(
+        [pimpl{std::move(pimpl)}](common::AsioDeadlineTimer::Status status)
         {
-            if (status==AsioDeadlineTimer::Status::Timeout)
+            if (status==common::AsioDeadlineTimer::Status::Timeout)
             {
                 ares_process_fd(pimpl->channel,ARES_SOCKET_BAD,ARES_SOCKET_BAD);
             }
@@ -960,33 +997,49 @@ CaResolverTraits::CaResolverTraits(
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveName(
-        const char *hostName,
+        const lib::string_view& hostName,
         std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
+        const common::TaskContextShared& context,
         uint16_t port,
         IpVersion ipVersion
     )
 {
     // DCS_DEBUG(dnsresolver,HATN_FORMAT("Resolving {}:{} for {} ...",hostName,port,IpVersionStr(ipVersion)));
 
-    pmr::polymorphic_allocator<Query> allocator=(CaresLib::allocatorFactory()==nullptr)?
-                pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
-    auto query=allocateShared<Query>(allocator,std::weak_ptr<CaResolverTraits_p>(d),std::move(callback),ipVersion,hostName,port);
+    auto allocator=(CaresLib::allocatorFactory()==nullptr)?
+                common::pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
+    auto query=common::allocateShared<Query>(
+            allocator,
+            std::weak_ptr<CaResolverTraits_p>(d),
+            std::move(callback),
+            context,
+            ipVersion,
+            hostName,
+            port
+        );
     query->cyclicRefToSelf=query;
     d->processQuery(query);
 }
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveService(
-        const char *name,
+        const lib::string_view& name,
         std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
+        const common::TaskContextShared& context,
         IpVersion ipVersion
     )
 {
     // DCS_DEBUG(dnsresolver,HATN_FORMAT("Resolving SRV {} for {} ...",name,IpVersionStr(ipVersion)));
 
-    pmr::polymorphic_allocator<Query> allocator=(CaresLib::allocatorFactory()==nullptr)?
-                pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
-    auto query=allocateShared<Query>(allocator,std::weak_ptr<CaResolverTraits_p>(d),std::move(callback),ipVersion,name);
+    auto allocator=(CaresLib::allocatorFactory()==nullptr)?
+                common::pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
+    auto query=common::allocateShared<Query>(
+        allocator,
+        std::weak_ptr<CaResolverTraits_p>(d),
+        std::move(callback),
+        context,
+        ipVersion,
+        name);
     query->step=QueryStep::RecordSRV;
     query->cyclicRefToSelf=query;
     d->processQuery(query);
@@ -994,16 +1047,23 @@ void CaResolverTraits::resolveService(
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveMx(
-        const char *name,
+        const lib::string_view& name,
         std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
+        const common::TaskContextShared& context,
         IpVersion ipVersion
     )
 {
     // DCS_DEBUG(dnsresolver,HATN_FORMAT("Resolving MX {} for {} ...",name,IpVersionStr(ipVersion)));
 
-    pmr::polymorphic_allocator<Query> allocator=(CaresLib::allocatorFactory()==nullptr)?
-                pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
-    auto query=allocateShared<Query>(allocator,std::weak_ptr<CaResolverTraits_p>(d),std::move(callback),ipVersion,name);
+    auto allocator=(CaresLib::allocatorFactory()==nullptr)?
+                common::pmr::polymorphic_allocator<Query>():CaresLib::allocatorFactory()->objectAllocator<Query>();
+    auto query=common::allocateShared<Query>(
+        allocator,
+        std::weak_ptr<CaResolverTraits_p>(d),
+        std::move(callback),
+        context,
+        ipVersion,
+        name);
     query->step=QueryStep::RecordMX;
     query->cyclicRefToSelf=query;
     d->processQuery(query);
@@ -1019,7 +1079,8 @@ void CaResolverTraits::cancel()
 //---------------------------------------------------------------
 void CaResolverTraits::cleanup()
 {
-    d->timeoutsTimer.reset();
+    d->timeoutsTimer->reset();
+    d->timeoutsTimer->stop();
     ares_destroy(d->channel);
 }
 
@@ -1033,12 +1094,6 @@ void CaResolverTraits::setUseLocalHostsFile(bool enable) noexcept
 bool CaResolverTraits::isUseLocalHostsFile() const noexcept
 {
     return d->useLocalHostsFile;
-}
-
-//---------------------------------------------------------------
-const char* CaResolverTraits::idStr() const noexcept
-{
-    return d->m_resolver->id().c_str();
 }
 
 //---------------------------------------------------------------

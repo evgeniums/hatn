@@ -729,7 +729,7 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
             HATN_CHECK_TS(clientRxPacketCount>(serverTxPacketCount/2));
         }
         BOOST_TEST_MESSAGE(fmt::format("Server received {} of {} packets",rxPacketCount,TxPacketCount));
-        BOOST_TEST_MESSAGE(fmt::format("Client received {} of {} packets",clientRxPacketCount,serverTxPacketCount));
+        BOOST_TEST_MESSAGE(fmt::format("Client received {} of {} packets",clientRxPacketCount-1,serverTxPacketCount));
     }
 
     BOOST_TEST_MESSAGE("Waiting for 3 seconds");

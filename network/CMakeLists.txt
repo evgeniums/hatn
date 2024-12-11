@@ -31,13 +31,13 @@ SET (SOURCES
     src/network.cpp
     src/error.cpp
 
-    # src/resolver.cpp
-    # src/resolvershuffle.cpp
+    src/resolver.cpp
+    src/resolvershuffle.cpp
 
     src/asio/tcpstream.cpp
     src/asio/tcpserver.cpp
     src/asio/udpchannel.cpp
-    # src/asio/caresolver.cpp
+    src/asio/caresolver.cpp
 
 #    src/resolverinterface.cpp
 
