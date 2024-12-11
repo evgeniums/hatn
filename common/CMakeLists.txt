@@ -126,6 +126,7 @@ SET (HEADERS
 
     include/hatn/common/elapsedtimer.h
     include/hatn/common/objectid.h
+    include/hatn/common/withthread.h
 
     include/hatn/common/fileutils.h
     include/hatn/common/nativehandler.h

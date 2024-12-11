@@ -22,6 +22,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/fixedbytearray.h>
+#include <hatn/common/withthread.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -202,28 +203,6 @@ class WithID
     private:
 
         STR_ID_TYPE m_id;
-};
-
-//! Base class for objects with thread
-class WithThread
-{
-    public:
-
-        //! Ctor
-        WithThread(
-            Thread* thread
-        ) noexcept : m_thread(thread)
-        {}
-
-        //! Get thread
-        inline common::Thread* thread() const noexcept
-        {
-            return m_thread;
-        }
-
-    private:
-
-        Thread* m_thread;
 };
 
 //! Base class for objects with ID and thread
