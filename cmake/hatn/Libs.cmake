@@ -6,5 +6,6 @@ SET (HATN_MODULES
 	logcontext
 	dataunit
 	base
+	crypt
 	db
 )

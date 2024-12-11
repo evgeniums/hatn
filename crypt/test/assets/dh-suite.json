@@ -1,0 +1,10 @@
+{
+  "id":"suite1",
+  "aead":"chacha20-poly1305",
+  "pbkdf":"pbkdf2/sha256",
+  "digest":"sha512",
+  "mac":"poly1305",
+  "cipher":"aes-256-cbc",
+  "signature":"ed/25519",
+  "dh":"dh/rfc4526-g4096"
+}

@@ -1,0 +1,612 @@
+# Russian translations for PACKAGE package
+# Английские переводы для пакета PACKAGE.
+# Copyright (C) 2021 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-19 15:06+0300\n"
+"PO-Revision-Date: 2021-02-19 15:06+0300\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CP1251\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:52
+msgid "Request or operation failed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:55
+msgid "Failed to encrypt data"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:58
+msgid "Failed to decrypt data"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:61
+msgid "Failed to calculate digest"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:64
+msgid "Calculated data and check value of digest mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:67
+msgid "HMAC calculating failed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:70
+msgid "Invalid format of container's content"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:73
+msgid "HMAC is either not initialized yet or HMAC key is not set"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:76
+msgid "Cipher algorithm is either invalid or not implemented by backend"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:79
+msgid "DH is not ready"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:82
+msgid "Key is protected but protector is either not set or invalid"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:85
+msgid "Digest algorithm is either invalid or not implemented by backend"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:88
+msgid "Invalid length of cryptographic key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:91
+msgid "Requested operation is not supported by cryptographic plugin"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:94
+msgid "Digest is not initialized yet"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:97
+msgid "Failed to derive key using requested KDF"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:100
+msgid "Invalid type of key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:103
+msgid "Failed to sign"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:106
+msgid "Verify failed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:109
+msgid "Invalid algorithm"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:112
+msgid "Invalid operation"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:115
+msgid "Invalid engine"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:118
+msgid "Failed to generate or initialize a key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:121
+msgid "Keys in a pair mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:124
+msgid "Operation is not permitted"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:127
+msgid "Invalid state of cipher, try to initialize it first"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:130
+msgid "Invalid HMAC key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:133
+msgid "HMAC size exceeds size of digest's hash"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:136
+msgid "Failed to compute DH secret"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:139
+msgid "Failed to export key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:142
+msgid "Invalid state of signature processor"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:145
+msgid "Invalid size of signature"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:148
+msgid "Not supported by cipher suite"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:151
+msgid "Invalid KDF type"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:154
+msgid "Unsupported format version"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:157
+msgid "Failed to parse container"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:160
+msgid "Failed to serialize container"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:163
+msgid "Invalid cipher suite"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:166
+msgid "Invalid key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:169
+msgid "Failed to load cipher suite from JSON"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:172
+msgid "Failed to load cipher suite"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:175
+msgid "Failed to store cipher suite"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:178
+msgid "DH parameters not found"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:181
+msgid "Failed to process file stamp"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:184
+msgid "Invalid object type"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:187
+msgid "Failed operation on X509 certificates store"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:190
+msgid "Failed to verify X509 certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:193
+msgid "Invalid X509 certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:196
+msgid "X509 certificate and private key mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:199
+msgid "TLS error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:202
+msgid "TLS connection closed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\src\crypterror.cpp:206
+msgid "Unknown error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:40
+msgctxt "SslError"
+msgid "No error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:41
+msgctxt "SslError"
+msgid "Unspecified certificate verification error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:42
+msgctxt "SslError"
+msgid "Unable to get issuer certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:43
+msgctxt "SslError"
+msgid "Unable to get certificate CRL"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:44
+msgctxt "SslError"
+msgid "Unable to decrypt certificate's signature"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:45
+msgctxt "SslError"
+msgid "Unable to decrypt CRL's signature"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:46
+msgctxt "SslError"
+msgid "Unable to decode issuer public key"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:47
+msgctxt "SslError"
+msgid "Certificate signature failure"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:48
+msgctxt "SslError"
+msgid "CRL signature failure"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:49
+msgctxt "SslError"
+msgid "Certificate is not yet valid"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:50
+msgctxt "SslError"
+msgid "Certificate has expired"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:51
+msgctxt "SslError"
+msgid "CRL is not yet valid"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:52
+msgctxt "SslError"
+msgid "CRL has expired"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:53
+msgctxt "SslError"
+msgid "Format error in certificate's notBefore field"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:54
+msgctxt "SslError"
+msgid "Format error in certificate's notAfter field"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:55
+msgctxt "SslError"
+msgid "Format error in CRL's lastUpdate field"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:56
+msgctxt "SslError"
+msgid "Format error in CRL's nextUpdate field"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:57
+msgctxt "SslError"
+msgid "Out of memory"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:58
+msgctxt "SslError"
+msgid "Self signed certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:59
+msgctxt "SslError"
+msgid "Self signed certificate in certificate chain"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:60
+msgctxt "SslError"
+msgid "Unable to get local issuer certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:61
+msgctxt "SslError"
+msgid "Unable to verify the first certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:62
+msgctxt "SslError"
+msgid "Certificate chain too long"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:63
+msgctxt "SslError"
+msgid "Certificate revoked"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:64
+msgctxt "SslError"
+msgid "Invalid CA certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:65
+msgctxt "SslError"
+msgid "Path length constraint exceeded"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:66
+msgctxt "SslError"
+msgid "Unsupported certificate purpose"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:67
+msgctxt "SslError"
+msgid "Certificate not trusted"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:68
+msgctxt "SslError"
+msgid "Certificate rejected"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:69
+msgctxt "SslError"
+msgid "Subject issuer mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:70
+msgctxt "SslError"
+msgid "Authority and subject key identifier mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:71
+msgctxt "SslError"
+msgid "Authority and issuer serial number mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:72
+msgctxt "SslError"
+msgid "Key usage does not include certificate signing"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:73
+msgctxt "SslError"
+msgid "Unable to get CRL issuer certificate"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:74
+msgctxt "SslError"
+msgid "Unhandled critical extension"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:75
+msgctxt "SslError"
+msgid "Key usage does not include CRL signing"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:76
+msgctxt "SslError"
+msgid "Unhandled critical CRL extension"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:77
+msgctxt "SslError"
+msgid "Invalid non-CA certificate (has CA markings)"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:78
+msgctxt "SslError"
+msgid "Proxy path length constraint exceeded"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:79
+msgctxt "SslError"
+msgid "Key usage does not include digital signature"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:80
+msgctxt "SslError"
+msgid "Proxy certificates not allowed, please set the appropriate flag"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:81
+msgctxt "SslError"
+msgid "Invalid or inconsistent certificate extension"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:82
+msgctxt "SslError"
+msgid "Invalid or inconsistent certificate policy extension"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:83
+msgctxt "SslError"
+msgid "No explicit policy"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:84
+msgctxt "SslError"
+msgid "Different CRL scope"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:85
+msgctxt "SslError"
+msgid "Unsupported extension feature"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:86
+msgctxt "SslError"
+msgid "RFC 3779 resource not subset of parent's resources"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:87
+msgctxt "SslError"
+msgid "Permitted subtree violation"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:88
+msgctxt "SslError"
+msgid "Excluded subtree violation"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:89
+msgctxt "SslError"
+msgid "Name constraints minimum and maximum not supported"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:90
+msgctxt "SslError"
+msgid "Application verification failure"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:91
+msgctxt "SslError"
+msgid "Unsupported name constraint type"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:92
+msgctxt "SslError"
+msgid "Unsupported or invalid name constraint syntax"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:93
+msgctxt "SslError"
+msgid "Unsupported or invalid name syntax"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:94
+msgctxt "SslError"
+msgid "CRL path validation error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:95
+msgctxt "SslError"
+msgid "Path Loop"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:96
+msgctxt "SslError"
+msgid "Suite B: certificate version invalid"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:97
+msgctxt "SslError"
+msgid "Suite B: invalid public key algorithm"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:98
+msgctxt "SslError"
+msgid "Suite B: invalid ECC curve"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:99
+msgctxt "SslError"
+msgid "Suite B: invalid signature algorithm"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:100
+msgctxt "SslError"
+msgid "Suite B: curve not allowed for this LOS"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:101
+msgctxt "SslError"
+msgid "Suite B: cannot sign P-384 with P-256"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:102
+msgctxt "SslError"
+msgid "Hostname mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:103
+msgctxt "SslError"
+msgid "Email address mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:104
+msgctxt "SslError"
+msgid "IP address mismatch"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:105
+msgctxt "SslError"
+msgid "No matching DANE TLSA records"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:106
+msgctxt "SslError"
+msgid "EE certificate key too weak"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:107
+msgctxt "SslError"
+msgid "CA certificate key too weak"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:108
+msgctxt "SslError"
+msgid "CA signature digest algorithm too weak"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:109
+msgctxt "SslError"
+msgid "Invalid certificate verification context"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:110
+msgctxt "SslError"
+msgid "Issuer certificate lookup error"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:111
+msgctxt "SslError"
+msgid "Certificate Transparency required, but no valid SCTs found"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:112
+msgctxt "SslError"
+msgid "Proxy subject name violation"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:113
+msgctxt "SslError"
+msgid "OCSP verification needed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:114
+msgctxt "SslError"
+msgid "OCSP verification failed"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:115
+msgctxt "SslError"
+msgid "OCSP unknown cert"
+msgstr ""
+
+#: C:\projects\hatn\src\crypt\plugins\openssl\opensslerror.cpp:122
+msgid "Unknown TLS error"
+msgstr ""

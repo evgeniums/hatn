@@ -194,6 +194,13 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
                 STRING(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *([A-Za-z_0-9]+) *[\\),]" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
 
+                IF (NOT FOUND_TEST_SUITE)
+
+                    MESSAGE(STATUS "Not found test suite in ${SOURCE_FILE_NAME}")
+                    STRING(REGEX MATCH "BOOST_FIXTURE_TEST_SUITE\\( *([A-Za-z_0-9]+) *[\\),]" FOUND_TEST_SUITE ${SOURCE_FILE_CONTENTS})
+
+                ENDIF()
+
 		IF (FOUND_TEST_SUITE)
 
                         STRING(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *[\\),].*" "\\1" SUITE_NAME ${FOUND_TEST_SUITE})

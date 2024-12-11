@@ -1,0 +1,5 @@
+{
+  "id":"suite7",
+  "aead":"chacha20-poly1305",
+  "hkdf":"sha512"
+}

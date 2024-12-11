@@ -1,0 +1,5 @@
+{
+  "id":"suite8",
+  "aead":"chacha20-poly1305",
+  "hkdf":"sha256"
+}
