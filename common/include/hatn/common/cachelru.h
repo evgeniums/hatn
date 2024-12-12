@@ -47,7 +47,7 @@ class CacheLRU
         /**
          * @brief Cache item
          */
-        class Item : public ItemT, public boost::intrusive::list_base_hook<>
+        class Item : public ItemT, public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
         {
             public:
 
