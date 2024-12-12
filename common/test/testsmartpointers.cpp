@@ -88,7 +88,43 @@ struct PlainTestStruct
     PlainTestStruct(uint32_t id, const std::string& str=std::string(), char ch=char()):m_id(id),m_str(str),m_char(ch)
     {
     }
+
+    virtual bool ok() const noexcept
+    {
+        return true;
+    }
 };
+
+class PlainTestClass
+{
+    public:
+
+        uint32_t m_id;
+        std::string m_str;
+        char m_char;
+
+        virtual ~PlainTestClass()=default;
+        PlainTestClass(const PlainTestClass&)=default;
+        PlainTestClass(PlainTestClass&&) =default;
+        PlainTestClass& operator=(const PlainTestClass&)=default;
+        PlainTestClass& operator=(PlainTestClass&&) =default;
+
+        PlainTestClass(uint32_t id, const std::string& str=std::string(), char ch=char()):m_id(id),m_str(str),m_char(ch)
+        {
+        }
+
+        virtual bool ok() const noexcept
+        {
+            return true;
+        }
+
+        virtual bool smthDerived() = 0;
+
+    private:
+
+        uint32_t p=0;
+};
+
 
 struct TestStlSharedDeleter : public pointers_std::ManagedObject
 {
@@ -182,16 +218,29 @@ template <typename T, typename T1> void AllocateSharedImpl(pmr::memory_resource*
 
 BOOST_FIXTURE_TEST_CASE(AllocateSharedUnmanagedDefaultResource_MemPool,MultiThreadFixture)
 {
+    pointers_mempool::SharedPtr<PlainTestStruct> p0{};
+    std::ignore=p0;
+
+    pointers_mempool::SharedPtr<PlainTestClass> p1{};
+    std::ignore=p1;
+
+    std::vector<pointers_mempool::SharedPtr<PlainTestClass>> v1{};
+    std::ignore=v1;
+    v1.push_back(p1);
+
     AllocateSharedImpl<pointers_mempool::Pointers,PlainTestStruct>(pmr::get_default_resource());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedUnmanagedDefaultResource_Std,MultiThreadFixture)
 {
     AllocateSharedImpl<pointers_std::Pointers,PlainTestStruct>(pmr::get_default_resource());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedManagedDefaultResource_MemPool,MultiThreadFixture)
 {
     AllocateSharedImpl<pointers_mempool::Pointers,TestStruct>(pmr::get_default_resource());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedManagedDefaultResource_Std,MultiThreadFixture)
 {
     AllocateSharedImpl<pointers_std::Pointers,TestStructStd>(pmr::get_default_resource());
@@ -224,6 +273,7 @@ BOOST_FIXTURE_TEST_CASE(AllocateSharedUnmanagedPoolResource_MemPool,MultiThreadF
 
     AllocateSharedImpl<pointers_mempool::Pointers,PlainTestStruct>(resource.get());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedUnmanagedPoolResource_Std,MultiThreadFixture)
 {
     MemResourceConfig config(poolCacheGen<MemoryPool>());
@@ -231,6 +281,7 @@ BOOST_FIXTURE_TEST_CASE(AllocateSharedUnmanagedPoolResource_Std,MultiThreadFixtu
 
     AllocateSharedImpl<pointers_std::Pointers,PlainTestStruct>(resource.get());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedManagedPoolResource_MemPool,MultiThreadFixture)
 {
     MemResourceConfig config(poolCacheGen<MemoryPool>());
@@ -238,6 +289,7 @@ BOOST_FIXTURE_TEST_CASE(AllocateSharedManagedPoolResource_MemPool,MultiThreadFix
 
     AllocateSharedImpl<pointers_mempool::Pointers,TestStruct>(resource.get());
 }
+
 BOOST_FIXTURE_TEST_CASE(AllocateSharedManagedPoolResource_Std,MultiThreadFixture)
 {
     MemResourceConfig config(poolCacheGen<MemoryPool>());
@@ -443,6 +495,7 @@ BOOST_FIXTURE_TEST_CASE(SharedManagedPoolResource_MemPool,MultiThreadFixture)
 
     SharedManagedImpl<pointers_mempool::Pointers,TestStruct>(resource.get());
 }
+
 BOOST_FIXTURE_TEST_CASE(SharedManagedPoolResource_Std,MultiThreadFixture)
 {
     MemResourceConfig config(poolCacheGen<MemoryPool>());
@@ -450,10 +503,12 @@ BOOST_FIXTURE_TEST_CASE(SharedManagedPoolResource_Std,MultiThreadFixture)
 
     SharedManagedImpl<pointers_std::Pointers,TestStructStd>(resource.get());
 }
+
 BOOST_FIXTURE_TEST_CASE(SharedManagedDefaultResource_MemPool,MultiThreadFixture)
 {
     SharedManagedImpl<pointers_mempool::Pointers,TestStruct>(pmr::get_default_resource());
 }
+
 BOOST_FIXTURE_TEST_CASE(SharedManagedDefaultResource_Std,MultiThreadFixture)
 {
     SharedManagedImpl<pointers_std::Pointers,TestStructStd>(pmr::get_default_resource());
