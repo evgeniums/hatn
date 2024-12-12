@@ -389,15 +389,19 @@ class HATN_CRYPT_EXPORT X509VerifyError : public common::NativeError
 
         //! Constructor.
         X509VerifyError(
-            int code //!< Error code
-        ) noexcept : common::NativeError(code)
+            int nativeCode,
+            std::string nativeMessage=std::string{},
+            const common::ErrorCategory* category=nullptr
+            ) : common::NativeError(std::move(nativeMessage),nativeCode,category)
         {}
 
         X509VerifyError(
-            int code, //!< Error code
-            common::SharedPtr<X509Certificate> certificate //!< Certificate that caused the error
-        ) noexcept : common::NativeError(code),
-                     m_certificate(std::move(certificate))
+            int nativeCode, //!< Error code
+            common::SharedPtr<X509Certificate> certificate, //!< Certificate that caused the error
+            std::string nativeMessage=std::string{},
+            const common::ErrorCategory* category=nullptr
+        )   : common::NativeError(std::move(nativeMessage),nativeCode,category),
+              m_certificate(std::move(certificate))
         {}
 
         //! Set name of mismatched host
