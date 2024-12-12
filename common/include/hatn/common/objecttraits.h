@@ -180,8 +180,6 @@ class WithImpl
             : m_impl(std::forward<Args>(args)...)
         {}
 
-    protected:
-
         ImplT& impl() noexcept
         {
             return m_impl;
