@@ -179,6 +179,8 @@ class HATN_COMMON_EXPORT NativeError
                 other.boostCategory()!=this->boostCategory()
                 ||
                 other.nativeMessage()!=this->nativeMessage()
+                ||
+                !this->compareContent(other)
                )
             {
                 return false;
@@ -225,6 +227,13 @@ class HATN_COMMON_EXPORT NativeError
                 return m_prevError->apiError();
             }
             return nullptr;
+        }
+
+    protected:
+
+        virtual bool compareContent(const common::NativeError&) const noexcept
+        {
+            return true;
         }
 
     private:
