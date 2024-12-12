@@ -594,7 +594,7 @@ struct HATN_DATAUNIT_EXPORT visitors
             buf.resize(minSize);
         }
         memcpy(buf.data()+offset,wbuf.mainContainer()->data(),wbuf.mainContainer()->size());
-        return wbuf.mainContainer()->size();
+        return static_cast<int>(wbuf.mainContainer()->size());
     }
 
     template <typename UnitT, typename BufferT>
