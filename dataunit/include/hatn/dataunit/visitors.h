@@ -547,6 +547,62 @@ struct HATN_DATAUNIT_EXPORT visitors
         RawError::setEnabledTL(true);
         return deserialize(obj,buf);
     }
+
+    template <typename UnitT, typename BufferT>
+    static bool deserializeInline(UnitT& obj, const BufferT& buf)
+    {
+        WireBufSolid wbuf{buf.data(),buf.size(),true};
+        return deserialize(obj,wbuf);
+    }
+
+    template <typename UnitT, typename BufferT>
+    static bool deserializeInline(UnitT& obj, const BufferT& buf, Error& ec)
+    {
+        WireBufSolid wbuf{buf.data(),buf.size(),true};
+        return deserialize(obj,wbuf,ec);
+    }
+
+    template <typename UnitT>
+    static bool deserializeInline(UnitT& obj, const char* data, size_t size)
+    {
+        WireBufSolid wbuf{data,size,true};
+        return deserialize(obj,wbuf);
+    }
+
+    template <typename UnitT>
+    static bool deserializeInline(UnitT& obj, const char* data, size_t size, Error& ec)
+    {
+        WireBufSolid wbuf{data,size,true};
+        return deserialize(obj,wbuf,ec);
+    }
+
+    template <typename UnitT, typename BufferT>
+    static int serializeToBuf(const UnitT& obj, BufferT& buf, size_t offset, Error& ec)
+    {
+        //! @todo optimization: Implement WireBuf using external container
+
+        WireBufSolid wbuf;
+        auto size=serialize(obj,wbuf,ec);
+        if (size<0)
+        {
+            return size;
+        }
+
+        size_t minSize=offset+wbuf.mainContainer()->size();
+        if (buf.size()<minSize)
+        {
+            buf.resize(minSize);
+        }
+        memcpy(buf.data()+offset,wbuf.mainContainer()->data(),wbuf.mainContainer()->size());
+        return wbuf.mainContainer()->size();
+    }
+
+    template <typename UnitT, typename BufferT>
+    static int serializeToBuf(const UnitT& obj, BufferT& buf, size_t offset=0)
+    {
+        Error ec;
+        return serializeToBuf(obj,buf,offset,ec);
+    }
 };
 
 using io=visitors;
