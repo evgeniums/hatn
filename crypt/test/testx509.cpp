@@ -295,13 +295,11 @@ BOOST_AUTO_TEST_CASE(CheckX509VerifyCA)
         }
         BOOST_CHECK(ec.native());
 
-//! @todo Fix native crypt error
-#if 0
-        auto verifyError=dynamic_cast<X509VerifyError*>(ec.native().get());
+        auto verifyError=dynamic_cast<X509VerifyError*>(ec.native());
         HATN_REQUIRE(verifyError);
         HATN_REQUIRE(verifyError->certificate());
         BOOST_CHECK(*client1_2_2Der==*verifyError->certificate());
-#endif
+
         ec=client1_2_2Der->checkIssuedBy(*im1_1Pem);
         BOOST_CHECK(ec);
         if (ec)

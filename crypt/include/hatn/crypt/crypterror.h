@@ -78,7 +78,8 @@ enum class CryptErrorCode : int
     INVALID_X509_CERTIFICATE,
     X509_PKEY_MISMATCH,
     TLS_ERROR,
-    TLS_CLOSED
+    TLS_CLOSED,
+    X509_ERROR_SERIALIZE_FAILED
 };
 
 //! Crypt error category

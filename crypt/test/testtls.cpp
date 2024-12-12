@@ -993,11 +993,8 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeSaveRestoreIgnoreEcOk,Env)
             for (auto&& it:errors)
             {
                 ByteArray content;
-//! @todo Fix error serialization
-#if 0
-                auto ec1=it.serialize(content);
-                BOOST_CHECK(!ec1);
-#endif
+                auto ec1=X509VerifyError::serialize(it,content);
+                BOOST_REQUIRE(!ec1);
                 auto error=clientStream->context()->createError(content);
                 BOOST_CHECK(!error.isNull());
                 newErrors.push_back(std::move(error));

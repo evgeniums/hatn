@@ -208,6 +208,9 @@ std::string CryptErrorCategory::message(int code) const
             case (static_cast<int>(CryptErrorCode::TLS_CLOSED)):
                 result=_TR("TLS connection closed");
             break;
+            case (static_cast<int>(CryptErrorCode::X509_ERROR_SERIALIZE_FAILED)):
+                result=_TR("Failed to serialize error of X509 certificate verification");
+                break;
 
             default:
                 result=_TR("Unknown error");

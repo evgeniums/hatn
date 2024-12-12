@@ -390,13 +390,13 @@ class HATN_CRYPT_EXPORT X509VerifyError : public common::NativeError
         //! Constructor.
         X509VerifyError(
             int code //!< Error code
-        ) noexcept : m_code(code)
+        ) noexcept : common::NativeError(code)
         {}
 
         X509VerifyError(
             int code, //!< Error code
             common::SharedPtr<X509Certificate> certificate //!< Certificate that caused the error
-        ) noexcept : m_code(code),
+        ) noexcept : common::NativeError(code),
                      m_certificate(std::move(certificate))
         {}
 
@@ -421,15 +421,6 @@ class HATN_CRYPT_EXPORT X509VerifyError : public common::NativeError
             return m_mismatchedNameVerified;
         }
 
-//! @todo Fix crypt native error
-#if 0
-        //! Code
-        int value() const noexcept override
-        {
-            return m_code;
-        }
-
-#endif
         common::Error serializeAppend(common::ByteArray& buf) const;
 
         //! Get certificate associated with the error
@@ -438,19 +429,16 @@ class HATN_CRYPT_EXPORT X509VerifyError : public common::NativeError
             return m_certificate;
         }
 
+        static common::Error serialize(int32_t code, const X509VerifyError* nativeError, common::ByteArray& buf);
+        static common::Error serialize(const common::Error& ec, common::ByteArray& buf);
+
     protected:
 
         //! Compare self content with content of other error
-        bool compareContent(const common::NativeError& other) const noexcept;
+        bool compareContent(const common::NativeError& other) const noexcept override;
 
-        //! Code
-        inline int code() const noexcept
-        {
-            return m_code;
-        }
     private:
 
-        int m_code;
         common::SharedPtr<X509Certificate> m_certificate;
         X509Certificate::NameType m_mismatchedNameRequested;
         X509Certificate::NameType m_mismatchedNameVerified;

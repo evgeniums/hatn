@@ -15,6 +15,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <boost/endian/conversion.hpp>
+
 #include <hatn/common/utils.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/containerutils.h>
@@ -284,6 +286,32 @@ Error X509VerifyError::serializeAppend(ByteArray &buf) const
         buf.append(tmpBuf);
     }
     return Error();
+}
+
+//---------------------------------------------------------------
+Error X509VerifyError::serialize(int32_t code, const X509VerifyError *nativeError, ByteArray &buf)
+{
+    int32_t storeCode=boost::endian::native_to_little(code);
+    buf.append(reinterpret_cast<const char*>(&storeCode),sizeof(storeCode));
+    return nativeError->serializeAppend(buf);
+}
+
+//---------------------------------------------------------------
+Error X509VerifyError::serialize(const Error &ec, ByteArray &buf)
+{
+    const auto* native=ec.native();
+    if (native==nullptr)
+    {
+        return makeCryptError(CryptErrorCode::X509_ERROR_SERIALIZE_FAILED);
+    }
+
+    const auto* x509Error=dynamic_cast<const X509VerifyError*>(native);
+    if (x509Error==nullptr)
+    {
+        return makeCryptError(CryptErrorCode::X509_ERROR_SERIALIZE_FAILED);
+    }
+
+    return serialize(static_cast<int32_t>(ec.code()),x509Error,buf);
 }
 
 //---------------------------------------------------------------
