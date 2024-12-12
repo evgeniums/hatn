@@ -43,7 +43,7 @@ common::Error MAC::finalizeAndVerify(const char *tag, size_t tagSize)
     size_t size=(std::min)(calcTag.size(),tagSize);
     if (alg()->engine()->plugin()->constTimeMemCmp(calcTag.data(),tag,size)!=0)
     {
-        return makeCryptError(CryptErrorCode::MAC_FAILED);
+        return cryptError(CryptError::MAC_FAILED);
     }
     return common::Error();
 }
@@ -53,15 +53,15 @@ common::Error MAC::beforeInit() noexcept
 {
     if (alg()->type()!=macType())
     {
-        return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+        return cryptError(CryptError::INVALID_ALGORITHM);
     }
     if (key()==nullptr)
     {
-        return makeCryptError(CryptErrorCode::INVALID_MAC_STATE);
+        return cryptError(CryptError::INVALID_MAC_STATE);
     }
     if (!key()->hasRole(SecureKey::Role::MAC))
     {
-        return makeCryptError(CryptErrorCode::INVALID_KEY_TYPE);
+        return cryptError(CryptError::INVALID_KEY_TYPE);
     }
     return common::Error();
 }

@@ -102,12 +102,12 @@ common::Error Digest::finalizeAndCheck(const char *digest, size_t digestSize)
     HATN_CHECK_RETURN(finalize(calcTag));
     if (digestSize>calcTag.size())
     {
-        return makeCryptError(CryptErrorCode::DIGEST_MISMATCH);
+        return cryptError(CryptError::DIGEST_MISMATCH);
     }
     size_t size=(std::min)(calcTag.size(),digestSize);
     if (memcmp(calcTag.data(),digest,size)!=0)
     {
-        return makeCryptError(CryptErrorCode::DIGEST_MISMATCH);
+        return cryptError(CryptError::DIGEST_MISMATCH);
     }
     return common::Error();
 }
@@ -117,7 +117,7 @@ common::Error Digest::beforeInit() noexcept
 {
     if (alg()->type()!=CryptAlgorithm::Type::DIGEST)
     {
-        return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+        return cryptError(CryptError::INVALID_ALGORITHM);
     }
     return common::Error();
 }
@@ -127,7 +127,7 @@ size_t Digest::resultSize() const
 {
     if (!isAlgDefined())
     {
-        throw common::ErrorException(makeCryptError(CryptErrorCode::INVALID_ALGORITHM));
+        throw common::ErrorException(cryptError(CryptError::INVALID_ALGORITHM));
     }
     return alg()->hashSize();
 }
@@ -143,7 +143,7 @@ common::Error Digest::init(const CryptAlgorithm *algorithm) noexcept
 
     if (!isAlgDefined())
     {
-        return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+        return cryptError(CryptError::INVALID_ALGORITHM);
     }
 
     reset();

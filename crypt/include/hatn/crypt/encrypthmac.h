@@ -65,11 +65,11 @@ class EncryptHMAC
         {
             if (m_enc.isNull())
             {
-                throw common::ErrorException(makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN));
+                throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
             }
             if (m_dec.isNull())
             {
-                throw common::ErrorException(makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN));
+                throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
             }
 
             if (m_macKey->alg())
@@ -82,7 +82,7 @@ class EncryptHMAC
             }
             if (m_hmac.isNull())
             {
-                throw common::ErrorException(makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN));
+                throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
             }
             m_hmac->setKey(m_macKey.get());
             if (m_macKey->alg())
@@ -140,7 +140,7 @@ class EncryptHMAC
             size_t tagSize=m_hmac->hashSize();
             if (containerIn.size()<tagSize)
             {
-                return makeCryptError(CryptErrorCode::MAC_FAILED);
+                return cryptError(CryptError::MAC_FAILED);
             }
 
             common::SpanBuffer buf(containerIn,tagSize);

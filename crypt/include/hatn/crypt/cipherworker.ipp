@@ -156,7 +156,7 @@ common::Error CipherTraits<false>::runPack(
     size_t ivLength=cipher->ivSize();
     if ((ivLength+offsetIn)>sizeIn)
     {
-        return makeCryptError(CryptErrorCode::DECRYPTION_FAILED);
+        return cryptError(CryptError::DECRYPTION_FAILED);
     }
 
     common::ConstDataBuf iv(dataIn.data()+offsetIn,ivLength);
@@ -189,7 +189,7 @@ common::Error CipherTraits<false>::runPack(
             size_t ivLength=cipher->ivSize();
             if (ivLength>view.size())
             {
-                return makeCryptError(CryptErrorCode::DECRYPTION_FAILED);
+                return cryptError(CryptError::DECRYPTION_FAILED);
             }
             common::ConstDataBuf iv(view.data(),ivLength);
             HATN_CHECK_RETURN(cipher->init(iv));
@@ -250,7 +250,7 @@ common::Error CipherWorker<Encrypt>::init(const ContainerIvT& iv)
 {
     if (m_alg==nullptr)
     {
-        return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+        return cryptError(CryptError::INVALID_ALGORITHM);
     }
     if (m_alg->isNone())
     {
@@ -267,7 +267,7 @@ common::Error CipherWorker<Encrypt>::init(const ContainerIvT& iv)
          )
         )
     {
-        return makeCryptError(CryptErrorCode::INVALID_KEY_TYPE);
+        return cryptError(CryptError::INVALID_KEY_TYPE);
     }
 
     reset();
@@ -344,7 +344,7 @@ common::Error CipherWorker<Encrypt>::process(
 {
     if (!m_initialized)
     {
-        return makeCryptError(CryptErrorCode::INVALID_CIPHER_STATE);
+        return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
 
     if (!checkInContainerSize(dataIn.size(),offsetIn,sizeIn) || !checkOutContainerSize(dataOut.size(),offsetOut))
@@ -406,7 +406,7 @@ common::Error CipherWorker<Encrypt>::finalize(
 {
     if (!m_initialized)
     {
-        return makeCryptError(CryptErrorCode::INVALID_CIPHER_STATE);
+        return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
     m_initialized=false;
 
@@ -448,7 +448,7 @@ common::Error CipherWorker<Encrypt>::processAndFinalize(
 {
     if (key()->alg()->isType(CryptAlgorithm::Type::AEAD))
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
 
     if (!checkInContainerSize(dataIn.size(),offsetIn,sizeIn) || !checkOutContainerSize(dataOut.size(),offsetOut))

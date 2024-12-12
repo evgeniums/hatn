@@ -453,7 +453,7 @@ common::Error CryptFile::doProcessFile(
     HATN_CHECK_RETURN(initializer(proc));
     if (proc.isNull())
     {
-        return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+        return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
     }
     HATN_CHECK_RETURN(proc->init())
     HATN_CHECK_RETURN(m_file->seek(0))

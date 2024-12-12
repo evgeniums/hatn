@@ -91,7 +91,7 @@ class KDF
             {
                 if (key->alg()!=targetKeyAlg())
                 {
-                    return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+                    return cryptError(CryptError::INVALID_ALGORITHM);
                 }
                 keySize=key->alg()->keySize();
                 key->content().clear();
@@ -102,12 +102,12 @@ class KDF
             }
             if (!key)
             {
-                return makeCryptError(CryptErrorCode::KEY_INITIALIZATION_FAILED);
+                return cryptError(CryptError::KEY_INITIALIZATION_FAILED);
             }
 
             if (keySize==0)
             {
-                return makeCryptError(CryptErrorCode::INVALID_KEY_LENGTH);
+                return cryptError(CryptError::INVALID_KEY_LENGTH);
             }
 
             return common::Error();

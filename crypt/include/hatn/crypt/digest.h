@@ -65,7 +65,7 @@ class HATN_CRYPT_EXPORT DigestBase
         {
             if (!m_initialized)
             {
-                return makeCryptError(CryptErrorCode::INVALID_DIGEST_STATE);
+                return cryptError(CryptError::INVALID_DIGEST_STATE);
             }
 
             if (!checkInContainerSize(buf.size(),offset,size))
@@ -91,7 +91,7 @@ class HATN_CRYPT_EXPORT DigestBase
         {
             if (!m_initialized)
             {
-                return makeCryptError(CryptErrorCode::INVALID_DIGEST_STATE);
+                return cryptError(CryptError::INVALID_DIGEST_STATE);
             }
             m_initialized=false;
 

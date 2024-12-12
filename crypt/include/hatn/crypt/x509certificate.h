@@ -161,7 +161,7 @@ class HATN_CRYPT_EXPORT X509Certificate : public KeyContainer<common::ByteArray>
                 return e.error();
             }
 
-            return makeCryptError(CryptErrorCode::GENERAL_FAIL);
+            return cryptError(CryptError::GENERAL_FAIL);
         }
 
         /**
@@ -287,7 +287,7 @@ class HATN_CRYPT_EXPORT X509Certificate : public KeyContainer<common::ByteArray>
         virtual common::Error checkPrivateKey(const PrivateKey& key) const noexcept
         {
             std::ignore=key;
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
 
         /**

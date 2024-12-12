@@ -87,7 +87,7 @@ struct Cipher
         auto enc=key->alg()->engine()->plugin()->createSEncryptor(key);
         if (!enc)
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
         return encrypt(enc.get(),key,iv,plain,ciphered);
     }
@@ -140,7 +140,7 @@ struct Cipher
         auto enc=key->alg()->engine()->plugin()->createSEncryptor(key);
         if (!enc)
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
         return encrypt(enc.get(),key,plain,ciphered);
     }
@@ -184,7 +184,7 @@ struct Cipher
         auto enc=key->alg()->engine()->plugin()->createSEncryptor(key);
         if (!enc)
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
         return encrypt(enc.get(),plain,ciphered);
     }
@@ -248,7 +248,7 @@ struct Cipher
         auto dec=key->alg()->engine()->plugin()->createSDecryptor(key);
         if (!dec)
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
 
         return decrypt(dec.get(),key,iv,ciphered,plain);
@@ -299,7 +299,7 @@ struct Cipher
         auto dec=key->alg()->engine()->plugin()->createSDecryptor(key);
         if (!dec)
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
         return decrypt(dec.get(),key,ciphered,plain);
     }

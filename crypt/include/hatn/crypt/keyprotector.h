@@ -199,7 +199,7 @@ class KeyProtector
         {
             if (!isPassphraseValid() && !isHkdfMasterKeyValid())
             {
-                return makeCryptError(CryptErrorCode::INVALID_KEY_PROTECTION);
+                return cryptError(CryptError::INVALID_KEY_PROTECTION);
             }
             return m_impl.checkState();
         }

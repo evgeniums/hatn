@@ -858,7 +858,7 @@ Error CryptFile::readStampField(const FieldT& fieldName, file_stamp::type& stamp
     uint16_t stampWireSize=0;
     if ((size-offset)<sizeof(stampWireSize))
     {
-        return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
+        return cryptError(CryptError::FILE_STAMP_FAILED);
     }
 
     // read size of stamp
@@ -875,7 +875,7 @@ Error CryptFile::readStampField(const FieldT& fieldName, file_stamp::type& stamp
     offset+=sizeof(stampWireSize);
     if ((size-offset)<stampWireSize || stampWireSize==0)
     {
-        return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
+        return cryptError(CryptError::FILE_STAMP_FAILED);
     }
 
     // read stamp
@@ -891,7 +891,7 @@ Error CryptFile::readStampField(const FieldT& fieldName, file_stamp::type& stamp
     if (!du::io::deserializeInline(stamp,readBuf))
     {
         stamp.clear();
-        return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
+        return cryptError(CryptError::FILE_STAMP_FAILED);
     }
 
     // done
@@ -921,7 +921,7 @@ Error CryptFile::writeStamp(const file_stamp::type &stamp)
     // serialize stamp
     if (du::io::serializeToBuf(stamp,m_writeBuffer)<0)
     {
-        return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
+        return cryptError(CryptError::FILE_STAMP_FAILED);
     }
     if (m_writeBuffer.size()>0xFFFFu)
     {
@@ -1032,7 +1032,7 @@ Error CryptFile::createMac(common::SharedPtr<MAC> &mac)
         mac->setKey(m_macKey.get());
         return Error();
     }
-    return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+    return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
 }
 
 //---------------------------------------------------------------
@@ -1043,7 +1043,7 @@ Error CryptFile::createDigest(common::SharedPtr<Digest> &digest)
     HATN_CHECK_EC(ec)
     if (digest.isNull())
     {
-        return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+        return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
     }
     return Error();
 }

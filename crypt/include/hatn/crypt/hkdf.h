@@ -80,7 +80,7 @@ class HKDF : public KDF
         {
             if (!m_initialized)
             {
-                return makeCryptError(CryptErrorCode::INVALID_MAC_STATE);
+                return cryptError(CryptError::INVALID_MAC_STATE);
             }
             return doDerive(derivedKey,info.data(),info.size());
         }

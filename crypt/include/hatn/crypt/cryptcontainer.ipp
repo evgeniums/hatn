@@ -252,11 +252,11 @@ common::Error CryptContainer::unpackHeader(
     CryptContainerHeader header(container.data());
     if (!header.checkPrefix())
     {
-        return makeCryptError(CryptErrorCode::INVALID_CONTENT_FORMAT);
+        return cryptError(CryptError::INVALID_CONTENT_FORMAT);
     }
     if (header.version()>CryptContainerHeader::VERSION)
     {
-        return makeCryptError(CryptErrorCode::UNSUPPORTED_FORMAT_VERSION);
+        return cryptError(CryptError::UNSUPPORTED_FORMAT_VERSION);
     }
     descriptorSize=static_cast<uint16_t>(header.descriptorSize());
     plaintextSize=header.plaintextSize();
@@ -287,7 +287,7 @@ common::Error CryptContainer::packDescriptor(
 
     if (du::io::serializeToBuf(m_descriptor,result,offsetOut)<0)
     {
-        return makeCryptError(CryptErrorCode::SERIALIZE_CONTAINER_FAILED);
+        return cryptError(CryptError::SERIALIZE_CONTAINER_FAILED);
     }
     return OK;
 }
@@ -302,7 +302,7 @@ common::Error CryptContainer::unpackDescriptor(
     dataunit::WireDataSingle wireData(container.data(),container.size(),unpackInline);
     if (!m_descriptor.parse(wireData))
     {
-        return makeCryptError(CryptErrorCode::PARSE_CONTAINER_FAILED);
+        return cryptError(CryptError::PARSE_CONTAINER_FAILED);
     }
 
     const auto& suiteField=m_descriptor.field(container_descriptor::cipher_suite);
@@ -324,7 +324,7 @@ common::Error CryptContainer::unpackDescriptor(
         m_cipherSuite=CipherSuites::instance().defaultSuite();
         if (m_cipherSuite==nullptr)
         {
-            return makeCryptError(CryptErrorCode::INVALID_CIPHER_SUITE);
+            return cryptError(CryptError::INVALID_CIPHER_SUITE);
         }
     }
     return OK;
@@ -555,7 +555,7 @@ common::Error CryptContainer::packChunk(
         HATN_CHECK_EC(ec)
         if (m_enc.isNull())
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
         }
     }
 
@@ -707,11 +707,11 @@ inline common::Error CryptContainer::checkState() const noexcept
 {
     if (m_cipherSuite==nullptr)
     {
-        return makeCryptError(CryptErrorCode::INVALID_CIPHER_SUITE);
+        return cryptError(CryptError::INVALID_CIPHER_SUITE);
     }
     if (m_masterKey==nullptr)
     {
-        return makeCryptError(CryptErrorCode::INVALID_KEY);
+        return cryptError(CryptError::INVALID_KEY);
     }
     return OK;
 }
@@ -732,7 +732,7 @@ inline common::Error CryptContainer::checkOrCreateDecryptor()
         HATN_CHECK_EC(ec)
         if (m_dec.isNull())
         {
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
         }
     }
     return OK;

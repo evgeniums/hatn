@@ -52,7 +52,7 @@ class Signature : public Digest
         {
             if (alg()->type()!=CryptAlgorithm::Type::SIGNATURE)
             {
-                return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+                return cryptError(CryptError::INVALID_ALGORITHM);
             }
             return common::Error();
         }

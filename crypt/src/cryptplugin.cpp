@@ -150,7 +150,7 @@ common::Error CryptPlugin::findAlgorithm(CryptAlgorithmConstP &alg, CryptAlgorit
                         catch (...)
                         {
                             m_algMutex.unlock();
-                            return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+                            return cryptError(CryptError::INVALID_ALGORITHM);
                         }
                     }
 
@@ -192,7 +192,7 @@ common::Error CryptPlugin::randBytes(char *data, size_t size) const
     }
     if (!m_randGen)
     {
-        return makeCryptError(CryptErrorCode::GENERAL_FAIL);
+        return cryptError(CryptError::GENERAL_FAIL);
     }
     return m_randGen->randBytes(data,size);
 }

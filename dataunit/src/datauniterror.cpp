@@ -63,7 +63,6 @@ UnitNativeError::UnitNativeError(
 //---------------------------------------------------------------
 const DataunitErrorCategory& DataunitErrorCategory::getCategory() noexcept
 {
-    //! @todo Make in-function static for all categories.
     static DataunitErrorCategory inst;
     return inst;
 }

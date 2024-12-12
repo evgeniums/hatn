@@ -73,7 +73,7 @@ common::Error CipherSuite::load(const char *data, size_t size)
     clearRawStorage();
     if (!du::io::deserializeInline(*m_suite,data,size))
     {
-        return makeCryptError(CryptErrorCode::CIPHER_SUITE_LOAD_FAILED);
+        return cryptError(CryptError::CIPHER_SUITE_LOAD_FAILED);
     }
     return common::Error();
 }
@@ -91,7 +91,7 @@ common::Error CipherSuite::prepareRawStorage()
     auto buf=common::makeShared<dataunit::WireDataSingle>();
     if (dataunit::io::serialize(*m_suite,buf->impl())<0)
     {
-        return makeCryptError(CryptErrorCode::CIPHER_SUITE_STORE_FAILED);
+        return cryptError(CryptError::CIPHER_SUITE_STORE_FAILED);
     }
     m_suite->keepWireData(std::move(buf));
     return OK;
@@ -118,7 +118,7 @@ common::Error CipherSuite::findAlgorithm(
         const auto& algField=m_suite->field(field);
         if (!algField.isSet())
         {
-            return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+            return cryptError(CryptError::INVALID_ALGORITHM);
         }
         // try to find engine specific for this algorithm type and name
         auto engine=CipherSuites::instance().engineForAlgorithm(type,algField.buf()->data(),algField.buf()->size(),false);
@@ -128,7 +128,7 @@ common::Error CipherSuite::findAlgorithm(
             engine=CipherSuites::instance().engineForAlgorithm(type);
             if (engine==nullptr || engine->plugin()==nullptr)
             {
-                return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+                return cryptError(CryptError::INVALID_ALGORITHM);
             }
         }
         if (algField.buf()->isRawBuffer())
@@ -210,7 +210,7 @@ common::SharedPtr<SEncryptor> CipherSuite::createSEncryptor(Error &ec) const
     auto ret=alg->engine()->plugin()->createSEncryptor(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -227,7 +227,7 @@ common::SharedPtr<SDecryptor> CipherSuite::createSDecryptor(Error &ec) const
     auto ret=alg->engine()->plugin()->createSDecryptor(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -253,7 +253,7 @@ common::SharedPtr<AEADEncryptor> CipherSuite::createAeadEncryptor(Error &ec) con
 
     if (enc.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return enc;
 }
@@ -279,7 +279,7 @@ common::SharedPtr<AEADDecryptor> CipherSuite::createAeadDecryptor(Error &ec) con
 
     if (dec.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return dec;
 }
@@ -296,7 +296,7 @@ common::SharedPtr<Digest> CipherSuite::createDigest(Error &ec) const
     auto ret=alg->engine()->plugin()->createDigest(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -313,7 +313,7 @@ common::SharedPtr<MAC> CipherSuite::createMAC(Error &ec) const
     auto ret=alg->engine()->plugin()->createMAC(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -330,7 +330,7 @@ common::SharedPtr<PBKDF> CipherSuite::createPBKDF(Error &ec,const CryptAlgorithm
     auto ret=alg->engine()->plugin()->createPBKDF(targetKeyAlg,alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -347,7 +347,7 @@ common::SharedPtr<HKDF> CipherSuite::createHKDF(Error &ec,const CryptAlgorithm *
     auto ret=alg->engine()->plugin()->createHKDF(targetKeyAlg,alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -364,7 +364,7 @@ common::SharedPtr<DH> CipherSuite::createDH(Error &ec) const
     auto ret=alg->engine()->plugin()->createDH(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -381,7 +381,7 @@ common::SharedPtr<ECDH> CipherSuite::createECDH(Error &ec) const
     auto ret=alg->engine()->plugin()->createECDH(alg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -398,7 +398,7 @@ common::SharedPtr<SignatureSign> CipherSuite::createSignatureSign(common::Error&
     auto ret=alg->createSignatureSign();
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -415,7 +415,7 @@ common::SharedPtr<SignatureVerify> CipherSuite::createSignatureVerify(common::Er
     auto ret=alg->createSignatureVerify();
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -432,7 +432,7 @@ common::SharedPtr<PassphraseKey> CipherSuite::createPassphraseKey(Error &ec, con
     auto ret=pbkdfAlg->engine()->plugin()->createPassphraseKey(targetKeyAlg,pbkdfAlg);
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -457,7 +457,7 @@ common::SharedPtr<X509Certificate> CipherSuite::createX509Certificate(common::Er
     auto ret=alg->engine()->plugin()->createX509Certificate();
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -474,7 +474,7 @@ common::SharedPtr<X509CertificateChain> CipherSuite::createX509CertificateChain(
     auto ret=alg->engine()->plugin()->createX509CertificateChain();
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }
@@ -491,7 +491,7 @@ common::SharedPtr<X509CertificateStore> CipherSuite::createX509CertificateStore(
     auto ret=alg->engine()->plugin()->createX509CertificateStore();
     if (ret.isNull())
     {
-        ec=makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        ec=cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     return ret;
 }

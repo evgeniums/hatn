@@ -302,13 +302,13 @@ Error X509VerifyError::serialize(const Error &ec, ByteArray &buf)
     const auto* native=ec.native();
     if (native==nullptr)
     {
-        return makeCryptError(CryptErrorCode::X509_ERROR_SERIALIZE_FAILED);
+        return cryptError(CryptError::X509_ERROR_SERIALIZE_FAILED);
     }
 
     const auto* x509Error=dynamic_cast<const X509VerifyError*>(native);
     if (x509Error==nullptr)
     {
-        return makeCryptError(CryptErrorCode::X509_ERROR_SERIALIZE_FAILED);
+        return cryptError(CryptError::X509_ERROR_SERIALIZE_FAILED);
     }
 
     return serialize(static_cast<int32_t>(ec.code()),x509Error,buf);

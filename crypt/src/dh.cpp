@@ -130,7 +130,7 @@ common::Error DH::importParamsFromStorage(const std::string &name, const std::st
     }
     if (!params)
     {
-        return makeCryptError(CryptErrorCode::DH_PARAMS_NOT_FOUND);
+        return cryptError(CryptError::DH_PARAMS_NOT_FOUND);
     }
     return importParamsFromBuf(params->data,params->format,keepContent);
 }
@@ -144,7 +144,7 @@ common::Error DH::init(const CryptAlgorithm *alg)
     }
     if (m_alg.isNull() || !m_alg->isType(CryptAlgorithm::Type::DH))
     {
-        return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+        return cryptError(CryptError::INVALID_ALGORITHM);
     }
     return importParamsFromStorage(
                     std::string(m_alg->paramStr(static_cast<size_t>(DHParamsStorage::AlgParam::Name))),

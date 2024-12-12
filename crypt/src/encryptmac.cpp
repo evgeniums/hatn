@@ -271,7 +271,7 @@ void EncryptMAC<Encrypt>::updateKey()
         actualKey->macKey()->alg()->engine()==nullptr
        )
     {
-        throw common::ErrorException(makeCryptError(CryptErrorCode::INVALID_KEY_TYPE));
+        throw common::ErrorException(cryptError(CryptError::INVALID_KEY_TYPE));
     }
 
     if (m_cipher.isNull())
@@ -279,7 +279,7 @@ void EncryptMAC<Encrypt>::updateKey()
         m_cipher=CipherTraits<Encrypt>::create(actualKey->cipherKey()->alg()->engine()->plugin(),actualKey->cipherKey());
         if (m_cipher.isNull())
         {
-            throw common::ErrorException(makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN));
+            throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
         }
     }
     else
@@ -292,7 +292,7 @@ void EncryptMAC<Encrypt>::updateKey()
         m_mac=actualKey->macKey()->alg()->engine()->plugin()->createMAC(actualKey->macKey());
         if (m_mac.isNull())
         {
-            throw common::ErrorException(makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN));
+            throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
         }
     }
     else
@@ -307,7 +307,7 @@ common::Error EncryptMAC<Encrypt>::doGenerateIV(char* iv) const
 {
     if (m_cipher.isNull())
     {
-        return makeCryptError(CryptErrorCode::INVALID_CIPHER_STATE);
+        return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
     common::DataBuf data(iv,ivSize());
     return m_cipher->generateIV(data);
@@ -341,7 +341,7 @@ common::Error EncryptMAC<Encrypt>::doInit(const char* iv)
 {
     if (m_cipher.isNull() || m_mac.isNull())
     {
-        return makeCryptError(CryptErrorCode::INVALID_CIPHER_STATE);
+        return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
     common::ConstDataBuf data(iv,ivSize());
     HATN_CHECK_RETURN(m_cipher->init(data));
@@ -363,7 +363,7 @@ common::Error EncryptMAC<Encrypt>::doGetTag(char* data) noexcept
 {
     if (m_tag.isEmpty())
     {
-        return makeCryptError(CryptErrorCode::INVALID_MAC_STATE);
+        return cryptError(CryptError::INVALID_MAC_STATE);
     }
     size_t size=(std::min)(m_tag.size(),this->getTagSize());
     std::copy(m_tag.data(),m_tag.data()+size,data);

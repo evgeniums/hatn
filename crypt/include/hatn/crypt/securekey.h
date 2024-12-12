@@ -313,7 +313,7 @@ class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArra
         {
             if (!isAlgDefined())
             {
-                return makeCryptError(CryptErrorCode::INVALID_ALGORITHM);
+                return cryptError(CryptError::INVALID_ALGORITHM);
             }
             return doGenerate();
         }
@@ -351,7 +351,7 @@ class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArra
 
         virtual common::Error doGenerate()
         {
-            return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+            return cryptError(CryptError::INVALID_OPERATION);
         }
 
     private:

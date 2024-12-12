@@ -117,7 +117,7 @@ class PublicKey : public KeyContainer<common::ByteArray>
         {
             if (fmt!=format())
             {
-                return makeCryptError(CryptErrorCode::INVALID_CONTENT_FORMAT);
+                return cryptError(CryptError::INVALID_CONTENT_FORMAT);
             }
             buf.load(content());
             return common::Error();
@@ -193,7 +193,7 @@ class PublicKey : public KeyContainer<common::ByteArray>
         virtual common::Error derive(const PrivateKey& pkey)
         {
             std::ignore=pkey;
-            return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+            return cryptError(CryptError::INVALID_OPERATION);
         }
 
         virtual bool isBackendKey() const noexcept

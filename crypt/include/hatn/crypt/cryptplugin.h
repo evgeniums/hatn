@@ -454,7 +454,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
             std::ignore=format;
             std::ignore=protector;
             std::ignore=engineName;
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
 
         /**
@@ -495,7 +495,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
             std::ignore=alg;
             std::ignore=key;
             std::ignore=engineName;
-            return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
         }
 
         /**
@@ -632,7 +632,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
             }
             if (!m_randGen)
             {
-                return makeCryptError(CryptErrorCode::GENERAL_FAIL);
+                return cryptError(CryptError::GENERAL_FAIL);
             }
             return m_randGen->randContainer(container,maxSize,minSize);
         }
@@ -665,7 +665,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         {
             std::ignore=engineName;
             std::ignore=engine;
-            return makeCryptError(CryptErrorCode::INVALID_ENGINE);
+            return cryptError(CryptError::INVALID_ENGINE);
         }
 
         std::shared_ptr<CryptEngine> defaultEngine() const noexcept
@@ -697,7 +697,7 @@ common::Error Digest::digest(
     auto ctx=algorithm->engine()->plugin()->createDigest();
     if (!ctx)
     {
-        return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     HATN_CHECK_RETURN(ctx->init(algorithm))
     return ctx->processAndFinalize(data,result,offsetIn,sizeIn,offsetOut);
@@ -720,7 +720,7 @@ common::Error Digest::check(
     HATN_CHECK_RETURN(digest(algorithm,data,calcHash,offsetIn,sizeIn))
     if (!algorithm->engine()->plugin()->compareContainers(hash,calcHash,sizeHash,offsetHash))
     {
-        return makeCryptError(CryptErrorCode::DIGEST_MISMATCH);
+        return cryptError(CryptError::DIGEST_MISMATCH);
     }
 
     return common::Error();
@@ -741,7 +741,7 @@ common::Error HMAC::hmac(
     auto ctx=algorithm->engine()->plugin()->createHMAC();
     if (!ctx)
     {
-        return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
     ctx->setKey(key);
     HATN_CHECK_RETURN(ctx->init(algorithm))
@@ -766,7 +766,7 @@ common::Error HMAC::checkHMAC(
     HATN_CHECK_RETURN(hmac(algorithm,key,data,calcHash,offsetIn,sizeIn))
     if (!algorithm->engine()->plugin()->compareContainers(hash,calcHash,sizeHash,offsetHash))
     {
-        return makeCryptError(CryptErrorCode::MAC_FAILED);
+        return cryptError(CryptError::MAC_FAILED);
     }
 
     return common::Error();
@@ -782,7 +782,7 @@ common::Error PBKDF::derive(
     auto handler=passphrase->kdfAlg()->engine()->plugin()->createPBKDF(passphrase->alg(),passphrase->kdfAlg());
     if (handler.isNull())
     {
-        return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_PLUGIN);
+        return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
     }
 
     common::SharedPtr<SymmetricKey> derivedKeyTmp;

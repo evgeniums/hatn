@@ -292,7 +292,7 @@ common::Error EncryptMAC<Encrypt>::verifyDecrypt(
 {
     if (Encrypt)
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
     else
     {
@@ -318,7 +318,7 @@ common::Error EncryptMAC<Encrypt>::verifyDecryptPack(
 {
     if (Encrypt)
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
     else
     {

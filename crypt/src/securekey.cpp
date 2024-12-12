@@ -36,13 +36,13 @@ common::Error SecureKey::doExportToBuf(common::MemoryLockedArray& buf,
     {
         if (format!=ContainerFormat::RAW_ENCRYPTED)
         {
-            return makeCryptError(CryptErrorCode::INVALID_CONTENT_FORMAT);
+            return cryptError(CryptError::INVALID_CONTENT_FORMAT);
         }
         if (!isContentProtected())
         {
             if (protector()==nullptr)
             {
-                return makeCryptError(CryptErrorCode::INVALID_KEY_PROTECTION);
+                return cryptError(CryptError::INVALID_KEY_PROTECTION);
             }
             return protector()->pack(content(),buf);
         }
@@ -55,13 +55,13 @@ common::Error SecureKey::doExportToBuf(common::MemoryLockedArray& buf,
     {
         if (format!=ContainerFormat::RAW_PLAIN)
         {
-            return makeCryptError(CryptErrorCode::INVALID_CONTENT_FORMAT);
+            return cryptError(CryptError::INVALID_CONTENT_FORMAT);
         }
         if (isContentProtected())
         {
             if (protector()==nullptr)
             {
-                return makeCryptError(CryptErrorCode::INVALID_KEY_PROTECTION);
+                return cryptError(CryptError::INVALID_KEY_PROTECTION);
             }
             return protector()->unpack(content(),buf);
         }
@@ -81,7 +81,7 @@ common::Error SecureKey::doImportFromBuf(const char *buf, size_t size, Container
     {
         if (protector()==nullptr)
         {
-            return makeCryptError(CryptErrorCode::INVALID_KEY_PROTECTION);
+            return cryptError(CryptError::INVALID_KEY_PROTECTION);
         }
 
         HATN_CHECK_RETURN(protector()->unpack(common::ConstDataBuf(buf,size),content()));
@@ -95,7 +95,7 @@ common::Error SecureKey::doImportFromBuf(const char *buf, size_t size, Container
     }
     else
     {
-        return makeCryptError(CryptErrorCode::INVALID_CONTENT_FORMAT);
+        return cryptError(CryptError::INVALID_CONTENT_FORMAT);
     }
     return common::Error();
 }

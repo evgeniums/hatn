@@ -150,7 +150,7 @@ class PassphraseKey : public SymmetricKey
 
         virtual common::Error doGenerate() override
         {
-            return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+            return cryptError(CryptError::INVALID_OPERATION);
         }
 
     private:

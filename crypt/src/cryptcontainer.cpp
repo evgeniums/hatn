@@ -62,7 +62,7 @@ common::Error CryptContainer::deriveKey(
             HATN_CHECK_EC(ec)
             if (m_hkdf.isNull())
             {
-                return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+                return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
             }
         }
         else
@@ -81,7 +81,7 @@ common::Error CryptContainer::deriveKey(
             m_pbkdf=m_cipherSuite->createPBKDF(ec,alg);
             if (m_pbkdf.isNull())
             {
-                return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
+                return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
             }
         }
         else
@@ -94,7 +94,7 @@ common::Error CryptContainer::deriveKey(
     }
     else
     {
-        return makeCryptError(CryptErrorCode::INVALID_KDF_TYPE);
+        return cryptError(CryptError::INVALID_KDF_TYPE);
     }
     return common::Error();
 }

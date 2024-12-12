@@ -176,13 +176,13 @@ class AeadWorker : public CipherWorker<Encrypt>
         virtual common::Error doSetTag(const char* data) noexcept
         {
             std::ignore=data;
-            return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+            return cryptError(CryptError::INVALID_OPERATION);
         }
 
         virtual common::Error doGetTag(char* data) noexcept
         {
             std::ignore=data;
-            return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+            return cryptError(CryptError::INVALID_OPERATION);
         }
 };
 

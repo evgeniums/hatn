@@ -76,7 +76,7 @@ class HATN_CRYPT_EXPORT CipherSuite
             clearRawStorage();
             if (!m_suite->loadFromJSON(json))
             {
-                return makeCryptError(CryptErrorCode::CIPHER_SUITE_JSON_FAILED);
+                return cryptError(CryptError::CIPHER_SUITE_JSON_FAILED);
             }
             return common::Error();
         }
@@ -94,7 +94,7 @@ class HATN_CRYPT_EXPORT CipherSuite
             auto suite=std::make_shared<CipherSuite>();
             if (!suite->loadFromJSON(json))
             {
-                throw common::ErrorException(makeCryptError(CryptErrorCode::CIPHER_SUITE_JSON_FAILED));
+                throw common::ErrorException(cryptError(CryptError::CIPHER_SUITE_JSON_FAILED));
             }
             return suite;
         }

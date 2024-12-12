@@ -302,7 +302,7 @@ std::pair<common::ConstDataBuf,common::ConstDataBuf>
                             common::ConstDataBuf(view.data(),tagSize)
                         );
         }
-        ec=makeCryptError(CryptErrorCode::DECRYPTION_FAILED);
+        ec=cryptError(CryptError::DECRYPTION_FAILED);
     }
     catch (const common::ErrorException& e)
     {
@@ -354,7 +354,7 @@ struct AeadTraits<true>
         ContainerOutT&
     )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
 
     //! Stub to avoid compilation errors/warnings
@@ -366,7 +366,7 @@ struct AeadTraits<true>
         ContainerOutT&
     )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
 };
 
@@ -403,7 +403,7 @@ struct AeadTraits<false>
         ContainerTagT&
     )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
 
     //! Stub to avoid compilation errors/warnings
@@ -417,7 +417,7 @@ struct AeadTraits<false>
         size_t
     )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
 };
 
@@ -579,7 +579,7 @@ common::Error AeadWorker<Encrypt>::setTag(const char* data) noexcept
          !this->key()->alg()->isType(CryptAlgorithm::Type::AEAD)
         )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
     return doSetTag(data);
 }
@@ -663,7 +663,7 @@ common::Error AeadWorker<Encrypt>::getTag(char* data) noexcept
          !this->key()->alg()->isType(CryptAlgorithm::Type::AEAD)
         )
     {
-        return makeCryptError(CryptErrorCode::INVALID_OPERATION);
+        return cryptError(CryptError::INVALID_OPERATION);
     }
     return doGetTag(data);
 }
