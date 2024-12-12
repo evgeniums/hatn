@@ -124,14 +124,16 @@ struct TlsConfig
 struct TestContextStorage
 {
     std::vector<std::shared_ptr<TlsConfig>> cfgs;
-    std::vector<SharedPtr<SecureStreamContext>> contexts;
-    std::vector<SharedPtr<SecureStreamV>> streams;
+    std::pair<SharedPtr<SecureStreamContext>,SharedPtr<SecureStreamContext>> contexts;
+    std::pair<SharedPtr<SecureStreamV>,SharedPtr<SecureStreamV>> streams;
+    //! @todo Figure out what's wrong with std::vector<SharedPtr<SecureStreamContext>> and with std::vector<SharedPtr<SecureStreamV>>
+    //! when building with mingw - come compilation warnings regagding destroyng vector elements.
 
     void reset()
     {
         cfgs.clear();
-        contexts.clear();
-        streams.clear();
+        contexts=std::pair<SharedPtr<SecureStreamContext>,SharedPtr<SecureStreamContext>>{};
+        streams=std::pair<SharedPtr<SecureStreamV>,SharedPtr<SecureStreamV>>{};
     }
 };
 static TestContextStorage testContextStorage;
@@ -588,16 +590,14 @@ void checkHandshake(
             }
             HATN_REQUIRE(serverContext&&clientContext);
 
-            testContextStorage.contexts.push_back(serverContext);
-            testContextStorage.contexts.push_back(clientContext);
+            testContextStorage.contexts=std::make_pair(serverContext,clientContext);
 
             auto streamInitCb=[cfg,serverFail,serverCb,clientFail,clientCb](
                     const SharedPtr<SecureStreamV>& serverStream,
                     const SharedPtr<SecureStreamV>& clientStream
             )
             {
-                testContextStorage.streams.push_back(serverStream);
-                testContextStorage.streams.push_back(clientStream);
+                testContextStorage.streams=std::make_pair(serverStream,clientStream);
 
                 cfg->serverVerifyCb=[serverFail,serverCb,serverStream](const Error& ec)
                 {
@@ -693,16 +693,14 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsEmptyContext,Env)
 
                 HATN_REQUIRE(serverContext&&clientContext);
 
-                testContextStorage.contexts.push_back(serverContext);
-                testContextStorage.contexts.push_back(clientContext);
+                testContextStorage.contexts=std::make_pair(serverContext,clientContext);
 
                 auto streamInitCb=[](
                         const SharedPtr<SecureStreamV>& serverStream,
                         const SharedPtr<SecureStreamV>& clientStream
                 )
                 {
-                    testContextStorage.streams.push_back(serverStream);
-                    testContextStorage.streams.push_back(clientStream);
+                    testContextStorage.streams=std::make_pair(serverStream,clientStream);
                 };
                 tlsStreamsInit(config,serverContext,clientContext,streamInitCb);
             }
@@ -752,8 +750,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsNormalHandshakeSelfSigned,Env)
 
         SharedPtr<SecureStreamContext> serverContext;
         SharedPtr<SecureStreamContext> clientContext;
-        testContextStorage.contexts.push_back(serverContext);
-        testContextStorage.contexts.push_back(clientContext);
+        testContextStorage.contexts=std::make_pair(serverContext,clientContext);
 
         config->serverVerifyCb=[](const Error& ec)
         {
@@ -776,8 +773,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsNormalHandshakeSelfSigned,Env)
                         const SharedPtr<SecureStreamV>& clientStream
                 )
                 {
-                    testContextStorage.streams.push_back(serverStream);
-                    testContextStorage.streams.push_back(clientStream);
+                    testContextStorage.streams=std::make_pair(serverStream,clientStream);
                 };
                 tlsStreamsInit(*config,serverContext,clientContext,streamInitCb);
             }
