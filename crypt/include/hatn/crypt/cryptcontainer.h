@@ -418,7 +418,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         common::SharedPtr<AEADDecryptor> m_dec;
 
         const CipherSuite* m_cipherSuite;
-        container_descriptor::traits::type m_descriptor;
+        container_descriptor::shared_traits::type m_descriptor;
 
         bool m_attachSuite;
         CipherSuite m_extractedSuite;

@@ -19,8 +19,10 @@
 
 #include <hatn/common/makeshared.h>
 
-#include <hatn/crypt/encryptmac.h>
+#include <hatn/dataunit/visitors.h>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
 
+#include <hatn/crypt/encryptmac.h>
 #include <hatn/crypt/ciphersuite.h>
 
 namespace hatn {
@@ -90,18 +92,17 @@ const char* CipherSuite::id() const
 //---------------------------------------------------------------
 common::Error CipherSuite::prepareRawStorage()
 {
-
-//! @todo Fix CipherSuite::prepareRawStorage
-#if 0
-    auto pack=common::makeShared<dataunit::WireDataPackSingleShared>();
-    if (!m_suite->serialize(*pack->shared()))
+    Error ec;
+    auto buf=common::makeShared<dataunit::WireDataSingle>();
+    //! @todo optimization: use direct access to WireBufSingle in WireDataSingle
+    dataunit::io::serialize(*m_suite,*buf,ec);
+    if (!ec)
     {
+        //! @todo Make native error or stack error
         return makeCryptError(CryptErrorCode::CIPHER_SUITE_STORE_FAILED);
     }
-    // codechecker_false_positive [performance-move-const-arg] Analyzer can't see move semantic
-    m_suite->keepWireDataPack(std::move(pack));
-#endif
-    return common::Error();
+    m_suite->keepWireData(std::move(buf));
+    return OK;
 }
 
 //---------------------------------------------------------------

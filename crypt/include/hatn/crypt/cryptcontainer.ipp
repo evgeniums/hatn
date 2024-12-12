@@ -271,8 +271,6 @@ common::Error CryptContainer::packDescriptor(
 {
     HATN_CHECK_RETURN(checkState())
 
-//! @todo Fix CryptContainer::packDescriptor
-#if 0
     if (m_attachSuite)
     {
         m_descriptor.setFieldValue(container_descriptor::cipher_suite,m_cipherSuite->suite());
@@ -283,7 +281,6 @@ common::Error CryptContainer::packDescriptor(
         m_descriptor.clearField(container_descriptor::cipher_suite_id);
         m_descriptor.setFieldValue(container_descriptor::cipher_suite_id,m_cipherSuite->id());
     }
-#endif
 
     if (!m_descriptor.serialize(result,offsetOut))
     {
