@@ -76,7 +76,7 @@ class CacheLRU
                 size_t capacity=CAPACITY,
                 common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_capacity(capacity),
-                m_map(factory->objectAllocator<std::pair<size_t,Item*>>())
+                m_map(factory->objectAllocator<typename mapT::value_type>())
         {}
 
         /**
@@ -349,7 +349,9 @@ class CacheLRU
         size_t m_capacity;
 
         boost::intrusive::list<Item> m_queue;
-        common::pmr::map<KeyT,Item> m_map;
+
+        using mapT=common::pmr::map<KeyT,Item>;
+        mapT m_map;
 };
 
 //---------------------------------------------------------------

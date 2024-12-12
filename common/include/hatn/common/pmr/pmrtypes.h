@@ -58,7 +58,7 @@ using string=std::basic_string<char,std::char_traits<char>,polymorphic_allocator
 template <typename T> using list=std::list<T,polymorphic_allocator<T>>;
 
 template <typename Key, typename Value, typename Comp=std::less<Key>>
-using map=std::map<Key,Value,Comp,polymorphic_allocator<std::pair<Key,Value>>>;
+using map=std::map<Key,Value,Comp,polymorphic_allocator<std::pair<const Key,Value>>>;
 
 template <typename Key, typename Comp=std::less<Key>>
 using set=std::set<Key,Comp,polymorphic_allocator<Key>>;
