@@ -76,6 +76,7 @@
     Do(CryptError,X509_PKEY_MISMATCH,_TR("X509 certificate and private key mismatch","crypt")) \
     Do(CryptError,TLS_ERROR,_TR("TLS error","crypt")) \
     Do(CryptError,TLS_CLOSED,_TR("TLS connection closed","crypt")) \
+    Do(CryptError,UNSUPPORTED_KEY_FORMAT,_TR("Unsupported key format","crypt")) \
     Do(CryptError,X509_ERROR_SERIALIZE_FAILED,_TR("Failed to serialize error of X509 certificate verification","crypt"))
 
 HATN_CRYPT_NAMESPACE_BEGIN
