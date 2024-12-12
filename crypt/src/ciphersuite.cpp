@@ -20,7 +20,6 @@
 #include <hatn/common/makeshared.h>
 
 #include <hatn/dataunit/visitors.h>
-#include <hatn/dataunit/ipp/wirebuf.ipp>
 
 #include <hatn/crypt/encryptmac.h>
 #include <hatn/crypt/ciphersuite.h>
@@ -69,16 +68,13 @@ CipherSuite::CipherSuite(common::SharedPtr<cipher_suite::shared_traits::managed>
 {}
 
 //---------------------------------------------------------------
-common::Error CipherSuite::load(const char */*data*/, size_t /*size*/)
+common::Error CipherSuite::load(const char *data, size_t size)
 {
-//! @todo Fix CipherSuite::load
-#if 0
     clearRawStorage();
-    if (!m_suite->parse(data,size))
+    if (!du::io::deserializeInline(*m_suite,data,size))
     {
         return makeCryptError(CryptErrorCode::CIPHER_SUITE_LOAD_FAILED);
     }
-#endif
     return common::Error();
 }
 
@@ -92,13 +88,9 @@ const char* CipherSuite::id() const
 //---------------------------------------------------------------
 common::Error CipherSuite::prepareRawStorage()
 {
-    Error ec;
     auto buf=common::makeShared<dataunit::WireDataSingle>();
-    //! @todo optimization: use direct access to WireBufSingle in WireDataSingle
-    dataunit::io::serialize(*m_suite,*buf,ec);
-    if (!ec)
+    if (dataunit::io::serialize(*m_suite,buf->impl())<0)
     {
-        //! @todo Make native error or stack error
         return makeCryptError(CryptErrorCode::CIPHER_SUITE_STORE_FAILED);
     }
     m_suite->keepWireData(std::move(buf));
@@ -108,10 +100,7 @@ common::Error CipherSuite::prepareRawStorage()
 //---------------------------------------------------------------
 void CipherSuite::clearRawStorage()
 {
-//! @todo Fix CipherSuite::clearRawStorage
-#if 0
-    m_suite->resetWireData();
-#endif
+    m_suite->resetWireDataKeeper();
 }
 
 //---------------------------------------------------------------

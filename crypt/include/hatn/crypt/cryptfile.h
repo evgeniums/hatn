@@ -342,7 +342,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
 
         template <typename FieldT>
         common::Error readStampField(const FieldT& fieldName,file_stamp::type& stamp, common::ByteArray** fieldBuf, common::ByteArray& readBuf);
-        common::Error writeStamp(file_stamp::type& stamp);
+        common::Error writeStamp(const file_stamp::type& stamp);
 
         common::Error createDigest(common::SharedPtr<Digest>& digest);
         common::Error createMac(common::SharedPtr<MAC>& mac);

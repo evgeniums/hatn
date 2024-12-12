@@ -213,11 +213,8 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             ByteArray ciphertext1;
             ec=plaintext1.loadFromFile(plainTextFile);
             BOOST_CHECK(!ec);
-//! @todo Fix container pack
-#if 0
             ec=container1.pack(plaintext1,ciphertext1);
             HATN_REQUIRE(!ec);
-#endif
 #if 0
             ec=ciphertext1.saveToFile(cipherTextFile);
             BOOST_CHECK(!ec);
@@ -379,11 +376,8 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             }
             container15.setAttachCipherSuiteEnabled(attachCipherSuite);
             ByteArray ciphertext15;
-//! @todo Fix container packing
-#if 0
             ec=container15.pack(plaintext1,ciphertext15,salt);
             BOOST_CHECK(!ec);
-#endif
             if (attachCipherSuite)
             {
                 engine=std::make_shared<CryptEngine>(plugin.get());

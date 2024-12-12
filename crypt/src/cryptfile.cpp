@@ -15,6 +15,8 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include <hatn/dataunit/visitors.h>
+
 #include <hatn/crypt/cryptfile.h>
 
 namespace hatn {
@@ -179,10 +181,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
 
             // pack and write header and descriptor
             m_writeBuffer.clear();
-//! @todo Fix m_proc.packHeaderAndDescriptor
-#if 0
             HATN_CHECK_THROW(m_proc.packHeaderAndDescriptor(m_writeBuffer,0))
-#endif
             auto written=m_file->write(m_writeBuffer.data(),m_writeBuffer.size());
             if (written!=m_writeBuffer.size())
             {
@@ -888,21 +887,19 @@ Error CryptFile::readStampField(const FieldT& fieldName, file_stamp::type& stamp
         return common::Error(common::CommonError::FILE_READ_FAILED);
     }
 
-//! @todo Fix CryptFile::readStampField
-#if 0
     // parse stamp
-    if (!stamp.parse(readBuf))
+    if (!du::io::deserializeInline(stamp,readBuf))
     {
         stamp.clear();
         return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
     }
-#endif
+
     // done
     return Error();
 }
 
 //---------------------------------------------------------------
-Error CryptFile::writeStamp(file_stamp::type &/*stamp*/)
+Error CryptFile::writeStamp(const file_stamp::type &stamp)
 {
     // check if file is already open
     if (isOpen())
@@ -920,14 +917,12 @@ Error CryptFile::writeStamp(file_stamp::type &/*stamp*/)
                         close(ec);
                     }
                 );
-//! @todo Fix stamp.serialize
-#if 0
+
     // serialize stamp
-    if (!stamp.serialize(m_writeBuffer))
+    if (du::io::serializeToBuf(stamp,m_writeBuffer)<0)
     {
         return makeCryptError(CryptErrorCode::FILE_STAMP_FAILED);
     }
-#endif
     if (m_writeBuffer.size()>0xFFFFu)
     {
         return common::Error(common::CommonError::INVALID_SIZE);

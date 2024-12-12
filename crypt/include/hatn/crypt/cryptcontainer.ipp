@@ -22,6 +22,9 @@
 
 #include <hatn/crypt/cryptcontainer.h>
 
+#include <hatn/dataunit/visitors.h>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+
 HATN_CRYPT_NAMESPACE_BEGIN
 
 /*********************** CryptContainer **************************/
@@ -209,7 +212,7 @@ inline common::Error CryptContainer::packHeader(
     header.setPlaintextSize(contentSize);
     header.setDescriptorSize(descriptorSize);
 
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -259,7 +262,7 @@ common::Error CryptContainer::unpackHeader(
     plaintextSize=header.plaintextSize();
     ciphertextSize=header.ciphertextSize();
 
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -282,11 +285,11 @@ common::Error CryptContainer::packDescriptor(
         m_descriptor.setFieldValue(container_descriptor::cipher_suite_id,m_cipherSuite->id());
     }
 
-    if (!m_descriptor.serialize(result,offsetOut))
+    if (du::io::serializeToBuf(m_descriptor,result,offsetOut)<0)
     {
         return makeCryptError(CryptErrorCode::SERIALIZE_CONTAINER_FAILED);
     }
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -305,10 +308,7 @@ common::Error CryptContainer::unpackDescriptor(
     const auto& suiteField=m_descriptor.field(container_descriptor::cipher_suite);
     if (suiteField.isSet())
     {
-//! @todo Fix CryptContainer::unpackDescriptor
-#if 0
         m_extractedSuite.setSuite(suiteField.get());
-#endif
         m_cipherSuite=&m_extractedSuite;
     }
     else
@@ -327,7 +327,7 @@ common::Error CryptContainer::unpackDescriptor(
             return makeCryptError(CryptErrorCode::INVALID_CIPHER_SUITE);
         }
     }
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -356,7 +356,7 @@ common::Error CryptContainer::unpackHeaderAndDescriptor(
     common::ConstDataBuf descriptor(container.data()+consumedSize,descriptorSize);
     HATN_CHECK_RETURN(unpackDescriptor(descriptor,unpackInline))
     consumedSize+=descriptorSize;
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -426,7 +426,7 @@ common::Error CryptContainer::pack(
         return e.error();
     }
     success=true;
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -503,7 +503,7 @@ common::Error CryptContainer::unpack(
 
     // done
     success=true;
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -586,7 +586,7 @@ common::Error CryptContainer::packChunk(
     }
 
     // done
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -636,7 +636,7 @@ common::Error CryptContainer::unpackChunk(
 {
     if (ciphertext.empty())
     {
-        return common::Error();
+        return OK;
     }
 
     // check state
@@ -666,7 +666,7 @@ common::Error CryptContainer::unpackChunk(
         if (size==0)
         {
             // zero size ok
-            return common::Error();
+            return OK;
         }
         if (actualSize<size)
         {
@@ -687,7 +687,7 @@ common::Error CryptContainer::unpackChunk(
     {
         return e.error();
     }
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -713,7 +713,7 @@ inline common::Error CryptContainer::checkState() const noexcept
     {
         return makeCryptError(CryptErrorCode::INVALID_KEY);
     }
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -735,7 +735,7 @@ inline common::Error CryptContainer::checkOrCreateDecryptor()
             return makeCryptError(CryptErrorCode::NOT_SUPPORTED_BY_CIPHER_SUITE);
         }
     }
-    return common::Error();
+    return OK;
 }
 
 //---------------------------------------------------------------

@@ -144,16 +144,14 @@ class HATN_CRYPT_EXPORT CipherSuite
             ContainerT& container
         ) const
         {
-//! @todo Refactor CipherSuite::store
-#if 0
-            const auto& pack=m_suite->wireDataPack();
-            if (pack.isNull())
+            auto wireData=m_suite->wireDataKeeper();
+            if (wireData.isNull())
             {
                 HATN_CHECK_RETURN(const_cast<CipherSuite*>(this)->prepareRawStorage())
+                wireData=m_suite->wireDataKeeper();
             }
-            const auto* buf=pack->wireData()->mainContainer();
+            const auto* buf=wireData->mainContainer();
             container.load(buf->data(),buf->size());
-#endif
             return common::Error();
         }
 

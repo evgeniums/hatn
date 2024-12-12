@@ -44,10 +44,7 @@ common::Error SecureKey::doExportToBuf(common::MemoryLockedArray& buf,
             {
                 return makeCryptError(CryptErrorCode::INVALID_KEY_PROTECTION);
             }
-//! @todo Fix SecureKey::doExportToBuf
-#if 0
             return protector()->pack(content(),buf);
-#endif
         }
         else
         {
