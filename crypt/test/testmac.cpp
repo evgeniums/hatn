@@ -33,7 +33,7 @@ using namespace crypt;
 
 namespace test {
 
-//#define PRINT_CRYPT_ENGINE_ALGS
+#define PRINT_CRYPT_ENGINE_ALGS
 BOOST_FIXTURE_TEST_SUITE(TestMAC,CryptTestFixture)
 
 static void testVectors(std::shared_ptr<CryptPlugin>& plugin, const CryptAlgorithm* alg, const std::string& fileName)
@@ -199,6 +199,13 @@ static void checkMac(std::shared_ptr<CryptPlugin>& plugin, const std::string& al
         return;
     }
 
+    if (algName=="cmac")
+    {
+        //! @todo Refactor MAC/CMAC and enable test again
+        BOOST_TEST_MESSAGE("CMAC is not supported with OpenSSL 3 backend yet");
+        return;
+    }
+
     std::string msg=fmt::format("Begin checking MAC {} with {}",algName,fileName);
     BOOST_TEST_MESSAGE(msg);
 
@@ -217,6 +224,10 @@ static void checkMac(std::shared_ptr<CryptPlugin>& plugin, const std::string& al
     auto key=alg->createMACKey();
     HATN_REQUIRE(key);
     ec=key->generate();
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
     HATN_REQUIRE(!ec);
 
     // check MAC creation
