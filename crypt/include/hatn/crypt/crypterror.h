@@ -41,6 +41,7 @@
     Do(CryptError,NOT_SUPPORTED_BY_PLUGIN,_TR("Requested operation is not supported by cryptographic plugin","crypt")) \
     Do(CryptError,INVALID_DIGEST_STATE,_TR("Digest is not initialized yet","crypt")) \
     Do(CryptError,KDF_FAILED,_TR("Failed to derive key using requested KDF","crypt")) \
+    Do(CryptError,SALT_REQUIRED,_TR("Salt required for requested cryptographic operation","crypt")) \
     Do(CryptError,INVALID_KEY_TYPE,_TR("Invalid type of cryptographic key","crypt")) \
     Do(CryptError,SIGN_FAILED,_TR("Failed to create digital signature","crypt")) \
     Do(CryptError,VERIFY_FAILED,_TR("Failed to create cryptographic signature","crypt")) \

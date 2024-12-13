@@ -106,6 +106,11 @@ common::Error SCryptMethod::derive(
         size_t keyLength
     ) const
 {
+    if (saltLength==0)
+    {
+        return cryptError(CryptError::SALT_REQUIRED);
+    }
+
     common::NativeHandler<EVP_PKEY_CTX,detail::PkeyCtxTraits> pctx(::EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, NULL));
     if (pctx.isNull())
     {

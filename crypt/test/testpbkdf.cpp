@@ -35,7 +35,7 @@ BOOST_FIXTURE_TEST_SUITE(TestPbkdf,CryptTestFixture)
 
 void checkPBKDF(std::shared_ptr<CryptPlugin>& plugin, const std::string& fileName)
 {
-    BOOST_TEST_MESSAGE("Checking test vectors");
+    BOOST_TEST_MESSAGE(fmt::format("Checking test vectors from {}",fileName));
 
     if (boost::filesystem::exists(fileName))
     {
@@ -60,7 +60,7 @@ void checkPBKDF(std::shared_ptr<CryptPlugin>& plugin, const std::string& fileNam
 
             const CryptAlgorithm* cipherAlg=nullptr;
 
-            BOOST_TEST_MESSAGE(fmt::format("Cipher alg {}",cipherName));
+            BOOST_TEST_MESSAGE(fmt::format("Cipher alg {}, salt required={}",cipherName,saltRequired));
 
             auto ec=plugin->findAlgorithm(cipherAlg,CryptAlgorithm::Type::SENCRYPTION,cipherName);
             if (ec)
@@ -105,7 +105,7 @@ void checkPBKDF(std::shared_ptr<CryptPlugin>& plugin, const std::string& fileNam
             std::string checkDerived=hex1.substr(0,checkSize);
             BOOST_CHECK_EQUAL(checkSample,checkDerived);
 
-            // check different interfaces
+            // check various interfaces
             common::SharedPtr<SymmetricKey> derivedKey2;
             ec=pbkdf->derive(password.c_str(),derivedKey2);
             if (!saltRequired)
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(CheckPbkdf)
         {
             if (plugin->isFeatureImplemented(Crypt::Feature::PBKDF))
             {
-                BOOST_TEST_MESSAGE("PBKDF algorithms sypported by plugin:");
+                BOOST_TEST_MESSAGE("PBKDF algorithms supported by plugin:");
 
 #ifdef PRINT_CRYPT_ENGINE_ALGS
                 auto algs=plugin->listPBKDFs();
