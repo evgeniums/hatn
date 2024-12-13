@@ -58,8 +58,8 @@ HATN_DATAUNIT_META_NAMESPACE_END
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-#ifndef HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
-    #define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING
+#ifndef HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING
+    #define HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING
 #else
     extern bool TestRelaxMissingFieldSerializing;
 #endif
@@ -122,7 +122,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     // skip optional fields which are not set
                     if (!field.fieldIsSet())
                     {
-                        if (fieldT::fieldRequired() HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING)
+                        if (fieldT::fieldRequired() HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING)
                         {
                             rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.fieldId(),"required field {} is not set",field.fieldName());
                             return false;
