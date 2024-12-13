@@ -114,7 +114,11 @@ BOOST_AUTO_TEST_CASE(CheckX509ExportImport)
         HATN_REQUIRE(ca3Der);
         std::string ca3DerFile=fmt::format("{}-ca3.der",pathPrefix);
         ec=ca3Der->loadFromFile(ca3DerFile,ContainerFormat::DER);
-        BOOST_CHECK(!ec);
+        if (ec)
+        {
+            HATN_TEST_MESSAGE_TS(ec.message());
+        }
+        HATN_REQUIRE(!ec);
         BOOST_CHECK(*ca3Pem==*ca3Der);
 
         auto ca1Pem=suite->createX509Certificate(ec);

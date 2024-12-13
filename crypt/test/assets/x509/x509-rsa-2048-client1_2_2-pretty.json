@@ -4,24 +4,24 @@
     "valid_not_before" : "2020-05-03 18:25:31 GMT",
     "valid_not_after" : "2030-05-01 18:25:31 GMT",
     "subject" : {
-        "common_name" : "client2@fr.test.hatn.com",
+        "common_name" : "client2@fr.test.dracosha.com",
         "country" : "FR",
         "state_or_province" : "Provance",
         "locality" : "Cannes",
         "organization" : "Dracosha FR",
         "organization_unit" : "French Division",
-        "email_address" : "client2@fr.test.hatn.com",
+        "email_address" : "client2@fr.test.dracosha.com",
         "alt_names" : {
             "dns" : [
-                "client2-1.fr.test.hatn.com"
+                "client2-1.fr.test.dracosha.com"
             ],
             "email" : [
-                "client2-1@fr.test.hatn.com",
-                "client2-1-alt@fr.test.hatn.com",
-                "client2@fr.test.hatn.com"
+                "client2-1@fr.test.dracosha.com",
+                "client2-1-alt@fr.test.dracosha.com",
+                "client2@fr.test.dracosha.com"
             ],
             "uri" : [
-                "http://fr.test.hatn.com"
+                "http://fr.test.dracosha.com"
             ],
             "ip" : [
                 "10.10.10.1",
@@ -30,13 +30,13 @@
         }
     },
     "issuer" : {
-        "common_name" : "fr.test.hatn.com",
+        "common_name" : "fr.test.dracosha.com",
         "country" : "FR",
         "state_or_province" : "Provance",
         "locality" : "Cannes",
         "organization" : "Dracosha FR",
         "organization_unit" : "French Division",
-        "email_address" : "test@fr.test.hatn.com",
+        "email_address" : "test@fr.test.dracosha.com",
         "alt_names" : {
         }
     },

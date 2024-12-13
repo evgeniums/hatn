@@ -28,6 +28,7 @@ HATN_OPENSSL_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 std::string OpenSslError::codeToString(int code)
 {
+    //! @todo Maybe make all OpenSslErrors as native
     static std::map<int,std::string> strings;
     if (strings.empty())
     {
