@@ -62,9 +62,9 @@ class HATN_OPENSSL_EXPORT OpenSslError final : public X509VerifyError
 {
     public:
 
-        OpenSslError(int nativeCode)
+        explicit OpenSslError(int nativeCode=X509_V_OK)
             : X509VerifyError(
-                    nativeCode=X509_V_OK,
+                    nativeCode,
                     codeToString(nativeCode),
                     &OpenSslErrorCategory::getCategory()
                 )
@@ -74,18 +74,12 @@ class HATN_OPENSSL_EXPORT OpenSslError final : public X509VerifyError
                 int nativeCode,
                 common::SharedPtr<X509Certificate> certificate
             ) : X509VerifyError(
-                    nativeCode=X509_V_OK,
+                    nativeCode,
                     std::move(certificate),
                     codeToString(nativeCode),
                     &OpenSslErrorCategory::getCategory()
                 )
         {}
-
-        // //! Check if error is NULL
-        // bool isNull() const noexcept override
-        // {
-        //     return nativeCode()==X509_V_OK;
-        // }
 
         /**
          * @brief Init string messages
