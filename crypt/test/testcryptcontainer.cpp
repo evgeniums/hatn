@@ -215,6 +215,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             BOOST_CHECK(!ec);
             ec=container1.pack(plaintext1,ciphertext1);
             HATN_REQUIRE(!ec);
+// Uncomment below to rewrite file for future tests
 #if 0
             ec=ciphertext1.saveToFile(cipherTextFile);
             BOOST_CHECK(!ec);
@@ -227,7 +228,11 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             // unpack data
             ByteArray plaintext2;
             ec=container1.unpack(sampleCiphertext1,plaintext2);
-            BOOST_CHECK(!ec);
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
+            HATN_REQUIRE(!ec);
 
             // check unpacked data
             BOOST_CHECK(plaintext1==plaintext2);

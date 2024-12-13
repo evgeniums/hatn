@@ -70,8 +70,8 @@ struct AlgConfig
 
 }
 
-//#define PRINT_CRYPT_ENGINE_ALGS
-//#define TEST_KEY_EXPORT_SAVE
+// #define PRINT_CRYPT_ENGINE_ALGS
+// #define TEST_KEY_EXPORT_SAVE
 
 BOOST_FIXTURE_TEST_SUITE(TestKeyExportImport,CryptTestFixture)
 

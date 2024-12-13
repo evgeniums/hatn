@@ -19,9 +19,8 @@
 
 #include <hatn/crypt/cryptfile.h>
 
-namespace hatn {
-using namespace common;
-namespace crypt {
+HATN_CRYPT_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
 /********************** CryptFile **************************/
 
@@ -146,7 +145,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             {
                 throw ErrorException(Error(CommonError::INVALID_SIZE));
             }
-            HATN_CHECK_THROW(m_proc.unpackDescriptor(m_readBuffer,false))
+            HATN_CHECK_THROW(m_proc.unpackDescriptor(m_readBuffer))
 
             // set data offset to position after descriptor
             m_dataOffset=static_cast<size_t>(m_file->pos());
@@ -373,7 +372,7 @@ void CryptFile::doClose(bool withThrow, bool flush)
     doClose(ec,flush);
 
     // throw exception on error
-    if (withThrow)
+    if (ec && withThrow)
     {
         throw ErrorException(ec);
     }
@@ -1049,5 +1048,5 @@ Error CryptFile::createDigest(common::SharedPtr<Digest> &digest)
 }
 
 //---------------------------------------------------------------
-} // namespace common
-} // namespace hatn
+
+HATN_CRYPT_NAMESPACE_END

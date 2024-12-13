@@ -66,7 +66,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         {}
 
         /**
-         * @brief CryptContainer
+         * @brief Ctor
          * @param masterKey Master key used to encrypt/decrypt container
          * @param suite Cipher suite
          * @param factory Allocator factory

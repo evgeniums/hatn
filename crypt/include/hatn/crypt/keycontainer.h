@@ -55,7 +55,7 @@ inline std::string ContainerFormatToStr(ContainerFormat format)
 
         case (ContainerFormat::RAW_ENCRYPTED):
         {
-            return std::string("dcc");
+            return std::string("hcc");
         }
             break;
 

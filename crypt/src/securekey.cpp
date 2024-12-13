@@ -18,11 +18,7 @@
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/securekey.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
+HATN_CRYPT_NAMESPACE_BEGIN
 
 /*********************** SecureKey ***********************/
 
@@ -103,7 +99,7 @@ common::Error SecureKey::doImportFromBuf(const char *buf, size_t size, Container
 //---------------------------------------------------------------
 common::Error SecureKey::importFromFile(const char* filename, ContainerFormat bufFormat, bool keepContent)
 {
-    ByteArray tmpBuf;
+    common::ByteArray tmpBuf;
     HATN_CHECK_RETURN(tmpBuf.loadFromFile(filename))
     return importFromBuf(tmpBuf,bufFormat,keepContent);
 }
@@ -111,7 +107,7 @@ common::Error SecureKey::importFromFile(const char* filename, ContainerFormat bu
 //---------------------------------------------------------------
 common::Error SecureKey::exportToFile(const char* filename, ContainerFormat format, bool unprotected) const
 {
-    MemoryLockedArray tmpBuf;
+    common::MemoryLockedArray tmpBuf;
     HATN_CHECK_RETURN(exportToBuf(tmpBuf,format,unprotected));
     return tmpBuf.saveToFile(filename);
 }

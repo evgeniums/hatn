@@ -235,7 +235,6 @@ class HATN_CRYPT_EXPORT CryptContainer
          * @param plaintextSize Size of plaintext
          * @param ciphertextSize Size of ciphertext
          * @param consumedSize Size consumed by the header in source container
-         * @param unpackInline Unpack header inline without copying the unerlying contents of string and byte fields
          * @return Operation status
          *
          * After unpacking container's descriptor the cipher suite will be looked for by ID or constructed directly if the suite's descriptor
@@ -246,8 +245,7 @@ class HATN_CRYPT_EXPORT CryptContainer
             const ContainerT& container,
             uint64_t& plaintextSize,
             uint64_t& ciphertextSize,
-            size_t& consumedSize,
-            bool unpackInline=true
+            size_t& consumedSize
         );
 
         /**
@@ -273,8 +271,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          */
         template <typename ContainerT>                
         common::Error unpackDescriptor(
-            const ContainerT& container,
-            bool unpackInline=true
+            const ContainerT& container
         );
 
         /**

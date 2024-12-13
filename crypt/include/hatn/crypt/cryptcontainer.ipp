@@ -276,11 +276,11 @@ common::Error CryptContainer::packDescriptor(
     if (m_attachSuite)
     {
         m_descriptor.setFieldValue(container_descriptor::cipher_suite,m_cipherSuite->suite());
-        m_descriptor.clearField(container_descriptor::cipher_suite_id);
+        m_descriptor.resetField(container_descriptor::cipher_suite_id);
     }
     else
     {
-        m_descriptor.clearField(container_descriptor::cipher_suite_id);
+        m_descriptor.resetField(container_descriptor::cipher_suite);
         m_descriptor.setFieldValue(container_descriptor::cipher_suite_id,m_cipherSuite->id());
     }
 
@@ -294,17 +294,17 @@ common::Error CryptContainer::packDescriptor(
 //---------------------------------------------------------------
 template <typename ContainerT>
 common::Error CryptContainer::unpackDescriptor(
-        const ContainerT& container,
-        bool unpackInline
+        const ContainerT& container
     )
 {
-    //! @todo unpackInline argument might not be needed
-    std::ignore=unpackInline;
-
     if (!du::io::deserializeInline(m_descriptor,container))
     {
         return cryptError(CryptError::PARSE_CONTAINER_FAILED);
     }
+
+#if 0
+    std::cout << "Unpacked descriptor " << m_descriptor.toString(true) << std::endl;
+#endif
 
     const auto& suiteField=m_descriptor.field(container_descriptor::cipher_suite);
     if (suiteField.isSet())
@@ -337,8 +337,7 @@ common::Error CryptContainer::unpackHeaderAndDescriptor(
     const ContainerT& container,
     uint64_t& plaintextSize,
     uint64_t& ciphertextSize,
-    size_t& consumedSize,
-    bool unpackInline
+    size_t& consumedSize
 )
 {
     uint16_t descriptorSize=0;
@@ -355,7 +354,7 @@ common::Error CryptContainer::unpackHeaderAndDescriptor(
     }
 
     common::ConstDataBuf descriptor(container.data()+consumedSize,descriptorSize);
-    HATN_CHECK_RETURN(unpackDescriptor(descriptor,unpackInline))
+    HATN_CHECK_RETURN(unpackDescriptor(descriptor))
     consumedSize+=descriptorSize;
     return OK;
 }
