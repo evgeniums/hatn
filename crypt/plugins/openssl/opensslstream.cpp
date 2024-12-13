@@ -58,7 +58,7 @@ OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslC
       m_closed(false),
       m_shutdowning(false),
       m_shutdownNotifying(false),
-      m_shutdownTimer(thread),
+      m_shutdownTimer(common::makeShared<common::AsioDeadlineTimer>(thread)),
       m_stopped(false)
 {
     if (!m_ssl)
@@ -82,7 +82,7 @@ OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslC
     m_readNextBuf.resize(BUF_SIZE);
     m_writeNextBuf.resize(BUF_SIZE);
 
-    m_shutdownTimer.setPeriodUs(3000000);
+    m_shutdownTimer->setPeriodUs(3000000);
 }
 
 //---------------------------------------------------------------
@@ -459,7 +459,7 @@ void OpenSslStreamTraitsImpl::doneOp(const Error &ec)
             writeCbTmp(ec,0);
         }
     }
-    m_shutdownTimer.stop();
+    m_shutdownTimer->stop();
     if (m_opCb)
     {
         auto opCbTmp=std::exchange(m_opCb,StreamChain::OpCb());

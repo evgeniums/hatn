@@ -146,7 +146,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
                 cancel();
                 m_opCb=callback;
 
-                m_shutdownTimer.start(
+                m_shutdownTimer->start(
                     [callback,this](common::TimerTypes::Status status)
                     {
                         if (status==common::TimerTypes::Status::Timeout && callback)
@@ -245,7 +245,9 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         bool m_closed;
         bool m_shutdowning;
         bool m_shutdownNotifying;
-        common::AsioDeadlineTimer m_shutdownTimer;
+
+        //! @todo Use timer on stack as part of context
+        common::SharedPtr<common::AsioDeadlineTimer> m_shutdownTimer;
         bool m_stopped;
 };
 
@@ -253,6 +255,8 @@ using OpenSslStreamTraits=common::StreamGatherTraits<OpenSslStreamTraitsImpl>;
 
 class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTraits>
 {
+    //! @todo Make stream a task subcontext
+
     public:
 
         //! Constructor
