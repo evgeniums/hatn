@@ -108,23 +108,26 @@ static Error nativeToAlgorithm(CryptAlgorithmConstP &alg, EVP_PKEY* nativeKey, C
     }
     else if (keyID==EVP_PKEY_ED448)
     {
-        algName="ED/25519";
+        algName="ED/448";
     }
     else
     {
         OSSL_PARAM *keyParams;
-        if (EVP_PKEY_todata(nativeKey, EVP_PKEY_KEY_PARAMETERS, &keyParams) != OPENSSL_OK)
+        if (EVP_PKEY_todata(nativeKey, EVP_PKEY_PUBLIC_KEY, &keyParams) != OPENSSL_OK)
         {
             return makeLastSslError(CryptError::INVALID_KEY_TYPE);
         }
 
         for (size_t i=0; keyParams[i].key != NULL; i++)
         {
+            const auto* param=&keyParams[i];
+            const auto* key=param->key;
+            bool found=false;
             switch (keyID)
             {
                 case (EVP_PKEY_EC):
                 {
-                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_GROUP_NAME) == 0)
+                    if (strcmp(key, OSSL_PKEY_PARAM_GROUP_NAME) == 0)
                     {
                         const char* curveName=NULL;
                         if (OSSL_PARAM_get_utf8_string_ptr(&keyParams[i],&curveName)!=OPENSSL_OK || curveName==NULL)
@@ -133,45 +136,42 @@ static Error nativeToAlgorithm(CryptAlgorithmConstP &alg, EVP_PKEY* nativeKey, C
                             return makeLastSslError(CryptError::INVALID_KEY_TYPE);
                         }
                         algName=fmt::format("EC/{}",curveName);
-                        break;
+                        found=true;
                     }
                 }
                 break;
 
                 case (EVP_PKEY_RSA):
                 {
-                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_RSA_N) == 0)
+                    if (strcmp(key, OSSL_PKEY_PARAM_RSA_N) == 0)
                     {
-                        int bits=0;
-                        if (OSSL_PARAM_get_int(&keyParams[i],&bits)!=OPENSSL_OK || bits==0)
-                        {
-                            OSSL_PARAM_free(keyParams);
-                            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
-                        }
+                        // calculate bits from data_size that is presented in bytes
+                        auto bits=keyParams[i].data_size*8;
                         algName=fmt::format("RSA/{}",bits);
-                        break;
+                        found=true;
                     }
                 }
                 break;
 
                 case (EVP_PKEY_DSA):
                 {
-                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_FFC_PBITS) == 0)
+                    if (strcmp(key, OSSL_PKEY_PARAM_FFC_P) == 0)
                     {
-                        int bits=0;
-                        if (OSSL_PARAM_get_int(&keyParams[i],&bits)!=OPENSSL_OK || bits==0)
-                        {
-                            OSSL_PARAM_free(keyParams);
-                            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
-                        }
+                        // params do not contain OSSL_PKEY_PARAM_FFC_PBITS as expected
+                        // calculate bits from data_size of OSSL_PKEY_PARAM_FFC_P that is presented in bytes
+                        auto bits=keyParams[i].data_size*8;
                         algName=fmt::format("DSA/{}",bits);
-                        break;
+                        found=true;
                     }
                 }
                 break;
 
                 default:
                     break;
+            }
+            if (found)
+            {
+                break;
             }
         }
         OSSL_PARAM_free(keyParams);

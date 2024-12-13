@@ -221,14 +221,18 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,const std::string& algNameF
     // check public key algorithm
     const CryptAlgorithm* pubkeyAlg=nullptr;
     ec=plugin->publicKeyAlgorithm(pubkeyAlg,publicKey1.get());
-    BOOST_CHECK(!ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("Failed to get algorithm for pubkey: {}",ec.message()));
+    }
+    HATN_REQUIRE(!ec);
     BOOST_CHECK(pubkeyAlg==alg);
 
     // create private key from data
     SharedPtr<PrivateKey> privateKey4;
     ec=plugin->createAsymmetricPrivateKeyFromContent(privateKey4,privateKeyData,ContainerFormat::PEM);
-    BOOST_REQUIRE(!ec);
-    BOOST_REQUIRE(!privateKey4.isNull());
+    HATN_REQUIRE(!ec);
+    HATN_REQUIRE(!privateKey4.isNull());
     BOOST_CHECK(privateKey4->alg());
     BOOST_CHECK(privateKey4->alg()==alg);
 };
