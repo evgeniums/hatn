@@ -14,6 +14,9 @@
  */
 /****************************************************************************/
 
+#include <openssl/evp.h>
+#include <openssl/core_names.h>
+
 #include <hatn/crypt/plugins/openssl/opensslplugindef.h>
 
 #include <boost/algorithm/string.hpp>
@@ -91,6 +94,94 @@ std::vector<std::string> OpenSslAsymmetric::listSignatures()
     return algs;
 }
 
+#if OPENSSL_API_LEVEL >= 30100
+
+//---------------------------------------------------------------
+static Error nativeToAlgorithm(CryptAlgorithmConstP &alg, EVP_PKEY* nativeKey, CryptPlugin* plugin, const char* engineName)
+{
+    std::string algName;
+    int keyID=::EVP_PKEY_base_id(nativeKey);
+
+    if (keyID==EVP_PKEY_ED25519)
+    {
+        algName="ED/25519";
+    }
+    else if (keyID==EVP_PKEY_ED448)
+    {
+        algName="ED/25519";
+    }
+    else
+    {
+        OSSL_PARAM *keyParams;
+        if (EVP_PKEY_todata(nativeKey, EVP_PKEY_KEY_PARAMETERS, &keyParams) != OPENSSL_OK)
+        {
+            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+        }
+
+        for (size_t i=0; keyParams[i].key != NULL; i++)
+        {
+            switch (keyID)
+            {
+                case (EVP_PKEY_EC):
+                {
+                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_GROUP_NAME) == 0)
+                    {
+                        const char* curveName=NULL;
+                        if (OSSL_PARAM_get_utf8_string_ptr(&keyParams[i],&curveName)!=OPENSSL_OK || curveName==NULL)
+                        {
+                            OSSL_PARAM_free(keyParams);
+                            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                        }
+                        algName=fmt::format("EC/{}",curveName);
+                        break;
+                    }
+                }
+                break;
+
+                case (EVP_PKEY_RSA):
+                {
+                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_RSA_N) == 0)
+                    {
+                        int bits=0;
+                        if (OSSL_PARAM_get_int(&keyParams[i],&bits)!=OPENSSL_OK || bits==0)
+                        {
+                            OSSL_PARAM_free(keyParams);
+                            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                        }
+                        algName=fmt::format("RSA/{}",bits);
+                        break;
+                    }
+                }
+                break;
+
+                case (EVP_PKEY_DSA):
+                {
+                    if (strcmp(keyParams[i].key, OSSL_PKEY_PARAM_FFC_PBITS) == 0)
+                    {
+                        int bits=0;
+                        if (OSSL_PARAM_get_int(&keyParams[i],&bits)!=OPENSSL_OK || bits==0)
+                        {
+                            OSSL_PARAM_free(keyParams);
+                            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                        }
+                        algName=fmt::format("DSA/{}",bits);
+                        break;
+                    }
+                }
+                break;
+
+                default:
+                    break;
+            }
+        }
+        OSSL_PARAM_free(keyParams);
+    }
+
+    return plugin->findAlgorithm(alg,CryptAlgorithm::Type::SIGNATURE,algName,engineName);
+}
+
+#else
+
 //---------------------------------------------------------------
 static Error nativeToAlgorithm(CryptAlgorithmConstP &alg, EVP_PKEY* nativeKey, CryptPlugin* plugin, const char* engineName)
 {
@@ -98,62 +189,65 @@ static Error nativeToAlgorithm(CryptAlgorithmConstP &alg, EVP_PKEY* nativeKey, C
     int keyID=::EVP_PKEY_base_id(nativeKey);
     switch (keyID)
     {
-        case (EVP_PKEY_ED25519):
-        {
-            algName="ED/25519";
-        }
-            break;
+    case (EVP_PKEY_ED25519):
+    {
+        algName="ED/25519";
+    }
+    break;
 
-        case (EVP_PKEY_ED448):
-        {
-            algName="ED/448";
-        }
-            break;
+    case (EVP_PKEY_ED448):
+    {
+        algName="ED/448";
+    }
+    break;
 
-        case (EVP_PKEY_EC):
+    case (EVP_PKEY_EC):
+    {
+        EC_KEY* ecKey=::EVP_PKEY_get0_EC_KEY(nativeKey);
+        if (ecKey)
         {
-            EC_KEY* ecKey=::EVP_PKEY_get0_EC_KEY(nativeKey);
-            if (ecKey)
+            auto group=::EC_KEY_get0_group(ecKey);
+            if (group)
             {
-                auto group=::EC_KEY_get0_group(ecKey);
-                if (group)
-                {
-                    auto nid=::EC_GROUP_get_curve_name(group);
-                    auto curveName=::OBJ_nid2sn(nid);
-                    algName=fmt::format("EC/{}",curveName);
-                }
+                auto nid=::EC_GROUP_get_curve_name(group);
+                auto curveName=::OBJ_nid2sn(nid);
+                algName=fmt::format("EC/{}",curveName);
             }
         }
-            break;
+    }
+    break;
 
-        case (EVP_PKEY_RSA):
+    case (EVP_PKEY_RSA):
+    {
+        RSA* rsaKey=::EVP_PKEY_get0_RSA(nativeKey);
+        if (rsaKey)
         {
-            RSA* rsaKey=::EVP_PKEY_get0_RSA(nativeKey);
-            if (rsaKey)
-            {
-                auto bits=::RSA_bits(rsaKey);
-                algName=fmt::format("RSA/{}",bits);
-            }
+            auto bits=::RSA_bits(rsaKey);
+            algName=fmt::format("RSA/{}",bits);
         }
-            break;
+    }
+    break;
 
-        case (EVP_PKEY_DSA):
+    case (EVP_PKEY_DSA):
+    {
+        DSA* dsaKey=::EVP_PKEY_get0_DSA(nativeKey);
+        if (dsaKey)
         {
-            DSA* dsaKey=::EVP_PKEY_get0_DSA(nativeKey);
-            if (dsaKey)
-            {
-                auto bits=::DSA_bits(dsaKey);
-                algName=fmt::format("DSA/{}",bits);
-            }
+            auto bits=::DSA_bits(dsaKey);
+            algName=fmt::format("DSA/{}",bits);
         }
-            break;
+    }
+    break;
 
-        default:
-            break;
+    default:
+        break;
     }
 
     return plugin->findAlgorithm(alg,CryptAlgorithm::Type::SIGNATURE,algName,engineName);
 }
+
+#endif
+
 
 //---------------------------------------------------------------
 Error OpenSslAsymmetric::createPrivateKeyFromContent(        

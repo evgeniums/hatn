@@ -29,10 +29,7 @@
 #include <hatn/crypt/ecdh.h>
 #include <hatn/crypt/plugins/openssl/opensslec.h>
 
-namespace hatn {
-using namespace common;
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 //! Elliptic curves Diffie-Hellmann processing
 class HATN_OPENSSL_EXPORT OpenSslECDH : public ECDH
@@ -116,7 +113,6 @@ class HATN_OPENSSL_EXPORT OpenSslECDH : public ECDH
         common::SharedPtr<OpenSslPrivateKey> m_privKey;
 };
 
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+HATN_OPENSSL_NAMESPACE_END
 
 #endif // HATNOPENSSLECDH_H

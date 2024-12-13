@@ -21,6 +21,14 @@
 
 HATN_OPENSSL_NAMESPACE_BEGIN
 
+namespace detail
+{
+    void HMACTraits::free(HMAC_CTX* ctx)
+    {
+        ::HMAC_CTX_free(ctx);
+    }
+}
+
 /******************* HMACAlg ********************/
 
 //---------------------------------------------------------------
@@ -31,20 +39,20 @@ HMACAlg::HMACAlg(const CryptEngine *engine, const char *name)
     splitAlgName(name,parts);
     if (parts.size()<2)
     {
-        throw ErrorException(cryptError(CryptError::INVALID_ALGORITHM));
+        throw common::ErrorException(cryptError(CryptError::INVALID_ALGORITHM));
     }
 
     const auto& nameStr=parts[0];
     if (!boost::iequals(nameStr,std::string("HMAC")))
     {
-        throw ErrorException(cryptError(CryptError::INVALID_ALGORITHM));
+        throw common::ErrorException(cryptError(CryptError::INVALID_ALGORITHM));
     }
 
     const auto& digestName=parts[1];
     const auto* digest=::EVP_get_digestbyname(digestName.c_str());
     if (digest==nullptr)
     {
-        throw ErrorException(cryptError(CryptError::INVALID_DIGEST));
+        throw common::ErrorException(cryptError(CryptError::INVALID_DIGEST));
     }
 
     setHandler(digest);
@@ -53,7 +61,7 @@ HMACAlg::HMACAlg(const CryptEngine *engine, const char *name)
 //---------------------------------------------------------------
 common::SharedPtr<MACKey> HMACAlg::createMACKey() const
 {
-    auto key=makeShared<OpenSslHMACKey>();
+    auto key=common::makeShared<OpenSslHMACKey>();
     key->setAlg(this);
     return key;
 }
@@ -67,7 +75,7 @@ common::Error OpenSslHMAC::findNativeAlgorithm(std::shared_ptr<CryptAlgorithm> &
     {
         alg=std::make_shared<HMACAlg>(engine,name);
     }
-    catch (const ErrorException& ec)
+    catch (const common::ErrorException& ec)
     {
         return ec.error();
     }

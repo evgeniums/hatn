@@ -30,10 +30,7 @@
 
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
 
-namespace hatn {
-using namespace common;
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 using DHPrivateKey = OpenSslSecretKey<PrivateKey>;
 
@@ -72,11 +69,11 @@ struct DHTraits
 
 //! Diffie-Hellmann routines and data
 class HATN_OPENSSL_EXPORT OpenSslDH :
-        public NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>
+            public common::NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>
 {
     public:
 
-        using NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>::NativeHandlerContainer;
+        using common::NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>::NativeHandlerContainer;
 
         /**
          * @brief Parse DH parameters to native object
@@ -179,7 +176,6 @@ class HATN_OPENSSL_EXPORT OpenSslDH :
         );
 };
 
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+HATN_OPENSSL_NAMESPACE_END
 
 #endif // HATNOPENSSLDH_H

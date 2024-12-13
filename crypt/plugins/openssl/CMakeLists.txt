@@ -51,8 +51,8 @@ SET (HEADERS
 
 SET (SOURCES
     opensslerror.cpp
-    # opensslcontext.cpp
-    # opensslplugin.cpp
+    opensslcontext.cpp
+    opensslplugin.cpp
     opensslx509.cpp
     opensslstream.cpp
     # openssldh.cpp
@@ -63,9 +63,9 @@ SET (SOURCES
     openssldigest.cpp
     # opensslhmac.cpp
     opensslmac.cpp
-    # opensslpublickey.cpp
+    opensslpublickey.cpp
     opensslmackey.cpp
-    # opensslecdh.cpp
+    opensslecdh.cpp
     opensslaead.cpp
     opensslsignature.cpp
     opensslhkdf.cpp
@@ -74,7 +74,7 @@ SET (SOURCES
     opensslec.cpp
     opensslrsa.cpp
     openssled.cpp
-    # opensslasymmetric.cpp
+    opensslasymmetric.cpp
     opensslx509certificatestore.cpp
 )
 

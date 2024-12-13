@@ -18,6 +18,8 @@
 #ifndef HATNOPENSSLSESSIONTICKETKEY_H
 #define HATNOPENSSLSESSIONTICKETKEY_H
 
+#include <hatn/common/allocatoronstack.h>
+
 #include <hatn/crypt/plugins/openssl/opensslplugindef.h>
 
 #include <openssl/evp.h>
@@ -33,6 +35,8 @@ class HATN_OPENSSL_EXPORT OpenSslSessionTicketKey : public SessionTicketKey
     public:
 
         constexpr static const size_t HMAC_KEY_LEN=16;
+        using CipherNameString=common::StringOnStackT<CIPHER_NAME_MAXLEN>;
+        using HmacNameString=common::StringOnStackT<HMAC_NAME_MAXLEN>;
 
         //! Ctor
         OpenSslSessionTicketKey():m_cipher(nullptr),m_hmac(nullptr)
@@ -78,6 +82,11 @@ class HATN_OPENSSL_EXPORT OpenSslSessionTicketKey : public SessionTicketKey
             return m_hmac;
         }
 
+        const HmacNameString& hmacName() const noexcept
+        {
+            return m_hmacName;
+        }
+
         bool operator == (const OpenSslSessionTicketKey& other) const noexcept
         {
             return name()==other.name();
@@ -92,6 +101,7 @@ class HATN_OPENSSL_EXPORT OpenSslSessionTicketKey : public SessionTicketKey
             m_macKey.clear();
             m_cipher=nullptr;
             m_hmac=nullptr;
+            m_hmacName.clear();
             setValid(false);
         }
 
@@ -99,6 +109,7 @@ class HATN_OPENSSL_EXPORT OpenSslSessionTicketKey : public SessionTicketKey
         common::MemoryLockedArray m_macKey;
         const EVP_CIPHER* m_cipher;
         const EVP_MD* m_hmac;
+        HmacNameString m_hmacName;
 };
 
 HATN_OPENSSL_NAMESPACE_END

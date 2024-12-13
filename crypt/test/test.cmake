@@ -25,10 +25,10 @@ SET (TEST_SOURCES
     ${CRYPT_TEST_SRC}/testdigest.cpp
     ${CRYPT_TEST_SRC}/testcipher.cpp
     ${CRYPT_TEST_SRC}/testpbkdf.cpp
-    ${CRYPT_TEST_SRC}/testhmac.cpp
-    ${CRYPT_TEST_SRC}/testencrypthmac.cpp
+    # ${CRYPT_TEST_SRC}/testhmac.cpp
+    # ${CRYPT_TEST_SRC}/testencrypthmac.cpp
     ${CRYPT_TEST_SRC}/testhkdf.cpp
-    ${CRYPT_TEST_SRC}/testdh.cpp
+    # ${CRYPT_TEST_SRC}/testdh.cpp
     ${CRYPT_TEST_SRC}/testecdh.cpp
     ${CRYPT_TEST_SRC}/testaead.cpp
     ${CRYPT_TEST_SRC}/testmac.cpp

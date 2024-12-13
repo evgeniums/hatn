@@ -23,12 +23,7 @@
 //! \note Do not move this header upper, otherwise there are some conflicts of types on Windows platform
 #include <hatn/common/makeshared.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 /******************* DHAlg ********************/
 
@@ -53,7 +48,7 @@ DHAlg::DHAlg(const CryptEngine *engine, const char *name, std::string paramName,
 //---------------------------------------------------------------
 common::SharedPtr<PrivateKey> DHAlg::createPrivateKey() const
 {
-    auto key=makeShared<DHPrivateKey>();
+    auto key=common::makeShared<DHPrivateKey>();
     key->setAlg(this);
     return key;
 }
@@ -119,7 +114,7 @@ Error OpenSslDH::importState(
         }
         else
         {
-            MemoryLockedArray privBuf;
+            common::MemoryLockedArray privBuf;
             HATN_CHECK_RETURN(privKey->exportToBuf(privBuf,ContainerFormat::RAW_PLAIN,true))
             if (!privBuf.empty())
             {
@@ -138,7 +133,7 @@ Error OpenSslDH::importState(
         }
         else
         {
-            ByteArray tmpBuf;
+            common::ByteArray tmpBuf;
             HATN_CHECK_RETURN(pubKey->exportToBuf(tmpBuf,ContainerFormat::RAW_PLAIN));
             if (!tmpBuf.isEmpty())
             {
@@ -161,7 +156,7 @@ Error OpenSslDH::exportState(common::SharedPtr<PrivateKey> &privKey, common::Sha
     // create or clear keys
     if (privKey.isNull())
     {
-        privKey=makeShared<DHPrivateKey>();
+        privKey=common::makeShared<DHPrivateKey>();
         privKey->setAlg(alg());
     }
     else
@@ -170,7 +165,7 @@ Error OpenSslDH::exportState(common::SharedPtr<PrivateKey> &privKey, common::Sha
     }
     if (pubKey.isNull())
     {
-        pubKey=makeShared<PublicKey>();
+        pubKey=common::makeShared<PublicKey>();
         pubKey->setAlg(alg());
     }
     else
@@ -221,7 +216,7 @@ Error OpenSslDH::generateKey(common::SharedPtr<PublicKey> &pubKey)
     // generate or clear key
     if (pubKey.isNull())
     {
-        pubKey=makeShared<PublicKey>();
+        pubKey=common::makeShared<PublicKey>();
         pubKey->setAlg(alg());
     }
     else
@@ -260,7 +255,7 @@ Error OpenSslDH::computeSecret(const char *peerPubKey, size_t peerPubKeySize, co
 {
     if (resultKey.isNull())
     {
-        resultKey=makeShared<DHSecret>();
+        resultKey=common::makeShared<DHSecret>();
         resultKey->setAlg(alg());
     }
     else
@@ -346,5 +341,5 @@ Error OpenSslDH::findNativeAlgorithm(std::shared_ptr<CryptAlgorithm> &alg, const
 }
 
 //---------------------------------------------------------------
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+
+HATN_OPENSSL_NAMESPACE_END

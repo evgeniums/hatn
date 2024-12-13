@@ -65,10 +65,7 @@ namespace detail
 {
 struct HMACTraits
 {
-    static void free(HMAC_CTX* ctx)
-    {
-        ::HMAC_CTX_free(ctx);
-    }
+    static void free(HMAC_CTX* ctx);
 };
 }
 

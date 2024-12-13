@@ -21,12 +21,7 @@
 //! \note Do not move this header upper, otherwise there are some conflicts of types on Windows platform
 #include <hatn/common/makeshared.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 /******************* OpenSslECDH ********************/
 
@@ -35,7 +30,7 @@ Error OpenSslECDH::generateKey(common::SharedPtr<PublicKey> &pubKey)
 {
     if (pubKey.isNull())
     {
-        pubKey=makeShared<OpenSslPublicKey>();
+        pubKey=common::makeShared<OpenSslPublicKey>();
         pubKey->setAlg(alg());
     }
 
@@ -76,7 +71,7 @@ Error OpenSslECDH::computeSecret(const common::SharedPtr<PublicKey> &peerPubKey,
         HATN_CHECK_RETURN(peerPubKey->unpackContent())
     }
 
-    NativeHandler<EVP_PKEY_CTX,detail::PkeyCtxTraits> ctx(::EVP_PKEY_CTX_new(m_privKey->nativeHandler().handler, NULL));
+    common::NativeHandler<EVP_PKEY_CTX,detail::PkeyCtxTraits> ctx(::EVP_PKEY_CTX_new(m_privKey->nativeHandler().handler, NULL));
     if (ctx.isNull())
     {
         return makeLastSslError(CryptError::DH_FAILED);
@@ -101,7 +96,7 @@ Error OpenSslECDH::computeSecret(const common::SharedPtr<PublicKey> &peerPubKey,
 
     if (result.isNull())
     {
-        result=makeShared<DHSecret>();
+        result=common::makeShared<DHSecret>();
         result->setAlg(alg());
     }
     else
@@ -121,5 +116,5 @@ Error OpenSslECDH::computeSecret(const common::SharedPtr<PublicKey> &peerPubKey,
 }
 
 //---------------------------------------------------------------
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+
+HATN_OPENSSL_NAMESPACE_END

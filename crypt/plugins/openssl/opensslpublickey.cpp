@@ -197,7 +197,46 @@ Error OpenSslPublicKey::derive(const PrivateKey &pkey)
     }
     else
     {
+
+#if OPENSSL_API_LEVEL >= 30100
+
+        ENGINE* engine=nullptr;
+        if (pkey.alg()->engine())
+        {
+            engine=pkey.alg()->engine()->template nativeHandler<ENGINE>();
+        }
+        auto* ctx=EVP_PKEY_CTX_new(pkeyNative->nativeHandler().handler,engine);
+        if (ctx==NULL)
+        {
+            return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+        }
+
+        if (EVP_PKEY_fromdata_init(ctx)!= OPENSSL_OK)
+        {
+            EVP_PKEY_CTX_free(ctx);
+            return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+        }
+
+        OSSL_PARAM *keyParams;
+        if (EVP_PKEY_todata(pkeyNative->nativeHandler().handler, EVP_PKEY_PUBLIC_KEY, &keyParams) != OPENSSL_OK)
+        {
+            EVP_PKEY_CTX_free(ctx);
+            return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+        }
+
+        if (EVP_PKEY_fromdata(ctx, &pubkeyHandler.handler, EVP_PKEY_PUBLIC_KEY, keyParams) != OPENSSL_OK)
+        {
+            OSSL_PARAM_free(keyParams);
+            EVP_PKEY_CTX_free(ctx);
+            return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+        }
+
+        OSSL_PARAM_free(keyParams);
+        EVP_PKEY_CTX_free(ctx);
+
+#if 0
         pubkeyHandler.handler=::EVP_PKEY_new();
+
         switch (keyID)
         {
             case(EVP_PKEY_EC):
@@ -213,7 +252,7 @@ Error OpenSslPublicKey::derive(const PrivateKey &pkey)
                     return makeLastSslError(CryptError::INVALID_KEY_TYPE);
                 }
             }
-                break;
+            break;
 
             case(EVP_PKEY_RSA):
             {
@@ -228,7 +267,7 @@ Error OpenSslPublicKey::derive(const PrivateKey &pkey)
                     return makeLastSslError(CryptError::INVALID_KEY_TYPE);
                 }
             }
-                break;
+            break;
 
             case(EVP_PKEY_DSA):
             {
@@ -243,13 +282,69 @@ Error OpenSslPublicKey::derive(const PrivateKey &pkey)
                     return makeLastSslError(CryptError::INVALID_KEY_TYPE);
                 }
             }
-                break;
+            break;
 
             default:
             {
                 return cryptError(CryptError::INVALID_KEY_TYPE);
             }
         }
+#endif
+
+#else
+        switch (keyID)
+        {
+            case(EVP_PKEY_EC):
+            {
+                auto* ctx=::EVP_PKEY_get1_EC_KEY(pkeyNative->nativeHandler().handler);
+                if (ctx==nullptr)
+                {
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+                if (::EVP_PKEY_assign_EC_KEY(pubkeyHandler.handler,ctx)!=1)
+                {
+                    ::EC_KEY_free(ctx);
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+            }
+            break;
+
+            case(EVP_PKEY_RSA):
+            {
+                auto* ctx=::EVP_PKEY_get1_RSA(pkeyNative->nativeHandler().handler);
+                if (ctx==nullptr)
+                {
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+                if (::EVP_PKEY_assign_RSA(pubkeyHandler.handler,ctx)!=1)
+                {
+                    ::RSA_free(ctx);
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+            }
+            break;
+
+            case(EVP_PKEY_DSA):
+            {
+                auto* ctx=::EVP_PKEY_get1_DSA(pkeyNative->nativeHandler().handler);
+                if (ctx==nullptr)
+                {
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+                if (::EVP_PKEY_assign_DSA(pubkeyHandler.handler,ctx)!=1)
+                {
+                    ::DSA_free(ctx);
+                    return makeLastSslError(CryptError::INVALID_KEY_TYPE);
+                }
+            }
+            break;
+
+            default:
+            {
+                return cryptError(CryptError::INVALID_KEY_TYPE);
+            }
+        }
+#endif
     }
 
     nativeHandler().handler=std::exchange(pubkeyHandler.handler,nullptr);

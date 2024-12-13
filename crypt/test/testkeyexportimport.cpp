@@ -113,6 +113,10 @@ BOOST_AUTO_TEST_CASE(CheckMultipleRawEncrypted)
                         // find algorithm
                         const CryptAlgorithm* alg=nullptr;
                         ec=suite->aeadAlgorithm(alg);
+                        if (ec)
+                        {
+                            HATN_TEST_MESSAGE_TS(ec.message());
+                        }
                         HATN_REQUIRE(!ec);
                         HATN_REQUIRE(alg!=nullptr);
 

@@ -23,7 +23,6 @@
 #include <hatn/crypt/cryptcontainer.h>
 
 #include <hatn/dataunit/visitors.h>
-#include <hatn/dataunit/ipp/wirebuf.ipp>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
@@ -299,8 +298,10 @@ common::Error CryptContainer::unpackDescriptor(
         bool unpackInline
     )
 {
-    dataunit::WireDataSingle wireData(container.data(),container.size(),unpackInline);
-    if (!m_descriptor.parse(wireData))
+    //! @todo unpackInline argument might not be needed
+    std::ignore=unpackInline;
+
+    if (!du::io::deserializeInline(m_descriptor,container))
     {
         return cryptError(CryptError::PARSE_CONTAINER_FAILED);
     }

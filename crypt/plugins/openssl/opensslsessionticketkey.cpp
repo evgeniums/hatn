@@ -47,15 +47,14 @@ Error OpenSslSessionTicketKey::load(const char *data, size_t size, KeyProtector*
     mutableName().load(data,mutableName().capacity());
     size_t offset=mutableName().capacity();
 
-    common::FixedByteArrayThrow32 cipherName;
+    CipherNameString cipherName;
     cipherName.load(data+offset,CIPHER_NAME_MAXLEN);
     offset+=CIPHER_NAME_MAXLEN;
 
-    common::FixedByteArrayThrow32 hmacName;
-    hmacName.load(data+offset,HMAC_KEY_LEN);
+    m_hmacName.load(data+offset,HMAC_KEY_LEN);
     offset+=HMAC_NAME_MAXLEN;
 
-    m_hmac=::EVP_get_digestbyname(hmacName.c_str());
+    m_hmac=::EVP_get_digestbyname(m_hmacName.c_str());
     if (m_hmac==NULL)
     {
         doReset();
@@ -88,8 +87,6 @@ Error OpenSslSessionTicketKey::load(const char *data, size_t size, KeyProtector*
 //---------------------------------------------------------------
 Error OpenSslSessionTicketKey::store(common::MemoryLockedArray &content, KeyProtector* protector) const
 {
-    //! @todo Is cipher name size always limited to 32?
-
     content.clear();
     if (!isValid())
     {

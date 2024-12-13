@@ -16,6 +16,9 @@
 
 /****************************************************************************/
 
+#include <openssl/evp.h>
+#include <openssl/core_names.h>
+
 #include <boost/endian/conversion.hpp>
 #include <boost/algorithm/string/join.hpp>
 
@@ -31,7 +34,6 @@
 #include <hatn/crypt/plugins/openssl/opensslx509.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
 #include <hatn/crypt/plugins/openssl/opensslstream.h>
-#include <hatn/crypt/plugins/openssl/openssldh.h>
 #include <hatn/crypt/plugins/openssl/opensslecdh.h>
 #include <hatn/crypt/plugins/openssl/opensslx509chain.h>
 #include <hatn/crypt/plugins/openssl/opensslx509certificatestore.h>
@@ -197,6 +199,22 @@ Error OpenSslContext::setPrivateKey(const common::SharedPtr<PrivateKey> &key) no
     return checkPkeyMatchCrt();
 }
 
+#if OPENSSL_API_LEVEL >= 30100
+
+//---------------------------------------------------------------
+Error OpenSslContext::setDH(const common::SharedPtr<DH> &dh) noexcept
+{
+    if (SSL_CTX_set_dh_auto(m_sslCtx,1)!=OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::GENERAL_FAIL);
+    }
+    std::ignore=dh;
+    //! @todo Use SSL_CTX_set0_tmp_dh_pkey
+    return Error();
+}
+
+#else
+
 //---------------------------------------------------------------
 Error OpenSslContext::setDH(const common::SharedPtr<DH> &dh) noexcept
 {
@@ -211,6 +229,8 @@ Error OpenSslContext::setDH(const common::SharedPtr<DH> &dh) noexcept
     }
     return Error();
 }
+
+#endif
 
 //---------------------------------------------------------------
 Error OpenSslContext::setECDHAlgs(const std::vector<const CryptAlgorithm *> &algs) noexcept
@@ -266,10 +286,15 @@ void OpenSslContext::doUpdateEndpointType()
 {
     ::ERR_clear_error();
 
+#if OPENSSL_API_LEVEL < 30100
+
     if (::SSL_CTX_set_ssl_version(m_sslCtx,selectSslMethod(endpointType()))!=1)
     {
         throw ErrorException(makeLastSslError());
     }
+
+#endif
+
     doUpdateVerifyMode();
 }
 
@@ -280,10 +305,132 @@ Error OpenSslContext::setVerifyDepth(int depth) noexcept
     return Error();
 }
 
+#if OPENSSL_API_LEVEL >= 30100
+
 //---------------------------------------------------------------
 static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16],
-                                     unsigned char *iv, EVP_CIPHER_CTX *ctx,
-                                     HMAC_CTX *hctx, int enc)
+                                    unsigned char iv[EVP_MAX_IV_LENGTH],
+                                    EVP_CIPHER_CTX *ctx, EVP_MAC_CTX *hctx, int enc)
+{
+    OpenSslStreamTraits* streamTraits=static_cast<OpenSslStreamTraits*>(::SSL_get_ex_data(s,OpenSslPlugin::sslCtxIdx()));
+    if (!streamTraits)
+    {
+        return 0;
+    }
+
+    if (enc==1)
+    {
+        const OpenSslSessionTicketKey* key=&streamTraits->ctx()->sessionTicketKey();
+        if (!key->isValid())
+        {
+            return 0;
+        }
+
+        if (::RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0)
+        {
+            return -1; /* insufficient random */
+        }
+        memcpy(&key_name[0],key->name().data(),16);
+
+        if (EVP_EncryptInit_ex(ctx, key->cipher(), NULL, reinterpret_cast<const unsigned char*>(key->cipherKey().data()), iv) != OPENSSL_OK)
+        {
+            /* error in cipher initialisation */
+            return -1;
+        }
+
+        OSSL_PARAM params[3];
+        params[0] = OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY,
+                                                      const_cast<char*>(key->macKey().data()),
+                                                      key->macKey().size());
+        params[1] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST,
+                                                     const_cast<char*>(key->hmacName().c_str()),
+                                                     0);
+        params[2] = OSSL_PARAM_construct_end();
+        if (EVP_MAC_CTX_set_params(hctx, params) != OPENSSL_OK)
+        {
+            /* error in mac initialisation */
+            return -1;
+        }
+
+        return 1;
+    }
+    else
+    {
+        const OpenSslSessionTicketKey* key=&streamTraits->ctx()->sessionTicketKey();
+        if (!key->isValid())
+        {
+            return 0;
+        }
+
+        int ret=1;
+        if (memcmp(key->name().data(),&key_name[0],16)!=0)
+        {
+            key=&streamTraits->ctx()->prevSessionTicketKey();
+            if (!key->isValid() || memcmp(key->name().data(),&key_name[0],16)!=0)
+            {
+                return 0;
+            }
+            ret=2;
+        }
+
+        OSSL_PARAM params[3];
+        params[0] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_KEY,
+                                                      const_cast<char*>(key->macKey().data()),
+                                                      key->macKey().size());
+        params[1] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST,
+                                                     const_cast<char*>(key->hmacName().c_str()),
+                                                     0);
+        params[2] = OSSL_PARAM_construct_end();
+        if (EVP_MAC_CTX_set_params(hctx, params) != OPENSSL_OK)
+        {
+            /* error in mac initialisation */
+            return -1;
+        }
+
+        if (EVP_DecryptInit_ex(ctx, key->cipher(), NULL, reinterpret_cast<const unsigned char*>(key->cipherKey().data()),iv) != OPENSSL_OK)
+        {
+            /* error in cipher initialisation */
+            return -1;
+        }
+
+        //! @todo Implement ticket expiration
+#if 0
+        if (key->expire < t - RENEW_TIME) { /* RENEW_TIME: implement */
+            /*
+             * return 2 - This session will get a new ticket even though the
+             * current one is still valid.
+             */
+            return 2;
+        }
+#endif
+
+        return ret;
+    }
+
+    return 0;
+}
+
+//---------------------------------------------------------------
+void OpenSslContext::updateSessionTicketEncCb()
+{
+    if (m_sessionTicketKey.isValid())
+    {
+        ::SSL_CTX_set_tlsext_ticket_key_evp_cb(m_sslCtx,ssl_tlsext_ticket_key_cb);
+    }
+    else
+    {
+        ::SSL_CTX_set_tlsext_ticket_key_evp_cb(m_sslCtx,NULL);
+    }
+
+    ::ERR_clear_error();
+}
+
+#else
+
+//---------------------------------------------------------------
+static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16],
+                                    unsigned char *iv, EVP_CIPHER_CTX *ctx,
+                                    HMAC_CTX *hctx, int enc)
 {
     OpenSslStreamTraits* streamTraits=static_cast<OpenSslStreamTraits*>(::SSL_get_ex_data(s,OpenSslPlugin::sslCtxIdx()));
     if (!streamTraits)
@@ -330,7 +477,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16],
         }
 
         ::HMAC_Init_ex(hctx, key->macKey().data(),SessionTicketKey::HMAC_NAME_MAXLEN, key->hmac(), NULL);
-        ::EVP_EncryptInit_ex(ctx, key->cipher(), NULL, reinterpret_cast<const unsigned char*>(key->cipherKey().data()), iv);
+        ::EVP_DecryptInit_ex(ctx, key->cipher(), NULL, reinterpret_cast<const unsigned char*>(key->cipherKey().data()), iv);
 
         return ret;
     }
@@ -352,6 +499,8 @@ void OpenSslContext::updateSessionTicketEncCb()
 
     ::ERR_clear_error();
 }
+
+#endif
 
 //---------------------------------------------------------------
 void OpenSslContext::doUpdateProtocolVersion()

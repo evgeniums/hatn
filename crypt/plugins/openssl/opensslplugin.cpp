@@ -24,7 +24,6 @@
 #include <hatn/crypt/plugins/openssl/opensslx509.h>
 #include <hatn/crypt/plugins/openssl/openssldigest.h>
 #include <hatn/crypt/plugins/openssl/opensslcontext.h>
-#include <hatn/crypt/plugins/openssl/opensslhmac.h>
 #include <hatn/crypt/plugins/openssl/opensslmackey.h>
 #include <hatn/crypt/plugins/openssl/opensslsecretkey.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
@@ -35,7 +34,6 @@
 #include <hatn/crypt/plugins/openssl/opensslasymmetric.h>
 #include <hatn/crypt/plugins/openssl/opensslrandomgenerator.h>
 #include <hatn/crypt/plugins/openssl/opensslpasswordgenerator.h>
-#include <hatn/crypt/plugins/openssl/openssldh.h>
 #include <hatn/crypt/plugins/openssl/opensslecdh.h>
 #include <hatn/crypt/plugins/openssl/opensslaead.h>
 #include <hatn/crypt/plugins/openssl/opensslmac.h>
@@ -43,6 +41,12 @@
 #include <hatn/crypt/plugins/openssl/opensslx509.h>
 #include <hatn/crypt/plugins/openssl/opensslx509chain.h>
 #include <hatn/crypt/plugins/openssl/opensslx509certificatestore.h>
+
+//! @todo Fix DH and HMAC
+#if OPENSSL_API_LEVEL < 30100
+#include <hatn/crypt/plugins/openssl/opensslhmac.h>
+#include <hatn/crypt/plugins/openssl/openssldh.h>
+#endif
 
 #include <hatn/crypt/plugins/openssl/opensslplugin.h>
 
@@ -76,9 +80,15 @@ SharedPtr<MAC> OpenSslPlugin::createMAC(const SymmetricKey* key) const
 //---------------------------------------------------------------
 SharedPtr<HMAC> OpenSslPlugin::createHMAC(const CryptAlgorithm* alg) const
 {
+//! @todo Fix DH and HMAC
+#if OPENSSL_API_LEVEL < 30100
     SharedPtr<OpenSslHMAC> obj(new OpenSslHMAC());
     obj->setAlgorithm(alg);
     return obj;
+#else
+    std::ignore=alg;
+    return SharedPtr<HMAC>{};
+#endif
 }
 
 //---------------------------------------------------------------
@@ -87,6 +97,16 @@ Error OpenSslPlugin::doFindEngine(
         std::shared_ptr<CryptEngine> &engine
     )
 {
+#if OPENSSL_API_LEVEL >= 30100
+
+    //! @todo Implement explicit loading of OpenSSL providers
+
+    std::ignore=engine;
+    std::ignore=engineName;
+    engine=std::make_shared<CryptEngine>(this,nullptr);
+
+#else
+
     auto nativeEngine=ENGINE_by_id(engineName);
     if (nativeEngine)
     {
@@ -98,6 +118,8 @@ Error OpenSslPlugin::doFindEngine(
     };
     engine=std::make_shared<CryptEngine>(this,nativeEngine);
     engine->setFreeNativeFn(freeFn);
+
+#endif
     return common::Error();
 }
 
@@ -136,11 +158,20 @@ Error OpenSslPlugin::doFindAlgorithm(
         }
         break;
 
+//! @todo Fix DH and HMAC
+#if OPENSSL_API_LEVEL < 30100
         case (CryptAlgorithm::Type::HMAC):
         {
             ec=OpenSslHMAC::findNativeAlgorithm(alg,name,engine);
         }
         break;
+
+        case (CryptAlgorithm::Type::DH):
+        {
+            ec=OpenSslDH::findNativeAlgorithm(alg,name,engine);
+        }
+        break;
+#endif
 
         case (CryptAlgorithm::Type::SIGNATURE): HATN_FALLTHROUGH
         case (CryptAlgorithm::Type::AENCRYPTION):
@@ -152,12 +183,6 @@ Error OpenSslPlugin::doFindAlgorithm(
         case (CryptAlgorithm::Type::ECDH):
         {
             ec=OpenSslECDH::findNativeAlgorithm(alg,name,engine);
-        }
-        break;
-
-        case (CryptAlgorithm::Type::DH):
-        {
-            ec=OpenSslDH::findNativeAlgorithm(alg,name,engine);
         }
         break;
 
@@ -273,9 +298,15 @@ common::SharedPtr<HKDF> OpenSslPlugin::createHKDF(const CryptAlgorithm *cipherAl
 //---------------------------------------------------------------
 common::SharedPtr<DH> OpenSslPlugin::createDH(const CryptAlgorithm* alg) const
 {
+//! @todo Fix DH and HMAC
+#if OPENSSL_API_LEVEL < 30100
     auto dh=common::makeShared<OpenSslDH>();
     dh->setAlg(alg);
     return dh;
+#else
+    std::ignore=alg;
+    return common::SharedPtr<DH>{};
+#endif
 }
 
 //---------------------------------------------------------------

@@ -77,7 +77,8 @@
     Do(CryptError,TLS_ERROR,_TR("TLS error","crypt")) \
     Do(CryptError,TLS_CLOSED,_TR("TLS connection closed","crypt")) \
     Do(CryptError,UNSUPPORTED_KEY_FORMAT,_TR("Unsupported key format","crypt")) \
-    Do(CryptError,X509_ERROR_SERIALIZE_FAILED,_TR("Failed to serialize error of X509 certificate verification","crypt"))
+    Do(CryptError,X509_ERROR_SERIALIZE_FAILED,_TR("Failed to serialize error of X509 certificate verification","crypt")) \
+    Do(CryptError,ENGINES_NOT_SUPPORTED,_TR("Cryptographic engines not supported by backend","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 

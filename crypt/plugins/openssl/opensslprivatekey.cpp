@@ -16,6 +16,9 @@
 
 #include <hatn/common/logger.h>
 
+#include <hatn/dataunit/visitors.h>
+#include <hatn/dataunit/ipp/syntax.ipp>
+
 #include <hatn/crypt/encrypthmac.h>
 
 #include <hatn/crypt/plugins/openssl/opensslerror.h>
