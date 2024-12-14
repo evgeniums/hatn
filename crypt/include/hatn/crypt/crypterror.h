@@ -30,9 +30,9 @@
     Do(CryptError,DECRYPTION_FAILED,_TR("Failed to decrypt data","crypt")) \
     Do(CryptError,DIGEST_FAILED,_TR("Failed to calculate digest","crypt")) \
     Do(CryptError,DIGEST_MISMATCH,_TR("Invalid digest","crypt")) \
-    Do(CryptError,MAC_FAILED,_TR("Failed to calculate HMAC","crypt")) \
+    Do(CryptError,MAC_FAILED,_TR("Failed to calculate MAC","crypt")) \
     Do(CryptError,INVALID_CONTENT_FORMAT,_TR("Invalid data format","crypt")) \
-    Do(CryptError,INVALID_MAC_STATE,_TR("HMAC is either not initialized yet or HMAC key is not set","crypt")) \
+    Do(CryptError,INVALID_MAC_STATE,_TR("MAC is either not initialized yet or MAC key is not set","crypt")) \
     Do(CryptError,INVALID_CIPHER,_TR("Cipher algorithm is either invalid or not implemented by backend","crypt")) \
     Do(CryptError,INVALID_DH_STATE,_TR("DH is not ready","crypt")) \
     Do(CryptError,INVALID_KEY_PROTECTION,_TR("Key is protected but protector is either not set or invalid","crypt")) \
@@ -52,8 +52,8 @@
     Do(CryptError,KEYS_MISMATCH,_TR("Keys in a pair mismatch","crypt")) \
     Do(CryptError,NOT_PERMITTED,_TR("Operation not permitted","crypt")) \
     Do(CryptError,INVALID_CIPHER_STATE,_TR("Invalid state of cipher, initialize it first","crypt")) \
-    Do(CryptError,INVALID_MAC_KEY,_TR("Invalid HMAC key","crypt")) \
-    Do(CryptError,INVALID_MAC_SIZE,_TR("HMAC size exceeds size of digest's hash","crypt")) \
+    Do(CryptError,INVALID_MAC_KEY,_TR("Invalid MAC key","crypt")) \
+    Do(CryptError,INVALID_MAC_SIZE,_TR("MAC size does not match size of digest's hash","crypt")) \
     Do(CryptError,DH_FAILED,_TR("Failed to compute DH secret","crypt")) \
     Do(CryptError,EXPORT_KEY_FAILED,_TR("Failed to export cryptographic key","crypt")) \
     Do(CryptError,INVALID_SIGNATURE_STATE,_TR("Invalid state of digital signature processor","crypt")) \
