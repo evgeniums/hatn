@@ -40,7 +40,7 @@ class HATN_CRYPT_EXPORT MAC : public Digest
          * @param key Key to use
          *
          */
-        MAC(const SymmetricKey* key) noexcept;
+        explicit MAC(const SymmetricKey* key) noexcept;
 
         /**
          * @brief Set MAC key
