@@ -184,14 +184,13 @@ class MACAlg_SIPHASH : public MACAlg
         virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const override
         {
             std::ignore=maxCount;
-            uint64_t size=m_hashSize;
-            params[0]=OSSL_PARAM_construct_uint64(OSSL_MAC_PARAM_SIZE,&size);
+            params[0]=OSSL_PARAM_construct_uint64(OSSL_MAC_PARAM_SIZE,const_cast<uint64_t*>(&m_hashSize));
             return 1;
         }
 
     private:
 
-        size_t m_hashSize;
+        uint64_t m_hashSize;
 };
 
 //! MAC algorithm based on CMAC
