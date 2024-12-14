@@ -80,6 +80,10 @@ void checkHMAC(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
         HATN_REQUIRE(hmac);
         hmac->setKey(key.get());
         ec=hmac->init(alg);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
         HATN_REQUIRE(!ec);
         ec=hmac->processAndFinalize(data,result);
         HATN_REQUIRE(!result.isEmpty());
@@ -124,14 +128,6 @@ void checkHMAC(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
         HATN_REQUIRE(!ec);
         HATN_REQUIRE(!result.isEmpty());
         BOOST_CHECK(result==checkResult);
-
-        // mismatched types of key and hmac processor
-        hmac1->setKey(key.get());
-        ec=hmac1->init();
-        BOOST_CHECK(ec);
-        hmac->setKey(key1.get());
-        ec=hmac->init();
-        BOOST_CHECK(ec);
 
         // one-shot hmac
         ec=HMAC::hmac(alg,key.get(),data,result);

@@ -74,11 +74,11 @@ static void testVectors(std::shared_ptr<CryptPlugin>& plugin, const CryptAlgorit
         // simple check
         ByteArray tag1;
         ec=mac1->runFinalize(SpanBuffer{text},tag1);
-        BOOST_CHECK(!ec);
         if (ec)
         {
-            BOOST_TEST_MESSAGE(fmt::format("Failed to runFinalize: {}",ec.message()));
+            BOOST_TEST_MESSAGE(fmt::format("Failed to run Finalize: {}",ec.message()));
         }
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(tag1==tag);
 #if 0
         std::string rTagHex1;
@@ -199,12 +199,12 @@ static void checkMac(std::shared_ptr<CryptPlugin>& plugin, const std::string& al
         return;
     }
 
-    if (algName=="cmac")
+#if 0
+    if (algName!="siphash/8")
     {
-        //! @todo Refactor MAC/CMAC and enable test again
-        BOOST_TEST_MESSAGE("CMAC is not supported with OpenSSL 3 backend yet");
         return;
     }
+#endif
 
     std::string msg=fmt::format("Begin checking MAC {} with {}",algName,fileName);
     BOOST_TEST_MESSAGE(msg);

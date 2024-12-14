@@ -33,6 +33,8 @@
 #include <hatn/crypt/plugins/openssl/opensslcipher.h>
 #include <hatn/crypt/plugins/openssl/opensslmackey.h>
 
+#if OPENSSL_API_LEVEL < 30100
+
 HATN_OPENSSL_NAMESPACE_BEGIN
 
 //! HMAC algorithm
@@ -120,5 +122,7 @@ class HATN_OPENSSL_EXPORT OpenSslHMAC : public common::NativeHandlerContainer<HM
 };
 
 HATN_OPENSSL_NAMESPACE_END
+
+#endif
 
 #endif // HATNOPENSSLHMAC_H

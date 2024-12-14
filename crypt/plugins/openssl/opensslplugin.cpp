@@ -80,15 +80,9 @@ SharedPtr<MAC> OpenSslPlugin::createMAC(const SymmetricKey* key) const
 //---------------------------------------------------------------
 SharedPtr<HMAC> OpenSslPlugin::createHMAC(const CryptAlgorithm* alg) const
 {
-//! @todo Fix DH and HMAC
-#if OPENSSL_API_LEVEL < 30100
     SharedPtr<OpenSslHMAC> obj(new OpenSslHMAC());
     obj->setAlgorithm(alg);
     return obj;
-#else
-    std::ignore=alg;
-    return SharedPtr<HMAC>{};
-#endif
 }
 
 //---------------------------------------------------------------
@@ -158,14 +152,14 @@ Error OpenSslPlugin::doFindAlgorithm(
         }
         break;
 
-//! @todo Fix DH and HMAC
-#if OPENSSL_API_LEVEL < 30100
         case (CryptAlgorithm::Type::HMAC):
         {
             ec=OpenSslHMAC::findNativeAlgorithm(alg,name,engine);
         }
         break;
 
+//! @todo Fix DH
+#if OPENSSL_API_LEVEL < 30100
         case (CryptAlgorithm::Type::DH):
         {
             ec=OpenSslDH::findNativeAlgorithm(alg,name,engine);

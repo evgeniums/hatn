@@ -19,6 +19,8 @@
 
 #include <hatn/common/makeshared.h>
 
+#if OPENSSL_API_LEVEL < 30100
+
 HATN_OPENSSL_NAMESPACE_BEGIN
 
 namespace detail
@@ -148,3 +150,5 @@ void OpenSslHMAC::doReset() noexcept
 //---------------------------------------------------------------
 
 HATN_OPENSSL_NAMESPACE_END
+
+#endif

@@ -19,7 +19,6 @@
 #include <hatn/crypt/plugins/openssl/opensslerror.h>
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 
-#include <hatn/crypt/plugins/openssl/opensslmac.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
 
 HATN_OPENSSL_NAMESPACE_BEGIN
@@ -184,10 +183,28 @@ Error OpenSslPKey<BaseT>::doImportFromBuf(const char *buf, size_t size, Containe
             size=unpacked.size();
         }
 
+#if OPENSSL_API_LEVEL >= 30100
+
+        if (isBackendKey())
+        {
+            this->nativeHandler().handler=::EVP_PKEY_new_raw_private_key(nativeType(),engine,
+                                                                           reinterpret_cast<const unsigned char*>(buf),
+                                                                           size);
+            if (this->nativeHandler().isNull())
+            {
+                return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+            }
+        }
+        else
+        {
+            this->loadContent(buf,size);
+            this->setFormat(ContainerFormat::RAW_PLAIN);
+            keepContent=false; // do not load twice if keepContent is also set in arguments
+        }
+
+#else
         if (nativeType()==EVP_PKEY_CMAC)
         {
-            //! @todo Check if this format is still actual
-#if 0
             this->nativeHandler().handler=::EVP_PKEY_new_CMAC_key(engine,
                                                                  reinterpret_cast<const unsigned char*>(buf),
                                                                  size,EVP_aes_128_cbc());
@@ -195,8 +212,6 @@ Error OpenSslPKey<BaseT>::doImportFromBuf(const char *buf, size_t size, Containe
             this->loadContent(buf,size);
             this->setFormat(ContainerFormat::RAW_PLAIN);
             keepContent=false;
-#endif
-            return cryptError(CryptError::UNSUPPORTED_KEY_FORMAT);
         }
         else
         {
@@ -209,7 +224,7 @@ Error OpenSslPKey<BaseT>::doImportFromBuf(const char *buf, size_t size, Containe
         {
             return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
         }
-
+#endif
         if (keepContent)
         {
             this->loadContent(buf,size);

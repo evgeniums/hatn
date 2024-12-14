@@ -43,6 +43,7 @@ SET (HEADERS
     include/hatn/crypt/plugins/openssl/opensslecdh.h
     include/hatn/crypt/plugins/openssl/opensslaead.h
     include/hatn/crypt/plugins/openssl/opensslmac.h
+    include/hatn/crypt/plugins/openssl/opensslmac1.h
     include/hatn/crypt/plugins/openssl/openssldigestsign.h
     include/hatn/crypt/plugins/openssl/openssldigestsign.ipp
     include/hatn/crypt/plugins/openssl/openssled.h
@@ -61,7 +62,8 @@ SET (SOURCES
     opensslx509chain.cpp
     opensslcipher.cpp
     openssldigest.cpp
-    # opensslhmac.cpp
+    opensslhmac.cpp
+    opensslmac1.cpp
     opensslmac.cpp
     opensslpublickey.cpp
     opensslmackey.cpp
