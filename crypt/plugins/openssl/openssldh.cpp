@@ -219,4 +219,11 @@ std::vector<std::string> OpenSslDH::listDHs()
 
 //---------------------------------------------------------------
 
+#ifndef _WIN32
+template class OpenSslDHT<DH>;
+template class OpenSslDHT<ECDH>;
+#endif
+
+//---------------------------------------------------------------
+
 HATN_OPENSSL_NAMESPACE_END

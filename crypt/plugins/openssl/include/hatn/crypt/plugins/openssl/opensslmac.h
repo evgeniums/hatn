@@ -118,7 +118,7 @@ class MACAlg_HMAC : public MACAlg
             return static_cast<size_t>(::EVP_MD_block_size(nativeHandler<EVP_MD>()));
         }
 
-        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const
+        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const override
         {
             std::ignore=params;
             std::ignore=maxCount;
@@ -181,10 +181,11 @@ class MACAlg_SIPHASH : public MACAlg
             return 16;
         }
 
-        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const
+        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const override
         {
             std::ignore=maxCount;
-            params[0]=OSSL_PARAM_construct_uint64(OSSL_MAC_PARAM_SIZE,const_cast<size_t*>(&m_hashSize));
+            uint64_t size=m_hashSize;
+            params[0]=OSSL_PARAM_construct_uint64(OSSL_MAC_PARAM_SIZE,&size);
             return 1;
         }
 
@@ -219,7 +220,7 @@ class MACAlg_CMAC : public MACAlg
             return 16;
         }
 
-        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const
+        virtual size_t prepareParams(OSSL_PARAM* params, size_t maxCount) const override
         {
             std::ignore=maxCount;
             params[0]=OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_CIPHER,const_cast<char*>("aes-128-cbc"),0);
