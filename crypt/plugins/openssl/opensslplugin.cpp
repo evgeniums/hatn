@@ -41,12 +41,8 @@
 #include <hatn/crypt/plugins/openssl/opensslx509.h>
 #include <hatn/crypt/plugins/openssl/opensslx509chain.h>
 #include <hatn/crypt/plugins/openssl/opensslx509certificatestore.h>
-
-//! @todo Fix DH and HMAC
-#if OPENSSL_API_LEVEL < 30100
 #include <hatn/crypt/plugins/openssl/opensslhmac.h>
 #include <hatn/crypt/plugins/openssl/openssldh.h>
-#endif
 
 #include <hatn/crypt/plugins/openssl/opensslplugin.h>
 
@@ -158,14 +154,11 @@ Error OpenSslPlugin::doFindAlgorithm(
         }
         break;
 
-//! @todo Fix DH
-#if OPENSSL_API_LEVEL < 30100
         case (CryptAlgorithm::Type::DH):
         {
             ec=OpenSslDH::findNativeAlgorithm(alg,name,engine);
         }
         break;
-#endif
 
         case (CryptAlgorithm::Type::SIGNATURE): HATN_FALLTHROUGH
         case (CryptAlgorithm::Type::AENCRYPTION):
@@ -292,15 +285,9 @@ common::SharedPtr<HKDF> OpenSslPlugin::createHKDF(const CryptAlgorithm *cipherAl
 //---------------------------------------------------------------
 common::SharedPtr<DH> OpenSslPlugin::createDH(const CryptAlgorithm* alg) const
 {
-//! @todo Fix DH and HMAC
-#if OPENSSL_API_LEVEL < 30100
     auto dh=common::makeShared<OpenSslDH>();
     dh->setAlg(alg);
     return dh;
-#else
-    std::ignore=alg;
-    return common::SharedPtr<DH>{};
-#endif
 }
 
 //---------------------------------------------------------------
@@ -385,6 +372,12 @@ std::vector<std::string> OpenSslPlugin::listPBKDFs() const
 std::vector<std::string> OpenSslPlugin::listSignatures() const
 {
     return OpenSslAsymmetric::listSignatures();
+}
+
+//---------------------------------------------------------------
+std::vector<std::string> OpenSslPlugin::listDHs() const
+{
+    return OpenSslDH::listDHs();
 }
 
 //---------------------------------------------------------------

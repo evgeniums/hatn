@@ -21,6 +21,7 @@ SET (HEADERS
     include/hatn/crypt/plugins/openssl/opensslx509.h
     include/hatn/crypt/plugins/openssl/opensslutils.h
     include/hatn/crypt/plugins/openssl/openssldh.h
+    include/hatn/crypt/plugins/openssl/openssldh1.h
     include/hatn/crypt/plugins/openssl/opensslprivatekey.h
     include/hatn/crypt/plugins/openssl/opensslprivatekey.ipp
     include/hatn/crypt/plugins/openssl/opensslsessionticketkey.h
@@ -56,7 +57,8 @@ SET (SOURCES
     opensslplugin.cpp
     opensslx509.cpp
     opensslstream.cpp
-    # openssldh.cpp
+    openssldh.cpp
+    openssldh1.cpp
     opensslprivatekey.cpp
     opensslsessionticketkey.cpp
     opensslx509chain.cpp

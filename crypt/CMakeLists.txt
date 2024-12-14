@@ -9,7 +9,9 @@ SET (HEADERS
     include/hatn/crypt/securestreamcontext.h
     include/hatn/crypt/cryptplugin.h
     include/hatn/crypt/securekey.h
+    include/hatn/crypt/diffiehellman.h
     include/hatn/crypt/dh.h
+    include/hatn/crypt/dhlegacy.h
     include/hatn/crypt/keycontainer.h
     include/hatn/crypt/sessionticketkey.h
     include/hatn/crypt/x509certificatechain.h
@@ -54,6 +56,7 @@ SET (SOURCES
     src/cryptplugin.cpp
     src/securekey.cpp
     src/dh.cpp
+    src/dhlegacy.cpp
     src/sessionticketkey.cpp
     src/x509certificatechain.cpp
     src/passwordgenerator.cpp

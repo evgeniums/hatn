@@ -9,7 +9,7 @@
 /****************************************************************************/
 /** @file crypt/plugins/openssl/openssldh.h
  *
- * 	Diffie-Hellmann routines and data
+ * 	DH implementation with Openssl 3 backend.
  *
  */
 /****************************************************************************/
@@ -32,7 +32,24 @@
 
 HATN_OPENSSL_NAMESPACE_BEGIN
 
-using DHPrivateKey = OpenSslSecretKey<PrivateKey>;
+#ifndef HATN_CRYPT_LEGACY_DH
+
+//! Private key for DH with OpenSSL backend
+class HATN_OPENSSL_EXPORT DHPrivateKey : public OpenSslPrivateKey
+{
+public:
+
+    using OpenSslPrivateKey::OpenSslPrivateKey;
+
+    virtual int nativeType() const noexcept override
+    {
+        return EVP_PKEY_DH;
+    }
+
+protected:
+
+    virtual common::Error doGenerate() override;
+};
 
 //! DH algorithm (just a stub)
 class HATN_OPENSSL_EXPORT DHAlg : public CryptAlgorithm
@@ -44,137 +61,105 @@ class HATN_OPENSSL_EXPORT DHAlg : public CryptAlgorithm
          * @param engine Backend engine to use
          * @param name Algorithm name
          */
-        DHAlg(const CryptEngine* engine, const char* name, std::string paramName, std::string paramSha1) noexcept;
+        DHAlg(const CryptEngine* engine, const char* name) noexcept;
 
         virtual common::SharedPtr<PrivateKey> createPrivateKey() const override;
-
-        virtual const char* paramStr(size_t index=0) const override;
-
-    private:
-
-        std::string m_paramName;
-        std::string m_paramSha1;
 };
 
-namespace detail
-{
-struct DHTraits
-{
-    static void free(::DH* dh)
-    {
-        ::DH_free(dh);
-    }
-};
-}
-
-//! Diffie-Hellmann routines and data
-class HATN_OPENSSL_EXPORT OpenSslDH :
-            public common::NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>
+//! Base class implementing DH key generation and derivation.
+template <typename BaseT>
+class OpenSslDHT : public BaseT
 {
     public:
 
-        using common::NativeHandlerContainer<::DH,detail::DHTraits,DH,OpenSslDH>::NativeHandlerContainer;
+        using BaseT::BaseT;
 
         /**
-         * @brief Parse DH parameters to native object
-         * @param dh Parsed native object
-         * @param data Pointer to buffer
-         * @param size Size of data
-         * @return Operation status
-         */
-
-        static Error parseParameters(
-            Native& dh,
-            const char* data,
-            size_t size
-        ) noexcept;
-
-        /**
-         * @brief Parse DH parameters from content
-         * @return Operation status
-         */
-        inline Error parseParameters() noexcept
-        {
-            return parseParameters(nativeHandler(),content().constData(),content().size());
-        }
-
-        /**
-         * @brief Import DH state
-         * @param pubKey Public key
-         * @param privKey Private key
-         * @return Operation status
-         */
+             * @brief Import DH state
+             * @param pubKey Public key
+             * @param privKey Private key
+             * @return Operation status
+             */
         virtual Error importState(
             common::SharedPtr<PrivateKey> privKey,
             common::SharedPtr<PublicKey> pubKey=common::SharedPtr<PublicKey>()
-        ) noexcept override;
+            ) noexcept override
+        {
+            if (!privKey.isNull())
+            {
+                if (privKey->alg()!=this->alg())
+                {
+                    return cryptError(CryptError::INVALID_KEY_TYPE);
+                }
+            }
+            m_privKey=std::move(privKey);
+            if (!m_privKey.isNull() && !m_privKey->isNativeValid())
+            {
+                return m_privKey->unpackContent();
+            }
+
+            std::ignore=pubKey;
+            return Error();
+        }
 
         /**
-         * @brief Export DH state for long-term use
-         * @param pubKey Public key
-         * @param privKey Private key
-         * @return Operation status
-         */
+             * @brief Export DH state for long-term use
+             * @param pubKey Public key
+             * @param privKey Private key
+             * @return Operation status
+             */
         virtual common::Error exportState(
             common::SharedPtr<PrivateKey>& privKey,
             common::SharedPtr<PublicKey>& pubKey
-        ) override;
+            ) override
+        {
+            HATN_CHECK_RETURN(generateKey(pubKey))
+            privKey=m_privKey;
+            return Error();
+        }
 
         //! Generate key on this side for further processing
         virtual Error generateKey(
             common::SharedPtr<PublicKey>& pubKey //!< Public key to be sent to peer
-        ) override;
+            ) override;
 
         /**
-         * @brief Derive secret data
-         * @param peerPubKey Buffer with peer public key
-         * @param peerPubKeySize Size of peer public key
-         * @param unprotected Keep DH secret unprotected.
-         *      If protector is set in the key the the key's content will be protected.
-         * @param result Computed result
-         * @return Operation status
-         */
-        Error computeSecret(
-            const char* peerPubKey,
-            size_t peerPubKeySize,
-            common::SharedPtr<DHSecret>& result
-        );
-
-        /**
-         * @brief Derive secret data with DH algorithm
-         * @param peerPubKey Public key of peer side
-         * @param result Computed result
-         * @return Operation status
-         */
+             * @brief Derive secret data with DH algorithm
+             * @param peerPubKey Public key of peer side
+             * @param result Computed result
+             * @return Operation status
+             */
         virtual Error computeSecret(
             const common::SharedPtr<PublicKey>& peerPubKey,
             common::SharedPtr<DHSecret>& result
-        ) override
-        {
-            Assert(!peerPubKey.isNull(),"Invalid peer public key");
-            return computeSecret(peerPubKey->content().data(),peerPubKey->content().size(),result);
-        }
+            ) override;
 
-        /**
-         * @brief Import parameters from buffer
-         * @param buf Buffer to import from
-         * @param size Size of the buffer
-         * @param format Data format
-         * @return Operation status
-         */
-        virtual common::Error importParamsFromBuf(
-            const char* buf,
-            size_t size,
-            ContainerFormat format=ContainerFormat::PEM,
-            bool keepContent=true
-        ) override;
+    private:
+
+        common::SharedPtr<OpenSslPrivateKey> m_privKey;
+};
+
+#ifdef _WIN32
+template class HATN_OPENSSL_EXPORT OpenSslDHT<DH>;
+#endif
+
+//! DH implementation with Openssl 3 backend.
+class HATN_OPENSSL_EXPORT OpenSslDH : public OpenSslDHT<DH>
+{
+    public:
+
+        using OpenSslDHT<DH>::OpenSslDHT;
 
         static common::Error findNativeAlgorithm(
             std::shared_ptr<CryptAlgorithm> &alg,
             const char *name,
             CryptEngine* engine
         );
+
+        static std::vector<std::string> listDHs();
 };
+
+#endif
 
 HATN_OPENSSL_NAMESPACE_END
 

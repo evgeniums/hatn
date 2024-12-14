@@ -204,6 +204,24 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         }
 
         /**
+         * @brief List names of all implemented DH algorithms.
+         * @return Names of DH algorithms.
+         *
+         * Normally, an algorithm's name means name of corresponding safe prime group
+         * for Diffie-Hellman algorithm.
+         * Names can be compound like "BASE_NAME/parameter1/.../parameterN".
+         * In this case listed name will give a hint:
+         * <pre>
+         * "BASE_NAME[/<parameter1>]" - optional parameter
+         * "BASE_NAME/<parameter1>" - mandatory parameter
+         * </pre>
+         */
+        virtual std::vector<std::string> listDHs() const
+        {
+            return std::vector<std::string>();
+        }
+
+        /**
          * @brief Find cryptographic engine
          * @param engineName Name of engine where to search for algorithm implementation
          * @param engine Result pointer

@@ -20,7 +20,7 @@
 #ifndef HATNCRYPTECDH_H
 #define HATNCRYPTECDH_H
 
-#include <hatn/crypt/dh.h>
+#include <hatn/crypt/diffiehellman.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 

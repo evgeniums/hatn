@@ -14,11 +14,12 @@
  */
 /****************************************************************************/
 
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
+#include <openssl/core_names.h>
 
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
+#include <hatn/crypt/plugins/openssl/opensslpublickey.h>
 #include <hatn/crypt/plugins/openssl/openssldh.h>
+#include <hatn/crypt/plugins/openssl/opensslecdh.h>
 
 //! \note Do not move this header upper, otherwise there are some conflicts of types on Windows platform
 #include <hatn/common/makeshared.h>
@@ -39,10 +40,47 @@ class DHMethod
 };
 
 //---------------------------------------------------------------
-DHAlg::DHAlg(const CryptEngine *engine, const char *name, std::string paramName, std::string paramSha1) noexcept
-    : CryptAlgorithm(engine,CryptAlgorithm::Type::DH,name,0,DHMethod::stub()),
-      m_paramName(std::move(paramName)),
-      m_paramSha1(std::move(paramSha1))
+Error DHPrivateKey::doGenerate()
+{
+    // create ctx
+    common::NativeHandler<EVP_PKEY_CTX,detail::PkeyCtxTraits> pctx(
+        EVP_PKEY_CTX_new_from_name(NULL,"DH",NULL)
+        );
+    if (pctx.isNull())
+    {
+        return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+    }
+
+    // init ctx
+    if (EVP_PKEY_keygen_init(pctx.handler) != OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+    }
+
+    // load group name to context
+    OSSL_PARAM params[2];
+    params[0] = OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>(alg()->name()), 0);
+    params[1] = OSSL_PARAM_construct_end();
+    if (EVP_PKEY_CTX_set_params(pctx.handler, params) != OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+    }
+
+    // generate key
+    EVP_PKEY *pkey = NULL;
+    if (EVP_PKEY_generate(pctx.handler, &pkey) != OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+    }
+
+    // done
+    setNativeHandler(pkey);
+    return OK;
+}
+
+//---------------------------------------------------------------
+DHAlg::DHAlg(const CryptEngine *engine, const char *name) noexcept
+    : CryptAlgorithm(engine,CryptAlgorithm::Type::DH,name,0,DHMethod::stub())
 {}
 
 //---------------------------------------------------------------
@@ -53,291 +91,130 @@ common::SharedPtr<PrivateKey> DHAlg::createPrivateKey() const
     return key;
 }
 
+/******************* OpenSslDHT *******************/
+
 //---------------------------------------------------------------
-const char* DHAlg::paramStr(size_t index) const
+
+template <typename BaseT>
+Error OpenSslDHT<BaseT>::generateKey(common::SharedPtr<PublicKey> &pubKey)
 {
-    if (index==static_cast<size_t>(DHParamsStorage::AlgParam::Name))
+    if (pubKey.isNull())
     {
-        return m_paramName.c_str();
+        pubKey=common::makeShared<OpenSslPublicKey>();
+        pubKey->setAlg(this->alg());
     }
-    if (index==static_cast<size_t>(DHParamsStorage::AlgParam::Sha1))
+
+    if (m_privKey.isNull() || m_privKey->isNull())
     {
-        return m_paramSha1.c_str();
+        m_privKey=this->alg()->createPrivateKey();
+        HATN_CHECK_RETURN(m_privKey->generate())
     }
-    return nullptr;
+
+    return pubKey->derive(*m_privKey);
+}
+
+//---------------------------------------------------------------
+
+template <typename BaseT>
+Error OpenSslDHT<BaseT>::computeSecret(const common::SharedPtr<PublicKey> &peerPubKey, common::SharedPtr<DHSecret> &result)
+{
+    if (m_privKey.isNull())
+    {
+        return cryptError(CryptError::INVALID_DH_STATE);
+    }
+
+    if (peerPubKey.isNull() || peerPubKey->alg()!=this->alg())
+    {
+        return cryptError(CryptError::INVALID_KEY_TYPE);
+    }
+    // slow dynamic cast is ok in long cryptographic functions
+    OpenSslPublicKey* pubKey=dynamic_cast<OpenSslPublicKey*>(peerPubKey.get());
+    if (pubKey==nullptr)
+    {
+        return cryptError(CryptError::INVALID_KEY_TYPE);
+    }
+
+    if (!peerPubKey->isNativeValid())
+    {
+        HATN_CHECK_RETURN(peerPubKey->unpackContent())
+    }
+
+    common::NativeHandler<EVP_PKEY_CTX,detail::PkeyCtxTraits> ctx(::EVP_PKEY_CTX_new(m_privKey->nativeHandler().handler, NULL));
+    if (ctx.isNull())
+    {
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+    if (::EVP_PKEY_derive_init(ctx.handler)!=1)
+    {
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+    if (::EVP_PKEY_derive_set_peer(ctx.handler,pubKey->nativeHandler().handler)!=1)
+    {
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+    size_t secretLen=0;
+    if (::EVP_PKEY_derive(ctx.handler,NULL,&secretLen)!=1)
+    {
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+    if (secretLen==0)
+    {
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+
+    if (result.isNull())
+    {
+        result=common::makeShared<DHSecret>();
+        result->setAlg(this->alg());
+    }
+    else
+    {
+        result->content().clear();
+    }
+    result->content().resize(secretLen);
+    if (::EVP_PKEY_derive(ctx.handler,reinterpret_cast<unsigned char*>(result->content().data()),&secretLen)!=1)
+    {
+        result->content().clear();
+        return makeLastSslError(CryptError::DH_FAILED);
+    }
+    result->setContentProtected(false);
+    result->setFormat(ContainerFormat::RAW_PLAIN);
+
+    return Error();
 }
 
 /******************* OpenSslDH ********************/
 
-//---------------------------------------------------------------
-Error OpenSslDH::parseParameters(Native& dh, const char *data, size_t size) noexcept
+static const std::set<std::string>& dhGroups()
 {
-    dh.reset();
-
-    if (size==0 || data==nullptr)
-    {
-        return makeSystemError(std::errc::invalid_argument);
-    }
-
-    BIO *bio;
-    HATN_CHECK_RETURN(createMemBio(bio,data,size))
-
-    dh.handler=::PEM_read_bio_DHparams(bio,NULL,NULL,NULL);
-    if (dh.isNull())
-    {
-        BIO_free(bio);
-        return makeLastSslError();
-    }
-    BIO_free(bio);
-    return Error();
-}
-
-//---------------------------------------------------------------
-Error OpenSslDH::importState(
-        common::SharedPtr<PrivateKey> privKey,
-        common::SharedPtr<PublicKey> pubKey
-    ) noexcept
-{
-    if (!isValid())
-    {
-        HATN_CHECK_RETURN(parseParameters())
-    }
-
-    BIGNUM* bPubKey=nullptr;
-    BIGNUM* bPrivKey=nullptr;
-
-    if (!privKey.isNull())
-    {
-        if (privKey->format()==ContainerFormat::RAW_PLAIN && !privKey->content().isEmpty())
-        {
-            bPrivKey=::BN_bin2bn(reinterpret_cast<unsigned const char*>(privKey->content().data()),static_cast<int>(privKey->content().size()),NULL);
-        }
-        else
-        {
-            common::MemoryLockedArray privBuf;
-            HATN_CHECK_RETURN(privKey->exportToBuf(privBuf,ContainerFormat::RAW_PLAIN,true))
-            if (!privBuf.empty())
-            {
-                auto privKeyData=reinterpret_cast<unsigned const char*>(privBuf.data());
-                int privKeySize=static_cast<int>(privBuf.size());
-                bPrivKey=::BN_bin2bn(privKeyData,privKeySize,NULL);
-            }
-        }
-    }
-
-    if (!pubKey.isNull())
-    {
-        if (pubKey->format()==ContainerFormat::RAW_PLAIN && !pubKey->content().isEmpty())
-        {
-            bPubKey=::BN_bin2bn(reinterpret_cast<unsigned const char*>(pubKey->content().data()),static_cast<int>(pubKey->content().size()),NULL);
-        }
-        else
-        {
-            common::ByteArray tmpBuf;
-            HATN_CHECK_RETURN(pubKey->exportToBuf(tmpBuf,ContainerFormat::RAW_PLAIN));
-            if (!tmpBuf.isEmpty())
-            {
-                bPubKey=::BN_bin2bn(reinterpret_cast<unsigned const char*>(tmpBuf.data()),static_cast<int>(tmpBuf.size()),NULL);
-            }
-        }
-    }
-
-    if (::DH_set0_key(nativeHandler().handler,bPubKey,bPrivKey)!=1)
-    {
-        return makeLastSslError();
-    }
-
-    return Error();
-}
-
-//---------------------------------------------------------------
-Error OpenSslDH::exportState(common::SharedPtr<PrivateKey> &privKey, common::SharedPtr<PublicKey> &pubKey)
-{
-    // create or clear keys
-    if (privKey.isNull())
-    {
-        privKey=common::makeShared<DHPrivateKey>();
-        privKey->setAlg(alg());
-    }
-    else
-    {
-        privKey->content().clear();
-    }
-    if (pubKey.isNull())
-    {
-        pubKey=common::makeShared<PublicKey>();
-        pubKey->setAlg(alg());
-    }
-    else
-    {
-        pubKey->content().clear();
-    }
-
-    if (!isValid())
-    {
-        HATN_CHECK_RETURN(parseParameters())
-    }
-
-    // generate key by backend (will use exisiting if already set)
-    if (::DH_generate_key(nativeHandler().handler)!=1)
-    {
-        return makeLastSslError();
-    }
-
-    const BIGNUM* bPubKey=nullptr;
-    const BIGNUM* bPrivKey=nullptr;
-
-    // get native keys from backend
-    ::DH_get0_key(nativeHandler().handler,&bPubKey,&bPrivKey);
-    if (bPubKey==nullptr || bPrivKey==nullptr)
-    {
-        return makeLastSslError(CryptError::INVALID_DH_STATE);
-    }
-
-    // export private key
-    bn2Container(bPrivKey,privKey->content());
-    privKey->setContentProtected(false);
-    privKey->setFormat(ContainerFormat::RAW_PLAIN);
-    if (privKey->protector())
-    {
-        HATN_CHECK_RETURN(privKey->packContent())
-    }
-
-    // export public key
-    bn2Container(bPubKey,pubKey->content());
-    pubKey->setFormat(ContainerFormat::RAW_PLAIN);
-
-    return Error();
-}
-
-//---------------------------------------------------------------
-Error OpenSslDH::generateKey(common::SharedPtr<PublicKey> &pubKey)
-{
-    // generate or clear key
-    if (pubKey.isNull())
-    {
-        pubKey=common::makeShared<PublicKey>();
-        pubKey->setAlg(alg());
-    }
-    else
-    {
-        pubKey->content().clear();
-    }
-
-    if (!isValid())
-    {
-        HATN_CHECK_RETURN(parseParameters())
-    }
-
-    // generate key by backend (will use exisiting if already set)
-    if (::DH_generate_key(nativeHandler().handler)!=1)
-    {
-        return makeLastSslError();
-    }
-
-    const BIGNUM* bPubKey=nullptr;
-    const BIGNUM* bPrivKey=nullptr;
-
-    // export public key
-    ::DH_get0_key(nativeHandler().handler,&bPubKey,&bPrivKey);
-    if (bPubKey==nullptr)
-    {
-        return makeLastSslError(CryptError::INVALID_DH_STATE);
-    }
-    bn2Container(bPubKey,pubKey->content());
-    pubKey->setFormat(ContainerFormat::RAW_PLAIN);
-
-    return Error();
-}
-
-//---------------------------------------------------------------
-Error OpenSslDH::computeSecret(const char *peerPubKey, size_t peerPubKeySize, common::SharedPtr<DHSecret>& resultKey)
-{
-    if (resultKey.isNull())
-    {
-        resultKey=common::makeShared<DHSecret>();
-        resultKey->setAlg(alg());
-    }
-    else
-    {
-        resultKey->content().clear();
-    }
-
-    if (!isValid())
-    {
-        HATN_CHECK_RETURN(parseParameters())
-    }
-
-    auto bPubKey=::BN_bin2bn(reinterpret_cast<unsigned const char*>(peerPubKey),static_cast<int>(peerPubKeySize),NULL);
-    resultKey->content().resize(::DH_size(nativeHandler().handler));
-
-    if (::DH_compute_key(reinterpret_cast<unsigned char*>(resultKey->content().data()),bPubKey,nativeHandler().handler)!=1)
-    {
-        ::BN_free(bPubKey);
-        return makeLastSslError();
-    }
-    ::BN_free(bPubKey);
-
-    if (resultKey->protector())
-    {
-        return resultKey->packContent();
-    }
-    else
-    {
-        resultKey->setContentProtected(false);
-        resultKey->setFormat(ContainerFormat::RAW_PLAIN);
-    }
-
-    return Error();
-}
-
-//---------------------------------------------------------------
-Error OpenSslDH::importParamsFromBuf(const char *buf, size_t size, ContainerFormat format, bool keepContent)
-{
-    if (format!=ContainerFormat::PEM)
-    {
-        return cryptError(CryptError::INVALID_CONTENT_FORMAT);
-    }
-    HATN_CHECK_RETURN(parseParameters(nativeHandler(),buf,size))
-    if (keepContent)
-    {
-        loadContent(buf,size);
-        setFormat(format);
-    }
-    return Error();
+    static std::set<std::string> groups{
+        "ffdhe2048", "ffdhe3072", "ffdhe4096", "ffdhe6144", "ffdhe8192",
+        "modp_2048", "modp_3072", "modp_4096", "modp_6144", "modp_8192",
+        "modp_1536", "dh_1024_160", "dh_2048_224", "dh_2048_256"
+    };
+    return groups;
 }
 
 //---------------------------------------------------------------
 Error OpenSslDH::findNativeAlgorithm(std::shared_ptr<CryptAlgorithm> &alg, const char *name, CryptEngine *engine)
 {
-    std::vector<std::string> parts;
-    splitAlgName(name,parts);
-    if (parts.size()<1)
-    {
-        return cryptError(CryptError::INVALID_ALGORITHM);
-    }
-    auto algName=parts[0];
-    if (!boost::iequals(algName,std::string("dh")))
+    // check if name is in the list of supported safe prime groups.
+    auto it=dhGroups().find(name);
+    if (it==dhGroups().end())
     {
         return cryptError(CryptError::INVALID_ALGORITHM);
     }
 
-    std::string paramName;
-    if (parts.size()>1)
-    {
-        paramName=parts[1];
-        boost::to_lower(paramName);
-    }
-
-    std::string paramSha1;
-    if (parts.size()>2)
-    {
-        paramSha1=parts[2];
-        boost::to_lower(paramSha1);
-    }
-
-    alg=std::make_shared<DHAlg>(engine,name,std::move(paramName),std::move(paramSha1));
+    // create and return alg
+    alg=std::make_shared<DHAlg>(engine,name);
     return Error();
+}
+
+//---------------------------------------------------------------
+std::vector<std::string> OpenSslDH::listDHs()
+{
+    std::vector<std::string> v(dhGroups().begin(),dhGroups().end());
+    return v;
 }
 
 //---------------------------------------------------------------

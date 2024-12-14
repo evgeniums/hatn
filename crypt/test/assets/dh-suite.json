@@ -6,5 +6,5 @@
   "mac":"poly1305",
   "cipher":"aes-256-cbc",
   "signature":"ed/25519",
-  "dh":"dh/rfc4526-g4096"
+  "dh":"modp_4096"
 }
