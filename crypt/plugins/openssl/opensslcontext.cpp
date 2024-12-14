@@ -204,12 +204,41 @@ Error OpenSslContext::setPrivateKey(const common::SharedPtr<PrivateKey> &key) no
 //---------------------------------------------------------------
 Error OpenSslContext::setDH(const common::SharedPtr<DH> &dh) noexcept
 {
-    if (SSL_CTX_set_dh_auto(m_sslCtx,1)!=OPENSSL_OK)
+    auto osslDh=dynamic_cast<OpenSslDH*>(dh.get());
+    if (osslDh==nullptr)
+    {
+        return commonError(CommonError::INVALID_ARGUMENT);
+    }
+
+    auto privKey=osslDh->privKey();
+    if (!privKey)
+    {
+        return cryptError(CryptError::INVALID_DH_STATE);
+    }
+    auto* pKey=privKey->nativeHandler().handler;
+    if (pKey==nullptr)
+    {
+        return cryptError(CryptError::INVALID_DH_STATE);
+    }
+    auto* pkeyDup=EVP_PKEY_dup(pKey);
+    if (pkeyDup==nullptr)
     {
         return makeLastSslError(CryptError::GENERAL_FAIL);
     }
-    std::ignore=dh;
-    //! @todo Use SSL_CTX_set0_tmp_dh_pkey
+    if (SSL_CTX_set0_tmp_dh_pkey(m_sslCtx,pkeyDup)!=OPENSSL_OK)
+    {   EVP_PKEY_free(pkeyDup);
+        return makeLastSslError(CryptError::GENERAL_FAIL);
+    }
+    return Error();
+}
+
+//---------------------------------------------------------------
+Error OpenSslContext::setDH(bool enableAuto) noexcept
+{
+    if (SSL_CTX_set_dh_auto(m_sslCtx,static_cast<int>(enableAuto))!=OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::GENERAL_FAIL);
+    }
     return Error();
 }
 

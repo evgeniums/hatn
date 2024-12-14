@@ -119,6 +119,8 @@ struct TlsConfig
     bool ctxExpectedFail=false;
 
     Thread* thread=nullptr;
+
+    bool autoDH=false;
 };
 
 struct TestContextStorage
@@ -369,6 +371,15 @@ void tlsContext(
         }
         BOOST_CHECK(!ec);
     }
+    if (config.autoDH)
+    {
+        ec=serverContext->setDH(true);
+        if (ec)
+        {
+            G_DEBUG(fmt::format("Failed to set server auto DH: {}",ec.message()));
+        }
+        BOOST_CHECK(!ec);
+    }
     if (!config.serverEC.empty())
     {
         ec=serverContext->setECDHAlgs(config.serverEC);
@@ -469,6 +480,15 @@ void tlsContext(
         if (ec)
         {
             G_DEBUG(fmt::format("Failed to set client DH: {}",ec.message()));
+        }
+        BOOST_CHECK(!ec);
+    }
+    if (config.autoDH)
+    {
+        ec=clientContext->setDH(true);
+        if (ec)
+        {
+            G_DEBUG(fmt::format("Failed to set client auto DH: {}",ec.message()));
         }
         BOOST_CHECK(!ec);
     }
@@ -1241,8 +1261,6 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeClientPkeyOk,Env)
     checkAlg(algHandler);
 }
 
-//! @todo Uncomment it when DH implementation in openssl plugin is fixed
-#if 0
 BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeDHOk,Env)
 {
     auto algHandler=[this](std::shared_ptr<CryptPlugin>& plugin,const std::string& algName,const std::string& pathPrefix)
@@ -1254,15 +1272,22 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeDHOk,Env)
                 config.serverProtocol=SecureStreamTypes::ProtocolVersion::TLS1_2;
                 config.clientProtocol=SecureStreamTypes::ProtocolVersion::TLS1_2;
 
-                auto clientDH=plugin->createDH();
+                const CryptAlgorithm* alg1=nullptr;
+                std::string algName1="ffdhe4096";
+                auto ec=plugin->findAlgorithm(alg1,CryptAlgorithm::Type::DH,algName1);
+                BOOST_REQUIRE(!ec);
+
+                auto clientDH=plugin->createDH(alg1);
                 HATN_REQUIRE(clientDH);
-                auto ec=clientDH->importParamsFromBuf(DHRfc3526::group3072());
+                SharedPtr<PublicKey> pubKey1;
+                ec=clientDH->generateKey(pubKey1);
                 HATN_REQUIRE(!ec);
                 config.clientDH=clientDH;
 
-                auto serverDH=plugin->createDH();
+                auto serverDH=plugin->createDH(alg1);
                 HATN_REQUIRE(serverDH);
-                ec=serverDH->importParamsFromBuf(DHRfc3526::group3072());
+                SharedPtr<PublicKey> pubKey2;
+                ec=serverDH->generateKey(pubKey2);
                 HATN_REQUIRE(!ec);
                 config.serverDH=serverDH;
             };
@@ -1272,7 +1297,24 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeDHOk,Env)
     checkAlg(algHandler);
 }
 
-#endif
+BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeDHAutoOk,Env)
+{
+    auto algHandler=[this](std::shared_ptr<CryptPlugin>& plugin,const std::string& algName,const std::string& pathPrefix)
+    {
+        if (plugin->isFeatureImplemented(Crypt::Feature::DH))
+        {
+            auto setupCfg=[plugin](TlsConfig& config)
+            {
+                config.serverProtocol=SecureStreamTypes::ProtocolVersion::TLS1_2;
+                config.clientProtocol=SecureStreamTypes::ProtocolVersion::TLS1_2;
+
+                config.autoDH=true;
+            };
+            checkHandshake(this,plugin,algName,pathPrefix,setupCfg);
+        }
+    };
+    checkAlg(algHandler);
+}
 
 BOOST_FIXTURE_TEST_CASE(CheckTlsHandshakeECDHOk,Env)
 {

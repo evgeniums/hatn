@@ -269,6 +269,14 @@ class SecureStreamContext
             return common::Error(common::CommonError::UNSUPPORTED);
         }
 
+        virtual common::Error setDH(
+              bool enableAuto
+            ) noexcept
+        {
+            std::ignore=enableAuto;
+            return common::Error(common::CommonError::UNSUPPORTED);
+        }
+
         /**
          * @brief Set list of ECDH algorithms
          * @param algs ECDH algorithms

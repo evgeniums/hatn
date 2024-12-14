@@ -129,6 +129,12 @@ class HATN_OPENSSL_EXPORT OpenSslContext : public SecureStreamContext
             const common::SharedPtr<DH>& dh
         ) noexcept override;
 
+#if OPENSSL_API_LEVEL >= 30100
+        virtual common::Error setDH(
+            bool enableAuto
+            ) noexcept override;
+#endif
+
         /**
          * @brief Set list of ECDH algorithms
          * @param algs ECDH algorithms

@@ -134,6 +134,11 @@ class OpenSslDHT : public BaseT
             common::SharedPtr<DHSecret>& result
             ) override;
 
+        common::SharedPtr<OpenSslPrivateKey> privKey() const noexcept
+        {
+            return m_privKey;
+        }
+
     private:
 
         common::SharedPtr<OpenSslPrivateKey> m_privKey;
