@@ -259,7 +259,7 @@ class CacheLRU
         }
 
         /**
-         * @brief Ckear cache
+         * @brief Clear cache
          */
         void clear()
         {
