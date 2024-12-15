@@ -616,6 +616,18 @@ inline common::Error makeBoostError(boost::system::errc::errc_t ec)
     return common::Error(static_cast<int>(ec),&boost::system::generic_category());
 }
 
+//! Create Error object from boost system error.
+inline common::Error makeSystemError(const boost::system::error_code& ec) noexcept
+{
+    return makeBoostError(ec);
+}
+
+//! Create Error object from std system error code.
+inline common::Error makeSystemError(boost::system::errc::errc_t ec) noexcept
+{
+    return makeBoostError(ec);
+}
+
 //! Set error code.
 template <typename T>
 inline void setError(Error& ec, T code) noexcept
