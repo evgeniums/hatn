@@ -123,6 +123,8 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          */
         virtual uint64_t size() const override;
 
+        virtual uint64_t size(Error& ec) const override;
+
         /**
          * @brief Get size of file on disk
          * @throws ErrorException if operation failed
@@ -136,6 +138,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          * Used size inlcudes header, descriptor and packed cipher text
          */
         uint64_t usedSize() const;
+
         /**
          * @brief Get size of used data
          * @param ec Error status
@@ -310,12 +313,41 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         //! Verify MAC in stamp
         common::Error verifyStampMAC();
 
+        /**
+         * @brief Close file and reset state.
+         */
         void reset();
+
+        /**
+         * @brief Set underlying file object.
+         * @param file Underlying file object.
+         */
+        void setUnderlying(common::File* file)
+        {
+            m_file=file;
+        }
+
+        /**
+         * @brief Invalidate cached data.
+         * @return Operation status.
+         */
+        common::Error invalidateCache();
+
+        /**
+         * @brief Truncate file.
+         * @param size New size. If new size is greater than current size then noop.
+         * @param backupCopy Make a backup copy to restore the file in case of error.
+         * @return Operation status.
+         *
+         * @note File becomes corrupted in case of error. For safe use set a backupCopy flag which is true by default.
+         * @note A file stamp is removed if it was present before truncating.
+         */
+        common::Error truncate(size_t size, bool backupCopy=true);
 
     private:
 
         common::Error doOpen(Mode mode, bool headerOnly=false);
-        common::Error doSeek(uint64_t pos, size_t overwriteSize=0);
+        common::Error doSeek(uint64_t pos, size_t overwriteSize=0, bool withCache=true);
         void doClose(bool withThrow=true,bool flush=true);
         void doClose(common::Error& ec,bool flush=true) noexcept;
 
