@@ -25,6 +25,8 @@
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
+//! @todo Support data compression
+
 HDU_UNIT(cipher_suite,
     HDU_FIELD(id,TYPE_STRING,1)
     HDU_FIELD(cipher,TYPE_STRING,2)
