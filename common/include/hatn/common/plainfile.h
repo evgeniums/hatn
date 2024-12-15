@@ -81,6 +81,12 @@ class HATN_COMMON_EXPORT PlainFile : public File
          */
         virtual uint64_t size() const override;
 
+        virtual uint64_t size(Error& ec) const override;
+
+        uint64_t fileSize() const;
+
+        uint64_t fileSize(Error& ec) const noexcept;
+
         /**
          * @brief Write data to file
          * @param data Data buffer
@@ -98,6 +104,8 @@ class HATN_COMMON_EXPORT PlainFile : public File
          * @throws ErrorException if operation failed
          */
         virtual size_t read(char* data, size_t maxSize) override;
+
+        common::Error truncate(size_t size);
 
     private:
 

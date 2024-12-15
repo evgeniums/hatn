@@ -76,9 +76,9 @@ class File
         /**
          * @brief Get filename
          */
-        inline const char* filename() const noexcept
+        inline const std::string& filename() const noexcept
         {
-            return m_filename.c_str();
+            return m_filename;
         }
         /**
          * @brief Check if filename is empty
@@ -207,23 +207,12 @@ class File
          * @throws ErrorException if operation failed
          */
         virtual uint64_t size() const=0;
+
         /**
          * @brief Get size of file content
          * @param ec Error if operation failed
          */
-        uint64_t size(Error& ec) const
-        {
-            ec.reset();
-            try
-            {
-                return size();
-            }
-            catch (const ErrorException& e)
-            {
-                ec=e.error();
-            }
-            return 0u;
-        }
+        virtual uint64_t size(Error& ec) const=0;
 
         /**
          * @brief Get size of file on disk
@@ -352,6 +341,11 @@ class File
             Error ec1;
             close(ec1);
             return ec;
+        }
+
+        common::Error truncate(size_t /*size*/)
+        {
+            return CommonError::NOT_IMPLEMENTED;
         }
 
     private:

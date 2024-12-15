@@ -31,9 +31,11 @@ namespace lib
 {
 
 #if __cplusplus < 201703L || (defined (IOS_SDK_VERSION_X10) && IOS_SDK_VERSION_X10<120)
-namespace filesystem=boost::filesystem;
+namespace filesystem=boost::filesystem
+using fs_error_code=boost::error_code;;
 #else
 namespace filesystem=std::filesystem;
+using fs_error_code=std::error_code;
 #endif
 
 } // namespace lib

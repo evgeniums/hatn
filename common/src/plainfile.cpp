@@ -18,7 +18,7 @@
 #include <fileapi.h>
 #endif
 
-#include <boost/filesystem.hpp>
+#include <hatn/common/filesystem.h>
 
 #include <hatn/common/plainfile.h>
 
@@ -115,28 +115,57 @@ uint64_t PlainFile::pos() const
 //---------------------------------------------------------------
 uint64_t PlainFile::size() const
 {
-    bool closeFile=false;
-    boost::system::error_code ec;
     if (!m_file.is_open())
     {
-        const_cast<PlainFile*>(this)->m_file.open(filename(),Mode::scan,ec);
-        if (ec)
-        {
-            throw ErrorException(makeBoostError(ec));
-        }
-        closeFile=true;
+        return fileSize();
     }
-    auto ret=m_file.size(ec);
-    if (closeFile)
-    {
-        boost::system::error_code ec1;
-        const_cast<PlainFile*>(this)->m_file.close(ec1);
-    }
+    boost::system::error_code ec;
+    auto size=m_file.size(ec);
     if (ec)
     {
         throw ErrorException(makeBoostError(ec));
     }
-    return ret;
+    return size;
+}
+
+//---------------------------------------------------------------
+uint64_t PlainFile::size(Error &ec) const
+{
+    if (!m_file.is_open())
+    {
+        return fileSize();
+    }
+    boost::system::error_code e;
+    auto size=m_file.size(e);
+    if (e)
+    {
+        ec=makeBoostError(e);
+    }
+    return size;
+}
+
+//---------------------------------------------------------------
+uint64_t PlainFile::fileSize(Error& ec) const noexcept
+{
+    lib::fs_error_code e;
+    auto size=lib::filesystem::file_size(filename(),e);
+    if (e)
+    {
+        ec=makeSystemError(e);
+    }
+    return size;
+}
+
+//---------------------------------------------------------------
+uint64_t PlainFile::fileSize() const
+{
+    Error ec;
+    auto size=fileSize(ec);
+    if (ec)
+    {
+        throw ErrorException(ec);
+    }
+    return size;
 }
 
 //---------------------------------------------------------------
@@ -169,6 +198,18 @@ size_t PlainFile::read(char *data, size_t maxSize)
         throw ErrorException(makeBoostError(ec));
     }
     return ret;
+}
+
+//---------------------------------------------------------------
+Error PlainFile::truncate(size_t size)
+{
+    lib::fs_error_code fec;
+    lib::filesystem::resize_file(filename(),size,fec);
+    if (fec)
+    {
+        return makeSystemError(fec);
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
