@@ -53,6 +53,12 @@ class HATN_CRYPT_EXPORT CipherSuite
         CipherSuite(const char* id);
 
         /**
+         * @brief Ctor with ID
+         * @param Suit ID
+         */
+        CipherSuite(const lib::string_view& id);
+
+        /**
          * @brief Ctor from external suit data unit
          * @param suite Suit data unit
          */

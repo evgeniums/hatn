@@ -54,6 +54,13 @@ CipherSuite::CipherSuite(const char *id)
 }
 
 //---------------------------------------------------------------
+CipherSuite::CipherSuite(const lib::string_view& id)
+    : CipherSuite()
+{
+    m_suite->setFieldValue(cipher_suite::id,id);
+}
+
+//---------------------------------------------------------------
 CipherSuite::CipherSuite(common::SharedPtr<cipher_suite::shared_traits::managed> suite) noexcept
   : m_suite(std::move(suite)),
     m_cipherAlgorithm(nullptr),
