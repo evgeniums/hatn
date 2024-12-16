@@ -328,6 +328,7 @@ class File
             {
                 auto fileSize=size();
                 container.resize(static_cast<size_t>(fileSize));
+                seek(0);
                 auto readSize=read(container.data(),static_cast<size_t>(fileSize));
                 if (readSize!=static_cast<size_t>(fileSize))
                 {
