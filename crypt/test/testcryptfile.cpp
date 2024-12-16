@@ -99,17 +99,27 @@ static void writeExistingFile(
         HATN_REQUIRE(!ec);
 
         bool flush=static_cast<bool>(i%2);
+        bool sync=i==3;
+        bool fsync=i==5;
         bool readAfterWrite=i==0 || i==1 || i==4 || i==5;
         bool doubleWrite=i>4;
 
         // codechecker_false_positive [all]
         if (flush)
         {
-            HATN_TEST_FILE_MESSAGE("Check write read with immediate flush");
+            HATN_TEST_FILE_MESSAGE("Check write/read with immediate flush");
         }
         else
         {
-            HATN_TEST_FILE_MESSAGE("Check write read with delayed flush");
+            HATN_TEST_FILE_MESSAGE("Check write/read with delayed flush");
+        }
+        if (sync)
+        {
+            HATN_TEST_FILE_MESSAGE("Check write/read with sync");
+        }
+        if (fsync)
+        {
+            HATN_TEST_FILE_MESSAGE("Check write/read with fsync");
         }
         // codechecker_false_positive [all]
         if (readAfterWrite)
@@ -144,7 +154,7 @@ static void writeExistingFile(
         };
 
         // handler for writing and reading
-        auto writeData=[&plainFile,&cryptFile,&tmpByteArray,flush,readAfterWrite,doubleWrite](size_t fileOffset, size_t size, size_t dataOffset)
+        auto writeData=[&plainFile,&cryptFile,&tmpByteArray,flush,sync,fsync,readAfterWrite,doubleWrite](size_t fileOffset, size_t size, size_t dataOffset)
         {
             auto ec=plainFile.seek(fileOffset);
             HATN_REQUIRE(!ec);
@@ -171,6 +181,22 @@ static void writeExistingFile(
                 ec=plainFile.flush();
                 HATN_REQUIRE(!ec);
                 ec=cryptFile.flush();
+                HATN_REQUIRE(!ec);
+            }
+
+            if (sync)
+            {
+                ec=plainFile.sync();
+                HATN_REQUIRE(!ec);
+                ec=cryptFile.sync();
+                HATN_REQUIRE(!ec);
+            }
+
+            if (fsync)
+            {
+                ec=plainFile.fsync();
+                HATN_REQUIRE(!ec);
+                ec=cryptFile.fsync();
                 HATN_REQUIRE(!ec);
             }
 

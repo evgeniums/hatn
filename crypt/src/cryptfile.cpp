@@ -868,6 +868,20 @@ common::Error CryptFile::invalidateCache()
 
 common::Error CryptFile::truncate(size_t size, bool backupCopy)
 {
+    return truncateImpl(size,backupCopy);
+}
+
+common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
+{
+    if (!isOpen())
+    {
+        HATN_CHECK_RETURN(doOpen(Mode::write))
+        HATN_CHECK_RETURN(truncateImpl(size,backupCopy))
+        Error ec;
+        doClose(ec,true);
+        return ec;
+    }
+
     // check if size is already ok
     if (size<=this->size())
     {
@@ -875,44 +889,44 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
     }
 
     // check if file is already open
-    if (isOpen())
+    size_t prevPos=m_cursor;
+    if (prevPos>size)
     {
-        return CommonError::FILE_ALREADY_OPEN;
+        prevPos=size;
     }
-
-    // check if filename is set
-    if (isFilenameEmpty())
-    {
-        return CommonError::INVALID_FILENAME;
-    }
+    auto prevMode=m_mode;
 
     // make guard
     Error ec;
     std::string backupCopyName;
     auto onExit=HATN_COMMON_NAMESPACE::makeScopeGuard(
-        [this,&ec,&backupCopyName]()
+        [this,&ec,&backupCopyName,prevMode,prevPos]()
         {
-            doClose(false,false);
             if (!backupCopyName.empty())
-            {
+            {                
                 lib::fs_error_code fec;
                 if (ec)
                 {
+                    m_file->close();
                     lib::filesystem::copy_file(backupCopyName,filename(),lib::filesystem::copy_options::overwrite_existing,fec);
                     if (fec)
                     {
-                        std::cerr << "CryptFile::truncate: failed to restore " << filename() << " from backup " << backupCopyName << std::endl;
+                        std::cerr << "CryptFile::truncate: failed to restore " << filename() << " from backup " << backupCopyName
+                                  << " after error code=" << ec.code() <<" message=\"" << ec.message() << "\"" << std::endl;
+                        throw ErrorException{makeSystemError(fec)};
                     }
                 }
-                if (!fec)
+                lib::filesystem::remove(backupCopyName,fec);
+                if (fec)
                 {
-                    lib::filesystem::remove(backupCopyName,fec);
-                    if (fec)
-                    {
-                        std::cerr << "CryptFile::truncate: failed to remove backup copy " << backupCopyName << " of " << filename() << std::endl;
-                    }
+                    std::cerr << "CryptFile::truncate: failed to remove backup copy " << backupCopyName << " of " << filename() << std::endl;
                 }
             }
+            if (!isOpen())
+            {
+                HATN_CHECK_THROW(doOpen(prevMode))
+            }
+            HATN_CHECK_THROW(doSeek(prevPos))
         }
         );
     std::ignore=onExit;
@@ -920,6 +934,14 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
     // make a backup copy
     if (backupCopy)
     {
+#if 0
+// maybe no need to close opened file for copying?
+        Error ec1;
+        doClose(ec1);
+        HATN_CHECK_EC(ec);
+#else
+        HATN_CHECK_RETURN(doFlush())
+#endif
         lib::fs_error_code fec;
         auto oid=du::ObjectId::generateId();
         backupCopyName=fmt::format("{}/hcc_{}.bak",lib::filesystem::temp_directory_path().string(),oid.toString());
@@ -928,13 +950,15 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
         {
             return makeSystemError(fec);
         }
+
+#if 0
+        // reopen file
+        ec=doOpen(prevMode);
+        HATN_CHECK_EC(ec)
+#endif
     }
 
-    // open file in read mode
-    ec=doOpen(Mode::read);
-    HATN_CHECK_EC(ec)
-
-    // prepere initiali raw file size
+    // prepare initiali raw file size
     size_t newRawFileSize=m_file->size();
     size_t rawEofPos=eofPos();
     if (newRawFileSize>rawEofPos)
@@ -968,16 +992,8 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
     ec=writeSize();
     HATN_CHECK_EC(ec)
 
-    // close file
-    doClose(ec,false);
-    HATN_CHECK_EC(ec)
-
     // truncate underlying file
-    ec=m_file->truncate(newRawFileSize);
-    HATN_CHECK_EC(ec)
-
-    // reopen file
-    ec=doOpen(Mode::append);
+    ec=m_file->truncate(newRawFileSize,backupCopy);
     HATN_CHECK_EC(ec)
 
     // append tmpbuf
@@ -994,6 +1010,22 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+common::Error CryptFile::sync() noexcept
+{
+    HATN_CHECK_RETURN(doFlush(false))
+    return m_file->sync();
+}
+
+//---------------------------------------------------------------
+
+common::Error CryptFile::fsync() noexcept
+{
+    HATN_CHECK_RETURN(doFlush(false))
+    return m_file->fsync();
 }
 
 //---------------------------------------------------------------

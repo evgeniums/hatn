@@ -342,7 +342,15 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          * @note File becomes corrupted in case of error. For safe use set a backupCopy flag which is true by default.
          * @note A file stamp is removed if it was present before truncating.
          */
-        common::Error truncate(size_t size, bool backupCopy=true);
+        common::Error truncate(size_t size, bool backupCopy=true) override;
+
+        common::Error truncateImpl(size_t size, bool backupCopy=true);
+
+        //! Sync buffers to disk
+        virtual Error sync() noexcept override;
+
+        //! Fsync buffers to disk
+        virtual Error fsync() noexcept override;
 
     private:
 
