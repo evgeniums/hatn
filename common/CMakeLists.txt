@@ -1,3 +1,4 @@
+include(CheckCXXSymbolExists)
 PROJECT(hatncommon)
 
 HATN_MODULE(common TRUE)
@@ -8,6 +9,11 @@ ENDIF()
 IF (NOT HAVE_PMR)
     SET (COMMON_CONFIG_H_TEXT "${COMMON_CONFIG_H_TEXT}\n#ifndef HATN_PMR_BOOST \n    #define HATN_PMR_BOOST\n#endif")
 ENDIF()
+
+CHECK_CXX_SYMBOL_EXISTS(F_FULLFSYNC "fcntl.h" HAVE_FULLFSYNC)
+if(HAVE_FULLFSYNC)
+  SET (COMMON_CONFIG_H_TEXT "${COMMON_CONFIG_H_TEXT}\n#ifndef HATN_HAVE_FULLFSYNC \n    #define HATN_HAVE_FULLFSYNC\n#endif")
+endif()
 
 ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)

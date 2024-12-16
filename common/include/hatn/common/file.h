@@ -149,17 +149,33 @@ class File
 
         //! Check if the file is open
         virtual bool isOpen() const noexcept=0;
+
         //! Flush buffers to disk
         virtual Error flush() noexcept=0;
+
+        //! Sync buffers to disk
+        virtual Error sync() noexcept
+        {
+            return OK;
+        }
+
+        //! Fsync buffers to disk
+        virtual Error fsync() noexcept
+        {
+            return OK;
+        }
+
         /**
          * @brief Close file
          * @throws ErrorException on error
          */
+
         virtual void close()=0;
         /**
          * @brief Close file
          * @param ec Error if opening failed
          */
+
         void close(Error& ec) noexcept
         {
             ec.reset();
@@ -343,7 +359,13 @@ class File
             return ec;
         }
 
-        common::Error truncate(size_t /*size*/)
+        /**
+         * @brief Truncate file.
+         * @param size New size. If new size is greater than current size then noop.
+         * @param backupCopy Make a backup copy to restore the file in case of error.
+         * @return Operation status.
+        */
+        virtual common::Error truncate(size_t /*size*/, bool /*backupCopy*/)
         {
             return CommonError::NOT_IMPLEMENTED;
         }

@@ -13,9 +13,12 @@
  *
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <fileapi.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #include <hatn/common/filesystem.h>
@@ -201,13 +204,90 @@ size_t PlainFile::read(char *data, size_t maxSize)
 }
 
 //---------------------------------------------------------------
-Error PlainFile::truncate(size_t size)
+Error PlainFile::truncate(size_t size, bool /*backupCopy*/)
 {
-    lib::fs_error_code fec;
-    lib::filesystem::resize_file(filename(),size,fec);
-    if (fec)
+
+    //! @todo Use native errors
+
+#if BOOST_BEAST_USE_WIN32_FILE
+
+    FILE_END_OF_FILE_INFO endOfFile;
+    endOfFile.EndOfFile.QuadPart = size;
+
+    if (!SetFileInformationByHandle(m_file.native_handle(), FileEndOfFileInfo, &endOfFile, sizeof(FILE_END_OF_FILE_INFO)))
     {
-        return makeSystemError(fec);
+        return CommonError::FILE_TRUNCATE_FAILED;
+    }
+
+#elif BOOST_BEAST_USE_POSIX_FILE
+
+    int r = ftruncate(m_file.native_handle(), size);
+    if (r < 0)
+    {
+        return CommonError::FILE_TRUNCATE_FAILED;
+    }
+
+#endif
+
+    return CommonError::NOT_IMPLEMENTED;
+}
+
+//---------------------------------------------------------------
+Error PlainFile::sync() noexcept
+{
+    //! @todo Use native errors
+    if (m_file.is_open())
+    {
+#if BOOST_BEAST_USE_WIN32_FILE
+        if (!FlushFileBuffers(m_file.native_handle()))
+        {
+            return commonError(CommonError::FILE_SYNC_FAILED);
+        }
+#elif BOOST_BEAST_USE_POSIX_FILE
+
+#ifdef HATN_HAVE_FULLFSYNC
+        if (::fcntl(m_file.native_handle(), F_FULLFSYNC) < 0)
+        {
+            return commonError(CommonError::FILE_SYNC_FAILED);
+        }
+#else
+        if (fdatasync(m_file.native_handle()) < 0)
+        {
+            return commonError(CommonError::FILE_SYNC_FAILED);
+        }
+#endif  // HAVE_FULLFSYNC
+
+#endif
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+Error PlainFile::fsync() noexcept
+{
+    //! @todo Use native errors
+    if (m_file.is_open())
+    {
+#if BOOST_BEAST_USE_WIN32_FILE
+        if (!FlushFileBuffers(m_file.native_handle()))
+        {
+            return commonError(CommonError::FILE_FSYNC_FAILED);
+        }
+#elif BOOST_BEAST_USE_POSIX_FILE
+
+#ifdef HATN_HAVE_FULLFSYNC
+        if (::fcntl(m_file.native_handle(), F_FULLFSYNC) < 0)
+        {
+            return commonError(CommonError::FILE_FSYNC_FAILED);
+        }
+#else
+        if (fsync(m_file.native_handle()) < 0)
+        {
+            return commonError(CommonError::FILE_FSYNC_FAILED);
+        }
+#endif  // HAVE_FULLFSYNC
+
+#endif
     }
     return OK;
 }

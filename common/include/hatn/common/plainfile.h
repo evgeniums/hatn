@@ -105,7 +105,19 @@ class HATN_COMMON_EXPORT PlainFile : public File
          */
         virtual size_t read(char* data, size_t maxSize) override;
 
-        common::Error truncate(size_t size);
+        //! Sync buffers to disk
+        virtual Error sync() noexcept override;
+
+        //! Fsync buffers to disk
+        virtual Error fsync() noexcept override;
+
+        /**
+         * @brief Truncate file.
+         * @param size New size. If new size is greater than current size then noop.
+         * @param backupCopy Make a backup copy to restore the file in case of error.
+         * @return Operation status.
+        */
+        common::Error truncate(size_t size, bool backupCopy=true) override;
 
     private:
 
