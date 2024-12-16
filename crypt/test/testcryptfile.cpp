@@ -17,6 +17,7 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/format.h>
 #include <hatn/common/fileutils.h>
+#include <hatn/common/plainfile.h>
 
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/ciphersuite.h>
@@ -1189,6 +1190,345 @@ BOOST_AUTO_TEST_CASE(CheckFileStamp)
         }
     );
 }
+
+static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
+{
+    // load suite from json
+    auto cipherSuiteFile=fmt::format("{}/cryptcontainer-ciphersuite1.json",path);
+    auto keyFile=fmt::format("{}/cryptfile-stamp-key.dat",path);
+
+    if (!boost::filesystem::exists(cipherSuiteFile)
+        ||
+        !boost::filesystem::exists(keyFile)
+        )
+    {
+        return;
+    }
+
+    ByteArray cipherSuiteJson;
+    auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
+    HATN_REQUIRE(!ec);
+    auto suite=std::make_shared<CipherSuite>();
+    ec=suite->loadFromJSON(cipherSuiteJson);
+    HATN_REQUIRE(!ec);
+
+    // add suite to table of suites
+    CipherSuites::instance().addSuite(suite);
+
+    // set engine
+    auto engine=std::make_shared<CryptEngine>(plugin.get());
+    CipherSuites::instance().setDefaultEngine(std::move(engine));
+
+    // check AEAD algorithm
+    const CryptAlgorithm* aeadAlg=nullptr;
+    ec=suite->aeadAlgorithm(aeadAlg);
+    if (ec)
+    {
+        return;
+    }
+    HATN_REQUIRE(aeadAlg);
+
+    // check pbkdf algorithm
+    const CryptAlgorithm* kdfAlg=nullptr;
+    ec=suite->pbkdfAlgorithm(kdfAlg);
+    if (ec)
+    {
+        return;
+    }
+
+    // load master key
+    common::SharedPtr<SymmetricKey> masterKey;
+    masterKey=plugin->createPassphraseKey();
+    HATN_REQUIRE(masterKey);
+    ec=masterKey->importFromFile(keyFile,ContainerFormat::RAW_PLAIN);
+    HATN_REQUIRE(!ec)
+
+    // init crypt file
+    auto cryptFilename1=fmt::format("{}/cryptfile-truncate1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto plainFilename1=fmt::format("{}/plainfile-truncate1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    ByteArray plaintext1;
+    auto plainTextFile=fmt::format("{}/cryptfile-plaintext10.dat",path);
+    ec=plaintext1.loadFromFile(plainTextFile);
+    BOOST_CHECK(!ec);
+    PlainFile plainFile1;
+    ec=plainFile1.open(plainFilename1,PlainFile::Mode::write);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    plainFile1.write(plaintext1.data(),plaintext1.size(),ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+
+    CryptFile cryptFile1(masterKey.get(),suite.get());
+    auto& processor=cryptFile1.processor();
+    processor.setChunkMaxSize(4096);
+    processor.setFirstChunkMaxSize(4096);
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    cryptFile1.write(plaintext1.data(),plaintext1.size(),ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile1.size(),plainFile1.size());
+
+    // truncate same size
+    auto size=cryptFile1.size();
+    BOOST_REQUIRE_EQUAL(size,plainFile1.size());
+    ec=plainFile1.truncate(size);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.truncate(size);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(size,cryptFile1.size());
+    BOOST_TEST_MESSAGE(fmt::format("fileSize={}, chunkMaxSize={}, firstChunkMaxSize={}",cryptFile1.size(),processor.chunkMaxSize(),processor.firstChunkMaxSize()));
+
+    // try to truncate last chunk with expected failure
+    BOOST_TEST_MESSAGE("Try to truncate last chunk with expected failure");
+    auto pos1=cryptFile1.pos();
+    auto newSize1=size-10;
+    ec=cryptFile1.truncateImpl(newSize1,true,true);
+    BOOST_CHECK(ec);
+    BOOST_CHECK_EQUAL(cryptFile1.size(),plainFile1.size());
+    ByteArray tmpBuf1;
+    ec=cryptFile1.readAll(tmpBuf1);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(tmpBuf1==plaintext1);
+    ec=cryptFile1.seek(pos1);
+    BOOST_REQUIRE(!ec);
+
+    // truncate from the last chunk
+    BOOST_TEST_MESSAGE("Truncate from the last chunk");
+    ec=plainFile1.truncate(newSize1);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize1);
+    ec=cryptFile1.truncate(newSize1);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize1);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check content
+    CryptFile cryptFile2(masterKey.get(),suite.get());
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile2.size(),plainFile1.size());
+    ByteArray plainBuf2;
+    ec=plainFile1.readAll(plainBuf2);
+    BOOST_REQUIRE(!ec);
+    ByteArray decryptBuf2;
+    ec=cryptFile2.readAll(decryptBuf2);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(decryptBuf2==plainBuf2);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file in write_existing mode
+    CryptFile cryptFile3(masterKey.get(),suite.get());
+    ec=cryptFile3.open(cryptFilename1,CryptFile::Mode::write_existing);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    auto size2=cryptFile3.size();
+    cryptFile3.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // truncate from the first chunk
+    BOOST_TEST_MESSAGE("Truncate from intermediate chunk");
+    auto newSize2=size2-3*processor.chunkMaxSize()-10;
+    ec=plainFile1.truncate(newSize2);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize2);
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write_existing);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.truncate(newSize2);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize2);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check content
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile2.size(),plainFile1.size());
+    ec=plainFile1.readAll(plainBuf2);
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile2.readAll(decryptBuf2);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(decryptBuf2==plainBuf2);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // truncate from a chunk boundary
+    BOOST_TEST_MESSAGE("Truncate from chunk boundary");
+    auto newSize3=10*processor.chunkMaxSize();
+    ec=plainFile1.truncate(newSize3);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize3);
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write_existing);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.truncate(newSize3);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize3);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check content
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile3.size(),plainFile1.size());
+    ec=plainFile1.readAll(plainBuf2);
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile2.readAll(decryptBuf2);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(decryptBuf2==plainBuf2);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // truncate from the first chunk
+    BOOST_TEST_MESSAGE("Truncate from the first chunk");
+    auto newSize4=processor.chunkMaxSize()-100;
+    ec=plainFile1.truncate(newSize4);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize4);
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write_existing);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.truncate(newSize4);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize4);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check content
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile3.size(),plainFile1.size());
+    ec=plainFile1.readAll(plainBuf2);
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile2.readAll(decryptBuf2);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(decryptBuf2==plainBuf2);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
+
+//! @todo Test size increasing
+#if 0
+    // increase size
+    ec=plainFile1.truncate(size+1);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(size,plainFile1.size());
+    ec=cryptFile1.truncate(size+1);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(size,cryptFile1.size());
+#endif
+}
+
+BOOST_AUTO_TEST_CASE(CheckTruncate)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            CipherSuites::instance().reset();
+            checkTruncate(plugin,PluginList::assetsPath("crypt"));
+            CipherSuites::instance().reset();
+            // checkTruncate(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            // CipherSuites::instance().reset();
+        }
+    );
+}
+
+//! @todo Add fuzzy tests of cryptfile
 
 BOOST_AUTO_TEST_SUITE_END()
 

@@ -344,7 +344,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          */
         common::Error truncate(size_t size, bool backupCopy=true) override;
 
-        common::Error truncateImpl(size_t size, bool backupCopy=true);
+        common::Error truncateImpl(size_t size, bool backupCopy=true, bool testFailuire=false);
 
         //! Sync buffers to disk
         virtual Error sync() noexcept override;
@@ -447,6 +447,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         uint64_t m_ciphertextSize;
         common::ByteArray m_readBuffer;
         common::ByteArray m_writeBuffer;
+        common::ByteArray m_tmpBuffer;
         bool m_sizeDirty;
 
         uint32_t m_eofSeqnum;

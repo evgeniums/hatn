@@ -46,6 +46,7 @@ CryptFile::CryptFile(
         m_ciphertextSize(0),
         m_readBuffer(factory->dataMemoryResource()),
         m_writeBuffer(factory->dataMemoryResource()),
+        m_tmpBuffer(factory->dataMemoryResource()),
         m_sizeDirty(false),
         m_eofSeqnum(0),
         m_maxProcessingSize(MAX_PROCESSING_SIZE)
@@ -68,7 +69,7 @@ bool CryptFile::useCache() const noexcept
 //---------------------------------------------------------------
 bool CryptFile::isNewFile() const noexcept
 {
-    return m_mode==Mode::write || m_mode==Mode::append || m_mode==Mode::write_new;
+    return m_mode==Mode::write_new || m_mode==Mode::write || (m_mode==Mode::append && !lib::filesystem::exists(filename()));
 }
 
 //---------------------------------------------------------------
@@ -113,22 +114,23 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
         // to emulate appending modes use write or write_existing mode because
         // true appending mode can not be used as the size must be written to the file's header
         // to ensure appending mode check condition (position==size) in seek() method
+        m_mode=mode;
         auto openMode=mode;
+        bool newFile=isNewFile();
         if (openMode==Mode::append)
         {
-            openMode=Mode::write;
+            openMode=newFile ? Mode::write : Mode::write_existing;
         }
         else if (openMode==Mode::append_existing)
         {
             openMode=Mode::write_existing;
-        }
-        m_mode=mode;
+        }        
 
         // open raw file
         HATN_CHECK_RETURN(m_file->open(filename(),openMode))
 
         // process header and descriptor
-        if (!isNewFile())
+        if (!newFile)
         {
             // existing file
 
@@ -137,7 +139,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             auto readSize=m_file->read(m_readBuffer.data(),m_readBuffer.size());
             if (readSize!=m_proc.headerSize())
             {
-                throw ErrorException(Error(CommonError::INVALID_SIZE));
+                throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
             }
             uint16_t descriptorSize=0;
             HATN_CHECK_THROW(m_proc.unpackHeader(m_readBuffer,m_size,descriptorSize,m_ciphertextSize))
@@ -148,7 +150,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             readSize=m_file->read(m_readBuffer.data(),m_readBuffer.size());
             if (readSize!=descriptorSize)
             {
-                throw ErrorException(Error(CommonError::INVALID_SIZE));
+                throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
             }
             HATN_CHECK_THROW(m_proc.unpackDescriptor(m_readBuffer))
 
@@ -157,9 +159,9 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             auto actualDataSize=m_file->size()-m_dataOffset;
             if (actualDataSize<m_ciphertextSize)
             {
-                throw ErrorException(Error(CommonError::INVALID_SIZE));
+                throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
             }
-            m_eofSeqnum=0;
+            m_eofSeqnum=posToSeqnum(m_size);
 
             // seek
             if (!headerOnly)
@@ -431,6 +433,10 @@ void CryptFile::reset()
 //---------------------------------------------------------------
 Error CryptFile::seek(uint64_t pos)
 {
+    if (pos==m_cursor)
+    {
+        return OK;
+    }
     return doSeek(pos);
 }
 
@@ -580,7 +586,7 @@ Error CryptFile::seekReadRawChunk(CachedChunk &chunk, bool read, size_t overwrit
             else
             {
                 // no need to read and decrypt chunk that will be totally overwritten
-                chunk.content.resize(overwriteSize);
+                chunk.content.clear();
             }
             chunk.ciphertextSize=chunkSize;
         }
@@ -743,36 +749,35 @@ size_t CryptFile::write(const char *data, size_t size)
         size_t writeSize=size-doneSize;
         if (m_currentChunk->maxSize!=0)
         {
-            auto availableSpace=m_currentChunk->maxSize-m_currentChunk->offset;
-            if (availableSpace==0)
+            auto availableChunkSpace=m_currentChunk->maxSize-m_currentChunk->offset;
+            if (availableChunkSpace==0)
             {
                 // if no space left then seek to the next chunk
-                HATN_CHECK_THROW(doSeek(m_cursor,writeSize));
-                availableSpace=m_currentChunk->maxSize-m_currentChunk->offset;
-                if (availableSpace==0)
-                {
-                    break;
-                }
+                HATN_CHECK_THROW(doSeek(seqnumToPos(m_currentChunk->seqnum+1),writeSize));
+                availableChunkSpace=m_currentChunk->maxSize-m_currentChunk->offset;
+                Assert(availableChunkSpace!=0,"Invalid cursor after seeking next chunk");
             }
-
-            if (writeSize>availableSpace)
+            if (writeSize>availableChunkSpace)
             {
-                writeSize=static_cast<size_t>(availableSpace);
+                writeSize=availableChunkSpace;
             }
         }
 
         // write data to current chunk taking into account chunk offset and size
-        auto newSize=static_cast<size_t>(m_currentChunk->offset)+writeSize;
-        if (m_currentChunk->content.size()<newSize)
+        auto oldChunkSize=m_currentChunk->content.size();
+        auto newChunkSize=static_cast<size_t>(m_currentChunk->offset)+writeSize;
+        if (m_currentChunk->content.size()<newChunkSize)
         {
-            if (isLastChunk(*m_currentChunk))
-            {
-                m_size+=newSize-m_currentChunk->content.size();
-                m_sizeDirty=true;
-            }
-            m_currentChunk->content.resize(newSize);
+            m_currentChunk->content.resize(newChunkSize);
         }
         std::copy(data+doneSize,data+doneSize+writeSize,m_currentChunk->content.data()+m_currentChunk->offset);
+
+        // update size if it is the last chunk
+        if (isLastChunk(*m_currentChunk) && (newChunkSize>oldChunkSize))
+        {
+            m_size+=newChunkSize-oldChunkSize;
+            m_sizeDirty=true;
+        }
 
         // update positions
         doneSize+=writeSize;
@@ -871,11 +876,11 @@ common::Error CryptFile::truncate(size_t size, bool backupCopy)
     return truncateImpl(size,backupCopy);
 }
 
-common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
+common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFailuire)
 {
     if (!isOpen())
     {
-        HATN_CHECK_RETURN(doOpen(Mode::write))
+        HATN_CHECK_RETURN(doOpen(Mode::write_existing))
         HATN_CHECK_RETURN(truncateImpl(size,backupCopy))
         Error ec;
         doClose(ec,true);
@@ -883,31 +888,73 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
     }
 
     // check if size is already ok
-    if (size<=this->size())
+    if (size==this->size())
     {
         return OK;
     }
 
-    // check if file is already open
+    // if new size greater than current size then append zeros
     size_t prevPos=m_cursor;
-    if (prevPos>size)
+    if (size>this->size())
     {
-        prevPos=size;
+        size_t doneSize=0;
+        auto writeSize=std::min(m_maxProcessingSize,size-doneSize);
+        m_tmpBuffer.resize(writeSize);
+        m_tmpBuffer.fill(static_cast<char>(0));
+        HATN_CHECK_RETURN(doSeek(m_size))
+        Error ec;
+        while (doneSize<size)
+        {
+            auto written=write(m_tmpBuffer.data(),m_tmpBuffer.size(),ec);
+            HATN_CHECK_EC(ec)
+            doneSize+=written;
+            writeSize=std::min(writeSize,size-doneSize);
+            m_tmpBuffer.resize(std::min(m_tmpBuffer.size(),writeSize));
+        }
+        m_tmpBuffer.clear();
+        return doSeek(prevPos);
     }
-    auto prevMode=m_mode;
+
+    // check if file is already open    
+    size_t newPos=m_cursor;
+    size_t newLastPos=size;
+    if (newPos>newLastPos)
+    {
+        newPos=newLastPos;
+    }
+    if (testFailuire)
+    {
+        newLastPos=m_size+1;
+    }
+    bool updated=testFailuire;
 
     // make guard
     Error ec;
     std::string backupCopyName;
     auto onExit=HATN_COMMON_NAMESPACE::makeScopeGuard(
-        [this,&ec,&backupCopyName,prevMode,prevPos]()
+        [this,&ec,&backupCopyName,prevPos,&updated,size]()
         {
-            if (!backupCopyName.empty())
-            {                
+            if (updated && !backupCopyName.empty())
+            {
+                m_tmpBuffer.clear();
                 lib::fs_error_code fec;
                 if (ec)
                 {
-                    m_file->close();
+                    Error ec1;
+                    doClose(ec1,false);
+                    if (ec1)
+                    {
+                        std::cerr << "CryptFile::truncate: failed to close " << filename() << " before restoring from backup " << backupCopyName
+                                  << " after error code=" << ec.code() <<" message=\"" << ec.message() << "\"" << std::endl;
+                        throw ErrorException{ec1};
+                    }
+                    lib::filesystem::remove(filename(),fec);
+                    if (fec)
+                    {
+                        std::cerr << "CryptFile::truncate: failed to remove " << filename() << " before restoring from backup " << backupCopyName
+                                  << " after error code=" << ec.code() <<" message=\"" << ec.message() << "\"" << std::endl;
+                        throw ErrorException{makeSystemError(fec)};
+                    }
                     lib::filesystem::copy_file(backupCopyName,filename(),lib::filesystem::copy_options::overwrite_existing,fec);
                     if (fec)
                     {
@@ -915,6 +962,9 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
                                   << " after error code=" << ec.code() <<" message=\"" << ec.message() << "\"" << std::endl;
                         throw ErrorException{makeSystemError(fec)};
                     }
+
+                    HATN_CHECK_THROW(doOpen(Mode::write_existing))
+                    HATN_CHECK_THROW(doSeek(prevPos))
                 }
                 lib::filesystem::remove(backupCopyName,fec);
                 if (fec)
@@ -922,11 +972,6 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
                     std::cerr << "CryptFile::truncate: failed to remove backup copy " << backupCopyName << " of " << filename() << std::endl;
                 }
             }
-            if (!isOpen())
-            {
-                HATN_CHECK_THROW(doOpen(prevMode))
-            }
-            HATN_CHECK_THROW(doSeek(prevPos))
         }
         );
     std::ignore=onExit;
@@ -934,7 +979,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
     // make a backup copy
     if (backupCopy)
     {
-#if 0
+#if 1
 // maybe no need to close opened file for copying?
         Error ec1;
         doClose(ec1);
@@ -945,20 +990,37 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
         lib::fs_error_code fec;
         auto oid=du::ObjectId::generateId();
         backupCopyName=fmt::format("{}/hcc_{}.bak",lib::filesystem::temp_directory_path().string(),oid.toString());
-        lib::filesystem::copy_file(filename(),backupCopyName,fec);
+        lib::filesystem::copy_file(filename(),backupCopyName,lib::filesystem::copy_options::overwrite_existing,fec);
         if (fec)
         {
             return makeSystemError(fec);
         }
 
-#if 0
+#if 1
         // reopen file
-        ec=doOpen(prevMode);
+        ec=doOpen(Mode::write_existing);
         HATN_CHECK_EC(ec)
 #endif
     }
 
-    // prepare initiali raw file size
+    // invalidate cache
+    HATN_CHECK_RETURN(doFlush(false))
+    m_cache.clear();
+    m_currentChunk=nullptr;
+
+    // resize to 0
+    if (size==0)
+    {
+        m_size=0;
+        m_ciphertextSize=0;
+        m_sizeDirty=true;
+        updated=true;
+        ec=writeSize();
+        HATN_CHECK_EC(ec)
+        return doSeek(0);
+    }
+
+    // init raw file size
     size_t newRawFileSize=m_file->size();
     size_t rawEofPos=eofPos();
     if (newRawFileSize>rawEofPos)
@@ -968,13 +1030,22 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
     }
 
     // read chunks starting from offset
-    ec=doSeek(size,0,false);
-    HATN_CHECK_EC(ec)
-    common::ByteArray tmpBuf{m_currentChunk->content.data(),m_currentChunk->offset+1};
+    auto lastCursor=m_cursor;
+    ec=doSeek(newLastPos,0,false);
+    if (ec)
+    {
+        // fallback to last cursor
+        std::ignore=doSeek(lastCursor);
+    }
+    HATN_CHECK_EC(ec)    
+    m_tmpBuffer.load(m_currentChunk->content.data(),m_currentChunk->offset);
+    size_t newSize=m_size;
+    size_t newCipherTextSize=m_ciphertextSize;
+    uint32_t newEofSeqnum=m_currentChunk->seqnum;
     for (;;)
     {
-        m_size-=m_currentChunk->content.size();
-        m_ciphertextSize-=m_currentChunk->ciphertextSize;
+        newSize-=m_currentChunk->content.size();
+        newCipherTextSize-=m_currentChunk->ciphertextSize;
         if (newRawFileSize<m_currentChunk->ciphertextSize)
         {
             return CommonError::INVALID_SIZE;
@@ -988,28 +1059,42 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy)
         ec=doSeek(pos,0,false);
         HATN_CHECK_EC(ec)
     }
+    // write updated sizes to header
+    updated=true;
     m_sizeDirty=true;
+    m_size=newSize;
+    m_ciphertextSize=newCipherTextSize;
+    m_eofSeqnum=newEofSeqnum;
     ec=writeSize();
     HATN_CHECK_EC(ec)
+    m_singleChunk.reset();
+    m_currentChunk=nullptr;
 
     // truncate underlying file
     ec=m_file->truncate(newRawFileSize,backupCopy);
     HATN_CHECK_EC(ec)
 
-    // append tmpbuf
-    write(tmpBuf.data(),tmpBuf.size(),ec);
+    // seek to end
+    ec=doSeek(m_size);
     HATN_CHECK_EC(ec)
+
+    // append tmpbuf
+    if (!m_tmpBuffer.isEmpty())
+    {
+        write(m_tmpBuffer.data(),m_tmpBuffer.size(),ec);
+        HATN_CHECK_EC(ec)
+    }
 
     // check if size is ok
     if (m_size!=size)
     {
-        std::cerr << "CryptFile::truncate: wrong size after truncate " << filename() << std::endl;
+        std::cerr << "CryptFile::truncate: wrong size after truncate " << filename() << ": " << m_size << "!=" << size << std::endl;
         ec=CommonError::ABORTED;
         HATN_CHECK_EC(ec)
     }
 
     // done
-    return OK;
+    return doSeek(newPos);
 }
 
 //---------------------------------------------------------------

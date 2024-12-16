@@ -227,9 +227,13 @@ Error PlainFile::truncate(size_t size, bool /*backupCopy*/)
         return CommonError::FILE_TRUNCATE_FAILED;
     }
 
-#endif
+#else
 
     return CommonError::NOT_IMPLEMENTED;
+
+#endif
+
+    return OK;
 }
 
 //---------------------------------------------------------------

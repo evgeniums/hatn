@@ -80,6 +80,7 @@
     Do(CryptError,UNSUPPORTED_KEY_FORMAT,_TR("Unsupported key format","crypt")) \
     Do(CryptError,X509_ERROR_SERIALIZE_FAILED,_TR("Failed to serialize error of X509 certificate verification","crypt")) \
     Do(CryptError,ENGINES_NOT_SUPPORTED,_TR("Cryptographic engines not supported by backend","crypt")) \
+    Do(CryptError,INVALID_CRYPTFILE_FORMAT,_TR("Invalid format of crypt file","crypt"))
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
