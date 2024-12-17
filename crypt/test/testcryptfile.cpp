@@ -1245,7 +1245,9 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
 
     // init crypt file
     auto cryptFilename1=fmt::format("{}/cryptfile-truncate1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto cryptFilename0=fmt::format("{}/cryptfile-truncate0.dat",hatn::test::MultiThreadFixture::tmpPath());
     auto plainFilename1=fmt::format("{}/plainfile-truncate1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto plainFilename2=fmt::format("{}/plainfile-truncate2.dat",hatn::test::MultiThreadFixture::tmpPath());
     ByteArray plaintext1;
     auto plainTextFile=fmt::format("{}/cryptfile-plaintext10.dat",path);
     ec=plaintext1.loadFromFile(plainTextFile);
@@ -1264,6 +1266,102 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
     }
     BOOST_REQUIRE(!ec);
 
+    // check seek beyond eof in plain file
+    BOOST_TEST_MESSAGE("Check seek beyond eof in plain file");
+    PlainFile plainFile2;
+    ec=plainFile2.open(plainFilename2,PlainFile::Mode::write);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    plainFile2.write(plaintext1.data(),plaintext1.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(plainFile2.size(),plaintext1.size());
+    ec=plainFile2.seek(plaintext1.size()+10);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(plainFile2.size(),plaintext1.size());
+    ByteArray barr0;
+    barr0.resize(8);
+    auto read0=plainFile2.read(barr0.data(),barr0.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(read0,0);
+    std::array<char,8> arr0{10,11,12,13,14,15,16,17};
+    auto written0=plainFile2.write(arr0.data(),arr0.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(written0,arr0.size());
+    BOOST_CHECK_EQUAL(plainFile2.size(),plaintext1.size()+10+arr0.size());
+    ec=plainFile2.seek(plaintext1.size());
+    BOOST_REQUIRE(!ec);
+    ByteArray arr1;
+    arr1.resize(10+arr0.size());
+    auto read1=plainFile2.read(arr1.data(),arr1.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(read1,arr1.size());
+    for (size_t i=0;i<arr1.size();i++)
+    {
+        if (i>=10)
+        {
+            BOOST_CHECK_EQUAL(int(arr1[i]),int(arr0[i-10]));
+        }
+        else
+        {
+            BOOST_CHECK_EQUAL(int(arr1[i]),0);
+        }
+    }
+
+    // check seek beyond eof in crypt file
+    BOOST_TEST_MESSAGE("Check seek beyond eof in crypt file");
+    CryptFile cryptFile0(masterKey.get(),suite.get());
+    ec=cryptFile0.open(cryptFilename0,CryptFile::Mode::write);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    cryptFile0.write(plaintext1.data(),plaintext1.size(),ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile0.size(),plaintext1.size());
+    // seek beyond eof
+    ec=cryptFile0.seek(plaintext1.size()+10);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile0.size(),plaintext1.size());
+    barr0.clear();
+    barr0.resize(8);
+    // try to read beyond wof
+    read0=cryptFile0.read(barr0.data(),barr0.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(read0,0);
+    // write beyond eof
+    written0=cryptFile0.write(arr0.data(),arr0.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(written0,arr0.size());
+    // new content is prev content + zeroed gap + written arr0
+    BOOST_CHECK_EQUAL(cryptFile0.size(),plaintext1.size()+10+arr0.size());
+    ec=cryptFile0.seek(plaintext1.size());
+    BOOST_REQUIRE(!ec);
+    arr1.clear();
+    arr1.resize(10+arr0.size());
+    read1=cryptFile0.read(arr1.data(),arr1.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(read1,arr1.size());
+    for (size_t i=0;i<arr1.size();i++)
+    {
+        if (i>=10)
+        {
+            BOOST_CHECK_EQUAL(int(arr1[i]),int(arr0[i-10]));
+        }
+        else
+        {
+            BOOST_CHECK_EQUAL(int(arr1[i]),0);
+        }
+    }
+
+#if 1
     CryptFile cryptFile1(masterKey.get(),suite.get());
     auto& processor=cryptFile1.processor();
     processor.setChunkMaxSize(4096);
@@ -1412,7 +1510,11 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
 
     // truncate from a chunk boundary
     BOOST_TEST_MESSAGE("Truncate from chunk boundary");
+    auto pos3=8*processor.chunkMaxSize()+100;
     auto newSize3=10*processor.chunkMaxSize();
+    ec=plainFile1.seek(pos3);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK_EQUAL(plainFile1.pos(),pos3);
     ec=plainFile1.truncate(newSize3);
     if (ec)
     {
@@ -1426,6 +1528,9 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
         BOOST_TEST_MESSAGE(ec.message());
     }
     BOOST_REQUIRE(!ec);
+    ec=cryptFile1.seek(pos3);
+    BOOST_CHECK(!ec);
+    BOOST_CHECK_EQUAL(cryptFile1.pos(),pos3);
     ec=cryptFile1.truncate(newSize3);
     if (ec)
     {
@@ -1433,6 +1538,7 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
     }
     BOOST_REQUIRE(!ec);
     BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize3);
+    BOOST_CHECK_EQUAL(cryptFile1.pos(),pos3);
     cryptFile1.close(ec);
     BOOST_REQUIRE(!ec);
 
@@ -1494,23 +1600,191 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
     cryptFile2.close(ec);
     BOOST_REQUIRE(!ec);
 
-//! @todo Test size increasing
-#if 0
+    // truncate to zero
+    BOOST_TEST_MESSAGE("Truncate to zero");
+    auto newSize5=0;
+    auto oldSize5=plainFile1.size();
+    auto pos5=plainFile1.pos();
+    BOOST_TEST_MESSAGE(fmt::format("Before truncating pos={}",pos5));
+    ec=plainFile1.truncate(newSize5);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5);
+    // write to truncated file
+    uint32_t ab=1516;
+    auto writtenSize=plainFile1.write(reinterpret_cast<const char*>(&ab),sizeof(ab),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),oldSize5+sizeof(ab));
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5+sizeof(ab));
+    BOOST_CHECK_EQUAL(writtenSize,sizeof(ab));
+    BOOST_REQUIRE(!ec);
+    // truncate again
+    ec=plainFile1.truncate(newSize5);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5+sizeof(ab));
+    // read from truncated file
+    ec=plainFile1.seek(pos5);
+    BOOST_REQUIRE(!ec);
+    ec=plainFile1.truncate(newSize5);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5);
+    uint32_t ab5=2829;
+    auto readSize=plainFile1.read(reinterpret_cast<char*>(&ab5),sizeof(ab5),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5);
+    BOOST_REQUIRE_EQUAL(readSize,0);
+    BOOST_CHECK_EQUAL(uint32_t(ab5),uint32_t(2829));
+    uint64_t abab5=28293031;
+    readSize=plainFile1.read(reinterpret_cast<char*>(&abab5),sizeof(abab5),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(plainFile1.pos(),pos5);
+    BOOST_REQUIRE_EQUAL(readSize,0);
+
+    // truncate to zero cryptfile
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write_existing);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.seek(pos5);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5);
+    oldSize5=cryptFile1.size();
+    ec=cryptFile1.truncate(newSize5);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5);
+    // write to truncated file
+    ab=1516;
+    writtenSize=cryptFile1.write(reinterpret_cast<const char*>(&ab),sizeof(ab),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),oldSize5+sizeof(ab));
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5+sizeof(ab));
+    BOOST_CHECK_EQUAL(writtenSize,sizeof(ab));
+    BOOST_REQUIRE(!ec);
+    // truncate again
+    ec=cryptFile1.truncate(newSize5);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5+sizeof(ab));
+    // read from truncated file
+    ec=cryptFile1.seek(pos5);
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile1.truncate(newSize5);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5);
+    ab5=2829;
+    readSize=cryptFile1.read(reinterpret_cast<char*>(&ab5),sizeof(ab5),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5);
+    BOOST_REQUIRE_EQUAL(readSize,0);
+    BOOST_CHECK_EQUAL(uint32_t(ab5),uint32_t(2829));
+    abab5=28293031;
+    readSize=cryptFile1.read(reinterpret_cast<char*>(&abab5),sizeof(abab5),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),newSize5);
+    BOOST_REQUIRE_EQUAL(cryptFile1.pos(),pos5);
+    BOOST_REQUIRE_EQUAL(readSize,0);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check size
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile2.size(),0);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // refill files
+    ec=plainFile1.seek(0);
+    BOOST_REQUIRE(!ec);
+    plainFile1.write(plaintext1.data(),plaintext1.size(),ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),plaintext1.size());
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::write);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    cryptFile1.write(plaintext1.data(),plaintext1.size(),ec);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile1.size(),plainFile1.size());
+
     // increase size
-    ec=plainFile1.truncate(size+1);
+    auto pos6=cryptFile1.pos();
+    BOOST_CHECK_EQUAL(pos6,plainFile1.size());
+    BOOST_CHECK_EQUAL(pos6,plainFile1.pos());
+    auto newSize6=cryptFile1.size()+cryptFile1.maxProcessingSize()*2+100;
+    ec=plainFile1.truncate(newSize6);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
     }
     BOOST_REQUIRE(!ec);
-    BOOST_REQUIRE_EQUAL(size,plainFile1.size());
-    ec=cryptFile1.truncate(size+1);
+    BOOST_REQUIRE_EQUAL(plainFile1.size(),newSize6);
+    BOOST_CHECK_EQUAL(plainFile1.pos(),pos6);
+    ec=cryptFile1.truncate(newSize6);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
     }
     BOOST_REQUIRE(!ec);
-    BOOST_REQUIRE_EQUAL(size,cryptFile1.size());
+    BOOST_REQUIRE_EQUAL(cryptFile1.size(),plainFile1.size());
+    BOOST_CHECK_EQUAL(cryptFile1.pos(),pos6);
+    cryptFile1.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    // reopen file and check content
+    ec=cryptFile2.open(cryptFilename1,CryptFile::Mode::scan);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile3.size(),plainFile1.size());
+    ec=plainFile1.readAll(plainBuf2);
+    BOOST_REQUIRE(!ec);
+    ec=cryptFile2.readAll(decryptBuf2);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(decryptBuf2==plainBuf2);
+    cryptFile2.close(ec);
+    BOOST_REQUIRE(!ec);
 #endif
 }
 

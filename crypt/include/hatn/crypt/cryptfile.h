@@ -168,6 +168,8 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          */
         virtual size_t write(const char* data, size_t size) override;
 
+        size_t writeImpl(const char* data, size_t size, Error& ec);
+
         /**
          * @brief Read data from file
          * @param data Target data buffer
@@ -432,6 +434,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         CryptContainer m_proc;
 
         uint64_t m_cursor;
+        uint64_t m_seekCursor;
         Mode m_mode;
 
         CachedChunk m_singleChunk;

@@ -36,6 +36,7 @@ CryptFile::CryptFile(
         pmr::AllocatorFactory *factory
     ) : m_proc(masterKey,suite,factory),
         m_cursor(0),
+        m_seekCursor(0),
         m_mode(Mode::scan),
         m_singleChunk(factory),
         m_currentChunk(nullptr),
@@ -420,6 +421,7 @@ void CryptFile::doClose(Error &ec, bool flush) noexcept
     m_cursor=0;
     m_ciphertextSize=0;
     m_eofSeqnum=0;
+    m_seekCursor=0;
 }
 
 //---------------------------------------------------------------
@@ -434,6 +436,11 @@ void CryptFile::reset()
 Error CryptFile::seek(uint64_t pos)
 {
     if (pos==m_cursor)
+    {
+        return OK;
+    }
+    m_seekCursor=pos;
+    if (pos>m_size)
     {
         return OK;
     }
@@ -660,7 +667,7 @@ uint64_t CryptFile::chunkOffsetForPos(uint64_t pos) const noexcept
 //---------------------------------------------------------------
 uint64_t CryptFile::pos() const
 {
-    return m_cursor;
+    return m_seekCursor;
 }
 
 //---------------------------------------------------------------
@@ -741,6 +748,26 @@ size_t CryptFile::write(const char *data, size_t size)
         throw ErrorException(Error(CommonError::FILE_WRITE_FAILED));
     }
 
+    // prepend zeros to previously truncated position
+    if (m_seekCursor>m_size)
+    {
+        auto newSize=m_seekCursor;
+        HATN_CHECK_RETURN(truncateImpl(newSize))
+        HATN_CHECK_RETURN(doSeek(newSize))
+    }
+    Error ec;
+    auto ret=writeImpl(data,size,ec);
+    if (ec)
+    {
+        throw ErrorException(ec);
+    }
+    m_seekCursor+=ret;
+    return ret;
+}
+
+//---------------------------------------------------------------
+size_t CryptFile::writeImpl(const char *data, size_t size, Error& ec)
+{
     // write data to chunk(s)
     size_t doneSize=0;
     while (size>doneSize)
@@ -753,7 +780,11 @@ size_t CryptFile::write(const char *data, size_t size)
             if (availableChunkSpace==0)
             {
                 // if no space left then seek to the next chunk
-                HATN_CHECK_THROW(doSeek(seqnumToPos(m_currentChunk->seqnum+1),writeSize));
+                ec=doSeek(seqnumToPos(m_currentChunk->seqnum+1),writeSize);
+                if (ec)
+                {
+                    return 0;
+                }
                 availableChunkSpace=m_currentChunk->maxSize-m_currentChunk->offset;
                 Assert(availableChunkSpace!=0,"Invalid cursor after seeking next chunk");
             }
@@ -810,6 +841,12 @@ size_t CryptFile::read(char *data, size_t maxSize)
         throw ErrorException(Error(CommonError::FILE_READ_FAILED));
     }
 
+    // return noop if seek is beyond eof
+    if (m_seekCursor>=m_size)
+    {
+        return 0;
+    }
+
     // read data from chunk(s)
     size_t doneSize=0;
     while (doneSize<maxSize)
@@ -849,6 +886,7 @@ size_t CryptFile::read(char *data, size_t maxSize)
     }
 
     // done
+    m_seekCursor+=doneSize;
     return doneSize;
 }
 
@@ -895,27 +933,28 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
 
     // if new size greater than current size then append zeros
     size_t prevPos=m_cursor;
-    if (size>this->size())
+    size_t prevSeekPos=m_seekCursor;
+    if (size>m_size)
     {
+        auto appendSize=size-m_size;
         size_t doneSize=0;
-        auto writeSize=std::min(m_maxProcessingSize,size-doneSize);
+        auto writeSize=std::min(m_maxProcessingSize,appendSize-doneSize);
         m_tmpBuffer.resize(writeSize);
         m_tmpBuffer.fill(static_cast<char>(0));
         HATN_CHECK_RETURN(doSeek(m_size))
         Error ec;
-        while (doneSize<size)
+        while (doneSize<appendSize)
         {
-            auto written=write(m_tmpBuffer.data(),m_tmpBuffer.size(),ec);
+            auto written=writeImpl(m_tmpBuffer.data(),writeSize,ec);
             HATN_CHECK_EC(ec)
             doneSize+=written;
-            writeSize=std::min(writeSize,size-doneSize);
-            m_tmpBuffer.resize(std::min(m_tmpBuffer.size(),writeSize));
+            writeSize=std::min(writeSize,appendSize-doneSize);
         }
         m_tmpBuffer.clear();
         return doSeek(prevPos);
     }
 
-    // check if file is already open    
+    // prepare positions
     size_t newPos=m_cursor;
     size_t newLastPos=size;
     if (newPos>newLastPos)
@@ -932,10 +971,10 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
     Error ec;
     std::string backupCopyName;
     auto onExit=HATN_COMMON_NAMESPACE::makeScopeGuard(
-        [this,&ec,&backupCopyName,prevPos,&updated,size]()
+        [this,&ec,&backupCopyName,prevPos,&updated,size,prevSeekPos]()
         {
             if (updated && !backupCopyName.empty())
-            {
+            {                
                 m_tmpBuffer.clear();
                 lib::fs_error_code fec;
                 if (ec)
@@ -965,6 +1004,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
 
                     HATN_CHECK_THROW(doOpen(Mode::write_existing))
                     HATN_CHECK_THROW(doSeek(prevPos))
+                    m_seekCursor=prevSeekPos;
                 }
                 lib::filesystem::remove(backupCopyName,fec);
                 if (fec)
@@ -1000,6 +1040,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
         // reopen file
         ec=doOpen(Mode::write_existing);
         HATN_CHECK_EC(ec)
+        m_seekCursor=prevSeekPos;
 #endif
     }
 
@@ -1081,7 +1122,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
     // append tmpbuf
     if (!m_tmpBuffer.isEmpty())
     {
-        write(m_tmpBuffer.data(),m_tmpBuffer.size(),ec);
+        writeImpl(m_tmpBuffer.data(),m_tmpBuffer.size(),ec);
         HATN_CHECK_EC(ec)
     }
 
