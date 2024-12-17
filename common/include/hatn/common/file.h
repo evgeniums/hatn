@@ -326,9 +326,9 @@ class File
         {
             try
             {
+                HATN_CHECK_RETURN(seek(0))
                 auto fileSize=size();
-                container.resize(static_cast<size_t>(fileSize));
-                seek(0);
+                container.resize(static_cast<size_t>(fileSize));                
                 auto readSize=read(container.data(),static_cast<size_t>(fileSize));
                 if (readSize!=static_cast<size_t>(fileSize))
                 {
