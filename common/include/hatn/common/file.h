@@ -40,6 +40,7 @@ class File
     public:
 
         using Mode = boost::beast::file_mode;
+        using NativeHandleType=boost::beast::file::native_handle_type;
 
         File()=default;
         virtual ~File()=default;
@@ -371,6 +372,8 @@ class File
             std::ignore=backupCopy;
             return CommonError::NOT_IMPLEMENTED;
         }
+
+        virtual NativeHandleType nativeHandle()=0;
 
     private:
 

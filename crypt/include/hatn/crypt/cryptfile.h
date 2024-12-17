@@ -179,6 +179,11 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          */
         virtual size_t read(char* data, size_t maxSize) override;
 
+        NativeHandleType nativeHandle() override
+        {
+            return m_file->nativeHandle();
+        }
+
         /**
          * @brief Get cryptographic module
          * @return Cryptographic module

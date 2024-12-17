@@ -27,6 +27,8 @@ class HATN_COMMON_EXPORT PlainFile : public File
 {
     public:
 
+        using NativeHandleType=boost::beast::file::native_handle_type;
+
         using File::File;
         using File::open;
         using File::close;
@@ -118,6 +120,11 @@ class HATN_COMMON_EXPORT PlainFile : public File
          * @return Operation status.
         */
         common::Error truncate(size_t size, bool backupCopy=false) override;
+
+        NativeHandleType nativeHandle() override
+        {
+            return m_file.native_handle();
+        }
 
     private:
 
