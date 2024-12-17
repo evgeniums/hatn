@@ -32,7 +32,7 @@ SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/ttlmark.h
     include/hatn/db/plugins/rocksdb/indexkeysearch.h
     include/hatn/db/plugins/rocksdb/rocksdbkeys.h
-    include/hatn/db/plugins/rocksdb/modeltopics.h
+    include/hatn/db/plugins/rocksdb/modeltopics.h    
 )
 
 SET(SCHEMA_DETAIL_HEADERS
@@ -93,12 +93,14 @@ SET (HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbplugin.h
     include/hatn/db/plugins/rocksdb/rocksdbclient.h
     include/hatn/db/plugins/rocksdb/ttlcompactionfilter.h
+    include/hatn/db/plugins/rocksdb/rocksdbencryption.h
 )
 
 SET (SOURCES
     src/rocksdbplugin.cpp
-    src/rocksdbclient.cpp
+    src/rocksdbclient.cpp    
     src/ttlcompactionfilter.cpp
+    src/rocksdbencryption.cpp
 )
 
 BUILD_HATN_PLUGIN(db)
