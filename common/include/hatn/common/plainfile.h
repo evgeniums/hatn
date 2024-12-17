@@ -117,7 +117,7 @@ class HATN_COMMON_EXPORT PlainFile : public File
          * @param backupCopy Make a backup copy to restore the file in case of error.
          * @return Operation status.
         */
-        common::Error truncate(size_t size, bool backupCopy=true) override;
+        common::Error truncate(size_t size, bool backupCopy=false) override;
 
     private:
 

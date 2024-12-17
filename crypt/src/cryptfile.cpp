@@ -351,6 +351,7 @@ Error CryptFile::flushChunk(CachedChunk &chunk, bool withSize)
             m_writeBuffer.clear();
             if (written!=size)
             {
+                //! @todo Write by parts in cycle
                 return Error(CommonError::FILE_WRITE_FAILED);
             }
 
@@ -581,6 +582,7 @@ Error CryptFile::seekReadRawChunk(CachedChunk &chunk, bool read, size_t overwrit
                 HATN_CHECK_EC(ec);
                 if (readSize!=chunkSize)
                 {
+                    //! @todo Read by parts in cycle
                     return Error(CommonError::FILE_READ_FAILED);
                 }
 
@@ -936,7 +938,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
     size_t prevSeekPos=m_seekCursor;
     if (size>m_size)
     {
-        auto appendSize=size-m_size;
+        size_t appendSize=size-m_size;
         size_t doneSize=0;
         auto writeSize=std::min(m_maxProcessingSize,appendSize-doneSize);
         m_tmpBuffer.resize(writeSize);
@@ -971,7 +973,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
     Error ec;
     std::string backupCopyName;
     auto onExit=HATN_COMMON_NAMESPACE::makeScopeGuard(
-        [this,&ec,&backupCopyName,prevPos,&updated,size,prevSeekPos]()
+        [this,&ec,&backupCopyName,prevPos,&updated,prevSeekPos]()
         {
             if (updated && !backupCopyName.empty())
             {                

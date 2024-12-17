@@ -366,8 +366,9 @@ class File
          * @param backupCopy Make a backup copy to restore the file in case of error.
          * @return Operation status.
         */
-        virtual common::Error truncate(size_t /*size*/, bool /*backupCopy*/)
+        virtual common::Error truncate(size_t /*size*/, bool backupCopy=false)
         {
+            std::ignore=backupCopy;
             return CommonError::NOT_IMPLEMENTED;
         }
 
