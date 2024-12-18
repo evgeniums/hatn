@@ -19,46 +19,26 @@
 #ifndef HATNROCKSDBENCRYPTION_H
 #define HATNROCKSDBENCRYPTION_H
 
-#include "rocksdb/file_system.h"
+#include <rocksdb/file_system.h>
+#include <rocksdb/env.h>
 
 #include <hatn/common/locker.h>
 
 #include <hatn/crypt/cryptfile.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbdriver.h>
+#include <hatn/db/plugins/rocksdb/encryptionmanager.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 namespace rocksdb=ROCKSDB_NAMESPACE;
-namespace crypt=HATN_CRYPT_NAMESPACE;
-
-class HATN_ROCKSDB_EXPORT WithCryptfile
-{
-    public:
-
-        WithCryptfile(
-            const crypt::SymmetricKey* masterKey,
-            const crypt::CipherSuite* suite=nullptr,
-            common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        );
-
-        crypt::CryptFile& cryptFile()
-        {
-            return m_cryptfile;
-        }
-
-    protected:
-
-        crypt::CryptFile m_cryptfile;
-        common::MutexLock m_mutex;
-};
 
 template <typename BaseT>
-class EncryptedFile : public WithCryptfile, public BaseT
+class EncryptedFile : public crypt::WithCryptfile, public BaseT
 {
     public:
 
-        using WithCryptfile::WithCryptfile;
+        using crypt::WithCryptfile::WithCryptfile;
 };
 
 template <typename BaseT>
@@ -95,11 +75,14 @@ class EncryptedReadFile : public Templ<BaseT>
                                        rocksdb::IODebugContext* dbg) const override;
 };
 
-class HATN_ROCKSDB_EXPORT EncryptedRandomAccessFile : public EncryptedReadFile<EncryptedFileWithCache,rocksdb::FSRandomAccessFile>
+using EncryptedRandomAccessFileBase=EncryptedReadFile<EncryptedFileWithCache,rocksdb::FSRandomAccessFile>;
+
+class HATN_ROCKSDB_EXPORT EncryptedRandomAccessFile : public EncryptedRandomAccessFileBase
 {
     public:
 
-        using EncryptedReadFile<EncryptedFileWithCache,rocksdb::FSRandomAccessFile>::EncryptedReadFile;
+        // using BaseT=EncryptedReadFile<EncryptedFileWithCache,rocksdb::FSRandomAccessFile>;
+        using EncryptedRandomAccessFileBase::EncryptedRandomAccessFileBase;
 
         size_t GetUniqueId(char* id, size_t max_size) const override;
 };
@@ -136,19 +119,95 @@ class HATN_ROCKSDB_EXPORT EncryptedWritableFile : public EncryptedSyncFile<Encry
                       rocksdb::IODebugContext* dbg) override;
 };
 
-class HATN_ROCKSDB_EXPORT EncryptedRandomRWFile : public EncryptedSyncFile<
-                                                        EncryptedReadFile<EncryptedFile,rocksdb::FSRandomRWFile>
-                                                      >
+using EncryptedRandomRWFileBase=EncryptedSyncFile<EncryptedReadFile<EncryptedFile,rocksdb::FSRandomRWFile>>;
+
+class HATN_ROCKSDB_EXPORT EncryptedRandomRWFile : public EncryptedRandomRWFileBase
 {
     public:
 
-        using EncryptedSyncFile<
-                EncryptedReadFile<EncryptedFile,rocksdb::FSRandomRWFile>
-            >::EncryptedSyncFile;
+        using EncryptedRandomRWFileBase::EncryptedRandomRWFileBase;
 
         rocksdb::IOStatus Write(uint64_t offset, const rocksdb::Slice& data, const rocksdb::IOOptions& options,
                        rocksdb::IODebugContext* dbg) override;
 };
+
+class HATN_ROCKSDB_EXPORT EncryptedFileSystem : public rocksdb::FileSystemWrapper
+{
+    public:
+
+        EncryptedFileSystem(
+                std::shared_ptr<RocksdbEncryptionManager> encryptionManager,
+                const std::shared_ptr<FileSystem>& base
+            ) : rocksdb::FileSystemWrapper(base),
+                m_encryptionManager(std::move(encryptionManager))
+        {}
+
+        static const char* kClassName() { return "hatn::EncryptedFileSystem"; }
+
+        bool IsInstanceOf(const std::string& name) const override
+        {
+            if (name == kClassName())
+            {
+                return true;
+            } else
+            {
+                return FileSystemWrapper::IsInstanceOf(name);
+            }
+        }
+
+        const char* Name() const override
+        {
+            return kClassName();
+        }
+
+        rocksdb::IOStatus NewSequentialFile(const std::string& fname,
+                                   const rocksdb::FileOptions& options,
+                                   std::unique_ptr<rocksdb::FSSequentialFile>* result,
+                                   rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus NewRandomAccessFile(const std::string& fname,
+                                     const rocksdb::FileOptions& options,
+                                     std::unique_ptr<rocksdb::FSRandomAccessFile>* result,
+                                     rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus NewWritableFile(const std::string& fname, const rocksdb::FileOptions& options,
+                                 std::unique_ptr<rocksdb::FSWritableFile>* result,
+                                 rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus ReopenWritableFile(const std::string& fname,
+                                    const rocksdb::FileOptions& options,
+                                    std::unique_ptr<rocksdb::FSWritableFile>* result,
+                                    rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus ReuseWritableFile(const std::string& fname,
+                                   const std::string& old_fname,
+                                   const rocksdb::FileOptions& options,
+                                   std::unique_ptr<rocksdb::FSWritableFile>* result,
+                                   rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus NewRandomRWFile(const std::string& fname, const rocksdb::FileOptions& options,
+                                 std::unique_ptr<rocksdb::FSRandomRWFile>* result,
+                                 rocksdb::IODebugContext* dbg) override;
+
+        rocksdb::IOStatus GetFileSize(const std::string& fname, const rocksdb::IOOptions& options,
+                             uint64_t* file_size, rocksdb::IODebugContext* dbg) override;
+
+        virtual rocksdb::IOStatus GetChildrenFileAttributes(
+            const std::string& dir, const rocksdb::IOOptions& options,
+            std::vector<rocksdb::FileAttributes>* result, rocksdb::IODebugContext* dbg) override;
+
+    private:
+
+        std::shared_ptr<RocksdbEncryptionManager> m_encryptionManager;
+};
+
+inline std::unique_ptr<rocksdb::Env> makeEncryptedEnv(
+        std::shared_ptr<RocksdbEncryptionManager> encryptionManager
+    )
+{
+    auto fs=std::make_shared<EncryptedFileSystem>(std::move(encryptionManager),rocksdb::Env::Default()->GetFileSystem());
+    return rocksdb::NewCompositeEnv(fs);
+}
 
 HATN_ROCKSDB_NAMESPACE_END
 

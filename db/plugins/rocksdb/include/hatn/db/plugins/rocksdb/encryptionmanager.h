@@ -1,0 +1,130 @@
+/*
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
+
+/****************************************************************************/
+
+/** @file db/plugins/rocksdb/encryptionmanager.h
+  *
+  */
+
+/****************************************************************************/
+
+#ifndef HATNROCKSDBENCRYPTIONMANAGER_H
+#define HATNROCKSDBENCRYPTIONMANAGER_H
+
+#include <rocksdb/file_system.h>
+
+#include <hatn/db/encryptionmanager.h>
+
+#include <hatn/db/plugins/rocksdb/rocksdbdriver.h>
+
+HATN_ROCKSDB_NAMESPACE_BEGIN
+
+class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
+{
+    public:
+
+        explicit RocksdbEncryptionManager(
+                std::shared_ptr<EncryptionManager> manager,
+                uint32_t chunkSize=rocksdb::kDefaultPageSize,
+                uint32_t firstChunkSize=rocksdb::kDefaultPageSize
+            ) : m_manager(std::move(manager)),
+                m_chunkSize(chunkSize),
+                m_firstChunkSize(firstChunkSize)
+        {}
+
+        template <typename T>
+        rocksdb::IOStatus createAndOpenFile(const std::string& fname,
+                                   const rocksdb::FileOptions& options,
+                                   std::unique_ptr<T>* result,
+                                   common::File::Mode mode)
+        {
+            bool enableCache=true;
+            // disable cache for WAL and Log
+            if (options.io_options.type==rocksdb::IOType::kWAL
+                ||
+                options.io_options.type==rocksdb::IOType::kLog
+                )
+            {
+                enableCache=false;
+            }
+            auto ec=m_manager->createAndOpenFile(
+                    fname,
+                    result,
+                    mode,
+                    enableCache,
+                    m_chunkSize,
+                    m_firstChunkSize
+                );
+            if (ec)
+            {
+                if (ec.is(CommonError::FILE_NOT_FOUND))
+                {
+                    return rocksdb::IOStatus::PathNotFound();
+                }
+                return rocksdb::IOStatus::IOError();
+            }
+
+            // done
+            return rocksdb::IOStatus::OK();
+        }
+
+        template <typename T>
+        rocksdb::IOStatus reopenWritableFile(const std::string& fname,
+                                     const rocksdb::FileOptions& options,
+                                     std::unique_ptr<T>* result)
+        {
+            return createAndOpenFile(fname,options,result,common::File::Mode::append);
+        }
+
+        rocksdb::IOStatus fileSize(const std::string& fname, uint64_t* file_size)
+        {
+            auto ec=m_manager->fileSize(fname,file_size);
+            if (ec)
+            {
+                if (ec.is(CommonError::FILE_NOT_FOUND))
+                {
+                    return rocksdb::IOStatus::PathNotFound();
+                }
+                rocksdb::IOStatus::IOError();
+            }
+            return rocksdb::IOStatus::OK();
+        }
+
+        inline void setChunkMaxSize(uint32_t size) noexcept
+        {
+            m_chunkSize=size;
+        }
+
+        inline uint32_t chunkMaxSize() const noexcept
+        {
+            return m_chunkSize;
+        }
+
+        inline void setFirstChunkMaxSize(uint32_t size) noexcept
+        {
+            m_firstChunkSize=size;
+        }
+
+        inline uint32_t firstChunkMaxSize() const noexcept
+        {
+            return m_firstChunkSize;
+        }
+
+    private:
+
+        //! @todo Make chunk sizes dependable on file type
+        uint32_t m_chunkSize;
+        uint32_t m_firstChunkSize;
+
+        std::shared_ptr<EncryptionManager> m_manager;
+};
+
+HATN_ROCKSDB_NAMESPACE_END
+
+#endif // HATNROCKSDBENCRYPTIONMANAGER_H

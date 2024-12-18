@@ -34,7 +34,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
     public:
 
         RocksdbClient(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            const lib::string_view& id=lib::string_view{}
         );
 
         ~RocksdbClient();
@@ -43,6 +43,8 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         void invokeOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool createIfMissing=false);
 
     protected:
+
+        std::shared_ptr<ClientEnvironment> doCloneEnvironment() override;
 
         Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records) override;
         Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records) override;

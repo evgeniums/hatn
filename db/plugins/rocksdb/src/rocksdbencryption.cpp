@@ -19,15 +19,6 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
-/********************** WithCryptfile **************************/
-
-WithCryptfile::WithCryptfile(
-        const crypt::SymmetricKey *masterKey,
-        const crypt::CipherSuite *suite,
-        common::pmr::AllocatorFactory *factory
-    ) : m_cryptfile(masterKey,suite,factory)
-{}
-
 //---------------------------------------------------------------
 
 static inline rocksdb::IOStatus ioError()
@@ -47,6 +38,12 @@ static inline rocksdb::IOStatus ioError()
         return ioError();\
     }\
     return rocksdb::IOStatus::OK();
+
+#define HATN_RDB_CHECK_STATUS(st) \
+    if (!st.ok()) \
+    {\
+        return st;\
+    }
 
 /********************** EncryptedFileWithCache **************************/
 
@@ -250,6 +247,133 @@ rocksdb::IOStatus EncryptedRandomRWFile::Write(
     HATN_RDB_DONE_EC(ec)
 }
 
+/********************** EncryptedFileSystem **************************/
+
+rocksdb::IOStatus EncryptedFileSystem::NewSequentialFile(
+        const std::string &fname,
+        const rocksdb::FileOptions &options,
+        std::unique_ptr<rocksdb::FSSequentialFile> *result,
+        rocksdb::IODebugContext */*dbg*/
+    )
+{
+    std::unique_ptr<EncryptedSequentialFile> file;
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::scan);
+    HATN_RDB_CHECK_STATUS(ret)
+    *result=std::move(file);
+    return ret;
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::NewRandomAccessFile(
+        const std::string& fname,
+        const rocksdb::FileOptions& options,
+        std::unique_ptr<rocksdb::FSRandomAccessFile>* result,
+        rocksdb::IODebugContext* /*dbg*/
+    )
+{
+    std::unique_ptr<EncryptedRandomAccessFile> file;
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::read);
+    HATN_RDB_CHECK_STATUS(ret)
+    *result=std::move(file);
+    return ret;
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::NewWritableFile(
+    const std::string& fname,
+    const rocksdb::FileOptions& options,
+    std::unique_ptr<rocksdb::FSWritableFile>* result,
+    rocksdb::IODebugContext* /*dbg*/
+    )
+{
+    std::unique_ptr<EncryptedWritableFile> file;
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write);
+    HATN_RDB_CHECK_STATUS(ret)
+    *result=std::move(file);
+    return ret;
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::ReopenWritableFile(
+    const std::string& fname,
+    const rocksdb::FileOptions& options,
+    std::unique_ptr<rocksdb::FSWritableFile>* result,
+    rocksdb::IODebugContext* /*dbg*/
+    )
+{
+    std::unique_ptr<EncryptedWritableFile> file;
+    auto ret=m_encryptionManager->reopenWritableFile(fname,options,&file);
+    HATN_RDB_CHECK_STATUS(ret)
+    *result=std::move(file);
+    return ret;
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::ReuseWritableFile(
+        const std::string& fname,
+        const std::string& old_fname,
+        const rocksdb::FileOptions& opts,
+        std::unique_ptr<rocksdb::FSWritableFile>* result,
+        rocksdb::IODebugContext* dbg
+    )
+{
+    return FileSystem::ReuseWritableFile(fname,old_fname,opts,result,dbg);
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::NewRandomRWFile(
+    const std::string& fname,
+    const rocksdb::FileOptions& options,
+    std::unique_ptr<rocksdb::FSRandomRWFile>* result,
+    rocksdb::IODebugContext* /*dbg*/
+    )
+{
+    std::unique_ptr<EncryptedRandomRWFile> file;
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write_existing);
+    HATN_RDB_CHECK_STATUS(ret)
+    *result=std::move(file);
+    return ret;
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::GetFileSize(
+    const std::string &fname,
+    const rocksdb::IOOptions &/*options*/,
+    uint64_t *file_size,
+    rocksdb::IODebugContext */*dbg*/)
+{
+    return m_encryptionManager->fileSize(fname,file_size);
+}
+
+//---------------------------------------------------------------
+
+rocksdb::IOStatus EncryptedFileSystem::GetChildrenFileAttributes(
+    const std::string &dir,
+    const rocksdb::IOOptions &options,
+    std::vector<rocksdb::FileAttributes> *result,
+    rocksdb::IODebugContext *dbg)
+{
+    return FileSystem::GetChildrenFileAttributes(dir,options,result,dbg);
+}
+
 //---------------------------------------------------------------
 
 HATN_ROCKSDB_NAMESPACE_END
+
+/**
+ * @todo DB Encryption
+ *
+ * 1. done - Use HKDF for CryptFile.
+ * 2. done - File name as a salt.
+ * 3. done - Disable caching for WAL.
+ * 4. Think of chunk size for WAL.
+ * 4. done - To use single Env with multiple databases filesystem must distinguish databases basing on path prefix.
+ *     Let it be configurable - single db or multiple db mode.
+ * 5. Think of different options for different types of files. WAL, data, other types.
+*/

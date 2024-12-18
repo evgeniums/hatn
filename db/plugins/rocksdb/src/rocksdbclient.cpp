@@ -37,6 +37,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbhandler.ipp>
 #include <hatn/db/plugins/rocksdb/ttlcompactionfilter.h>
 #include <hatn/db/plugins/rocksdb/modeltopics.h>
+#include <hatn/db/plugins/rocksdb/rocksdbencryption.h>
 
 HATN_DB_USING
 
@@ -74,6 +75,16 @@ HDU_UNIT(rocksdb_options,
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+/********************** Client environment **************************/
+
+class RocksdbEnvironment : public ClientEnvironment
+{
+    public:
+
+        std::shared_ptr<RocksdbEncryptionManager> encryptionManager;
+        std::unique_ptr<rocksdb::Env> env;
+};
+
 /********************** RocksdbClient **************************/
 
 using RocksdbConfig = base::ConfigObject<rocksdb_config::type>;
@@ -89,14 +100,16 @@ class RocksdbClient_p
         std::unique_ptr<RocksdbHandler> handler;
         std::unique_ptr<TtlCompactionFilter> ttlCompactionFilter;
 
+        std::shared_ptr<RocksdbEnvironment> env;
+
         RocksdbClient_p() : ttlCompactionFilter(std::make_unique<TtlCompactionFilter>())
         {}
 };
 
 //---------------------------------------------------------------
 
-RocksdbClient::RocksdbClient(common::STR_ID_TYPE id)
-    :Client(std::move(id)),
+RocksdbClient::RocksdbClient(const lib::string_view &id)
+    :Client(id),
      d(std::make_unique<RocksdbClient_p>())
 {
 }
@@ -191,6 +204,24 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::TransactionDB* transactionDb{nullptr};
     ROCKSDB_NAMESPACE::Options options;
     ROCKSDB_NAMESPACE::TransactionDBOptions txOptions;
+
+    // prepare env
+    if (config.environment)
+    {
+        d->env=std::dynamic_pointer_cast<RocksdbEnvironment>(config.environment);
+        if (d->env)
+        {
+            options.env=d->env->env.get();
+        }
+    }
+    if (!d->env && config.encryptionManager)
+    {
+        d->env=std::make_shared<RocksdbEnvironment>();
+        d->env->encryptionManager=std::make_shared<RocksdbEncryptionManager>(config.encryptionManager);
+        d->env->env=makeEncryptedEnv(d->env->encryptionManager);
+        options.env=d->env->env.get();
+    }
+
 #ifdef BUILD_DEBUG
     txOptions.transaction_lock_timeout=10000;
 #endif
@@ -968,6 +999,13 @@ Error RocksdbClient::doFindCb(
 Error RocksdbClient::doDeleteTopic(const Topic &topic)
 {
     return d->handler->deleteTopic(topic);
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<ClientEnvironment> RocksdbClient::doCloneEnvironment()
+{
+    return d->env;
 }
 
 //---------------------------------------------------------------

@@ -20,6 +20,7 @@ SET (HEADERS
     include/hatn/db/update.h
     include/hatn/db/transaction.h
     include/hatn/db/find.h
+    include/hatn/db/encryptionmanager.h
 )
 
 SET (HEADERS

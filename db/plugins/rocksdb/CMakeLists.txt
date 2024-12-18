@@ -94,6 +94,7 @@ SET (HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbclient.h
     include/hatn/db/plugins/rocksdb/ttlcompactionfilter.h
     include/hatn/db/plugins/rocksdb/rocksdbencryption.h
+    include/hatn/db/plugins/rocksdb/encryptionmanager.h
 )
 
 SET (SOURCES

@@ -41,8 +41,22 @@
 #include <hatn/db/update.h>
 #include <hatn/db/find.h>
 #include <hatn/db/transaction.h>
+#include <hatn/db/encryptionmanager.h>
 
 HATN_DB_NAMESPACE_BEGIN
+
+class ClientEnvironment
+{
+    public:
+
+        ClientEnvironment()=default;
+        virtual ~ClientEnvironment()=default;
+
+        ClientEnvironment(const ClientEnvironment&)=delete;
+        ClientEnvironment(ClientEnvironment&&)=default;
+        ClientEnvironment& operator=(const ClientEnvironment&)=delete;
+        ClientEnvironment& operator=(ClientEnvironment&&)=default;
+};
 
 struct ClientConfig
 {
@@ -51,19 +65,27 @@ struct ClientConfig
 
     base::ConfigTreePath mainPath;
     base::ConfigTreePath optPath;
+
+    std::shared_ptr<EncryptionManager> encryptionManager;
+    std::shared_ptr<ClientEnvironment> environment;
 };
 
 class HATN_DB_EXPORT Client : public common::WithID
 {
     public:
 
-        Client(common::STR_ID_TYPE id=common::STR_ID_TYPE());
+        Client(const lib::string_view& id=lib::string_view{});
         virtual ~Client();
 
         Client(const Client&)=delete;
         Client(Client&&)=default;
         Client& operator=(const Client&)=delete;
         Client& operator=(Client&&)=default;
+
+        std::shared_ptr<ClientEnvironment> cloneEnvironment()
+        {
+            return doCloneEnvironment();
+        }
 
         bool isOpen() const noexcept
         {            
@@ -836,6 +858,11 @@ class HATN_DB_EXPORT Client : public common::WithID
         ) =0;
 
         virtual Error doTransaction(const TransactionFn& fn)=0;
+
+        virtual std::shared_ptr<ClientEnvironment> doCloneEnvironment()
+        {
+            return std::shared_ptr<ClientEnvironment>{};
+        }
 
         void setClosed() noexcept
         {
