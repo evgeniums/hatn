@@ -918,6 +918,21 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
         ec=FileUtils::copy(cipherTextFileNoStamp,tmpFileNoStamp);
         HATN_REQUIRE(!ec);
 
+        // check size of open file
+        CryptFile cryptFile1;
+        cryptFile1.open(tmpFileNoStamp,common::File::Mode::append,ec);
+        HATN_REQUIRE(!ec);
+        auto size1=cryptFile1.size();
+        CryptFile cryptFile2;
+        cryptFile2.setFilename(tmpFileNoStamp);
+        auto size2=cryptFile2.size(ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_TEST_MESSAGE(fmt::format("Comparing sizes of open and not open files: {}={}",size1,size2));
+        BOOST_CHECK_EQUAL(size2,size1);
+        cryptFile1.close(ec);
+        BOOST_REQUIRE(!ec);
+
+        // init files
         CryptFile cryptFileNoStamp(masterKey.get());
         cryptFileNoStamp.setFilename(tmpFileNoStamp);
 

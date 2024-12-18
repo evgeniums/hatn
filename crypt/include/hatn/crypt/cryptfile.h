@@ -359,6 +359,16 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         //! Fsync buffers to disk
         virtual Error fsync() noexcept override;
 
+        void setCacheEnabled(bool enable) noexcept
+        {
+            m_enableCache=enable;
+        }
+
+        bool isCacheEnabled() const noexcept
+        {
+            return m_enableCache;
+        }
+
     private:
 
         common::Error doOpen(Mode mode, bool headerOnly=false);
@@ -462,6 +472,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
 
         size_t m_maxProcessingSize;
         common::SharedPtr<SymmetricKey> m_macKey;
+        bool m_enableCache;
 };
 
 //---------------------------------------------------------------
@@ -528,6 +539,28 @@ common::Error CryptFile::doProcessFile(
     }
     return postHandler(proc);
 }
+
+class WithCryptfile
+{
+    public:
+
+        explicit WithCryptfile(
+            const SymmetricKey* masterKey,
+            const CipherSuite* suite=nullptr,
+            common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            ) : m_cryptfile(masterKey,suite,factory)
+        {}
+
+        CryptFile& cryptFile()
+        {
+            return m_cryptfile;
+        }
+
+    protected:
+
+        CryptFile m_cryptfile;
+        common::MutexLock m_mutex;
+};
 
 //---------------------------------------------------------------
 HATN_CRYPT_NAMESPACE_END

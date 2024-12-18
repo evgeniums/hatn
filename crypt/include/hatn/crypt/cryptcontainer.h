@@ -49,7 +49,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          * @brief Ctor
          * @param factory Allocator factory
          */
-        CryptContainer(
+        explicit CryptContainer(
                 common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) noexcept : CryptContainer(nullptr,nullptr,factory)
         {}
@@ -59,7 +59,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          * @param suite Cipher suite
          * @param factory Allocator factory
          */
-        CryptContainer(
+        explicit CryptContainer(
                 const CipherSuite* suite,
                 common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) noexcept : CryptContainer(nullptr,suite,factory)
@@ -71,7 +71,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          * @param suite Cipher suite
          * @param factory Allocator factory
          */
-        CryptContainer(
+        explicit CryptContainer(
             const SymmetricKey* masterKey,
             const CipherSuite* suite=nullptr,
             common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()

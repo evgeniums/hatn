@@ -50,7 +50,8 @@ CryptFile::CryptFile(
         m_tmpBuffer(factory->dataMemoryResource()),
         m_sizeDirty(false),
         m_eofSeqnum(0),
-        m_maxProcessingSize(MAX_PROCESSING_SIZE)
+        m_maxProcessingSize(MAX_PROCESSING_SIZE),
+        m_enableCache(true)
 {
 }
 
@@ -64,7 +65,7 @@ CryptFile::~CryptFile()
 //---------------------------------------------------------------
 bool CryptFile::useCache() const noexcept
 {
-    return !(m_mode==Mode::scan || m_mode==Mode::append || m_mode==Mode::append_existing);
+    return m_enableCache && !(m_mode==Mode::scan || m_mode==Mode::append || m_mode==Mode::append_existing);
 }
 
 //---------------------------------------------------------------

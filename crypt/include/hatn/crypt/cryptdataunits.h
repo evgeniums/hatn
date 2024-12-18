@@ -40,9 +40,12 @@ HDU_UNIT(cipher_suite,
     HDU_FIELD(ecdh,TYPE_STRING,10)
 )
 
+constexpr const uint32_t MaxContainerChunkSize=0x40000u;
+constexpr const uint32_t MaxContainerFirstChunkSize=0x1000u;
+
 HDU_UNIT(container_descriptor,
-    HDU_DEFAULT_FIELD(chunk_max_size,TYPE_UINT32,1,0x40000u)
-    HDU_DEFAULT_FIELD(first_chunk_max_size,TYPE_UINT32,2,0x1000u)
+    HDU_DEFAULT_FIELD(chunk_max_size,TYPE_UINT32,1,MaxContainerChunkSize)
+    HDU_DEFAULT_FIELD(first_chunk_max_size,TYPE_UINT32,2,MaxContainerFirstChunkSize)
     HDU_FIELD(cipher_suite_id,TYPE_STRING,3)
     HDU_FIELD(cipher_suite,cipher_suite::TYPE,4)
     HDU_ENUM(KdfType,HKDF=0,PBKDF=1)
