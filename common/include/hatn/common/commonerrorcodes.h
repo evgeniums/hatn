@@ -33,6 +33,7 @@
     Do(CommonError,FILE_WRITE_FAILED,_TR("failed to write file")) \
     Do(CommonError,FILE_READ_FAILED,_TR("failed to read file")) \
     Do(CommonError,FILE_NOT_OPEN,_TR("file not open")) \
+    Do(CommonError,FILE_NOT_FOUND,_TR("file not found")) \
     Do(CommonError,FILE_SYNC_FAILED,_TR("failed to sync file")) \
     Do(CommonError,FILE_FSYNC_FAILED,_TR("failed to fsync file")) \
     Do(CommonError,FILE_TRUNCATE_FAILED,_TR("failed to truncate file")) \

@@ -50,6 +50,10 @@ Error PlainFile::open(const char *filename, Mode mode)
     }
     boost::system::error_code ec;
     m_file.open(filename,mode,ec);
+    if (ec.value()==static_cast<int>(boost::system::errc::no_such_file_or_directory))
+    {
+        return commonError(CommonError::FILE_NOT_FOUND);
+    }
     return makeBoostError(ec);
 }
 
