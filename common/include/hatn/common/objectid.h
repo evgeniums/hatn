@@ -164,6 +164,18 @@ class StringId
             m_ptr=&m_val;
         }
 
+        template <typename ContainerT>
+        inline void set(const ContainerT& val) noexcept
+        {
+            m_val.load(val);
+            m_ptr=&m_val;
+        }
+
+        operator lib::string_view() const noexcept
+        {
+            return lib::string_view{m_ptr->data(),m_ptr->size()};
+        }
+
     private:
 
         StrIdContent m_val;
@@ -181,16 +193,17 @@ class WithID
 
         //! Ctor
         WithID(
-            STR_ID_TYPE id=STR_ID_TYPE()
-        ) noexcept : m_id(std::move(id))
+            const lib::string_view& id=lib::string_view{}
+        ) noexcept : m_id(id)
         {}
 
         //! Set object ID
-        inline void setID(STR_ID_TYPE id) noexcept
+        inline void setID(const lib::string_view& id) noexcept
         {
-            m_id=std::move(id);
+            m_id.set(id);
         }
-        inline const STR_ID_TYPE& id() const noexcept
+
+        inline lib::string_view id() const noexcept
         {
             return m_id;
         }
