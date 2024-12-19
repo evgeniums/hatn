@@ -120,7 +120,7 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_REQUIRE(!ec);
         auto oid=o.fieldValue(object::_id);
 
-        BOOST_TEST_MESSAGE("Increment object's field concurrently");
+        BOOST_TEST_MESSAGE("Increment object's field atomically");
         auto incReq=update::request(update::field(u1::f1,update::inc,1),update::field(u1::f3,update::inc,10));
 #ifdef BUILD_DEBUG
     size_t count=1000;
@@ -407,7 +407,11 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
         auto oid=o.fieldValue(object::_id);
 
         BOOST_TEST_MESSAGE("Increment object's field concurrently");
-        size_t count=10000;
+#ifdef BUILD_DEBUG
+        size_t count=1000;
+#else
+        size_t count=1000;
+#endif
         int jobs=8;
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)

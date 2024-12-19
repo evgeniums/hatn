@@ -25,17 +25,41 @@
 
 #ifdef HATN_ENABLE_PLUGIN_OPENSSL
 #include <hatn/crypt/plugins/openssl/opensslplugin.h>
-HATN_PLUGIN_INIT(hatn::crypt::openssl::OpenSslPlugin)
 #endif
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/rocksdbplugin.h>
-HATN_PLUGIN_INIT(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin)
 #endif
 
 #endif
 
 HATN_TEST_NAMESPACE_BEGIN
+
+#ifdef NO_DYNAMIC_HATN_PLUGINS
+
+#ifdef HATN_ENABLE_PLUGIN_OPENSSL
+HATN_PLUGIN_INIT_FN(HATN_OPENSSL_NAMESPACE::OpenSslPlugin,initOpensslPlugin)
+#else
+void initOpensslPlugin()
+{}
+#endif
+
+#ifdef HATN_ENABLE_PLUGIN_OPENSSL
+HATN_PLUGIN_INIT_FN(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin,initRocksdbPlugin)
+#else
+void initRocksdbPlugin()
+{}
+#endif
+
+#else
+
+void initOpensslPlugin()
+{}
+
+void initRocksdbPlugin()
+{}
+
+#endif
 
 bool DbPluginTest::m_initialized=false;
 
@@ -49,6 +73,9 @@ void DbPluginTest::initOnce()
 {
     if (!m_initialized)
     {
+        initOpensslPlugin();
+        initRocksdbPlugin();
+
         BOOST_TEST_MESSAGE("Setup database plugins");
         if (HATN_TEST_PLUGINS.empty())
         {

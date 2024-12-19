@@ -611,6 +611,7 @@ uint64_t CryptFile::seqnumToPos(uint32_t seqnum) const noexcept
     {
         return 0;
     }
+    //! @todo Keep max chunk sizes
     return m_proc.maxPlainChunkSize(0)+(seqnum-1)*m_proc.maxPlainChunkSize(seqnum);
 }
 
@@ -737,6 +738,10 @@ bool CryptFile::isLastChunk(const CachedChunk &chunk) const
 //---------------------------------------------------------------
 size_t CryptFile::write(const char *data, size_t size)
 {
+#if 0
+    std::cout << "CryptFile::write << file=" << filename() << " cursor="<<m_cursor<<" data=\"" <<std::string(data,size) << "\", size="
+              << size << std::endl;
+#endif
     // check state and arguments
     if (size==0)
     {
@@ -887,7 +892,10 @@ size_t CryptFile::read(char *data, size_t maxSize)
         m_currentChunk->offset+=readSize;
         m_cursor+=readSize;
     }
-
+#if 0
+    std::cout << "CryptFile::read << file=" << filename() << " cursor="<<m_cursor<<" data=\"" <<std::string(data,doneSize) << "\", size="
+              << doneSize << std::endl;
+#endif
     // done
     m_seekCursor+=doneSize;
     return doneSize;

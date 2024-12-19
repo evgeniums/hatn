@@ -496,6 +496,7 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         // done
         d->handler.reset();
     }
+    d->env.reset();
 }
 
 //---------------------------------------------------------------
@@ -565,6 +566,10 @@ Error RocksdbClient::doAddDatePartitions(const std::vector<ModelInfo>&, const st
 Result<std::set<common::DateRange>> RocksdbClient::doListDatePartitions()
 {
     ROCKSDB_NAMESPACE::Options options;
+    if (d->env)
+    {
+        options.env=d->env->env.get();
+    }
     std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
 
     // list names of existing column families

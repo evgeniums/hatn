@@ -39,10 +39,13 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
         {}
 
         template <typename T>
-        rocksdb::IOStatus createAndOpenFile(const std::string& fname,
-                                   const rocksdb::FileOptions& options,
-                                   std::unique_ptr<T>* result,
-                                   common::File::Mode mode)
+        rocksdb::IOStatus createAndOpenFile(
+                    const std::string& fname,
+                    const rocksdb::FileOptions& options,
+                    std::unique_ptr<T>* result,
+                    common::File::Mode mode,
+                    common::File::ShareMode shareMode
+                )
         {
             bool enableCache=true;
             // disable cache for WAL and Log
@@ -57,6 +60,7 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
                     fname,
                     result,
                     mode,
+                    shareMode,
                     enableCache,
                     m_chunkSize,
                     m_firstChunkSize
@@ -65,9 +69,9 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
             {
                 if (ec.is(CommonError::FILE_NOT_FOUND))
                 {
-                    return rocksdb::IOStatus::PathNotFound();
+                    return rocksdb::IOStatus::PathNotFound(ec.message(),fname);
                 }
-                return rocksdb::IOStatus::IOError();
+                return rocksdb::IOStatus::IOError(ec.message(),fname);
             }
 
             // done
@@ -77,9 +81,11 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
         template <typename T>
         rocksdb::IOStatus reopenWritableFile(const std::string& fname,
                                      const rocksdb::FileOptions& options,
-                                     std::unique_ptr<T>* result)
+                                     std::unique_ptr<T>* result,
+                                     common::File::ShareMode shareMode
+                                )
         {
-            return createAndOpenFile(fname,options,result,common::File::Mode::append);
+            return createAndOpenFile(fname,options,result,common::File::Mode::append,shareMode);
         }
 
         rocksdb::IOStatus fileSize(const std::string& fname, uint64_t* file_size)
@@ -89,9 +95,9 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
             {
                 if (ec.is(CommonError::FILE_NOT_FOUND))
                 {
-                    return rocksdb::IOStatus::PathNotFound();
+                    return rocksdb::IOStatus::PathNotFound(ec.message(),fname);
                 }
-                rocksdb::IOStatus::IOError();
+                rocksdb::IOStatus::IOError(ec.message(),fname);
             }
             return rocksdb::IOStatus::OK();
         }

@@ -39,7 +39,10 @@
 #define HATN_TEST_DB_ECRYPTED_ONLY 1
 #define HATN_TEST_DB_PLAIN_AND_ENCRYPTED 2
 
+// #define HATN_TEST_DB_COUNT HATN_TEST_DB_PLAIN_AND_ENCRYPTED
 #define HATN_TEST_DB_COUNT HATN_TEST_DB_ECRYPTED_ONLY
+
+// #define HATN_TEST_DB_SAVE_CRYPT_FILES
 
 HATN_TEST_NAMESPACE_BEGIN
 
@@ -52,6 +55,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
         {
         for (size_t i=0;i<HATN_TEST_DB_COUNT;i++)
         {
+            std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
             std::shared_ptr<db::EncryptionManager> encryptionManager;
             if (i==0)
             {
@@ -63,7 +67,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 // prepare encryption manager
 
                 // load crypt plugin
-                auto cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(
+                cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(
                         HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN
                     );
                 if (!cryptPlugin)
@@ -75,6 +79,13 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 auto cipherSuiteFile=fmt::format("{}/crypt-ciphersuite1.json",path);
                 auto passphraseFile=fmt::format("{}/crypt-passphrase1.dat",path);
                 auto keyFile=fmt::format("{}/crypt-key1.dat",path);
+
+#ifdef HATN_TEST_DB_SAVE_CRYPT_FILES
+                if (!lib::filesystem::exists(cipherSuiteFile))
+                {
+                    continue;
+                }
+#else
                 if (!lib::filesystem::exists(cipherSuiteFile)
                     ||
                     !lib::filesystem::exists(keyFile)
@@ -84,6 +95,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 {
                     continue;
                 }
+#endif
                 BOOST_TEST_MESSAGE("Testing encrypted rocksdb");
                 common::ByteArray cipherSuiteJson;
                 auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
@@ -100,7 +112,16 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 auto passphrase=suite->createPassphraseKey(ec);
                 HATN_REQUIRE(!ec);
                 HATN_REQUIRE(passphrase);
-                ec=passphrase->importFromFile(keyFile,crypt::ContainerFormat::RAW_PLAIN);
+
+#ifdef HATN_TEST_DB_SAVE_CRYPT_FILES
+                auto passwordGen=cryptPlugin->createPasswordGenerator();
+                HATN_REQUIRE(passwordGen);
+                ec=passphrase->generatePassword(passwordGen.get());
+                HATN_REQUIRE(!ec);
+                ec=passphrase->exportToFile(passphraseFile,crypt::ContainerFormat::RAW_PLAIN);
+                HATN_REQUIRE(!ec)
+#endif
+                ec=passphrase->importFromFile(passphraseFile,crypt::ContainerFormat::RAW_PLAIN);
                 HATN_REQUIRE(!ec)
                 // find aead algorithm
                 const crypt::CryptAlgorithm* aeadAlg=nullptr;
@@ -112,6 +133,12 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 auto masterKey=aeadAlg->createSymmetricKey();
                 HATN_REQUIRE(masterKey);
                 masterKey->setProtector(keyProtector.get());
+#ifdef HATN_TEST_DB_SAVE_CRYPT_FILES
+                ec=masterKey->generate();
+                HATN_REQUIRE(!ec);
+                ec=masterKey->exportToFile(keyFile,crypt::ContainerFormat::RAW_ENCRYPTED);
+                HATN_REQUIRE(!ec);
+#endif
                 ec=masterKey->importFromFile(keyFile,crypt::ContainerFormat::RAW_ENCRYPTED);
                 HATN_REQUIRE(!ec)
                 masterKey->setProtector(nullptr);
@@ -172,6 +199,10 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
             for (auto&& it:logRecords)
             {
                 BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
+            }
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
             }
             BOOST_REQUIRE(!ec);
 

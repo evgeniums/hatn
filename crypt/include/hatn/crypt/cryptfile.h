@@ -184,6 +184,11 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
             return m_file->nativeHandle();
         }
 
+        virtual void setShareMode(ShareMode mode) override
+        {
+            m_file->setShareMode(mode);
+        }
+
         /**
          * @brief Get cryptographic module
          * @return Cryptographic module

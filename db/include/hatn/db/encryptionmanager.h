@@ -174,22 +174,27 @@ class HATN_DB_EXPORT EncryptionManager
             const std::string& fname,
             std::unique_ptr<T>* result,
             common::File::Mode mode,
+            common::File::ShareMode shareMode,
             bool enableCache,
             lib::optional<uint32_t> chunkSize=lib::optional<uint32_t>{},
             lib::optional<uint32_t> firstChunkSize=lib::optional<uint32_t>{}
             )
         {
+#if 0
+            std::cout << "In EncryptionManager::createAndOpenFile " << fname << " mode=" << int(mode) << std::endl;
+#endif
             // split file name to db path and file subpath
             auto nameParts=splitPath(fname);
-            auto key=dbKey(nameParts.first);
-            const auto& salt=nameParts.second;
+            auto key=dbKey(nameParts.first);            
 
             // create file
             auto file=std::make_unique<T>(key.get(),m_suite.get(),m_factory);
-
+//! @todo generate salt for new files
+#if 0
+            const auto& salt=nameParts.second;
             // salt is a file subpath
             file->cryptFile().processor().setSalt(salt);
-
+#endif
             // set HKDF for key derivation
             file->cryptFile().processor().setKdfType(crypt::container_descriptor::KdfType::HKDF);
 
@@ -201,8 +206,15 @@ class HATN_DB_EXPORT EncryptionManager
             file->cryptFile().setCacheEnabled(enableCache);
 
             // open file
+            file->cryptFile().setShareMode(shareMode);
             auto ec=file->cryptFile().open(fname,mode);
+#if 0
             //! @todo Log error
+            if (ec)
+            {
+                std::cout << "EncryptionManager::createAndOpenFile " << fname << " failed: " << ec.message() << std::endl;
+            }
+#endif
             HATN_CHECK_EC(ec)
 
             // move file to result
@@ -214,11 +226,27 @@ class HATN_DB_EXPORT EncryptionManager
 
         static Error fileSize(const std::string& fname, uint64_t* size)
         {
+#if 0
+            std::cout << "In EncryptionManager::fileSize " << fname << std::endl;
+#endif
             crypt::CryptFile file;
+            file.setShareMode(
+                common::File::Sharing::featureMask({
+                    common::File::Share::Read,
+                    common::File::Share::Write,
+                    common::File::Share::Delete
+                })
+                );
             file.setFilename(fname);
             Error ec;
             *size=file.size(ec);
+#if 0
             //! @todo Log error
+            if (ec)
+            {
+                std::cout << "EncryptionManager::fileSize " << fname << " failed: " << ec.message() << std::endl;
+            }
+#endif
             return ec;
         }
 

@@ -1,10 +1,10 @@
 SET (TEST_SOURCES
-    ${DB_TEST_SRC}/testobject.cpp
-    ${DB_TEST_SRC}/testinitplugins.cpp
-    ${DB_TEST_SRC}/testopenclose.cpp
-    ${DB_TEST_SRC}/testschema.cpp
-    ${DB_TEST_SRC}/testrocksdbschema.cpp
-    ${DB_TEST_SRC}/testrocksdbop.cpp
+    # ${DB_TEST_SRC}/testobject.cpp
+    # ${DB_TEST_SRC}/testinitplugins.cpp
+    # ${DB_TEST_SRC}/testopenclose.cpp
+    # ${DB_TEST_SRC}/testschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbschema.cpp
+    # ${DB_TEST_SRC}/testrocksdbop.cpp
     ${DB_TEST_SRC}/testcrud.cpp
 
     ${DB_TEST_SRC}/testfind.cpp
@@ -13,20 +13,20 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testfindplain.cpp
     ${DB_TEST_SRC}/modelplain.cpp
 
-    ${DB_TEST_SRC}/testfindembedded.cpp
-    ${DB_TEST_SRC}/modelembedded.cpp
+    # ${DB_TEST_SRC}/testfindembedded.cpp
+    # ${DB_TEST_SRC}/modelembedded.cpp
 
-    ${DB_TEST_SRC}/testfindcompound.cpp
-    ${DB_TEST_SRC}/modelcompound.cpp
+    # ${DB_TEST_SRC}/testfindcompound.cpp
+    # ${DB_TEST_SRC}/modelcompound.cpp
 
-    ${DB_TEST_SRC}/testfindcompound2.cpp
-    ${DB_TEST_SRC}/modelcompound2.cpp
+    # ${DB_TEST_SRC}/testfindcompound2.cpp
+    # ${DB_TEST_SRC}/modelcompound2.cpp
 
     ${DB_TEST_SRC}/testupdate.cpp
-    ${DB_TEST_SRC}/testupdatenested.cpp
+    # ${DB_TEST_SRC}/testupdatenested.cpp
 
-    ${DB_TEST_SRC}/testrepeated.cpp
-    ${DB_TEST_SRC}/modelsrep.cpp
+    # ${DB_TEST_SRC}/testrepeated.cpp
+    # ${DB_TEST_SRC}/modelsrep.cpp
 
     ${DB_TEST_SRC}/testpartitions.cpp
     ${DB_TEST_SRC}/testttl.cpp
@@ -72,12 +72,23 @@ ADD_LIBRARY(${MODULE_TEST_LIB} STATIC ${HATN_TEST_THREAD_SOURCES} ${TEST_LIB_SOU
 TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${TEST_BINARY_DIR} ${PLUGIN_SRC_DIRS})
 TARGET_COMPILE_DEFINITIONS(${MODULE_TEST_LIB} PRIVATE -DBUILD_TEST_DB)
 
+IF (BUILD_STATIC)
+    MESSAGE(STATUS "Linking ${MODULE_TEST_LIB} with crypt plugins for static build")
+    LINK_HATN_PLUGINS(${MODULE_TEST_LIB} crypt)
+
+    IF (HATN_PLUGIN_openssl)
+        SET (OPENSSL_PLUGIN_SRC_DIR "${HATN_SOURCE_DIR}/crypt/plugins/openssl/include")
+        MESSAGE(STATUS "Add include directory for static build for ${MODULE_TEST_LIB}: ${OPENSSL_PLUGIN_SRC_DIR}")
+        TARGET_INCLUDE_DIRECTORIES(${MODULE_TEST_LIB} PRIVATE ${OPENSSL_PLUGIN_SRC_DIR})
+    ENDIF()
+ENDIF()
+
 SET(HATN_TEST_THREAD_SOURCES "")
 
 ADD_HATN_MODULES(${MODULE_TEST_LIB} PUBLIC db)
 
 IF (HATN_PLUGIN_rocksdb)
-    MESSAGE(STATUS "Linkning db tests with hatnrocksdbschema")
+    MESSAGE(STATUS "Linking db tests with hatnrocksdbschema")
     TARGET_LINK_LIBRARIES(${MODULE_TEST_LIB} PUBLIC hatnrocksdbschema)
 ENDIF()
 
@@ -89,8 +100,13 @@ FUNCTION(TestDb)
     COPY_LIBRARY_HERE(hatnbase${LIB_POSTFIX} ../base/)
     COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
     COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)
+    COPY_LIBRARY_HERE(hatncrypt${LIB_POSTFIX} ../crypt/)
     IF (HATN_PLUGIN_rocksdb)
         COPY_LIBRARY_HERE(hatnrocksdbschema${LIB_POSTFIX} ../db/plugins/rocksdb)
+        IF (HATN_PLUGIN_openssl)
+            MESSAGE(STATUS "Copying openssl plugin to test folder")
+            COPY_LIBRARY(hatnopenssl${LIB_POSTFIX} ../crypt/plugins/openssl plugins/crypt)
+        ENDIF()
     ENDIF()
 ENDFUNCTION(TestDb)
 

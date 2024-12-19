@@ -21,21 +21,21 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-static inline rocksdb::IOStatus ioError()
+static inline rocksdb::IOStatus ioError(const Error& ec)
 {
-    return rocksdb::IOStatus::IOError();
+    return rocksdb::IOStatus::IOError(ec.message());
 }
 
 #define HATN_RDB_CHECK_EC(ec) \
     if (ec) \
     {\
-        return ioError();\
+        return ioError(ec);\
     }
 
 #define HATN_RDB_DONE_EC(ec) \
     if (ec) \
     {\
-        return ioError();\
+        return ioError(ec);\
     }\
     return rocksdb::IOStatus::OK();
 
@@ -222,8 +222,6 @@ rocksdb::IOStatus EncryptedWritableFile::Truncate(
         rocksdb::IODebugContext */*dbg*/
     )
 {
-    //! @todo optimization: Expensive operation, maybe disable it
-
     common::MutexScopedLock l(m_mutex);
 
     auto ec=m_cryptfile.truncate(size);
@@ -256,8 +254,17 @@ rocksdb::IOStatus EncryptedFileSystem::NewSequentialFile(
         rocksdb::IODebugContext */*dbg*/
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::NewSequentialFile " << fname << std::endl;
+#endif
     std::unique_ptr<EncryptedSequentialFile> file;
-    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::scan);
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::scan,
+                                                        common::File::Sharing::featureMask({
+                                                            common::File::Share::Read,
+                                                            common::File::Share::Write,
+                                                            common::File::Share::Delete
+                                                        })
+    );
     HATN_RDB_CHECK_STATUS(ret)
     *result=std::move(file);
     return ret;
@@ -272,8 +279,17 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomAccessFile(
         rocksdb::IODebugContext* /*dbg*/
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::NewRandomAccessFile " << fname << std::endl;
+#endif
     std::unique_ptr<EncryptedRandomAccessFile> file;
-    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::read);
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::read,
+                                                      common::File::Sharing::featureMask({
+                                                          common::File::Share::Read,
+                                                          common::File::Share::Write,
+                                                          common::File::Share::Delete
+                                                      })
+    );
     HATN_RDB_CHECK_STATUS(ret)
     *result=std::move(file);
     return ret;
@@ -288,8 +304,17 @@ rocksdb::IOStatus EncryptedFileSystem::NewWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::NewWritableFile " << fname << std::endl;
+#endif
     std::unique_ptr<EncryptedWritableFile> file;
-    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write);
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write,
+                                                      common::File::Sharing::featureMask({
+                                                          common::File::Share::Read,
+                                                          common::File::Share::Write,
+                                                          common::File::Share::Delete
+                                                      })
+    );
     HATN_RDB_CHECK_STATUS(ret)
     *result=std::move(file);
     return ret;
@@ -304,8 +329,17 @@ rocksdb::IOStatus EncryptedFileSystem::ReopenWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::ReopenWritableFile " << fname << std::endl;
+#endif
     std::unique_ptr<EncryptedWritableFile> file;
-    auto ret=m_encryptionManager->reopenWritableFile(fname,options,&file);
+    auto ret=m_encryptionManager->reopenWritableFile(fname,options,&file,
+                                                       common::File::Sharing::featureMask({
+                                                           common::File::Share::Read,
+                                                           common::File::Share::Write,
+                                                           common::File::Share::Delete
+                                                       })
+    );
     HATN_RDB_CHECK_STATUS(ret)
     *result=std::move(file);
     return ret;
@@ -321,6 +355,9 @@ rocksdb::IOStatus EncryptedFileSystem::ReuseWritableFile(
         rocksdb::IODebugContext* dbg
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::ReuseWritableFile " << fname << std::endl;
+#endif
     return FileSystem::ReuseWritableFile(fname,old_fname,opts,result,dbg);
 }
 
@@ -333,8 +370,17 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomRWFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
+#if 0
+    std::cout << "EncryptedFileSystem::NewRandomRWFile " << fname << std::endl;
+#endif
     std::unique_ptr<EncryptedRandomRWFile> file;
-    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write_existing);
+    auto ret=m_encryptionManager->createAndOpenFile(fname,options,&file,common::File::Mode::write_existing,
+                                                      common::File::Sharing::featureMask({
+                                                          common::File::Share::Read,
+                                                          common::File::Share::Write,
+                                                          common::File::Share::Delete
+                                                      })
+    );
     HATN_RDB_CHECK_STATUS(ret)
     *result=std::move(file);
     return ret;

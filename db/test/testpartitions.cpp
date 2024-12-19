@@ -169,6 +169,10 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
 
             BOOST_TEST_MESSAGE("List partitions");
             auto ranges=client->listDatePartitions();
+            if (ranges)
+            {
+                BOOST_TEST_MESSAGE(ranges.error().message());
+            }
             BOOST_REQUIRE(!ranges);
             BOOST_CHECK_EQUAL(ranges->size(),12+1);
 
