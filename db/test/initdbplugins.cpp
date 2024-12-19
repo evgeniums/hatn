@@ -23,6 +23,11 @@
 
 #ifdef NO_DYNAMIC_HATN_PLUGINS
 
+#ifdef HATN_ENABLE_PLUGIN_OPENSSL
+#include <hatn/crypt/plugins/openssl/opensslplugin.h>
+HATN_PLUGIN_INIT(hatn::crypt::openssl::OpenSslPlugin)
+#endif
+
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/rocksdbplugin.h>
 HATN_PLUGIN_INIT(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin)
@@ -69,8 +74,11 @@ void DbTestFixture::setup()
 
 void DbTestFixture::teardown()
 {
-    m_logCtx->afterThreadProcessing();
-    m_logCtx.reset();
+    if (m_logCtx)
+    {
+        m_logCtx->afterThreadProcessing();
+        m_logCtx.reset();
+    }
 }
 
 HATN_TEST_NAMESPACE_END

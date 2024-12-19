@@ -18,10 +18,28 @@
 
 #include <hatn/base/configtreeloader.h>
 
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+
+#include <hatn/crypt/keyprotector.h>
+
 #include <hatn/db/client.h>
 
 #include "initdbplugins.h"
 #include "preparedb.h"
+
+#ifndef HATN_TEST_DB_ENCRYPTED_PLUGIN
+#define HATN_TEST_DB_ENCRYPTED_PLUGIN "hatnrocksdb"
+#endif
+
+#ifndef HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN
+#define HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN "hatnopenssl"
+#endif
+
+#define HATN_TEST_DB_ECRYPTED_ONLY 1
+#define HATN_TEST_DB_PLAIN_AND_ENCRYPTED 2
+
+#define HATN_TEST_DB_COUNT HATN_TEST_DB_ECRYPTED_ONLY
 
 HATN_TEST_NAMESPACE_BEGIN
 
@@ -32,6 +50,77 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
         [&](std::shared_ptr<db::DbPlugin>& plugin)
         {
+        for (size_t i=0;i<HATN_TEST_DB_COUNT;i++)
+        {
+            std::shared_ptr<db::EncryptionManager> encryptionManager;
+            if (i==0)
+            {
+                if (plugin->info()->name!=HATN_TEST_DB_ENCRYPTED_PLUGIN)
+                {
+                    continue;
+                }
+
+                // prepare encryption manager
+
+                // load crypt plugin
+                auto cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(
+                        HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN
+                    );
+                if (!cryptPlugin)
+                {
+                    continue;
+                }
+
+                auto path=PluginList::assetsPath("db");
+                auto cipherSuiteFile=fmt::format("{}/crypt-ciphersuite1.json",path);
+                auto passphraseFile=fmt::format("{}/crypt-passphrase1.dat",path);
+                auto keyFile=fmt::format("{}/crypt-key1.dat",path);
+                if (!lib::filesystem::exists(cipherSuiteFile)
+                    ||
+                    !lib::filesystem::exists(keyFile)
+                    ||
+                    !lib::filesystem::exists(passphraseFile)
+                    )
+                {
+                    continue;
+                }
+                BOOST_TEST_MESSAGE("Testing encrypted rocksdb");
+                common::ByteArray cipherSuiteJson;
+                auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
+                HATN_REQUIRE(!ec);
+                auto suite=std::make_shared<crypt::CipherSuite>();
+                ec=suite->loadFromJSON(cipherSuiteJson);
+                HATN_REQUIRE(!ec);
+                // add suite to table of suites
+                crypt::CipherSuites::instance().addSuite(suite);
+                // set engine
+                auto engine=std::make_shared<crypt::CryptEngine>(cryptPlugin.get());
+                crypt::CipherSuites::instance().setDefaultEngine(std::move(engine));
+                // load passphrase
+                auto passphrase=suite->createPassphraseKey(ec);
+                HATN_REQUIRE(!ec);
+                HATN_REQUIRE(passphrase);
+                ec=passphrase->importFromFile(keyFile,crypt::ContainerFormat::RAW_PLAIN);
+                HATN_REQUIRE(!ec)
+                // find aead algorithm
+                const crypt::CryptAlgorithm* aeadAlg=nullptr;
+                ec=suite->aeadAlgorithm(aeadAlg);
+                HATN_REQUIRE(!ec);
+                HATN_REQUIRE(aeadAlg!=nullptr);
+                // create and load master key
+                auto keyProtector=common::makeShared<crypt::KeyProtector>(passphrase,suite.get());
+                auto masterKey=aeadAlg->createSymmetricKey();
+                HATN_REQUIRE(masterKey);
+                masterKey->setProtector(keyProtector.get());
+                ec=masterKey->importFromFile(keyFile,crypt::ContainerFormat::RAW_ENCRYPTED);
+                HATN_REQUIRE(!ec)
+                masterKey->setProtector(nullptr);
+
+                encryptionManager=std::make_shared<db::EncryptionManager>();
+                encryptionManager->setSuite(suite);
+                encryptionManager->setDefaultKey(masterKey);
+            }
+
             // make client
             auto client=plugin->makeClient();
             BOOST_REQUIRE(client);
@@ -58,9 +147,12 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
             BOOST_REQUIRE(!ec);
 
             // prepare config
-            base::ConfigTreePath cfgPath{plugin->info()->name};
+            base::ConfigTreePath cfgPath{plugin->info()->name};            
+            std::shared_ptr<db::ClientEnvironment> environment;
             db::ClientConfig cfg{
-                mainCfg, optCfg, cfgPath, cfgPath.copyAppend("options")
+                mainCfg, optCfg, cfgPath, cfgPath.copyAppend("options"),
+                encryptionManager,
+                environment
             };
             currentCfg=&cfg;
             base::config_object::LogRecords logRecords;
@@ -113,7 +205,9 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
             }
 
             // cleanup
-            currentCfg=nullptr;
+            currentCfg=nullptr;            
+        }
+            crypt::CipherSuites::instance().reset();
         }
     );
 }
