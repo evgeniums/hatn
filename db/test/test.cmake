@@ -75,7 +75,11 @@ TARGET_COMPILE_DEFINITIONS(${MODULE_TEST_LIB} PRIVATE -DBUILD_TEST_DB)
 SET(HATN_TEST_THREAD_SOURCES "")
 
 ADD_HATN_MODULES(${MODULE_TEST_LIB} PUBLIC db)
-TARGET_LINK_LIBRARIES(${MODULE_TEST_LIB} PUBLIC hatnrocksdbschema)
+
+IF (HATN_PLUGIN_rocksdb)
+    MESSAGE(STATUS "Linkning db tests with hatnrocksdbschema")
+    TARGET_LINK_LIBRARIES(${MODULE_TEST_LIB} PUBLIC hatnrocksdbschema)
+ENDIF()
 
 ADD_HATN_CTESTS(db ${TEST_SOURCES} ${TEST_HEADERS})
 
@@ -84,8 +88,10 @@ FUNCTION(TestDb)
     COPY_LIBRARY_HERE(hatndataunit${LIB_POSTFIX} ../dataunit/)
     COPY_LIBRARY_HERE(hatnbase${LIB_POSTFIX} ../base/)
     COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
-    COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)    
-    COPY_LIBRARY_HERE(hatnrocksdbschema${LIB_POSTFIX} ../db/plugins/rocksdb)
+    COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)
+    IF (HATN_PLUGIN_rocksdb)
+        COPY_LIBRARY_HERE(hatnrocksdbschema${LIB_POSTFIX} ../db/plugins/rocksdb)
+    ENDIF()
 ENDFUNCTION(TestDb)
 
 IF (MINGW AND BUILD_DEBUG)

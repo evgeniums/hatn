@@ -32,13 +32,12 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
 
-#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
-
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 #include "preparedb.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 

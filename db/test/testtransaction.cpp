@@ -21,8 +21,6 @@
 
 #include <hatn/db/schema.h>
 
-#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
-
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -37,6 +35,7 @@
 #include "preparedb.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 

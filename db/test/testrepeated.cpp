@@ -27,8 +27,8 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/db/schema.h>
-
-#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
+#include <hatn/db/update.h>
+#include <hatn/db/ipp/updateunit.ipp>
 
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
@@ -42,6 +42,7 @@ using ExtSetter=void;
 #include "findhandlers.ipp"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 

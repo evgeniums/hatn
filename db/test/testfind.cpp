@@ -28,8 +28,6 @@
 
 #include <hatn/db/schema.h>
 
-#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
-
 #include "hatn_test_config.h"
 #include "initdbplugins.h"
 #include "preparedb.h"
@@ -37,6 +35,7 @@
 #include "models1.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
 
@@ -118,9 +117,11 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         std::cout<<"operand type="<<static_cast<int>(q.fields().at(0).value.typeId())<<std::endl;
         std::cout<<"operand value="<<static_cast<bool>(q.fields().at(0).value.as<query::BoolValue>())<<std::endl;
         common::FmtAllocatedBufferChar buf;
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
         HATN_ROCKSDB_NAMESPACE::fieldValueToBuf(buf,q.fields().at(0));
         std::cout<<"operand string="<<common::fmtBufToString(buf)<<std::endl;
-
+#endif
         auto r1=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,false),topic1));
         if (r1)
         {
