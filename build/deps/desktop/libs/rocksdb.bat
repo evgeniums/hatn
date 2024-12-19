@@ -5,13 +5,6 @@ SET repo_path=https://github.com/facebook/%lib_name%
 
 CALL %SCRIPTS_ROOT%/scripts/clonegit.bat
 
-
-if "%MSVC_BUILD_ARCH%"=="Win32" (
-    set patch_file=%SCRIPTS_ROOT%/libs/crc32_win32.patch
-    echo "patch -u -b %SRC%/%lib_name%/util/crc32c.cc -i !patch_file!"
-    patch -u -b %SRC%/%lib_name%/util/crc32c.cc -i !patch_file!
-)
-
 cd %build_dir%
 
 set GFLAGS_INCLUDE=%DEPS_PREFIX%/include

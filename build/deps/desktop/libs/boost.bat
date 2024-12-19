@@ -9,6 +9,14 @@ SET download_link=https://boostorg.jfrog.io/artifactory/main/release/%BOOST_VERS
 
 CALL %SCRIPTS_ROOT%/scripts/downloadandunpack.bat  
 
+SET patch_file=%SCRIPTS_ROOT%libs/boost_win.patch
+%PATCH% -R -p0 -s -f --dry-run <%patch_file% > NUL
+if %errorlevel% neq 0 (
+  echo "boost must be patched with %patch_file%"
+  %PATCH% -u -b boost\beast\core\file_win32.hpp -i %patch_file%
+  echo "boost patched"
+)
+
 call "bootstrap" %COMPILER%
 IF %errorlevel% NEQ 0 (
     ECHO Failed to build boost

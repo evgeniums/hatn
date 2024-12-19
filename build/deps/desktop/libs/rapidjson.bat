@@ -7,10 +7,10 @@ CALL %SCRIPTS_ROOT%scripts/clonegit.bat
 
 cd %folder%
 SET patch_file=%SCRIPTS_ROOT%libs/rapidjson.patch
-patch -R -p0 -s -f --dry-run <%patch_file% > NUL
+%PATCH% -R -p0 -s -f --dry-run <%patch_file% > NUL
 if %errorlevel% neq 0 (
   echo "rapidjson distro must be patched with %patch_file%"
-  patch -p0 <%patch_file%
+  %PATCH% -p0 <%patch_file%
   echo "rapidjson patched"
 )
 
