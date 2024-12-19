@@ -162,11 +162,6 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
 
         HATN_SINGLETON_DECLARE()
 
-        PluginLoader()=default;
-        ~PluginLoader()
-        {
-            free();
-        }
         PluginLoader(const PluginLoader&)=delete;
         PluginLoader(PluginLoader&&) =delete;
         PluginLoader& operator=(const PluginLoader&)=delete;
@@ -272,9 +267,9 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
         }
 
         /**
-         * @brief Load plugin by type and name and cast to type
+         * @brief Load plugin by type and name
          * @brief Type of plugin
-         * @param name Name of plugin, if empty then first plugin of requested type will be loaded
+         * @param name Name of plugin, if empty then the first plugin of requested type will be loaded
          * @return Loaded plugin
          */
         std::shared_ptr<Plugin> loadPlugin(
@@ -355,6 +350,12 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
         static std::string dynlibName(const std::string& libName);
 
     private:
+
+        PluginLoader()=default;
+        ~PluginLoader()
+        {
+            free();
+        }
 
         void doFree(PluginInfo* info, bool erase);
 
