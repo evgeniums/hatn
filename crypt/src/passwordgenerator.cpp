@@ -18,15 +18,12 @@
 
 #include <hatn/crypt/passwordgenerator.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
+HATN_CRYPT_NAMESPACE_BEGIN
+HATN_COMMON_USING
 
 static const char Letters[]="_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const char Digits[]="0123456789";
-static const char Specials[]="~!@#$%^&*(){}+=-:;<>,.|/?";
+static const char Specials[]="~!@#$%^&*(){}+=-:;<>,.|/?[]";
 
 //---------------------------------------------------------------
 common::Error PasswordGenerator::generate(MemoryLockedArray &password, const PasswordGeneratorParameters &params)
@@ -46,7 +43,8 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
     std::ignore=specialsRange;
 
     std::vector<uint32_t,MemoryLockedDataAllocator<uint32_t>> rawData;
-    rawData.resize(params.maxLength*2+1);
+    constexpr size_t extraSize=20;
+    rawData.resize(params.maxLength*2+4+extraSize);
     auto ec=randBytes(reinterpret_cast<char*>(rawData.data()),rawData.size()*sizeof(uint32_t));
     if (ec)
     {
@@ -60,6 +58,8 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
     }
     password.resize(length);
 
+    bool hasSpecial=false;
+    bool hasDigit=false;
     for (size_t i=0; i<length; i++)
     {
         const uint32_t& val=rawData[2*i+1];
@@ -72,15 +72,45 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
         else if (val<=digitsRange)
         {
             password[i]=Digits[val1%(sizeof(Digits)-1)];
+            hasDigit=true;
         }
         else
         {
             password[i]=Specials[val1%(sizeof(Specials)-1)];
+            hasSpecial=true;
         }
+    }
+
+    uint32_t* arr=rawData.data()+params.maxLength*2+4;
+    lib::optional<uint32_t> lockIndex;
+    if (!hasSpecial && params.hasSpecial && params.specialsWeight!=0)
+    {
+        uint32_t index=arr[0]%password.size();
+        password[index]=Specials[arr[1]%(sizeof(Specials)-1)];
+        lockIndex=index;
+    }
+    if (!hasDigit && params.hasDigit && params.digitsWeight!=0)
+    {
+        uint32_t index=arr[2]%password.size();
+        if (lockIndex && index==lockIndex.value())
+        {
+            size_t i=4;
+            while (index==lockIndex.value() && i<extraSize)
+            {
+                index=arr[i]%password.size();
+                i++;
+            }
+            if (i==extraSize)
+            {
+                index=(lockIndex.value()+1)%password.size();
+            }
+        }
+        password[index]=Digits[arr[3]%(sizeof(Digits)-1)];
     }
 
     return common::Error();
 }
 
 //---------------------------------------------------------------
+
 HATN_CRYPT_NAMESPACE_END

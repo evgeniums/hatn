@@ -26,14 +26,23 @@
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
+constexpr const char PasswordGenLetters[]="_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+constexpr const char PasswordGenDigits[]="0123456789";
+constexpr const char PasswordGenSpecials[]="~!@#$%^&*(){}+=-:;<>,.|/?[]";
+
 struct HATN_CRYPT_EXPORT  PasswordGeneratorParameters
 {
     size_t minLength=8;
-    size_t maxLength=12;
+    size_t maxLength=14;
 
-    size_t lettersWeight=8;
-    size_t digitsWeight=2;
-    size_t specialsWeight=1;
+    size_t lettersWeight=20;
+    size_t digitsWeight=4;
+    size_t specialsWeight=2;
+
+    bool hasSpecial=true;
+    bool hasDigit=true;
+
+    //! @todo Implement configurable source arrays
 };
 
 /**
