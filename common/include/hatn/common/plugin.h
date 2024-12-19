@@ -40,18 +40,25 @@
 #endif
 
 #define HATN_PLUGIN_INIT(plugin) \
-    static ::hatn::common::PluginInfo PluginInfoInst( \
-                ::hatn::common::GetPluginMeta<plugin>(), \
-                [](const ::hatn::common::PluginInfo* info) \
+    static HATN_COMMON_NAMESPACE::PluginInfo PluginInfoInst{ \
+                HATN_COMMON_NAMESPACE::GetPluginMeta<plugin>(), \
+                [](const HATN_COMMON_NAMESPACE::PluginInfo* info) \
                 { \
                      return new plugin(info); \
                 } \
-            );
+            };
+
+#define HATN_PLUGIN_INIT_FN(plugin,name) \
+    auto& name() \
+    {\
+        HATN_PLUGIN_INIT(plugin)\
+        return PluginInfoInst;\
+    }
 
 #define HATN_PLUGIN_EXPORT(plugin) \
     HATN_PLUGIN_INIT(plugin) \
     extern "C" { \
-        DECL_EXPORT hatn::common::Plugin* PluginLoader() {return PluginInfoInst.buildPlugin();} \
+        DECL_EXPORT HATN_COMMON_NAMESPACE::Plugin* PluginLoader() {return PluginInfoInst.buildPlugin();} \
     }
 
 DECLARE_LOG_MODULE_EXPORT(plugin,HATN_COMMON_EXPORT)
