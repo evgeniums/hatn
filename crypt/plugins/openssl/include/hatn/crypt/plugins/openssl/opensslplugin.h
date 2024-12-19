@@ -32,7 +32,7 @@ class HATN_OPENSSL_EXPORT OpenSslPlugin : public CryptPlugin
 
         constexpr static const char* Name="hatnopenssl";
         constexpr static const char* Description="OpenSSL Plugin";
-        constexpr static const char* Vendor="hatn.com";
+        constexpr static const char* Vendor="decfile.com";
         constexpr static const char* Revision="1.0.0";
 
         using CryptPlugin::CryptPlugin;
