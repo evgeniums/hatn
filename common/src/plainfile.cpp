@@ -50,7 +50,14 @@ Error PlainFile::open(const char *filename, Mode mode)
     }
     boost::system::error_code ec;
     m_file.open(filename,mode,ec);
-    if (ec.value()==static_cast<int>(boost::system::errc::no_such_file_or_directory))
+    if (ec.value()==static_cast<int>(boost::system::errc::no_such_file_or_directory)
+        ||
+        ec.value()==static_cast<int>(boost::system::errc::no_such_process)
+        ||
+        ec.value()==static_cast<int>(boost::system::errc::no_such_device)
+        ||
+        ec.value()==static_cast<int>(boost::system::errc::no_such_device_or_address)
+        )
     {
         return commonError(CommonError::FILE_NOT_FOUND);
     }

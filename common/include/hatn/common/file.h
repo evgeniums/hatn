@@ -31,6 +31,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/error.h>
+#include <hatn/common/featureset.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -38,6 +39,22 @@ HATN_COMMON_NAMESPACE_BEGIN
 class File
 {
     public:
+
+        enum class Share : uint8_t
+        {
+            Read,
+            Write,
+            Delete
+        };
+
+        struct ShareTraits
+        {
+            using MaskType=uint8_t;
+            using Feature=Share;
+        };
+
+        using Sharing=FeatureSet<ShareTraits>;
+        using ShareMode=Sharing::Features;
 
         using Mode = boost::beast::file_mode;
         using NativeHandleType=boost::beast::file::native_handle_type;
@@ -374,6 +391,9 @@ class File
         }
 
         virtual NativeHandleType nativeHandle()=0;
+
+        virtual void setShareMode(ShareMode /*mode*/)
+        {}
 
     private:
 

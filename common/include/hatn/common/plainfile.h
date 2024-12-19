@@ -19,8 +19,26 @@
 #define HATNPLAINFILE_H
 
 #include <hatn/common/file.h>
+#if BOOST_BEAST_USE_WIN32_FILE
+#include <hatn/common/beastfilewinwrapper.h>
+#endif
 
 HATN_COMMON_NAMESPACE_BEGIN
+
+#if BOOST_BEAST_USE_WIN32_FILE
+using BackendFile=BeastFileWinWrapper;
+#else
+using BeastFile=boost::beast::file;
+class BackendFile : public BeastFile
+{
+public:
+
+    using BeastFile::BeastFile;
+
+    void setShareMode(File::ShareMode /*mode*/) noexcept
+    {}
+};
+#endif
 
 //! Class for writing and reading plain files
 class HATN_COMMON_EXPORT PlainFile : public File
@@ -126,11 +144,16 @@ class HATN_COMMON_EXPORT PlainFile : public File
             return m_file.native_handle();
         }
 
+        virtual void setShareMode(ShareMode mode) override
+        {
+            m_file.setShareMode(mode);
+        }
+
     private:
 
         void doClose();
 
-        boost::beast::file m_file;
+        BackendFile m_file;
 };
 
 //---------------------------------------------------------------
