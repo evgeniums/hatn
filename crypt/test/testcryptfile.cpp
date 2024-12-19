@@ -1811,8 +1811,8 @@ BOOST_AUTO_TEST_CASE(CheckTruncate)
             CipherSuites::instance().reset();
             checkTruncate(plugin,PluginList::assetsPath("crypt"));
             CipherSuites::instance().reset();
-            // checkTruncate(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            // CipherSuites::instance().reset();
+            checkTruncate(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            CipherSuites::instance().reset();
         }
     );
 }
