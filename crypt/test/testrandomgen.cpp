@@ -76,12 +76,13 @@ BOOST_AUTO_TEST_CASE(RandomPassword)
 
                 PasswordGeneratorParameters params;
                 std::vector<common::MemoryLockedArray> passwords;
+		BOOST_TEST_MESSAGE("Generate 10 passwords");
                 for (int i=0;i<10;i++)
                 {
                     common::MemoryLockedArray pwd;
                     auto ec=gen->generate(pwd,params);
                     BOOST_REQUIRE(!ec);
-#if 0
+#if 1
                     BOOST_TEST_MESSAGE(pwd.c_str());
 #endif
                     BOOST_CHECK(pwd.size()>=params.minLength && pwd.size()<=params.maxLength);
@@ -100,13 +101,14 @@ BOOST_AUTO_TEST_CASE(RandomPassword)
 
                 auto checkOneType=[&gen](const PasswordGeneratorParameters& params,const std::string& sample)
                 {
+      		    BOOST_TEST_MESSAGE("Generate 10 passwords of one type");
                     std::vector<common::MemoryLockedArray> passwords;
                     for (int i=0;i<10;i++)
                     {
                         common::MemoryLockedArray pwd;
                         auto ec=gen->generate(pwd,params);
                         BOOST_REQUIRE(!ec);
-#if 0
+#if 1
                         BOOST_TEST_MESSAGE(pwd.c_str());
 #endif
                         BOOST_CHECK(pwd.size()>=params.minLength && pwd.size()<=params.maxLength);
@@ -151,7 +153,7 @@ BOOST_AUTO_TEST_CASE(RandomPassword)
                 params.digitsWeight=0;
                 params.lettersWeight=0;
                 params.specialsWeight=1;
-                sample="~!@#$%^&*(){}+=-:;<>,.|/?";
+                sample="~!@#$%^&*(){}+=-:;<>,.|/?[]";
                 checkOneType(params,sample);
             }
         }
