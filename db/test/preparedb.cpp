@@ -39,8 +39,8 @@
 #define HATN_TEST_DB_ECRYPTED_ONLY 1
 #define HATN_TEST_DB_PLAIN_AND_ENCRYPTED 2
 
-// #define HATN_TEST_DB_COUNT HATN_TEST_DB_PLAIN_AND_ENCRYPTED
-#define HATN_TEST_DB_COUNT HATN_TEST_DB_ECRYPTED_ONLY
+#define HATN_TEST_DB_COUNT HATN_TEST_DB_PLAIN_AND_ENCRYPTED
+// #define HATN_TEST_DB_COUNT HATN_TEST_DB_ECRYPTED_ONLY
 
 // #define HATN_TEST_DB_SAVE_CRYPT_FILES
 
@@ -57,7 +57,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
         {
             std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
             std::shared_ptr<db::EncryptionManager> encryptionManager;
-            if (i==0)
+            if (i==1)
             {
                 if (plugin->info()->name!=HATN_TEST_DB_ENCRYPTED_PLUGIN)
                 {
@@ -146,6 +146,10 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 encryptionManager=std::make_shared<db::EncryptionManager>();
                 encryptionManager->setSuite(suite);
                 encryptionManager->setDefaultKey(masterKey);
+            }
+            else
+            {
+                BOOST_TEST_MESSAGE("Testing not encrypted rocksdb");
             }
 
             // make client

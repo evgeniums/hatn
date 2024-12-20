@@ -181,6 +181,8 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_REQUIRE(!r1);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
+
+        destroyThreads();
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
@@ -479,6 +481,8 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_REQUIRE(!r1);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
+
+        destroyThreads();
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
