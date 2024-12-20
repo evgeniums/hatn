@@ -103,6 +103,11 @@ template <typename DataPointerT> struct DataBufWrapper
         return m_size==0;
     }
 
+    inline bool empty() const noexcept
+    {
+        return isEmpty();
+    }
+
     inline bool isNull() const noexcept
     {
         return m_buf==nullptr;
