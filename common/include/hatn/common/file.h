@@ -173,8 +173,12 @@ class File
         //! Check if the file is open
         virtual bool isOpen() const noexcept=0;
 
-        //! Flush buffers to disk
-        virtual Error flush()=0;
+        /**
+         * @brief Flush buffers to disk.
+         * @param deep On some platforms flush command might be very expensive, so invoke it only in deep mode.
+         * @return Operation result.
+         */
+        virtual Error flush(bool deep=true)=0;
 
         //! Sync buffers to disk
         virtual Error sync()

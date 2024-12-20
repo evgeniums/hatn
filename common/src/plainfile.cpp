@@ -72,12 +72,21 @@ bool PlainFile::isOpen() const noexcept
 }
 
 //---------------------------------------------------------------
-Error PlainFile::flush() noexcept
+Error PlainFile::flush(bool deep) noexcept
 {
     if (m_file.is_open())
     {
-#if BOOST_BEAST_USE_WIN32_FILE
-        if (!FlushFileBuffers(m_file.native_handle())) // WinApi flush
+
+#if BOOST_BEAST_USE_WIN32_FILE        
+        if (deep)
+        {
+            // expensive operation, do it only in deep mode
+            if (!FlushFileBuffers(m_file.native_handle()))
+            {
+                return commonError(CommonError::FILE_FLUSH_FAILED);
+            }
+        }
+        return OK;
 #elif BOOST_BEAST_USE_POSIX_FILE
         if (false) // no flush needed for posix write()
 #else
@@ -87,7 +96,7 @@ Error PlainFile::flush() noexcept
             return commonError(CommonError::FILE_FLUSH_FAILED);
         }
     }
-    return Error();
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -148,7 +157,7 @@ uint64_t PlainFile::size(Error &ec) const
 {
     if (!m_file.is_open())
     {
-        return fileSize();
+        return fileSize(ec);
     }
     boost::system::error_code e;
     auto size=m_file.size(e);

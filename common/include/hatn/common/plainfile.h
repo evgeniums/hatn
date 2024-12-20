@@ -73,8 +73,15 @@ class HATN_COMMON_EXPORT PlainFile : public File
         //! Check if the file is open
         virtual bool isOpen() const noexcept override;
 
-        //! Flush buffers to disk
-        virtual Error flush() noexcept override;
+        //! Flush buffers to disk.
+        /**
+         * @brief Flush buffers to disk.
+         * @param deep On some platforms flush command might be very expensive, so invoke it only in deep mode.
+         *             For example, on Windows flush is skipped without deep flag because FlushBuffers is very
+         *             expensive operation.
+         * @return Operation result.
+         */
+        virtual Error flush(bool deep=true) noexcept override;
 
         /**
          * @brief Close file

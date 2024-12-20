@@ -131,7 +131,7 @@ rocksdb::IOStatus EncryptedSyncFile<BaseT>::Flush(
 {
     common::MutexScopedLock l(this->m_mutex);
 
-    auto ec=this->m_cryptfile.flush();
+    auto ec=this->m_cryptfile.flush(false);
     HATN_RDB_DONE_EC(ec)
 }
 

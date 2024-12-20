@@ -24,6 +24,8 @@
 
 #include <hatn/crypt/cryptfile.h>
 
+// #define HATN_FORWARD_PLAINFILE
+
 HATN_CRYPT_NAMESPACE_BEGIN
 HATN_COMMON_USING
 
@@ -101,6 +103,9 @@ bool CryptFile::isScan() const noexcept
 //---------------------------------------------------------------
 Error CryptFile::open(const char *fname, Mode mode)
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->open(fname,mode);
+#else
     setFilename(fname);
 
     if (false)
@@ -115,6 +120,7 @@ Error CryptFile::open(const char *fname, Mode mode)
     }
 
     return doOpen(mode);
+#endif
 }
 
 //---------------------------------------------------------------
@@ -236,18 +242,26 @@ bool CryptFile::isOpen() const noexcept
 
 //---------------------------------------------------------------
 // codechecker_false_positive [bugprone-exception-escape]
-Error CryptFile::flush() noexcept
+Error CryptFile::flush(bool deep) noexcept
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->flush(deep);
+#else
 #if 0
     std::cout << "CryptFile::flush " << filename() << std::endl;
 #endif
-    return doFlush();
+    return doFlush(true,deep);
+#endif
 }
 
 //---------------------------------------------------------------
 void CryptFile::close()
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->close();
+#else
     doClose();
+#endif
 }
 
 //---------------------------------------------------------------
@@ -291,7 +305,7 @@ Error CryptFile::writeSize() noexcept
 
 //---------------------------------------------------------------
 // codechecker_false_positive [bugprone-exception-escape]
-Error CryptFile::doFlush(bool rawFlush) noexcept
+Error CryptFile::doFlush(bool rawFlush, bool deep) noexcept
 {
     // nothing to do for not open file or in read mode
     if (!m_file->isOpen() || !isWriteMode())
@@ -332,7 +346,7 @@ Error CryptFile::doFlush(bool rawFlush) noexcept
     // flush raw file
     if (rawFlush)
     {
-        return m_file->flush();
+        return m_file->flush(deep);
     }
 
     // done
@@ -459,6 +473,9 @@ void CryptFile::reset()
 //---------------------------------------------------------------
 Error CryptFile::seek(uint64_t pos)
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->seek(pos);
+#else
     if (pos==m_cursor)
     {
         return OK;
@@ -469,6 +486,7 @@ Error CryptFile::seek(uint64_t pos)
         return OK;
     }
     return doSeek(pos);
+#endif
 }
 
 //---------------------------------------------------------------
@@ -691,12 +709,19 @@ uint64_t CryptFile::chunkOffsetForPos(uint64_t pos) const noexcept
 //---------------------------------------------------------------
 uint64_t CryptFile::pos() const
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->pos();
+#else
     return m_seekCursor;
+#endif
 }
 
 //---------------------------------------------------------------
 uint64_t CryptFile::size(Error& ec) const
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->size(ec);
+#else
     if (!isOpen())
     {
         // open file and read content size from header
@@ -710,11 +735,15 @@ uint64_t CryptFile::size(Error& ec) const
         return sz;
     }
     return m_size;
+#endif
 }
 
 //---------------------------------------------------------------
 uint64_t CryptFile::size() const
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->size();
+#else
     if (!isOpen())
     {
         // open file and read content size from header
@@ -724,6 +753,7 @@ uint64_t CryptFile::size() const
         return sz;
     }
     return m_size;
+#endif
 }
 
 //---------------------------------------------------------------
@@ -758,6 +788,9 @@ bool CryptFile::isLastChunk(const CachedChunk &chunk) const
 //---------------------------------------------------------------
 size_t CryptFile::write(const char *data, size_t size)
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->write(data,size);
+#else
 #if 0
     std::cout << "CryptFile::write << file=" << filename() << " cursor="<<m_cursor<<" data=\"" <<std::string(data,size) << "\", size="
               << size << std::endl;
@@ -791,6 +824,7 @@ size_t CryptFile::write(const char *data, size_t size)
     }
     m_seekCursor+=ret;
     return ret;
+#endif
 }
 
 //---------------------------------------------------------------
@@ -855,6 +889,9 @@ size_t CryptFile::writeImpl(const char *data, size_t size, Error& ec)
 //---------------------------------------------------------------
 size_t CryptFile::read(char *data, size_t maxSize)
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->read(data,maxSize);
+#else
     // check state and arguments
     if (maxSize==0)
     {
@@ -919,6 +956,7 @@ size_t CryptFile::read(char *data, size_t maxSize)
     // done
     m_seekCursor+=doneSize;
     return doneSize;
+#endif
 }
 
 //---------------------------------------------------------------
@@ -942,7 +980,11 @@ common::Error CryptFile::invalidateCache()
 
 common::Error CryptFile::truncate(size_t size, bool backupCopy)
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->truncate(size,backupCopy);
+#else
     return truncateImpl(size,backupCopy);
+#endif
 }
 
 common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFailuire)
@@ -1173,16 +1215,24 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
 
 common::Error CryptFile::sync()
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->sync();
+#else
     HATN_CHECK_RETURN(doFlush(false))
     return m_file->sync();
+#endif
 }
 
 //---------------------------------------------------------------
 
 common::Error CryptFile::fsync()
 {
+#ifdef HATN_FORWARD_PLAINFILE
+    return m_file->fsync();
+#else
     HATN_CHECK_RETURN(doFlush(false))
     return m_file->fsync();
+#endif
 }
 
 //---------------------------------------------------------------

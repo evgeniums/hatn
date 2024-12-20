@@ -95,8 +95,14 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         //! Check if the file is open
         virtual bool isOpen() const noexcept override;
 
-        //! Flush buffers to disk
-        virtual common::Error flush() noexcept override;
+        /**
+         * @brief Flush buffers to disk.
+         * @param deep On some platforms flush command might be very expensive, so invoke it only in deep mode.
+         * @return Operation result.
+         *
+         * Cache chunks will be encrypted and written to disk, then flush() at backend will be called.
+         */
+        virtual common::Error flush(bool deep=true) noexcept override;
 
         /**
          * @brief Close file
@@ -381,7 +387,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         void doClose(bool withThrow=true,bool flush=true);
         void doClose(common::Error& ec,bool flush=true) noexcept;
 
-        common::Error doFlush(bool rawFlush=true) noexcept;
+        common::Error doFlush(bool rawFlush=true, bool deep=true) noexcept;
         common::Error writeSize() noexcept;
 
         bool useCache() const noexcept;
