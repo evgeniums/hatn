@@ -17,6 +17,8 @@
 #ifndef HATNROCKSDBENCRYPTIONMANAGER_H
 #define HATNROCKSDBENCRYPTIONMANAGER_H
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <rocksdb/file_system.h>
 
 #include <hatn/db/encryptionmanager.h>
@@ -25,14 +27,16 @@
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
+constexpr const size_t RdbDefaultPageSize = 32 * 1024;
+
 class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
 {
     public:
 
         explicit RocksdbEncryptionManager(
                 std::shared_ptr<EncryptionManager> manager,
-                uint32_t chunkSize=rocksdb::kDefaultPageSize,
-                uint32_t firstChunkSize=rocksdb::kDefaultPageSize
+                uint32_t chunkSize=RdbDefaultPageSize,
+                uint32_t firstChunkSize=RdbDefaultPageSize
             ) : m_manager(std::move(manager)),
                 m_chunkSize(chunkSize),
                 m_firstChunkSize(firstChunkSize)
@@ -49,13 +53,18 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
         {
             bool enableCache=true;
             // disable cache for WAL and Log
+            // seems like rocksdb ignores the type and always uses IOType::kUnknown
+            // so, check file extension as a workaround
             if (options.io_options.type==rocksdb::IOType::kWAL
                 ||
                 options.io_options.type==rocksdb::IOType::kLog
+                ||
+                boost::algorithm::ends_with(fname,".log")
                 )
             {
                 enableCache=false;
             }
+            std::cout << "createAndOpenFile " << fname << " type=" << int(options.io_options.type) << std::endl;
             auto ec=m_manager->createAndOpenFile(
                     fname,
                     result,

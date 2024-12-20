@@ -222,6 +222,10 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         options.env=d->env->env.get();
     }
 
+    //! @todo Enable compression for mobile, disable for server
+    //! @todo build ZSTD
+    options.wal_compression=ROCKSDB_NAMESPACE::CompressionType::kZSTD;
+
 #ifdef BUILD_DEBUG
     txOptions.transaction_lock_timeout=10000;
 #endif

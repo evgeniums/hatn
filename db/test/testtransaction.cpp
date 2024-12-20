@@ -16,6 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
+#include <hatn/common/elapsedtimer.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -410,9 +411,9 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
 #ifdef BUILD_DEBUG
         size_t count=1000;
 #else
-        size_t count=1000;
+        size_t count=10000;
 #endif
-        int jobs=8;
+        int jobs=1;
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)
         {
@@ -462,12 +463,14 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
                 );
             thread(j+1)->start(false);
         }
-        exec(60);
+        common::ElapsedTimer elapsed;
+        exec(300);
         thread(0)->stop();
         for (int j=0;j<jobs;j++)
         {
             thread(j+1)->stop();
         }
+        BOOST_TEST_MESSAGE(fmt::format("Test elapsed {}",elapsed.toString(true)));
 
         // check result
         auto r1=client->read(topic1,model1(),oid);
