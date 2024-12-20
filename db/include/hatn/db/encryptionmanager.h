@@ -189,12 +189,10 @@ class HATN_DB_EXPORT EncryptionManager
 
             // create file
             auto file=std::make_unique<T>(key.get(),m_suite.get(),m_factory);
-//! @todo generate salt for new files
-#if 0
-            const auto& salt=nameParts.second;
-            // salt is a file subpath
-            file->cryptFile().processor().setSalt(salt);
-#endif
+
+            // salt will be auto generated per file
+            file->cryptFile().processor().setAutoSalt(true);
+
             // set HKDF for key derivation
             file->cryptFile().processor().setKdfType(crypt::container_descriptor::KdfType::HKDF);
 
