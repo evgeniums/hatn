@@ -68,6 +68,11 @@ class HATN_CRYPT_EXPORT EncryptMacKey : public SymmetricKey
             size_t size
         ) override;
 
+        virtual bool canBeUsedForHkdf() const noexcept override
+        {
+            return false;
+        }
+
     protected:
 
         virtual common::Error doExportToBuf(common::MemoryLockedArray& buf,ContainerFormat format,bool unprotected) const override;

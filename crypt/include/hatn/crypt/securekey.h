@@ -323,6 +323,11 @@ class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArra
             return false;
         }
 
+        virtual bool canBeUsedForHkdf() const noexcept
+        {
+            return false;
+        }
+
     protected:
 
         /**
@@ -410,6 +415,11 @@ class HATN_CRYPT_EXPORT SymmetricKey : public SecureKey
         virtual uint32_t role() const noexcept override
         {
             return roleInt(Role::ENCRYPT_SYMMETRIC);
+        }
+
+        virtual bool canBeUsedForHkdf() const noexcept override
+        {
+            return true;
         }
 
     protected:

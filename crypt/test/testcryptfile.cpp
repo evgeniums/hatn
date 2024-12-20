@@ -34,7 +34,7 @@ using namespace crypt;
 
 namespace test {
 
-// #define SAVE_TEST_FILES
+// #define HATN_SAVE_TEST_FILES
 
 BOOST_FIXTURE_TEST_SUITE(TestCryptFile,CryptTestFixture)
 
@@ -66,7 +66,7 @@ static void prepareContainer(CryptContainer& container,
     BOOST_CHECK_EQUAL(container.isAttachCipherSuiteEnabled(),false);
     container.setAttachCipherSuiteEnabled(attachCipherSuite);
     BOOST_CHECK_EQUAL(container.isAttachCipherSuiteEnabled(),attachCipherSuite);
-    BOOST_CHECK_EQUAL(static_cast<int>(container.kdfType()),static_cast<int>(container_descriptor::KdfType::PBKDF));
+    BOOST_CHECK_EQUAL(static_cast<int>(container.kdfType()),static_cast<int>(container_descriptor::KdfType::PbkdfThenHkdf));
     container.setKdfType(kdfType);
     BOOST_CHECK_EQUAL(static_cast<int>(container.kdfType()),static_cast<int>(kdfType));
 }
@@ -389,9 +389,6 @@ static void writeExistingFile(
         HATN_TEST_FILE_MESSAGE("write to third chunk plus");
         if (currentSize>=(cryptFile.processor().firstChunkMaxSize()+cryptFile.processor().chunkMaxSize()))
         {
-            // auto prevFileSize=plainFile.size();
-            // auto offset=cryptFile.processor().firstChunkMaxSize()+cryptFile.processor().chunkMaxSize();
-            // auto writeSize=cryptFile.processor().chunkMaxSize()+800;
             writeData(cryptFile.processor().firstChunkMaxSize()+cryptFile.processor().chunkMaxSize(),
                       cryptFile.processor().chunkMaxSize()+800,0x23000);
             if (currentSize<
@@ -410,21 +407,7 @@ static void writeExistingFile(
                         cryptFile.processor().chunkMaxSize()
                         +
                         cryptFile.processor().chunkMaxSize()+800)*ratio;
-                // HATN_TEST_FILE_MESSAGE(fmt::format("Update current size from {} to {}, "
-                //                                    "prev file size {}, "
-                //                                    "current file size {}, offset {}, writeSize {}, ratio {}",
-                //                                    prevSize,currentSize,prevFileSize,plainFile.size(),offset,writeSize,ratio));
             }
-            // else
-            // {
-            //     auto possibleSize=(cryptFile.processor().firstChunkMaxSize()
-            //                    +
-            //                    cryptFile.processor().chunkMaxSize()
-            //                    )
-            //                    +
-            //                    (cryptFile.processor().chunkMaxSize()+800)*ratio;
-                // HATN_TEST_FILE_MESSAGE(fmt::format("Keep current size {} instead of {}",currentSize,possibleSize));
-            // }
             checkSize();
         }
 
@@ -524,7 +507,7 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             const auto& masterKeyStr=parts[1];
             const auto& kdfTypeStr=parts[2];
             auto kdfTypeInt=std::stoul(kdfTypeStr);
-            HATN_REQUIRE(kdfTypeInt==0 || kdfTypeInt==1);
+            HATN_REQUIRE(kdfTypeInt==0 || kdfTypeInt==1 || kdfTypeInt==2);
             auto kdfType=static_cast<container_descriptor::KdfType>(kdfTypeInt);
             const auto& salt=parts[3];
             const auto& maxFirstChunkSizeStr=parts[4];
@@ -589,7 +572,7 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             // check KDF algorithm and setup master key
             common::SharedPtr<SymmetricKey> masterKey;
             const CryptAlgorithm* kdfAlg=nullptr;
-            if (kdfType==container_descriptor::KdfType::PBKDF)
+            if (kdfType==container_descriptor::KdfType::PBKDF || kdfType==container_descriptor::KdfType::PbkdfThenHkdf)
             {
                 ec=suite->pbkdfAlgorithm(kdfAlg);
                 if (ec)
@@ -619,7 +602,7 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             HATN_REQUIRE(kdfAlg);
 
             ByteArray plaintext1;
-#ifdef SAVE_TEST_FILES
+#ifdef HATN_SAVE_TEST_FILES
             ec=plugin->randContainer(plaintext1,0x80000u,1);
             HATN_REQUIRE(!ec);
             ec=plaintext1.saveToFile(plainTextFile);
@@ -643,7 +626,7 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
                             );
 
             // check single shot writing
-#ifdef SAVE_TEST_FILES
+#ifdef HATN_SAVE_TEST_FILES
             auto tmpFile=cipherTextFile;
 #else
             std::string tmpFile;
@@ -863,10 +846,10 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     ec=masterKey->importFromFile(keyFile,ContainerFormat::RAW_PLAIN);
     HATN_REQUIRE(!ec)
 
-#ifdef SAVE_TEST_FILES
+#ifdef HATN_SAVE_TEST_FILES
 
-    auto tmpFileStamp=fmt::format("{}/cryptfile-stamp.dat",hatn::test::MultiThreadFixture::tmpPath());
-    auto tmpFileNoStamp=fmt::format("{}/cryptfile-no-stamp.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto tmpFileStampSave=fmt::format("{}/cryptfile-stamp.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto tmpFileNoStampSave=fmt::format("{}/cryptfile-no-stamp.dat",hatn::test::MultiThreadFixture::tmpPath());
 
     ByteArray plaintext1;
     auto plainTextFile=fmt::format("{}/cryptfile-plaintext10.dat",path);
@@ -874,7 +857,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     BOOST_CHECK(!ec);
 
     CryptFile cryptFileSample1(masterKey.get(),suite.get());
-    ec=cryptFileSample1.open(tmpFileStamp,CryptFile::Mode::write);
+    ec=cryptFileSample1.open(tmpFileStampSave,CryptFile::Mode::write);
     BOOST_CHECK(!ec);
     if (!ec)
     {
@@ -887,7 +870,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     }
 
     CryptFile cryptFileSample2(masterKey.get(),suite.get());
-    ec=cryptFileSample2.open(tmpFileNoStamp,CryptFile::Mode::write);
+    ec=cryptFileSample2.open(tmpFileNoStampSave,CryptFile::Mode::write);
     BOOST_CHECK(!ec);
     if (!ec)
     {
@@ -899,11 +882,10 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
         BOOST_TEST_MESSAGE(ec.message());
     }
 
-    return;
 #endif
 
     // check operations
-    std::vector<std::string> types={"digest","mac","digest-mac"};
+    std::vector<std::string> types{"digest","mac","digest-mac"};
     for (auto&& type:types)
     {
         BOOST_TEST_MESSAGE(fmt::format("Testing stamp for {}",type));
@@ -924,10 +906,17 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             continue;
         }
 
+#ifndef HATN_SAVE_TEST_FILES
         ec=FileUtils::copy(cipherTextFile,tmpFileStamp);
         HATN_REQUIRE(!ec);
         ec=FileUtils::copy(cipherTextFileNoStamp,tmpFileNoStamp);
         HATN_REQUIRE(!ec);
+#else
+        ec=FileUtils::copy(tmpFileStampSave,tmpFileStamp);
+        HATN_REQUIRE(!ec);
+        ec=FileUtils::copy(tmpFileNoStampSave,tmpFileNoStamp);
+        HATN_REQUIRE(!ec);
+#endif
 
         // check size of open file
         CryptFile cryptFile1;
@@ -972,6 +961,14 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
                 BOOST_TEST_MESSAGE(ec.message());
             }
             BOOST_CHECK(!ec);
+#ifdef HATN_SAVE_TEST_FILES
+            ec=cryptFileStamp.stampDigest();
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
+            BOOST_CHECK(!ec);
+#endif
         }
         // add mac to file without stamp
         if (type=="mac" || type=="digest-mac")
@@ -982,6 +979,14 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
                 BOOST_TEST_MESSAGE(ec.message());
             }
             BOOST_CHECK(!ec);
+#ifdef HATN_SAVE_TEST_FILES
+            ec=cryptFileStamp.stampMAC();
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
+            BOOST_CHECK(!ec);
+#endif
         }
 
         // check digest
@@ -1017,7 +1022,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             BOOST_CHECK(!ec);
         }
 
-#if 1
+#ifndef HATN_SAVE_TEST_FILES
         // add digest to file with stamp
         if (type=="digest" || type=="digest-mac")
         {
@@ -1177,7 +1182,8 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             ec=cryptFileStamp2.verifyStampMAC();
             BOOST_CHECK(!ec);
         }
-
+#endif
+#ifndef HATN_SAVE_TEST_FILES
         // remove tmp files
         std::ignore=FileUtils::remove(tmpFileStamp);
         std::ignore=FileUtils::remove(tmpFileNoStamp);

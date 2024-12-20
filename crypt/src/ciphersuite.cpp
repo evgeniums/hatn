@@ -125,7 +125,7 @@ common::Error CipherSuite::findAlgorithm(
         const auto& algField=m_suite->field(field);
         if (!algField.isSet())
         {
-            return cryptError(CryptError::INVALID_ALGORITHM);
+            return cryptError(CryptError::SUITE_ALGORITHM_NOT_FOUND);
         }
         // try to find engine specific for this algorithm type and name
         auto engine=CipherSuites::instance().engineForAlgorithm(type,algField.buf()->data(),algField.buf()->size(),false);

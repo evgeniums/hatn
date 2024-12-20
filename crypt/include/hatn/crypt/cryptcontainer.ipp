@@ -358,6 +358,25 @@ common::Error CryptContainer::packDescriptor(
 {
     HATN_CHECK_RETURN(checkState())
 
+    if (salt().empty() && m_autoSalt)
+    {
+        auto randGen=CipherSuites::instance().defaultRandomGenerator();
+        if (randGen!=nullptr)
+        {
+            common::ByteArray saltBuf;
+            auto ec=randGen->randContainer(saltBuf,16,8);
+            if (ec)
+            {
+                return cryptError(CryptError::SALT_GEN_FAILED,ec);
+            }
+            setSalt(saltBuf);
+        }
+        else
+        {
+            return cryptError(CryptError::SALT_GEN_FAILED);
+        }
+    }
+
     if (m_attachSuite)
     {
         m_descriptor.setFieldValue(container_descriptor::cipher_suite,m_cipherSuite->suite());

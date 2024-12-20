@@ -125,11 +125,7 @@ class KeyProtector
 
             HATN_CHECK_RETURN(checkReady())
 
-            common::ByteArray salt;
-            HATN_CHECK_RETURN(CipherSuites::instance().defaultPlugin()->randContainer(salt,16,8));
-            common::ConstDataBuf saltBuf(salt);
-
-            return m_impl.pack(containerIn,containerOut,saltBuf);
+            return m_impl.pack(containerIn,containerOut);
         }
 
         /**
@@ -233,7 +229,7 @@ class KeyProtector
 
         container_descriptor::KdfType kdfType() const noexcept
         {
-            return m_passphrase.isNull()?container_descriptor::KdfType::HKDF:container_descriptor::KdfType::PBKDF;
+            return m_passphrase.isNull() ? container_descriptor::KdfType::HKDF : container_descriptor::KdfType::PBKDF;
         }
 
         const CryptContainer& cryptContainer() const

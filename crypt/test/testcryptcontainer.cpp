@@ -32,6 +32,8 @@
 #endif
 #endif
 
+// #define HATN_SAVE_TEST_FILES
+
 namespace hatn {
 
 using namespace common;
@@ -74,7 +76,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             const auto& masterKeyStr=parts[1];
             const auto& kdfTypeStr=parts[2];
             auto kdfTypeInt=std::stoul(kdfTypeStr);
-            HATN_REQUIRE(kdfTypeInt==0 || kdfTypeInt==1);
+            HATN_REQUIRE(kdfTypeInt==0 || kdfTypeInt==1 || kdfTypeInt==2);
             auto kdfType=static_cast<container_descriptor::KdfType>(kdfTypeInt);
             const auto& salt=parts[3];
             const auto& maxFirstChunkSizeStr=parts[4];
@@ -204,7 +206,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             BOOST_CHECK_EQUAL(container1.isAttachCipherSuiteEnabled(),false);
             container1.setAttachCipherSuiteEnabled(attachCipherSuite);
             BOOST_CHECK_EQUAL(container1.isAttachCipherSuiteEnabled(),attachCipherSuite);
-            BOOST_CHECK_EQUAL(static_cast<int>(container1.kdfType()),static_cast<int>(container_descriptor::KdfType::PBKDF));
+            BOOST_CHECK_EQUAL(static_cast<int>(container1.kdfType()),static_cast<int>(container_descriptor::KdfType::PbkdfThenHkdf));
             container1.setKdfType(kdfType);
             BOOST_CHECK_EQUAL(static_cast<int>(container1.kdfType()),static_cast<int>(kdfType));
 
@@ -214,9 +216,13 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             ec=plaintext1.loadFromFile(plainTextFile);
             BOOST_CHECK(!ec);
             ec=container1.pack(plaintext1,ciphertext1);
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
             HATN_REQUIRE(!ec);
-// Uncomment below to rewrite file for future tests
-#if 0
+
+#ifdef HATN_SAVE_TEST_FILES
             ec=ciphertext1.saveToFile(cipherTextFile);
             BOOST_CHECK(!ec);
 #endif
@@ -411,10 +417,127 @@ BOOST_AUTO_TEST_CASE(CheckCryptContainer)
         {
             CipherSuites::instance().reset();
             checkCryptContainer(plugin,PluginList::assetsPath("crypt"));
+            CipherSuites::instance().reset();
             checkCryptContainer(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
             CipherSuites::instance().reset();
         }
     );
+}
+
+static void checkAutoSalt(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
+{
+    std::string cipherSuiteFile=fmt::format("{}/cryptcontainer-ciphersuite1.json",path);
+    std::string plainTextFile=fmt::format("{}/cryptcontainer-plaintext1.dat",path);
+    std::string cipherTextFile=fmt::format("{}/cryptcontainer-ciphertext1.dat",path);
+    std::string configFile=fmt::format("{}/cryptcontainer-config1.dat",path);
+
+    if (boost::filesystem::exists(cipherSuiteFile)
+        &&
+        boost::filesystem::exists(plainTextFile)
+        &&
+        boost::filesystem::exists(cipherTextFile)
+        &&
+        boost::filesystem::exists(configFile)
+        )
+    {
+        // parse config
+        auto configStr=PluginList::linefromFile(configFile);
+        std::vector<std::string> parts;
+        Utils::trimSplit(parts,configStr,':');
+        BOOST_REQUIRE_GE(parts.size(),7u);
+        const auto& masterKeyStr=parts[1];
+        const auto& kdfTypeStr=parts[2];
+        auto kdfTypeInt=std::stoul(kdfTypeStr);
+        auto kdfType=static_cast<container_descriptor::KdfType>(kdfTypeInt);
+
+        // load suite from json
+        ByteArray cipherSuiteJson;
+        auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
+        BOOST_REQUIRE(!ec);
+        auto suite=std::make_shared<CipherSuite>();
+        ec=suite->loadFromJSON(cipherSuiteJson);
+        BOOST_REQUIRE(!ec);
+
+        // add suite to table of suites
+        CipherSuites::instance().addSuite(suite);
+
+        // set engine
+        auto engine=std::make_shared<CryptEngine>(plugin.get());
+        CipherSuites::instance().setDefaultEngine(std::move(engine));
+
+        // check AEAD algorithm
+        const CryptAlgorithm* aeadAlg=nullptr;
+        ec=suite->aeadAlgorithm(aeadAlg);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE(aeadAlg);
+
+        // load key
+        common::SharedPtr<SymmetricKey> masterKey;
+        const CryptAlgorithm* kdfAlg=nullptr;
+        if (kdfType==container_descriptor::KdfType::PBKDF)
+        {
+            ec=suite->pbkdfAlgorithm(kdfAlg);
+            BOOST_REQUIRE(!ec);
+            masterKey=plugin->createPassphraseKey();
+            BOOST_REQUIRE(masterKey);
+            ec=masterKey->importFromBuf(masterKeyStr,ContainerFormat::RAW_PLAIN);
+            BOOST_REQUIRE(!ec);
+        }
+        else
+        {
+            ec=suite->hkdfAlgorithm(kdfAlg);
+            BOOST_REQUIRE(!ec);
+            masterKey=aeadAlg->createSymmetricKey();
+            BOOST_REQUIRE(masterKey);
+            ByteArray masterKeyData;
+            ContainerUtils::hexToRaw(masterKeyStr,masterKeyData);
+            ec=masterKey->importFromBuf(masterKeyData,ContainerFormat::RAW_PLAIN);
+            BOOST_REQUIRE(!ec);
+        }
+
+        // pack data
+        ByteArray plaintext1;
+        ByteArray ciphertext1;
+        ec=plaintext1.loadFromFile(plainTextFile);
+        BOOST_CHECK(!ec);
+        CryptContainer container1(masterKey.get(),suite.get());
+        ec=container1.pack(plaintext1,ciphertext1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // check if salt not empty
+        ByteArray salt1(container1.salt().data(),container1.salt().size());
+        BOOST_CHECK(!salt1.isEmpty());
+        BOOST_CHECK(salt1.size()>=8 && salt1.size()<=16);
+
+        // unpack data
+        ByteArray plaintext2;
+        CryptContainer container2(masterKey.get(),suite.get());
+        ec=container2.unpack(ciphertext1,plaintext2);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK(plaintext1==plaintext2);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(CheckAutoSalt)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            CipherSuites::instance().reset();
+            checkAutoSalt(plugin,PluginList::assetsPath("crypt"));
+            CipherSuites::instance().reset();
+            checkAutoSalt(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            CipherSuites::instance().reset();
+        }
+        );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

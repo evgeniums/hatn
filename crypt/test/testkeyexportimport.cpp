@@ -71,7 +71,7 @@ struct AlgConfig
 }
 
 // #define PRINT_CRYPT_ENGINE_ALGS
-// #define TEST_KEY_EXPORT_SAVE
+#define TEST_KEY_EXPORT_SAVE
 
 BOOST_FIXTURE_TEST_SUITE(TestKeyExportImport,CryptTestFixture)
 
@@ -348,6 +348,10 @@ static void algHandler(
             // export key to buffer
             MemoryLockedArray keyBuf;
             ec=key1->exportToBuf(keyBuf,config.format,config.unprotected);
+            if (ec)
+            {
+                BOOST_TEST_MESSAGE(ec.message());
+            }
             HATN_REQUIRE(!ec);
 
             // derive and export public key
@@ -458,6 +462,10 @@ static void algHandler(
             key1->setProtector(protector.get());
         }
         ec=key1->importFromFile(keyFile,config.format);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
         HATN_REQUIRE(!ec);
         if (config.type==CryptAlgorithm::Type::SIGNATURE)
         {

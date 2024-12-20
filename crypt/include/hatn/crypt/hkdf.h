@@ -57,6 +57,10 @@ class HKDF : public KDF
         )
         {
             Assert(targetKeyAlg()!=nullptr&&kdfAlg()!=nullptr,"Target and hash algorithms must be set before using HKDF");
+            if (!masterKey->canBeUsedForHkdf())
+            {
+                return cryptError(CryptError::KEY_NOT_VALID_FOR_HKDF);
+            }
             if (m_initialized)
             {
                 reset();

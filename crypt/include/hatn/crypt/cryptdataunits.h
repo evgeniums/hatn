@@ -48,8 +48,8 @@ HDU_UNIT(container_descriptor,
     HDU_DEFAULT_FIELD(first_chunk_max_size,TYPE_UINT32,2,MaxContainerFirstChunkSize)
     HDU_FIELD(cipher_suite_id,TYPE_STRING,3)
     HDU_FIELD(cipher_suite,cipher_suite::TYPE,4)
-    HDU_ENUM(KdfType,HKDF=0,PBKDF=1)
-    HDU_DEFAULT_FIELD(kdf_type,HDU_TYPE_ENUM(KdfType),5,KdfType::PBKDF)
+    HDU_ENUM(KdfType,HKDF=0,PBKDF=1,PbkdfThenHkdf=2)
+    HDU_DEFAULT_FIELD(kdf_type,HDU_TYPE_ENUM(KdfType),5,KdfType::PbkdfThenHkdf)
     HDU_FIELD(salt,TYPE_BYTES,6)
 )
 

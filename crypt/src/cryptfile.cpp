@@ -1341,6 +1341,7 @@ Error CryptFile::writeStamp(const file_stamp::type &stamp)
     // append size of stamp
     Error ec;
     auto offset=eofPos();
+
     HATN_CHECK_RETURN(m_file->seek(offset))
     uint16_t stampWireSize=static_cast<uint16_t>(m_writeBuffer.size());
     boost::endian::native_to_little_inplace(stampWireSize);

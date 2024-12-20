@@ -174,6 +174,16 @@ class HATN_CRYPT_EXPORT CryptContainer
         //! Check if cipher suite attaching is enabled
         inline bool isAttachCipherSuiteEnabled() const noexcept;
 
+        void setAutoSalt(bool enable) noexcept
+        {
+            m_autoSalt=enable;
+        }
+
+        bool autoSalt() const noexcept
+        {
+            return m_autoSalt;
+        }
+
         /**
          * @brief Pack header to container
          * @param result Target container
@@ -416,6 +426,9 @@ class HATN_CRYPT_EXPORT CryptContainer
         inline common::Error checkOrCreateDecryptor();
 
         const SymmetricKey* m_masterKey;
+        const SymmetricKey* m_encryptionKey;
+        common::SharedPtr<SymmetricKey> m_encryptionKeyHolder;
+        const CryptAlgorithm* m_aeadAlg;
 
         common::SharedPtr<PBKDF> m_pbkdf;
         common::SharedPtr<HKDF> m_hkdf;
@@ -433,6 +446,8 @@ class HATN_CRYPT_EXPORT CryptContainer
 
         mutable lib::optional<uint32_t> m_maxPackedChunkSize;
         mutable lib::optional<uint32_t> m_maxPackedFirstChunkSize;
+
+        bool m_autoSalt;
 };
 
 HATN_CRYPT_NAMESPACE_END

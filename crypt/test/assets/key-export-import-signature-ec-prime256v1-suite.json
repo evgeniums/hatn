@@ -5,5 +5,6 @@
   "digest":"sha512",
   "mac":"poly1305",
   "cipher":"aes-256-cbc",
-  "signature":"ec/prime256v1"
+  "signature":"ec/prime256v1",
+  "hkdf":"sha512"
 }

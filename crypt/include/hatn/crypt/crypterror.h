@@ -42,10 +42,12 @@
     Do(CryptError,INVALID_DIGEST_STATE,_TR("Digest is not initialized yet","crypt")) \
     Do(CryptError,KDF_FAILED,_TR("Failed to derive key using requested KDF","crypt")) \
     Do(CryptError,SALT_REQUIRED,_TR("Salt required for requested cryptographic operation","crypt")) \
+    Do(CryptError,SALT_GEN_FAILED,_TR("Failed to generate salt","crypt")) \
     Do(CryptError,INVALID_KEY_TYPE,_TR("Invalid type of cryptographic key","crypt")) \
     Do(CryptError,SIGN_FAILED,_TR("Failed to create digital signature","crypt")) \
     Do(CryptError,VERIFY_FAILED,_TR("Failed to create cryptographic signature","crypt")) \
     Do(CryptError,INVALID_ALGORITHM,_TR("Invalid cryptographic algorithm","crypt")) \
+    Do(CryptError,SUITE_ALGORITHM_NOT_FOUND,_TR("Algorithm not found in cipher suite","crypt")) \
     Do(CryptError,INVALID_OPERATION,_TR("Invalid operation","crypt")) \
     Do(CryptError,INVALID_ENGINE,_TR("Invalid cryptographic engine","crypt")) \
     Do(CryptError,KEY_INITIALIZATION_FAILED,_TR("Failed to generate or initialize a key","crypt")) \
@@ -80,7 +82,8 @@
     Do(CryptError,UNSUPPORTED_KEY_FORMAT,_TR("Unsupported key format","crypt")) \
     Do(CryptError,X509_ERROR_SERIALIZE_FAILED,_TR("Failed to serialize error of X509 certificate verification","crypt")) \
     Do(CryptError,ENGINES_NOT_SUPPORTED,_TR("Cryptographic engines not supported by backend","crypt")) \
-    Do(CryptError,INVALID_CRYPTFILE_FORMAT,_TR("Invalid format of crypt file","crypt"))
+    Do(CryptError,INVALID_CRYPTFILE_FORMAT,_TR("Invalid format of crypt file","crypt")) \
+    Do(CryptError,KEY_NOT_VALID_FOR_HKDF,_TR("Key can't be used for HKDF","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
@@ -126,6 +129,19 @@ class HATN_CRYPT_EXPORT CryptErrorCategory : public common::ErrorCategory
 //! Create crypt Error object from error code
 inline Error cryptError(CryptError code) noexcept
 {
+    return Error(code,&CryptErrorCategory::getCategory());
+}
+
+/**
+ * @brief Create crypt error with some other error on the stack.
+ * @param code Error code.
+ * @param ec Previous error on the stack.
+ * @return New error object.
+ */
+inline Error cryptError(CryptError code, Error ec) noexcept
+{
+    //! @todo Implement cryptError from other error
+    std::ignore=ec;
     return Error(code,&CryptErrorCategory::getCategory());
 }
 
