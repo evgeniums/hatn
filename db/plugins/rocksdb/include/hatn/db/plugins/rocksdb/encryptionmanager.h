@@ -28,6 +28,7 @@
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 constexpr const size_t RdbDefaultPageSize = 32 * 1024;
+constexpr const size_t RdbWalPageSize = 4 * 1024;
 
 class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
 {
@@ -36,10 +37,10 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
         explicit RocksdbEncryptionManager(
                 std::shared_ptr<EncryptionManager> manager,
                 uint32_t chunkSize=RdbDefaultPageSize,
-                uint32_t firstChunkSize=RdbDefaultPageSize
+                uint32_t walChunkSize=RdbWalPageSize
             ) : m_manager(std::move(manager)),
                 m_chunkSize(chunkSize),
-                m_firstChunkSize(firstChunkSize)
+                m_walChunkSize(walChunkSize)
         {}
 
         template <typename T>
@@ -52,6 +53,8 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
                 )
         {
             bool enableCache=true;
+            auto chunkSize=m_chunkSize;
+
             // disable cache for WAL and Log
             // seems like rocksdb ignores the type and always uses IOType::kUnknown
             // so, check file extension as a workaround
@@ -63,16 +66,19 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
                 )
             {
                 enableCache=false;
+                chunkSize=m_walChunkSize;
             }
+#if 0
             std::cout << "createAndOpenFile " << fname << " type=" << int(options.io_options.type) << std::endl;
+#endif
             auto ec=m_manager->createAndOpenFile(
                     fname,
                     result,
                     mode,
                     shareMode,
                     enableCache,
-                    m_chunkSize,
-                    m_firstChunkSize
+                    chunkSize,
+                    0
                 );
             if (ec)
             {
@@ -121,21 +127,20 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
             return m_chunkSize;
         }
 
-        inline void setFirstChunkMaxSize(uint32_t size) noexcept
+        inline void setWalChunkMaxSize(uint32_t size) noexcept
         {
-            m_firstChunkSize=size;
+            m_walChunkSize=size;
         }
 
-        inline uint32_t firstChunkMaxSize() const noexcept
+        inline uint32_t walChunkMaxSize() const noexcept
         {
-            return m_firstChunkSize;
+            return m_walChunkSize;
         }
 
     private:
 
-        //! @todo Make chunk sizes dependable on file type
         uint32_t m_chunkSize;
-        uint32_t m_firstChunkSize;
+        uint32_t m_walChunkSize;
 
         std::shared_ptr<EncryptionManager> m_manager;
 };
