@@ -359,10 +359,10 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         common::Error truncateImpl(size_t size, bool backupCopy=false, bool testFailuire=false);
 
         //! Sync buffers to disk
-        virtual Error sync() noexcept override;
+        virtual Error sync() override;
 
         //! Fsync buffers to disk
-        virtual Error fsync() noexcept override;
+        virtual Error fsync() override;
 
         void setCacheEnabled(bool enable) noexcept
         {
@@ -396,7 +396,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         uint64_t chunkBeginForPos(uint64_t pos) const noexcept;
 
         uint64_t seqnumToPos(uint32_t seqnum) const noexcept;
-        uint64_t seqnumToRawPos(uint32_t seqnum, uint64_t contentSize) const;
+        uint64_t seqnumToRawPos(uint32_t seqnum) const;
         inline uint64_t eofPos() const noexcept
         {
             return m_ciphertextSize+m_dataOffset;

@@ -99,12 +99,21 @@ bool CryptFile::isScan() const noexcept
 }
 
 //---------------------------------------------------------------
-Error CryptFile::open(const char *filename, Mode mode)
+Error CryptFile::open(const char *fname, Mode mode)
 {
-    if (isFilenameEmpty())
+    setFilename(fname);
+
+    if (false)
     {
-        setFilename(filename);
+        std::cout << "CryptFile::open " << filename() << " mode="<< int(mode) << " cached="<<m_enableCache
+                  << " maxChunkSize=" << processor().maxPlainChunkSize(1) <<
+            " maxFirstChunkSize=" << processor().maxPlainChunkSize(0) <<
+            " maxPackedChunkSize=" << processor().maxPackedChunkSize(1,200) <<
+            " maxFirstPackedChunkSize=" << processor().maxPackedChunkSize(0,100) <<
+            " kdfType=" << int(processor().kdfType()) <<
+            std::endl;
     }
+
     return doOpen(mode);
 }
 
@@ -168,7 +177,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             // seek
             if (!headerOnly)
             {
-                if (mode==Mode::append_existing)
+                if (mode==Mode::append_existing || mode==Mode::append)
                 {
                     HATN_CHECK_THROW(doSeek(m_size))
                 }
@@ -229,6 +238,9 @@ bool CryptFile::isOpen() const noexcept
 // codechecker_false_positive [bugprone-exception-escape]
 Error CryptFile::flush() noexcept
 {
+#if 0
+    std::cout << "CryptFile::flush " << filename() << std::endl;
+#endif
     return doFlush();
 }
 
@@ -245,6 +257,9 @@ Error CryptFile::writeSize() noexcept
     {
         try
         {
+#if 0
+            std::cout << "CryptFile::writeSize() " << m_size << std::endl;
+#endif
             auto writeVal=[this](size_t offset, uint64_t val)
             {
                 HATN_CHECK_RETURN(m_file->seek(offset))
@@ -291,12 +306,18 @@ Error CryptFile::doFlush(bool rawFlush) noexcept
         {
             if (chunk.dirty)
             {
+#if 0
+                std::cout << "CryptFile::doFlush() cache chunk" << std::endl;
+#endif
                 HATN_CHECK_THROW(flushChunk(chunk))
             }
             return true;
         };
         if (m_cache.each(handler)==0 && m_currentChunk!=nullptr)
         {
+#if 0
+            std::cout << "CryptFile::doFlush() current chunk" << std::endl;
+#endif
             handler(*m_currentChunk);
         }
     }
@@ -424,6 +445,7 @@ void CryptFile::doClose(Error &ec, bool flush) noexcept
     m_ciphertextSize=0;
     m_eofSeqnum=0;
     m_seekCursor=0;
+    m_proc.reset(false);
 }
 
 //---------------------------------------------------------------
@@ -549,7 +571,7 @@ Error CryptFile::seekReadRawChunk(CachedChunk &chunk, bool read, size_t overwrit
     }
 
     // check beginning position of the chunk
-    auto chunkRawPos=seqnumToRawPos(chunk.seqnum,m_ciphertextSize);
+    auto chunkRawPos=seqnumToRawPos(chunk.seqnum);
     if (chunkRawPos>eofPos())
     {
         // chunk is beyond EOF
@@ -611,19 +633,17 @@ uint64_t CryptFile::seqnumToPos(uint32_t seqnum) const noexcept
     {
         return 0;
     }
-    //! @todo Keep max chunk sizes
     return m_proc.maxPlainChunkSize(0)+(seqnum-1)*m_proc.maxPlainChunkSize(seqnum);
 }
 
 //---------------------------------------------------------------
-uint64_t CryptFile::seqnumToRawPos(uint32_t seqnum, uint64_t contentSize) const
+uint64_t CryptFile::seqnumToRawPos(uint32_t seqnum) const
 {
     if (seqnum==0)
     {
         return m_dataOffset;
     }
-    auto contentSize32 = static_cast<uint32_t>(contentSize);
-    auto pos=m_proc.maxPackedChunkSize(0, contentSize32)+(seqnum-1)*m_proc.maxPackedChunkSize(seqnum, contentSize32)+m_dataOffset;
+    auto pos=m_proc.maxPackedChunkSize(0)+(seqnum-1)*m_proc.maxPackedChunkSize(seqnum)+m_dataOffset;
     return pos;
 }
 
@@ -1151,7 +1171,7 @@ common::Error CryptFile::truncateImpl(size_t size, bool backupCopy, bool testFai
 
 //---------------------------------------------------------------
 
-common::Error CryptFile::sync() noexcept
+common::Error CryptFile::sync()
 {
     HATN_CHECK_RETURN(doFlush(false))
     return m_file->sync();
@@ -1159,7 +1179,7 @@ common::Error CryptFile::sync() noexcept
 
 //---------------------------------------------------------------
 
-common::Error CryptFile::fsync() noexcept
+common::Error CryptFile::fsync()
 {
     HATN_CHECK_RETURN(doFlush(false))
     return m_file->fsync();

@@ -102,6 +102,8 @@ common::Error CryptContainer::deriveKey(
 //---------------------------------------------------------------
 void CryptContainer::reset(bool withDescriptor)
 {
+    m_maxPackedChunkSize.reset();
+    m_maxPackedFirstChunkSize.reset();
     if (m_hkdf) m_hkdf->reset();
     if (m_enc) m_enc->reset();
     if (m_dec) m_dec->reset();
@@ -114,6 +116,8 @@ void CryptContainer::reset(bool withDescriptor)
 //---------------------------------------------------------------
 void CryptContainer::hardReset(bool withDescriptor)
 {
+    m_maxPackedChunkSize.reset();
+    m_maxPackedFirstChunkSize.reset();
     m_pbkdf.reset();
     m_hkdf.reset();
     m_enc.reset();

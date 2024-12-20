@@ -96,24 +96,39 @@ inline uint32_t CryptContainer::firstChunkMaxSize() const noexcept
 //---------------------------------------------------------------
 inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum, uint32_t containerSize) const
 {
-    auto chunkSizeM=chunkMaxSize();
+    if (chunkMaxSize()!=0 || firstChunkMaxSize()!=0)
+    {
+        return maxPackedChunkSize(seqnum);
+    }
+
+    uint32_t chunkSizeM=0;
     if (seqnum==0)
     {
+        // first chunk
         chunkSizeM=firstChunkMaxSize();
         if (chunkSizeM==0)
         {
+            // if zero then fallback to ordinary chunk size
             chunkSizeM=chunkMaxSize();
             if (chunkSizeM==0)
             {
-                return containerSize;
+                // if zero then fallback to containerSize
+                chunkSizeM=containerSize;
             }
         }
     }
     else if (chunkSizeM==0)
     {
-        return containerSize-maxPackedChunkSize(0,containerSize);
+        // all other chunks
+        chunkSizeM=chunkMaxSize();
+        if (chunkSizeM==0)
+        {
+            // if zero then fallback to containerSize without first chunk size
+            chunkSizeM=containerSize-maxPackedChunkSize(0,containerSize);
+        }
     }
 
+    // find max extra size that can be used for padding
     size_t maxExtraSize=0;
     if (m_enc)
     {
@@ -125,13 +140,79 @@ inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum, uint32_t con
         maxExtraSize=m_dec->maxExtraSize();
     }
 
+    // done
     return static_cast<uint32_t>(chunkSizeM+maxExtraSize+sizeof(uint32_t));
+}
+
+//---------------------------------------------------------------
+inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum) const
+{
+    if (seqnum!=0)
+    {
+        if (m_maxPackedChunkSize)
+        {
+            return m_maxPackedChunkSize.value();
+        }
+    }
+    else if (m_maxPackedFirstChunkSize)
+    {
+        return m_maxPackedFirstChunkSize.value();
+    }
+
+    uint32_t chunkSizeM=0;
+    if (seqnum==0)
+    {
+        // first chunk
+        chunkSizeM=firstChunkMaxSize();
+        if (chunkSizeM==0)
+        {
+            // if zero then fallback to ordinary chunk size
+            chunkSizeM=chunkMaxSize();
+        }
+    }
+    else if (chunkSizeM==0)
+    {
+        // all other chunks
+        chunkSizeM=chunkMaxSize();
+        if (chunkSizeM==0)
+        {
+            // if zero then fallback to containerSize without first chunk size
+            chunkSizeM=maxPackedChunkSize(0);
+        }
+    }
+    Assert(chunkSizeM!=0,"Chunk size must not be zero");
+
+    // find max extra size that can be used for padding
+    size_t maxExtraSize=0;
+    if (m_enc)
+    {
+        maxExtraSize=m_enc->maxExtraSize();
+    }
+    else
+    {
+        HATN_CHECK_THROW(const_cast<CryptContainer*>(this)->checkOrCreateDecryptor())
+        maxExtraSize=m_dec->maxExtraSize();
+    }
+
+    // store calculated size
+    uint32_t result=static_cast<uint32_t>(chunkSizeM+maxExtraSize+sizeof(uint32_t));
+    if (seqnum==0)
+    {
+        m_maxPackedFirstChunkSize=result;
+    }
+    else
+    {
+        m_maxPackedChunkSize=result;
+    }
+
+    // done
+    return result;
 }
 
 //---------------------------------------------------------------
 inline uint32_t CryptContainer::maxPlainChunkSize(uint32_t seqnum) const
 {
-    auto chunkSizeM=chunkMaxSize();
+    uint32_t chunkSizeM=0;
     if (seqnum==0)
     {
         chunkSizeM=firstChunkMaxSize();
@@ -139,6 +220,10 @@ inline uint32_t CryptContainer::maxPlainChunkSize(uint32_t seqnum) const
         {
             chunkSizeM=chunkMaxSize();
         }
+    }
+    else
+    {
+        chunkSizeM=chunkMaxSize();
     }
     return chunkSizeM;
 }

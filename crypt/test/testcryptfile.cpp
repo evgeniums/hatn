@@ -480,7 +480,7 @@ static void writeExistingFile(
     }
 }
 
-static void checkCryptFile(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
+static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
 {
     BOOST_TEST_MESSAGE(fmt::format("Checking test vectors in {}",path));
     size_t runCount=0;
@@ -649,17 +649,28 @@ static void checkCryptFile(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             std::string tmpFile;
             tmpFile=fmt::format("{}/cryptfile.dat",hatn::test::MultiThreadFixture::tmpPath());
 #endif
-            for (size_t i=0;i<2;i++)
+            for (size_t i=0;i<3;i++)
             {
-                auto wrMode=File::Mode::append;
-                if (i%2!=0)
+                auto wrMode=File::Mode::write;
+                if (i==0)
                 {
-                    wrMode=File::Mode::write;                    
+                    wrMode=File::Mode::write;
                     BOOST_TEST_MESSAGE(fmt::format("Write mode"));
                 }
                 else
                 {
-                    BOOST_TEST_MESSAGE(fmt::format("Append mode"));
+                    ec=common::FileUtils::remove(tmpFile);
+                    BOOST_REQUIRE(!ec);
+                    if (i==1)
+                    {
+                        wrMode=File::Mode::append;
+                        BOOST_TEST_MESSAGE(fmt::format("Append after remove"));
+                    }
+                    else
+                    {
+                        wrMode=File::Mode::write_new;
+                        BOOST_TEST_MESSAGE(fmt::format("Write new after remove"));
+                    }
                 }
 
                 auto isOpen=cryptFile1.isOpen();
@@ -920,7 +931,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
 
         // check size of open file
         CryptFile cryptFile1;
-        cryptFile1.open(tmpFileNoStamp,common::File::Mode::append,ec);
+        cryptFile1.open(tmpFileNoStamp,common::File::Mode::append_existing,ec);
         HATN_REQUIRE(!ec);
         auto size1=cryptFile1.size();
         CryptFile cryptFile2;
@@ -1178,18 +1189,200 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     CipherSuites::instance().reset();
 }
 
-BOOST_AUTO_TEST_CASE(CheckCryptFile)
+BOOST_AUTO_TEST_CASE(CheckReadWrite)
 {
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
             CipherSuites::instance().reset();
-            checkCryptFile(plugin,PluginList::assetsPath("crypt"));
+            checkReadWrite(plugin,PluginList::assetsPath("crypt"));
             CipherSuites::instance().reset();
-            checkCryptFile(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            checkReadWrite(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
             CipherSuites::instance().reset();
         }
     );
+}
+
+static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
+{
+    // load suite from json
+    auto cipherSuiteFile=fmt::format("{}/cryptcontainer-ciphersuite1.json",path);
+    auto keyFile=fmt::format("{}/cryptfile-stamp-key.dat",path);
+
+    if (!boost::filesystem::exists(cipherSuiteFile)
+        ||
+        !boost::filesystem::exists(keyFile)
+        )
+    {
+        return;
+    }
+
+    ByteArray cipherSuiteJson;
+    auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
+    HATN_REQUIRE(!ec);
+    auto suite=std::make_shared<CipherSuite>();
+    ec=suite->loadFromJSON(cipherSuiteJson);
+    HATN_REQUIRE(!ec);
+
+    // add suite to table of suites
+    CipherSuites::instance().addSuite(suite);
+
+    // set engine
+    auto engine=std::make_shared<CryptEngine>(plugin.get());
+    CipherSuites::instance().setDefaultEngine(std::move(engine));
+
+    // check AEAD algorithm
+    const CryptAlgorithm* aeadAlg=nullptr;
+    ec=suite->aeadAlgorithm(aeadAlg);
+    if (ec)
+    {
+        return;
+    }
+    HATN_REQUIRE(aeadAlg);
+
+    // check pbkdf algorithm
+    const CryptAlgorithm* kdfAlg=nullptr;
+    ec=suite->pbkdfAlgorithm(kdfAlg);
+    if (ec)
+    {
+        return;
+    }
+
+    // load master key
+    common::SharedPtr<SymmetricKey> masterKey;
+    masterKey=plugin->createPassphraseKey();
+    HATN_REQUIRE(masterKey);
+    ec=masterKey->importFromFile(keyFile,ContainerFormat::RAW_PLAIN);
+    HATN_REQUIRE(!ec)
+
+    // init files
+    auto plainTextFile0=fmt::format("{}/cryptfile-plaintext8.dat",path);
+    ByteArray plaintext0;
+    ec=plaintext0.loadFromFile(plainTextFile0);
+    BOOST_REQUIRE(!ec);
+    auto plainTextFile=fmt::format("{}/cryptfile-plaintext10.dat",path);
+    auto cryptFilename1=fmt::format("{}/cryptfile-append1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    auto plainFilename1=fmt::format("{}/plainfile-append1.dat",hatn::test::MultiThreadFixture::tmpPath());
+
+    auto run=[&](common::File::Mode mode)
+    {
+        // init plain file
+        ec=FileUtils::remove(plainFilename1);
+        BOOST_REQUIRE(!ec);
+        ByteArray plaintext1;
+        ec=plaintext1.loadFromFile(plainTextFile);
+        BOOST_REQUIRE(!ec);
+        PlainFile plainFile1;
+        ec=plainFile1.open(plainFilename1,PlainFile::Mode::append);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        auto written=plainFile1.write(plaintext1.data(),plaintext1.size(),ec);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(written,plaintext1.size());
+
+        // init crypt file
+        ec=FileUtils::remove(cryptFilename1);
+        BOOST_REQUIRE(!ec);
+        CryptFile cryptFile1(masterKey.get(),suite.get());
+        ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::append);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        written=cryptFile1.write(plaintext1.data(),plaintext1.size(),ec);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(written,plaintext1.size());
+        BOOST_CHECK_EQUAL(cryptFile1.size(),plainFile1.size());
+
+        plainFile1.close(ec);
+        BOOST_REQUIRE(!ec);
+        cryptFile1.close(ec);
+        BOOST_REQUIRE(!ec);
+
+        // append data
+        PlainFile plainFile2;
+        ec=plainFile2.open(plainFilename1,mode);
+        BOOST_REQUIRE(!ec);
+        written=plainFile2.write(plaintext0,ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(written,plaintext0.size());
+        plainFile2.close();
+
+        CryptFile cryptFile2(masterKey.get(),suite.get());
+        ec=cryptFile2.open(cryptFilename1,mode);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        written=cryptFile2.write(plaintext0,ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(written,plaintext0.size());
+        cryptFile2.close();
+
+        // read and compare data
+        ByteArray plainBuf1;
+        ec=plainFile1.readAll(plainBuf1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        ByteArray cryptBuf1;
+        ec=cryptFile1.readAll(cryptBuf1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(cryptBuf1.size(),plaintext1.size()+plaintext0.size());
+        BOOST_CHECK(cryptBuf1==plainBuf1);
+
+        ByteArray checkBuf1{plaintext1};
+        checkBuf1.append(plaintext0);
+        BOOST_CHECK(cryptBuf1==checkBuf1);
+    };
+
+    run(CryptFile::Mode::append);
+    run(CryptFile::Mode::append_existing);
+
+    // check append_existing with non existing file
+    ec=FileUtils::remove(plainFilename1);
+    BOOST_REQUIRE(!ec);
+    PlainFile plainFile1;
+    ec=plainFile1.open(plainFilename1,PlainFile::Mode::append_existing);
+    BOOST_CHECK(ec);
+    ec=FileUtils::remove(cryptFilename1);
+    BOOST_REQUIRE(!ec);
+    CryptFile cryptFile1(masterKey.get(),suite.get());
+    ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::append_existing);
+    BOOST_CHECK(ec);
+}
+
+BOOST_AUTO_TEST_CASE(CheckAppend)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            CipherSuites::instance().reset();
+            checkAppend(plugin,PluginList::assetsPath("crypt"));
+            CipherSuites::instance().reset();
+            checkAppend(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            CipherSuites::instance().reset();
+        }
+        );
 }
 
 BOOST_AUTO_TEST_CASE(CheckFileStamp)

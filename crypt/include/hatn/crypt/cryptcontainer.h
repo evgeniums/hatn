@@ -138,6 +138,15 @@ class HATN_CRYPT_EXPORT CryptContainer
         inline uint32_t maxPackedChunkSize(uint32_t seqnum, uint32_t containerSize) const;
 
         /**
+         * @brief Get maximum packed size of a chunk
+         * @param seqnum Sequential number of the chunk
+         * @return Packed size of the chunk
+         *
+         * @throws ErrorException if can not create decryptor
+         */
+        inline uint32_t maxPackedChunkSize(uint32_t seqnum) const;
+
+        /**
          * @brief Get maximum plain size of a chunk
          * @param seqnum Sequential number of the chunk
          * @return Plain size of the chunk
@@ -421,6 +430,9 @@ class HATN_CRYPT_EXPORT CryptContainer
         CipherSuite m_extractedSuite;
 
         common::pmr::AllocatorFactory* m_factory;
+
+        mutable lib::optional<uint32_t> m_maxPackedChunkSize;
+        mutable lib::optional<uint32_t> m_maxPackedFirstChunkSize;
 };
 
 HATN_CRYPT_NAMESPACE_END
