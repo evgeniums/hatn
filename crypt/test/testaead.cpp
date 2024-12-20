@@ -37,7 +37,7 @@ using namespace crypt;
 
 namespace test {
 
-//#define PRINT_CRYPT_ENGINE_ALGS
+#define PRINT_CRYPT_ENGINE_ALGS
 //#define MEASURE_DECRYPT_PERFORMANCE
 BOOST_FIXTURE_TEST_SUITE(TestAEAD,CryptTestFixture)
 
