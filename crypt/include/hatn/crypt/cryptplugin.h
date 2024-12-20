@@ -646,6 +646,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         {
             if (!m_randGen)
             {
+                common::MutexScopedLock l(m_algMutex);
                 const_cast<CryptPlugin*>(this)->m_randGen=createRandomGenerator();
             }
             if (!m_randGen)
@@ -698,7 +699,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         std::shared_ptr<CryptEngine> m_defaultEngine;
         common::SharedPtr<RandomGenerator> m_randGen;
 
-        common::MutexLock m_algMutex;
+        mutable common::MutexLock m_algMutex;
 };
 
 //---------------------------------------------------------------

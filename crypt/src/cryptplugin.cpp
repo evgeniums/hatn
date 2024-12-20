@@ -188,6 +188,7 @@ common::Error CryptPlugin::randBytes(char *data, size_t size) const
 {
     if (!m_randGen)
     {
+        common::MutexScopedLock l(m_algMutex);
         const_cast<CryptPlugin*>(this)->m_randGen=createRandomGenerator();
     }
     if (!m_randGen)

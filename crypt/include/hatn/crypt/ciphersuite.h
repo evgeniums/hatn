@@ -363,9 +363,9 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
         //! Reset the set
         void reset() noexcept;
 
-        void free() noexcept
+        static void free() noexcept
         {
-            reset();
+            instance().reset();
         }
 
         /**
@@ -424,6 +424,11 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
             return nullptr;
         }
 
+        RandomGenerator* defaultRandomGenerator() const noexcept
+        {
+            return m_randomGenerator.get();
+        }
+
         /**
          * @brief Load crypt engines to the set
          * @param engines Crypt engines
@@ -456,8 +461,6 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
         std::shared_ptr<CryptEngine> m_defaultEngine;
 
         common::SharedPtr<RandomGenerator> m_randomGenerator;
-
-        static CipherSuites m_instance;
 };
 
 HATN_CRYPT_NAMESPACE_END

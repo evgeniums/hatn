@@ -507,8 +507,6 @@ common::SharedPtr<X509CertificateStore> CipherSuite::createX509CertificateStore(
 
 HATN_SINGLETON_INIT(CipherSuites)
 
-CipherSuites CipherSuites::m_instance;
-
 //---------------------------------------------------------------
 CryptEngine* CipherSuites::engineForAlgorithm(
         CryptAlgorithm::Type type,
@@ -544,22 +542,29 @@ CryptEngine* CipherSuites::engineForAlgorithm(
 //---------------------------------------------------------------
 CipherSuites& CipherSuites::instance() noexcept
 {
-    return m_instance;
+    static CipherSuites inst;
+    return inst;
 }
 
 //---------------------------------------------------------------
 void CipherSuites::reset() noexcept
 {
-    instance().m_defaultSuite.reset();
-    instance().m_suites.clear();
+    m_defaultSuite.reset();
+    m_suites.clear();
     m_defaultEngine.reset();
     m_engines.clear();
+    m_randomGenerator.reset();
 }
 
 //---------------------------------------------------------------
 void CipherSuites::setDefaultEngine(std::shared_ptr<CryptEngine> engine)
 {
     m_defaultEngine=std::move(engine);
+    auto plugin=defaultPlugin();
+    if (plugin)
+    {
+        m_randomGenerator=plugin->createRandomGenerator();
+    }
 }
 
 //---------------------------------------------------------------

@@ -50,17 +50,22 @@ class RandomGenerator
                 container.clear();
                 return common::Error();
             }
-
             size_t sizeDiff=0;
-            HATN_CHECK_RETURN(randBytes(reinterpret_cast<char*>(&sizeDiff),sizeof(sizeDiff)));
+            container.resize(maxSize+sizeof(sizeDiff));
+
+            auto ec=randBytes(container.data(),container.size());
+            if (ec)
+            {
+                container.clear();
+            }
+            memcpy(&sizeDiff,container.data()+container.size()-sizeof(sizeDiff),sizeof(sizeDiff));
             auto size=maxSize;
             if (minSize!=0 && minSize<maxSize)
             {
                 size=minSize+sizeDiff%(maxSize-minSize);
             }
-
             container.resize(size);
-            return randBytes(container.data(),container.size());
+            return OK;
         }
 };
 
