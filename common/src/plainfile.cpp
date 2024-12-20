@@ -48,6 +48,7 @@ Error PlainFile::open(const char *filename, Mode mode)
     {
         return commonError(CommonError::FILE_ALREADY_OPEN);
     }
+    setFilename(filename);
     boost::system::error_code ec;
     m_file.open(filename,mode,ec);
     if (ec.value()==static_cast<int>(boost::system::errc::no_such_file_or_directory)
@@ -248,7 +249,7 @@ Error PlainFile::truncate(size_t size, bool /*backupCopy*/)
 }
 
 //---------------------------------------------------------------
-Error PlainFile::sync() noexcept
+Error PlainFile::sync()
 {
     //! @todo Use native errors
     if (m_file.is_open())
@@ -278,7 +279,7 @@ Error PlainFile::sync() noexcept
 }
 
 //---------------------------------------------------------------
-Error PlainFile::fsync() noexcept
+Error PlainFile::fsync()
 {
     //! @todo Use native errors
     if (m_file.is_open())

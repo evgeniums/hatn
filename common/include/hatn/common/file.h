@@ -151,8 +151,13 @@ class File
          */
         Error open(Mode mode)
         {
+            if (m_filename.empty())
+            {
+                return CommonError::INVALID_FILENAME;
+            }
             return open(m_filename.c_str(),mode);
         }
+
         /**
          * @brief Open file
          * @param filename File name
@@ -169,16 +174,16 @@ class File
         virtual bool isOpen() const noexcept=0;
 
         //! Flush buffers to disk
-        virtual Error flush() noexcept=0;
+        virtual Error flush()=0;
 
         //! Sync buffers to disk
-        virtual Error sync() noexcept
+        virtual Error sync()
         {
             return OK;
         }
 
         //! Fsync buffers to disk
-        virtual Error fsync() noexcept
+        virtual Error fsync()
         {
             return OK;
         }
@@ -194,7 +199,7 @@ class File
          * @param ec Error if opening failed
          */
 
-        void close(Error& ec) noexcept
+        void close(Error& ec)
         {
             ec.reset();
             try
@@ -222,7 +227,7 @@ class File
          * @brief Get current cursor position in file
          * @param ec Error if operation failed
          */
-        uint64_t pos(Error& ec) const noexcept
+        uint64_t pos(Error& ec)
         {
             ec.reset();
             try
@@ -289,7 +294,7 @@ class File
          * @param ec Error if operation failed
          * @return Written size
          */
-        size_t write(const char* data, size_t size, Error& ec) noexcept
+        size_t write(const char* data, size_t size, Error& ec)
         {
             ec.reset();
             try
@@ -301,6 +306,18 @@ class File
                 ec=e.error();
             }
             return 0u;
+        }
+
+        template <typename ContainerT>
+        size_t write(const ContainerT& container, Error& ec)
+        {
+            return write(container.data(),container.size(),ec);
+        }
+
+        template <typename ContainerT>
+        size_t read(ContainerT& container, Error& ec)
+        {
+            return read(container.data(),container.size(),ec);
         }
 
         /**
@@ -318,7 +335,7 @@ class File
          * @param ec Error if operation failed
          * @return Read size
          */
-        size_t read(char* data, size_t maxSize, Error& ec) noexcept
+        size_t read(char* data, size_t maxSize, Error& ec)
         {
             ec.reset();
             try
@@ -337,11 +354,16 @@ class File
          * @param container.
          * @return Operation status.
          *
-         * Can read only open file.
          */
         template <typename ContainerT>
         Error readAll(ContainerT& container)
         {
+            bool closeAfterRead=false;
+            if (!isOpen())
+            {
+                HATN_CHECK_RETURN(open(Mode::scan));
+                closeAfterRead=true;
+            }
             try
             {
                 HATN_CHECK_RETURN(seek(0))
@@ -356,7 +378,18 @@ class File
             catch (const ErrorException& e)
             {
                 container.clear();
+                if (closeAfterRead)
+                {
+                    Error ec;
+                    close(ec);
+                }
                 return e.error();
+            }
+            if (closeAfterRead)
+            {
+                Error ec;
+                close(ec);
+                return ec;
             }
             return OK;
         }

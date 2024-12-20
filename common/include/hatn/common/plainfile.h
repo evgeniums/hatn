@@ -58,9 +58,9 @@ class HATN_COMMON_EXPORT PlainFile : public File
 
         virtual ~PlainFile();
         PlainFile(const PlainFile&)=delete;
-        PlainFile(PlainFile&&) =delete;
+        PlainFile(PlainFile&&) =default;
         PlainFile& operator=(const PlainFile&)=delete;
-        PlainFile& operator=(PlainFile&&) =delete;
+        PlainFile& operator=(PlainFile&&) =default;
 
         /**
          * @brief Open file
@@ -126,10 +126,10 @@ class HATN_COMMON_EXPORT PlainFile : public File
         virtual size_t read(char* data, size_t maxSize) override;
 
         //! Sync buffers to disk
-        virtual Error sync() noexcept override;
+        virtual Error sync() override;
 
         //! Fsync buffers to disk
-        virtual Error fsync() noexcept override;
+        virtual Error fsync() override;
 
         /**
          * @brief Truncate file.
