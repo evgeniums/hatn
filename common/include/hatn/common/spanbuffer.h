@@ -115,6 +115,16 @@ class SpanBuffer
             return 0;
         }
 
+        size_t size() const noexcept
+        {
+            return view().size();
+        }
+
+        const char* data() const noexcept
+        {
+            return view().data();
+        }
+
         ByteArrayShared* sharedBuf() const
         {
             try
