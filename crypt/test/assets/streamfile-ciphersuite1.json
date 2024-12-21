@@ -1,0 +1,9 @@
+{
+  "id":"streaming-suite1",
+  "aead":"chacha20-poly1305",
+  "pbkdf":"pbkdf2/sha256",
+  "digest":"sha512",
+  "mac":"poly1305",
+  "hkdf":"sha256",
+  "cipher":"chacha20"
+}

@@ -266,8 +266,81 @@ class CipherWorker
         const CryptAlgorithm* m_alg;
 };
 
-using SEncryptor=CipherWorker<true>;
-using SDecryptor=CipherWorker<false>;
+class HATN_CRYPT_EXPORT SEncryptor : public CipherWorker<true>
+{
+    public:
+
+        using CipherWorker<true>::CipherWorker;
+
+        /**
+         * @brief Init cipher in stream mode, IV will be auto generated and prepended.
+         * @param ciphertext Buffer for result.
+         * @param offset Offset in result buffer.
+         * @return Operation status.
+         */
+        template <typename ContainerT>
+        common::Error initStream(
+            ContainerT& result,
+            size_t offset=0
+        );
+
+        /**
+         * @brief Encrypt data in stream mode.
+         * @param plaintext Input data.
+         * @param ciphertext Result container.
+         * @param offset Offset in result container.
+         * @return Operation status.
+         */
+        template <typename BufferT, typename ContainerT>
+        common::Error encryptStream(
+            const BufferT& plaintext,
+            ContainerT& ciphertext,
+            size_t offset=0
+        );
+
+        size_t streamPrefixSize() const noexcept
+        {
+            return alg()->ivSize();
+        }
+};
+
+class HATN_CRYPT_EXPORT SDecryptor : public CipherWorker<false>
+{
+    public:
+
+        using CipherWorker<false>::CipherWorker;
+
+        /**
+             * @brief Init cipher in stream mode, IV is expected in the beginning of ciphertext.
+             * @param ciphertext Buffer containing IV.
+             * @param offset Offset in buffer.
+             * @return Offset of data in ciphertext to use in decryptStream().
+        */
+        template <typename ContainerT>
+        Result<size_t> initStream(
+            const ContainerT& ciphertext,
+            size_t offset=0
+        );
+
+        /**
+             * @brief Decrypt data in stream mode.
+             * @param ciphertext Input data.
+             * @param plaintext Result container.
+             * @param offset Offset in result container.
+             * @return Operation status.
+        */
+        template <typename BufferT, typename ContainerT>
+        common::Error decryptStream(
+            const BufferT& ciphertext,
+            ContainerT& plaintext,
+            size_t offset=0
+        );
+
+        size_t streamPrefixSize() const noexcept
+        {
+            return alg()->ivSize();
+        }
+};
 
 HATN_CRYPT_NAMESPACE_END
 

@@ -29,6 +29,7 @@
 #include <hatn/crypt/crypterror.h>
 #include <hatn/crypt/cryptalgorithm.h>
 #include <hatn/crypt/aead.h>
+#include <hatn/crypt/cipherworker.h>
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/passphrasekey.h>
 #include <hatn/crypt/ciphersuite.h>
@@ -137,6 +138,8 @@ class HATN_CRYPT_EXPORT CryptContainer
          */
         inline uint32_t maxPackedChunkSize(uint32_t seqnum, uint32_t containerSize) const;
 
+        inline uint32_t packedExtraSize() const;
+
         /**
          * @brief Get maximum packed size of a chunk
          * @param seqnum Sequential number of the chunk
@@ -182,6 +185,16 @@ class HATN_CRYPT_EXPORT CryptContainer
         bool autoSalt() const noexcept
         {
             return m_autoSalt;
+        }
+
+        void setStreamingMode(bool enable) noexcept
+        {
+            m_streamingMode=enable;
+        }
+
+        bool isStreamingMode() const noexcept
+        {
+            return m_streamingMode;
         }
 
         /**
@@ -421,6 +434,50 @@ class HATN_CRYPT_EXPORT CryptContainer
          */
         void hardReset(bool withDescriptor=true);
 
+        Result<size_t> streamPrefixSize() const;
+
+        template <typename ContainerOutT>
+        common::Error initStreamEncryptor(
+            ContainerOutT& ciphertext,
+            uint32_t seqnum,
+            size_t offset=0
+        );
+
+        template <typename ContainerOutT>
+        common::Error initStreamEncryptor(
+            ContainerOutT& ciphertext,
+            const common::ConstDataBuf& info,
+            size_t offset=0
+        );
+
+        template <typename BufferT, typename ContainerOutT>
+        common::Error encryptStream(
+            const BufferT& plaintext,
+            ContainerOutT& ciphertext,
+            size_t offseOut=0
+        );
+
+        template <typename BufferT>
+        Result<size_t> initStreamDecryptor(
+            const BufferT& ciphertext,
+            uint32_t seqnum,
+            size_t offsetOut=0
+        );
+
+        template <typename BufferT>
+        Result<size_t> initStreamDecryptor(
+            const BufferT& ciphertext,
+            const common::ConstDataBuf& info,
+            size_t offsetOut=0
+        );
+
+        template <typename BufferT, typename ContainerOutT>
+        common::Error decryptStream(
+            const BufferT& ciphertext,
+            ContainerOutT& plaintext,
+            size_t offsetOut=0
+        );
+
     private:
 
         inline common::Error checkOrCreateDecryptor();
@@ -436,6 +493,11 @@ class HATN_CRYPT_EXPORT CryptContainer
         common::SharedPtr<AEADEncryptor> m_enc;
         common::SharedPtr<AEADDecryptor> m_dec;
 
+        const CryptAlgorithm* m_streamAlg;
+        common::SharedPtr<SEncryptor> m_streamEnc;
+        common::SharedPtr<SDecryptor> m_streamDec;
+        common::SharedPtr<SymmetricKey> m_streamKeyHolder;
+
         const CipherSuite* m_cipherSuite;
         container_descriptor::shared_traits::type m_descriptor;
 
@@ -448,6 +510,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         mutable lib::optional<uint32_t> m_maxPackedFirstChunkSize;
 
         bool m_autoSalt;
+        bool m_streamingMode;
 };
 
 HATN_CRYPT_NAMESPACE_END

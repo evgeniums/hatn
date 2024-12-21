@@ -34,6 +34,7 @@ class CryptContainerHeader
 
         constexpr static const uint8_t VERSION=0x01u;
         constexpr static const char* PREFIX="HCC"; // stands for "Hatn Crypt Container"
+        constexpr static const char* STREAM_PREFIX="HCS"; // stands for "Hatn Crypt Stream"
 
         constexpr static const size_t PREFIX_LENGTH=3;
         constexpr static const size_t VERSION_OFFSET=PREFIX_LENGTH; // 3
@@ -42,24 +43,23 @@ class CryptContainerHeader
         constexpr static const size_t CIPHERTEXT_SIZE_OFFSET=PLAINTEXT_SIZE_OFFSET+sizeof(uint64_t); // 14
 
         /**
-         * @brief Constructor
+         * @brief Constructor from external buffer.
          * @param externalBuf Pointer to external buffer
          */
         template <typename BufT>
         CryptContainerHeader(BufT* externalBuf) noexcept : m_ptr(const_cast<char*>(externalBuf))
-        {
-            memset(&m_data[0],0,size());
-        }
+        {}
 
         /**
-         * @brief Constructor
-         * @param descriptorSize Size of descriptor
-         * @param version Version of container format
+         * @brief Constructor with parameters.
+         * @param descriptorSize Size of descriptor.
+         * @param version Version of container format.
          */
-        CryptContainerHeader(size_t descriptorSize, uint8_t version=VERSION) noexcept : m_ptr(&m_data[0])
+        CryptContainerHeader(size_t descriptorSize,
+                             bool streaming=false,
+                             uint8_t version=VERSION) noexcept : m_ptr(&m_data[0])
         {
-            memcpy(m_ptr,PREFIX,PREFIX_LENGTH);
-            setVersion(version);
+            reset(streaming,version);
             setDescriptorSize(descriptorSize);
         }
 
@@ -72,7 +72,8 @@ class CryptContainerHeader
         ~CryptContainerHeader()=default;
 
         //! Copy ctor
-        CryptContainerHeader(const CryptContainerHeader& other) noexcept : m_ptr(other.m_ptr)
+        CryptContainerHeader(const CryptContainerHeader& other) noexcept :
+            m_ptr(other.m_ptr)
         {
             std::copy(&other.m_data[0],&other.m_data[0]+other.size(),&m_data[0]);
         }
@@ -88,7 +89,8 @@ class CryptContainerHeader
         }
 
         //! Move ctor
-        CryptContainerHeader(CryptContainerHeader&& other) noexcept : m_ptr(other.m_ptr)
+        CryptContainerHeader(CryptContainerHeader&& other) noexcept :
+            m_ptr(other.m_ptr)
         {
             std::copy(&other.m_data[0],&other.m_data[0]+other.size(),&m_data[0]);
             other.reset();
@@ -122,7 +124,7 @@ class CryptContainerHeader
         //! Check container prefix
         bool checkPrefix() const noexcept
         {
-            return memcmp(data(),PREFIX,PREFIX_LENGTH)==0;
+            return memcmp(data(),PREFIX,PREFIX_LENGTH)==0 || memcmp(data(),STREAM_PREFIX,PREFIX_LENGTH)==0;
         }
 
         //! Set size of descriptor
@@ -192,31 +194,29 @@ class CryptContainerHeader
             if (externalBuf!=nullptr)
             {
                 m_ptr=const_cast<char*>(externalBuf);
-                memset(&m_data[0],0,size());
             }
             else
             {
                 m_ptr=&m_data[0];
+                reset();
             }
         }
 
         //! Reset header
-        void reset(uint8_t version=VERSION)
+        void reset(bool streaming=false, uint8_t version=VERSION)
         {
-            auto ptr=(m_ptr==nullptr)?&m_data[0]:m_ptr;
-            memset(ptr,0,size());
-            fill(version);
+            memset(m_ptr,0,size());
+            fill(streaming,version);
         }
 
         /**
          * @brief Prefill header
          * @param version Version of container format to set in header
          */
-        void fill(uint8_t version=VERSION)
+        void fill(bool streaming=false, uint8_t version=VERSION)
         {
-            auto ptr=(m_ptr==nullptr)?&m_data[0]:m_ptr;
-            memcpy(ptr,PREFIX,PREFIX_LENGTH);
             setVersion(version);
+            setStreamingMode(streaming);
         }
 
         //! Offset in header for the size of plaintext
@@ -244,6 +244,23 @@ class CryptContainerHeader
         static void contentSizeForStorageInplace(uint64_t& size) noexcept
         {
             boost::endian::native_to_little_inplace(size);
+        }
+
+        void setStreamingMode(bool enable) noexcept
+        {
+            if (enable)
+            {
+                memcpy(m_ptr,STREAM_PREFIX,PREFIX_LENGTH);
+            }
+            else
+            {
+                memcpy(m_ptr,PREFIX,PREFIX_LENGTH);
+            }
+        }
+
+        bool isStreamingMode() const noexcept
+        {
+            return memcmp(data(),STREAM_PREFIX,PREFIX_LENGTH)==0;
         }
 
     private:

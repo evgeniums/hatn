@@ -243,6 +243,16 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
             return m_maxProcessingSize;
         }
 
+        void setStreamingMode(bool enable) noexcept
+        {
+            m_proc.setStreamingMode(enable);
+        }
+
+        bool isStreamingMode() const noexcept
+        {
+            return m_proc.isStreamingMode();
+        }
+
         //! Calculate digest
         template <typename ContainerT>
         common::Error digest(ContainerT& container,bool reOpen=true)
@@ -423,6 +433,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
                   offset(0),
                   maxSize(0),
                   ciphertextSize(0),
+                  streamWriteCursor(0),
                   content(factory->dataMemoryResource())
             {}
             uint32_t seqnum;
@@ -430,6 +441,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
             uint64_t offset;
             uint64_t maxSize;
             size_t ciphertextSize;
+            size_t streamWriteCursor;
 
             common::ByteArray content;
 
@@ -439,6 +451,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
                 dirty=false;
                 offset=0;
                 ciphertextSize=0;
+                streamWriteCursor=0;
                 content.clear();
             }
         };

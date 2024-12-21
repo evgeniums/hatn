@@ -32,7 +32,7 @@ using namespace crypt;
 
 namespace test {
 
-//#define PRINT_CRYPT_ENGINE_ALGS
+#define PRINT_CRYPT_ENGINE_ALGS
 BOOST_FIXTURE_TEST_SUITE(TestCipher,CryptTestFixture)
 
 static void singleEncryptDecrypt(std::shared_ptr<CryptPlugin>& plugin, const CryptAlgorithm* alg)

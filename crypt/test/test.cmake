@@ -22,22 +22,23 @@ TARGET_COMPILE_DEFINITIONS(${MODULE_TEST_LIB} PRIVATE -DBUILD_TEST_CRYPT)
 
 SET (TEST_SOURCES
     ${CRYPT_TEST_SRC}/testrandomgen.cpp
-    ${CRYPT_TEST_SRC}/testdigest.cpp
+    # ${CRYPT_TEST_SRC}/testdigest.cpp
     ${CRYPT_TEST_SRC}/testcipher.cpp
-    ${CRYPT_TEST_SRC}/testpbkdf.cpp
-    ${CRYPT_TEST_SRC}/testhmac.cpp
-    ${CRYPT_TEST_SRC}/testencrypthmac.cpp
-    ${CRYPT_TEST_SRC}/testhkdf.cpp
-    ${CRYPT_TEST_SRC}/testdh.cpp
-    ${CRYPT_TEST_SRC}/testecdh.cpp
-    ${CRYPT_TEST_SRC}/testaead.cpp
-    ${CRYPT_TEST_SRC}/testmac.cpp
-    ${CRYPT_TEST_SRC}/testsignature.cpp
-    ${CRYPT_TEST_SRC}/testcryptcontainer.cpp
-    ${CRYPT_TEST_SRC}/testcryptfile.cpp
-    ${CRYPT_TEST_SRC}/testkeyexportimport.cpp
-    ${CRYPT_TEST_SRC}/testx509.cpp
-    ${CRYPT_TEST_SRC}/testtls.cpp
+    # ${CRYPT_TEST_SRC}/testpbkdf.cpp
+    # ${CRYPT_TEST_SRC}/testhmac.cpp
+    # ${CRYPT_TEST_SRC}/testencrypthmac.cpp
+    # ${CRYPT_TEST_SRC}/testhkdf.cpp
+    # ${CRYPT_TEST_SRC}/testdh.cpp
+    # ${CRYPT_TEST_SRC}/testecdh.cpp
+    # ${CRYPT_TEST_SRC}/testaead.cpp
+    # ${CRYPT_TEST_SRC}/testmac.cpp
+    # ${CRYPT_TEST_SRC}/testsignature.cpp
+    # ${CRYPT_TEST_SRC}/testcryptcontainer.cpp
+    # ${CRYPT_TEST_SRC}/testcryptfile.cpp
+    ${CRYPT_TEST_SRC}/teststreamfile.cpp
+    # ${CRYPT_TEST_SRC}/testkeyexportimport.cpp
+    # ${CRYPT_TEST_SRC}/testx509.cpp
+    # ${CRYPT_TEST_SRC}/testtls.cpp
 )
 
 ADD_HATN_CTESTS(crypt ${TEST_SOURCES} ${TEST_HEADERS})

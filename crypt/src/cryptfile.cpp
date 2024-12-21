@@ -13,11 +13,14 @@
  *
  */
 
+#include <cstdlib>
+
 #include <boost/endian/conversion.hpp>
 
 #include <hatn/common/runonscopeexit.h>
 #include <hatn/common/filesystem.h>
 #include <hatn/common/format.h>
+#include <hatn/common/containerutils.h>
 
 #include <hatn/dataunit/objectid.h>
 #include <hatn/dataunit/visitors.h>
@@ -67,7 +70,7 @@ CryptFile::~CryptFile()
 //---------------------------------------------------------------
 bool CryptFile::useCache() const noexcept
 {
-    return m_enableCache && !(m_mode==Mode::scan || m_mode==Mode::append || m_mode==Mode::append_existing);
+    return m_enableCache && !m_proc.isStreamingMode() && !(m_mode==Mode::scan || m_mode==Mode::append || m_mode==Mode::append_existing);
 }
 
 //---------------------------------------------------------------
@@ -108,6 +111,8 @@ Error CryptFile::open(const char *fname, Mode mode)
 #else
     setFilename(fname);
 
+//! @todo Remove commented
+#if 0
     if (false)
     {
         std::cout << "CryptFile::open " << filename() << " mode="<< int(mode) << " cached="<<m_enableCache
@@ -118,7 +123,7 @@ Error CryptFile::open(const char *fname, Mode mode)
             " kdfType=" << int(processor().kdfType()) <<
             std::endl;
     }
-
+#endif
     return doOpen(mode);
 #endif
 }
@@ -141,7 +146,15 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
         else if (openMode==Mode::append_existing)
         {
             openMode=Mode::write_existing;
-        }        
+        }
+        if (isStreamingMode())
+        {
+            auto allowedMode = mode==Mode::append || mode==Mode::append_existing || mode==Mode::scan;
+            if (!allowedMode)
+            {
+                return cryptError(CryptError::INVALID_STREAM_FILE_MODE);
+            }
+        }
 
         // open raw file
         HATN_CHECK_RETURN(m_file->open(filename(),openMode))
@@ -174,6 +187,58 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             // set data offset to position after descriptor
             m_dataOffset=static_cast<size_t>(m_file->pos());
             auto actualDataSize=m_file->size()-m_dataOffset;
+
+            if (isStreamingMode())
+            {
+                // in streaming mode size is not stored in header, it is strictly calculated
+                m_size=0;
+                m_ciphertextSize=actualDataSize;
+                if (m_ciphertextSize!=0)
+                {
+//! @todo Cleanup it
+#if 0
+                    std::ldiv_t dv{0,0};
+                    size_t restPackedChunksSize=0;
+                    size_t packedChunkSize=0;
+#endif
+                    auto firstChunkSize=m_proc.firstChunkMaxSize();
+                    auto firstPackedChunkSize=m_proc.maxPackedChunkSize(0);
+                    auto prefixSize=firstPackedChunkSize-firstChunkSize;
+                    if (m_ciphertextSize<prefixSize)
+                    {
+                        throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
+                    }
+                    if (m_ciphertextSize<firstPackedChunkSize)
+                    {
+                        m_size=m_ciphertextSize-prefixSize;
+                    }
+                    else
+                    {
+                        m_size+=firstChunkSize;
+                        auto restPackedChunksSize=m_ciphertextSize-firstPackedChunkSize;
+                        auto packedChunkSize=m_proc.maxPackedChunkSize(1);
+                        auto dv=std::div(long(restPackedChunksSize),long(packedChunkSize));
+                        if (size_t(dv.rem)<prefixSize)
+                        {
+                            throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
+                        }
+                        m_size+=size_t(dv.quot)*(packedChunkSize-prefixSize)+size_t(dv.rem)-prefixSize;
+                    }
+//! @todo Cleanup it
+#if 0
+                    std::cout << "m_size="<<m_size << " m_ciphertextSize="<<m_ciphertextSize
+                              << " dataOffset=" << m_dataOffset << " m_file->size()=" << m_file->size()
+                              << " firstChunkSize="<<firstChunkSize << " restPackedChunksSize=" << restPackedChunksSize
+                              << " packedChunkSize=" << packedChunkSize << " prefixSize="<<prefixSize
+                              << " chunkSize=" << ((packedChunkSize>prefixSize)?(packedChunkSize-prefixSize):0)
+                              << " dv.quot=" << dv.quot
+                              << " dv.rem=" << dv.rem
+                              << std::endl;
+#endif
+                }
+            }
+
+            // check data size
             if (actualDataSize<m_ciphertextSize)
             {
                 throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
@@ -219,9 +284,12 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             HATN_CHECK_THROW(doSeek(0))
 
             // write first empty chunk
-            m_currentChunk->dirty=true;
-            m_sizeDirty=true;
-            HATN_CHECK_THROW(flushChunk(*m_currentChunk,true))
+            if (!isStreamingMode())
+            {
+                m_sizeDirty=true;
+                m_currentChunk->dirty=true;
+                HATN_CHECK_THROW(flushChunk(*m_currentChunk,true))
+            }
         }
     }
     catch (const ErrorException& e)
@@ -267,7 +335,7 @@ void CryptFile::close()
 //---------------------------------------------------------------
 Error CryptFile::writeSize() noexcept
 {
-    if (m_sizeDirty)
+    if (m_sizeDirty && !isStreamingMode())
     {
         try
         {
@@ -480,6 +548,7 @@ Error CryptFile::seek(uint64_t pos)
     {
         return OK;
     }
+    //! @todo Ensure allowed positions for corresponding opening modes
     m_seekCursor=pos;
     if (pos>m_size)
     {
@@ -583,7 +652,8 @@ Error CryptFile::doSeek(uint64_t pos, size_t overwriteSize, bool withCache)
 Error CryptFile::seekReadRawChunk(CachedChunk &chunk, bool read, size_t overwriteSize)
 {
     // check file size
-    if (m_file->size()<eofPos())
+    auto rawSize=m_file->size();
+    if (rawSize<eofPos())
     {
         return Error(CommonError::INVALID_SIZE);
     }
@@ -629,6 +699,18 @@ Error CryptFile::seekReadRawChunk(CachedChunk &chunk, bool read, size_t overwrit
 
                 // decrypt data
                 HATN_CHECK_RETURN(m_proc.unpackChunk(SpanBuffer(m_readBuffer),chunk.content,chunk.seqnum));
+
+//! @todo Remove commented
+#if 0
+                std::string bdata;
+                ContainerUtils::rawToHex(lib::string_view{chunk.content.data(),std::min(chunk.content.size(),size_t(16))},bdata);
+                std::cout << "Unpack chunk " << chunk.seqnum << " beginning data \"" << bdata << "...\"" << std::endl;
+
+                std::string rdata;
+                ContainerUtils::rawToHex(lib::string_view{m_readBuffer.data(),std::min(m_readBuffer.size(),size_t(32))},rdata);
+                std::cout << "beginning raw data \"" << rdata << "...\"" << " at pos " << chunkRawPos << std::endl;
+#endif
+                // ContainerUtils
 
                 // clear buffer
                 m_readBuffer.clear();
@@ -866,9 +948,11 @@ size_t CryptFile::writeImpl(const char *data, size_t size, Error& ec)
         std::copy(data+doneSize,data+doneSize+writeSize,m_currentChunk->content.data()+m_currentChunk->offset);
 
         // update size if it is the last chunk
+        size_t appendSize=0;
         if (isLastChunk(*m_currentChunk) && (newChunkSize>oldChunkSize))
         {
-            m_size+=newChunkSize-oldChunkSize;
+            appendSize=newChunkSize-oldChunkSize;
+            m_size+=appendSize;
             m_sizeDirty=true;
         }
 
@@ -877,8 +961,95 @@ size_t CryptFile::writeImpl(const char *data, size_t size, Error& ec)
         m_currentChunk->offset+=writeSize;
         m_cursor+=writeSize;
 
-        // mark chunk as dirty
-        m_currentChunk->dirty=true;
+        if (m_proc.isStreamingMode() && isLastChunk(*m_currentChunk))
+        {
+            // in streaming mode encrypt last chunk and append to file immediatly
+
+            // calc size for appending to stream
+            size_t streamSize=m_currentChunk->offset - m_currentChunk->streamWriteCursor;
+
+            // init write stream if not initialized yet
+            size_t prefixSize=0;
+            if (m_currentChunk->streamWriteCursor==0)
+            {
+                streamSize=m_currentChunk->content.size();
+                auto r=m_proc.streamPrefixSize();
+                if (r)
+                {
+                    ec=r.error();
+                    return 0;
+                }
+                prefixSize=r.value();
+                m_writeBuffer.resize(prefixSize+streamSize);
+                ec=m_proc.initStreamEncryptor(m_writeBuffer,m_currentChunk->seqnum);
+                HATN_BOOL_EC(ec)
+                if (oldChunkSize==0)
+                {
+                    // first time of writing this chunk
+                    appendSize+=prefixSize;
+                }
+                // else
+                // {
+                // overwriting beginning of the chunk
+                // }
+            }
+            else
+            {
+                m_writeBuffer.resize(streamSize);
+            }
+
+            // encrypt data
+            ec=m_proc.encryptStream(ConstDataBuf{m_currentChunk->content,m_currentChunk->streamWriteCursor,streamSize},
+                                                   m_writeBuffer,
+                                                   prefixSize
+                                      );
+            HATN_BOOL_EC(ec)
+
+            // seek in backend file
+            size_t pos=seqnumToRawPos(m_currentChunk->seqnum);
+            if (m_currentChunk->streamWriteCursor!=0)
+            {
+                // seek after last written position in the chunk
+                pos+=m_currentChunk->ciphertextSize;
+            }
+            // else
+            // {
+            //     overwrite chunk from the beginning
+            // }
+
+//! @todo Remove commented
+#if 0
+            if (m_currentChunk->streamWriteCursor==0)
+            {
+                std::string bdata;
+                ContainerUtils::rawToHex(lib::string_view{m_currentChunk->content.data(),std::min(m_currentChunk->content.size(),size_t(16))},bdata);
+                std::cout << "Write streaming chunk " << m_currentChunk->seqnum << " beginning data \"" << bdata << "...\"" << std::endl;
+
+                std::string rdata;
+                ContainerUtils::rawToHex(lib::string_view{m_writeBuffer.data(),std::min(m_writeBuffer.size(),size_t(32))},rdata);
+                std::cout << "beginning raw data \"" << rdata << "...\"" << " at pos " << pos << std::endl;
+            }
+#endif
+
+            ec=m_file->seek(pos);
+            HATN_BOOL_EC(ec)
+
+            // write to backend file
+            size_t written=0;
+            while (written<m_writeBuffer.size())
+            {
+                written=m_file->write(m_writeBuffer.data()+written,m_writeBuffer.size()-written,ec);
+                HATN_BOOL_EC(ec)
+            }
+            m_ciphertextSize+=appendSize;
+            m_currentChunk->ciphertextSize+=appendSize;
+            m_currentChunk->streamWriteCursor+=streamSize;
+        }
+        else
+        {
+            // mark chunk as dirty
+            m_currentChunk->dirty=true;
+        }
     }
     Assert(m_cursor<=m_size,"Invalid cursor or size");
 

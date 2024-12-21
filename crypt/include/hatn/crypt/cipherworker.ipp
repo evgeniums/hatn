@@ -576,6 +576,71 @@ common::Error CipherWorker<Encrypt>::generateIV(ContainerT& iv, size_t offset) c
     return doGenerateIV(iv.data()+offset);
 }
 
+//---------------------------------------------------------------
+template <typename ContainerT>
+common::Error SEncryptor::initStream(
+        ContainerT& result,
+        size_t offset
+    )
+{
+    HATN_CHECK_RETURN(generateIV(result,offset))
+    common::ConstDataBuf iv(result.data()+offset,result.size()-offset);
+    return init(iv);
+}
+
+//---------------------------------------------------------------
+template <typename BufferT, typename ContainerT>
+common::Error SEncryptor::encryptStream(
+        const BufferT& plaintext,
+        ContainerT& ciphertext,
+        size_t offset
+    )
+{
+    size_t sizeOut=0;
+    HATN_CHECK_RETURN(process(plaintext,ciphertext,sizeOut,0,0,offset))
+    if (sizeOut!=(plaintext.size()+offset))
+    {
+        return cryptError(CryptError::UNEXPECTED_STREAM_CIPHER_PADDING);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+template <typename ContainerT>
+Result<size_t> SDecryptor::initStream(
+        const ContainerT& ciphertext,
+        size_t offset
+    )
+{
+    size_t ivLength=ivSize();
+    if (ivLength>(ciphertext.size()-offset))
+    {
+        return cryptError(CryptError::DECRYPTION_FAILED);
+    }
+
+    common::ConstDataBuf iv(ciphertext.data()+offset,ivLength);
+    HATN_CHECK_RETURN(init(iv))
+
+    return offset+ivLength;
+}
+
+//---------------------------------------------------------------
+template <typename BufferT, typename ContainerT>
+common::Error SDecryptor::decryptStream(
+        const BufferT& ciphertext,
+        ContainerT& plaintext,
+        size_t offset
+    )
+{
+    size_t sizeOut=0;
+    HATN_CHECK_RETURN(process(ciphertext,plaintext,sizeOut,0,0,offset))
+    if (sizeOut!=plaintext.size())
+    {
+        return cryptError(CryptError::UNEXPECTED_STREAM_CIPHER_PADDING);
+    }
+    return OK;
+}
+
 HATN_CRYPT_NAMESPACE_END
 
 #endif // HATNCRYPTCIPHERWORKER_IPP

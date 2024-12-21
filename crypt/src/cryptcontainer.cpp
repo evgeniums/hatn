@@ -17,11 +17,7 @@
 
 #include <hatn/crypt/cryptcontainer.h>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
+HATN_CRYPT_NAMESPACE_BEGIN
 
 /*********************** CryptContainer **************************/
 
@@ -34,11 +30,13 @@ CryptContainer::CryptContainer(
         : m_masterKey(masterKey),
           m_encryptionKey(nullptr),
           m_aeadAlg(nullptr),
+          m_streamAlg(nullptr),
           m_cipherSuite(suite),
           m_descriptor(factory),
           m_attachSuite(false),
           m_factory(factory),
-          m_autoSalt(true)
+          m_autoSalt(true),
+          m_streamingMode(false)
 {}
 
 //---------------------------------------------------------------
@@ -51,11 +49,22 @@ common::Error CryptContainer::deriveKey(
 {
     if (alg==nullptr)
     {
-        if (m_aeadAlg==nullptr)
+        if (isStreamingMode())
         {
-            HATN_CHECK_RETURN(m_cipherSuite->aeadAlgorithm(m_aeadAlg))
+            if (m_streamAlg==nullptr)
+            {
+                HATN_CHECK_RETURN(m_cipherSuite->cipherAlgorithm(m_streamAlg))
+            }
+            alg=m_streamAlg;
         }
-        alg=m_aeadAlg;
+        else
+        {
+            if (m_aeadAlg==nullptr)
+            {
+                HATN_CHECK_RETURN(m_cipherSuite->aeadAlgorithm(m_aeadAlg))
+            }
+            alg=m_aeadAlg;
+        }
     }
 
     common::Error ec;
@@ -63,6 +72,7 @@ common::Error CryptContainer::deriveKey(
     auto kdfType=m_descriptor.fieldValue(container_descriptor::kdf_type);
     if (m_encryptionKey!=nullptr || kdfType==container_descriptor::KdfType::HKDF)
     {
+        // for HKDF mode default encryption key is a master key
         if (m_encryptionKey==nullptr)
         {
             m_encryptionKey=m_masterKey;
@@ -103,6 +113,7 @@ common::Error CryptContainer::deriveKey(
 
         if (kdfType==container_descriptor::KdfType::PbkdfThenHkdf)
         {
+            // for PbkdfThenHkdf mode first derive m_encryptionKey and then go to HKDF
             HATN_CHECK_RETURN(m_pbkdf->derive(m_masterKey,m_encryptionKeyHolder,salt()))
             Assert(m_encryptionKeyHolder.get(),"Invalid derived HKDF key");
             m_encryptionKey=m_encryptionKeyHolder.get();
@@ -110,11 +121,12 @@ common::Error CryptContainer::deriveKey(
         }
         else
         {
+            // for PBKDF mode always derive key from master key using PBKDF
             if (!info.isEmpty())
             {
                 // append info to salt
                 auto buf=salt();
-                ByteArray sbuf(buf.data(),buf.size());
+                common::ByteArray sbuf(buf.data(),buf.size());
                 sbuf.append(info);
                 HATN_CHECK_RETURN(m_pbkdf->derive(m_masterKey,derivedKey,sbuf))
             }
@@ -139,10 +151,14 @@ void CryptContainer::reset(bool withDescriptor)
     m_maxPackedFirstChunkSize.reset();
     m_encryptionKey=nullptr;
     m_encryptionKeyHolder.reset();
+    m_streamKeyHolder.reset();
     m_aeadAlg=nullptr;
+    m_streamAlg=nullptr;
     if (m_hkdf) m_hkdf->reset();
     if (m_enc) m_enc->reset();
     if (m_dec) m_dec->reset();
+    m_streamEnc.reset();
+    m_streamDec.reset();
     if (withDescriptor)
     {
         m_descriptor.reset();
@@ -156,15 +172,44 @@ void CryptContainer::hardReset(bool withDescriptor)
     m_maxPackedFirstChunkSize.reset();
     m_encryptionKey=nullptr;
     m_aeadAlg=nullptr;
+    m_streamAlg=nullptr;
     m_encryptionKeyHolder.reset();
+    m_streamKeyHolder.reset();
     m_pbkdf.reset();
     m_hkdf.reset();
     m_enc.reset();
     m_dec.reset();
+    m_streamEnc.reset();
+    m_streamDec.reset();
     if (withDescriptor)
     {
         m_descriptor.reset();
     }
+}
+
+//---------------------------------------------------------------
+
+Result<size_t> CryptContainer::streamPrefixSize() const
+{
+    if (!m_streamingMode)
+    {
+        return cryptError(CryptError::INVALID_CRYPT_CONTAINER_STREAM_MODE);
+    }
+
+    if (m_streamEnc)
+    {
+        return m_streamEnc->streamPrefixSize();
+    }
+
+    Error ec;
+    auto* self=const_cast<CryptContainer*>(this);
+    self->m_streamEnc=m_cipherSuite->createSEncryptor(ec);
+    HATN_CHECK_EC(ec)
+    if (m_streamEnc.isNull())
+    {
+        return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
+    }
+    return m_streamEnc->streamPrefixSize();
 }
 
 //---------------------------------------------------------------

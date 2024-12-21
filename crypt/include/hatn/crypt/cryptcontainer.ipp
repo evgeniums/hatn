@@ -20,6 +20,8 @@
 #ifndef HATNCRYPTCRYPCONTAINER_IPP
 #define HATNCRYPTCRYPCONTAINER_IPP
 
+#include <hatn/common/containerutils.h>
+
 #include <hatn/crypt/cryptcontainer.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -94,6 +96,40 @@ inline uint32_t CryptContainer::firstChunkMaxSize() const noexcept
 }
 
 //---------------------------------------------------------------
+inline uint32_t CryptContainer::packedExtraSize() const
+{
+    size_t maxExtraSize=0;
+    size_t sizePrefixLength=0;
+
+    if (!m_streamingMode)
+    {
+        // size is prepended to data in chunk
+        sizePrefixLength=sizeof(uint32_t);
+
+        // find max extra size that can be used for padding
+        if (m_enc)
+        {
+            maxExtraSize=m_enc->maxExtraSize();
+        }
+        else
+        {
+            HATN_CHECK_THROW(const_cast<CryptContainer*>(this)->checkOrCreateDecryptor())
+            maxExtraSize=m_dec->maxExtraSize();
+        }
+    }
+    else
+    {
+        auto prefixSize=streamPrefixSize();
+        if (!prefixSize)
+        {
+            maxExtraSize=prefixSize.value();
+        }
+    }
+
+    return maxExtraSize+sizePrefixLength;
+}
+
+//---------------------------------------------------------------
 inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum, uint32_t containerSize) const
 {
     if (chunkMaxSize()!=0 || firstChunkMaxSize()!=0)
@@ -128,20 +164,8 @@ inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum, uint32_t con
         }
     }
 
-    // find max extra size that can be used for padding
-    size_t maxExtraSize=0;
-    if (m_enc)
-    {
-        maxExtraSize=m_enc->maxExtraSize();
-    }
-    else
-    {
-        HATN_CHECK_THROW(const_cast<CryptContainer*>(this)->checkOrCreateDecryptor())
-        maxExtraSize=m_dec->maxExtraSize();
-    }
-
     // done
-    return static_cast<uint32_t>(chunkSizeM+maxExtraSize+sizeof(uint32_t));
+    return static_cast<uint32_t>(chunkSizeM+packedExtraSize());
 }
 
 //---------------------------------------------------------------
@@ -182,20 +206,8 @@ inline uint32_t CryptContainer::maxPackedChunkSize(uint32_t seqnum) const
     }
     Assert(chunkSizeM!=0,"Chunk size must not be zero");
 
-    // find max extra size that can be used for padding
-    size_t maxExtraSize=0;
-    if (m_enc)
-    {
-        maxExtraSize=m_enc->maxExtraSize();
-    }
-    else
-    {
-        HATN_CHECK_THROW(const_cast<CryptContainer*>(this)->checkOrCreateDecryptor())
-        maxExtraSize=m_dec->maxExtraSize();
-    }
-
     // store calculated size
-    uint32_t result=static_cast<uint32_t>(chunkSizeM+maxExtraSize+sizeof(uint32_t));
+    uint32_t result=static_cast<uint32_t>(chunkSizeM+packedExtraSize());
     if (seqnum==0)
     {
         m_maxPackedFirstChunkSize=result;
@@ -292,7 +304,7 @@ inline common::Error CryptContainer::packHeader(
     ) noexcept
 {
     CryptContainerHeader header(headerPtr);
-    header.reset();
+    header.reset(m_streamingMode);
     header.setPlaintextSize(contentSize);
     header.setDescriptorSize(descriptorSize);
 
@@ -345,6 +357,7 @@ common::Error CryptContainer::unpackHeader(
     descriptorSize=static_cast<uint16_t>(header.descriptorSize());
     plaintextSize=header.plaintextSize();
     ciphertextSize=header.ciphertextSize();
+    m_streamingMode=header.isStreamingMode();
 
     return OK;
 }
@@ -471,6 +484,11 @@ common::Error CryptContainer::pack(
         const common::ConstDataBuf& salt
     )
 {
+    if (m_streamingMode)
+    {
+        return cryptError(CryptError::INVALID_CRYPT_CONTAINER_STREAM_MODE);
+    }
+
     reset();
     bool success=false;
     common::RunOnScopeExit guard(
@@ -540,6 +558,11 @@ common::Error CryptContainer::unpack(
         ContainerOutT& plaintext
     )
 {
+    if (m_streamingMode)
+    {
+        return cryptError(CryptError::INVALID_CRYPT_CONTAINER_STREAM_MODE);
+    }
+
     reset(true);
     bool success=false;
     common::RunOnScopeExit guard(
@@ -646,6 +669,16 @@ common::Error CryptContainer::packChunk(
     // check state
     HATN_CHECK_RETURN(checkState())
 
+    // forward to stream processing if in streaming mode
+    if (m_streamingMode)
+    {
+        auto prefixSize=streamPrefixSize();
+        HATN_CHECK_RESULT(prefixSize)
+        result.resize(plaintext.size()+offsetOut+prefixSize.value());
+        HATN_CHECK_RETURN(initStreamEncryptor(result,info,offsetOut))
+        return encryptStream(plaintext,result,offsetOut+prefixSize.value());
+    }
+
     // derive key
     common::SharedPtr<SymmetricKey> derivedKey;
     const SymmetricKey* key=nullptr;
@@ -668,16 +701,17 @@ common::Error CryptContainer::packChunk(
 
     // reserve 4 bytes for chunk size
     uint32_t size=0;
-    result.resize(offsetOut+sizeof(size));
+    size_t sizePrefixLength=sizeof(size);
+    result.resize(offsetOut+sizePrefixLength);
 
     // pack data
     HATN_CHECK_RETURN(AEAD::encryptPack(m_enc.get(),key,plaintext,authData,result,common::SpanBuffer(),result.size()))
 
     // fill chunk size
     auto targetSize=result.size();
-    size=static_cast<uint32_t>(targetSize-offsetOut-sizeof(size));
-    boost::endian::native_to_little_inplace(size);
-    memcpy(result.data()+offsetOut,&size,sizeof(size));
+    size=static_cast<uint32_t>(targetSize-offsetOut-sizePrefixLength);
+    uint32_t littleEndianSize=boost::endian::native_to_little(size);
+    memcpy(result.data()+offsetOut,&littleEndianSize,sizeof(littleEndianSize));
 
     // if chunk is of max size then it must be aligned to size to fit max possible extra size
     // thus, all chunks for plaintext of maxChunkSize will have the same size regardless of the actual encrypted size
@@ -685,7 +719,7 @@ common::Error CryptContainer::packChunk(
     {
         size_t resultSize=maxChunkSize+m_enc->maxExtraSize();
         Assert(resultSize>=size,"Invalid size");
-        result.resize(offsetOut+resultSize+sizeof(size));
+        result.resize(offsetOut+resultSize+sizePrefixLength);
         result.fill(0,offsetOut+targetSize);
     }
 
@@ -745,6 +779,18 @@ common::Error CryptContainer::unpackChunk(
 
     // check state
     HATN_CHECK_RETURN(checkState())
+
+    // forward to stream processing if in streaming mode
+    if (m_streamingMode)
+    {
+        auto r=initStreamDecryptor(ciphertext,info);
+        if (r)
+        {
+            return r.error();
+        }
+        common::ConstDataBuf cipherbuf{ciphertext,r.value(),0};
+        return decryptStream(cipherbuf,result,result.size());
+    }
 
     // prepare auth data
     common::SpanBuffers authData{salt(),info};
@@ -840,6 +886,144 @@ inline common::Error CryptContainer::checkOrCreateDecryptor()
         }
     }
     return OK;
+}
+
+//---------------------------------------------------------------
+
+template <typename ContainerOutT>
+common::Error CryptContainer::initStreamEncryptor(
+        ContainerOutT& ciphertext,
+        uint32_t seqnum,
+        size_t offset
+    )
+{
+    boost::endian::little_to_native_inplace(seqnum);
+    return initStreamEncryptor(ciphertext,common::ConstDataBuf(reinterpret_cast<const char*>(&seqnum),sizeof(seqnum)),offset);
+}
+
+//---------------------------------------------------------------
+
+template <typename ContainerOutT>
+common::Error CryptContainer::initStreamEncryptor(
+        ContainerOutT& ciphertext,
+        const common::ConstDataBuf& info,
+        size_t offset
+    )
+{
+    if (!m_streamingMode)
+    {
+        return cryptError(CryptError::INVALID_CRYPT_CONTAINER_STREAM_MODE);
+    }
+
+    // check state
+    HATN_CHECK_RETURN(checkState())
+
+    // derive key
+    const SymmetricKey* key=nullptr;
+    HATN_CHECK_RETURN(deriveKey(key,m_streamKeyHolder,info))
+
+//! @todo Remove commented
+#if 0
+    std::string bdata;
+    common::ContainerUtils::rawToHex(lib::string_view{key->content().data(),std::min(key->content().size(),size_t(32))},bdata);
+    std::cout << "Derive encrypt key \"" << bdata << "...\" offset " << offset << std::endl;
+#endif
+
+    // create stream encryptor if not exists
+    common::Error ec;
+    m_streamEnc=m_cipherSuite->createSEncryptor(ec);
+    HATN_CHECK_EC(ec)
+    if (m_streamEnc.isNull())
+    {
+        return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
+    }
+    m_streamEnc->setKey(key);
+
+    // init stream encryptor
+    return m_streamEnc->initStream(ciphertext,offset);
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT, typename ContainerOutT>
+common::Error CryptContainer::encryptStream(
+        const BufferT& plaintext,
+        ContainerOutT& ciphertext,
+        size_t offset
+    )
+{
+    Assert(m_streamEnc,"Stream encryptor must be initialized first");
+
+    return m_streamEnc->encryptStream(plaintext,ciphertext,offset);
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT>
+Result<size_t> CryptContainer::initStreamDecryptor(
+        const BufferT& ciphertext,
+        uint32_t seqnum,
+        size_t offset
+    )
+{
+    boost::endian::little_to_native_inplace(seqnum);
+    return initStreamDecryptor(ciphertext,common::ConstDataBuf(reinterpret_cast<const char*>(&seqnum),sizeof(seqnum)),offset);
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT>
+Result<size_t> CryptContainer::initStreamDecryptor(
+        const BufferT& ciphertext,
+        const common::ConstDataBuf& info,
+        size_t offset
+    )
+{
+    if (!m_streamingMode)
+    {
+        return cryptError(CryptError::INVALID_CRYPT_CONTAINER_STREAM_MODE);
+    }
+
+    // check state
+    HATN_CHECK_RETURN(checkState())
+
+    // derive key
+    const SymmetricKey* key=nullptr;
+    HATN_CHECK_RETURN(deriveKey(key,m_streamKeyHolder,info))
+
+//! @todo Remove commented
+#if 0
+    std::string bdata;
+    common::ContainerUtils::rawToHex(lib::string_view{key->content().data(),std::min(key->content().size(),size_t(32))},bdata);
+    std::cout << "Derive decrypt key \"" << bdata << "...\" offset " << offset << std::endl;
+#endif
+
+    // create stream encryptor if not exists
+    common::Error ec;
+    m_streamDec=m_cipherSuite->createSDecryptor(ec);
+    HATN_CHECK_EC(ec)
+    if (m_streamDec.isNull())
+    {
+        return cryptError(CryptError::NOT_SUPPORTED_BY_CIPHER_SUITE);
+    }
+    m_streamDec->setKey(key);
+
+    // init stream encryptor
+    return m_streamDec->initStream(ciphertext,offset);
+}
+
+//---------------------------------------------------------------
+
+template <typename BufferT, typename ContainerOutT>
+common::Error CryptContainer::decryptStream(
+        const BufferT& ciphertext,
+        ContainerOutT& plaintext,
+        size_t offset
+    )
+{
+    Assert(m_streamDec,"Stream decryptor must be initialized first");
+
+    return m_streamDec->decryptStream(ciphertext,plaintext,offset);
 }
 
 //---------------------------------------------------------------
