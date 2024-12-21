@@ -226,6 +226,12 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     //! @todo build ZSTD
     options.wal_compression=ROCKSDB_NAMESPACE::CompressionType::kZSTD;
 
+    //! @todo Limit WAL size for clients
+    options.max_total_wal_size=1024*1024*4;
+
+    //! @todo Fix compression
+    options.compression=ROCKSDB_NAMESPACE::CompressionType::kLZ4HCCompression;
+
 #ifdef BUILD_DEBUG
     txOptions.transaction_lock_timeout=10000;
 #endif

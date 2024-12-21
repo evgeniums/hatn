@@ -176,6 +176,7 @@ class HATN_DB_EXPORT EncryptionManager
             common::File::Mode mode,
             common::File::ShareMode shareMode,
             bool enableCache,
+            bool streamingMode,
             lib::optional<uint32_t> chunkSize=lib::optional<uint32_t>{},
             lib::optional<uint32_t> firstChunkSize=lib::optional<uint32_t>{}
             )
@@ -205,6 +206,10 @@ class HATN_DB_EXPORT EncryptionManager
 
             // open file
             file->cryptFile().setShareMode(shareMode);
+            if (streamingMode)
+            {
+                file->cryptFile().setStreamingMode(true);
+            }
             auto ec=file->cryptFile().open(fname,mode);
 #if 0
             //! @todo Log error

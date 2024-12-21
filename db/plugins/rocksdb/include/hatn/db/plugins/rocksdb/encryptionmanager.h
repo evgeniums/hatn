@@ -54,6 +54,7 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
         {
             bool enableCache=true;
             auto chunkSize=m_chunkSize;
+            bool streamingMode=false;
 
             // disable cache for WAL and Log
             // seems like rocksdb ignores the type and always uses IOType::kUnknown
@@ -67,6 +68,15 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
             {
                 enableCache=false;
                 chunkSize=m_walChunkSize;
+                if (mode==common::File::Mode::write)
+                {
+                    mode=common::File::Mode::append;
+                    streamingMode=true;
+                }
+                else
+                {
+                    mode=common::File::Mode::scan;
+                }
             }
 #if 0
             std::cout << "createAndOpenFile " << fname << " type=" << int(options.io_options.type) << std::endl;
@@ -77,6 +87,7 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
                     mode,
                     shareMode,
                     enableCache,
+                    streamingMode,
                     chunkSize,
                     0
                 );
