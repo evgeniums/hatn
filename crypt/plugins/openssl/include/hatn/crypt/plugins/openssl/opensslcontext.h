@@ -63,7 +63,7 @@ class HATN_OPENSSL_EXPORT OpenSslContext : public SecureStreamContext
 
         //! Create secure stream
         virtual common::SharedPtr<SecureStreamV> createSecureStream(
-            common::STR_ID_TYPE id=common::STR_ID_TYPE(), //!< Stream ID
+            const lib::string_view& id=lib::string_view{}, //!< Stream ID
             common::Thread* thread=common::Thread::currentThread() //!< Thread for stream
         ) override;
 

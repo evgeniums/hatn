@@ -46,9 +46,9 @@ class SecureStream : public common::StreamWithIDThread<Traits>,
         SecureStream(
             SecureStreamContext* context,
             common::Thread* thread,
-            common::STR_ID_TYPE id,
+            const lib::string_view& id,
             Args&& ...traitsArgs
-        ) : common::StreamWithIDThread<Traits>::StreamWithIDThread(thread,std::move(id),std::forward<Args>(traitsArgs)...),
+        ) : common::StreamWithIDThread<Traits>::StreamWithIDThread(thread,id,std::forward<Args>(traitsArgs)...),
             m_context(context),
             m_endpointType(context->endpointType())
         {}

@@ -30,10 +30,7 @@
 
 DECLARE_LOG_MODULE_EXPORT(opensslstream,HATN_OPENSSL_EXPORT)
 
-namespace hatn {
-using namespace common;
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 class OpenSslStream;
 
@@ -48,7 +45,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         OpenSslStreamTraitsImpl(
             OpenSslStream* stream,
             OpenSslContext* context,
-            Thread* thread
+            common::Thread* thread
         );
 
         //! Destructor
@@ -188,7 +185,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         const char* getVerifiedPeerName() const;
 
         //! Get peer certificate
-        SharedPtr<X509Certificate> getPeerCertificate() const;
+        common::SharedPtr<X509Certificate> getPeerCertificate() const;
 
         //! Get native stream handler
         inline void* nativeHandler() noexcept
@@ -226,20 +223,20 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         bool m_writingToNext;
         bool m_readingFromNext;
 
-        ByteArray m_writeNextBuf;
+        common::ByteArray m_writeNextBuf;
         const char* m_writeAppBuf;
         size_t m_writeAppSize;
         size_t m_writtenAppSize;
 
-        ByteArray m_readNextBuf;
+        common::ByteArray m_readNextBuf;
         char* m_readAppBuf;
         size_t m_readAppMaxSize;
         size_t m_readNextBufOffset;
         size_t m_readNextBufSize;
 
-        StreamChain::ResultCb m_writeCb;
-        StreamChain::ResultCb m_readCb;
-        StreamChain::OpCb m_opCb;
+        common::StreamChain::ResultCb m_writeCb;
+        common::StreamChain::ResultCb m_readCb;
+        common::StreamChain::OpCb m_opCb;
 
         Error m_handshakingError;
         bool m_closed;
@@ -263,11 +260,11 @@ class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTrait
         OpenSslStream(
             OpenSslContext* context,
             common::Thread* thread,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
+            const lib::string_view& id=lib::string_view{}
         ) : SecureStream<OpenSslStreamTraits>(
                     context,
                     thread,
-                    std::move(id),
+                    id,
                     this,
                     context,
                     thread
@@ -278,7 +275,7 @@ class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTrait
         OpenSslStream(
             OpenSslContext* context,
             common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : OpenSslStream(context,Thread::currentThread(),std::move(id))
+        ) : OpenSslStream(context,common::Thread::currentThread(),std::move(id))
         {}
 
         ~OpenSslStream();
@@ -293,7 +290,6 @@ inline const char* OpenSslStreamTraitsImpl::idStr() const noexcept
     return m_stream->idStr();
 }
 
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+HATN_OPENSSL_NAMESPACE_END
 
 #endif // HATNOPENSSLSOCKET_H

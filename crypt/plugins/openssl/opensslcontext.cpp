@@ -97,7 +97,7 @@ OpenSslContext::OpenSslContext(
 {
     if (!m_sslCtx)
     {
-        throw ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
+        throw common::ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
     }
     ::SSL_CTX_set_min_proto_version(m_sslCtx,TLS1_3_VERSION);
     ::SSL_CTX_set_verify(m_sslCtx,
@@ -112,13 +112,13 @@ OpenSslContext::~OpenSslContext()
 }
 
 //---------------------------------------------------------------
-common::SharedPtr<SecureStreamV> OpenSslContext::createSecureStream(STR_ID_TYPE id, Thread *thread)
+common::SharedPtr<SecureStreamV> OpenSslContext::createSecureStream(const lib::string_view& id, common::Thread *thread)
 {
-    return makeShared<SecureStreamTmplV<OpenSslStream>>(this,thread,std::move(id));
+    return common::makeShared<SecureStreamTmplV<OpenSslStream>>(this,thread,id);
 }
 
 //---------------------------------------------------------------
-SecureStreamError OpenSslContext::createError(const ByteArray &content) const
+SecureStreamError OpenSslContext::createError(const common::ByteArray &content) const
 {
     int32_t code=0;
     if (content.size()>=sizeof(code))
@@ -129,7 +129,7 @@ SecureStreamError OpenSslContext::createError(const ByteArray &content) const
         {
             return makeSslError(code);
         }
-        return makeSslError(code,makeShared<OpenSslX509>(content.data()+sizeof(code),content.size()-sizeof(code),ContainerFormat::DER));
+        return makeSslError(code,common::makeShared<OpenSslX509>(content.data()+sizeof(code),content.size()-sizeof(code),ContainerFormat::DER));
     }
     return SecureStreamError();
 }

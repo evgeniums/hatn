@@ -31,17 +31,12 @@
 
 INIT_LOG_MODULE(opensslstream,HATN_OPENSSL_EXPORT)
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 /*********************** OpenSslStreamTraits **************************/
 
 //---------------------------------------------------------------
-OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslContext *context, Thread* thread)
+OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslContext *context, common::Thread* thread)
     : m_stream(stream),
       m_ctx(context),
       m_ssl(::SSL_new(context->nativeContext())),
@@ -63,7 +58,7 @@ OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslC
 {
     if (!m_ssl)
     {
-        throw ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
+        throw common::ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
     }
 
     ::SSL_set_mode(m_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
@@ -75,7 +70,7 @@ OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslC
     if (!m_bio)
     {
         ::SSL_free(m_ssl);
-        throw ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
+        throw common::ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
     }
     ::SSL_set_bio(m_ssl,internalBio,internalBio);
 
@@ -193,7 +188,7 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
                         {
                             HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: call write callback");
 
-                            auto writeCbTmp=std::exchange(m_writeCb,StreamChain::ResultCb());
+                            auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
                             m_writtenAppSize=0;
                             m_writeAppBuf=nullptr;
                             writeCbTmp(Error(),std::exchange(m_writeAppSize,0));
@@ -355,7 +350,7 @@ void OpenSslStreamTraitsImpl::readSslPipe()
         if (readyBytes>0)
         {
             auto readCbTmp=std::move(m_readCb);
-            m_readCb=StreamChain::ResultCb();
+            m_readCb=common::StreamChain::ResultCb();
             readCbTmp(Error(),readyBytes);
         }
         else
@@ -448,21 +443,21 @@ void OpenSslStreamTraitsImpl::doneOp(const Error &ec)
         {
             HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() read cb");
 
-            auto readCbTmp=std::exchange(m_readCb,StreamChain::ResultCb());
+            auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
             readCbTmp(ec,0);
         }
         if (m_writeCb)
         {
             HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() write cb");
 
-            auto writeCbTmp=std::exchange(m_writeCb,StreamChain::ResultCb());
+            auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
             writeCbTmp(ec,0);
         }
     }
     m_shutdownTimer->stop();
     if (m_opCb)
     {
-        auto opCbTmp=std::exchange(m_opCb,StreamChain::OpCb());
+        auto opCbTmp=std::exchange(m_opCb,common::StreamChain::OpCb());
         opCbTmp(ec);
     }
 }
@@ -479,14 +474,14 @@ void OpenSslStreamTraitsImpl::fail(const Error &ec)
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"Read fail");
 
-        auto readCbTmp=std::exchange(m_readCb,StreamChain::ResultCb());
+        auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
         readCbTmp(ec,0);
     }
     if (m_writeCb)
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"Write fail");
 
-        auto writeCbTmp=std::exchange(m_writeCb,StreamChain::ResultCb());
+        auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
         writeCbTmp(ec,0);
     }
     doneOp(ec);
@@ -503,21 +498,21 @@ void OpenSslStreamTraitsImpl::cancel()
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"Read cancelled");
 
-        auto readCbTmp=std::exchange(m_readCb,StreamChain::ResultCb());
+        auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
         readCbTmp(ec,0);
     }
     if (m_writeCb)
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"Write cancelled");
 
-        auto writeCbTmp=std::exchange(m_writeCb,StreamChain::ResultCb());
+        auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
         writeCbTmp(ec,0);
     }
     if (m_opCb)
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"Operation cancelled");
 
-        auto opCbTmp=std::exchange(m_opCb,StreamChain::OpCb());
+        auto opCbTmp=std::exchange(m_opCb,common::StreamChain::OpCb());
         opCbTmp(ec);
     }
 }
@@ -673,7 +668,7 @@ static int SslVerifyCb(int preverifyOk, X509_STORE_CTX *x509Ctx)
                     return 0;
                 }
                 ::X509_up_ref(nativeCrt);
-                auto cert=makeShared<OpenSslX509>();
+                auto cert=common::makeShared<OpenSslX509>();
                 cert->setNativeHandler(nativeCrt);
 
                 HATN_DEBUG_CONTEXT(opensslstream,streamTraits->idStr(),3,HATN_FORMAT("SslVerifyCb() error: ({}) {}, certificate={}",
@@ -754,21 +749,21 @@ const char* OpenSslStreamTraitsImpl::getVerifiedPeerName() const
 }
 
 //---------------------------------------------------------------
-SharedPtr<X509Certificate> OpenSslStreamTraitsImpl::getPeerCertificate() const
+common::SharedPtr<X509Certificate> OpenSslStreamTraitsImpl::getPeerCertificate() const
 {
     auto nativeCrt=::SSL_get_peer_certificate(m_ssl);
     if (nativeCrt)
     {
-        auto cert=makeShared<OpenSslX509>();
+        auto cert=common::makeShared<OpenSslX509>();
         cert->setNativeHandler(nativeCrt);
         return cert;
     }
-    return SharedPtr<X509Certificate>();
+    return common::SharedPtr<X509Certificate>();
 }
 
 //---------------------------------------------------------------
 OpenSslStream::~OpenSslStream() = default;
 
 //---------------------------------------------------------------
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+
+HATN_OPENSSL_NAMESPACE_END
