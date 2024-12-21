@@ -226,8 +226,8 @@ class WithIDThread : public WithID, public WithThread
         //! Ctor
         WithIDThread(
             Thread* thread,
-            STR_ID_TYPE id=STR_ID_TYPE()
-        ) noexcept : WithID(std::move(id)),
+            const lib::string_view& id=lib::string_view{}
+        ) noexcept : WithID(id),
                      WithThread(thread)
         {}
 };

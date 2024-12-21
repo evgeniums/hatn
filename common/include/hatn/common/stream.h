@@ -348,17 +348,17 @@ class StreamWithIDThread :
         template <typename ...Args>
         StreamWithIDThread(
                 Thread* thread,
-                STR_ID_TYPE id,
+                const lib::string_view& id,
                 Args&& ...traitsArgs
         ) : Stream<Traits>(std::forward<Args>(traitsArgs)...),
-            WithIDThread(thread,std::move(id))
+            WithIDThread(thread,id)
         {}
 
         template <typename ...Args>
         StreamWithIDThread(
                 Thread* thread,
                 Args&& ...traitsArgs
-        ) : StreamWithIDThread(thread,STR_ID_TYPE(),std::forward<Args>(traitsArgs)...)
+            ) : StreamWithIDThread(thread,lib::string_view{},std::forward<Args>(traitsArgs)...)
         {}
 };
 
