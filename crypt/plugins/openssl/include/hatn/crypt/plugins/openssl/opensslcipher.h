@@ -61,18 +61,6 @@ class OpenSslCipherWorker :
                                 DerivedT
                              >::NativeHandlerContainer;
 
-//        //! Get block size for this encryption algorithm
-//        virtual size_t blockSize() const noexcept override
-//        {
-//            return static_cast<size_t>(::EVP_CIPHER_block_size(cipher()));
-//        }
-
-//        //! Get IV size for this encryption algorithm
-//        virtual size_t ivSize() const noexcept override
-//        {
-//            return getIVSize();
-//        }
-
         size_t getIVSize() const noexcept
         {
             return static_cast<size_t>(::EVP_CIPHER_iv_length(cipher()));
@@ -181,11 +169,11 @@ class OpenSslCipherWorker :
 
 //! Symmetric encryptor with OpenSSL EVP backend
 class HATN_OPENSSL_EXPORT OpenSslSymmetricEncryptor :
-        public OpenSslCipherWorker<true,CipherWorker<true>,OpenSslSymmetricEncryptor>
+        public OpenSslCipherWorker<true,SEncryptor,OpenSslSymmetricEncryptor>
 {
     public:
 
-        using OpenSslCipherWorker<true,CipherWorker<true>,OpenSslSymmetricEncryptor>::OpenSslCipherWorker;
+        using OpenSslCipherWorker<true,SEncryptor,OpenSslSymmetricEncryptor>::OpenSslCipherWorker;
 
     private:
 
@@ -209,11 +197,11 @@ class HATN_OPENSSL_EXPORT OpenSslSymmetricEncryptor :
 
 //! Symmetric decryptor with OpenSSL EVP backend
 class HATN_OPENSSL_EXPORT OpenSslSymmetricDecryptor :
-        public OpenSslCipherWorker<false,CipherWorker<false>,OpenSslSymmetricDecryptor>
+        public OpenSslCipherWorker<false,SDecryptor,OpenSslSymmetricDecryptor>
 {
     public:
 
-        using OpenSslCipherWorker<false,CipherWorker<false>,OpenSslSymmetricDecryptor>::OpenSslCipherWorker;
+        using OpenSslCipherWorker<false,SDecryptor,OpenSslSymmetricDecryptor>::OpenSslCipherWorker;
 
     private:
 
