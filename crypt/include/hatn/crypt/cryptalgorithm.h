@@ -201,7 +201,7 @@ class HATN_CRYPT_EXPORT CryptAlgorithm : public CryptEngineAware
         {
            m_id=id;
         }
-        //! Det integer ID of algorithm assigned by backend
+        //! Get integer ID of algorithm assigned by backend
         inline int id() const noexcept
         {
             return m_id;
