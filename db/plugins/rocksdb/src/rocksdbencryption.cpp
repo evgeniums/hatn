@@ -254,7 +254,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewSequentialFile(
         rocksdb::IODebugContext */*dbg*/
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::NewSequentialFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedSequentialFile> file;
@@ -279,7 +279,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomAccessFile(
         rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::NewRandomAccessFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedRandomAccessFile> file;
@@ -304,7 +304,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::NewWritableFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedWritableFile> file;
@@ -329,7 +329,7 @@ rocksdb::IOStatus EncryptedFileSystem::ReopenWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::ReopenWritableFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedWritableFile> file;
@@ -355,7 +355,7 @@ rocksdb::IOStatus EncryptedFileSystem::ReuseWritableFile(
         rocksdb::IODebugContext* dbg
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::ReuseWritableFile " << fname << std::endl;
 #endif
     return FileSystem::ReuseWritableFile(fname,old_fname,opts,result,dbg);
@@ -370,7 +370,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomRWFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 0
+#if 1
     std::cout << "EncryptedFileSystem::NewRandomRWFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedRandomRWFile> file;
@@ -411,15 +411,3 @@ rocksdb::IOStatus EncryptedFileSystem::GetChildrenFileAttributes(
 //---------------------------------------------------------------
 
 HATN_ROCKSDB_NAMESPACE_END
-
-/**
- * @todo DB Encryption
- *
- * 1. done - Use HKDF for CryptFile.
- * 2. done - File name as a salt.
- * 3. done - Disable caching for WAL.
- * 4. Think of chunk size for WAL.
- * 4. done - To use single Env with multiple databases filesystem must distinguish databases basing on path prefix.
- *     Let it be configurable - single db or multiple db mode.
- * 5. Think of different options for different types of files. WAL, data, other types.
-*/

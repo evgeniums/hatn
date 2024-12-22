@@ -154,7 +154,7 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
     HATN_CTX_SCOPE("rdbdestroydb")
 
     // load config
-    auto ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
+    auto ec=d->cfg.loadLogConfig(*config.main,config.mainPath,records);
     HATN_CHECK_EC(ec)
 
     // destroy database
@@ -183,7 +183,7 @@ void RocksdbClient::doCloseDb(Error &ec)
 void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records, bool createIfMissing)
 {
     // load config
-    ec=d->cfg.loadLogConfig(config.main,config.mainPath,records);
+    ec=d->cfg.loadLogConfig(*config.main,config.mainPath,records);
     if (ec)
     {
         HATN_CTX_SCOPE_ERROR("load-main-config")
@@ -192,7 +192,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     // load options
     //! @todo records with prefix?
-    ec=d->opt.loadLogConfig(config.opt,config.optPath,records);
+    ec=d->opt.loadLogConfig(*config.opt,config.optPath,records);
     if (ec)
     {
         HATN_CTX_SCOPE_ERROR("load-opt-config")
@@ -225,12 +225,16 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     //! @todo Enable compression for mobile, disable for server
     //! @todo build ZSTD
     options.wal_compression=ROCKSDB_NAMESPACE::CompressionType::kZSTD;
-
+#if 0
     //! @todo Limit WAL size for clients
-    options.max_total_wal_size=1024*1024*4;
+    options.max_total_wal_size=1024*1024*16;
 
     //! @todo Fix compression
     options.compression=ROCKSDB_NAMESPACE::CompressionType::kLZ4HCCompression;
+
+    //! @todo Tune compaction period
+    // options.periodic_compaction_seconds=15;
+#endif
 
 #ifdef BUILD_DEBUG
     txOptions.transaction_lock_timeout=10000;

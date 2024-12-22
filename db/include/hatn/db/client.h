@@ -60,8 +60,8 @@ class ClientEnvironment
 
 struct ClientConfig
 {
-    const base::ConfigTree& main;
-    const base::ConfigTree& opt;
+    std::shared_ptr<base::ConfigTree> main;
+    std::shared_ptr<base::ConfigTree> opt;
 
     base::ConfigTreePath mainPath;
     base::ConfigTreePath optPath;
@@ -70,14 +70,14 @@ struct ClientConfig
     std::shared_ptr<ClientEnvironment> environment;
 
     ClientConfig(
-            const base::ConfigTree& main,
-            const base::ConfigTree& opt,
+            std::shared_ptr<base::ConfigTree> main,
+            std::shared_ptr<base::ConfigTree> opt,
             base::ConfigTreePath mainPath,
             base::ConfigTreePath optPath,
             std::shared_ptr<EncryptionManager> encryptionManager=std::shared_ptr<EncryptionManager>{},
             std::shared_ptr<ClientEnvironment> environment=std::shared_ptr<ClientEnvironment>{}
-        ) : main(main),
-            opt(opt),
+        ) : main(std::move(main)),
+            opt(std::move(opt)),
             mainPath(std::move(mainPath)),
             optPath(std::move(optPath)),
             encryptionManager(std::move(encryptionManager)),
