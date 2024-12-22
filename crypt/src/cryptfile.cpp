@@ -147,14 +147,19 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
         {
             openMode=Mode::write_existing;
         }
-        if (isStreamingMode())
+        auto checkStreamingMode=[this,mode]()
         {
-            auto allowedMode = mode==Mode::append || mode==Mode::append_existing || mode==Mode::scan;
-            if (!allowedMode)
+            if (isStreamingMode())
             {
-                return cryptError(CryptError::INVALID_STREAM_FILE_MODE);
+                auto allowedMode = mode==Mode::append || mode==Mode::append_existing || mode==Mode::scan;
+                if (!allowedMode)
+                {
+                    return cryptError(CryptError::INVALID_STREAM_FILE_MODE);
+                }
             }
-        }
+            return Error{};
+        };
+        HATN_CHECK_RETURN(checkStreamingMode())
 
         // open raw file
         HATN_CHECK_RETURN(m_file->open(filename(),openMode))
@@ -173,6 +178,8 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             }
             uint16_t descriptorSize=0;
             HATN_CHECK_THROW(m_proc.unpackHeader(m_readBuffer,m_size,descriptorSize,m_ciphertextSize))
+
+            HATN_CHECK_RETURN(checkStreamingMode())
 
             // read and unpack descriptor
             m_readBuffer.clear();
@@ -202,6 +209,10 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
                     size_t packedChunkSize=0;
 #endif
                     auto firstChunkSize=m_proc.firstChunkMaxSize();
+                    if (firstChunkSize==0)
+                    {
+                        firstChunkSize=m_proc.chunkMaxSize();
+                    }
                     auto firstPackedChunkSize=m_proc.maxPackedChunkSize(0);
                     auto prefixSize=firstPackedChunkSize-firstChunkSize;
                     if (m_ciphertextSize<prefixSize)
