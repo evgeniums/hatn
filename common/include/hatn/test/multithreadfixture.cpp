@@ -141,6 +141,7 @@ void MultiThreadFixture::quit()
 {
     mainThread()->stop();
     d->timeouted=false;
+    //! @todo Uninstall timer
 }
 
 //---------------------------------------------------------------
