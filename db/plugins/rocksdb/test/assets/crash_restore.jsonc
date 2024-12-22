@@ -1,0 +1,5 @@
+{
+    "hatnrocksdb" : {
+        "dbpath" : "$tmp/test_rocksdb_crash_restore"
+    }
+}

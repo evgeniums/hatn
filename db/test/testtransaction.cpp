@@ -38,6 +38,9 @@
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 #include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
+
+// #define HATN_RDB_TEST_CRASH
+
 #endif
 
 HATN_USING
@@ -482,40 +485,91 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
 
-        // BOOST_TEST_MESSAGE("Running for 15 minutes, waiting for compaction");
-        // exec(900);
-        // exec(900);
-
         destroyThreads();
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
-#if 0
+#ifdef HATN_RDB_TEST_CRASH
+
 BOOST_FIXTURE_TEST_CASE(Crash, HATN_TEST_NAMESPACE::DbTestFixture)
 {
     init();
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1,this](std::shared_ptr<DbPlugin>, std::shared_ptr<Client>)
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client>)
     {
+        std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
+        std::shared_ptr<db::EncryptionManager> encryptionManager;
+        if (!PrepareDbAndRun::prepareEncryption(plugin,cryptPlugin,encryptionManager))
+        {
+            return;
+        }
+
+        std::string crashConfigFile{"crash_restore.jsonc"};
+        auto cfg=PrepareDbAndRun::prepareConfig(plugin,crashConfigFile,encryptionManager);
+
+        auto client=plugin->makeClient();
+
+        // destroy existing database
+        BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
+        base::config_object::LogRecords logRecords;
+        auto ec=client->destroyDb(*cfg,logRecords);
+        for (auto&& it:logRecords)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
+        }
+        BOOST_REQUIRE(!ec);
+
+        // create database
+        BOOST_TEST_MESSAGE(fmt::format("creating database by {} client",plugin->info()->name));
+        ec=client->createDb(*cfg,logRecords);
+        for (auto&& it:logRecords)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
+        }
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // open database
+        BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
+        ec=client->openDb(*cfg,logRecords);
+        for (auto&& it:logRecords)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
+        }
+        if (ec)
+        {
+            BOOST_FAIL(ec.message());
+        }
+
+        // set db schema
         setSchemaToClient(client,s1);
         Topic topic1{"topic1"};
 
         // create objects
         auto o=makeInitObject<u1::type>();
-        auto ec=client->create(topic1,model1(),&o);
+        db::ObjectId oid;
+        std::string oidStr{"193ede9c80b000001275dcd37"};
+        BOOST_CHECK(oid.parse(oidStr));
+        o.setFieldValue(object::_id,oid);
+        ec=client->create(topic1,model1(),&o);
         BOOST_REQUIRE(!ec);
+#if 0
         auto oid=o.fieldValue(object::_id);
-
+        BOOST_TEST_MESSAGE(fmt::format("oid={}",oid.toString()));
+#endif
         BOOST_TEST_MESSAGE("Increment object's field concurrently");
 #ifdef BUILD_DEBUG
         size_t count=1000;
 #else
-        size_t count=100000;
+        size_t count=10000;
 #endif
-        int jobs=4;
+        int jobs=1;
         std::atomic<size_t> doneCount{0};
         auto handler=[&,this](size_t idx)
         {
@@ -540,6 +594,10 @@ BOOST_FIXTURE_TEST_CASE(Crash, HATN_TEST_NAMESPACE::DbTestFixture)
                 {
                     HATN_CTX_ERROR(ec,"transaction failed")
                     break;
+                }
+                if (i==count/2)
+                {
+                    Assert(false,"Intentional test aborting");
                 }
             }
 
@@ -574,19 +632,63 @@ BOOST_FIXTURE_TEST_CASE(Crash, HATN_TEST_NAMESPACE::DbTestFixture)
         }
         BOOST_TEST_MESSAGE(fmt::format("Test elapsed {}",elapsed.toString(true)));
 
-        // check result
-        auto r1=client->read(topic1,model1(),oid);
-        BOOST_REQUIRE(!r1);
-        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
-        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
-
-        // BOOST_TEST_MESSAGE("Running for 15 minutes, waiting for compaction");
-        // exec(900);
-        // exec(900);
-
         destroyThreads();
     };
-    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+    PrepareDbAndRun::eachPlugin(handler,"");
 }
+
+BOOST_FIXTURE_TEST_CASE(ReastoreAfterCrash, HATN_TEST_NAMESPACE::DbTestFixture)
+{
+    init();
+
+    auto s1=initSchema(model1());
+
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client>)
+    {
+        std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
+        std::shared_ptr<db::EncryptionManager> encryptionManager;
+        if (!PrepareDbAndRun::prepareEncryption(plugin,cryptPlugin,encryptionManager))
+        {
+            return;
+        }
+
+        std::string crashConfigFile{"crash_restore.jsonc"};
+        auto cfg=PrepareDbAndRun::prepareConfig(plugin,crashConfigFile,encryptionManager);
+        auto client=plugin->makeClient();
+
+        // open database
+        BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
+        base::config_object::LogRecords logRecords;
+        auto ec=client->openDb(*cfg,logRecords);
+        for (auto&& it:logRecords)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
+        }
+        if (ec)
+        {
+            BOOST_FAIL(ec.message());
+        }
+
+        // set db schema
+        setSchemaToClient(client,s1);
+        Topic topic1{"topic1"};
+
+        // check result
+#ifdef BUILD_DEBUG
+        size_t count=1000;
+#else
+        size_t count=10000;
+#endif
+        db::ObjectId oid;
+        std::string oidStr{"193ede9c80b000001275dcd37"};
+        BOOST_CHECK(oid.parse(oidStr));
+        auto r1=client->read(topic1,model1(),oid);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),1+count/2);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),(1+count/2)*10);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"");
+}
+
 #endif
 BOOST_AUTO_TEST_SUITE_END()
