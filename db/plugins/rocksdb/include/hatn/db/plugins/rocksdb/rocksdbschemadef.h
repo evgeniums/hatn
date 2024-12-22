@@ -64,11 +64,11 @@ constexpr static const char DbNullCharC=static_cast<char>(0x01);
 constexpr static const char* DbNullChar=&DbNullCharC;
 constexpr lib::string_view DbNullCharStr{DbNullChar,1};
 
-constexpr static const char EmptyCharC=static_cast<char>(0x10);
+constexpr static const char EmptyCharC=static_cast<char>(0x02);
 constexpr static const char* EmptyChar=&EmptyCharC;
 constexpr lib::string_view EmptyCharStr{EmptyChar,1};
 
-//! @todo Implement UTF-8 indexes
+//! @todo Implement UTF-8 indexes using separate column families with custom UTF-8 comparators
 //! @todo Implement case insensitive indexes
 
 //! @todo Validate that topics do not start with internal prefix
