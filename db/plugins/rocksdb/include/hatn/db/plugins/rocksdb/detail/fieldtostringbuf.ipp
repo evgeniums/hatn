@@ -43,6 +43,8 @@ struct FieldToStringBufT
         }
         else
         {
+            //! @todo escape special symbols such as SeparatorCharC, SeparatorCharPlusC, EmptyCharC
+            //! replace them with ASCII pre-space symbols
             buf.append(val);
         }
     }
