@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     BOOST_REQUIRE(rm1);
     BOOST_REQUIRE(rm1->createObject);
 
-    auto handler=[s1,&mi1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[s1,&mi1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         auto ec=client->setSchema(s1);
         BOOST_REQUIRE(!ec);

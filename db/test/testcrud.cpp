@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
 
     auto s=initSimpleSchema();
 
-    auto handler=[&s](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         auto& s1=std::get<1>(s);
         auto& m1=std::get<0>(s);

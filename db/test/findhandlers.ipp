@@ -500,7 +500,7 @@ void runTest(InvokerT&& invoker, SkipBoolT skipBool=SkipBoolT{})
     registerModels();
     auto s1=initSchema(ModelRef);
 
-    auto handler=[&s1,&invoker,&skipBool](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1,&invoker,&skipBool](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         invokeTests(invoker,client,skipBool);

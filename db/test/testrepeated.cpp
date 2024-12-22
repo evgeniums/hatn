@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
     registerModels();
     auto s1=initSchema(modelRep());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 

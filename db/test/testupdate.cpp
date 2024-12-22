@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(CheckIndexes)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         checkIndexes<plain::type>(modelPlain(),client);
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(UpdateMany)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(AllTopics)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(ReadUpdate)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE(FindUpdate)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -500,7 +500,7 @@ BOOST_AUTO_TEST_CASE(FindUpdateCreate)
 
     auto s1=initSchema(modelPlain());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 

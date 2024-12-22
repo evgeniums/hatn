@@ -124,7 +124,7 @@ BOOST_FIXTURE_TEST_CASE(CheckIndexes, DbTestFixture)
 
     auto s1=initSchema(modelEmbed());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         checkIndexes<embed::type>(modelEmbed(),client);

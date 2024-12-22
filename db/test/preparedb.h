@@ -33,7 +33,7 @@
 
 HATN_TEST_NAMESPACE_BEGIN
 
-using TestFn=std::function<void (std::shared_ptr<db::DbPlugin>& plugin, std::shared_ptr<db::Client> client)>;
+using TestFn=std::function<void (std::shared_ptr<db::DbPlugin> plugin, std::shared_ptr<db::Client> client)>;
 
 struct PartitionRange
 {
@@ -57,6 +57,18 @@ struct PrepareDbAndRun
         const TestFn& fn,
         const std::string& testConfigFile,
         const std::vector<PartitionRange>& partitions=std::vector<PartitionRange>{}
+    );
+
+    static std::shared_ptr<db::ClientConfig> prepareConfig(
+        const std::shared_ptr<db::DbPlugin>& plugin,
+        const std::string& path,
+        std::shared_ptr<db::EncryptionManager> encryptionManager=std::shared_ptr<db::EncryptionManager>{}
+    );
+
+    static bool prepareEncryption(
+        const std::shared_ptr<db::DbPlugin>& plugin,
+        std::shared_ptr<crypt::CryptPlugin>& cryptPlugin,
+        std::shared_ptr<db::EncryptionManager>& encryptionManager
     );
 
     static db::ClientConfig* currentCfg;

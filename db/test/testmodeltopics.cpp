@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(NotPartitioned)
 
     auto s1=initSchema(modelNoP1(),modelNoP2(),modelNoP3(),modelNoP4());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(Partitions)
         {2024,10,15},{2024,11,15},{2024,12,15}
     };
 
-    auto handler=[&](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         std::vector<Topic> topics{"topic1","topic2","topic3","topic4"};
 

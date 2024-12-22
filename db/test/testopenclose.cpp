@@ -39,7 +39,7 @@ HDU_UNIT_WITH(nu1,(HDU_BASE(object)),
     HDU_FIELD(f2,TYPE_UINT32,2)
 )
 
-void openEmptyConfig(std::shared_ptr<DbPlugin>& plugin)
+void openEmptyConfig(std::shared_ptr<DbPlugin> plugin)
 {
     BOOST_TEST_MESSAGE(fmt::format("trying to open {} client with empty config",plugin->info()->name));
 
@@ -56,7 +56,7 @@ void openEmptyConfig(std::shared_ptr<DbPlugin>& plugin)
     BOOST_TEST_MESSAGE(ec1.message());
 }
 
-void createOpenCloseDestroy(std::shared_ptr<DbPlugin>& plugin)
+void createOpenCloseDestroy(std::shared_ptr<DbPlugin> plugin)
 {
     // make client
     auto client=plugin->makeClient();
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_SUITE(OpenClose, *boost::unit_test::fixture<HATN_TEST_NAMESPACE:
 BOOST_AUTO_TEST_CASE(DbCreateOpenCloseDestroy)
 {
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
-        [](std::shared_ptr<DbPlugin>& plugin)
+        [](std::shared_ptr<DbPlugin> plugin)
         {
             createOpenCloseDestroy(plugin);
         }
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(DbCreateOpenCloseDestroy)
 BOOST_AUTO_TEST_CASE(DbOpenEmptyConfig)
 {
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
-        [](std::shared_ptr<DbPlugin>& plugin)
+        [](std::shared_ptr<DbPlugin> plugin)
         {
             openEmptyConfig(plugin);
         }
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(DbOpenEmptyConfig)
 
 BOOST_AUTO_TEST_CASE(DbPrepare)
 {
-    auto handler=[](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         BOOST_TEST_MESSAGE("Handler OK");
     };

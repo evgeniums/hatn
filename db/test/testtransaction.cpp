@@ -110,7 +110,7 @@ BOOST_FIXTURE_TEST_CASE(Atomic, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         Topic topic1{"topic1"};
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE(Rollback, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin>, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         Topic topic1{"topic1"};
@@ -400,7 +400,7 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
         Topic topic1{"topic1"};
@@ -415,7 +415,7 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
 #ifdef BUILD_DEBUG
         size_t count=1000;
 #else
-        size_t count=10000;
+        size_t count=100000;
 #endif
         int jobs=4;
         std::atomic<size_t> doneCount{0};
@@ -482,9 +482,111 @@ BOOST_FIXTURE_TEST_CASE(Concurrent, HATN_TEST_NAMESPACE::DbTestFixture)
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
         BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
 
+        // BOOST_TEST_MESSAGE("Running for 15 minutes, waiting for compaction");
+        // exec(900);
+        // exec(900);
+
         destroyThreads();
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+#if 0
+BOOST_FIXTURE_TEST_CASE(Crash, HATN_TEST_NAMESPACE::DbTestFixture)
+{
+    init();
+
+    auto s1=initSchema(model1());
+
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>, std::shared_ptr<Client>)
+    {
+        setSchemaToClient(client,s1);
+        Topic topic1{"topic1"};
+
+        // create objects
+        auto o=makeInitObject<u1::type>();
+        auto ec=client->create(topic1,model1(),&o);
+        BOOST_REQUIRE(!ec);
+        auto oid=o.fieldValue(object::_id);
+
+        BOOST_TEST_MESSAGE("Increment object's field concurrently");
+#ifdef BUILD_DEBUG
+        size_t count=1000;
+#else
+        size_t count=100000;
+#endif
+        int jobs=4;
+        std::atomic<size_t> doneCount{0};
+        auto handler=[&,this](size_t idx)
+        {
+            auto logCtx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
+            logCtx->beforeThreadProcessing();
+
+            for (size_t i=0;i<count;i++)
+            {
+                auto tx1=[&](Transaction* tx) -> Error
+                {
+                    auto r=client->read(topic1,model1(),oid,tx,true);
+                    HATN_CHECK_RESULT(r);
+                    auto current=r.value()->fieldValue(u1::f3);
+
+                    auto incReq=update::request(update::field(u1::f1,update::inc,1),
+                                                  update::field(u1::f3,update::set,current+10)
+                                                  );
+                    return client->update(topic1,model1(),oid,incReq,tx);
+                };
+                ec=client->transaction(tx1);
+                if (ec)
+                {
+                    HATN_CTX_ERROR(ec,"transaction failed")
+                    break;
+                }
+            }
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Done handler for thread {}",idx));
+            if (++doneCount==jobs)
+            {
+                this->quit();
+            }
+
+            logCtx->afterThreadProcessing();
+        };
+
+        // run threads
+        createThreads(jobs+1);
+        thread(0)->start(false);
+        for (int j=0;j<jobs;j++)
+        {
+            thread(j+1)->execAsync(
+                [&handler,j]()
+                {
+                    handler(j);
+                }
+                );
+            thread(j+1)->start(false);
+        }
+        common::ElapsedTimer elapsed;
+        exec(60);
+        thread(0)->stop();
+        for (int j=0;j<jobs;j++)
+        {
+            thread(j+1)->stop();
+        }
+        BOOST_TEST_MESSAGE(fmt::format("Test elapsed {}",elapsed.toString(true)));
+
+        // check result
+        auto r1=client->read(topic1,model1(),oid);
+        BOOST_REQUIRE(!r1);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f1),count*jobs);
+        BOOST_CHECK_EQUAL(r1.value()->fieldValue(u1::f3),count*jobs*10);
+
+        // BOOST_TEST_MESSAGE("Running for 15 minutes, waiting for compaction");
+        // exec(900);
+        // exec(900);
+
+        destroyThreads();
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+#endif
 BOOST_AUTO_TEST_SUITE_END()

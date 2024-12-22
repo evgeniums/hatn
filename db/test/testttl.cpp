@@ -122,7 +122,7 @@ BOOST_FIXTURE_TEST_CASE(TtlOperations, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model1());
 
-    auto handler=[&s1,this](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1,this](std::shared_ptr<DbPlugin>, std::shared_ptr<Client> client)
     {
         size_t count=20;
         setSchemaToClient(client,s1);
@@ -369,7 +369,7 @@ BOOST_FIXTURE_TEST_CASE(TimeFilter, HATN_TEST_NAMESPACE::DbTestFixture)
 
     auto s1=initSchema(model2());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>&, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin>, std::shared_ptr<Client> client)
     {
         size_t count=20;
         setSchemaToClient(client,s1);

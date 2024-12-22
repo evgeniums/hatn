@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(OneLevel)
 
     auto s1=initSchema(m1_bool());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(NullIndex)
 
     auto s1=initSchema(m1_uint32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE(SortAndLimit)
 
     auto s1=initSchema(m1_uint32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(OffsetAndLimit)
 
     auto s1=initSchema(m1_uint32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -428,7 +428,7 @@ BOOST_AUTO_TEST_CASE(Count)
 
     auto s1=initSchema(m1_uint32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
 
     auto s1=initSchema(m1_str());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -631,7 +631,7 @@ BOOST_AUTO_TEST_CASE(DeleteWithQuery)
 
     auto s1=initSchema(m1_uint32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 
@@ -734,7 +734,7 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
 
     auto s1=initSchema(m1_uint32(),m1_int32());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
 

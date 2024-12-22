@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(InitSchema)
 
     auto s1=initSchema(modelNoP(),modelExplicit1(),modelExplicit2(),modelImplicit1(),modelImplicit2());
 
-    auto handler=[&s1](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
     {
         setSchemaToClient(client,s1);
     };
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(PartitionsOperations)
         auto s1=initSchema(model);
         std::vector<ModelInfo> modelInfos{*(model->info)};
 
-        auto handler=[&s1,&modelInfos](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+        auto handler=[&s1,&modelInfos](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
         {
             setSchemaToClient(client,s1);
 
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(Crud)
             {2024,10,15},{2024,11,15},{2024,12,15}
         };
 
-        auto handler=[&](std::shared_ptr<DbPlugin>& plugin, std::shared_ptr<Client> client)
+        auto handler=[&](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
         {
             size_t objectsPerPartition=5;
             size_t count=dates.size()*objectsPerPartition;
