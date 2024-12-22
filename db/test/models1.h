@@ -66,6 +66,7 @@ HDU_UNIT_WITH(u1_uint16,(HDU_BASE(object)),
 
 HDU_UNIT_WITH(u1_uint32,(HDU_BASE(object)),
               HDU_FIELD(f1,TYPE_UINT32,1)
+              HDU_FIELD(f2,TYPE_STRING,2)
               )
 
 HDU_UNIT_WITH(u1_uint64,(HDU_BASE(object)),
@@ -125,7 +126,8 @@ HATN_DB_INDEX(u1_uint16_f1_idx,u1_uint16::f1)
 HATN_DB_MODEL(m1_uint16,u1_uint16,u1_uint16_f1_idx())
 
 HATN_DB_INDEX(u1_uint32_f1_idx,u1_uint32::f1)
-HATN_DB_MODEL(m1_uint32,u1_uint32,u1_uint32_f1_idx())
+HATN_DB_INDEX(u1_uint32_f2_idx,u1_uint32::f2)
+HATN_DB_MODEL(m1_uint32,u1_uint32,u1_uint32_f1_idx(),u1_uint32_f2_idx())
 
 HATN_DB_INDEX(u1_uint64_f1_idx,u1_uint64::f1)
 HATN_DB_MODEL(m1_uint64,u1_uint64,u1_uint64_f1_idx())

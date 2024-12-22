@@ -200,19 +200,17 @@ KeyBuf logKey(const T& key)
     for (size_t i=0;i<key.size();i++)
     {
         auto ch=*(key.data()+i);
-        if (uint8_t(ch)>=uint8_t(SeparatorCharC) || uint8_t(ch)<uint8_t(SpaceCharC))
+        if (uint8_t(ch)<uint8_t(SpaceCharC) || uint8_t(ch)>uint8_t(AsciiMaxPrintableCharC))
         {
-            if (uint8_t(ch)>9)
-            {
-                buf.push_back(BackSlashCharC);
-            }
+            buf.push_back(BackSlashCharC);
             switch (ch)
             {
                 case (SeparatorCharC): buf.append("0"); break;
-                case (SeparatorCharPlusC): buf.append("1"); break;
+                // case (DbNullCharC): buf.append("1"); break;
                 case (EmptyCharC): buf.append("2"); break;
+                case (SeparatorCharPlusC): buf.append("F"); break;
                 case (InternalPrefixC): buf.append("FF"); break;
-                default: buf.append(fmt::format("{:02d}",ch));
+                default: buf.append(fmt::format("{:02x}",ch));
             }
         }
         else

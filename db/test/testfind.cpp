@@ -153,6 +153,7 @@ BOOST_AUTO_TEST_CASE(NullIndex)
         // create object1 with field set
         auto o1=makeInitObject<u1_uint32::type>();
         o1.setFieldValue(u1_uint32::f1,0xaabb);
+        o1.setFieldValue(u1_uint32::f2,"aabb");
         auto ec=client->create(topic1,m1_uint32(),&o1);
         if (ec)
         {
@@ -172,6 +173,7 @@ BOOST_AUTO_TEST_CASE(NullIndex)
         // create object3 with field set
         auto o3=makeInitObject<u1_uint32::type>();
         o3.setFieldValue(u1_uint32::f1,0xccdd);
+        o3.setFieldValue(u1_uint32::f2,"ccdd");
         ec=client->create(topic1,m1_uint32(),&o3);
         if (ec)
         {
@@ -179,16 +181,16 @@ BOOST_AUTO_TEST_CASE(NullIndex)
         }
         BOOST_REQUIRE(!ec);
 
-        // find object 2 with field not set
+        // find objects with field not set
         auto q=makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::Operator::eq,query::Null),topic1);
-        auto r1=client->findOne(m1_uint32(),q);
+        auto r1=client->find(m1_uint32(),q);
         if (r1)
         {
             BOOST_TEST_MESSAGE(r1.error().message());
         }
         BOOST_REQUIRE(!r1);
-        BOOST_REQUIRE(!r1.value().isNull());
-        BOOST_CHECK(r1.value()->fieldValue(object::_id)==o2.fieldValue(object::_id));
+        BOOST_REQUIRE_EQUAL(r1->size(),1);
+        BOOST_CHECK(r1->at(0).as<u1_uint32::type>()->fieldValue(object::_id)==o2.fieldValue(object::_id));
 
         // find not Null objects
         auto r2=client->find(m1_uint32(),makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::neq,query::Null),topic1));
@@ -199,6 +201,92 @@ BOOST_AUTO_TEST_CASE(NullIndex)
 
         // find not Null objects with gte
         r2=client->find(m1_uint32(),makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gte,0xaabb),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find not Null objects with gt
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::gt,0xaabb),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),1);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find not Null objects with lte
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::lte,0xccdd),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find not Null objects with lt
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f1_idx(),query::where(u1_uint32::f1,query::lt,0xccdd),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),1);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+
+        // create object4 with empty field value
+        auto o4=makeInitObject<u1_uint32::type>();
+        o4.setFieldValue(u1_uint32::f1,0);
+        o4.setFieldValue(u1_uint32::f2,"");
+        ec=client->create(topic1,m1_uint32(),&o4);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // find not empty objects with gte
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::gte,"aabb"),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find not empty objects with gt
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::gt,"aabb"),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),1);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find empty and not empty objects with lte
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::lte,"ccdd"),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),3);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(2).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find empty and not empty objects with lt
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::lt,"ccdd"),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+
+        // find objects with field 2 not set
+        BOOST_CHECK(o4.field(u1_uint32::f2).isSet());
+        r1=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::eq,query::Null),topic1));
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1->size(),1);
+        BOOST_CHECK(r1->at(0).as<u1_uint32::type>()->fieldValue(object::_id)==o2.fieldValue(object::_id));
+
+        // find field 2 not Null
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::neq,query::Null),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),3);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(1).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(r2.value().at(2).unit<u1_uint32::type>()->fieldValue(object::_id)==o3.fieldValue(object::_id));
+
+        // find object with empty field
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::eq,""),topic1));
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),1);
+        BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
+
+        // find objects with not empty field
+        r2=client->find(m1_uint32(),makeQuery(u1_uint32_f2_idx(),query::where(u1_uint32::f2,query::neq,""),topic1));
         BOOST_REQUIRE(!r2);
         BOOST_REQUIRE_EQUAL(r2.value().size(),2);
         BOOST_CHECK(r2.value().at(0).unit<u1_uint32::type>()->fieldValue(object::_id)==o1.fieldValue(object::_id));

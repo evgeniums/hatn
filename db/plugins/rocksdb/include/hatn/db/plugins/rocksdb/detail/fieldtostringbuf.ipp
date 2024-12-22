@@ -37,7 +37,7 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const lib::string_view& val) const
     {
-        if (val.empty())
+        if (val.empty() || val=="")
         {
             buf.append(EmptyCharStr);
         }
@@ -182,7 +182,11 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const query::NullT&) const
     {
+#if 0
         buf.push_back(NullCharC);
+#else
+        std::ignore=buf;
+#endif
     }
 
     template <typename BufT>

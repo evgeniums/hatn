@@ -921,6 +921,11 @@ class ValueT
             return isType(ValueType::LastT);
         }
 
+        bool isDbNull() const noexcept
+        {
+            return isType(ValueType::NullT);
+        }
+
         bool isScalarType() const noexcept
         {
             // scalar value type is each 4th in the type enum
@@ -1104,6 +1109,7 @@ struct Field
         {
             ok=!isScalarOp();
         }
+        Assert(ok,"Invalid combination of operator and operand");
 
         if (value.isFirst())
         {
@@ -1113,8 +1119,13 @@ struct Field
         {
             Assert(op==Operator::lte || op==Operator::eq,"Invalid operator for Last operand, only eq and lte operators supported");
         }
-
-        Assert(ok,"Invalid combination of operator and operand");
+//! @todo fix it
+#if 0
+        if (value.isDbNull())
+        {
+            Assert(op==Operator::eq || op==Operator::neq,"Invalid operator for Null operand, only eq and neq operators supported");
+        }
+#endif
     }
 
     bool matchScalarOp(const Field& other) const noexcept

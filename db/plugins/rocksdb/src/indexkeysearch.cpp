@@ -154,6 +154,7 @@ Error iterateFieldVariant(
     bool onlyLast=false;
     ROCKSDB_NAMESPACE::Slice fromS;
     ROCKSDB_NAMESPACE::Slice toS;
+    ROCKSDB_NAMESPACE::Slice fromNullS;
 
     // prepare read options
     ROCKSDB_NAMESPACE::ReadOptions readOptions=handler.p()->readOptions;
@@ -194,7 +195,11 @@ Error iterateFieldVariant(
         case (query::Operator::lt):
         {
             fromS=prevFrom;
-            readOptions.iterate_lower_bound=&fromS;
+            fromBuf.append(fromS);
+            fromBuf.append(DbNullCharC);
+            fromNullS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromNullS;
+
             toBuf.append(cursor.keyPrefix);
             toBuf.append(SeparatorCharStr);
             fieldValueToBuf(toBuf,field,SeparatorCharStr);
@@ -205,7 +210,10 @@ Error iterateFieldVariant(
         case (query::Operator::lte):
         {
             fromS=prevFrom;
-            readOptions.iterate_lower_bound=&fromS;
+            fromBuf.append(fromS);
+            fromBuf.append(DbNullCharC);
+            fromNullS=ROCKSDB_NAMESPACE::Slice{fromBuf.data(),fromBuf.size()};
+            readOptions.iterate_lower_bound=&fromNullS;
 
             if (field.value.isLast())
             {
@@ -315,6 +323,11 @@ Error iterateFieldVariant(
         }
         break;
     }
+
+//! @maybe Log debug
+#if 0
+    std::cout<<"Search from "<<logKey(*readOptions.iterate_lower_bound) << " to "<<logKey(*readOptions.iterate_upper_bound)<<std::endl;
+#endif
 
     auto offset=cursor.keyPrefix.size();
     while (!lastKey)
@@ -458,8 +471,13 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const auto& queryField=idxQuery.query.field(cursor.pos);
     ++cursor.pos;
 
-    // glue scalar fields if operators and orders match
-    if (cursor.pos<idxQuery.query.fields().size() && idxQuery.query.field(cursor.pos).matchScalarOp(queryField))
+    // glue scalar fields if operators and orders match and none of them is null
+    if (cursor.pos<idxQuery.query.fields().size()
+        &&
+        idxQuery.query.field(cursor.pos).matchScalarOp(queryField)
+        &&
+        !idxQuery.query.field(cursor.pos).value.isDbNull()
+        )
     {
         // append field to cursor
         cursor.keyPrefix.append(SeparatorCharStr);

@@ -111,11 +111,14 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
                 }
                 BOOST_REQUIRE(!ec);
 
+                std::cout << "Added " << j << ": " << o.toString(true) << std::endl;
+
                 oids.emplace_back(o.fieldValue(object::_id));
             }
 
             // find single object
             auto val1=gen(3+4*arraySize,true);
+            std::cout << "val1=" << val1 << std::endl;
             auto q1=makeQuery(idx,query::where(field(path),query::Operator::eq,val1),topic1);
             auto r1=client->find(modelRep(),q1);
             BOOST_REQUIRE(!r1);
@@ -131,6 +134,11 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             auto q2=makeQuery(idx,query::where(field(path),query::Operator::gte,val1),topic1);
             auto r2=client->find(modelRep(),q2);
             BOOST_REQUIRE(!r2);
+            BOOST_TEST_MESSAGE(fmt::format("Found gte {}:",val1));
+            for (size_t i=0;i<r2->size();i++)
+            {
+                std::cout << i << ": " << r2->at(i).template as<rep::type>()->toString(true) << std::endl;
+            }
             BOOST_REQUIRE_EQUAL(r2->size(),6);
             BOOST_CHECK(r2->at(0).template as<rep::type>()->fieldValue(object::_id)==oids[4]);
             BOOST_CHECK(r2->at(1).template as<rep::type>()->fieldValue(object::_id)==oids[5]);
@@ -349,8 +357,8 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             }
         };
 
-        run(FieldUInt32,genUInt32,IdxUInt32);
-        run(FieldString,genString,IdxString);
+        BOOST_TEST_CONTEXT("FieldUInt32"){run(FieldUInt32,genUInt32,IdxUInt32);}
+        BOOST_TEST_CONTEXT("FieldString"){run(FieldString,genString,IdxString);}
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
