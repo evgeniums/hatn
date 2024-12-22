@@ -222,15 +222,18 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         options.env=d->env->env.get();
     }
 
+    options.create_if_missing = createIfMissing;
+
+    //! @todo Make compression configurable
+    auto compression=ROCKSDB_NAMESPACE::CompressionType::kLZ4HCCompression;
+    options.compression=compression;
+
     //! @todo Enable compression for mobile, disable for server
     //! @todo build ZSTD
     options.wal_compression=ROCKSDB_NAMESPACE::CompressionType::kZSTD;
 #if 0
     //! @todo Limit WAL size for clients
     options.max_total_wal_size=1024*1024*16;
-
-    //! @todo Fix compression
-    options.compression=ROCKSDB_NAMESPACE::CompressionType::kLZ4HCCompression;
 
     //! @todo Tune compaction period
     // options.periodic_compaction_seconds=15;
@@ -242,12 +245,15 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::ColumnFamilyOptions collCfOptions;
     collCfOptions.compaction_filter=d->ttlCompactionFilter.get();
     collCfOptions.merge_operator=std::make_shared<MergeModelTopic>();
+    collCfOptions.compression=compression;
 
     ROCKSDB_NAMESPACE::ColumnFamilyOptions indexCfOptions;
     indexCfOptions.merge_operator=std::make_shared<SaveUniqueKey>();
     indexCfOptions.compaction_filter=d->ttlCompactionFilter.get();
+    indexCfOptions.compression=compression;
+
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
-    options.create_if_missing = createIfMissing;
+    ttlCfOptions.compression=compression;
 
     std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
     bool createNew=false;
