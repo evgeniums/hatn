@@ -53,85 +53,92 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
         [&](std::shared_ptr<db::DbPlugin>& plugin)
         {
-        for (size_t i=1;i<HATN_TEST_DB_COUNT;i++)
-        {
-            std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
-            std::shared_ptr<db::EncryptionManager> encryptionManager;
-            if (i==1)
+            if (testConfigFile.empty())
             {
-                if (!prepareEncryption(plugin,cryptPlugin,encryptionManager))
+                // invoke test without client
+                fn(plugin,std::shared_ptr<db::Client>{});
+                return;
+            }
+
+            for (size_t i=1;i<HATN_TEST_DB_COUNT;i++)
+            {
+                std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
+                std::shared_ptr<db::EncryptionManager> encryptionManager;
+                if (i==1)
                 {
-                    continue;
+                    if (!prepareEncryption(plugin,cryptPlugin,encryptionManager))
+                    {
+                        continue;
+                    }
+                    BOOST_TEST_MESSAGE("Testing encrypted rocksdb");
                 }
-                BOOST_TEST_MESSAGE("Testing encrypted rocksdb");
-            }
-            else
-            {
-                BOOST_TEST_MESSAGE("Testing not encrypted rocksdb");
-            }
+                else
+                {
+                    BOOST_TEST_MESSAGE("Testing not encrypted rocksdb");
+                }
 
-            // make client
-            auto client=plugin->makeClient();
-            BOOST_REQUIRE(client);
+                // make client
+                auto client=plugin->makeClient();
+                BOOST_REQUIRE(client);
 
-            auto cfg=prepareConfig(plugin,testConfigFile);
-            currentCfg=cfg.get();
-            base::config_object::LogRecords logRecords;
+                auto cfg=prepareConfig(plugin,testConfigFile,encryptionManager);
+                currentCfg=cfg.get();
 
-            // destroy existing database
-            BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
-            auto ec=client->destroyDb(*cfg,logRecords);
-            for (auto&& it:logRecords)
-            {
-                BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
-            }
-            BOOST_REQUIRE(!ec);
-
-            // create database
-            BOOST_TEST_MESSAGE(fmt::format("creating database by {} client",plugin->info()->name));
-            ec=client->createDb(*cfg,logRecords);
-            for (auto&& it:logRecords)
-            {
-                BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
-            }
-            if (ec)
-            {
-                BOOST_TEST_MESSAGE(ec.message());
-            }
-            BOOST_REQUIRE(!ec);
-
-            // open database
-            BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
-            ec=client->openDb(*cfg,logRecords);
-            for (auto&& it:logRecords)
-            {
-                BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
-            }
-            if (ec)
-            {
-                BOOST_FAIL(ec.message());
-            }
-
-            // add partitions
-            for (auto&& partitionRange:partitions)
-            {
-                ec=client->addDatePartitions(partitionRange.models,partitionRange.to,partitionRange.from);
+                // destroy existing database
+                BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
+                base::config_object::LogRecords logRecords;
+                auto ec=client->destroyDb(*cfg,logRecords);
+                for (auto&& it:logRecords)
+                {
+                    BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
+                }
                 BOOST_REQUIRE(!ec);
+
+                // create database
+                BOOST_TEST_MESSAGE(fmt::format("creating database by {} client",plugin->info()->name));
+                ec=client->createDb(*cfg,logRecords);
+                for (auto&& it:logRecords)
+                {
+                    BOOST_TEST_MESSAGE(fmt::format("create DB configuration \"{}\": {}",it.name,it.value));
+                }
+                if (ec)
+                {
+                    BOOST_TEST_MESSAGE(ec.message());
+                }
+                BOOST_REQUIRE(!ec);
+
+                // open database
+                BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
+                ec=client->openDb(*cfg,logRecords);
+                for (auto&& it:logRecords)
+                {
+                    BOOST_TEST_MESSAGE(fmt::format("open DB configuration \"{}\": {}",it.name,it.value));
+                }
+                if (ec)
+                {
+                    BOOST_FAIL(ec.message());
+                }
+
+                // add partitions
+                for (auto&& partitionRange:partitions)
+                {
+                    ec=client->addDatePartitions(partitionRange.models,partitionRange.to,partitionRange.from);
+                    BOOST_REQUIRE(!ec);
+                }
+
+                // invoke test
+                fn(plugin,client);
+
+                // close db
+                ec=client->closeDb();
+                if (ec)
+                {
+                    BOOST_TEST_MESSAGE(fmt::format("failed to close database: {}",ec.message()));
+                }
+
+                // cleanup
+                currentCfg=nullptr;
             }
-
-            // invoke test
-            fn(plugin,client);
-
-            // close db
-            ec=client->closeDb();
-            if (ec)
-            {
-                BOOST_TEST_MESSAGE(fmt::format("failed to close database: {}",ec.message()));
-            }
-
-            // cleanup
-            currentCfg=nullptr;            
-        }
             crypt::CipherSuites::instance().reset();
         }
     );
@@ -144,11 +151,11 @@ std::shared_ptr<db::ClientConfig> PrepareDbAndRun::prepareConfig(
     )
 {
     // load main config
-    base::ConfigTree mainCfg;
+    auto mainCfg=std::make_shared<base::ConfigTree>();
     base::ConfigTreeLoader loader;
     loader.setPrefixSubstitution("$tmp",MultiThreadFixture::tmpPath());
     auto configFile=PluginList::assetsFilePath(db::DB_MODULE_NAME,path,plugin->info()->name);
-    auto ec=loader.loadFromFile(mainCfg,configFile);
+    auto ec=loader.loadFromFile(*mainCfg,configFile);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
@@ -156,8 +163,8 @@ std::shared_ptr<db::ClientConfig> PrepareDbAndRun::prepareConfig(
     BOOST_REQUIRE(!ec);
 
     // load options
-    base::ConfigTree optCfg;
-    ec=loader.loadFromFile(optCfg,configFile);
+    auto optCfg=std::make_shared<base::ConfigTree>();
+    ec=loader.loadFromFile(*optCfg,configFile);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
@@ -168,9 +175,12 @@ std::shared_ptr<db::ClientConfig> PrepareDbAndRun::prepareConfig(
     base::ConfigTreePath cfgPath{plugin->info()->name};
     std::shared_ptr<db::ClientEnvironment> environment;
     auto cfg=std::make_shared<db::ClientConfig>(
-        mainCfg, optCfg, cfgPath, cfgPath.copyAppend("options"),
-        encryptionManager,
-        environment
+        std::move(mainCfg),
+        std::move(optCfg),
+        cfgPath,
+        cfgPath.copyAppend("options"),
+        std::move(encryptionManager),
+        std::move(environment)
     );
     return cfg;
 }
