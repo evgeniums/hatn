@@ -44,15 +44,18 @@ class CipherWorker
          *
          * @throws std::runtime_error if key doesn't have role ENCRYPT_SYMMETRIC
          */
-        CipherWorker(const SymmetricKey* key=nullptr);
+        CipherWorker(const SymmetricKey* key);
+
+        CipherWorker():CipherWorker(nullptr)
+        {}
 
         //! Dtor
         virtual ~CipherWorker()=default;
 
         CipherWorker(const CipherWorker&)=delete;
-        CipherWorker(CipherWorker&&) =delete;
+        CipherWorker(CipherWorker&&) =default;
         CipherWorker& operator=(const CipherWorker&)=delete;
-        CipherWorker& operator=(CipherWorker&&) =delete;
+        CipherWorker& operator=(CipherWorker&&) =default;
 
         /**
          * @brief Set encryption key

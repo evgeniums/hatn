@@ -126,7 +126,7 @@ inline uint32_t CryptContainer::packedExtraSize() const
         }
     }
 
-    return maxExtraSize+sizePrefixLength;
+    return static_cast<uint32_t>(maxExtraSize+sizePrefixLength);
 }
 
 //---------------------------------------------------------------
