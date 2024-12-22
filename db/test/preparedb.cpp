@@ -60,7 +60,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 return;
             }
 
-            for (size_t i=1;i<HATN_TEST_DB_COUNT;i++)
+            for (size_t i=0;i<HATN_TEST_DB_COUNT;i++)
             {
                 std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
                 std::shared_ptr<db::EncryptionManager> encryptionManager;
