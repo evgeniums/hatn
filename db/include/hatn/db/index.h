@@ -242,6 +242,8 @@ class IndexInfo : public IndexBase
         bool m_datePartitioned;
         bool m_unique;
         uint32_t m_ttl;
+
+        //! @todo Hold UTF-8 comparator for UTF-8 indexes
 };
 
 template <typename ConfigT, typename ...Fields>

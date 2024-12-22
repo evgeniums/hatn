@@ -96,6 +96,7 @@ struct IndexKeyCompare
     IndexKeyCompare(const ModelIndexQuery& idxQuery) : idxQuery(&idxQuery)
     {}
 
+    //! @todo For UTF-8 indexes use UTF-8 comparator
     inline bool operator ()(const IndexKey& l, const IndexKey& r) const noexcept
     {
         if (l.value==r.value)

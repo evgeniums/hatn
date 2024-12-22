@@ -48,6 +48,7 @@ class Indexes
 {
     public:
 
+        //! Use additional column family for UTF-8 indexes
         Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys& keys)
             : m_cf(cf),
               m_keys(keys)
