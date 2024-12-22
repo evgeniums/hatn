@@ -68,6 +68,21 @@ struct ClientConfig
 
     std::shared_ptr<EncryptionManager> encryptionManager;
     std::shared_ptr<ClientEnvironment> environment;
+
+    ClientConfig(
+            const base::ConfigTree& main,
+            const base::ConfigTree& opt,
+            base::ConfigTreePath mainPath,
+            base::ConfigTreePath optPath,
+            std::shared_ptr<EncryptionManager> encryptionManager,
+            std::shared_ptr<ClientEnvironment> environment
+        ) : main(main),
+            opt(opt),
+            mainPath(std::move(mainPath)),
+            optPath(std::move(optPath)),
+            encryptionManager(std::move(encryptionManager)),
+            environment(std::move(environment))
+    {}
 };
 
 class HATN_DB_EXPORT Client : public common::WithID
