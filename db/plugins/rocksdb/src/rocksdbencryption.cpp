@@ -17,6 +17,8 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbencryption.h>
 
+// #define HATN_RDB_PRINT_FILE_OPEN
+
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
@@ -254,7 +256,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewSequentialFile(
         rocksdb::IODebugContext */*dbg*/
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::NewSequentialFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedSequentialFile> file;
@@ -279,7 +281,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomAccessFile(
         rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::NewRandomAccessFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedRandomAccessFile> file;
@@ -304,7 +306,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::NewWritableFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedWritableFile> file;
@@ -329,7 +331,7 @@ rocksdb::IOStatus EncryptedFileSystem::ReopenWritableFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::ReopenWritableFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedWritableFile> file;
@@ -355,7 +357,7 @@ rocksdb::IOStatus EncryptedFileSystem::ReuseWritableFile(
         rocksdb::IODebugContext* dbg
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::ReuseWritableFile " << fname << std::endl;
 #endif
     return FileSystem::ReuseWritableFile(fname,old_fname,opts,result,dbg);
@@ -370,7 +372,7 @@ rocksdb::IOStatus EncryptedFileSystem::NewRandomRWFile(
     rocksdb::IODebugContext* /*dbg*/
     )
 {
-#if 1
+#ifdef HATN_RDB_PRINT_FILE_OPEN
     std::cout << "EncryptedFileSystem::NewRandomRWFile " << fname << std::endl;
 #endif
     std::unique_ptr<EncryptedRandomRWFile> file;
