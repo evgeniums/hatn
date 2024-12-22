@@ -74,8 +74,8 @@ struct ClientConfig
             const base::ConfigTree& opt,
             base::ConfigTreePath mainPath,
             base::ConfigTreePath optPath,
-            std::shared_ptr<EncryptionManager> encryptionManager,
-            std::shared_ptr<ClientEnvironment> environment
+            std::shared_ptr<EncryptionManager> encryptionManager=std::shared_ptr<EncryptionManager>{},
+            std::shared_ptr<ClientEnvironment> environment=std::shared_ptr<ClientEnvironment>{}
         ) : main(main),
             opt(opt),
             mainPath(std::move(mainPath)),
