@@ -193,6 +193,11 @@ BOOST_AUTO_TEST_CASE(Utf8Operations)
     std::cout<<std::endl;
     std::vector<std::string> checkStrings5{"алмаз","Алмаз","Ангара","бард","Барс","Волга"};
     BOOST_CHECK(strings5==checkStrings5);
+
+    std::string latin{"Hello 12345678 0xABCDEF!"};
+    std::string sampleLatinLower{"hello 12345678 0xabcdef!"};
+    auto latinLower=boost::locale::to_lower(latin,ruLoc);
+    BOOST_CHECK_EQUAL(sampleLatinLower,latinLower);
 }
 
 #ifdef WIN32
