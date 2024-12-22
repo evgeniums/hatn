@@ -45,8 +45,8 @@ void openEmptyConfig(std::shared_ptr<DbPlugin> plugin)
 
     auto client=plugin->makeClient();
     BOOST_REQUIRE(client);
-    base::ConfigTree mainCfg;
-    base::ConfigTree optCfg;
+    auto mainCfg=std::make_shared<base::ConfigTree>();
+    auto optCfg=std::make_shared<base::ConfigTree>();
     ClientConfig cfg{
         mainCfg, optCfg, base::ConfigTreePath{}, base::ConfigTreePath{}
     };
@@ -63,11 +63,11 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin> plugin)
     BOOST_REQUIRE(client);
 
     // load main config
-    base::ConfigTree mainCfg;
+    auto mainCfg=std::make_shared<base::ConfigTree>();
     ConfigTreeLoader loader;
     loader.setPrefixSubstitution("$tmp",MultiThreadFixture::tmpPath());
     auto configFile=PluginList::assetsFilePath(DB_MODULE_NAME,"createopenclosedestroy.jsonc",plugin->info()->name);
-    auto ec=loader.loadFromFile(mainCfg,configFile);
+    auto ec=loader.loadFromFile(*mainCfg,configFile);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
@@ -75,8 +75,8 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin> plugin)
     BOOST_REQUIRE(!ec);
 
     // load options
-    base::ConfigTree optCfg;
-    ec=loader.loadFromFile(optCfg,configFile);
+    auto optCfg=std::make_shared<base::ConfigTree>();
+    ec=loader.loadFromFile(*optCfg,configFile);
     if (ec)
     {
         BOOST_TEST_MESSAGE(ec.message());
