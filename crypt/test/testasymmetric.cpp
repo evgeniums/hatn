@@ -375,22 +375,6 @@ BOOST_AUTO_TEST_CASE(CheckRSA)
     checkAlg("RSA",handler);
 }
 
-#if 0
-BOOST_AUTO_TEST_CASE(CheckEC)
-{
-    //! @todo Implement ECIES
-    auto handler=[](std::shared_ptr<CryptPlugin>& plugin,const std::string&)
-    {
-        const CryptAlgorithm* alg=nullptr;
-        auto ec=plugin->findAlgorithm(alg,CryptAlgorithm::Type::AENCRYPTION,"EC/prime256v1");
-        if (!ec)
-        {
-            algHandler(plugin,"ecprime256v1","EC/prime256v1");
-        }
-    };
-    checkAlg("EC",handler);
-}
-#endif
 BOOST_AUTO_TEST_SUITE_END()
 
 }
