@@ -58,6 +58,10 @@ common::Error OpenSslAsymmetric::findNativeAlgorithm(
     }
     else if (boost::iequals(algName,std::string("EC")))
     {
+        if (type!=CryptAlgorithm::Type::SIGNATURE)
+        {
+            return cryptError(CryptError::INVALID_ALGORITHM);
+        }
         alg=std::make_shared<ECAlg>(engine,type,name,parts);
     }
     if (boost::iequals(algName,std::string("RSA")))
@@ -101,7 +105,6 @@ std::vector<std::string> OpenSslAsymmetric::listAsymmetricCiphers()
 {
     std::vector<std::string> algs;
 
-    algs.push_back("EC/<curve_name>");
     algs.push_back("RSA/<key-bits>");
 
     return algs;
@@ -349,7 +352,7 @@ Error OpenSslAencryptor::initCtx(
         {
             return cryptError(CryptError::INVALID_KEY);
         }
-        if (pubKey->isNativeValid())
+        if (!pubKey->isNativeValid())
         {
             return cryptError(CryptError::INVALID_KEY);
         }
@@ -492,7 +495,7 @@ Error OpenSslAdecryptor::doInit(
     {
         return cryptError(CryptError::INVALID_KEY);
     }
-    if (privKey->isNativeValid())
+    if (!privKey->isNativeValid())
     {
         return cryptError(CryptError::INVALID_KEY);
     }
@@ -501,7 +504,7 @@ Error OpenSslAdecryptor::doInit(
     int ret=::EVP_OpenInit(this->nativeHandler().handler,
                              cipher(),
                              reinterpret_cast<unsigned char *>(const_cast<char*>(encryptedSymmetricKey.data())),
-                             static_cast<int>(privKey->content().size()),
+                             static_cast<int>(encryptedSymmetricKey.size()),
                              reinterpret_cast<unsigned char *>(const_cast<char*>(iv.data())),
                              privKey->nativeHandler().handler);
     if (ret!=OPENSSL_OK)

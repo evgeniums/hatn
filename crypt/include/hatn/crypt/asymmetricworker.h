@@ -32,7 +32,7 @@ class AEncryptor : public SymmetricWorker<true>
 
         using Base=SymmetricWorker<true>;
 
-        AEncryptor()
+        AEncryptor() : m_skipReset(false)
         {
             setImplicitKeyMode(true);
         }
@@ -73,6 +73,8 @@ class AEncryptor : public SymmetricWorker<true>
             return initT(iv,receiverCerts,encryptedSymmetricKey);
         }
 
+//! @todo Test AEncryptor::run before use
+#if 0
         template <typename ReceicerT, typename EncryptedKeyT, typename PlaintextT, typename CiphertextT>
         common::Error run(
                 const common::ConstDataBuf& iv,
@@ -84,22 +86,9 @@ class AEncryptor : public SymmetricWorker<true>
         {
             plaintext.clear();
             HATN_CHECK_RETURN(initT(iv,receiverKeys,encryptedSymmetricKey));
-            return processAndFinalize(plaintext,ciphertext);
-        }
-
-        template <typename ReceicerT, typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
-        common::Error runPack(
-            const ReceicerT& receiverKeys,
-            EncryptedKeyT& encryptedSymmetricKey,
-            const ContainerInT& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetIn=0,
-            size_t sizeIn=0,
-            size_t offsetOut=0
-            )
-        {
-            prepare(receiverKeys,encryptedSymmetricKey);
-            return Base::runPack(dataIn,dataOut,offsetIn,sizeIn,offsetOut);
+            auto ec=processAndFinalize(plaintext,ciphertext);
+            reset();
+            return ec;
         }
 
         //! Overloaded runPack
@@ -113,7 +102,31 @@ class AEncryptor : public SymmetricWorker<true>
         )
         {
             prepare(receiverKeys,encryptedSymmetricKey);
-            return Base::runPack(dataIn,dataOut,offsetOut);
+            m_skipReset=true;
+            auto ec=Base::runPack(dataIn,dataOut,offsetOut);
+            m_skipReset=false;
+            reset();
+            return ec;
+        }
+#endif
+
+        template <typename ReceicerT, typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
+        common::Error runPack(
+            const ReceicerT& receiverKeys,
+            EncryptedKeyT& encryptedSymmetricKey,
+            const ContainerInT& dataIn,
+            ContainerOutT& dataOut,
+            size_t offsetIn=0,
+            size_t sizeIn=0,
+            size_t offsetOut=0
+            )
+        {
+            prepare(receiverKeys,encryptedSymmetricKey);
+            m_skipReset=true;
+            auto ec=Base::runPack(dataIn,dataOut,offsetIn,sizeIn,offsetOut);
+            m_skipReset=false;
+            reset();
+            return ec;
         }
 
     protected:
@@ -158,7 +171,10 @@ class AEncryptor : public SymmetricWorker<true>
 
         void doReset() noexcept override
         {
-            m_forwardInitFn=std::function<Error (const common::ConstDataBuf& iv)>{};
+            if (!m_skipReset)
+            {
+                m_forwardInitFn=std::function<Error (const common::ConstDataBuf& iv)>{};
+            }
             backendReset();
         }
 
@@ -185,9 +201,14 @@ class AEncryptor : public SymmetricWorker<true>
             EncryptedKeyT& encryptedSymmetricKey
             )
         {
+            m_skipReset=true;
             prepare(receiver,encryptedSymmetricKey);
-            return Base::init(iv);
+            auto ec=Base::init(iv);
+            m_skipReset=false;
+            return ec;
         }
+
+        bool m_skipReset;
 };
 
 //! Base class for asymmetric decryptors
@@ -197,7 +218,7 @@ class ADecryptor : public SymmetricWorker<false>
 
         using Base=SymmetricWorker<false>;
 
-        ADecryptor(const PrivateKey* key) : m_key(key)
+        ADecryptor(const PrivateKey* key) : m_key(key), m_skipReset(false)
         {
             setImplicitKeyMode(true);
         }
@@ -231,10 +252,15 @@ class ADecryptor : public SymmetricWorker<false>
                 const common::ConstDataBuf& encryptedSymmetricKey
             )
         {
+            m_skipReset=true;
             m_encryptedSymmetricKey.set(encryptedSymmetricKey);
-            return Base::init(iv);
+            auto ec=Base::init(iv);
+            m_skipReset=false;
+            return ec;
         }
 
+//! @todo Test ADecryptor::run before use
+#if 0
         template <typename EncryptedKeyT, typename PlaintextT, typename CiphertextT>
         common::Error run(
                 const common::ConstDataBuf& iv,
@@ -245,21 +271,9 @@ class ADecryptor : public SymmetricWorker<false>
         {
             plaintext.clear();
             HATN_CHECK_RETURN(init(iv,encryptedSymmetricKey));
-            return processAndFinalize(ciphertext,plaintext);
-        }
-
-        template <typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
-        common::Error runPack(
-            const EncryptedKeyT& encryptedSymmetricKey,
-            const ContainerInT& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetIn=0,
-            size_t sizeIn=0,
-            size_t offsetOut=0
-            )
-        {
-            m_encryptedSymmetricKey.set(encryptedSymmetricKey);
-            return Base::runPack(dataIn,dataOut,offsetIn,sizeIn,offsetOut);
+            auto ec=processAndFinalize(ciphertext,plaintext);
+            reset();
+            return ec;
         }
 
         //! Overloaded runPack
@@ -271,8 +285,31 @@ class ADecryptor : public SymmetricWorker<false>
             size_t offsetOut=0
             )
         {
+            m_skipReset=true;
             m_encryptedSymmetricKey.set(encryptedSymmetricKey);
-            return Base::runPack(dataIn,dataOut,offsetOut);
+            auto ec=Base::runPack(dataIn,dataOut,offsetOut);
+            m_skipReset=false;
+            reset();
+            return ec;
+        }
+
+#endif
+        template <typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
+        common::Error runPack(
+            const EncryptedKeyT& encryptedSymmetricKey,
+            const ContainerInT& dataIn,
+            ContainerOutT& dataOut,
+            size_t offsetIn=0,
+            size_t sizeIn=0,
+            size_t offsetOut=0
+            )
+        {
+            m_skipReset=true;
+            m_encryptedSymmetricKey.set(encryptedSymmetricKey);
+            auto ec=Base::runPack(dataIn,dataOut,offsetIn,sizeIn,offsetOut);
+            m_skipReset=false;
+            reset();
+            return ec;
         }
 
     protected:
@@ -298,7 +335,10 @@ class ADecryptor : public SymmetricWorker<false>
 
         void doReset() noexcept override
         {
-            m_encryptedSymmetricKey.reset();
+            if (!m_skipReset)
+            {
+                m_encryptedSymmetricKey.reset();
+            }
             backendReset();
         }
 
@@ -311,6 +351,7 @@ class ADecryptor : public SymmetricWorker<false>
 
         common::ConstDataBuf m_encryptedSymmetricKey;
         const PrivateKey* m_key;
+        bool m_skipReset;
 };
 
 HATN_CRYPT_NAMESPACE_END

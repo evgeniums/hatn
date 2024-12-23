@@ -160,13 +160,25 @@ class SymmetricWorker : public CipherWorker
             return m_implicitKeyMode;
         }
 
+        Error checkAlg() const noexcept
+        {
+            if (m_alg==nullptr)
+            {
+                return cryptError(CryptError::INVALID_ALGORITHM);
+            }
+            return OK;
+        }
+
     protected:
 
         virtual Error canProcessAndFinalize() const noexcept override
         {
-            if (key()->alg()->isType(CryptAlgorithm::Type::AEAD))
+            if (!m_implicitKeyMode)
             {
-                return cryptError(CryptError::INVALID_OPERATION);
+                if (key()->alg()->isType(CryptAlgorithm::Type::AEAD))
+                {
+                    return cryptError(CryptError::INVALID_OPERATION);
+                }
             }
             return OK;
         }

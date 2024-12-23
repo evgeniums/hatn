@@ -116,6 +116,8 @@ common::Error SymmetricWorkerTraits<true>::runPack(
 {
     try
     {
+        HATN_CHECK_RETURN(cipher->checkAlg())
+
         size_t ivSize=cipher->ivSize();
         dataOut.resize(offsetOut+ivSize);
 
@@ -154,6 +156,8 @@ common::Error SymmetricWorkerTraits<false>::runPack(
     size_t offsetOut
 )
 {
+    HATN_CHECK_RETURN(cipher->checkAlg())
+
     size_t ivLength=cipher->ivSize();
     if ((ivLength+offsetIn)>sizeIn)
     {
@@ -174,6 +178,8 @@ common::Error SymmetricWorkerTraits<false>::runPack(
     size_t offsetOut
 )
 {
+    HATN_CHECK_RETURN(cipher->checkAlg())
+
     if (dataIn.empty())
     {
         (offsetOut==0)?dataOut.clear():dataOut.resize(offsetOut);
@@ -249,14 +255,12 @@ template <bool Encrypt>
 template <typename ContainerIvT>
 common::Error SymmetricWorker<Encrypt>::init(const ContainerIvT& iv)
 {
-    if (m_alg==nullptr)
-    {
-        return cryptError(CryptError::INVALID_ALGORITHM);
-    }
+    HATN_CHECK_RETURN(checkAlg())
+
     if (m_alg->isNone())
     {
         m_initialized=true;
-        return common::Error();
+        return Error();
     }
 
     if (!m_implicitKeyMode)
