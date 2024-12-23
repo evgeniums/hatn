@@ -44,7 +44,9 @@ class File
         {
             Read,
             Write,
-            Delete
+            Delete,
+
+            END
         };
 
         struct ShareTraits
