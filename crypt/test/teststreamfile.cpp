@@ -97,8 +97,8 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
 
     auto cryptFilename1=fmt::format("{}/streamfile-crypt1.dat",hatn::test::MultiThreadFixture::tmpPath());
     auto cryptFilename2=fmt::format("{}/streamfile-crypt2.dat",hatn::test::MultiThreadFixture::tmpPath());
-    FileUtils::remove(cryptFilename1);
-    FileUtils::remove(cryptFilename2);
+    std::ignore=FileUtils::remove(cryptFilename1);
+    std::ignore=FileUtils::remove(cryptFilename2);
 
     // init plain data
     ByteArray plaintext1;
@@ -305,7 +305,7 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
         BOOST_REQUIRE(!ec);
         BOOST_CHECK_EQUAL(written,writeSize);
         appended+=written;
-        cryptFile5.flush(false);
+        std::ignore=cryptFile5.flush(false);
     }
     BOOST_CHECK_EQUAL(cryptFile5.size(),plaintext1.size()+2*plaintext2.size());
     cryptFile5.close(ec);
@@ -378,7 +378,7 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
     }
     BOOST_REQUIRE(!ec);
     ByteArray buf8;
-    CipherSuites::instance().defaultRandomGenerator()->randContainer(buf8,500,100);
+    std::ignore=CipherSuites::instance().defaultRandomGenerator()->randContainer(buf8,500,100);
     BOOST_TEST_MESSAGE(fmt::format("Write to first chunk bufSize={}",buf8.size()));
     written=0;
     for (size_t i=0;i<100;i++)

@@ -920,7 +920,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
 
         // check size of open file
         CryptFile cryptFile1;
-        cryptFile1.open(tmpFileNoStamp,common::File::Mode::append_existing,ec);
+        std::ignore=cryptFile1.open(tmpFileNoStamp,common::File::Mode::append_existing,ec);
         HATN_REQUIRE(!ec);
         auto size1=cryptFile1.size();
         CryptFile cryptFile2;
