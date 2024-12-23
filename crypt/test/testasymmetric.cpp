@@ -23,6 +23,7 @@
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/asymmetricworker.h>
 #include <hatn/crypt/symmetricworker.ipp>
+#include <hatn/crypt/x509certificate.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -49,16 +50,35 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     std::string privateKeyPath2=fmt::format("{}/{}-private-key2.pem",PluginList::assetsPath("crypt"),fileNamePrefix);
     std::string plaintextPath=fmt::format("{}/{}-plaintext1.dat",PluginList::assetsPath("crypt"),fileNamePrefix);
 
+    std::string rsaCertPath1=fmt::format("{}/x509/x509-rsa-2048-client1_2_1.pem",PluginList::assetsPath("crypt"),fileNamePrefix);
+    std::string rsaCertPath2=fmt::format("{}/x509/x509-rsa-2048-client1_2_2.pem",PluginList::assetsPath("crypt"),fileNamePrefix);
+    std::string rsaPkeyPath1=fmt::format("{}/x509/x509-rsa-2048-client1_2_1_pkey.pem",PluginList::assetsPath("crypt"),fileNamePrefix);
+    std::string rsaPkeyPath2=fmt::format("{}/x509/x509-rsa-2048-client1_2_2_pkey.pem",PluginList::assetsPath("crypt"),fileNamePrefix);
+
+
     if (!boost::filesystem::exists(privateKeyPath1)
         ||
         !boost::filesystem::exists(privateKeyPath2)
         ||
         !boost::filesystem::exists(plaintextPath)
+        ||
+        !boost::filesystem::exists(rsaCertPath1)
+        ||
+        !boost::filesystem::exists(rsaCertPath2)
+        ||
+        !boost::filesystem::exists(rsaPkeyPath1)
+        ||
+        !boost::filesystem::exists(rsaPkeyPath2)
        )
     {
         privateKeyPath1=fmt::format("{}/{}-private-key2.pem",PluginList::assetsPath("crypt",plugin->info()->name),fileNamePrefix);
         privateKeyPath2=fmt::format("{}/{}-private-key1.pem",PluginList::assetsPath("crypt",plugin->info()->name),fileNamePrefix);
         plaintextPath=fmt::format("{}/{}-plaintext1.dat",PluginList::assetsPath("crypt",plugin->info()->name),fileNamePrefix);
+
+        rsaCertPath1=fmt::format("{}/x509/x509-rsa-2048-client1_2_1.pem",plugin->info()->name);
+        rsaCertPath2=fmt::format("{}/x509/x509-rsa-2048-client1_2_2.pem",plugin->info()->name);
+        rsaPkeyPath1=fmt::format("{}/x509/x509-rsa-2048-client1_2_1_pkey.pem",plugin->info()->name);
+        rsaPkeyPath2=fmt::format("{}/x509/x509-rsa-2048-client1_2_2_pkey.pem",plugin->info()->name);
     }
 
     if (!boost::filesystem::exists(privateKeyPath1)
@@ -66,6 +86,14 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
         !boost::filesystem::exists(privateKeyPath2)
         ||
         !boost::filesystem::exists(plaintextPath)
+        ||
+        !boost::filesystem::exists(rsaCertPath1)
+        ||
+        !boost::filesystem::exists(rsaCertPath2)
+        ||
+        !boost::filesystem::exists(rsaPkeyPath1)
+        ||
+        !boost::filesystem::exists(rsaPkeyPath2)
         )
     {
         return;
@@ -101,7 +129,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     BOOST_REQUIRE(!ec);
 
     // encrypt message
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt with {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt"));
     ByteArray plaintext1;
     ec=plaintext1.loadFromFile(plaintextPath);
     BOOST_REQUIRE(!ec);
@@ -120,7 +148,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     BOOST_REQUIRE(!ciphertext1.empty());
 
     // decrypt message
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt"));
     ByteArray plaintext2;
     auto dec=plugin->createADecryptor(privateKey1.get());
     BOOST_REQUIRE(dec);
@@ -144,7 +172,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     ec=privateKey2->importFromBuf(privateKeyData2,ContainerFormat::PEM);
     BOOST_REQUIRE(!ec);
 
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with wrong key with {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with wrong key"));
     ByteArray plaintext3;
     auto dec2=plugin->createADecryptor(privateKey2.get());
     BOOST_REQUIRE(dec);
@@ -168,7 +196,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
 
     // encrypt with multiple keys
 
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt with multiple keys with {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt with multiple keys"));
     std::vector<common::SharedPtr<crypt::PublicKey>> pubkeys{publicKey1,publicKey2};
     std::vector<common::ByteArray> encKeys2;
     ByteArray ciphertext2;
@@ -182,7 +210,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     BOOST_REQUIRE(!ciphertext2.empty());
 
     // decrypt message
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with pkey1 {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with pkey1"));
     ByteArray plaintext4;
     ec=dec->runPack(encKeys2[0],ciphertext2,plaintext4);
     if (ec)
@@ -192,7 +220,7 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     BOOST_REQUIRE(!ec);
     BOOST_CHECK(plaintext1==plaintext4);
 
-    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with pkey2 {}",asymAlgName));
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with pkey2"));
     ByteArray plaintext5;
     ec=dec2->runPack(encKeys2[1],ciphertext2,plaintext5);
     if (ec)
@@ -201,6 +229,105 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,
     }
     BOOST_REQUIRE(!ec);
     BOOST_CHECK(plaintext1==plaintext4);
+
+    // encrypt with certificates
+
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt with single certificate"));
+    auto cert1=plugin->createX509Certificate();
+    BOOST_REQUIRE(cert1);
+    ec=cert1->loadFromFile(rsaCertPath1);
+    BOOST_REQUIRE(!ec);
+    auto enc3=plugin->createAEncryptor();
+    BOOST_REQUIRE(enc3);
+    enc3->setAlg(symAlg);
+    ByteArray encKey3;
+    ByteArray ciphertext3;
+    ec=enc3->runPack(cert1,encKey3,plaintext1,ciphertext3);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE(!encKey3.empty());
+    BOOST_REQUIRE(!ciphertext1.empty());
+
+    // load cert pkey 1
+    auto certPKey1=alg->createPrivateKey();
+    BOOST_REQUIRE(certPKey1);
+    ByteArray privateKeyData3;
+    ec=privateKeyData3.loadFromFile(rsaPkeyPath1);
+    BOOST_REQUIRE(!ec);
+    ec=certPKey1->importFromBuf(privateKeyData3,ContainerFormat::PEM);
+    BOOST_REQUIRE(!ec);
+
+    // decrypt message
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with cert pkey1"));
+    ByteArray plaintext6;
+    auto dec3=plugin->createADecryptor(certPKey1.get());
+    BOOST_REQUIRE(dec3);
+    dec3->setAlg(symAlg);
+    ec=dec3->runPack(encKey3,ciphertext3,plaintext6);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(plaintext1==plaintext6);
+
+    // encrypt with multiple certificates
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric encrypt with multiple certificates"));
+
+    auto cert2=plugin->createX509Certificate();
+    BOOST_REQUIRE(cert2);
+    ec=cert2->loadFromFile(rsaCertPath2);
+    BOOST_REQUIRE(!ec);
+
+    auto enc4=plugin->createAEncryptor();
+    BOOST_REQUIRE(enc4);
+    enc4->setAlg(symAlg);
+    std::vector<ByteArray> encKey4;
+    ByteArray ciphertext4;
+    std::vector<common::SharedPtr<X509Certificate>> certs{cert1,cert2};
+    ec=enc4->runPack(certs,encKey4,plaintext1,ciphertext4);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(encKey4.size(),2);
+    BOOST_REQUIRE(!ciphertext4.empty());
+
+    // load cert pkey 2
+    auto certPKey2=alg->createPrivateKey();
+    BOOST_REQUIRE(certPKey2);
+    ByteArray privateKeyData4;
+    ec=privateKeyData4.loadFromFile(rsaPkeyPath2);
+    BOOST_REQUIRE(!ec);
+    ec=certPKey2->importFromBuf(privateKeyData4,ContainerFormat::PEM);
+    BOOST_REQUIRE(!ec);
+
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with cert pkey1"));
+    ByteArray plaintext7;
+    ec=dec3->runPack(encKey4[0],ciphertext4,plaintext7);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(plaintext1==plaintext7);
+
+    BOOST_TEST_MESSAGE(fmt::format("Asymmetric decrypt with cert pkey2"));
+    ByteArray plaintext8;
+    auto dec4=plugin->createADecryptor(certPKey2.get());
+    BOOST_REQUIRE(dec4);
+    dec4->setAlg(symAlg);
+    ec=dec4->runPack(encKey4[1],ciphertext4,plaintext8);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(ec.message());
+    }
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK(plaintext1==plaintext8);
 };
 
 }
