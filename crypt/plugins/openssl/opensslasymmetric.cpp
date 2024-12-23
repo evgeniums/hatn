@@ -370,7 +370,7 @@ Error OpenSslAencryptor::initCtx(
         [&](auto _)
         {
             // multiple keys
-            _(pubKeysCount)=_(receiverKey).size();
+            _(pubKeysCount)=static_cast<int>(_(receiverKey).size());
             _(encryptedSymmetricKey).resize(_(pubKeysCount));
             for (size_t i=0;i<_(pubKeysCount);i++)
             {
