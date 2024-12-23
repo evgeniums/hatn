@@ -24,7 +24,7 @@
 
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/aead.h>
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/symmetriccipher.h>
 #include <hatn/crypt/signature.h>
 #include <hatn/crypt/mac.h>
 #include <hatn/crypt/keyprotector.h>
@@ -653,14 +653,14 @@ static void testCipher(CipherSuite*, const SecureKey* keyIn, ByteArray& inputDat
 
     if (outputData.empty())
     {
-        auto ec=Cipher::encrypt(key,inputData,outputData);
+        auto ec=SymmetricCipher::encrypt(key,inputData,outputData);
         HATN_REQUIRE(!ec);
     }
     else
     {
         ByteArray plaintext,ciphertext;
 
-        auto ec=Cipher::decrypt(key,outputData,plaintext);
+        auto ec=SymmetricCipher::decrypt(key,outputData,plaintext);
         if (config->expectedFailure)
         {
             BOOST_CHECK(plaintext!=inputData);
@@ -671,11 +671,11 @@ static void testCipher(CipherSuite*, const SecureKey* keyIn, ByteArray& inputDat
             BOOST_CHECK(plaintext==inputData);
         }
 
-        ec=Cipher::encrypt(key,inputData,ciphertext);
+        ec=SymmetricCipher::encrypt(key,inputData,ciphertext);
         HATN_REQUIRE(!ec);
 
         plaintext.clear();
-        ec=Cipher::decrypt(key,ciphertext,plaintext);
+        ec=SymmetricCipher::decrypt(key,ciphertext,plaintext);
         HATN_REQUIRE(!ec);
         BOOST_CHECK(plaintext==inputData);
     }

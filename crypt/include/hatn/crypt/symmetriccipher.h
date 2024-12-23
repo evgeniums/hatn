@@ -7,15 +7,15 @@
 */
 
 /****************************************************************************/
-/** @file crypt/cipher.h
+/** @file crypt/symmeticcipher.h
  *
  *      Symmetric encryption
  *
  */
 /****************************************************************************/
 
-#ifndef HATNCRYPTCIPHER_H
-#define HATNCRYPTCIPHER_H
+#ifndef HATNCRYPTSYMMETRICCIPHER_H
+#define HATNCRYPTSYMMETRICCIPHER_H
 
 #include <hatn/common/error.h>
 
@@ -26,7 +26,7 @@
 HATN_CRYPT_NAMESPACE_BEGIN
 
 //! Symmetric encryption
-struct Cipher
+struct SymmetricCipher
 {
     /**
      * @brief Encrypt data with encryption key and Initialization Vector
@@ -334,4 +334,4 @@ struct Cipher
 
 HATN_CRYPT_NAMESPACE_END
 
-#endif // HATNCRYPTCIPHER_H
+#endif // HATNCRYPTSYMMETRICCIPHER_H

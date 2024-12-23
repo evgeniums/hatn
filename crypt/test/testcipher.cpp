@@ -19,7 +19,7 @@
 #include <hatn/common/format.h>
 
 #include <hatn/crypt/cryptplugin.h>
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/symmetriccipher.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -49,7 +49,7 @@ static void singleEncryptDecrypt(std::shared_ptr<CryptPlugin>& plugin, const Cry
     HATN_REQUIRE(!ec);
 
     ByteArray ciphertext;
-    ec=Cipher::encrypt(key.get(),PlainTextData,ciphertext);
+    ec=SymmetricCipher::encrypt(key.get(),PlainTextData,ciphertext);
     BOOST_CHECK(!ec);
     BOOST_CHECK(!ciphertext.isEmpty());
     if (!alg->isNone())
@@ -62,17 +62,17 @@ static void singleEncryptDecrypt(std::shared_ptr<CryptPlugin>& plugin, const Cry
     }
 
     ByteArray plaintext;
-    ec=Cipher::decrypt(key.get(),ciphertext,plaintext);
+    ec=SymmetricCipher::decrypt(key.get(),ciphertext,plaintext);
     BOOST_CHECK(!ec);
     BOOST_CHECK(!plaintext.isEmpty());
     BOOST_CHECK_EQUAL(plaintext.size(),PlainTextData.size());
     BOOST_CHECK_EQUAL(plaintext.c_str(),PlainTextData.c_str());
 
-    ec=Cipher::encrypt(key.get(),ByteArray(),ciphertext);
+    ec=SymmetricCipher::encrypt(key.get(),ByteArray(),ciphertext);
     BOOST_CHECK(!ec);
     BOOST_CHECK(ciphertext.isEmpty());
 
-    ec=Cipher::decrypt(key.get(),ByteArray(),plaintext);
+    ec=SymmetricCipher::decrypt(key.get(),ByteArray(),plaintext);
     BOOST_CHECK(!ec);
     BOOST_CHECK(plaintext.isEmpty());
 }

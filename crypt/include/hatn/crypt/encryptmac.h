@@ -22,8 +22,7 @@
 #include <hatn/crypt/crypt.h>
 #include <hatn/crypt/crypterror.h>
 #include <hatn/crypt/securekey.h>
-#include <hatn/crypt/digest.h>
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/mac.h>
 #include <hatn/crypt/aeadworker.h>
 #include <hatn/crypt/aeadworker.ipp>
 

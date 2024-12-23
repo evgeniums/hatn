@@ -18,7 +18,7 @@
 #include <hatn/common/format.h>
 
 #include <hatn/crypt/cryptplugin.h>
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/symmetriccipher.h>
 #include <hatn/crypt/encrypthmac.h>
 
 #include <hatn/test/multithreadfixture.h>

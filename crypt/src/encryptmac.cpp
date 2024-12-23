@@ -19,6 +19,7 @@
 
 #include <hatn/common/makeshared.h>
 
+#include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/encryptmac.h>
 #include <hatn/crypt/aeadworker.ipp>
 

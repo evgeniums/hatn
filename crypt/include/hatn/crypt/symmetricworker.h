@@ -7,7 +7,7 @@
 */
 
 /****************************************************************************/
-/** @file crypt/symmetriccipher.h
+/** @file crypt/symmetricworker.h
  *
  *      Base classes for implementation of symmetric encryption
  *

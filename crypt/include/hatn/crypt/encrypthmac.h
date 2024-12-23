@@ -22,8 +22,9 @@
 #include <hatn/crypt/crypt.h>
 #include <hatn/crypt/crypterror.h>
 #include <hatn/crypt/securekey.h>
-#include <hatn/crypt/digest.h>
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/symmetricworker.h>
+#include <hatn/crypt/hmac.h>
+#include <hatn/crypt/cryptplugin.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 

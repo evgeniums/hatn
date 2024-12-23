@@ -16,7 +16,7 @@ SET (HEADERS
     include/hatn/crypt/sessionticketkey.h
     include/hatn/crypt/x509certificatechain.h
     include/hatn/crypt/publickey.h
-    include/hatn/crypt/cipher.h
+    include/hatn/crypt/symmetriccipher.h
     include/hatn/crypt/cipherworker.h
     include/hatn/crypt/cipherworker.ipp
     include/hatn/crypt/symmetricworker.h
