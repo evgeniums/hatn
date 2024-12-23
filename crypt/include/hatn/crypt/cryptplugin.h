@@ -43,6 +43,7 @@
 #include <hatn/crypt/x509certificate.h>
 #include <hatn/crypt/x509certificatechain.h>
 #include <hatn/crypt/x509certificatestore.h>
+#include <hatn/crypt/asymmetricworker.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
@@ -57,6 +58,7 @@ struct CryptTraits
         PasswordGenerator,
         Digest,
         SymmetricEncryption,
+        AsymmetricEncryption,
         Signature,
         AEAD,
         MAC,
@@ -188,7 +190,7 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         }
 
         /**
-         * @brief List algorithms that can be used gor digital signature
+         * @brief List algorithms that can be used for digital signature
          * @return List of algorithms
          *
          * Names can be compound like "BASE_NAME/parameter1/.../parameterN".
@@ -199,6 +201,22 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
          * </pre>
          */
         virtual std::vector<std::string> listSignatures() const
+        {
+            return std::vector<std::string>();
+        }        
+
+        /**
+         * @brief List algorithms that can be used for asymmetric encryption signature
+         * @return List of algorithms
+         *
+         * Names can be compound like "BASE_NAME/parameter1/.../parameterN".
+         * In this case listed name will give a hint:
+         * <pre>
+         * "BASE_NAME[/<parameter1>]" - optional parameter
+         * "BASE_NAME/<parameter1>" - mandatory parameter
+         * </pre>
+         */
+        virtual std::vector<std::string> listAsymmetricCiphers() const
         {
             return std::vector<std::string>();
         }
@@ -281,6 +299,18 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         {
             std::ignore=key;
             return common::SharedPtr<SDecryptor>();
+        }
+
+        //! Create asymmetric encryptor
+        virtual common::SharedPtr<AEncryptor> createAEncryptor() const
+        {
+            return common::SharedPtr<AEncryptor>();
+        }
+        //! Create asymmetric decryptor
+        virtual common::SharedPtr<ADecryptor> createADecryptor(const PrivateKey* key=nullptr) const
+        {
+            std::ignore=key;
+            return common::SharedPtr<ADecryptor>();
         }
 
         //! Create AEAD encryptor

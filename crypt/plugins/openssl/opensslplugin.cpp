@@ -234,6 +234,18 @@ common::SharedPtr<SDecryptor> OpenSslPlugin::createSDecryptor(const SymmetricKey
 }
 
 //---------------------------------------------------------------
+common::SharedPtr<AEncryptor> OpenSslPlugin::createAEncryptor() const
+{
+    return common::makeShared<OpenSslAencryptor>();
+}
+
+//---------------------------------------------------------------
+common::SharedPtr<ADecryptor> OpenSslPlugin::createADecryptor(const PrivateKey* key) const
+{
+    return common::makeShared<OpenSslAdecryptor>(key);
+}
+
+//---------------------------------------------------------------
 common::SharedPtr<AEADEncryptor> OpenSslPlugin::createAeadEncryptor(const SymmetricKey* key) const
 {
     return common::makeShared<OpenSslAeadEncryptor>(key);
@@ -372,6 +384,12 @@ std::vector<std::string> OpenSslPlugin::listPBKDFs() const
 std::vector<std::string> OpenSslPlugin::listSignatures() const
 {
     return OpenSslAsymmetric::listSignatures();
+}
+
+//---------------------------------------------------------------
+std::vector<std::string> OpenSslPlugin::listAsymmetricCiphers() const
+{
+    return OpenSslAsymmetric::listAsymmetricCiphers();
 }
 
 //---------------------------------------------------------------

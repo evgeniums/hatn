@@ -26,7 +26,7 @@ HATN_CRYPT_NAMESPACE_BEGIN
 
 /********************** SymmetricWorker **********************************/
 
-//! Base template class for symmetric encryptors and decryptors
+//! Base class for symmetric encryptors and decryptors
 template <bool Encrypt>
 class SymmetricWorker : public CipherWorker
 {
@@ -150,6 +150,16 @@ class SymmetricWorker : public CipherWorker
             return maxPadding();
         }
 
+        void setImplicitKeyMode(bool enable) noexcept
+        {
+            m_implicitKeyMode=enable;
+        }
+
+        bool isImplicitkeyMode() const noexcept
+        {
+            return m_implicitKeyMode;
+        }
+
     protected:
 
         virtual Error canProcessAndFinalize() const noexcept override
@@ -161,14 +171,14 @@ class SymmetricWorker : public CipherWorker
             return OK;
         }
 
-        virtual common::Error doGenerateIV(char* ivData) const =0;
+        virtual common::Error doGenerateIV(char* ivData, size_t* size=nullptr) const =0;
 
         /**
          * @brief Init encryptor/decryptor
          * @param initVector Initialization data, usually it is IV
          * @return Operation status
          */
-        virtual common::Error doInit(const char* initVector) =0;
+        virtual common::Error doInit(const char* initVector, size_t size=0) =0;
 
         /**
          * @brief Update encryption key in derived class
@@ -182,6 +192,7 @@ class SymmetricWorker : public CipherWorker
 
         const SymmetricKey* m_key;
         const CryptAlgorithm* m_alg;
+        bool m_implicitKeyMode;
 };
 
 class HATN_CRYPT_EXPORT SEncryptor : public SymmetricWorker<true>

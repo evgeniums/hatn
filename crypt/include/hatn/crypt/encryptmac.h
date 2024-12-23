@@ -189,8 +189,8 @@ class EncryptMAC : public AeadWorker<Encrypt>
             size_t& sizeOut,
             bool lastBlock
         ) override;
-        virtual common::Error doGenerateIV(char* iv) const override;
-        virtual common::Error doInit(const char* iv) override;
+        virtual common::Error doGenerateIV(char* iv, size_t* size=nullptr) const override;
+        virtual common::Error doInit(const char* iv, size_t size=0) override;
         virtual void doReset() noexcept override;
         virtual void doUpdateKey() override
         {

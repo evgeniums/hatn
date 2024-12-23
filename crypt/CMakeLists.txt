@@ -48,6 +48,8 @@ SET (HEADERS
     include/hatn/crypt/x509certificatestore.h
 
     include/hatn/crypt/cryptdataunits.h
+
+    include/hatn/crypt/asymmetricworker.h
 )
 
 SET (SOURCES

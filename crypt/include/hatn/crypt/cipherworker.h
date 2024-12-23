@@ -30,7 +30,7 @@ HATN_CRYPT_NAMESPACE_BEGIN
 
 /********************** CipherWorker **********************************/
 
-//! Base template class for data encryptors and decryptors
+//! Base class for data encryptors and decryptors
 class CipherWorker
 {
     public:
@@ -124,11 +124,17 @@ class CipherWorker
 
         virtual const CryptAlgorithm* getAlg() const=0;
 
-        virtual size_t getMaxPadding() const noexcept=0;
+        virtual size_t getMaxPadding() const noexcept
+        {
+            return 0;
+        }
 
     protected:
 
-        virtual Error canProcessAndFinalize() const noexcept=0;
+        virtual Error canProcessAndFinalize() const noexcept
+        {
+            return OK;
+        }
 
         /**
          * @brief Actually process data in derived class

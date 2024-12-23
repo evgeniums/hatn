@@ -304,14 +304,28 @@ void EncryptMAC<Encrypt>::updateKey()
 
 //---------------------------------------------------------------
 template <bool Encrypt>
-common::Error EncryptMAC<Encrypt>::doGenerateIV(char* iv) const
+common::Error EncryptMAC<Encrypt>::doGenerateIV(char* iv, size_t* size) const
 {
     if (m_cipher.isNull())
     {
         return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
-    common::DataBuf data(iv,ivSize());
-    return m_cipher->generateIV(data);
+    auto sz=ivSize();
+    if (size!=nullptr)
+    {
+        auto reservedSize=*size;
+        *size=sz;
+        if (reservedSize==0)
+        {
+            return OK;
+        }
+        if (reservedSize<sz)
+        {
+            return cryptError(CryptError::INSUFFITIENT_BUFFER_SIZE);
+        }
+    }
+    common::DataBuf data(iv,sz);
+    return m_cipher->generateIV(data,sz);
 }
 
 //---------------------------------------------------------------
@@ -338,13 +352,18 @@ size_t EncryptMAC<Encrypt>::ivSize() const noexcept
 
 //---------------------------------------------------------------
 template <bool Encrypt>
-common::Error EncryptMAC<Encrypt>::doInit(const char* iv)
+common::Error EncryptMAC<Encrypt>::doInit(const char* iv,size_t size)
 {
     if (m_cipher.isNull() || m_mac.isNull())
     {
         return cryptError(CryptError::INVALID_CIPHER_STATE);
     }
-    common::ConstDataBuf data(iv,ivSize());
+    auto sz=ivSize();
+    if (size!=0)
+    {
+        sz=size;
+    }
+    common::ConstDataBuf data(iv,sz);
     HATN_CHECK_RETURN(m_cipher->init(data));
     HATN_CHECK_RETURN(m_mac->init());
     return m_mac->process(data);

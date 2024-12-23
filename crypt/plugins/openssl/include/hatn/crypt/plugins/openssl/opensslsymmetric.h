@@ -73,9 +73,23 @@ class OpenSslSymmetricWorker :
             return this->alg()->template nativeHandler<EVP_CIPHER>();
         }
 
-        virtual common::Error doGenerateIV(char* ivData) const override
+        virtual common::Error doGenerateIV(char* ivData, size_t* size=nullptr) const override
         {
-            return genRandData(ivData,getIVSize());
+            auto sz=getIVSize();
+            if (size!=nullptr)
+            {
+                auto reservedSize=*size;
+                *size=sz;
+                if (reservedSize==0)
+                {
+                    return OK;
+                }
+                if (reservedSize<sz)
+                {
+                    return cryptError(CryptError::INSUFFITIENT_BUFFER_SIZE);
+                }
+            }
+            return genRandData(ivData,sz);
         }
 
         /**
@@ -84,8 +98,16 @@ class OpenSslSymmetricWorker :
          * @param config Extra configuration parameters of the cipher
          * @return Operation status
          */
-        virtual common::Error doInit(const char* iv) override
+        virtual common::Error doInit(const char* iv, size_t size=0) override
         {
+            if (size!=0)
+            {
+                if (size!=getIVSize())
+                {
+                    return cryptError(CryptError::INVALID_IV_SIZE);
+                }
+            }
+
             if (this->nativeHandler().isNull())
             {
                 this->nativeHandler().handler = ::EVP_CIPHER_CTX_new();

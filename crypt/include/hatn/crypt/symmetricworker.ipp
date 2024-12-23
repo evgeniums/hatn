@@ -216,7 +216,7 @@ common::Error SymmetricWorkerTraits<false>::runPack(
 
 //---------------------------------------------------------------
 template <bool Encrypt>
-SymmetricWorker<Encrypt>::SymmetricWorker(const SymmetricKey* key):m_key(key),m_alg(nullptr)
+SymmetricWorker<Encrypt>::SymmetricWorker(const SymmetricKey* key):m_key(key),m_alg(nullptr),m_implicitKeyMode(false)
 {
     setKey(key,false);
 }
@@ -259,16 +259,19 @@ common::Error SymmetricWorker<Encrypt>::init(const ContainerIvT& iv)
         return common::Error();
     }
 
-    Assert(key()!=nullptr,"Key is not set");
-    if (!key()->isAlgDefined()
-            ||
-        !(key()->alg()->isType(CryptAlgorithm::Type::SENCRYPTION)
-         ||
-         key()->alg()->isType(CryptAlgorithm::Type::AEAD)
-         )
-        )
+    if (!m_implicitKeyMode)
     {
-        return cryptError(CryptError::INVALID_KEY_TYPE);
+        Assert(key()!=nullptr,"Key is not set");
+        if (!key()->isAlgDefined()
+            ||
+            !(key()->alg()->isType(CryptAlgorithm::Type::SENCRYPTION)
+              ||
+              key()->alg()->isType(CryptAlgorithm::Type::AEAD)
+              )
+            )
+        {
+            return cryptError(CryptError::INVALID_KEY_TYPE);
+        }
     }
 
     reset();
@@ -289,7 +292,7 @@ common::Error SymmetricWorker<Encrypt>::init(const ContainerIvT& iv)
     {
         std::copy(iv.data(),iv.data()+iv.size(),padIV.data()+padIV.size()-iv.size());
     }
-    auto ec=doInit(padIV.data());
+    auto ec=doInit(padIV.data(),padIV.size());
     m_initialized=!ec;
     return ec;
 }

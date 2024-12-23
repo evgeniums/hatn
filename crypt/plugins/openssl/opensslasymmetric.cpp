@@ -14,6 +14,8 @@
  */
 /****************************************************************************/
 
+#include <boost/hana.hpp>
+
 #include <openssl/evp.h>
 #include <openssl/core_names.h>
 
@@ -90,6 +92,17 @@ std::vector<std::string> OpenSslAsymmetric::listSignatures()
     algs.push_back("ED/25519");
     algs.push_back("RSA/<key-bits>");
     algs.push_back("DSA/<n-bits=2048|3072|1024>[/<q-bits=256|224|160>]");
+
+    return algs;
+}
+
+//---------------------------------------------------------------
+std::vector<std::string> OpenSslAsymmetric::listAsymmetricCiphers()
+{
+    std::vector<std::string> algs;
+
+    algs.push_back("EC/<curve_name>");
+    algs.push_back("RSA/<key-bits>");
 
     return algs;
 }
@@ -289,6 +302,252 @@ Error OpenSslAsymmetric::publicKeyAlgorithm(CryptAlgorithmConstP &alg, const Pub
         return nativeToAlgorithm(alg,pkey->nativeHandler().handler,plugin,engineName);
     }
     return cryptError(CryptError::INVALID_KEY_TYPE);
+}
+
+/******************* OpenSslAencryptor ********************/
+
+template <typename ReceiverKeyT, typename EncryptedKeyT>
+Error OpenSslAencryptor::initCtx(
+        const common::ConstDataBuf &iv,
+        const ReceiverKeyT &receiverKey,
+        EncryptedKeyT &encryptedSymmetricKey
+    )
+{
+    // check IV size
+    if (iv.size()!=getIVSize())
+    {
+        return cryptError(CryptError::INVALID_IV_SIZE);
+    }
+
+    // init ctx
+    if (this->nativeHandler().isNull())
+    {
+        this->nativeHandler().handler = ::EVP_CIPHER_CTX_new();
+        if (this->nativeHandler().isNull())
+        {
+            return makeLastSslError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
+        }
+    }
+    else
+    {
+        if (::EVP_CIPHER_CTX_reset(this->nativeHandler().handler)!=1)
+        {
+            return makeLastSslError(CryptError::ENCRYPTION_FAILED);
+        }
+    }
+
+    // prepare parameters
+    int pubKeysCount=0;
+    std::vector<EVP_PKEY*> pubKeys;
+    std::vector<unsigned char *> encryptedKeys;
+    std::vector<int> encryptedKeysLen;
+
+    auto prepareKey=[&](const common::SharedPtr<PublicKey>& recvKey, common::ByteArray& targetBuf)
+    {
+        const auto* pubKey=dynamic_cast<OpenSslPublicKey*>(recvKey.get());
+        if (pubKey==nullptr)
+        {
+            return cryptError(CryptError::INVALID_KEY);
+        }
+        if (pubKey->isNativeValid())
+        {
+            return cryptError(CryptError::INVALID_KEY);
+        }
+        pubKeys.push_back(pubKey->nativeHandler().handler);
+        auto keyLen=EVP_PKEY_size(pubKey->nativeHandler().handler);
+        encryptedSymmetricKey.resize(keyLen);
+        encryptedKeysLen.push_back(keyLen);
+        auto encryptedKeyData=reinterpret_cast<unsigned char *>(targetBuf.data());
+        encryptedKeys.push_back(encryptedKeyData);
+        return Error{};
+    };
+
+    auto ec=hana::eval_if(
+        std::is_same<ReceiverKeyT,common::SharedPtr<PublicKey>>{},
+        [&](auto _)
+        {
+            // single key
+            _(pubKeysCount)=1;
+            return _(prepareKey)(_(receiverKey),_(encryptedSymmetricKey));
+        },
+        [&](auto _)
+        {
+            // multiple keys
+            _(pubKeysCount)=_(receiverKey).size();
+            _(encryptedSymmetricKey).resize(_(pubKeysCount));
+            for (size_t i=0;i<_(pubKeysCount);i++)
+            {
+                auto ec=_(prepareKey)(_(receiverKey)[i],_(encryptedSymmetricKey)[i]);
+                HATN_CHECK_EC(ec)
+            }
+            return Error{};
+        }
+    );
+    HATN_CHECK_EC(ec)
+
+    // init seal
+    int ret=::EVP_SealInit(this->nativeHandler().handler,
+                         cipher(),
+                         encryptedKeys.data(),
+                         encryptedKeysLen.data(),
+                         reinterpret_cast<unsigned char *>(const_cast<char*>(iv.data())),
+                         pubKeys.data(),
+                         pubKeysCount);
+    if (ret!=OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::ENCRYPTION_FAILED);
+    }
+
+    // resize target keys
+    hana::eval_if(
+        std::is_same<ReceiverKeyT,common::SharedPtr<PublicKey>>{},
+        [&](auto _)
+        {
+            _(encryptedSymmetricKey).resize(_(encryptedKeysLen)[0]);
+        },
+        [&](auto _)
+        {
+            // multiple keys
+            for (size_t i=0;i<_(pubKeysCount);i++)
+            {
+                _(encryptedSymmetricKey)[i].resize(_(encryptedKeysLen)[i]);
+            }
+        }
+    );
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error OpenSslAencryptor::doProcess(
+    const char* bufIn,
+    size_t sizeIn,
+    char* bufOut,
+    size_t& sizeOut,
+    bool lastBlock
+    )
+{
+    int resultSize=0;
+    if (!lastBlock)
+    {
+        if (::EVP_SealUpdate(nativeHandler().handler,
+                                reinterpret_cast<unsigned char*>(bufOut),
+                                &resultSize,
+                                reinterpret_cast<const unsigned char*>(bufIn),
+                                static_cast<int>(sizeIn)
+                                ) != OPENSSL_OK)
+        {
+            return makeLastSslError(CryptError::ENCRYPTION_FAILED);
+        }
+    }
+    else
+    {
+        if (::EVP_SealFinal(nativeHandler().handler,
+                                  reinterpret_cast<unsigned char*>(bufOut),
+                                  &resultSize
+                                  ) != OPENSSL_OK)
+        {
+            return makeLastSslError(CryptError::ENCRYPTION_FAILED);
+        }
+    }
+    sizeOut=static_cast<size_t>(resultSize);
+    return Error();
+}
+
+/******************* OpenSslAdecryptor ********************/
+
+Error OpenSslAdecryptor::doInit(
+        const common::ConstDataBuf& iv,
+        const common::ConstDataBuf& encryptedSymmetricKey
+    )
+{
+    // check IV size
+    if (iv.size()!=getIVSize())
+    {
+        return cryptError(CryptError::INVALID_IV_SIZE);
+    }
+
+    // init ctx
+    if (this->nativeHandler().isNull())
+    {
+        this->nativeHandler().handler = ::EVP_CIPHER_CTX_new();
+        if (this->nativeHandler().isNull())
+        {
+            return makeLastSslError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
+        }
+    }
+    else
+    {
+        if (::EVP_CIPHER_CTX_reset(this->nativeHandler().handler)!=1)
+        {
+            return makeLastSslError(CryptError::DECRYPTION_FAILED);
+        }
+    }
+
+    // prepare key
+    const auto* privKey=dynamic_cast<const OpenSslPrivateKey*>(key());
+    if (privKey==nullptr)
+    {
+        return cryptError(CryptError::INVALID_KEY);
+    }
+    if (privKey->isNativeValid())
+    {
+        return cryptError(CryptError::INVALID_KEY);
+    }
+
+    // open envelope
+    int ret=::EVP_OpenInit(this->nativeHandler().handler,
+                             cipher(),
+                             reinterpret_cast<unsigned char *>(const_cast<char*>(encryptedSymmetricKey.data())),
+                             static_cast<int>(privKey->content().size()),
+                             reinterpret_cast<unsigned char *>(const_cast<char*>(iv.data())),
+                             privKey->nativeHandler().handler);
+    if (ret!=OPENSSL_OK)
+    {
+        return makeLastSslError(CryptError::DECRYPTION_FAILED);
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error OpenSslAdecryptor::doProcess(
+    const char* bufIn,
+    size_t sizeIn,
+    char* bufOut,
+    size_t& sizeOut,
+    bool lastBlock
+    )
+{
+    int resultSize=0;
+    if (!lastBlock)
+    {
+        if (::EVP_OpenUpdate(nativeHandler().handler,
+                             reinterpret_cast<unsigned char*>(bufOut),
+                             &resultSize,
+                             reinterpret_cast<const unsigned char*>(bufIn),
+                             static_cast<int>(sizeIn)
+                             ) != OPENSSL_OK)
+        {
+            return makeLastSslError(CryptError::DECRYPTION_FAILED);
+        }
+    }
+    else
+    {
+        if (::EVP_OpenFinal(nativeHandler().handler,
+                            reinterpret_cast<unsigned char*>(bufOut),
+                            &resultSize
+                            ) != OPENSSL_OK)
+        {
+            return makeLastSslError(CryptError::DECRYPTION_FAILED);
+        }
+    }
+    sizeOut=static_cast<size_t>(resultSize);
+    return Error();
 }
 
 //---------------------------------------------------------------

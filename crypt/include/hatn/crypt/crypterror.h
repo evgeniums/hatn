@@ -86,7 +86,9 @@
     Do(CryptError,KEY_NOT_VALID_FOR_HKDF,_TR("Key can't be used for HKDF","crypt")) \
     Do(CryptError,UNEXPECTED_STREAM_CIPHER_PADDING,_TR("Unexpected padding in stream cipher","crypt")) \
     Do(CryptError,INVALID_CRYPT_CONTAINER_STREAM_MODE,_TR("Invalid operation for current streaming mode in crypt container","crypt")) \
-    Do(CryptError,INVALID_STREAM_FILE_MODE,_TR("Invalid file opening mode for streaming file, can be one of: append, append_existing, scan","crypt"))
+    Do(CryptError,INVALID_STREAM_FILE_MODE,_TR("Invalid file opening mode for streaming file, can be one of: append, append_existing, scan","crypt")) \
+    Do(CryptError,INSUFFITIENT_BUFFER_SIZE,_TR("Insufficient buffer size","crypt")) \
+    Do(CryptError,INVALID_IV_SIZE,_TR("Invalid size of initialization vector","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 

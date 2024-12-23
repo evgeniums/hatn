@@ -111,6 +111,11 @@ class HATN_OPENSSL_EXPORT OpenSslPlugin : public CryptPlugin
         //! Create symmetric decryptor
         virtual common::SharedPtr<SDecryptor> createSDecryptor(const SymmetricKey* key=nullptr) const override;
 
+        //! Create asymmetric encryptor
+        virtual common::SharedPtr<AEncryptor> createAEncryptor() const override;
+        //! Create asymmetric decryptor
+        virtual common::SharedPtr<ADecryptor> createADecryptor(const PrivateKey* key=nullptr) const override;
+
         //! Create AEAD encryptor
         virtual common::SharedPtr<AEADEncryptor> createAeadEncryptor(const SymmetricKey* key=nullptr) const override;
         //! Create AEAD decryptor
@@ -273,6 +278,19 @@ class HATN_OPENSSL_EXPORT OpenSslPlugin : public CryptPlugin
          * </pre>
          */
         virtual std::vector<std::string> listSignatures() const override;
+
+        /**
+         * @brief List algorithms that can be used for asymmetric encryption signature
+         * @return List of algorithms
+         *
+         * Names can be compound like "BASE_NAME/parameter1/.../parameterN".
+         * In this case listed name will give a hint:
+         * <pre>
+         * "BASE_NAME[/<parameter1>]" - optional parameter
+         * "BASE_NAME/<parameter1>" - mandatory parameter
+         * </pre>
+         */
+        virtual std::vector<std::string> listAsymmetricCiphers() const override;
 
         /**
          * @brief List names of all implemented DH algorithms.
