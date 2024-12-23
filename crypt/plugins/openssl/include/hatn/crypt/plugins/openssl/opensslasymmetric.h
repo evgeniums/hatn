@@ -152,44 +152,44 @@ class HATN_OPENSSL_EXPORT OpenSslAencryptor : public common::NativeHandlerContai
 
         template <typename ReceiverKeyT, typename EncryptedKeyT>
         Error initCtx(
-            const common::ConstDataBuf &iv,
             const ReceiverKeyT &receiverKey,
+            common::ByteArray& iv,
             EncryptedKeyT &encryptedSymmetricKey
         );
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const common::SharedPtr<PublicKey>& receiverKey,
+            common::ByteArray& iv,
             common::ByteArray& encryptedSymmetricKey
         ) override
         {
-            return initCtx(iv,receiverKey,encryptedSymmetricKey);
+            return initCtx(receiverKey,iv,encryptedSymmetricKey);
         }
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const common::SharedPtr<X509Certificate>& receiverCert,
+            common::ByteArray& iv,
             common::ByteArray& encryptedSymmetricKey
             ) override
         {
             Error ec;
             auto key=receiverCert->publicKey(&ec);
             HATN_CHECK_EC(ec);
-            return initCtx(iv,key,encryptedSymmetricKey);
+            return initCtx(key,iv,encryptedSymmetricKey);
         }
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const std::vector<common::SharedPtr<PublicKey>>& receiverKeys,
+            common::ByteArray& iv,
             std::vector<common::ByteArray>& encryptedSymmetricKey
         ) override
         {
-            return initCtx(iv,receiverKeys,encryptedSymmetricKey);
+            return initCtx(receiverKeys,iv,encryptedSymmetricKey);
         }
 
         virtual common::Error doInit(
-                const common::ConstDataBuf& iv,
                 const std::vector<common::SharedPtr<X509Certificate>>& receiverCerts,
+                common::ByteArray& iv,
                 std::vector<common::ByteArray>& encryptedSymmetricKey
             ) override
         {
@@ -202,11 +202,11 @@ class HATN_OPENSSL_EXPORT OpenSslAencryptor : public common::NativeHandlerContai
                 HATN_CHECK_EC(ec);
                 receiverKeys[i]=std::move(key);
             }
-            return initCtx(iv,receiverKeys,encryptedSymmetricKey);
+            return initCtx(receiverKeys,iv,encryptedSymmetricKey);
         }
 
         //! Reset cipher so that it can be used again with new data
-        virtual void backendReset() noexcept override
+        virtual void doReset() noexcept override
         {
             if (!this->nativeHandler().isNull())
             {

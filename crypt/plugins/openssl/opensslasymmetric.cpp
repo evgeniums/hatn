@@ -311,17 +311,11 @@ Error OpenSslAsymmetric::publicKeyAlgorithm(CryptAlgorithmConstP &alg, const Pub
 
 template <typename ReceiverKeyT, typename EncryptedKeyT>
 Error OpenSslAencryptor::initCtx(
-        const common::ConstDataBuf &iv,
         const ReceiverKeyT &receiverKey,
+        common::ByteArray& iv,
         EncryptedKeyT &encryptedSymmetricKey
     )
 {
-    // check IV size
-    if (iv.size()!=getIVSize())
-    {
-        return cryptError(CryptError::INVALID_IV_SIZE);
-    }
-
     // init ctx
     if (this->nativeHandler().isNull())
     {
@@ -358,7 +352,7 @@ Error OpenSslAencryptor::initCtx(
         }
         pubKeys.push_back(pubKey->nativeHandler().handler);
         auto keyLen=EVP_PKEY_size(pubKey->nativeHandler().handler);
-        encryptedSymmetricKey.resize(keyLen);
+        targetBuf.resize(keyLen);
         encryptedKeysLen.push_back(keyLen);
         auto encryptedKeyData=reinterpret_cast<unsigned char *>(targetBuf.data());
         encryptedKeys.push_back(encryptedKeyData);
@@ -383,10 +377,14 @@ Error OpenSslAencryptor::initCtx(
                 auto ec=_(prepareKey)(_(receiverKey)[i],_(encryptedSymmetricKey)[i]);
                 HATN_CHECK_EC(ec)
             }
+
             return Error{};
         }
     );
     HATN_CHECK_EC(ec)
+
+    // prepare IV buffer
+    iv.resize(getIVSize());
 
     // init seal
     int ret=::EVP_SealInit(this->nativeHandler().handler,
@@ -396,8 +394,9 @@ Error OpenSslAencryptor::initCtx(
                          reinterpret_cast<unsigned char *>(const_cast<char*>(iv.data())),
                          pubKeys.data(),
                          pubKeysCount);
-    if (ret!=OPENSSL_OK)
+    if (ret!=pubKeysCount)
     {
+        //! @todo Fill native errors
         return makeLastSslError(CryptError::ENCRYPTION_FAILED);
     }
 

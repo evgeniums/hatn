@@ -348,6 +348,7 @@ Error OpenSslPublicKey::derive(const PrivateKey &pkey)
     }
 
     nativeHandler().handler=std::exchange(pubkeyHandler.handler,nullptr);
+    this->setAlg(pkey.alg());
     return Error();
 }
 

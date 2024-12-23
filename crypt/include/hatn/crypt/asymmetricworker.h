@@ -25,6 +25,11 @@ HATN_CRYPT_NAMESPACE_BEGIN
 
 /********************** AEncryptor **********************************/
 
+struct AsymmetricReceiverMeta
+{
+    common::ByteArray encryptedKey;
+};
+
 //! Base class for asymmetric encryptors
 class AEncryptor : public SymmetricWorker<true>
 {
@@ -32,88 +37,51 @@ class AEncryptor : public SymmetricWorker<true>
 
         using Base=SymmetricWorker<true>;
 
-        AEncryptor() : m_skipReset(false)
+        AEncryptor()
         {
             setImplicitKeyMode(true);
         }
 
         common::Error init(
-            const common::ConstDataBuf& iv,
-            const common::SharedPtr<PublicKey>& receiverKey,
-            common::ByteArray& encryptedSymmetricKey
+                const common::SharedPtr<PublicKey>& receiverKey,
+                common::ByteArray& iv,
+                common::ByteArray& encryptedKey
             )
         {
-            return initT(iv,receiverKey,encryptedSymmetricKey);
+            return initT(receiverKey,iv,encryptedKey);
         }
 
         common::Error init(
-            const common::ConstDataBuf& iv,
             const common::SharedPtr<X509Certificate>& receiverCert,
-            common::ByteArray& encryptedSymmetricKey
+            common::ByteArray& iv,
+            common::ByteArray& encryptedKey
         )
         {
-            return initT(iv,receiverCert,encryptedSymmetricKey);
+            return initT(receiverCert,iv,encryptedKey);
         }
 
         common::Error init(
-            const common::ConstDataBuf& iv,
             const std::vector<common::SharedPtr<PublicKey>>& receiverKeys,
-            std::vector<common::ByteArray>& encryptedSymmetricKey
+            common::ByteArray& iv,
+            std::vector<common::ByteArray>& encryptedKeys
         )
         {
-            return initT(iv,receiverKeys,encryptedSymmetricKey);
+            return initT(receiverKeys,iv,encryptedKeys);
         }
 
         common::Error init(
-            const common::ConstDataBuf& iv,
             const std::vector<common::SharedPtr<X509Certificate>>& receiverCerts,
-            std::vector<common::ByteArray>& encryptedSymmetricKey
+            common::ByteArray& iv,
+            std::vector<common::ByteArray>& encryptedKeys
         )
         {
-            return initT(iv,receiverCerts,encryptedSymmetricKey);
+            return initT(receiverCerts,iv,encryptedKeys);
         }
 
-//! @todo Test AEncryptor::run before use
-#if 0
-        template <typename ReceicerT, typename EncryptedKeyT, typename PlaintextT, typename CiphertextT>
-        common::Error run(
-                const common::ConstDataBuf& iv,
-                const ReceicerT& receiverKeys,
-                EncryptedKeyT& encryptedSymmetricKey,
-                const PlaintextT& plaintext,
-                CiphertextT& ciphertext
-            )
-        {
-            plaintext.clear();
-            HATN_CHECK_RETURN(initT(iv,receiverKeys,encryptedSymmetricKey));
-            auto ec=processAndFinalize(plaintext,ciphertext);
-            reset();
-            return ec;
-        }
-
-        //! Overloaded runPack
-        template <typename ReceicerT, typename EncryptedKeyT, typename ContainerOutT>
+        template <typename ReceiverT, typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
         common::Error runPack(
-            const ReceicerT& receiverKeys,
-            EncryptedKeyT& encryptedSymmetricKey,
-            const common::SpanBuffers& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetOut=0
-        )
-        {
-            prepare(receiverKeys,encryptedSymmetricKey);
-            m_skipReset=true;
-            auto ec=Base::runPack(dataIn,dataOut,offsetOut);
-            m_skipReset=false;
-            reset();
-            return ec;
-        }
-#endif
-
-        template <typename ReceicerT, typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
-        common::Error runPack(
-            const ReceicerT& receiverKeys,
-            EncryptedKeyT& encryptedSymmetricKey,
+            const ReceiverT& receiverKeys,
+            EncryptedKeyT& encryptedKey,
             const ContainerInT& dataIn,
             ContainerOutT& dataOut,
             size_t offsetIn=0,
@@ -121,94 +89,82 @@ class AEncryptor : public SymmetricWorker<true>
             size_t offsetOut=0
             )
         {
-            prepare(receiverKeys,encryptedSymmetricKey);
-            m_skipReset=true;
-            auto ec=Base::runPack(dataIn,dataOut,offsetIn,sizeIn,offsetOut);
-            m_skipReset=false;
+            if (!checkInContainerSize(dataIn.size(),offsetIn,sizeIn) || !checkOutContainerSize(dataOut.size(),offsetOut))
+            {
+                return common::Error(common::CommonError::INVALID_SIZE);
+            }
+            if (!checkEmptyOutContainerResult(sizeIn,dataOut,offsetOut))
+            {
+                return common::Error();
+            }
+
+            common::ByteArray iv;
+            auto ec=init(receiverKeys,iv,encryptedKey);
+            HATN_CHECK_EC(ec)
+
+            dataOut.resize(offsetOut+iv.size());
+            memcpy(dataOut.data()+offsetOut,iv.data(),iv.size());
+
+            ec=processAndFinalize(dataIn,dataOut,offsetIn,sizeIn,dataOut.size());
             reset();
+
             return ec;
         }
 
     protected:
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const common::SharedPtr<PublicKey>& receiverKey,
-            common::ByteArray& encryptedSymmetricKey
-        ) =0;
+            common::ByteArray& iv,
+            common::ByteArray& encryptedKey
+            ) =0;
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const common::SharedPtr<X509Certificate>& receiverCert,
-            common::ByteArray& encryptedSymmetricKey
-        ) =0;
+            common::ByteArray& iv,
+            common::ByteArray& encryptedKey
+            ) =0;
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const std::vector<common::SharedPtr<PublicKey>>& receiverKeys,
-            std::vector<common::ByteArray>& encryptedSymmetricKey
-        ) =0;
+            common::ByteArray& iv,
+            std::vector<common::ByteArray>& encryptedKeys
+            ) =0;
 
         virtual common::Error doInit(
-            const common::ConstDataBuf& iv,
             const std::vector<common::SharedPtr<X509Certificate>>& receiverCerts,
-            std::vector<common::ByteArray>& encryptedSymmetricKey
-        ) =0;
+            common::ByteArray& iv,
+            std::vector<common::ByteArray>& encryptedKeys
+            ) =0;
 
-        virtual void backendReset() =0;
-
-        virtual common::Error doInit(const char* initVector, size_t size=0) override
+        virtual common::Error doInit(const char* /*initVector*/, size_t /*size*/=0) override
         {
-            auto sz=size;
-            if (sz==0)
-            {
-                sz=ivSize();
-            }
-            common::ConstDataBuf iv{initVector,sz};
-            Assert(m_forwardInitFn,"Invalid initialization sequence");
-            return m_forwardInitFn(iv);
-        }
-
-        void doReset() noexcept override
-        {
-            if (!m_skipReset)
-            {
-                m_forwardInitFn=std::function<Error (const common::ConstDataBuf& iv)>{};
-            }
-            backendReset();
+            return CommonError::UNSUPPORTED;
         }
 
     private:
 
-        std::function<Error (const common::ConstDataBuf& iv)> m_forwardInitFn;
-
-        template <typename ReceicerT, typename EncryptedKeyT>
-        void prepare(
-            const ReceicerT& receiver,
-            EncryptedKeyT& encryptedSymmetricKey
-            )
-        {
-            m_forwardInitFn=[this,&receiver,&encryptedSymmetricKey](const common::ConstDataBuf& iv)
-            {
-                return doInit(iv,receiver,encryptedSymmetricKey);
-            };
-        }
-
-        template <typename ReceicerT, typename EncryptedKeyT, typename ContainerIvT>
+        template <typename ReceiverT, typename EncryptedKeyT>
         Error initT(
-            const ContainerIvT& iv,
-            const ReceicerT& receiver,
-            EncryptedKeyT& encryptedSymmetricKey
+                const ReceiverT& receiver,
+                common::ByteArray& iv,
+                EncryptedKeyT& encryptedKey
             )
         {
-            m_skipReset=true;
-            prepare(receiver,encryptedSymmetricKey);
-            auto ec=Base::init(iv);
-            m_skipReset=false;
+            HATN_CHECK_RETURN(checkAlg())
+
+            if (alg()->isNone())
+            {
+                m_initialized=true;
+                return Error();
+            }
+            reset();
+
+            auto ec=doInit(receiver,iv,encryptedKey);
+
+            m_initialized=!ec;
             return ec;
         }
-
-        bool m_skipReset;
 };
 
 //! Base class for asymmetric decryptors
@@ -259,41 +215,6 @@ class ADecryptor : public SymmetricWorker<false>
             return ec;
         }
 
-//! @todo Test ADecryptor::run before use
-#if 0
-        template <typename EncryptedKeyT, typename PlaintextT, typename CiphertextT>
-        common::Error run(
-                const common::ConstDataBuf& iv,
-                const EncryptedKeyT& encryptedSymmetricKey,
-                const CiphertextT& ciphertext,
-                PlaintextT& plaintext
-            )
-        {
-            plaintext.clear();
-            HATN_CHECK_RETURN(init(iv,encryptedSymmetricKey));
-            auto ec=processAndFinalize(ciphertext,plaintext);
-            reset();
-            return ec;
-        }
-
-        //! Overloaded runPack
-        template <typename EncryptedKeyT, typename ContainerOutT>
-        common::Error runPack(
-            const EncryptedKeyT& encryptedSymmetricKey,
-            const common::SpanBuffers& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetOut=0
-            )
-        {
-            m_skipReset=true;
-            m_encryptedSymmetricKey.set(encryptedSymmetricKey);
-            auto ec=Base::runPack(dataIn,dataOut,offsetOut);
-            m_skipReset=false;
-            reset();
-            return ec;
-        }
-
-#endif
         template <typename EncryptedKeyT, typename ContainerInT, typename ContainerOutT>
         common::Error runPack(
             const EncryptedKeyT& encryptedSymmetricKey,
