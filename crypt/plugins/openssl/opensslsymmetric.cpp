@@ -14,9 +14,11 @@
  */
 /****************************************************************************/
 
+#include <hatn/crypt/symmetricworker.ipp>
+
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 #include <hatn/crypt/plugins/openssl/opensslsecretkey.h>
-#include <hatn/crypt/plugins/openssl/opensslcipher.h>
+#include <hatn/crypt/plugins/openssl/opensslsymmetric.h>
 
 //! \note Do not move this header upper, otherwise there are some conflicts of types on Windows platform
 #include <hatn/common/makeshared.h>
@@ -118,7 +120,7 @@ static void eachObj(const OBJ_NAME *obj, void *arg)
 }
 
 //---------------------------------------------------------------
-std::vector<std::string> OpenSslCipher::listCiphers()
+std::vector<std::string> OpenSslSymmetric::listCiphers()
 {
     std::vector<std::string> result={"-","none"};
     ::OBJ_NAME_do_all_sorted(OBJ_NAME_TYPE_CIPHER_METH, eachObj, &result);

@@ -194,12 +194,12 @@ struct CipherTraits
 template <>
 struct CipherTraits<true>
 {
-    static common::SharedPtr<CipherWorker<true>> create(CryptPlugin* plugin,SymmetricKey* key)
+    static common::SharedPtr<SymmetricWorker<true>> create(CryptPlugin* plugin,SymmetricKey* key)
     {
         return plugin->createSEncryptor(key);
     }
 
-    static common::Error process(CipherWorker<true>* cipher,MAC* mac,
+    static common::Error process(SymmetricWorker<true>* cipher,MAC* mac,
                                  const common::ConstDataBuf& dataIn,common::DataBuf& dataOut,
                                  bool authMode,common::ByteArray& tag,bool lastBlock,size_t& sizeOut)
     {
@@ -223,12 +223,12 @@ struct CipherTraits<true>
 template <>
 struct CipherTraits<false>
 {
-    static common::SharedPtr<CipherWorker<false>> create(CryptPlugin* plugin,SymmetricKey* key)
+    static common::SharedPtr<SymmetricWorker<false>> create(CryptPlugin* plugin,SymmetricKey* key)
     {
         return plugin->createSDecryptor(key);
     }
 
-    static common::Error process(CipherWorker<false>* cipher,MAC* mac,
+    static common::Error process(SymmetricWorker<false>* cipher,MAC* mac,
                                  const common::ConstDataBuf& dataIn,common::DataBuf& dataOut,
                                  bool authMode,common::ByteArray& tag,bool lastBlock,size_t& sizeOut)
     {

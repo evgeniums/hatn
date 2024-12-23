@@ -27,7 +27,7 @@ SET (HEADERS
     include/hatn/crypt/plugins/openssl/opensslsessionticketkey.h
     include/hatn/crypt/plugins/openssl/opensslx509chain.h
     include/hatn/crypt/plugins/openssl/opensslsecretkey.h
-    include/hatn/crypt/plugins/openssl/opensslcipher.h
+    include/hatn/crypt/plugins/openssl/opensslsymmetric.h
     include/hatn/crypt/plugins/openssl/openssldigest.h
     include/hatn/crypt/plugins/openssl/opensslhmac.h
     include/hatn/crypt/plugins/openssl/opensslpbkdf.h
@@ -62,7 +62,7 @@ SET (SOURCES
     opensslprivatekey.cpp
     opensslsessionticketkey.cpp
     opensslx509chain.cpp
-    opensslcipher.cpp
+    opensslsymmetric.cpp
     openssldigest.cpp
     opensslhmac.cpp
     opensslmac1.cpp

@@ -17,7 +17,7 @@
 #ifndef HATNCRYPTAEADWORKER_H
 #define HATNCRYPTAEADWORKER_H
 
-#include <hatn/crypt/cipherworker.h>
+#include <hatn/crypt/symmetricworker.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
@@ -25,7 +25,7 @@ HATN_CRYPT_NAMESPACE_BEGIN
 
 //! Base template class for AEAD
 template <bool Encrypt>
-class AeadWorker : public CipherWorker<Encrypt>
+class AeadWorker : public SymmetricWorker<Encrypt>
 {
     public:
 

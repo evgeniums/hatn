@@ -207,7 +207,7 @@ class EncryptMAC : public AeadWorker<Encrypt>
          */
         void updateKey();
 
-        common::SharedPtr<CipherWorker<Encrypt>> m_cipher;
+        common::SharedPtr<SymmetricWorker<Encrypt>> m_cipher;
         common::SharedPtr<MAC> m_mac;
 
         bool m_authMode;

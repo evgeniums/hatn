@@ -403,8 +403,6 @@ class PrivateKey : public SecureKey
         }
 };
 
-template <bool Encrypt> class CipherWorker;
-
 //! Base class for symmetric key used in symmetric algorithms
 class HATN_CRYPT_EXPORT SymmetricKey : public SecureKey
 {

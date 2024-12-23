@@ -21,7 +21,7 @@
 #define HATNCRYPTAEADWORKER_IPP
 
 #include <hatn/crypt/aeadworker.h>
-#include <hatn/crypt/cipherworker.ipp>
+#include <hatn/crypt/symmetricworker.ipp>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
@@ -563,7 +563,7 @@ common::Error AeadTraits<false>::decryptPack(
 //---------------------------------------------------------------
 template <bool Encrypt>
 AeadWorker<Encrypt>::AeadWorker(const SymmetricKey* key)
-    : CipherWorker<Encrypt>(key)
+    : SymmetricWorker<Encrypt>(key)
 {
 }
 

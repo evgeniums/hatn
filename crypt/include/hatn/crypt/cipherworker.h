@@ -9,7 +9,7 @@
 /****************************************************************************/
 /** @file crypt/cipherworker.h
  *
- *      Base classes for implementation of symmetric encryption
+ *      Base classes for implementation of encryption/decryption workers
  *
  */
 /****************************************************************************/
@@ -24,29 +24,18 @@
 
 #include <hatn/crypt/crypt.h>
 #include <hatn/crypt/crypterror.h>
-#include <hatn/crypt/securekey.h>
+#include <hatn/crypt/cryptalgorithm.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
 /********************** CipherWorker **********************************/
 
-//! Base template class for symmetric encryptors and decryptors
-template <bool Encrypt>
+//! Base template class for data encryptors and decryptors
 class CipherWorker
 {
     public:
 
-        /**
-         * @brief Ctor
-         * @param key Symmetric key to be used for encryption/decryption
-         *
-         * Worker will use encryption algotithm as set in encryption key.
-         *
-         * @throws std::runtime_error if key doesn't have role ENCRYPT_SYMMETRIC
-         */
-        CipherWorker(const SymmetricKey* key);
-
-        CipherWorker():CipherWorker(nullptr)
+        CipherWorker() : m_initialized(false)
         {}
 
         //! Dtor
@@ -57,29 +46,12 @@ class CipherWorker
         CipherWorker& operator=(const CipherWorker&)=delete;
         CipherWorker& operator=(CipherWorker&&) =default;
 
-        /**
-         * @brief Set encryption key
-         * @param key Key
-         * @param updateInherited Update key in inherited class
-         *
-         * @throws ErrorException if the key can not be set
-         */
-        void setKey(const SymmetricKey* key, bool updateInherited=true);
-
-        /**
-         * @brief Init encryptor/decryptor
-         * @param iv Initialization vector. If IV less than required then it will be padded by zeros.
-         * @return Operation status
-         */
-        template <typename ContainerIvT>
-        common::Error init(const ContainerIvT& iv);
-
-        common::Error init(const common::SpanBuffer& iv);
-
         //! Reset worker so that it can be used again with new data
-        void reset() noexcept;
-
-        size_t maxPadding() const noexcept;
+        inline void reset() noexcept
+        {
+            m_initialized=false;
+            doReset();
+        }
 
         /**
          * @brief Process block of data
@@ -150,80 +122,13 @@ class CipherWorker
             size_t offsetOut=0
         );
 
-        /**
-        * @brief Do whole processing of the data: generate/extract IV, init and procesAndFinalize
-        * @param dataIn Buffer with input data
-        * @param dataOut Buffer for output result
-        * @param offsetIn Offset in input buffer for processing
-        * @param offsetOut Offset in output buffer starting from which to put result
-        * @return Operation status
-         */
-        template <typename ContainerInT,typename ContainerOutT>
-        common::Error runPack(
-            const ContainerInT& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetIn=0,
-            size_t sizeIn=0,
-            size_t offsetOut=0
-        );
+        virtual const CryptAlgorithm* getAlg() const=0;
 
-        //! Overloaded runPack
-        template <typename ContainerOutT>
-        common::Error runPack(
-            const common::SpanBuffers& dataIn,
-            ContainerOutT& dataOut,
-            size_t offsetOut=0
-        );
-
-        //! Get encryption key
-        inline const SymmetricKey* key() const noexcept
-        {
-            return m_key;
-        }
-
-        //! Get block size for this encryption algorithm
-        virtual size_t blockSize() const noexcept
-        {
-            return alg()->blockSize();
-        }
-        //! Get IV size for this encryption algorithm
-        virtual size_t ivSize() const noexcept
-        {
-            return alg()->ivSize();
-        }
-
-        //! Generate IV
-        template <typename ContainerT>
-        common::Error generateIV(ContainerT& iv, size_t offset=0) const;
-
-        //! Set cryptographic algorithm
-        inline void setAlg(const CryptAlgorithm* alg)
-        {
-            if (m_key!=nullptr && alg!=nullptr)
-            {
-                Assert(m_key->alg()==alg,"Invalid crypt algorithm");
-            }
-            m_alg=alg;
-        }
-        //! Get cryptographic algorithm
-        inline const CryptAlgorithm* alg() const noexcept
-        {
-            return m_alg;
-        }
-
-        template <typename ContainerOutT, typename CipherTextT>
-        common::Error run(
-            const common::SpanBuffer& iv,
-            const CipherTextT& ciphertext,
-            ContainerOutT& plaintext
-        )
-        {
-            plaintext.clear();
-            HATN_CHECK_RETURN(init(iv))
-            return processAndFinalize(ciphertext,plaintext);
-        }
+        virtual size_t getMaxPadding() const noexcept=0;
 
     protected:
+
+        virtual Error canProcessAndFinalize() const noexcept=0;
 
         /**
          * @brief Actually process data in derived class
@@ -242,107 +147,10 @@ class CipherWorker
             bool lastBlock
         ) = 0;
 
-        virtual common::Error doGenerateIV(char* ivData) const =0;
-
-        /**
-         * @brief Init encryptor/decryptor
-         * @param initVector Initialization data, usually it is IV
-         * @return Operation status
-         */
-        virtual common::Error doInit(const char* initVector) =0;
-
         //! Reset worker so that it can be used again with new data
         virtual void doReset() noexcept =0;
 
-        /**
-         * @brief Update encryption key in derived class
-         *
-         * @throws ErrorException if the key can not be updated
-         */
-        virtual void doUpdateKey()
-        {}
-
-    private:
-
-        const SymmetricKey* m_key;
         bool m_initialized;
-        const CryptAlgorithm* m_alg;
-};
-
-class HATN_CRYPT_EXPORT SEncryptor : public CipherWorker<true>
-{
-    public:
-
-        using CipherWorker<true>::CipherWorker;
-
-        /**
-         * @brief Init cipher in stream mode, IV will be auto generated and prepended.
-         * @param ciphertext Buffer for result.
-         * @param offset Offset in result buffer.
-         * @return Operation status.
-         */
-        template <typename ContainerT>
-        common::Error initStream(
-            ContainerT& result,
-            size_t offset=0
-        );
-
-        /**
-         * @brief Encrypt data in stream mode.
-         * @param plaintext Input data.
-         * @param ciphertext Result container.
-         * @param offset Offset in result container.
-         * @return Operation status.
-         */
-        template <typename BufferT, typename ContainerT>
-        common::Error encryptStream(
-            const BufferT& plaintext,
-            ContainerT& ciphertext,
-            size_t offset=0
-        );
-
-        size_t streamPrefixSize() const noexcept
-        {
-            return alg()->ivSize();
-        }
-};
-
-class HATN_CRYPT_EXPORT SDecryptor : public CipherWorker<false>
-{
-    public:
-
-        using CipherWorker<false>::CipherWorker;
-
-        /**
-             * @brief Init cipher in stream mode, IV is expected in the beginning of ciphertext.
-             * @param ciphertext Buffer containing IV.
-             * @param offset Offset in buffer.
-             * @return Offset of data in ciphertext to use in decryptStream().
-        */
-        template <typename ContainerT>
-        Result<size_t> initStream(
-            const ContainerT& ciphertext,
-            size_t offset=0
-        );
-
-        /**
-             * @brief Decrypt data in stream mode.
-             * @param ciphertext Input data.
-             * @param plaintext Result container.
-             * @param offset Offset in result container.
-             * @return Operation status.
-        */
-        template <typename BufferT, typename ContainerT>
-        common::Error decryptStream(
-            const BufferT& ciphertext,
-            ContainerT& plaintext,
-            size_t offset=0
-        );
-
-        size_t streamPrefixSize() const noexcept
-        {
-            return alg()->ivSize();
-        }
 };
 
 HATN_CRYPT_NAMESPACE_END

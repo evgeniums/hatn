@@ -23,10 +23,7 @@
 #include <hatn/crypt/plugins/openssl/opensslerror.h>
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 
-namespace hatn {
-using namespace common;
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 //! Password generator with OpenSSL backend
 class OpenSslPasswordGenerator : public PasswordGenerator
@@ -39,7 +36,6 @@ class OpenSslPasswordGenerator : public PasswordGenerator
         }
 };
 
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+HATN_OPENSSL_NAMESPACE_END
 
 #endif // HATNOPENSSLPASSWORDGENERATOR_H

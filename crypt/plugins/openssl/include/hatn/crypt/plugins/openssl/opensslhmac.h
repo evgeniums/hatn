@@ -30,7 +30,6 @@
 
 #include <hatn/crypt/plugins/openssl/opensslerror.h>
 #include <hatn/crypt/plugins/openssl/openssldigest.h>
-#include <hatn/crypt/plugins/openssl/opensslcipher.h>
 #include <hatn/crypt/plugins/openssl/opensslmackey.h>
 
 #if OPENSSL_API_LEVEL < 30100

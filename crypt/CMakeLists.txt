@@ -19,6 +19,8 @@ SET (HEADERS
     include/hatn/crypt/cipher.h
     include/hatn/crypt/cipherworker.h
     include/hatn/crypt/cipherworker.ipp
+    include/hatn/crypt/symmetricworker.h
+    include/hatn/crypt/symmetricworker.ipp
     include/hatn/crypt/digest.h
     include/hatn/crypt/hmac.h
     include/hatn/crypt/cryptalgorithm.h

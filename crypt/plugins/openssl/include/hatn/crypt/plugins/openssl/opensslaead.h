@@ -25,16 +25,16 @@
 
 #include <hatn/crypt/aead.h>
 
-#include <hatn/crypt/plugins/openssl/opensslcipher.h>
+#include <hatn/crypt/plugins/openssl/opensslsymmetric.h>
 
 HATN_OPENSSL_NAMESPACE_BEGIN
 
 template <bool Encrypt,typename DerivedT>
-class OpenSslAeadWorker : public OpenSslCipherWorker<Encrypt,AeadWorker<Encrypt>,DerivedT>
+class OpenSslAeadWorker : public OpenSslSymmetricWorker<Encrypt,AeadWorker<Encrypt>,DerivedT>
 {
     public:
 
-        using OpenSslCipherWorker<Encrypt,AeadWorker<Encrypt>,DerivedT>::OpenSslCipherWorker;
+        using OpenSslSymmetricWorker<Encrypt,AeadWorker<Encrypt>,DerivedT>::OpenSslSymmetricWorker;
 
         virtual void beginNotEncrypted() override
         {

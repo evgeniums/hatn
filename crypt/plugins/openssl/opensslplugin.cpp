@@ -27,7 +27,7 @@
 #include <hatn/crypt/plugins/openssl/opensslmackey.h>
 #include <hatn/crypt/plugins/openssl/opensslsecretkey.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
-#include <hatn/crypt/plugins/openssl/opensslcipher.h>
+#include <hatn/crypt/plugins/openssl/opensslsymmetric.h>
 #include <hatn/crypt/plugins/openssl/opensslpbkdf.h>
 #include <hatn/crypt/plugins/openssl/opensslhkdf.h>
 #include <hatn/crypt/plugins/openssl/opensslsignature.h>
@@ -51,7 +51,7 @@ HATN_OPENSSL_NAMESPACE_BEGIN
 /*********************** OpenSslPlugin **************************/
 
 //---------------------------------------------------------------
-SharedPtr<SecureStreamContext> OpenSslPlugin::createSecureStreamContext(
+common::SharedPtr<SecureStreamContext> OpenSslPlugin::createSecureStreamContext(
         SecureStreamContext::EndpointType endpointType,
         SecureStreamContext::VerifyMode verifyMode
     ) const
@@ -60,7 +60,7 @@ SharedPtr<SecureStreamContext> OpenSslPlugin::createSecureStreamContext(
 }
 
 //---------------------------------------------------------------
-SharedPtr<Digest> OpenSslPlugin::createDigest(const CryptAlgorithm* alg) const
+common::SharedPtr<Digest> OpenSslPlugin::createDigest(const CryptAlgorithm* alg) const
 {
     auto obj=common::makeShared<OpenSslDigest>();
     obj->setAlgorithm(alg);
@@ -68,15 +68,15 @@ SharedPtr<Digest> OpenSslPlugin::createDigest(const CryptAlgorithm* alg) const
 }
 
 //---------------------------------------------------------------
-SharedPtr<MAC> OpenSslPlugin::createMAC(const SymmetricKey* key) const
+common::SharedPtr<MAC> OpenSslPlugin::createMAC(const SymmetricKey* key) const
 {
     return common::makeShared<OpenSslMAC>(key);
 }
 
 //---------------------------------------------------------------
-SharedPtr<HMAC> OpenSslPlugin::createHMAC(const CryptAlgorithm* alg) const
+common::SharedPtr<HMAC> OpenSslPlugin::createHMAC(const CryptAlgorithm* alg) const
 {
-    SharedPtr<OpenSslHMAC> obj(new OpenSslHMAC());
+    common::SharedPtr<OpenSslHMAC> obj(new OpenSslHMAC());
     obj->setAlgorithm(alg);
     return obj;
 }
@@ -132,7 +132,7 @@ Error OpenSslPlugin::doFindAlgorithm(
 
         case (CryptAlgorithm::Type::SENCRYPTION):
         {
-            ec=OpenSslCipher::findNativeAlgorithm(alg,name,engine);
+            ec=OpenSslSymmetric::findNativeAlgorithm(alg,name,engine);
         }
         break;
 
@@ -341,7 +341,7 @@ std::vector<std::string> OpenSslPlugin::listDigests() const
 //---------------------------------------------------------------
 std::vector<std::string> OpenSslPlugin::listCiphers() const
 {
-    return OpenSslCipher::listCiphers();
+    return OpenSslSymmetric::listCiphers();
 }
 
 //---------------------------------------------------------------

@@ -14,8 +14,8 @@
  */
 /****************************************************************************/
 
-#ifndef HATNOPENSSLCIPHER_H
-#define HATNOPENSSLCIPHER_H
+#ifndef HATNOPENSSLSYMMETRIC_H
+#define HATNOPENSSLSYMMETRIC_H
 
 #include <boost/algorithm/string.hpp>
 
@@ -25,7 +25,7 @@
 
 #include <hatn/common/nativehandler.h>
 
-#include <hatn/crypt/cipher.h>
+#include <hatn/crypt/symmetricworker.h>
 
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 #include <hatn/crypt/plugins/openssl/opensslsecretkey.h>
@@ -34,7 +34,7 @@ HATN_OPENSSL_NAMESPACE_BEGIN
 
 namespace detail
 {
-struct CipherTraits
+struct SymmetricTraits
 {
     static void free(EVP_CIPHER_CTX* ctx)
     {
@@ -44,10 +44,10 @@ struct CipherTraits
 }
 
 template <bool Encrypt,typename BaseT,typename DerivedT>
-class OpenSslCipherWorker :
+class OpenSslSymmetricWorker :
             public common::NativeHandlerContainer<
                                         EVP_CIPHER_CTX,
-                                        detail::CipherTraits,
+                                        detail::SymmetricTraits,
                                         BaseT,
                                         DerivedT
                                      >
@@ -56,7 +56,7 @@ class OpenSslCipherWorker :
 
         using common::NativeHandlerContainer<
                                 EVP_CIPHER_CTX,
-                                detail::CipherTraits,
+                                detail::SymmetricTraits,
                                 BaseT,
                                 DerivedT
                              >::NativeHandlerContainer;
@@ -169,11 +169,11 @@ class OpenSslCipherWorker :
 
 //! Symmetric encryptor with OpenSSL EVP backend
 class HATN_OPENSSL_EXPORT OpenSslSymmetricEncryptor :
-        public OpenSslCipherWorker<true,SEncryptor,OpenSslSymmetricEncryptor>
+        public OpenSslSymmetricWorker<true,SEncryptor,OpenSslSymmetricEncryptor>
 {
     public:
 
-        using OpenSslCipherWorker<true,SEncryptor,OpenSslSymmetricEncryptor>::OpenSslCipherWorker;
+        using OpenSslSymmetricWorker<true,SEncryptor,OpenSslSymmetricEncryptor>::OpenSslSymmetricWorker;
 
     private:
 
@@ -197,11 +197,11 @@ class HATN_OPENSSL_EXPORT OpenSslSymmetricEncryptor :
 
 //! Symmetric decryptor with OpenSSL EVP backend
 class HATN_OPENSSL_EXPORT OpenSslSymmetricDecryptor :
-        public OpenSslCipherWorker<false,SDecryptor,OpenSslSymmetricDecryptor>
+        public OpenSslSymmetricWorker<false,SDecryptor,OpenSslSymmetricDecryptor>
 {
     public:
 
-        using OpenSslCipherWorker<false,SDecryptor,OpenSslSymmetricDecryptor>::OpenSslCipherWorker;
+        using OpenSslSymmetricWorker<false,SDecryptor,OpenSslSymmetricDecryptor>::OpenSslSymmetricWorker;
 
     private:
 
@@ -263,7 +263,7 @@ class HATN_OPENSSL_EXPORT CipherAlg : public CryptAlgorithm
         bool m_enablePadding;
 };
 
-class HATN_OPENSSL_EXPORT OpenSslCipher
+class HATN_OPENSSL_EXPORT OpenSslSymmetric
 {
     public:
 
@@ -300,4 +300,4 @@ class HATN_OPENSSL_EXPORT OpenSslCipher
 
 HATN_OPENSSL_NAMESPACE_END
 
-#endif // HATNOPENSSLCIPHER_H
+#endif // HATNOPENSSLSYMMETRIC_H

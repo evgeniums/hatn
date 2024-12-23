@@ -27,12 +27,7 @@
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.ipp>
 
-namespace hatn {
-
-using namespace common;
-
-namespace crypt {
-namespace openssl {
+HATN_OPENSSL_NAMESPACE_BEGIN
 
 /******************* OpenSslPrivateKey ********************/
 
@@ -40,6 +35,4 @@ namespace openssl {
 template class OpenSslPKey<PrivateKey>;
 #endif
 
-//---------------------------------------------------------------
-} // namespace openssl
-HATN_CRYPT_NAMESPACE_END
+HATN_OPENSSL_NAMESPACE_END

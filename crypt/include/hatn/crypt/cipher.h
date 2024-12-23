@@ -20,8 +20,8 @@
 #include <hatn/common/error.h>
 
 #include <hatn/crypt/cryptplugin.h>
-#include <hatn/crypt/cipherworker.h>
-#include <hatn/crypt/cipherworker.ipp>
+#include <hatn/crypt/symmetricworker.h>
+#include <hatn/crypt/symmetricworker.ipp>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
