@@ -73,16 +73,6 @@ inline Error baseError(BaseError code, std::shared_ptr<common::NativeError> err)
     return Error(static_cast<int>(code),std::move(err));
 }
 
-/**
- * @brief Make ErrorResult from baseError
- * @param code BaseError code
- * @return ErrorResult
- */
-inline ErrorResult baseErrorResult(BaseError code) noexcept
-{
-    return ErrorResult{baseError(code)};
-}
-
 HATN_BASE_NAMESPACE_END
 
 #endif // HATNBASEERROR_H

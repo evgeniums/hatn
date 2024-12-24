@@ -52,7 +52,7 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
                 auto it1=map->find(section);
                 if (it1==map->end())
                 {
-                    return baseErrorResult(BaseError::VALUE_NOT_SET);
+                    return baseError(BaseError::VALUE_NOT_SET);
                 }
 
                 current=it1->second.get();
@@ -69,7 +69,7 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
 
                 if (pos.value()>=view->size())
                 {
-                    return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
+                    return makeSystemError(std::errc::result_out_of_range);
                 }
 
                 current=view->at(pos.value()).get();
@@ -77,7 +77,7 @@ Result<T> doGet(const ConfigTreePath& path, T1* configTreePtr, size_t* depth=nul
             }
 
             // return invalid result
-            return map;
+            return map.error();
         }
     }
 
@@ -126,7 +126,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
                 }
                 else
                 {
-                    return tryPos;
+                    return tryPos.error();
                 }
             }
             else
@@ -150,7 +150,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
 
             if (pos>=view->size())
             {
-                return ErrorResult{makeSystemError(std::errc::result_out_of_range)};
+                return makeSystemError(std::errc::result_out_of_range);
             }
 
             auto subtree=config_tree::makeTree();
@@ -160,7 +160,7 @@ Result<ConfigTree&> buildPath(const ConfigTreePath& path, T* configTreePtr, bool
         }
 
         // return invalid result
-        return map;
+        return map.error();
     }
 
     return *current;

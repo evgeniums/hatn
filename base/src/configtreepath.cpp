@@ -114,7 +114,7 @@ Result<size_t> ConfigTreePath::numberAt(size_t index) const
     catch (...)
     {
     }
-    return baseErrorResult(BaseError::STRING_NOT_NUMBER);
+    return baseError(BaseError::STRING_NOT_NUMBER);
 }
 
 //---------------------------------------------------------------

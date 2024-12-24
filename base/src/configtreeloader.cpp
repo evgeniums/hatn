@@ -130,7 +130,7 @@ Result<ConfigTreeInclude> ConfigTreeInclude::fromMap(const config_tree::MapT &ma
             auto mergeStr=mergeIt->second->as<std::string>();
             HATN_CHECK_RESULT(mergeStr)
             auto merge=config_tree::arrayMerge(mergeStr.value());
-            HATN_CHECK_EC(merge)
+            HATN_CHECK_RESULT(merge)
             val.merge=merge.value();
         }
     }

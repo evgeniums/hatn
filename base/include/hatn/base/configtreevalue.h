@@ -621,11 +621,11 @@ class HATN_BASE_EXPORT ConfigTreeValue
         {
             if (!static_cast<bool>(m_value))
             {
-                return baseErrorResult(BaseError::VALUE_NOT_SET);
+                return baseError(BaseError::VALUE_NOT_SET);
             }
             if (m_type!=Type::Map)
             {
-                return baseErrorResult(BaseError::INVALID_TYPE);
+                return baseError(BaseError::INVALID_TYPE);
             }
 
             return common::lib::variantGet<config_tree::MapT>(m_value.value());
@@ -635,11 +635,11 @@ class HATN_BASE_EXPORT ConfigTreeValue
         {
             if (!static_cast<bool>(m_value))
             {
-                return baseErrorResult(BaseError::VALUE_NOT_SET);
+                return baseError(BaseError::VALUE_NOT_SET);
             }
             if (m_type!=Type::Map)
             {
-                return baseErrorResult(BaseError::INVALID_TYPE);
+                return baseError(BaseError::INVALID_TYPE);
             }
 
             return common::lib::variantGet<config_tree::MapT>(m_value.value());

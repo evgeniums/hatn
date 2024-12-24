@@ -74,7 +74,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         {
             auto&& err=makeSystemError(std::errc::result_out_of_range);
             parser.error=err.message();
-            return ErrorResult(std::move(err));
+            return err;
         }
         return parser.stack.top();
     }

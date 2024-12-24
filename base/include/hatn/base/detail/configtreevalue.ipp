@@ -64,7 +64,7 @@ template <typename T> struct valuesAs
 {
     static Result<T> f(const config_tree::HolderT&) noexcept
     {
-        return baseErrorResult(BaseError::INVALID_TYPE);
+        return baseError(BaseError::INVALID_TYPE);
     }
 };
 
@@ -342,7 +342,7 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_type)
         {
-            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
+            return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_value));
     }
@@ -351,12 +351,12 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_defaultType)
         {
-            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
+            return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
 
-    return Result<valueT>{baseErrorResult(BaseError::VALUE_NOT_SET)};
+    return Result<valueT>{baseError(BaseError::VALUE_NOT_SET)};
 }
 
 template <typename T>
@@ -384,11 +384,11 @@ auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_defaultType)
         {
-            return Result<valueT>{baseErrorResult(BaseError::INVALID_TYPE)};
+            return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
-    return Result<valueT>{baseErrorResult(BaseError::VALUE_NOT_SET)};
+    return Result<valueT>{baseError(BaseError::VALUE_NOT_SET)};
 }
 
 template <typename T>
@@ -450,14 +450,14 @@ Result<ConstArrayView<T>> ConfigTreeValue::asArray() const noexcept
     {
         if (expectedTypeId!=m_type)
         {
-            return baseErrorResult(BaseError::INVALID_TYPE);
+            return baseError(BaseError::INVALID_TYPE);
         }
 
         const auto& arrayRef=common::lib::variantGet<valueType>(m_value.value());
         return emplaceResult<ConstArrayView<T>>(arrayRef);
     }
 
-    return baseErrorResult(BaseError::VALUE_NOT_SET);
+    return baseError(BaseError::VALUE_NOT_SET);
 }
 
 template <typename T>
@@ -470,14 +470,14 @@ Result<ArrayView<T>> ConfigTreeValue::asArray() noexcept
     {
         if (expectedTypeId!=m_type)
         {
-            return baseErrorResult(BaseError::INVALID_TYPE);
+            return baseError(BaseError::INVALID_TYPE);
         }
 
         auto& arrayRef=common::lib::variantGet<valueType>(m_value.value());
         return emplaceResult<ArrayView<T>>(arrayRef);
     }
 
-    return baseErrorResult(BaseError::VALUE_NOT_SET);
+    return baseError(BaseError::VALUE_NOT_SET);
 }
 
 //---------------------------------------------------------------
