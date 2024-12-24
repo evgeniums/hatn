@@ -242,12 +242,9 @@ class FieldTmplBytes : public Field, public BytesType
             return buf()->size();
         }
 
-        inline const auto& value() const noexcept
+        inline auto value() const noexcept
         {
-            //! @todo Validator must be able to work with temporary objects.
-            // validator needs lvalue reference to view rather than a temporary object, so we keep it in this object
-            m_view=decltype(m_view)(dataPtr(),dataSize());
-            return m_view;
+            return lib::string_view{dataPtr(),dataSize()};
         }
 
         //! Clear field
@@ -443,8 +440,6 @@ class FieldTmplBytes : public Field, public BytesType
 
         const AllocatorFactory* m_factory;
         typename Type::type m_value;
-
-        mutable common::lib::string_view m_view;
 };
 
 template<>
