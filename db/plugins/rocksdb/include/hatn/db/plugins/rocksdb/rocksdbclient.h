@@ -33,6 +33,16 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 {
     public:
 
+        /**
+         * @todo Implement in rocksdb:
+         *
+         * 1. Replication.
+         * 2. Migration.
+         * 3. UTF-8 support.
+         *
+         */
+
+
         RocksdbClient(
             const lib::string_view& id=lib::string_view{}
         );

@@ -190,7 +190,7 @@ rocksdb::IOStatus EncryptedWritableFile::Append(
 {
     common::MutexScopedLock l(m_mutex);
 
-    //! @todo optimization: Use non-virtual methods od CryptFile
+    //! @todo optimization: Use non-virtual methods of CryptFile
 
     Error ec;
     auto pos=m_cryptfile.pos();
