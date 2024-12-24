@@ -60,8 +60,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 #ifndef HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING
     #define HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING
-#else
-    extern bool TestRelaxMissingFieldSerializing;
 #endif
 
 //---------------------------------------------------------------
