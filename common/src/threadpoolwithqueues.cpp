@@ -14,8 +14,8 @@
 
 #include <set>
 
+#include <hatn/common/flatmap.h>
 #include <hatn/common/threadpoolwithqueues.h>
-
 #include <hatn/common/ipp/threadcategoriespool.ipp>
 
 HATN_COMMON_NAMESPACE_BEGIN
@@ -27,8 +27,7 @@ class ThreadPoolWithQueuesTraits_p
 {
     public:
 
-        //! @todo Use flatmap set
-        std::set<ThreadWithQueue<TaskT>*> threads;
+        FlatSet<ThreadWithQueue<TaskT>*> threads;
         int maxHandlersPerLoop=0;
         std::vector<std::shared_ptr<ThreadWithQueue<TaskT>>> threadStorage;
 

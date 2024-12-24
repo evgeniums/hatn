@@ -436,7 +436,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 {
     using type=typename RepeatedTraits<Type>::valueType;
     using fieldType=typename RepeatedTraits<Type>::fieldType;
-    //! @todo Maybe use vector on stack
+    //! @todo optimization: Maybe use vector on stack
     using vectorType=HATN_COMMON_NAMESPACE::pmr::vector<type>;
     using isRepeatedType=std::true_type;
     using selfType=RepeatedFieldTmpl<Type,Id,DefaultTraits>;

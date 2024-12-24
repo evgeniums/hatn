@@ -396,7 +396,7 @@ struct HATN_DATAUNIT_EXPORT BYTES : public BaseType<detail::BytesType,std::true_
     constexpr static const bool isSizeIterateNeeded=true;
 };
 
-//! @todo Use pmr String for strings
+//! @todo optimization: Use pmr String for strings
 
 //! Definition of string type
 struct HATN_DATAUNIT_EXPORT STR : public BYTES
