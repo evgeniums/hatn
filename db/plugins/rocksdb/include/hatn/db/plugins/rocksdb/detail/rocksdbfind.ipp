@@ -50,7 +50,7 @@ struct FindT
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
         bool single,
-        AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory
     ) const;
 };
 constexpr FindT Find{};
@@ -61,7 +61,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         bool single,
-        AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory
     ) const
 {
     HATN_CTX_SCOPE("find")

@@ -74,7 +74,7 @@ class CacheLRU
          */
         explicit CacheLRU(
                 size_t capacity=CAPACITY,
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault()
             ) : m_capacity(capacity),
                 m_map(factory->objectAllocator<typename mapT::value_type>())
         {}
@@ -84,7 +84,7 @@ class CacheLRU
          * @param factory Allocator factory
          */
         explicit CacheLRU(
-                common::pmr::AllocatorFactory* factory
+                const common::pmr::AllocatorFactory* factory
             ) : CacheLRU(CAPACITY,factory)
         {}
 

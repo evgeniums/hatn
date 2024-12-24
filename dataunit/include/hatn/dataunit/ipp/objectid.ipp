@@ -37,7 +37,7 @@ bool OidTraits::serialize(const ObjectId& val, BufferT& wired)
 }
 
 template <typename BufferT>
-bool OidTraits::deserialize(ObjectId& val, BufferT& wired, AllocatorFactory*)
+bool OidTraits::deserialize(ObjectId& val, BufferT& wired, const AllocatorFactory*)
 {
     return HATN_DATAUNIT_NAMESPACE::AsBytesSer::deserialize(wired,
         [&val](const char* data, size_t size)

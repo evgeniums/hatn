@@ -149,7 +149,7 @@ namespace {
 
 //---------------------------------------------------------------
 Socks5Client::Socks5Client(
-        common::pmr::AllocatorFactory* allocatorFactory
+        const common::pmr::AllocatorFactory* allocatorFactory
     ) : m_state(State::Idle),
         m_request(allocatorFactory->dataMemoryResource()),
         m_response(allocatorFactory->dataMemoryResource()),

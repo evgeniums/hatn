@@ -59,7 +59,7 @@ class DateRangeTraits
         }
 
         template <typename BufferT>
-        static bool deserialize(type& val, BufferT& wired, HATN_DATAUNIT_NAMESPACE::AllocatorFactory* =nullptr)
+        static bool deserialize(type& val, BufferT& wired, const HATN_DATAUNIT_NAMESPACE::AllocatorFactory* =nullptr)
         {
             uint32_t num=0;
             auto ok=VariableSer<uint32_t>::deserialize(num,wired);

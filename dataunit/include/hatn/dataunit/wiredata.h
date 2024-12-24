@@ -97,7 +97,7 @@ public:
         baseImpl.incSize(increment);
     }
 
-    inline AllocatorFactory* factory() const noexcept
+    inline const AllocatorFactory* factory() const noexcept
     {
         return baseImpl.factory();
     }

@@ -51,7 +51,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          * @param factory Allocator factory
          */
         explicit CryptContainer(
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) noexcept : CryptContainer(nullptr,nullptr,factory)
         {}
 
@@ -62,7 +62,7 @@ class HATN_CRYPT_EXPORT CryptContainer
          */
         explicit CryptContainer(
                 const CipherSuite* suite,
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) noexcept : CryptContainer(nullptr,suite,factory)
         {}
 
@@ -75,7 +75,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         explicit CryptContainer(
             const SymmetricKey* masterKey,
             const CipherSuite* suite=nullptr,
-            common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         ) noexcept;
 
         ~CryptContainer()=default;
@@ -412,7 +412,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         inline common::Error checkState() const noexcept;
 
         //! Get allocator factory
-        inline common::pmr::AllocatorFactory* factory() const noexcept;
+        inline const common::pmr::AllocatorFactory* factory() const noexcept;
 
         //! Derive encryption key for the chunk
         common::Error deriveKey(
@@ -504,7 +504,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         bool m_attachSuite;
         CipherSuite m_extractedSuite;
 
-        common::pmr::AllocatorFactory* m_factory;
+        const common::pmr::AllocatorFactory* m_factory;
 
         mutable lib::optional<uint32_t> m_maxPackedChunkSize;
         mutable lib::optional<uint32_t> m_maxPackedFirstChunkSize;

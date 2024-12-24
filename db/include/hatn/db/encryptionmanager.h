@@ -40,7 +40,7 @@ class HATN_DB_EXPORT EncryptionManager
     public:
 
         explicit EncryptionManager(
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_factory(factory),
                 m_chunkSize(crypt::MaxContainerChunkSize),
                 m_firstChunkSize(crypt::MaxContainerFirstChunkSize)
@@ -259,7 +259,7 @@ class HATN_DB_EXPORT EncryptionManager
         common::SharedPtr<crypt::SymmetricKey> m_defaultKey;
         std::map<std::string,common::SharedPtr<crypt::SymmetricKey>,std::less<>> m_dbKeys;
 
-        common::pmr::AllocatorFactory* m_factory;
+        const common::pmr::AllocatorFactory* m_factory;
         mutable common::MutexLock m_mutex;
 
         common::FlatSet<std::string> m_dbPaths;

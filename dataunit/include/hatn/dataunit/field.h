@@ -55,7 +55,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         Field(ValueType type, Unit* unit, bool array=false);
 
         //! Load field from wire
-        inline bool load(WireData& wired, AllocatorFactory *factory)
+        inline bool load(WireData& wired, const AllocatorFactory *factory)
         {
             m_set=doLoad(wired,factory);
             return m_set;
@@ -143,7 +143,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
          *
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers
          */
-        virtual void setParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* /*factory*/=nullptr);
+        virtual void setParseToSharedArrays(bool enable,const AllocatorFactory* /*factory*/=nullptr);
 
         /**
          * @brief Check if shared byte arrays must be used for parsing
@@ -151,7 +151,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
          */
         virtual bool isParseToSharedArrays() const noexcept;
 
-        void fieldSetParseToSharedArrays(bool,AllocatorFactory*)
+        void fieldSetParseToSharedArrays(bool,const AllocatorFactory*)
         {}
 
         virtual void pushJsonParseHandler(Unit*)=0;
@@ -192,7 +192,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData&,AllocatorFactory*)=0;
+        virtual bool doLoad(WireData&,const AllocatorFactory*)=0;
 
         //! Store field to wire
         virtual bool doStore(WireData&) const = 0;

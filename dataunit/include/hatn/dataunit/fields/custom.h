@@ -66,7 +66,7 @@ class CustomField : public Field
         }
 
         template <typename BufferT>
-        static bool deserialize(type& val, BufferT& wired, AllocatorFactory* f=nullptr)
+        static bool deserialize(type& val, BufferT& wired, const AllocatorFactory* f=nullptr)
         {
             return TraitsT::deserialize(val,wired,f);
         }
@@ -139,12 +139,12 @@ class CustomField : public Field
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        static void prepareSharedStorage(type& /*value*/,AllocatorFactory*)
+        static void prepareSharedStorage(type& /*value*/,const AllocatorFactory*)
         {
         }
 
         //! Create value
-        virtual type createValue(AllocatorFactory* =AllocatorFactory::getDefault()) const
+        virtual type createValue(const AllocatorFactory* =AllocatorFactory::getDefault()) const
         {
             return type{};
         }
@@ -187,7 +187,7 @@ class CustomField : public Field
         }
 
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory*)
+        bool deserialize(BufferT& wired, const AllocatorFactory*)
         {
             this->markSet(deserialize(this->m_value,wired));
             return this->isSet();
@@ -196,7 +196,7 @@ class CustomField : public Field
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+        virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
         {
             return deserialize(wired,factory);
         }

@@ -103,7 +103,7 @@ struct TtlIndexes
             ROCKSDB_NAMESPACE::Transaction*,
             RocksdbPartition*,
             const ROCKSDB_NAMESPACE::Slice&,
-            AllocatorFactory*
+            const AllocatorFactory*
         )
     {
     }
@@ -117,7 +117,7 @@ struct TtlIndexes
         ROCKSDB_NAMESPACE::Transaction*,
         RocksdbPartition*,
         const ROCKSDB_NAMESPACE::Slice&,
-        AllocatorFactory*
+        const AllocatorFactory*
         )
     {
     }
@@ -131,7 +131,7 @@ struct TtlIndexes
         ROCKSDB_NAMESPACE::Transaction*,
         RocksdbPartition*,
         const ROCKSDB_NAMESPACE::Slice&,
-        AllocatorFactory*
+        const AllocatorFactory*
         )
     {
     }
@@ -231,7 +231,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             ROCKSDB_NAMESPACE::Transaction* tx,
             RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
-            AllocatorFactory* allocatorFactory
+            const AllocatorFactory* allocatorFactory
         )
     {
         saveTtlIndexWithMark(makeTtlMark(model,obj),ec,model,obj,buf,tx,partition,objectIdSlice,allocatorFactory);
@@ -246,7 +246,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
             ROCKSDB_NAMESPACE::Transaction* tx,
             RocksdbPartition* partition,
             const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
-            AllocatorFactory* allocatorFactory
+            const AllocatorFactory* allocatorFactory
         )
     {
         ttlT ttlIndex{allocatorFactory};
@@ -263,7 +263,7 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         ROCKSDB_NAMESPACE::Transaction* tx,
         RocksdbPartition* partition,
         const ROCKSDB_NAMESPACE::Slice& objectIdSlice,
-        AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory
         )
     {
         if (!ttlMark.isNull())

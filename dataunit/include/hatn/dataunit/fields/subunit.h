@@ -65,10 +65,10 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             m_value(
                     ::hatn::common::ConstructWithArgsOrDefault<
                                         type,
-                                        AllocatorFactory*
+                                        const AllocatorFactory*
                                     >
                                 ::f(
-                                    std::forward<AllocatorFactory*>(parentUnit->factory())
+                                        parentUnit->factory()
                                     )
                 ),
             m_parseToSharedArrays(false)
@@ -114,13 +114,13 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         //! Deserialize DataUnit from wire
         template <typename UnitT, typename BufferT>
-        static bool deserialize(UnitT* value, BufferT& wired, AllocatorFactory*, bool /*repeated*/=false)
+        static bool deserialize(UnitT* value, BufferT& wired, const AllocatorFactory*, bool /*repeated*/=false)
         {
             return UnitSer::deserialize(value,wired);
         }
 
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory* factory)
+        bool deserialize(BufferT& wired, const AllocatorFactory* factory)
         {
             this->fieldReset(true);
             if (factory==nullptr)
@@ -165,7 +165,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         //! Deserialize DataUnit from wire
         template <typename UnitT, typename BufferT>
-        static bool deserialize(UnitT& value,BufferT& wired, AllocatorFactory* factory)
+        static bool deserialize(UnitT& value,BufferT& wired, const AllocatorFactory* factory)
         {
             return deserialize(value.mutableValue(),wired,factory);
         }
@@ -239,7 +239,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return this->m_value.mutableValue();
         }
 
-        auto createValue(AllocatorFactory* factory=nullptr) const
+        auto createValue(const AllocatorFactory* factory=nullptr) const
         {
             auto self=this;
             return hana::eval_if(
@@ -331,7 +331,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers.
          *
          */
-        virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
+        virtual void setParseToSharedArrays(bool enable,const AllocatorFactory* factory=nullptr) override
         {
             fieldSetParseToSharedArrays(enable,factory);
         }
@@ -356,7 +356,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return CanChainBlocks;
         }
 
-        void fieldSetParseToSharedArrays(bool enable,AllocatorFactory* =nullptr)
+        void fieldSetParseToSharedArrays(bool enable,const AllocatorFactory* =nullptr)
         {
             m_parseToSharedArrays=enable;
         }
@@ -373,7 +373,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        inline static void prepareSharedStorage(type& /*value*/,AllocatorFactory*)
+        inline static void prepareSharedStorage(type& /*value*/,const AllocatorFactory*)
         {
         }
 
@@ -407,7 +407,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+        virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
         {
             return this->deserialize(mutableValue(),wired,factory);
         }

@@ -53,7 +53,7 @@ struct FindManyT
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         const index_key_search::KeyHandlerFn& keyCallback
     ) const;
 };
@@ -64,7 +64,7 @@ Error FindManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         const index_key_search::KeyHandlerFn& keyCallback
     ) const
 {

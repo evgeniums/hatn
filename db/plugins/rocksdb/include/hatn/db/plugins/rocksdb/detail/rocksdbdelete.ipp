@@ -135,7 +135,7 @@ struct DeleteObjectT
                       const Topic& topic,
                       const ObjectId& objectId,
                       const DateT& date,
-                      AllocatorFactory* allocatorFactory,
+                      const AllocatorFactory* allocatorFactory,
                       Transaction* tx) const;
 };
 constexpr DeleteObjectT DeleteObject{};
@@ -147,7 +147,7 @@ Error DeleteObjectT::operator ()(
         const Topic& topic,
         const ObjectId& objectId,
         const DateT& date,
-        AllocatorFactory* factory,
+        const AllocatorFactory* factory,
         Transaction* tx
     ) const
 {

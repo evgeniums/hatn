@@ -43,7 +43,7 @@ Result<typename ModelT::SharedPtr> readSingleObject(
     RocksdbHandler& handler,
     RocksdbPartition* partition,
     const ROCKSDB_NAMESPACE::Slice& key,
-    AllocatorFactory* factory,
+    const AllocatorFactory* factory,
     Transaction* tx,
     bool forUpdate
 )
@@ -118,7 +118,7 @@ struct ReadObjectT
                                                   const Topic& topic,
                                                   const ObjectId& objectId,
                                                   const DateT& date,
-                                                  AllocatorFactory* allocatorFactory,
+                                                  const AllocatorFactory* allocatorFactory,
                                                   Transaction* tx,
                                                   bool forUpdate
                                                   ) const;
@@ -132,7 +132,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         const Topic& topic,
         const ObjectId& objectId,
         const DateT& date,
-        AllocatorFactory* factory,
+        const AllocatorFactory* factory,
         Transaction* tx,
         bool forUpdate
     ) const

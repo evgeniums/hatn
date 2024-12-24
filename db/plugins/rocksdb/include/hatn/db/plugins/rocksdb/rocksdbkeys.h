@@ -52,7 +52,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         using KeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
 
-        Keys(AllocatorFactory* factory) : factory(factory)
+        Keys(const AllocatorFactory* factory) : factory(factory)
         {}
 
         void reset()
@@ -149,7 +149,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
     private:
 
         common::VectorOnStackT<KeyBufT,PreallocatedBuffersCount> m_bufs;
-        AllocatorFactory* factory;
+        const AllocatorFactory* factory;
 
         template <typename UnitT, typename IndexT, typename PosT, typename BufT>
         Error iterateIndexFields(

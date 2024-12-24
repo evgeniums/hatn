@@ -57,7 +57,7 @@ struct UpdateObjectT
                                                   const update::Request& request,
                                                   const DateT& date,
                                                   db::update::ModifyReturn modifyReturn,
-                                                  AllocatorFactory* allocatorFactory,
+                                                  const AllocatorFactory* allocatorFactory,
                                                   Transaction* tx
                                                   ) const;
 };
@@ -74,7 +74,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
     const lib::string_view& topic,
     const update::Request& request,
     db::update::ModifyReturn modifyReturn,
-    AllocatorFactory* factory,
+    const AllocatorFactory* factory,
     Transaction* intx,
     bool* warnBrokenIndex=nullptr
     )
@@ -306,7 +306,7 @@ Result<DbObject> UpdateObjectT::operator ()(
         const update::Request& request,
         const DateT& date,
         db::update::ModifyReturn modifyReturn,
-        AllocatorFactory* factory,
+        const AllocatorFactory* factory,
         Transaction* intx
     ) const
 {

@@ -218,7 +218,6 @@ BOOST_AUTO_TEST_CASE(WindowsEncoding)
 }
 
 
-//! @todo Some other system parameters need to be checked also for this test
 BOOST_AUTO_TEST_CASE(WindowsConsole)
 {
     if (GetOEMCP()==866)

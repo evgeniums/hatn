@@ -36,7 +36,7 @@ struct _BytesFieldHelper
         wired.incSize(static_cast<int>(arr->size()));
     }
 
-    static void load(WireData&,T arr,const char* ptr,int dataSize, AllocatorFactory *)
+    static void load(WireData&,T arr,const char* ptr,int dataSize, const AllocatorFactory *)
     {
         arr->load(ptr,dataSize);
     }
@@ -60,7 +60,7 @@ struct _BytesFieldHelper<::hatn::common::ByteArrayShared,::hatn::common::ByteArr
         }
     }
 
-    static void load(WireData&,::hatn::common::ByteArrayShared& shared,const char* ptr,int dataSize, AllocatorFactory *factory)
+    static void load(WireData&,::hatn::common::ByteArrayShared& shared,const char* ptr,int dataSize, const AllocatorFactory *factory)
     {
         shared=factory->createObject<::hatn::common::ByteArrayManaged>(ptr,dataSize,factory->dataMemoryResource());
     }
@@ -99,7 +99,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         //! Deserialize field from wire
         template <typename BufferT>
-        static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory *factory)
+        static bool deserialize(typename Type::type& value, BufferT& wired, const AllocatorFactory *factory)
         {
             return BytesSer<
                         typename Type::type::onstackType,
@@ -118,7 +118,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         //! Deserialize field from wire
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory *factory)
+        bool deserialize(BufferT& wired, const AllocatorFactory *factory)
         {
             this->markSet(deserialize(this->m_value,wired,factory));
             return this->isSet();
@@ -176,7 +176,7 @@ class FieldTmplBytes : public Field, public BytesType
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        inline static void prepareSharedStorage(typename Type::type& value,AllocatorFactory* factory)
+        inline static void prepareSharedStorage(typename Type::type& value,const AllocatorFactory* factory)
         {
             if (value.byteArrayShared().isNull())
             {
@@ -320,7 +320,7 @@ class FieldTmplBytes : public Field, public BytesType
          *
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers
          */
-        virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
+        virtual void setParseToSharedArrays(bool enable,const AllocatorFactory* factory=nullptr) override
         {
             fieldSetParseToSharedArrays(enable,factory);
         }
@@ -334,7 +334,7 @@ class FieldTmplBytes : public Field, public BytesType
             return fieldIsParseToSharedArrays();
         }
 
-        void fieldSetParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* factory)
+        void fieldSetParseToSharedArrays(bool enable,const AllocatorFactory* factory)
         {
             if (enable)
             {
@@ -430,7 +430,7 @@ class FieldTmplBytes : public Field, public BytesType
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+        virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
         {
             return deserialize(this->m_value,wired,factory);
         }
@@ -441,7 +441,7 @@ class FieldTmplBytes : public Field, public BytesType
             return serialize(this->m_value,wired);
         }
 
-        AllocatorFactory* m_factory;
+        const AllocatorFactory* m_factory;
         typename Type::type m_value;
 
         mutable common::lib::string_view m_view;

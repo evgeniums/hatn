@@ -222,7 +222,7 @@ class OidTraits
         static bool serialize(const ObjectId& val, BufferT& wired);
 
         template <typename BufferT>
-        static bool deserialize(ObjectId& val, BufferT& wired, AllocatorFactory* =nullptr);
+        static bool deserialize(ObjectId& val, BufferT& wired, const AllocatorFactory* =nullptr);
 
         static void fieldClear(ObjectId& value)
         {

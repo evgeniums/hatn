@@ -80,7 +80,7 @@ class UnitHandlerTmpl : public UnitHandler
          * @param handler Data unit handler
          * @param factory allocator factor to use for creating data units
          */
-        explicit UnitHandlerTmpl(HandlerT handler, AllocatorFactory* factory=AllocatorFactory::getDefault())
+        explicit UnitHandlerTmpl(HandlerT handler, const AllocatorFactory* factory=AllocatorFactory::getDefault())
             : m_handler(std::move(handler)),
               m_container(factory)
         {}

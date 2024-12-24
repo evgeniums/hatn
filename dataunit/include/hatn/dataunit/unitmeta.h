@@ -597,7 +597,7 @@ class unit_t : public BaseT
 
             using unit_type=unit_t<BaseT,UniqueType>;
 
-            unit_t(AllocatorFactory* factory=AllocatorFactory::getDefault());
+            unit_t(const AllocatorFactory* factory=AllocatorFactory::getDefault());
 
             virtual const Field* fieldById(int id) const override;
             virtual Field* fieldById(int id) override;
@@ -667,7 +667,7 @@ struct subunit : public types::TYPE_DATAUNIT
         constexpr static const bool isSizeIterateNeeded=true;
 
         template <typename ...Args>
-        static shared_type createManagedObject(AllocatorFactory* factory, Unit* unitBase)
+        static shared_type createManagedObject(const AllocatorFactory* factory, Unit* unitBase)
         {
             if (factory==nullptr) factory=unitBase->factory();
             auto m=factory->createObject<typename shared_traits::managed>(factory);

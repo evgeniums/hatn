@@ -31,7 +31,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 struct WireBufChainedTraits : public WireBufSolidSharedTraits
 {
     WireBufChainedTraits(
-        AllocatorFactory* factory
+        const AllocatorFactory* factory
     ) : WireBufSolidSharedTraits(factory),
         m_meta(factory->dataMemoryResource()),
         m_currentMainContainer(nullptr),
@@ -186,7 +186,7 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
     }
 
     template <typename T>
-    int append(const T& other, AllocatorFactory* factory);
+    int append(const T& other, const AllocatorFactory* factory);
 
     common::ByteArray m_meta;
     common::ByteArray* m_currentMainContainer;
@@ -201,7 +201,7 @@ class HATN_DATAUNIT_EXPORT WireBufChained : public WireBuf<WireBufChainedTraits>
     public:
 
         explicit WireBufChained(
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
         ) : WireBuf<WireBufChainedTraits>(WireBufChainedTraits{factory},factory)
         {}
 
@@ -213,7 +213,7 @@ class HATN_DATAUNIT_EXPORT WireBufChained : public WireBuf<WireBufChainedTraits>
 };
 
 template <typename T>
-int WireBufChainedTraits::append(const T& other, AllocatorFactory* factory)
+int WireBufChainedTraits::append(const T& other, const AllocatorFactory* factory)
 {
     auto&& f=factory;
 

@@ -38,9 +38,9 @@ class HATN_LOGCONTEXT_EXPORT ContextAllocatorFactory
 {
     public:
 
-        static common::pmr::AllocatorFactory* defaultFactory() noexcept;
+        static const common::pmr::AllocatorFactory* defaultFactory() noexcept;
 
-        static void setDefaultFactory(common::pmr::AllocatorFactory*) noexcept;
+        static void setDefaultFactory(const common::pmr::AllocatorFactory*) noexcept;
 
         static common::pmr::memory_resource* defaultDataMemoryResource() noexcept
         {

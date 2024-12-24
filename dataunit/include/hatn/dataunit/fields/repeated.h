@@ -170,7 +170,7 @@ struct RepeatedGetterSetterNoBytes
         Assert(false,"Invalid operation for field of this type");
     }
     template <typename ArrayT>
-    constexpr static void bufCreateShared(ArrayT&,size_t,AllocatorFactory*)
+    constexpr static void bufCreateShared(ArrayT&,size_t,const AllocatorFactory*)
     {
         Assert(false,"Invalid operation for field of this type");
     }
@@ -378,7 +378,7 @@ struct RepeatedGetterSetter<Type,
         array[idx].buf()->load(data,length);
     }
     template <typename ArrayT>
-    constexpr static void bufCreateShared(ArrayT& array,size_t idx,AllocatorFactory* factory)
+    constexpr static void bufCreateShared(ArrayT& array,size_t idx,const AllocatorFactory* factory)
     {
         fieldType::prepareSharedStorage(array[idx],factory);
     }
@@ -721,7 +721,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     template <typename BufferT>
-    bool deserialize(BufferT& wired, AllocatorFactory* factory)
+    bool deserialize(BufferT& wired, const AllocatorFactory* factory)
     {
         fieldClear();
         if (factory==nullptr)
@@ -772,7 +772,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Load fields from wire */
-    virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+    virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
     {
         return deserialize(wired,factory);
     }
@@ -827,7 +827,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     *
     * When enabled then shared byte arrays will be auto allocated in managed shared buffers
     */
-    virtual void setParseToSharedArrays(bool enable,AllocatorFactory* factory=nullptr) override
+    virtual void setParseToSharedArrays(bool enable,const AllocatorFactory* factory=nullptr) override
     {
         fieldSetParseToSharedArrays(enable,factory);
     }
@@ -841,7 +841,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return fieldIsParseToSharedArrays();
     }
 
-    void fieldSetParseToSharedArrays(bool enable,AllocatorFactory* =nullptr)
+    void fieldSetParseToSharedArrays(bool enable,const AllocatorFactory* =nullptr)
     {
         m_parseToSharedArrays=enable;
     }
@@ -1018,7 +1018,7 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
     using RepeatedFieldTmpl<Type,Id,DefaultTraits>::RepeatedFieldTmpl;
 
     template <typename BufferT>
-    bool deserialize(BufferT& wired, AllocatorFactory* factory)
+    bool deserialize(BufferT& wired, const AllocatorFactory* factory)
     {
         this->fieldClear();
 
@@ -1062,7 +1062,7 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
     }
 
     /**  Load fields from wire */
-    virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+    virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
     {
         return deserialize(wired,factory);
     }
@@ -1182,7 +1182,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,Defa
 
     /**  Load fields from wire */
     template <typename BufferT>
-    bool deserialize(BufferT& wired, AllocatorFactory* factory)
+    bool deserialize(BufferT& wired, const AllocatorFactory* factory)
     {
         if (factory==nullptr)
         {
@@ -1201,7 +1201,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,Defa
     }
 
     /**  Load fields from wire */
-    virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+    virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
     {
         return deserialize(wired,factory);
     }

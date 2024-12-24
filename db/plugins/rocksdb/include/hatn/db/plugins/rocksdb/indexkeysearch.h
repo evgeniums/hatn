@@ -145,7 +145,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
     const std::string& modelId,
     const ModelIndexQuery& idxQuery,
     const Partitions& partitions,
-    AllocatorFactory* allocatorFactory,
+    const AllocatorFactory* allocatorFactory,
     bool single,
     bool firstFieldPartitioned
 );
@@ -229,7 +229,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const ModelIndexQuery& idxQuery,
     const KeyHandlerFn& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
-    AllocatorFactory* allocatorFactory,
+    const AllocatorFactory* allocatorFactory,
     const Slice& prevFrom,
     const Slice& prevTo
 );

@@ -289,7 +289,7 @@ struct HATN_DATAUNIT_EXPORT visitors
     }
 
     template <typename UnitT>
-    static void setParseToSharedArrays(UnitT& obj, bool enable, AllocatorFactory *factory)
+    static void setParseToSharedArrays(UnitT& obj, bool enable, const AllocatorFactory *factory)
     {
         hana::eval_if(
             std::is_same<Unit,UnitT>{},

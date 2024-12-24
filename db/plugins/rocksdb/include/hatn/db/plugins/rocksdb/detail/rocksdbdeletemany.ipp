@@ -30,7 +30,7 @@ struct DeleteManyT
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         bool bulk,
         Transaction* tx
     ) const;
@@ -42,7 +42,7 @@ Result<size_t> DeleteManyT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         bool bulk,
         Transaction* tx
     ) const

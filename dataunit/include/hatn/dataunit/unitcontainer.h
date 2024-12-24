@@ -49,7 +49,7 @@ class UnitContainer
          * @brief Default ctor
          * @param factory Allocator factory to use for unit creation
          */
-        UnitContainer(AllocatorFactory* factory=AllocatorFactory::getDefault())
+        UnitContainer(const AllocatorFactory* factory=AllocatorFactory::getDefault())
             : m_factory(factory)
         {}
 

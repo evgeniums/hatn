@@ -77,7 +77,7 @@ class HATN_DATAUNIT_EXPORT Unit
         using JsonParseHandler=std::function<bool(rapidjson::Reader&,RapidJsonStringViewStream&)>;
 
         //! Ctor
-        Unit(AllocatorFactory* factory=AllocatorFactory::getDefault());
+        Unit(const AllocatorFactory* factory=AllocatorFactory::getDefault());
 
         virtual ~Unit();
         Unit(const Unit&)=default;
@@ -269,7 +269,7 @@ class HATN_DATAUNIT_EXPORT Unit
          *
          * When enabled then shared byte arrays will be auto allocated in managed shared buffers
          */
-        void setParseToSharedArrays(bool enable,::hatn::dataunit::AllocatorFactory* factory=nullptr);
+        void setParseToSharedArrays(bool enable,const AllocatorFactory* factory=nullptr);
 
         /**
          * @brief Serialize DataUnit to JSON format into buffer
@@ -355,7 +355,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @brief Get allocator factory
          * @return allocator factory
          */
-        inline AllocatorFactory* factory() const noexcept
+        inline const AllocatorFactory* factory() const noexcept
         {
             return m_factory;
         }
@@ -415,7 +415,7 @@ class HATN_DATAUNIT_EXPORT Unit
         common::SharedPtr<WireData> m_wireDataKeeper;
         bool m_clean;
 
-        AllocatorFactory* m_factory;
+        const AllocatorFactory* m_factory;
         common::pmr::list<JsonParseHandler> m_jsonParseHandlers;
 
         friend struct visitors;

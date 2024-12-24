@@ -213,12 +213,12 @@ class DateTime : public Field
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        inline static void prepareSharedStorage(type& /*value*/,AllocatorFactory*)
+        inline static void prepareSharedStorage(type& /*value*/,const AllocatorFactory*)
         {
         }
 
         //! Create value
-        virtual type createValue(AllocatorFactory* =AllocatorFactory::getDefault()) const
+        virtual type createValue(const AllocatorFactory* =AllocatorFactory::getDefault()) const
         {
             return type();
         }
@@ -251,7 +251,7 @@ class DateTime : public Field
         }
 
         template <typename BufferT>
-        static bool deserialize(type& val, BufferT& wired, AllocatorFactory* =nullptr)
+        static bool deserialize(type& val, BufferT& wired, const AllocatorFactory* =nullptr)
         {
             uint64_t num=0;
             if (!VariableSer<uint64_t>::deserialize(num,wired))
@@ -274,7 +274,7 @@ class DateTime : public Field
         }
 
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory*)
+        bool deserialize(BufferT& wired, const AllocatorFactory*)
         {
             this->markSet(deserialize(this->m_value,wired));
             return this->isSet();
@@ -303,7 +303,7 @@ class DateTime : public Field
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+        virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
         {
             return deserialize(wired,factory);
         }

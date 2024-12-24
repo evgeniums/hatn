@@ -25,7 +25,7 @@ HATN_CRYPT_NAMESPACE_BEGIN
 CryptContainer::CryptContainer(
         const SymmetricKey* masterKey,
         const CipherSuite* suite,
-        common::pmr::AllocatorFactory* factory
+        const common::pmr::AllocatorFactory* factory
     ) noexcept
         : m_masterKey(masterKey),
           m_encryptionKey(nullptr),

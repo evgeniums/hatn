@@ -79,21 +79,21 @@ class HATN_NETWORK_EXPORT CaresLib
          * This can take place any time after calling init().
          */
         static Error init(
-            common::pmr::AllocatorFactory* allocatorFactory=nullptr
+            const common::pmr::AllocatorFactory* allocatorFactory=nullptr
         );
 
         //! Cleanup library
         static void cleanup();
 
         //! Get allocator factory to use in resolver
-        inline static common::pmr::AllocatorFactory* allocatorFactory() noexcept
+        inline static const common::pmr::AllocatorFactory* allocatorFactory() noexcept
         {
             return m_allocatorFactory;
         }
 
     private:
 
-        static common::pmr::AllocatorFactory *m_allocatorFactory;
+        static const common::pmr::AllocatorFactory *m_allocatorFactory;
 };
 
 //! Error codes of c-ares.

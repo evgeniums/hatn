@@ -45,7 +45,7 @@ ByteArray::ByteArray(
 
 //---------------------------------------------------------------
 ByteArray::ByteArray(
-        pmr::AllocatorFactory* factory
+        const pmr::AllocatorFactory* factory
     ) noexcept : ByteArray(factory->dataMemoryResource())
 {
 }

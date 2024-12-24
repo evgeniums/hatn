@@ -72,7 +72,7 @@ class HATN_COMMON_EXPORT ByteArray
         {}
 
         ByteArray(
-            pmr::AllocatorFactory* factory
+            const pmr::AllocatorFactory* factory
         ) noexcept;
 
         //! Ctor from null-terminated const char* string

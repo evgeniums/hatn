@@ -295,7 +295,7 @@ struct BytesType : public BytesTraits<common::ByteArrayShared, common::ByteArray
 
     using BytesTraits<common::ByteArrayShared, common::ByteArray, common::ByteArrayManaged>::BytesTraits;
 
-    static sharedType createShared(::hatn::dataunit::AllocatorFactory* factory)
+    static sharedType createShared(const HATN_DATAUNIT_NAMESPACE::AllocatorFactory* factory)
     {
         return factory->createObject<managedType>(factory->dataMemoryResource());
     }
@@ -319,7 +319,7 @@ template <size_t length> struct FixedString : public BytesTraits<common::SharedP
             common::FixedByteArrayManaged<length,true>
             >::BytesTraits;
 
-    static sharedType createShared(::hatn::dataunit::AllocatorFactory* factory)
+    static sharedType createShared(const HATN_DATAUNIT_NAMESPACE::AllocatorFactory* factory)
     {
         return factory->createObject<managedType>();
     }
@@ -390,7 +390,7 @@ struct HATN_DATAUNIT_EXPORT DATAUNIT : public BaseType<Unit,std::false_type,Valu
     using base_shared_type=Unit;
     using shared_type=::hatn::common::SharedPtr<Unit>;
 
-    static shared_type createManagedObject(AllocatorFactory*,Unit* parentUnit)
+    static shared_type createManagedObject(const AllocatorFactory*,Unit* parentUnit)
     {
         return parentUnit->createManagedUnit();
     }

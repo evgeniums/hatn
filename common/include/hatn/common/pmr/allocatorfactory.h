@@ -83,7 +83,7 @@ class HATN_COMMON_EXPORT AllocatorFactory final
     public:
 
         //! Get default allocation factory instance
-        static AllocatorFactory* getDefault() noexcept;
+        static const AllocatorFactory* getDefault() noexcept;
 
         //! Set default allocation factory instance
         static void setDefault(std::shared_ptr<AllocatorFactory> instance) noexcept;

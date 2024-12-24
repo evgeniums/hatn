@@ -41,7 +41,7 @@ struct UpdateManyT
         const ModelIndexQuery& query,
         const update::Request& request,
         db::update::ModifyReturn modifyReturnFirst,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         Transaction* tx,
         bool single=false
 ) const;
@@ -61,7 +61,7 @@ UpdateManyT::operator ()(
         const ModelIndexQuery& query,
         const update::Request& request,
         db::update::ModifyReturn modifyReturnFirst,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         Transaction* tx,
         bool single
     ) const

@@ -44,7 +44,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModels : public common::Singleton
 
         template <typename ModelT>
         void registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
-                           AllocatorFactory* allocatorFactory=AllocatorFactory::getDefault());
+                           const AllocatorFactory* allocatorFactory=AllocatorFactory::getDefault());
 
         std::shared_ptr<RocksdbModel> model(const ModelInfo& info) const
         {

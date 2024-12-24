@@ -23,7 +23,7 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 namespace {
 
-using FactoryPtr=common::pmr::AllocatorFactory**;
+using FactoryPtr=const common::pmr::AllocatorFactory**;
 
 FactoryPtr& factory() noexcept
 {
@@ -34,12 +34,12 @@ FactoryPtr& factory() noexcept
 
 }
 
-common::pmr::AllocatorFactory* ContextAllocatorFactory::defaultFactory() noexcept
+const common::pmr::AllocatorFactory* ContextAllocatorFactory::defaultFactory() noexcept
 {
     return *factory();
 }
 
-void ContextAllocatorFactory::setDefaultFactory(common::pmr::AllocatorFactory* f) noexcept
+void ContextAllocatorFactory::setDefaultFactory(const common::pmr::AllocatorFactory* f) noexcept
 {
     *factory()=f;
 }

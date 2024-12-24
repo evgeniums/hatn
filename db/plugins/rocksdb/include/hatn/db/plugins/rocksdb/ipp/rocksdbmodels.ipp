@@ -44,7 +44,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename ModelT>
 void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
-                                  AllocatorFactory* allocatorFactory)
+                                  const AllocatorFactory* allocatorFactory)
 {
     Assert(m_models.find(model->info->modelId())==m_models.end(),"Failed to register duplicate model");
 

@@ -30,7 +30,7 @@ struct CountT
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
-        AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory
     ) const;
 };
 constexpr CountT Count{};
@@ -40,7 +40,7 @@ Result<size_t> CountT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
-        AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory
     ) const
 {
     size_t count=0;

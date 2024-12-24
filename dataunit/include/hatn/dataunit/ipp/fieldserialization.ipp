@@ -178,7 +178,7 @@ struct _BytesSer
     }
 
     template <typename BufferT>
-    static void load(BufferT& wired,T1 arr,const char* ptr,int dataSize, AllocatorFactory *)
+    static void load(BufferT& wired,T1 arr,const char* ptr,int dataSize, const AllocatorFactory *)
     {
         if (wired.isUseInlineBuffers())
         {
@@ -220,7 +220,7 @@ template <>
 struct _BytesSer<common::ByteArrayShared&,common::ByteArray*>
 {
     template <typename BufferT>
-    static void load(BufferT& wired,common::ByteArrayShared& shared,const char* ptr,int dataSize, AllocatorFactory *factory)
+    static void load(BufferT& wired,common::ByteArrayShared& shared,const char* ptr,int dataSize, const AllocatorFactory *factory)
     {
         shared=factory->createObject<common::ByteArrayManaged>(ptr,dataSize,wired.isUseInlineBuffers(),factory->dataMemoryResource());
     }
@@ -276,7 +276,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
         BufferT& wired,
         onstackT* valBuf,
         sharedT& shared,
-        AllocatorFactory *factory,
+        const AllocatorFactory *factory,
         int maxSize,
         bool canChainBlocks
     )

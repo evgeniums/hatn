@@ -52,7 +52,7 @@ struct FindCbT
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
         const FindCb& cb,
-        AllocatorFactory* allocatorFactory,
+        const AllocatorFactory* allocatorFactory,
         Transaction* tx,
         bool forUpdate
     ) const;
@@ -65,7 +65,7 @@ Error FindCbT::operator ()(
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         const FindCb& cb,
-        AllocatorFactory* factory,
+        const AllocatorFactory* factory,
         Transaction* tx,
         bool forUpdate
     ) const

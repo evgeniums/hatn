@@ -106,7 +106,7 @@ class UnitImpl
         template <typename BufferT>
         struct FieldParser
         {
-            std::function<bool(UnitImpl<Fields...>&, BufferT&, AllocatorFactory*)> fn;
+            std::function<bool(UnitImpl<Fields...>&, BufferT&, const AllocatorFactory*)> fn;
             WireType wireType;
             const char* fieldName;
             int fieldId;
@@ -225,7 +225,7 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
         ~UnitConcat()=default;
 
         UnitConcat(
-                AllocatorFactory* factory=AllocatorFactory::getDefault()
+                const AllocatorFactory* factory=AllocatorFactory::getDefault()
             ) : Unit(factory),
                 baseType(this)
         {}
@@ -681,7 +681,7 @@ class EmptyUnit : public Unit
         template <typename BufferT>
         struct FieldParser
         {
-            std::function<bool(EmptyUnit&, BufferT&, AllocatorFactory*)> fn;
+            std::function<bool(EmptyUnit&, BufferT&, const AllocatorFactory*)> fn;
             WireType wireType;
             const char* fieldName;
             int fieldId;
@@ -947,7 +947,7 @@ UnitImpl<Fields...>::fieldParsers()
         auto index=hana::first(state);
         auto map=hana::second(state);
 
-        auto handler=[&index](unitT& unit, BufferT& buf, AllocatorFactory* factory)
+        auto handler=[&index](unitT& unit, BufferT& buf, const AllocatorFactory* factory)
         {
             auto& field=hana::at(unit.m_fields,index);
             return field.deserialize(buf,factory);

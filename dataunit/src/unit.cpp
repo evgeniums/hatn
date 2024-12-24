@@ -48,7 +48,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 /********************** Unit **************************/
 
 //---------------------------------------------------------------
-Unit::Unit(AllocatorFactory *factory)
+Unit::Unit(const AllocatorFactory *factory)
     :m_clean(true),
      m_factory(factory),
      m_jsonParseHandlers(factory->objectAllocator<JsonParseHandler>())
@@ -186,7 +186,7 @@ int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
 }
 
 //---------------------------------------------------------------
-void Unit::setParseToSharedArrays(bool enable, AllocatorFactory *factory)
+void Unit::setParseToSharedArrays(bool enable, const AllocatorFactory *factory)
 {
     if (factory==nullptr)
     {

@@ -38,14 +38,14 @@ class HATN_DATAUNIT_EXPORT WireBufBase
     public:
 
         explicit WireBufBase(
-            AllocatorFactory* factory,
+            const AllocatorFactory* factory,
             bool useShareBuffers=false
         ) : WireBufBase(0,factory,useShareBuffers)
         {}
 
         explicit WireBufBase(
             size_t size=0,
-            AllocatorFactory* factory=nullptr,
+            const AllocatorFactory* factory=nullptr,
             bool useShareBuffers=false
         ) noexcept :
             m_size(size),
@@ -69,7 +69,7 @@ class HATN_DATAUNIT_EXPORT WireBufBase
             m_size+=increment;
         }
 
-        inline AllocatorFactory* factory() const noexcept
+        inline const AllocatorFactory* factory() const noexcept
         {
             return m_factory;
         }
@@ -90,13 +90,13 @@ class HATN_DATAUNIT_EXPORT WireBufBase
 
     protected:
 
-        inline void setFactory(AllocatorFactory* factory) noexcept
+        inline void setFactory(const AllocatorFactory* factory) noexcept
         {
             m_factory=factory;
         }
 
         size_t m_size;
-        AllocatorFactory* m_factory;
+        const AllocatorFactory* m_factory;
 
         bool m_useShareBuffers;
         bool m_useInlineBuffers;
@@ -176,7 +176,7 @@ class WireBuf : public common::WithTraits<TraitsT>,
 
         explicit WireBuf(
             TraitsT&& traits,
-            AllocatorFactory* factory,
+            const AllocatorFactory* factory,
             bool useShareBuffers=false
         ) :  WireBuf(std::move(traits),0,factory,useShareBuffers)
         {}
@@ -184,7 +184,7 @@ class WireBuf : public common::WithTraits<TraitsT>,
         explicit WireBuf(
             TraitsT&& traits,
             size_t size=0,
-            AllocatorFactory* factory=nullptr,
+            const AllocatorFactory* factory=nullptr,
             bool useShareBuffers=false
         ) noexcept
             : common::WithTraits<TraitsT>(std::move(traits)),

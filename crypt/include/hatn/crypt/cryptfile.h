@@ -50,7 +50,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          * @param factory Allocator factory
          */
         CryptFile(
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : CryptFile(nullptr,nullptr,factory)
         {}
 
@@ -61,7 +61,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
          */
         CryptFile(
                 const CipherSuite *suite,
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : CryptFile(nullptr,suite,factory)
         {}
 
@@ -74,7 +74,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
         CryptFile(
             const SymmetricKey* masterKey,
             const CipherSuite* suite=nullptr,
-            common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
         virtual ~CryptFile();
@@ -427,7 +427,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
 
         struct Chunk
         {
-            explicit Chunk(common::pmr::AllocatorFactory* factory,uint32_t seqnum=0)
+            explicit Chunk(const common::pmr::AllocatorFactory* factory,uint32_t seqnum=0)
                 : seqnum(seqnum),
                   dirty(false),
                   offset(0),
@@ -571,7 +571,7 @@ class WithCryptfile
         explicit WithCryptfile(
             const SymmetricKey* masterKey,
             const CipherSuite* suite=nullptr,
-            common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_cryptfile(masterKey,suite,factory)
         {}
 

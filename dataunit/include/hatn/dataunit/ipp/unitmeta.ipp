@@ -31,7 +31,7 @@ HATN_DATAUNIT_META_NAMESPACE_BEGIN
 HATN_IGNORE_UNUSED_FUNCTION_BEGIN
 
 template <typename BaseT, typename UniqueType>
-unit_t<BaseT,UniqueType>::unit_t(AllocatorFactory* factory):BaseT(factory)
+unit_t<BaseT,UniqueType>::unit_t(const AllocatorFactory* factory):BaseT(factory)
 {}
 
 HATN_IGNORE_UNUSED_FUNCTION_END

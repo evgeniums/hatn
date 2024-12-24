@@ -292,12 +292,12 @@ class Scalar : public Field
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        inline static void prepareSharedStorage(type& /*value*/,AllocatorFactory*)
+        inline static void prepareSharedStorage(type& /*value*/,const AllocatorFactory*)
         {
         }
 
         //! Create value
-        virtual type createValue(AllocatorFactory* =AllocatorFactory::getDefault()) const
+        virtual type createValue(const AllocatorFactory* =AllocatorFactory::getDefault()) const
         {
             return type();
         }
@@ -445,7 +445,7 @@ class VarInt : public Scalar<Type>
         }
 
         template <typename BufferT>
-        static bool deserialize(typename Type::type& val, BufferT& wired, AllocatorFactory*)
+        static bool deserialize(typename Type::type& val, BufferT& wired, const AllocatorFactory*)
         {
             return VariableSer<typename Type::type>::deserialize(val,wired);
         }
@@ -457,7 +457,7 @@ class VarInt : public Scalar<Type>
         }
 
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory*)
+        bool deserialize(BufferT& wired, const AllocatorFactory*)
         {
             this->markSet(VariableSer<typename Type::type>::deserialize(this->m_value,wired));
             return this->isSet();
@@ -484,7 +484,7 @@ class VarInt : public Scalar<Type>
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired, AllocatorFactory* factory) override
+        virtual bool doLoad(WireData& wired, const AllocatorFactory* factory) override
         {
             return deserialize(wired,factory);
         }
@@ -551,13 +551,13 @@ class Fixed : public Scalar<Type>
 
         //! Deserialize from wire.
         template <typename BufferT>
-        static bool deserialize(typename Type::type& value, BufferT& wired, AllocatorFactory*)
+        static bool deserialize(typename Type::type& value, BufferT& wired, const AllocatorFactory*)
         {
             return FixedSer<typename Type::type>::deserialize(value,wired);
         }
 
         template <typename BufferT>
-        bool deserialize(BufferT& wired, AllocatorFactory*)
+        bool deserialize(BufferT& wired, const AllocatorFactory*)
         {
             this->markSet(FixedSer<typename Type::type>::deserialize(this->m_value,wired));
             return this->isSet();
@@ -566,7 +566,7 @@ class Fixed : public Scalar<Type>
     protected:
 
         //! Load field from wire
-        virtual bool doLoad(WireData& wired,AllocatorFactory *factory) override
+        virtual bool doLoad(WireData& wired,const AllocatorFactory *factory) override
         {
             return deserialize(this->m_value,wired,factory);
         }

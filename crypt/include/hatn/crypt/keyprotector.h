@@ -55,7 +55,7 @@ class KeyProtector
         KeyProtector(
                 common::SharedPtr<PassphraseKey> passphrase,
                 const CipherSuite *suite,
-                common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
         ) noexcept : m_passphrase(std::move(passphrase)),
                      m_impl(m_passphrase.get(),suite,factory)
         {
@@ -71,7 +71,7 @@ class KeyProtector
         KeyProtector(
                 common::SharedPtr<SymmetricKey> symmetricKey,
                 const CipherSuite *suite,
-                common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
         ) noexcept : m_symmetricKey(std::move(symmetricKey)),
                      m_impl(m_symmetricKey.get(),suite,factory)
         {
@@ -83,7 +83,7 @@ class KeyProtector
          * @param factory Allocator factory
          */
         KeyProtector(
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : KeyProtector(common::SharedPtr<PassphraseKey>(),nullptr,factory)
         {}
 
@@ -94,7 +94,7 @@ class KeyProtector
          */
         KeyProtector(
                 const CipherSuite *suite,
-                common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : KeyProtector(common::SharedPtr<PassphraseKey>(),suite,factory)
         {}
 

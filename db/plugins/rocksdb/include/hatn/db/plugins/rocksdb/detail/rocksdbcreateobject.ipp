@@ -51,7 +51,7 @@ struct CreateObjectT
                      RocksdbHandler& handler,
                      const Topic& topic,
                      const typename ModelT::UnitType::type* obj,
-                     AllocatorFactory* allocatorFactory,
+                     const AllocatorFactory* allocatorFactory,
                      Transaction* tx
                      ) const;
 };
@@ -63,7 +63,7 @@ Error CreateObjectT::operator ()(
                                RocksdbHandler& handler,
                                const Topic& topic,
                                const typename ModelT::UnitType::type* obj,
-                               AllocatorFactory* allocatorFactory,
+                               const AllocatorFactory* allocatorFactory,
                                Transaction* tx
                               ) const
 {

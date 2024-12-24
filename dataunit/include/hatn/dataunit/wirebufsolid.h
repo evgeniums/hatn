@@ -59,7 +59,7 @@ struct WireBufSolidTraitsBase : public WireBufTraits,
     }
 
     template <typename T>
-    int append(const T& other, AllocatorFactory*)
+    int append(const T& other, const AllocatorFactory*)
     {
         int size=static_cast<int>(other.size());
         copyToContainer(other,mainContainer());
@@ -105,7 +105,7 @@ struct WireBufSolidTraitsBase : public WireBufTraits,
 struct ContainerOnStack
 {
     ContainerOnStack(
-        AllocatorFactory* factory
+        const AllocatorFactory* factory
         ) : m_container(factory->dataMemoryResource())
     {}
 
@@ -137,7 +137,7 @@ struct ContainerOnStack
 struct ContainerShared
 {
     ContainerShared(
-        AllocatorFactory* factory
+        const AllocatorFactory* factory
         ) : m_container(factory->createObject<common::ByteArrayManaged>(factory->dataMemoryResource()))
     {}
 
@@ -172,13 +172,13 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
     public:
 
         explicit WireBufSolid(
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
         ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{factory},factory)
         {}
 
         explicit WireBufSolid(
             common::ByteArray container,
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
         ) noexcept
             : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{std::move(container)},0,factory)
         {
@@ -189,14 +189,14 @@ class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
             const char* data,
             size_t size,
             bool inlineBuffer,
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
             ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{data,size,inlineBuffer},size,factory)
         {}
 
         WireBufSolid(
             const char* data,
             size_t size,
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
             ) : WireBuf<WireBufSolidTraits>(WireBufSolidTraits{data,size,false},size,factory)
         {}
 
@@ -235,13 +235,13 @@ class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidShare
     public:
 
         explicit WireBufSolidShared(
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
         ) : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{factory},factory)
         {}
 
         explicit WireBufSolidShared(
             common::ByteArrayShared container,
-            AllocatorFactory* factory=AllocatorFactory::getDefault()
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
         ) noexcept
             : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{std::move(container)},0,factory)
         {

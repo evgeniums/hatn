@@ -43,7 +43,7 @@ bool Field::isRepeatedUnpackedProtoBuf() const noexcept
 }
 
 //---------------------------------------------------------------
-void Field::setParseToSharedArrays(bool enable,AllocatorFactory* factory)
+void Field::setParseToSharedArrays(bool enable,const AllocatorFactory* factory)
 {
     fieldSetParseToSharedArrays(enable,factory);
 }

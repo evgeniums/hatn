@@ -26,8 +26,7 @@ std::shared_ptr<AllocatorFactory>& defaultfactory()
 }
 
 //---------------------------------------------------------------
-//! @todo Use const AllocatorFactory*
-AllocatorFactory* AllocatorFactory::getDefault() noexcept
+const AllocatorFactory* AllocatorFactory::getDefault() noexcept
 {
     return defaultfactory().get();
 }

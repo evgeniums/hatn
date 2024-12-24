@@ -867,7 +867,7 @@ inline common::Error CryptContainer::checkState() const noexcept
 }
 
 //---------------------------------------------------------------
-inline common::pmr::AllocatorFactory* CryptContainer::factory() const noexcept
+inline const common::pmr::AllocatorFactory* CryptContainer::factory() const noexcept
 {
     return m_factory;
 }

@@ -38,7 +38,7 @@ HATN_COMMON_USING
 CryptFile::CryptFile(
         const SymmetricKey *masterKey,
         const CipherSuite *suite,
-        pmr::AllocatorFactory *factory
+        const pmr::AllocatorFactory *factory
     ) : m_proc(masterKey,suite,factory),
         m_cursor(0),
         m_seekCursor(0),

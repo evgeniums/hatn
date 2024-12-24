@@ -79,7 +79,7 @@ HATN_NETWORK_NAMESPACE_BEGIN
 
             //! Constructor
             Socks5Client(
-                common::pmr::AllocatorFactory* allocatorFactory=common::pmr::AllocatorFactory::getDefault()
+                const common::pmr::AllocatorFactory* allocatorFactory=common::pmr::AllocatorFactory::getDefault()
             );
 
             //! Get buffer where to put responses

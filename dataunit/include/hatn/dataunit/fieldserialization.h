@@ -80,7 +80,7 @@ class BytesSer
                                 BufferT& wired,
                                 OnStackT* buf,
                                 SharedT& shared,
-                                AllocatorFactory *factory,
+                                const AllocatorFactory *factory,
                                 int maxSize=0,
                                 bool canChainBlocks=true
                                 );

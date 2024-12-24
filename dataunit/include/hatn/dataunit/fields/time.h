@@ -59,7 +59,7 @@ class TimeTraits
         }
 
         template <typename BufferT>
-        static bool deserialize(type& val, BufferT& wired, HATN_DATAUNIT_NAMESPACE::AllocatorFactory* =nullptr)
+        static bool deserialize(type& val, BufferT& wired, const HATN_DATAUNIT_NAMESPACE::AllocatorFactory* =nullptr)
         {
             uint64_t num=0;
             auto ok=VariableSer<uint64_t>::deserialize(num,wired);

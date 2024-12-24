@@ -65,7 +65,7 @@ static const int CHECK_TIMEOUTS_PERIOD=1000; // ms
 
 /********************** CaresLib **************************/
 
-common::pmr::AllocatorFactory* CaresLib::m_allocatorFactory=nullptr;
+const common::pmr::AllocatorFactory* CaresLib::m_allocatorFactory=nullptr;
 
 namespace {
 
@@ -102,7 +102,7 @@ static void* myRealloc(void *ptr, size_t size)
 }
 
 //---------------------------------------------------------------
-Error CaresLib::init(common::pmr::AllocatorFactory *allocatorFactory)
+Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
 {
     int res=ARES_SUCCESS;
     if (allocatorFactory!=nullptr)
