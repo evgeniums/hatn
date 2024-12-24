@@ -257,7 +257,7 @@ struct HATN_DATAUNIT_EXPORT visitors
     }
 
     /**
-     * @brief Get size of data unit without invokation of virtual methods.
+     * @brief Get max expected size of packed data unit without invokation of virtual methods.
      * @param obj Data unit object.
      */
     template <typename UnitT>
@@ -267,7 +267,7 @@ struct HATN_DATAUNIT_EXPORT visitors
             std::is_same<Unit,UnitT>{},
             [&](auto _)
             {
-                return _(obj).size();
+                return _(obj).maxPackedSize();
             },
             [&](auto _)
             {

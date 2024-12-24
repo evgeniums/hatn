@@ -123,7 +123,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         virtual const char* name() const noexcept {return nullptr;}
 
         //! Get field size
-        virtual size_t size() const  noexcept =0;
+        virtual size_t maxPackedSize() const  noexcept =0;
         //! Clear field
         virtual void clear()=0;
 

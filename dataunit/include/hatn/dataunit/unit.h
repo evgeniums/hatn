@@ -162,7 +162,7 @@ class HATN_DATAUNIT_EXPORT Unit
         /**
          * @brief Serialize DataUnit to plain data buffer
          * @param buf Buffer
-         * @param bufSize Size of buffer, must be equal or greater than size()
+         * @param bufSize Size of buffer, must be equal or greater than maxPackedSize()
          * @param checkSize Check if bufSize is enough to store serialized data
          * @return Size of serialized data or -1 if failed
          */
@@ -188,7 +188,7 @@ class HATN_DATAUNIT_EXPORT Unit
                         ,void*>::type=nullptr
                 )
         {
-            auto expectedSize=size();
+            auto expectedSize=maxPackedSize();
             container.resize(expectedSize+offsetOut);
             int actualSize=serialize(container.data()+offsetOut,expectedSize,false);
             if (actualSize<0)
@@ -248,7 +248,7 @@ class HATN_DATAUNIT_EXPORT Unit
          * @brief Actual packed size can be less than estimated but will never exceed it
          * @return Estimated size of the packed unit
          */
-        virtual size_t size() const;
+        virtual size_t maxPackedSize() const;
 
         /** Get reference to self **/
         inline const Unit& value() const noexcept

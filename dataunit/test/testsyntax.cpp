@@ -469,7 +469,7 @@ template <typename C, typename F, typename T> void wireSingleVar(const T& val)
     unit1.template field<F>().set(val);
     BOOST_CHECK_EQUAL(unit1.template field<F>().get(),val);
 
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
     BOOST_CHECK_EQUAL(packedSize,wired.mainContainer()->size());
@@ -580,7 +580,7 @@ void checkByteArray(bool inlineBuffers=false)
             (*arr1)[i]=static_cast<char>(d);
         }
 
-        auto expectedSize=unit1.size();
+        auto expectedSize=unit1.maxPackedSize();
         auto packedSize=unit1.serialize(wired);
         BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
         BOOST_CHECK(static_cast<int>(packedSize)>static_cast<int>(arr1->size()));
@@ -650,7 +650,7 @@ BOOST_FIXTURE_TEST_CASE(TestSerializeCheckRepeatedUint32,::hatn::test::MultiThre
     BOOST_CHECK_EQUAL(field1.value(3),555);
 
     hatn::dataunit::WireDataSingle wired1;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired1);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
     BOOST_REQUIRE(wired1.mainContainer()!=nullptr);
@@ -693,7 +693,7 @@ void serializeCheckRepeatedDouble()
     BOOST_CHECK_CLOSE(field1.value(4),130.,0.0001);
 
     WiredT wired1;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired1);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
     BOOST_REQUIRE(wired1.mainContainer()!=nullptr);
@@ -776,7 +776,7 @@ void serializeCheckRepeatedBytes(bool shared=false, bool inlineBuffers=false)
         }
 
         WiredT wired;
-        auto expectedSize=unit1.size();
+        auto expectedSize=unit1.maxPackedSize();
         auto packedSize=unit1.serialize(wired);
         BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
         BOOST_REQUIRE(wired.mainContainer()!=nullptr);
@@ -877,7 +877,7 @@ void serializeCheckRepeatedFixedString(bool shared=false, bool inlineBuffers=fal
         auto* arr1_3=field1.value(2).buf(); // zero size
 
         WiredT wired;
-        auto expectedSize=unit1.size();
+        auto expectedSize=unit1.maxPackedSize();
         auto packedSize=unit1.serialize(wired);
         BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
         BOOST_REQUIRE(wired.mainContainer()!=nullptr);
@@ -1021,7 +1021,7 @@ template <typename traits, typename WiredT> void checkSerializeRepeatedSimpleUni
     BOOST_CHECK_EQUAL(field1.count(),1);
 
     WiredT wired;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
     BOOST_REQUIRE(packedSize>0);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
@@ -1202,7 +1202,7 @@ void checkSerializeSubUnit()
     BOOST_REQUIRE(obj1!=nullptr);
     fillUnitFields(*obj1,0);
     hatn::dataunit::WireDataSingle wired;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
     BOOST_REQUIRE(packedSize>0);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
@@ -1226,7 +1226,7 @@ void checkSerializeSubUnit()
     BOOST_REQUIRE(obj3!=nullptr);
     fillUnitFields(*obj3,0);
     auto subWired3_1=hatn::common::makeShared<hatn::dataunit::WireDataSingle>();
-    auto expectedSizeSub=obj3->size();
+    auto expectedSizeSub=obj3->maxPackedSize();
     auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
@@ -1285,7 +1285,7 @@ void checkSerializePreparedSubUnit()
     BOOST_REQUIRE(obj1!=nullptr);
     fillUnitFields(*obj1,0);
     WiredT wired;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
     BOOST_REQUIRE(packedSize>0);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
@@ -1314,7 +1314,7 @@ void checkSerializePreparedSubUnit()
     BOOST_REQUIRE(obj3!=nullptr);
     fillUnitFields(*obj3,0);
     auto subWired3_1=hatn::common::makeShared<subWiredT>();
-    auto expectedSizeSub=obj3->size();
+    auto expectedSizeSub=obj3->maxPackedSize();
     auto packedSizeSub=obj3->serialize(*subWired3_1);
     BOOST_REQUIRE(packedSizeSub>0);
     BOOST_CHECK(static_cast<int>(expectedSizeSub)>=static_cast<int>(packedSizeSub));
@@ -1397,7 +1397,7 @@ template <typename traits> void checkSerializeRepeatedUnit()
     BOOST_REQUIRE_EQUAL(field1.count(),n);
 
     hatn::dataunit::WireDataSingle wired;
-    auto expectedSize=unit1.size();
+    auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
     BOOST_REQUIRE(packedSize>0);
     BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));

@@ -85,7 +85,7 @@ const char* unit_t<BaseT,UniqueType>::name() const noexcept
 }
 
 template <typename BaseT, typename UniqueType>
-size_t unit_t<BaseT,UniqueType>::size() const
+size_t unit_t<BaseT,UniqueType>::maxPackedSize() const
 {
     return io::size(*this);
 }

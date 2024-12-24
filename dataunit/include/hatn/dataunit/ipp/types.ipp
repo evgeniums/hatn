@@ -187,8 +187,7 @@ struct BytesTraits : public BytesTraitsBase
         }
     }
 
-    //! @todo Use other name for field, size must be used for data soize
-    inline size_t size() const noexcept
+    inline size_t maxPackedSize() const noexcept
     {
         if (!byteArrayShared().isNull())
         {
@@ -270,6 +269,67 @@ struct BytesTraits : public BytesTraitsBase
     inline size_t dataSize() const noexcept
     {
         return buf()->size();
+    }
+
+    //! Load data from buffer
+    inline void load(const char* ptr,size_t size)
+    {
+        buf()->load(ptr,size);
+    }
+
+    //! Append data to buffer
+    inline void append(const char* ptr,size_t size)
+    {
+        buf()->append(ptr,size);
+    }
+
+    //! Append data to buffer
+    template <typename ContainerT>
+    inline void append(const ContainerT& container)
+    {
+        buf()->append(container);
+    }
+
+    //! Get pointer to data
+    inline char* data() noexcept
+    {
+        return buf()->data();
+    }
+
+    //! Get pointer to data
+    inline char* data() const noexcept
+    {
+        return buf()->data();
+    }
+
+    //! Get data size
+    inline size_t size() const noexcept
+    {
+        return buf()->size();
+    }
+
+    //! Overload operator []
+    inline const char& operator[] (std::size_t index) const
+    {
+        return at(index);
+    }
+
+    //! Overload operator []
+    inline char& operator[] (std::size_t index)
+    {
+        return at(index);
+    }
+
+    //! Get char by index
+    inline const char& at(std::size_t index) const
+    {
+        return buf()->at(index);
+    }
+
+    //! Get char by index
+    inline char& at(std::size_t index)
+    {
+        return buf()->at(index);
     }
 
     inline operator lib::string_view() const noexcept

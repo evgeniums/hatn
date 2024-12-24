@@ -77,7 +77,7 @@ void Unit::reset(bool onlyNonClean)
 }
 
 //---------------------------------------------------------------
-size_t Unit::size() const
+size_t Unit::maxPackedSize() const
 {
     size_t acc=0;
     iterateFieldsConst([&acc](const Field& field)
@@ -85,7 +85,7 @@ size_t Unit::size() const
         // add tag size
         acc+=sizeof(uint32_t);
         // add field size
-        acc+=field.size();
+        acc+=field.maxPackedSize();
         return true;
     });
     return acc;
@@ -174,7 +174,7 @@ int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const
 {
     if (checkSize)
     {
-        auto expectedSize=size();
+        auto expectedSize=maxPackedSize();
         if (bufSize<expectedSize)
         {
             return -1;

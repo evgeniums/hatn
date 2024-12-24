@@ -174,7 +174,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          * @brief Get field size
          * @return Packed size of the unit
          */
-        virtual size_t size() const noexcept override
+        virtual size_t maxPackedSize() const noexcept override
         {
             return fieldSize();
         }
@@ -189,7 +189,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                 return sizeof(uint32_t)+1;
             }
             // return data size plus unpacked space reserved for length field
-            return (value.value().size()+sizeof(uint32_t)+1);
+            return (value.value().maxPackedSize()+sizeof(uint32_t)+1);
         }
 
         size_t fieldSize() const noexcept

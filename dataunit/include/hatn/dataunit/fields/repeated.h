@@ -491,6 +491,18 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return vector[index];
     }
 
+    //! Overload operator []
+    inline const type& operator[] (std::size_t index) const
+    {
+        return vector[index];
+    }
+
+    //! Overload operator []
+    inline type& operator[] (std::size_t index)
+    {
+        return vector[index];
+    }
+
     /**  Get value by index */
     inline type& field(size_t index)
     {
@@ -638,6 +650,12 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return vector.size();
     }
 
+    /**  Get number of repeated fields */
+    inline size_t size() const noexcept
+    {
+        return vector.size();
+    }
+
     /**  Check if array is empty */
     inline bool empty() const noexcept
     {
@@ -676,7 +694,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /** Get expected field size */
-    virtual size_t size() const noexcept override
+    virtual size_t maxPackedSize() const noexcept override
     {
         return fieldSize();
     }
@@ -1134,7 +1152,7 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
     }
 
     /** Get expected field size */
-    virtual size_t size() const noexcept override
+    virtual size_t maxPackedSize() const noexcept override
     {
         return this->count()*sizeof(type)+5;
     }
@@ -1161,7 +1179,7 @@ struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,Defa
     }
 
     /** Get expected field size */
-    virtual size_t size() const noexcept override
+    virtual size_t maxPackedSize() const noexcept override
     {
         return fieldSize();
     }

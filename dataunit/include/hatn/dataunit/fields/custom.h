@@ -175,7 +175,7 @@ class CustomField : public Field
             val=m_value;
         }
 
-        virtual size_t size() const noexcept override
+        virtual size_t maxPackedSize() const noexcept override
         {
             return fieldSize();
         }

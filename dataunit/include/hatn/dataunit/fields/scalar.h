@@ -275,7 +275,7 @@ class Scalar : public Field
         }
 
         //! Get field size
-        virtual size_t size() const noexcept override
+        virtual size_t maxPackedSize() const noexcept override
         {
             return fieldSize();
         }
@@ -464,7 +464,7 @@ class VarInt : public Scalar<Type>
         }
 
         //! Get field size
-        virtual size_t size() const noexcept override
+        virtual size_t maxPackedSize() const noexcept override
         {
             return fieldSize();
         }

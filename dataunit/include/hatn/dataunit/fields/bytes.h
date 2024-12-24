@@ -159,7 +159,7 @@ class FieldTmplBytes : public Field, public BytesType
         }
 
         //! Get field size
-        virtual size_t size() const noexcept override
+        virtual size_t maxPackedSize() const noexcept override
         {
             return valueSize(m_value);
         }
@@ -167,7 +167,7 @@ class FieldTmplBytes : public Field, public BytesType
         //! Get size of value
         static inline size_t valueSize(const typename Type::type& value) noexcept
         {
-            return value.size();
+            return value.maxPackedSize();
         }
 
         size_t fieldSize() const noexcept
@@ -309,6 +309,67 @@ class FieldTmplBytes : public Field, public BytesType
         inline const typename Type::type::onstackType* buf() const noexcept
         {
             return this->m_value.buf();
+        }
+
+        //! Load data from buffer
+        inline void load(const char* ptr,size_t size)
+        {
+            buf()->load(ptr,size);
+        }
+
+        //! Append data to buffer
+        inline void append(const char* ptr,size_t size)
+        {
+            buf()->append(ptr,size);
+        }
+
+        //! Append data to buffer
+        template <typename ContainerT>
+        inline void append(const ContainerT& container)
+        {
+            buf()->append(container);
+        }
+
+        //! Get pointer to data
+        inline char* data() noexcept
+        {
+            return buf()->data();
+        }
+
+        //! Get pointer to data
+        inline char* data() const noexcept
+        {
+            return buf()->data();
+        }
+
+        //! Get data size
+        inline size_t size() const noexcept
+        {
+            return buf()->size();
+        }
+
+        //! Overload operator []
+        inline const char& operator[] (std::size_t index) const
+        {
+            return at(index);
+        }
+
+        //! Overload operator []
+        inline char& operator[] (std::size_t index)
+        {
+            return at(index);
+        }
+
+        //! Get char by index
+        inline const char& at(std::size_t index) const
+        {
+            return buf()->at(index);
+        }
+
+        //! Get char by index
+        inline char& at(std::size_t index)
+        {
+            return buf()->at(index);
         }
 
         /**
