@@ -562,7 +562,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
         template <typename T>
         auto toArray() -> decltype(auto)
-        {            
+        {
             using valueType=typename config_tree::ValueType<T>::arrayType;
             constexpr static auto typeId=config_tree::ValueType<T>::arrayId;
 
@@ -573,7 +573,6 @@ class HATN_BASE_EXPORT ConfigTreeValue
 
             m_type=typeId;
             m_numericType=config_tree::NumericType::Int64;
-            m_value.reset();
             m_value.emplace(valueType{});
             return asArray<T>();
         }
@@ -614,7 +613,6 @@ class HATN_BASE_EXPORT ConfigTreeValue
             }
             m_type=Type::Map;
             m_numericType=NumericType::None;
-            m_value.reset();
             m_value.emplace(config_tree::MapT{});
             return asMap();
         }
