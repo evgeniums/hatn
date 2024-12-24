@@ -490,7 +490,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     // for neq operation split to lt and gt queries
     auto doNeq=[&](const auto& val)
     {
-        query::Field fieldLt{queryField.fieldInfo,query::Operator::lt,val,queryField.order};
+        query::Field fieldLt{queryField.fieldInfo,query::Operator::lt,val,queryField.order,true};
         auto ec=iterateFieldVariant(cursor,
                                       handler,
                                       idxQuery,
@@ -502,7 +502,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
                                       );
         HATN_CHECK_EC(ec)
 
-        query::Field fieldGt{queryField.fieldInfo,query::Operator::gt,val,queryField.order};
+        query::Field fieldGt{queryField.fieldInfo,query::Operator::gt,val,queryField.order,true};
         ec=iterateFieldVariant(cursor,
                                  handler,
                                  idxQuery,

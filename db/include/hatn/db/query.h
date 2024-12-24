@@ -1064,7 +1064,8 @@ struct Field
 {
     Field() : fieldInfo(nullptr),
               op(Operator::eq),
-              order(Order::Asc)
+              order(Order::Asc),
+              relaxedNeqNull(false)
     {}
 
     template <typename T>
@@ -1072,11 +1073,13 @@ struct Field
         const IndexFieldInfo* fieldInfo,
         Operator op,
         T&& value,
-        Order order=Order::Asc
+        Order order=Order::Asc,
+        bool relaxedNeqNull=false
     ) : fieldInfo(fieldInfo),
         op(op),
         value(std::forward<T>(value)),
-        order(order)
+        order(order),
+        relaxedNeqNull(relaxedNeqNull)
     {
         //! @todo Test vector of intervals
         static_assert(!hana::is_a<VectorIntervalTag,T>,"Vector of intervals is not properly supported yet");
@@ -1119,13 +1122,11 @@ struct Field
         {
             Assert(op==Operator::lte || op==Operator::eq,"Invalid operator for Last operand, only eq and lte operators supported");
         }
-//! @todo fix it
-#if 0
-        if (value.isDbNull())
+
+        if (value.isDbNull() && !relaxedNeqNull)
         {
             Assert(op==Operator::eq || op==Operator::neq,"Invalid operator for Null operand, only eq and neq operators supported");
         }
-#endif
     }
 
     bool matchScalarOp(const Field& other) const noexcept
@@ -1138,6 +1139,10 @@ struct Field
     Operator op;
     Operand value;
     Order order;
+
+    private:
+
+        bool relaxedNeqNull;
 };
 
 } // namespace query
