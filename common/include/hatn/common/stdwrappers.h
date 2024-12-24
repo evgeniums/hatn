@@ -32,7 +32,7 @@
 #endif
 
 #if __cplusplus < 201703L
-    #include <boost/variant.hpp>
+    #include <boost/variant2.hpp>
     #include <boost/optional.hpp>
 #else
     #include <variant>
@@ -66,26 +66,26 @@ template <typename T> string_view toStringView(const T& buf) noexcept
 }
 
 #if __cplusplus < 201703L
-    template <typename ...Types> using variant=boost::variant<Types...>;
+template <typename ...Types> using variant=boost::variant2::variant<Types...>;
     template <typename T,typename ...Types>
     constexpr T& variantGet(variant<Types...>& var) noexcept
     {
-        return boost::get<T>(var);
+        return boost::variant2::get<T>(var);
     }
     template <typename T,typename ...Types>
     constexpr const T& variantGet(const variant<Types...>& var) noexcept
     {
-        return boost::get<T>(var);
+        return boost::variant2::get<T>(var);
     }
     template <typename ...Types>
     constexpr std::size_t variantIndex(const variant<Types...>& var) noexcept
     {
-        return static_cast<std::size_t>(var.which());
+        return static_cast<std::size_t>(var.index());
     }
     template<typename Visitor, typename Variant>
     decltype(auto) variantVisit(Visitor&& vis, Variant&& var)
     {
-        return boost::apply_visitor(std::forward<Visitor>(vis),std::forward<Variant>(var));
+        return boost::variant2::visit(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=boost::optional<T>;
 #else
