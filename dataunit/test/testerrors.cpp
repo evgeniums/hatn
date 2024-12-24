@@ -2,18 +2,16 @@
 
 #include <hatn/test/multithreadfixture.h>
 
-#define HDU_TEST_RELAX_MISSING_FEILD_SERIALIZING && !TestRelaxMissingFieldSerializing
+bool TestRelaxMissingFieldSerializing=false;
+#define HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING && !TestRelaxMissingFieldSerializing
 
 #include <hatn/common/utils.h>
 
+#include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/unitmacros.h>
 #include <hatn/dataunit/ipp/unitmeta.ipp>
 #include <hatn/dataunit/ipp/unittraits.ipp>
-
-HATN_DATAUNIT_NAMESPACE_BEGIN
-bool TestRelaxMissingFieldSerializing=false;
-HATN_DATAUNIT_NAMESPACE_END
 
 using namespace HATN_TEST_NAMESPACE;
 using namespace HATN_COMMON_NAMESPACE;
