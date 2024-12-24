@@ -325,7 +325,7 @@ common::Error EncryptMAC<Encrypt>::doGenerateIV(char* iv, size_t* size) const
         }
     }
     common::DataBuf data(iv,sz);
-    return m_cipher->generateIV(data,sz);
+    return m_cipher->generateIV(data);
 }
 
 //---------------------------------------------------------------
