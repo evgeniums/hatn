@@ -8,4 +8,5 @@ SET (HATN_MODULES
 	base
 	crypt
 	db
+	mq
 )
