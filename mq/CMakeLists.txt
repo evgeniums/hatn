@@ -1,6 +1,7 @@
 PROJECT(hatnmq)
 
 SET (HEADERS
+    include/hatn/mq/mqdef.h
     include/hatn/mq/mq.h
 )
 
