@@ -344,6 +344,36 @@ class CacheLRU
             return count;
         }
 
+        auto queueBegin() const
+        {
+            return m_queue.begin();
+        }
+
+        auto queueBegin()
+        {
+            return m_queue.begin();
+        }
+
+        auto queueEnd() const
+        {
+            return m_queue.end();
+        }
+
+        auto queueEnd()
+        {
+            return m_queue.end();
+        }
+
+        auto queueIterator(const Item& item) const
+        {
+            return m_queue.iterator_to(item);
+        }
+
+        auto queueIterator(Item& item)
+        {
+            return m_queue.iterator_to(item);
+        }
+
     private:
 
         size_t m_capacity;
