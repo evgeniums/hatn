@@ -224,7 +224,7 @@ void ThreadWithQueueTraits<TaskT>::setQueue(Queue<TaskT>* queue)
 //---------------------------------------------------------------
 template <typename TaskT>
 ThreadWithQueue<TaskT>::ThreadWithQueue(
-        const FixedByteArrayThrow16& id,
+        lib::string_view id,
         Queue<TaskT>* queue,
         bool newThread
     ) : Thread(id,newThread),
