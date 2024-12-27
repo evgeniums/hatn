@@ -32,12 +32,12 @@ HATN_COMMON_NAMESPACE_BEGIN
  * ItemT type used by application.
  *
  */
-template <typename KeyT,typename ItemT, typename CompT=std::less<KeyT>>
+template <typename KeyT, typename ItemT, typename CompT=std::less<KeyT>>
 class CacheLRU
 {
     public:
 
-        using Type=CacheLRU<KeyT,ItemT>;
+        using Type=CacheLRU<KeyT,ItemT,CompT>;
 
         /**
          * @brief Default capacity of the cache
@@ -133,7 +133,7 @@ class CacheLRU
          * <pre>
          * if (cache.isFull())
          * {
-         *      auto& displacedItem=cache.oldestItem();
+         *      auto& displacedItem=cache.lruItem();
          *      // do something with the item
          * }
          * cache.pushItem(newItem);
