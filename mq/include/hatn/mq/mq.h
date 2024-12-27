@@ -22,96 +22,107 @@
 
 #include <functional>
 
-#include <hatn/common/pmr/allocatorfactory.h>
-#include <hatn/common/cachelru.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/objecttraits.h>
-
-#include <hatn/dataunit/objectid.h>
 
 #include <hatn/mq/mqdef.h>
 
 HATN_MQ_NAMESPACE_BEGIN
 
-using ItemId=du::ObjectId;
-
-template <typename ValueTraits>
-struct Item
+template <typename Traits, typename =void>
+class Mq : public common::WithTraits<Traits>
 {
-    using PosType=typename ValueTraits::PosType;
-    using IdType=typename ValueTraits::IdType;
-    using ValueT=typename ValueTraits::ValueType;
-
-    PosType pos;
-    ValueT value;
-
-    IdType refId;
-    bool deleted;
-
-    const auto& valueId() const
-    {
-        return ValueTraits::id(value);
-    }
-
-    const auto& valueRefId() const
-    {
-        return ValueTraits::refId(value);
-    }
-};
-
-template <typename ValueTraits, template <typename> class Traits, typename =void>
-class Mq : public common::WithTraits<Traits<ValueTraits>>
-{
-    using BaseT=common::WithTraits<Traits<ValueTraits>>;
+    using BaseT=common::WithTraits<Traits>;
     using TraitsT=typename BaseT::TraitsT;
     using SubscriptionT=typename TraitsT::SubscriptionT;
 
-    using ItemType=typename TraitsT::ItemType;
     using PosType=typename TraitsT::PosType;
     using IdType=typename TraitsT::IdType;
-    using ValueType=typename TraitsT::ValueType;
+    using RefIdType=typename TraitsT::RefIdType;
+    using MessageType=typename TraitsT::MessageType;
     using UpdateType=typename TraitsT::UpdateType;
 
-    using ItemCb=std::function<void (Error ec, const ItemType& item)>;
-    using ReadCb=std::function<void (Error ec, const ItemType& item, size_t count)>;
+    struct Item
+    {
+        lib::optional<PosType> pos;
+        lib::optional<PosType> downstreamPos;
+
+        lib::optional<MessageType> message;
+        lib::optional<UpdateType> update;
+
+        RefIdType refId;
+        bool deleted=false;
+
+        const auto* messageId() const
+        {
+            if (!message)
+            {
+                return nullptr;
+            }
+            return TraitsT::messageId(message.value());
+        }
+
+        const auto* messageRefId() const
+        {
+            if (!message)
+            {
+                return nullptr;
+            }
+            return TraitsT::messageRefId(message.value());
+        }
+    };
+
+    using ItemCb=std::function<void (Error ec, const Item& item)>;
+    using ReadCb=std::function<void (Error ec, const Item& item, size_t count)>;
     using PosCb=std::function<void (Error ec, const PosType& pos)>;
-    using RemoveCb=std::function<void (Error ec, const IdType& refId)>;
+    using RemoveCb=std::function<void (Error ec, const RefIdType& refId)>;
 
     using SubscribeCb=std::function<void (const PosType& firstPos,
                                           const PosType& lastPos,
-                                          const PosType& firstRefId,
-                                          const PosType& lastRefId,
+                                          const RefIdType& firstRefId,
+                                          const RefIdType& lastRefId,
                                           size_t count)>;
 
     using BaseT::BaseT;
 
-    void create(ValueType item, ItemCb cb)
+    void create(MessageType item, ItemCb cb, PosType downstreamPos=PosType{})
     {
-        this->traits().create(std::move(item),std::move(cb));
+        this->traits().create(std::move(item),std::move(cb),std::move(downstreamPos));
     }
 
-    void read(IdType refId, ItemCb cb)
+    void readById(IdType id, ItemCb cb)
     {
-        this->traits().read(std::move(refId),std::move(cb));
+        this->traits().readById(std::move(id),std::move(cb));
     }
 
-    void update(IdType refId, UpdateType data, ItemCb cb)
+    void readByRefId(RefIdType refId, ItemCb cb)
     {
-        this->traits().update(std::move(refId),std::move(data),std::move(cb));
+        this->traits().readByRefId(std::move(refId),std::move(cb));
     }
 
-    void remove(IdType refId, RemoveCb cb)
+    void update(RefIdType refId, UpdateType data, ItemCb cb, PosType downstreamPos=PosType{})
     {
-        this->traits().remove(std::move(refId),std::move(cb));
+        this->traits().update(std::move(refId),std::move(data),std::move(cb),std::move(downstreamPos));
     }
 
-    void readFrom(ReadCb cb, PosType from=PosType{}, size_t maxCount=1)
+    void remove(RefIdType refId, RemoveCb cb, PosType downstreamPos=PosType{})
+    {
+        this->traits().remove(std::move(refId),std::move(cb),std::move(downstreamPos));
+    }
+
+    void readFromPos(ReadCb cb, PosType from=PosType{}, size_t maxCount=1)
     {
         this->traits().readFrom(std::move(cb),std::move(from),maxCount);
     }
 
-    void readTo(ReadCb cb, PosType to=PosType{}, size_t maxCount=1)
+    void readToPos(ReadCb cb, PosType to=PosType{}, size_t maxCount=1)
     {
         this->traits().readTo(std::move(cb),std::move(to),maxCount);
+    }
+
+    void findDownstreamPos(PosType downstreamPos, ReadCb cb)
+    {
+        this->traits().findDownstreamPos(std::move(downstreamPos),std::move(cb));
     }
 
     void getFirstPos(PosCb cb) const
@@ -124,7 +135,7 @@ class Mq : public common::WithTraits<Traits<ValueTraits>>
         this->traits().getLastPos(std::move(cb));
     }
 
-    const ItemType* next(const ItemType& item) const
+    const Item* next(const Item& item) const
     {
         this->traits().next(item);
     }
@@ -146,32 +157,35 @@ class Mq : public common::WithTraits<Traits<ValueTraits>>
 };
 
 #if 0
-template <typename ValueTraits, template <typename> class Traits, typename UpstreamT>
-class Mq<ValueTraits,Traits,UpstreamT> : public Mq<ValueTraits,Traits>
+
+using ItemId=du::ObjectId;
+
+template <typename MessageTraits, template <typename> class Traits, typename UpstreamT>
+class Mq<MessageTraits,Traits,UpstreamT> : public Mq<MessageTraits,Traits>
 {
     public:
 
-        using MqBase=Mq<ValueTraits,Traits>;
-        using Self=Mq<ValueTraits,Traits,UpstreamT>;
+        using MqBase=Mq<MessageTraits,Traits>;
+        using Self=Mq<MessageTraits,Traits,UpstreamT>;
 
         using ItemT=typename MqBase::ItemT;
         using PosT=typename MqBase::PosType;
         using IdT=typename MqBase::IdType;
-        using ValueT=typename MqBase::ValueType;
+        using MessageT=typename MqBase::MessageType;
 
         using PushCb=typename MqBase::PushCb;
         using ReadCb=typename MqBase::ReadCb;
         using PosCb=typename MqBase::PosCb;
 
         template <typename ...Args>
-        Mq<ValueTraits,Traits,UpstreamT>::Mq(
+        Mq<MessageTraits,Traits,UpstreamT>::Mq(
                 std::shared_ptr<UpstreamT> upstream,
                 Args&&... args
             ) : MqBase(std::forward<Args>(args)...),
                 m_upstream(std::move(upstream))
         {}
 
-        void push(ValueT item, PushCb cb)
+        void push(MessageT item, PushCb cb)
         {
             if (m_upstream)
             {
