@@ -171,7 +171,6 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
          */
         void uninstallTimer(uint32_t id, bool wait=true);
 
-
         //! Get native thread id
         Thread::NativeID nativeID() const noexcept;
 
