@@ -19,6 +19,7 @@
 #define HATNTHREADWITHQUEUE_H
 
 #include <hatn/common/common.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/threadq.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/queue.h>
@@ -101,7 +102,7 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
 
         //! Constructor
         ThreadWithQueue(
-            const FixedByteArrayThrow16& id, //!< Thread's ID
+            const lib::string_view& id, //!< Thread's ID
             Queue<TaskT>* queue=nullptr, //!< Queue object, if null then default queue with mutex is constructed
             bool newThread=true //!< If false then no actual thread will be started, only asioContext will run
         );
