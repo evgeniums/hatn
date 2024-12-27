@@ -146,6 +146,7 @@ SET (HEADERS
     include/hatn/common/plainfile.h
 
     include/hatn/common/cachelru.h
+    include/hatn/common/cachelruttl.h
     include/hatn/common/flatmap.h
 
     include/hatn/common/singleton.h
