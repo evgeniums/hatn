@@ -32,7 +32,7 @@ HATN_COMMON_NAMESPACE_BEGIN
  * ItemT type used by application.
  *
  */
-template <typename KeyT,typename ItemT>
+template <typename KeyT,typename ItemT, typename CompT=std::less<KeyT>>
 class CacheLRU
 {
     public:
@@ -380,7 +380,7 @@ class CacheLRU
 
         boost::intrusive::list<Item> m_queue;
 
-        using mapT=common::pmr::map<KeyT,Item>;
+        using mapT=common::pmr::map<KeyT,Item,CompT>;
         mapT m_map;
 };
 
