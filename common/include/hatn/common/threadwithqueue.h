@@ -102,7 +102,7 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
 
         //! Constructor
         ThreadWithQueue(
-            const lib::string_view& id, //!< Thread's ID
+            lib::string_view id, //!< Thread's ID
             Queue<TaskT>* queue=nullptr, //!< Queue object, if null then default queue with mutex is constructed
             bool newThread=true //!< If false then no actual thread will be started, only asioContext will run
         );
