@@ -615,7 +615,7 @@ Error CryptFile::doSeek(uint64_t pos, size_t overwriteSize, bool withCache)
                 // if cache is full then flush chunk displaced from the cache
                 if (m_cache.isFull())
                 {
-                    auto& displacedChunk=m_cache.mruItem();
+                    auto& displacedChunk=m_cache.lruItem();
                     if (displacedChunk.dirty)
                     {
                         HATN_CHECK_RETURN(flushChunk(displacedChunk))

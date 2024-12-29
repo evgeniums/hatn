@@ -20,82 +20,23 @@
 
 #include <functional>
 
-#include <boost/intrusive/list.hpp>
+#include <hatn/common/lru.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-/**
- * @brief LRU cache
- *
- * Actual cache items must be of type CacheLRU::Item where Item will inherit from
- * ItemT type used by application.
- *
- */
-template <typename KeyT, typename ItemT, typename CompT=std::less<KeyT>>
-class CacheLRU
+template <typename KeyT,
+         typename ItemT,
+         typename CompT=std::less<KeyT>
+         >
+class MapStorage
 {
     public:
 
-        using Type=CacheLRU<KeyT,ItemT,CompT>;
-
-        /**
-         * @brief Default capacity of the cache
-         */
-        constexpr static const size_t CAPACITY=16;
-
-        /**
-         * @brief Cache item
-         */
-        class Item : public ItemT, public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
-        {
-            public:
-
-                using ItemT::ItemT;
-
-                void setKey(KeyT val) noexcept
-                {
-                    m_key=std::move(val);
-                }
-                KeyT key() const noexcept
-                {
-                    return m_key;
-                }
-
-            private:
-
-                KeyT m_key;
-        };
-
-        /**
-         * @brief Constructor
-         * @param capacity Capacity of the cache
-         * @param factory Allocator factory
-         */
-        explicit CacheLRU(
-                size_t capacity=CAPACITY,
+        explicit MapStorage(
                 const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault()
-            ) : m_capacity(capacity),
-                m_map(factory->objectAllocator<typename mapT::value_type>())
+            ) : m_map(factory->objectAllocator<typename mapT::value_type>())
         {}
-
-        /**
-         * @brief Constructor
-         * @param factory Allocator factory
-         */
-        explicit CacheLRU(
-                const common::pmr::AllocatorFactory* factory
-            ) : CacheLRU(CAPACITY,factory)
-        {}
-
-        //! Dtor
-        ~CacheLRU()=default;
-
-        CacheLRU(const CacheLRU&)=delete;
-        CacheLRU& operator=(const CacheLRU&)=delete;
-
-        CacheLRU(CacheLRU&&) =default;
-        CacheLRU& operator=(CacheLRU&&) =default;
 
         //! Get current cache size
         size_t size() const noexcept
@@ -110,198 +51,23 @@ class CacheLRU
         }
 
         /**
-         * @brief Set item as the most recently used
-         * @param item
-         */
-        void touchItem(Item& item)
-        {
-            if (&item!=&m_queue.back())
-            {
-                m_queue.erase(m_queue.iterator_to(item));
-                m_queue.push_back(item);
-            }
-        }
-
-        /**
-         * @brief Add item to the cache
-         * @param item Item to add
-         *
-         * The item's key must be already set in the item.
-         * If cache is already full then the least recently used item will be displaced from the cache.
-         * If some action on the item is required before displacing then use isFull() and oldestItem() before
-         * adding a new item to the cache, e.g.:
-         * <pre>
-         * if (cache.isFull())
-         * {
-         *      auto& displacedItem=cache.lruItem();
-         *      // do something with the item
-         * }
-         * cache.pushItem(newItem);
-         * </pre>
-         *
-         * @attention Key must be set in the item before adding to cache, otherwise undefined behaviour is expected
-         */
-        Item& pushItem(Item&& item)
-        {
-            Assert(m_queue.iterator_to(item)==m_queue.end(),"Can not add item that already is in some cache");
-
-            if (isFull())
-            {
-                m_queue.pop_front_and_dispose([this](Item* mruItem){m_map.erase(mruItem->key());});
-            }
-#if __cplusplus < 201703L
-            auto key=item.key();
-            m_map[key]=std::move(item);
-            return m_map[key];
-#else
-            auto&& key=item.key();
-            auto inserted=m_map.insert_or_assign(std::move(key),std::move(item));
-            m_queue.push_back(inserted.second->second);
-            return inserted.second->second;
-#endif
-        }
-
-        /**
-         * @brief Add item to the cache
-         * @param key Item's key
-         * @param item Item to add
-         *
-         * This is overloaded method, @see pushItem(Item&& item)
-         */
-        void pushItem(KeyT key,Item&& item)
-        {
-            item.setKey(std::move(key));
-            pushItem(std::move(item));
-        }
-
-        /**
-         * @brief Construct and add item to the cache
-         * @param key Item's key
-         * @param args Arguments for forwarding to item's constructor
-         *
-         * @see pushItem(Item&& item) for details about adding adding item.
-         *
-         */
-        template <typename ...Args>
-        Item& emplaceItem(const KeyT& key,Args&&... args)
-        {
-            if (isFull())
-            {
-                m_queue.pop_front_and_dispose([this](Item* mruItem){m_map.erase(mruItem->key());});
-            }
-            auto inserted=m_map.emplace(std::piecewise_construct,
-                          std::forward_as_tuple(key),
-                          std::forward_as_tuple(std::forward<Args>(args)...)
-                          );
-            inserted.first->second.setKey(key);
-            m_queue.push_back(inserted.first->second);
-            return inserted.first->second;
-        }
-
-        //! Check if the cache is full
-        bool isFull() const noexcept
-        {
-            if (!empty() && size()==m_capacity)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        //! Get the most recently used item
-        Item& mruItem()
-        {
-            if (empty())
-            {
-                throw std::out_of_range("Cache is empty");
-            }
-            return m_queue.front();
-        }
-
-        //! Get the least recently used item
-        Item& lruItem()
-        {
-            if (empty())
-            {
-                throw std::out_of_range("Cache is empty");
-            }
-            return m_queue.back();
-        }
-
-        //! Get the most recently used item
-        const Item& mruItem() const
-        {
-            if (empty())
-            {
-                throw std::out_of_range("Cache is empty");
-            }
-            return m_queue.front();
-        }
-
-        //! Get the least recently used item
-        const Item& lruItem() const
-        {
-            if (empty())
-            {
-                throw std::out_of_range("Cache is empty");
-            }
-            return m_queue.back();
-        }
-
-        /**
-         * @brief Remove item from the cache
-         * @param item Item to remove
-         */
-        void removeItem(Item& item)
-        {
-            m_queue.erase(m_queue.iterator_to(item));
-            m_map.erase(item.key());
-        }
-
-        /**
-         * @brief Clear cache
-         */
-        void clear()
-        {
-            m_queue.clear();
-            m_map.clear();
-        }
-
-        /**
-         * @brief Set capacity of the cache
-         * @param capacity
-         *
-         * If cache is not empty then new capacity can not be less than the current size.
-         */
-        void setCapacity(size_t capacity)
-        {
-            Assert(empty() || capacity>=size(),"Can not decrease capacity of non empty cache");
-            m_capacity=capacity;
-        }
-        //! Get cache capacity
-        size_t capacity() const noexcept
-        {
-            return m_capacity;
-        }
-
-        /**
-         * @brief Check if cache contains an item
-         * @param key Key
-         * @return Operation status
-         */
+             * @brief Check if cache contains an item
+             * @param key Key
+             * @return Operation status
+             */
         bool hasItem(const KeyT& key) const
         {
             return m_map.find(key)!=m_map.end();
         }
 
         /**
-         * @brief Find item by key
-         * @param key Key
-         * @return Found item
-         *
-         * @throws out_of_range if cache does not contain such item
-         */
-        Item& item(const KeyT& key)
+             * @brief Find item by key
+             * @param key Key
+             * @return Found item
+             *
+             * @throws out_of_range if cache does not contain such item
+             */
+        ItemT& item(const KeyT& key)
         {
             auto it=m_map.find(key);
             if (it==m_map.end())
@@ -312,25 +78,25 @@ class CacheLRU
         }
 
         /**
-         * @brief Find item by key
-         * @param key Key
-         * @return Found item
-         *
-         * @throws out_of_range if cache does not contain such item
-         */
-        const Item& item(const KeyT& key) const
+             * @brief Find item by key
+             * @param key Key
+             * @return Found item
+             *
+             * @throws out_of_range if cache does not contain such item
+             */
+        const ItemT& item(const KeyT& key) const
         {
-            return const_cast<Type*>(this)->item(key);
+            return const_cast<const ItemT&>(this)->item(key);
         }
 
         /**
-         * @brief Do operation on each element of the cache
-         * @param handler Handler to invoke for each element
-         * @return Count of handler invokations
-         *
-         * If handler returns false then iterating will be broken.
-         */
-        size_t each(const std::function<bool (Item&)>& handler)
+             * @brief Do operation on each element of the cache
+             * @param handler Handler to invoke for each element
+             * @return Count of handler invokations
+             *
+             * If handler returns false then iterating will be broken.
+             */
+        size_t each(const std::function<bool (ItemT&)>& handler)
         {
             size_t count=0;
             for (auto&& it: m_map)
@@ -344,44 +110,91 @@ class CacheLRU
             return count;
         }
 
-        auto queueBegin() const
+        void doInsert(KeyT key, ItemT&& item)
         {
-            return m_queue.begin();
+            auto inserted=m_map.insert_or_assign(std::move(key),std::move(item));
+            return inserted.second->second;
         }
 
-        auto queueBegin()
+        template <class... Args1, class... Args2>
+        ItemT& doEmplace(std::piecewise_construct_t,
+                        std::tuple<Args1...> keyArgs,
+                        std::tuple<Args2...> valueArgs
+                        )
         {
-            return m_queue.begin();
+            auto inserted=m_map.emplace(std::piecewise_construct,std::move(keyArgs),std::move(valueArgs));
+            return inserted.first->second;
         }
 
-        auto queueEnd() const
+        void doRemove(const KeyT& key)
         {
-            return m_queue.end();
+            m_map.erase(key);
         }
 
-        auto queueEnd()
+        void doClear()
         {
-            return m_queue.end();
-        }
-
-        auto queueIterator(const Item& item) const
-        {
-            return m_queue.iterator_to(item);
-        }
-
-        auto queueIterator(Item& item)
-        {
-            return m_queue.iterator_to(item);
+            m_map.clear();
         }
 
     private:
 
-        size_t m_capacity;
-
-        boost::intrusive::list<Item> m_queue;
-
-        using mapT=common::pmr::map<KeyT,Item,CompT>;
+        using mapT=pmr::map<KeyT,ItemT,CompT>;
         mapT m_map;
+};
+
+/**
+ * @brief LRU cache
+ *
+ * Actual cache items must be of type CacheLRU::Item where Item will inherit from
+ * ItemT type used by application.
+ *
+ */
+template <typename KeyT,
+         typename ItemT,
+         typename DefaultCapacity=LruDefaultCapacity,
+         typename CompT=std::less<KeyT>
+         >
+class CacheLru : public MapStorage<KeyT,LruItem<KeyT,ItemT>,CompT>,
+                 public Lru<KeyT,ItemT,MapStorage<KeyT,LruItem<KeyT,ItemT>,CompT>,DefaultCapacity>
+{
+    public:
+
+        using Type=CacheLru<KeyT,ItemT,DefaultCapacity,CompT>;
+
+        using BaseStorage=MapStorage<KeyT,LruItem<KeyT,ItemT>,CompT>;
+        using BaseLru=Lru<KeyT,ItemT,BaseStorage,DefaultCapacity>;
+
+        using Item=typename BaseLru::Item;
+
+        /**
+         * @brief Constructor
+         * @param capacity Capacity of the cache
+         * @param factory Allocator factory
+         */
+        explicit CacheLru(
+                size_t capacity=DefaultCapacity::value,
+                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault()
+            ) : BaseStorage(factory),
+                BaseLru(*this,capacity)
+        {}
+
+        /**
+         * @brief Constructor
+         * @param factory Allocator factory
+         */
+        explicit CacheLru(
+                const pmr::AllocatorFactory* factory
+            ) : CacheLru(DefaultCapacity::value,factory)
+        {}
+
+        //! Destructor
+        ~CacheLru()=default;
+
+        CacheLru(const CacheLru&)=delete;
+        CacheLru& operator=(const CacheLru&)=delete;
+
+        CacheLru(CacheLru&&) =default;
+        CacheLru& operator=(CacheLru&&) =default;
 };
 
 //---------------------------------------------------------------
