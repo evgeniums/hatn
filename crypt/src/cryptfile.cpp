@@ -606,7 +606,7 @@ Error CryptFile::doSeek(uint64_t pos, size_t overwriteSize, bool withCache)
             if (m_cache.hasItem(seqnum))
             {
                 // chunk is in the cache
-                nextChunk=&m_cache.item(seqnum);
+                nextChunk=m_cache.item(seqnum);
                 // revalidate the chunk as MRU
                 m_cache.touchItem(*nextChunk);
             }
@@ -615,10 +615,10 @@ Error CryptFile::doSeek(uint64_t pos, size_t overwriteSize, bool withCache)
                 // if cache is full then flush chunk displaced from the cache
                 if (m_cache.isFull())
                 {
-                    auto& displacedChunk=m_cache.lruItem();
-                    if (displacedChunk.dirty)
+                    auto* displacedChunk=m_cache.lruItem();
+                    if (displacedChunk->dirty)
                     {
-                        HATN_CHECK_RETURN(flushChunk(displacedChunk))
+                        HATN_CHECK_RETURN(flushChunk(*displacedChunk))
                     }
                 }
 
