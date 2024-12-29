@@ -148,7 +148,7 @@ class Lru
          * <pre>
          * if (cache.isFull())
          * {
-         *      auto& displacedItem=cache.lruItem();
+         *      auto* displacedItem=cache.lruItem();
          *      // do something with the item
          * }
          * cache.pushItem(newItem);
@@ -175,9 +175,10 @@ class Lru
          *
          * This is overloaded method, @see pushItem(Item&& item)
          */
-        Item& pushItem(KeyT key, ItemT item)
+        template <typename T>
+        Item& pushItem(KeyT key, T&& item)
         {
-            return emplaceItem(std::move(key),std::move(item));
+            return emplaceItem(std::move(key),std::forward<T>(item));
         }
 
         /**
@@ -215,43 +216,43 @@ class Lru
         }
 
         //! Get the most recently used item
-        Item& mruItem()
+        Item* mruItem()
         {
             if (m_storage.empty())
             {
                 throw std::out_of_range("Cache is empty");
             }
-            return m_queue.back();
+            return &m_queue.back();
         }
 
         //! Get the least recently used item
-        Item& lruItem()
+        Item* lruItem()
         {
             if (m_storage.empty())
             {
-                throw std::out_of_range("Cache is empty");
+                return nullptr;
             }
-            return m_queue.front();
+            return &m_queue.front();
         }
 
         //! Get the most recently used item
-        const Item& mruItem() const
+        const Item* mruItem() const
         {
             if (m_storage.empty())
             {
-                throw std::out_of_range("Cache is empty");
+                return nullptr;
             }
-            return m_queue.back();
+            return &m_queue.back();
         }
 
         //! Get the least recently used item
-        const Item& lruItem() const
+        const Item* lruItem() const
         {
             if (m_storage.empty())
             {
-                throw std::out_of_range("Cache is empty");
+                return nullptr;
             }
-            return m_queue.front();
+            return &m_queue.front();
         }
 
         /**

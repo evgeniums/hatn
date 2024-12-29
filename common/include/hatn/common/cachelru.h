@@ -33,6 +33,8 @@ class MapStorage
 {
     public:
 
+        using Type=MapStorage<KeyT,ItemT,CompT>;
+
         explicit MapStorage(
                 const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault(),
                 const CompT& comp=CompT{}
@@ -68,14 +70,14 @@ class MapStorage
              *
              * @throws out_of_range if cache does not contain such item
              */
-        ItemT& item(const KeyT& key)
+        ItemT* item(const KeyT& key)
         {
             auto it=m_map.find(key);
             if (it==m_map.end())
             {
-                throw std::out_of_range("No such item in the cache");
+                return nullptr;
             }
-            return it->second;
+            return &it->second;
         }
 
         /**
@@ -85,9 +87,10 @@ class MapStorage
              *
              * @throws out_of_range if cache does not contain such item
              */
-        const ItemT& item(const KeyT& key) const
+        const ItemT* item(const KeyT& key) const
         {
-            return const_cast<const ItemT&>(this)->item(key);
+            const auto* self=const_cast<const Type*>(this);
+            return const_cast<ItemT*>(self->item(key));
         }
 
         /**
@@ -97,7 +100,23 @@ class MapStorage
              *
              * If handler returns false then iterating will be broken.
              */
-        size_t each(const std::function<bool (ItemT&)>& handler)
+        template <typename HandlerFn>
+        size_t each(const HandlerFn& handler)
+        {
+            size_t count=0;
+            for (auto&& it: m_map)
+            {
+                if (!handler(it.second))
+                {
+                    return count;
+                }
+                ++count;
+            }
+            return count;
+        }
+
+        template <typename HandlerFn>
+        size_t each(const HandlerFn& handler) const
         {
             size_t count=0;
             for (auto&& it: m_map)
