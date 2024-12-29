@@ -34,8 +34,9 @@ class MapStorage
     public:
 
         explicit MapStorage(
-                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault()
-            ) : m_map(factory->objectAllocator<typename mapT::value_type>())
+                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault(),
+                const CompT& comp=CompT{}
+            ) : m_map(comp,factory->objectAllocator<typename mapT::value_type>())
         {}
 
         //! Get current cache size
@@ -110,10 +111,10 @@ class MapStorage
             return count;
         }
 
-        void doInsert(KeyT key, ItemT&& item)
+        ItemT& doInsert(ItemT&& item)
         {
-            auto inserted=m_map.insert_or_assign(std::move(key),std::move(item));
-            return inserted.second->second;
+            auto inserted=m_map.insert_or_assign(item.key(),std::move(item));
+            return inserted.first->second;
         }
 
         template <class... Args1, class... Args2>
@@ -173,8 +174,9 @@ class CacheLru : public MapStorage<KeyT,LruItem<KeyT,ItemT>,CompT>,
          */
         explicit CacheLru(
                 size_t capacity=DefaultCapacity::value,
-                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault()
-            ) : BaseStorage(factory),
+                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault(),
+                const CompT& comp=CompT{}
+            ) : BaseStorage(factory,comp),
                 BaseLru(*this,capacity)
         {}
 

@@ -30,18 +30,57 @@ class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::int
 {
     public:
 
-        using ItemT::ItemT;
+        LruItem(
+                KeyT key,
+                ItemT&& item
+            ) : ItemT(std::move(item)),
+                m_key(std::move(key))
+        {}
 
-        void setKey(KeyT val) noexcept
-        {
-            m_key=std::move(val);
-        }
-        KeyT key() const noexcept
+        LruItem(
+                KeyT key,
+                const ItemT& item
+            ) : ItemT(item),
+                m_key(std::move(key))
+        {}
+
+        template <typename ...Args>
+        explicit LruItem(
+            KeyT key,
+            Args&&... args
+            ) : ItemT(std::forward<Args>(args)...),
+                m_key(std::move(key))
+        {}
+
+        template <typename ...Args>
+        explicit LruItem(
+                Args&&... args
+            ) : ItemT(std::forward<Args>(args)...)
+        {}
+
+        const KeyT& key() const noexcept
         {
             return m_key;
         }
 
+        template <class... Args1, class... Args2>
+        LruItem(
+            std::piecewise_construct_t,
+            std::tuple<Args1...> keyArgs,
+            std::tuple<Args2...> itemArgs
+            ) : LruItem(keyArgs,std::make_index_sequence<sizeof...(Args1)>{},
+                      itemArgs,std::make_index_sequence<sizeof...(Args2)>{}
+                      )
+        {}
+
     private:
+
+        template<class KeyArgsTuple, std::size_t... ks, class ItemArgsTuple, std::size_t... is>
+        LruItem(const KeyArgsTuple& kt, std::index_sequence<ks...>,
+                const ItemArgsTuple& it, std::index_sequence<is...>
+                ) : ItemT(std::get<is>(it)...),
+                    m_key(std::get<ks>(kt)...)
+        {}
 
         KeyT m_key;
 };
@@ -117,19 +156,16 @@ class Lru
          *
          * @attention Key must be set in the item before adding to cache, otherwise undefined behaviour is expected
          */
-        Item& pushItem(Item&& item)
+        Item& pushItem(Item item)
         {
-            Assert(m_queue.iterator_to(item)==m_queue.end(),"Can not add item that already is in some cache");
-
             if (isFull())
             {
                 m_queue.pop_front_and_dispose([this](Item* lruItem){m_storage.doRemove(lruItem->key());});
             }
-            auto&& key=item.key();
-            auto& inserted=m_storage.doInsert(std::move(key),std::move(item));
-            inserted.setKey(key);
-            m_queue.push_back(inserted);
-            return inserted;
+            const auto& inserted=m_storage.doInsert(std::move(item));
+            auto& itm=const_cast<Item&>(inserted);
+            m_queue.push_back(itm);
+            return itm;
         }
 
         /**
@@ -139,10 +175,9 @@ class Lru
          *
          * This is overloaded method, @see pushItem(Item&& item)
          */
-        void pushItem(KeyT key,Item&& item)
+        Item& pushItem(KeyT key, ItemT item)
         {
-            item.setKey(std::move(key));
-            pushItem(std::move(item));
+            return emplaceItem(std::move(key),std::move(item));
         }
 
         /**
@@ -154,17 +189,17 @@ class Lru
          *
          */
         template <typename ...Args>
-        Item& emplaceItem(const KeyT& key,Args&&... args)
+        Item& emplaceItem(KeyT key, Args&&... args)
         {
             if (isFull())
             {
                 m_queue.pop_front_and_dispose([this](Item* lruItem){m_storage.doRemove(lruItem->key());});
             }
-            auto& item=m_storage.doEmplace(std::piecewise_construct,
+            auto& inserted=m_storage.doEmplace(std::piecewise_construct,
                           std::forward_as_tuple(key),
-                          std::forward_as_tuple(std::forward<Args>(args)...)
+                          std::forward_as_tuple(key,std::forward<Args>(args)...)
                           );
-            item.setKey(key);
+            auto& item=const_cast<Item&>(inserted);
             m_queue.push_back(item);
             return item;
         }

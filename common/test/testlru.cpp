@@ -17,7 +17,7 @@ struct Item
 {
     size_t id;
 
-    Item(size_t id) : id(id)
+    explicit Item(size_t id) : id(id)
     {}
 };
 
@@ -116,7 +116,7 @@ BOOST_FIXTURE_TEST_CASE(LruCache,MultiThreadFixture)
 
     size_t keyCount=0;
     size_t valueCount=0;
-    auto each1=[&keyCount,&valueCount](cacheT::Item& item)
+    auto each1=[&keyCount,&valueCount](const cacheT::Item& item)
     {
         keyCount+=item.key();
         valueCount+=item.id;
@@ -129,7 +129,7 @@ BOOST_FIXTURE_TEST_CASE(LruCache,MultiThreadFixture)
     keyCount=0;
     valueCount=0;
     size_t i=0;
-    auto each2=[&i,&keyCount,&valueCount](cacheT::Item& item)
+    auto each2=[&i,&keyCount,&valueCount](const cacheT::Item& item)
     {
         keyCount+=item.key();
         valueCount+=item.id;
@@ -174,6 +174,34 @@ BOOST_FIXTURE_TEST_CASE(LruCache,MultiThreadFixture)
     auto& mruItem9=cache.mruItem();
     BOOST_CHECK_EQUAL(mruItem9.id,item5.id);
     BOOST_CHECK_EQUAL(mruItem9.key(),item5.key());
+
+    auto& item10=cache.pushItem(110,Item{100});
+    BOOST_CHECK(!cache.empty());
+    BOOST_CHECK_EQUAL(cache.size(),3);
+    BOOST_CHECK(!cache.isFull());
+    BOOST_CHECK_EQUAL(item10.id,100);
+    BOOST_CHECK_EQUAL(item10.key(),110);
+    auto& lruItem10=cache.lruItem();
+    BOOST_CHECK_EQUAL(lruItem10.id,item3.id);
+    BOOST_CHECK_EQUAL(lruItem10.key(),item3.key());
+    auto& mruItem10=cache.mruItem();
+    BOOST_CHECK_EQUAL(mruItem10.id,item10.id);
+    BOOST_CHECK_EQUAL(mruItem10.key(),item10.key());
+
+    using itemT=cacheT::Item;
+    itemT item11{210,200};
+    auto& item12=cache.pushItem(item11);
+    BOOST_CHECK(!cache.empty());
+    BOOST_CHECK_EQUAL(cache.size(),4);
+    BOOST_CHECK(cache.isFull());
+    BOOST_CHECK_EQUAL(item12.id,200);
+    BOOST_CHECK_EQUAL(item12.key(),210);
+    auto& lruItem12=cache.lruItem();
+    BOOST_CHECK_EQUAL(lruItem12.id,item3.id);
+    BOOST_CHECK_EQUAL(lruItem12.key(),item3.key());
+    auto& mruItem12=cache.mruItem();
+    BOOST_CHECK_EQUAL(mruItem12.id,item12.id);
+    BOOST_CHECK_EQUAL(mruItem12.key(),item12.key());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
