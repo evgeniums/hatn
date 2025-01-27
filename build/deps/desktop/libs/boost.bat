@@ -5,7 +5,7 @@ SET boost_underscore_version=%boost_underscore_version:.=_%
 SET folder=%SRC%\boost_%boost_underscore_version%
 SET archive=boost_%boost_underscore_version%.7z
 
-SET download_link=https://boostorg.jfrog.io/artifactory/main/release/%BOOST_VERSION%/source/%archive%
+SET download_link=https://archives.boost.io/release/%BOOST_VERSION%/source/%archive%
 
 CALL %SCRIPTS_ROOT%/scripts/downloadandunpack.bat  
 
