@@ -15,6 +15,7 @@
 
 /****************************************************************************/
 
+#include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
 #include <hatn/common/utils.h>
@@ -751,7 +752,7 @@ const char* OpenSslStreamTraitsImpl::getVerifiedPeerName() const
 //---------------------------------------------------------------
 common::SharedPtr<X509Certificate> OpenSslStreamTraitsImpl::getPeerCertificate() const
 {
-    auto nativeCrt=::SSL_get_peer_certificate(m_ssl);
+    auto nativeCrt=SSL_get0_peer_certificate(m_ssl);
     if (nativeCrt)
     {
         auto cert=common::makeShared<OpenSslX509>();
