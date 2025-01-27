@@ -88,6 +88,7 @@ Error PlainFile::flush(bool deep) noexcept
         }
         return OK;
 #elif BOOST_BEAST_USE_POSIX_FILE
+        std::ignore=deep;
         if (false) // no flush needed for posix write()
 #else
         if (fflush(m_file.native_handle())!=0) // stdio flush
