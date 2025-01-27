@@ -15,13 +15,14 @@
 /****************************************************************************/
 
 #include <boost/hana.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <openssl/evp.h>
 #include <openssl/core_names.h>
 
-#include <hatn/crypt/plugins/openssl/opensslplugindef.h>
+#include <hatn/crypt/symmetricworker.ipp>
 
-#include <boost/algorithm/string.hpp>
+#include <hatn/crypt/plugins/openssl/opensslplugindef.h>
 
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 #include <hatn/crypt/plugins/openssl/opensslpublickey.h>
