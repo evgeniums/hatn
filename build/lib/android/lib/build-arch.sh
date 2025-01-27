@@ -38,9 +38,6 @@ fi
 
 build_path=$build_root/api-$api_level/$project/$toolchain
 
-if [[ "$toolchain" == "x86_64" ]];
-then
-
 if [ ! -z "$hatn_test_name" ];
 then
     if [[ $hatn_test_name == *"/"* ]]; then
@@ -90,19 +87,6 @@ ctest $ctest_args --verbose --test-dir $build_path/test -C release
 \$platform_tools/adb shell "rm -rf /data/local/tmp/test"
 
 EOT
-
-else
-
-cat <<EOT > $working_dir/run-tests.sh
-#!/bin/bash
-
-# *** This file is auto generated, do not edit! ***
-
-echo "Auto testing is disabled for $toolchain"
-
-EOT
-
-fi
 
 chmod +x $working_dir/run-tests.sh
 

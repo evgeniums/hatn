@@ -32,7 +32,8 @@ echo PATH=$PATH
 
 cd $lib_build_dir
 
-$folder/Configure $target -D__ANDROID_API__=$android_api_level --prefix=$toolchain_install_path -static no-shared no-tests enable-engine
+#$folder/Configure $target -D__ANDROID_API__=$android_api_level --prefix=$toolchain_install_path -static no-shared no-tests enable-engine
+$folder/Configure $target --prefix=$toolchain_install_path -static no-shared no-tests enable-engine no-apps
 make install_sw
 
 export PATH=$keep_path
