@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$dep_libs" ]; then
-export dep_libs="iconv openssl boost c-ares rapidjson lz4 rocksdb"
+export dep_libs="openssl boost c-ares rapidjson lz4 rocksdb"
 fi
 
 if [ -z "$openssl_version" ]; then

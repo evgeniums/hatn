@@ -13,24 +13,32 @@ source $scripts_root/../desktop/scripts/downloadandunpack.sh
 
 cd $folder
 
-extra_cppflags="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -stdlib=libc++ -std=c++11 -Wall -pedantic -Wno-unused-variable $visibility_flags $bitcode_flags"
-extra_cflags="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -Wall -pedantic -Wno-unused-variable $visibility_flags $bitcode_flags"
+sdk_path=`xcrun --sdk $target_sdk --show-sdk-path`
+echo "sdk_path=$sdk_path"
+
+extra_cppflags="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -stdlib=libc++ -std=c++11 -Wall -pedantic -Wno-unused-variable $visibility_flags $bitcode_flags -isysroot $sdk_path"
+extra_cflags="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -Wall -pedantic -Wno-unused-variable $visibility_flags $bitcode_flags -isysroot $sdk_path"
+
+if [ "$arch_" = "simulator" ]
+then
+    arch_opts="-target $arch-apple-ios$min_ios_version-simulator -mios-simulator-version-min=$min_ios_version"
+else
+    arch_opts="-target $arch-apple-ios$min_ios_version -mios-version-min=$min_ios_version"
+fi
 
 user_config=$lib_build_dir/user-config.jam
 rm -f $user_config
 
 cat <<EOF > $user_config	
-using clang-darwin : $toolchain_arch
+using clang-darwin : $arch_
 	: xcrun --sdk $target_sdk clang++
-	: <cxxflags>"-miphoneos-version-min=$min_ios_version -arch $arch $target_endianity $extra_cppflags"
-	  <cflags>"-miphoneos-version-min=$min_ios_version -arch $arch $target_endianity $extra_cflags"
-	  <linkflags>"-arch $arch -liconv"
+	: <architecture>$arch
+      <cxxflags>"-arch $arch $target_endianity $extra_cppflags $arch_opts"
+	  <cflags>"-arch $arch $target_endianity $extra_cflags $arch_opts"
+	  <linkflags>"-isysroot $sdk_path -arch $arch -liconv"
 	  <striper>
 	;
 EOF
-
-#echo user_config.jam:
-#cat $user_config 
 
 ./bootstrap.sh
 
@@ -48,7 +56,7 @@ compile_boost="./b2 -j$build_workers \
     --with-thread \
     --with-timer \
     --with-container \
-    toolset=clang-darwin-$toolchain_arch \
+    toolset=clang-darwin-$arch_ \
     -sICONV_PATH=$sdk_install_prefix \
     variant=$build_type \
     --layout=system \
