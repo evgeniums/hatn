@@ -17,8 +17,10 @@
 #include <windows.h>
 #include <fileapi.h>
 #else
+#if !defined(BUILD_ANDROID)
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 #endif
 
 #include <hatn/common/filesystem.h>
@@ -307,7 +309,7 @@ Error PlainFile::fsync()
             return commonError(CommonError::FILE_FSYNC_FAILED);
         }
 #else
-        if (fsync(m_file.native_handle()) < 0)
+        if (::fsync(m_file.native_handle()) < 0)
         {
             return commonError(CommonError::FILE_FSYNC_FAILED);
         }
