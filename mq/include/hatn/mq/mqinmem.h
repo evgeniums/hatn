@@ -22,9 +22,11 @@
 
 #include <functional>
 
+#include <boost/icl/interval_map.hpp>
+
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/common/flatmap.h>
-#include <hatn/common/cachelru.h>
+#include <hatn/common/cachelruttl.h>
 #include <hatn/common/locker.h>
 #include <hatn/common/withthread.h>
 
@@ -33,6 +35,7 @@
 
 HATN_MQ_NAMESPACE_BEGIN
 
+#if 0
 template <typename MessageTraitsT, typename PosT=du::ObjectId>
 class MqInmemTraits;
 
@@ -85,8 +88,25 @@ class MqInmemPool : public MqTraitsBase<MessageTraitsT,PosT>
 
         common::CacheLruTtl<TopicId,std::shared_ptr<MqInmem<MessageTraitsT,PosT>>> m_topics;
 
-        common::LruTtl<DeleterFn> m_topicReadMessageContainers;
-        common::LruTtl<DeleterFn> m_topicReadQueueContainers;
+        struct IdInterval
+        {
+            TopicId topic;
+            IdType from;
+            IdType to;
+        };
+
+        struct PosInterval
+        {
+            TopicId topic;
+            PosType from;
+            PosType to;
+        };
+
+        using ReadMessageContainers=boost::icl::interval_map<IdType,Item>;
+        using ReadQueueContainers=boost::icl::interval_map<PosType,Item>;
+
+        common::CacheLruTtl<IdInterval,ReadMessageContainers> m_topicReadMessageContainers;
+        common::CacheLruTtl<PosInterval,ReadQueueContainers> m_topicReadQueueContainers;
 
         common::TaskWithContextThread* m_thread;
 
@@ -94,15 +114,55 @@ class MqInmemPool : public MqTraitsBase<MessageTraitsT,PosT>
         friend class MqInmemTraits;
 };
 
-template <typename MessageTraitsT, typename PosT=du::ObjectId>
-class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosT>
+#endif
+
+template <typename MessageTraitsT, typename PosTraits=PosTraitsBase>
+class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosTraits>
 {
     public:
 
-        void create(common::SharedPtr<TaskContext> ctx, MessageType item, ItemCb cb, lib::optional<DownstreamPos> downstreamPos=lib::optional<DownstreamPos>{})
+        using BaseT=MqTraitsBase<MessageTraitsT,PosTraits>;
+        using MessageType=typename BaseT::MessageType;
+        using IdType=typename BaseT::IdType;
+        using PosType=typename PosTraits::Type;
+        using Item=typename BaseT::Item;
+        using ItemCb=typename BaseT::ItemCb;
+        using DownstreamPos=typename BaseT::DownstreamPos;
+
+        //! @todo Fix constructors
+        MqInmemTraits(uint64_t ttl=1000) : m_writeQueue(ttl)
+        {}
+
+        void create(common::SharedPtr<TaskContext> ctx, MessageType msg, ItemCb cb, lib::optional<DownstreamPos> downstreamPos=lib::optional<DownstreamPos>{})
         {
+            //! @todo Post to thread
+
+            auto pos=this->nextPos();
+            const auto& item=m_writeQueue.emplaceItem(pos,msg,pos,std::move(downstreamPos));
+
+            //! @todo Update downstream pos
+
+            //! @todo Post back to origin thread
+            cb(ctx,ec,item,true);
+
+            //! @todo Process subscriptions
         }
 
+        void createAfterUpstream(common::SharedPtr<TaskContext> ctx, const Item& item, ItemCb cb)
+        {
+            //! @todo Post to thread
+
+            const auto& newItem=m_writeQueue.pushItem(item.pos,item);
+
+            //! @todo Update downstream pos
+
+            //! @todo Post back to origin thread
+            cb(ctx,ec,newItem,true);
+
+            //! @todo Process subscriptions
+        }
+
+#if 0
         void readFromId(common::SharedPtr<TaskContext> ctx, ItemCb cb, IdType from, IdType maxTo=IdType{}, size_t maxCount=1)
         {
         }
@@ -167,13 +227,12 @@ class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosT>
         void reset()
         {
         }
-
+#endif
     private:
 
-        ItemQueueLruTtl<Item> m_writeQueue;
+        common::CacheLruTtl<PosType,Item> m_writeQueue;
 
-        PosType m_lastDownstreamPos;
-
+#if 0
         common::pmr::map<DownstreamId,PosType> m_lastDownstreamPos;
 
         PosType m_firstPos;
@@ -187,8 +246,7 @@ class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosT>
 
         MqInmemPool* m_pool;
         typename common::CacheLruTtl<TopicId,MqInmem<MessageTraitsT,PosT>>::Item *m_selfPoolItem;
-
-        size_t m_inOpCount;
+#endif
 };
 
 HATN_MQ_NAMESPACE_END

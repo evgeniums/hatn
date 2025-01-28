@@ -1,5 +1,6 @@
 SET (TEST_SOURCES
     ${MQ_TEST_SRC}/testmq.cpp
+    ${MQ_TEST_SRC}/testmqinmem.cpp
 )
 
 SET (TEST_HEADERS
