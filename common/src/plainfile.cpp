@@ -17,8 +17,10 @@
 #include <windows.h>
 #include <fileapi.h>
 #else
+#if !defined(BUILD_ANDROID)
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 #endif
 
 #include <hatn/common/filesystem.h>
@@ -88,6 +90,7 @@ Error PlainFile::flush(bool deep) noexcept
         }
         return OK;
 #elif BOOST_BEAST_USE_POSIX_FILE
+        std::ignore=deep;
         if (false) // no flush needed for posix write()
 #else
         if (fflush(m_file.native_handle())!=0) // stdio flush
@@ -306,7 +309,7 @@ Error PlainFile::fsync()
             return commonError(CommonError::FILE_FSYNC_FAILED);
         }
 #else
-        if (fsync(m_file.native_handle()) < 0)
+        if (::fsync(m_file.native_handle()) < 0)
         {
             return commonError(CommonError::FILE_FSYNC_FAILED);
         }

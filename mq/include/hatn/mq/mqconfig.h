@@ -45,7 +45,17 @@ struct MqItem
     lib::optional<typename Traits::UpdateType> update;
 
     typename Traits::RefIdType refId;
-    bool deleted=false;
+    bool deleted;
+
+    MqItem(typename Traits::MessageType msg,
+           typename Traits::PosType pos,
+           lib::optional<typename Traits::DownstreamPos> downstreamPos=lib::optional<typename Traits::DownstreamPos>{}
+           )
+        : pos(std::move(pos)),
+          downstreamPos(std::move(downstreamPos)),
+          message(std::move(msg)),
+          deleted(false)
+    {}
 
     const auto* messageId() const
     {
@@ -60,72 +70,80 @@ struct MqItem
     {
         if (!message)
         {
-            return nullptr;
+            return &refId;
         }
         return Traits::messageRefId(message.value());
     }
 };
 
-template <typename Traits>
-struct MqConfig
-{
-    using PosType=typename Traits::PosType;
-    using IdType=typename Traits::IdType;
-    using RefIdType=typename Traits::RefIdType;
-    using MessageType=typename Traits::MessageType;
-    using UpdateType=typename Traits::UpdateType;
-
-    using Item=MqItem<Traits>;
-
-    using ItemCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item)>;
-    using ReadCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item, size_t count)>;
-    using PosCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const PosType& pos)>;
-    using RemoveCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const RefIdType& refId)>;
-
-    using SubscribeCb=std::function<void (const common::SharedPtr<TaskContext>& ctx,
-                                           lib::string_view topic,
-                                           const PosType& firstPos,
-                                           const PosType& lastPos,
-                                           const RefIdType& firstRefId,
-                                           const RefIdType& lastRefId,
-                                           size_t count)>;
-};
-
 template <typename MessageT,
          typename UpdateT,
-         typename PosT=du::ObjectId,
          typename IdT=du::ObjectId,
          typename RefIdT=IdT>
-struct MessageTraits
+struct MessageTraitsBase
 {
     using IdType=IdT;
     using RefIdType=RefIdT;
     using MessageType=MessageT;
     using UpdateType=UpdateT;
 
-    const auto* messageId() const
+    static const auto* messageId(const MessageType&)
     {
         Assert(false,"Must be implemented in derived message traits");
         return nullptr;
     }
 
-    const auto* messageRefId() const
+    static const auto* messageRefId(const MessageType&)
     {
         Assert(false,"Must be implemented in derived message traits");
         return nullptr;
     }
 };
 
-template <typename MessageTraitsT, typename PosT=du::ObjectId>
-class MqTraitsBase : public MessageTraitsT, public MqConfig<MqTraitsBase<MessageTraitsT,PosT>>
+struct PosTraitsBase
+{
+    using Type=du::ObjectId;
+
+    Type next()
+    {
+        return du::ObjectId::generateId();
+    }
+};
+
+template <typename MessageTraitsT, typename PosTraits=PosTraitsBase>
+class MqTraitsBase
 {
     public:
 
+        using SelfT=MqTraitsBase<MessageTraitsT,PosTraits>;
+
+        using IdType=typename MessageTraitsT::IdType;
+        using RefIdType=typename MessageTraitsT::RefIdType;
+        using MessageType=typename MessageTraitsT::MessageType;
+        using UpdateType=typename MessageTraitsT::UpdateType;
+
+        using PosType=typename PosTraits::Type;
+
+        using Item=MqItem<SelfT>;
+
+        using ItemCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item, bool complete)>;
+        using ReadCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item, size_t count)>;
+        using PosCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const PosType& pos)>;
+        using RemoveCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const RefIdType& refId)>;
+
+        using SubscribeCb=std::function<void (const common::SharedPtr<TaskContext>& ctx,
+                                               lib::string_view topic,
+                                               const PosType& firstPos,
+                                               const PosType& lastPos,
+                                               const RefIdType& firstRefId,
+                                               const RefIdType& lastRefId,
+                                               size_t count)>;
+
         struct Subscription
         {
-            using IdType=uint32_t;
+            using Id=uint32_t;
 
-            IdType id=0;
+            Id id=0;
             common::WeakPtr<TaskContext> ctx;
         };
         using SubscriptionT=Subscription;
@@ -133,8 +151,23 @@ class MqTraitsBase : public MessageTraitsT, public MqConfig<MqTraitsBase<Message
         struct DownstreamPos
         {
             DownstreamId downstreamId;
-            PosT pos;
+            PosType pos;
         };
+
+        static const auto* messageId(const MessageType& msg)
+        {
+            return MessageTraitsT::messageId(msg);
+        }
+
+        static const auto* messageRefId(const MessageType& msg)
+        {
+            return MessageTraitsT::messageRefId(msg);
+        }
+
+        PosType nextPos()
+        {
+            return PosTraits::next();
+        }
 };
 
 HATN_MQ_NAMESPACE_END

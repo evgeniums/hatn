@@ -15,6 +15,8 @@
 
 /****************************************************************************/
 
+#include <algorithm>
+
 #include <hatn/db/plugins/rocksdb/rocksdbencryption.h>
 
 // #define HATN_RDB_PRINT_FILE_OPEN
@@ -64,7 +66,7 @@ rocksdb::IOStatus EncryptedSequentialFile::Skip(uint64_t n)
 {
     common::MutexScopedLock l(m_mutex);
 
-    n=std::min(static_cast<size_t>(n),m_cryptfile.size());
+    n=std::min(n,m_cryptfile.size());
     auto ec=m_cryptfile.seek(n);
     HATN_RDB_DONE_EC(ec)
 }

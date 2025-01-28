@@ -4,7 +4,8 @@ export underscore_version=${underscore_version//./_}
 export lib_name=boost_$underscore_version
 
 export archive=$lib_name.7z
-export download_link=https://boostorg.jfrog.io/artifactory/main/release/$boost_version/source/$archive
+export download_link=https://archives.boost.io/release/$boost_version/source/$archive
+
 export folder=$src_dir/$lib_name
 
 source $scripts_root/scripts/downloadandunpack.sh

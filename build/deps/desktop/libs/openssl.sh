@@ -24,12 +24,12 @@ then
      then
 	if [ $address_model -eq 64 ] 
 	then
-	    export toolchain=linux-x86_64-clang 
+	    export toolchain="linux-$arch-clang"
 	else
 	    export toolchain=linux-x86-clang 
 	fi
     else
-	export toolchain=darwin64-x86_64-cc	
+        export toolchain="darwin64-$arch-cc"
     fi 
 fi
 

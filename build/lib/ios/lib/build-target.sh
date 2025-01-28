@@ -27,21 +27,16 @@ if [ "$visibility_mode" = "hidden" ];
 		export enable_visibility=TRUE		
 fi
 
-if [ "$arch" = "x86_64" ] || [ "$arch" = "i386" ]
-	then
-		if [ "$arch" = "i386" ];
-			then
-				export ios_platform=SIMULATOR
-			else
-				export ios_platform=SIMULATOR64
-		fi
-	else
-            if [ "$arch" = "arm64" ];
-                    then
-                            export ios_platform=OS64
-                    else
-                            export ios_platform=OS
-            fi
+if [ "$arch_" = "simulator" ]
+    then
+        export ios_platform=SIMULATOR
+    else
+        if [ "$arch" = "arm64" ];
+        then
+            export ios_platform=OS64
+        else
+            export ios_platform=OS
+        fi
 fi
 
 if [ -d $build_path ];
@@ -65,7 +60,7 @@ then
 fi
 
 
-if [[ "$arch" == "x86_64" ]];
+if [ "$arch" = "x86_64" ] || [ "$ios_platform" = "SIMULATOR64" ]
 then
 
 if [ ! -z "$hatn_test_name" ];
@@ -89,7 +84,7 @@ set -e
 
 # *** This file is auto generated, do not edit! ***
 
-echo "Auto testing in simulator for x86_64 platform"
+echo "Auto testing in simulator"
 
 export PATH=\$PATH:/usr/local/bin
 
@@ -110,7 +105,7 @@ cat <<EOT > $working_dir/run-tests.sh
 
 # *** This file is auto generated, do not edit! ***
 
-echo "Auto testing is disabled for $arch"
+echo "Auto testing is disabled for $arch_"
 
 EOT
 

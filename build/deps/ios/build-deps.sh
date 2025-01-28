@@ -43,105 +43,92 @@ build_archs()
 	export visibility_mode=$3
 		
 	if [ "$bitcode_mode" = "bitcode" ];	
-		then
-			export bitcode_flags="-fembed-bitcode"
-                        export enable_bitcode=1
-		else
-			export bitcode_flags=
-                        export enable_bitcode=0
+    then
+        export bitcode_flags="-fembed-bitcode"
+        export enable_bitcode=1
+    else
+        export bitcode_flags=
+        export enable_bitcode=0
 	fi
 
 	if [ "$visibility_mode" = "hidden" ];	
-		then
-			export visibility_flags="-fvisibility=hidden -fvisibility-inlines-hidden"
-                        export enable_visibility=1
-		else
-			export visibility_flags=
-                        export enable_visibility=0
+    then
+        export visibility_flags="-fvisibility=hidden -fvisibility-inlines-hidden"
+        export enable_visibility=1
+    else
+        export visibility_flags=
+        export enable_visibility=0
 	fi
 		
 		
-	for arch in $archs_list; do
+	for arch_ in $archs_list; do
 		
-		export arch
-		
-                if [ "$arch" = "x86_64" ] || [ "$arch" = "i386" ]
-                        then
-                                if [ "$arch" = "i386" ];
-                                        then
-                                                export ios_platform=SIMULATOR
-                                        else
-                                                export ios_platform=SIMULATOR64
-                                fi
-                        else
-                            if [ "$arch" = "arm64" ];
-                                    then
-                                            export ios_platform=OS64
-                                    else
-                                            export ios_platform=OS
-                            fi
-                fi
+        export arch_
+  
+        if [ "$arch_" = "simulator" ]
+        then
+        
+            if [ "$bitcode_mode" = "bitcode" ] || [ "$visibility_mode" = "visible" ]
+            then
+                continue
+            fi
 
-		if [[ $arch == "64e" ]]; 
+            echo "Building for iOS simulator"
+            export ios_platform=SIMULATOR64
+            if [ "$host_arch" = "" ]
+            then
+                export arch=arm64
+            else
+                export arch=$host_arch
+                export toolchain_arch=$host_arch
+            fi
+            
+            export target_sdk=iphonesimulator
+            export target_endianity=
+            export sdk_root=`xcrun --sdk iphonesimulator --show-sdk-platform-path`
+            export sdk_install_prefix=$sdk_root/Developer/SDKs/iPhoneSimulator.sdk/usr
+            export ios_platform=SIMULATOR64
+            
+        else
+        
+            echo "Building for iOS"
+            export arch=$arch_
+            export toolchain_arch=$arch
+            export target_sdk=iphoneos
+            export target_endianity=-D_LITTLE_ENDIAN
+            export sdk_root=`xcrun --sdk iphoneos --show-sdk-platform-path`
+            export sdk_install_prefix=$sdk_root/Developer/SDKs/iPhoneOS.sdk/usr
+
+            if [ "$arch" = "arm64" ];
+            then
+                export ios_platform=OS64
+            else
+                export ios_platform=OS
+            fi
+        fi
+        
+		if [[ $arch == "64e" ]];
 			then
   				export address_model=64e
   			else
   				export address_model=64
 		fi
-		
-		if [ "$bitcode_mode" = "bitcode" ];
-			then
-				if [ "$arch" = "i386" ] || [ "$arch" = "x86_64" ]
-					then
-						continue
-				fi
-		fi
-	
-		if [ "$arch" = "x86_64" ] || [ "$arch" = "i386" ]
-			then
-				export target_sdk=iphonesimulator
-				export target_endianity=
-				export sdk_root=`xcrun --sdk iphonesimulator --show-sdk-platform-path`
-				export sdk_install_prefix=$sdk_root/Developer/SDKs/iPhoneSimulator.sdk/usr
-				if [ "$arch" = "i386" ];
-					then
-						export toolchain_arch=x86
-					else
-						export toolchain_arch=x86_64
-				fi
-			else
-				export target_sdk=iphoneos
-				export target_endianity=-D_LITTLE_ENDIAN
-				export sdk_root=`xcrun --sdk iphoneos --show-sdk-platform-path`
-				export sdk_install_prefix=$sdk_root/Developer/SDKs/iPhoneOS.sdk/usr
-				if [ "$arch" = "arm64" ];
-					then
-						export toolchain_arch=arm64
-					else
-						export toolchain_arch=arm
-				fi						
-		fi
-	
-		export build_arch_dir=$build_dir/$build_type/$bitcode_mode/$visibility_mode/$arch
-		export install_dir=$install_root/$build_type/$bitcode_mode/$visibility_mode/$arch		
+    
+		export install_dir=$install_root/$build_type/$bitcode_mode/$visibility_mode/$arch_
 	
 		for lib in $dep_libs  
 		do
 			current=$PWD
 			keep_path=$PATH
 			
-			echo "******************************************"
-			echo "******************************************"
-			echo "******************************************"
-			echo "********Building $lib for $arch***********"
-			echo "******************************************"
-			echo "******************************************"
-			echo "******************************************"
+			echo "********************************************************"
+			echo "******** Building $lib for $arch_ with $arch ***********"
+			echo "********************************************************"
 			
 			$deps_root/$lib.sh $arch
 			
 			cd $current
-			export PATH=$keep_path			
+			export PATH=$keep_path
 		done
 	
 	done

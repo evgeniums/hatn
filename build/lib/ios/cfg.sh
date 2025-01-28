@@ -3,7 +3,7 @@
 # IOS deployment target
 if [ -z "$ios_deployment_target" ]
 then
-export ios_deployment_target=11.0
+export ios_deployment_target=15.1
 fi
 
 # build types
@@ -20,7 +20,7 @@ export visibility_modes="normal hidden"
 fi
 
 if [ -z "$archs_list" ]; then
-export archs_list="arm64 x86_64"
+export archs_list="arm64 simulator"
 fi
 
 if [ -z "$build_workers" ]; then

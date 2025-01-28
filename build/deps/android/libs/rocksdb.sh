@@ -46,5 +46,7 @@ cmake -G "Unix Makefiles" \
 	    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
 	    $folder
 
+# @todo Make patch for DDISABLE_MARCH_NATIVE
+
 make -j$build_workers install
 unset CXXFLAGS

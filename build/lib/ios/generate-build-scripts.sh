@@ -82,20 +82,34 @@ set -e
 EOT
 	chmod +x $all_archs
 
-	for arch in $archs_list; do
+	for arch_ in $archs_list; do
 		
-		if [ "$bitcode_mode" = "bitcode" ];
-			then
-				if [ "$arch" = "i386" ] || [ "$arch" = "x86_64" ]
-					then
-						continue
-				fi
-		fi
-				
-		target_script=$archs_scripts_dir/$arch.sh
-		echo Adding $archs_rel_path/$arch
+        if [ "$arch_" = "simulator" ]
+        then
+        
+            if [ "$bitcode_mode" = "bitcode" ] || [ "$visibility_mode" = "visible" ]
+            then
+                continue
+            fi
+
+            export arch_
+
+            if [ "$host_arch" = "" ]
+            then
+                export arch=arm64
+            else
+                export arch=$host_arch
+            fi
+        else
+        
+            export arch=$arch_
+        
+        fi
+        
+		target_script=$archs_scripts_dir/$arch_.sh
+		echo Adding $archs_rel_path/$arch_
 		
-		echo ./$arch.sh >> $all_archs
+		echo ./$arch_.sh >> $all_archs
 		
 cat <<EOT > $target_script
 #!/bin/bash
@@ -105,7 +119,8 @@ cat <<EOT > $target_script
 set -e
 
 export arch=$arch
-export arch_rel_path=$archs_rel_path/$arch
+export arch_=$arch_
+export arch_rel_path=$archs_rel_path/$arch_
 
 echo "***********************"
 echo Building \$arch_rel_path

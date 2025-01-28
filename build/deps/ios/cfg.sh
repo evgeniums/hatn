@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$min_ios_version" ]; then
-export min_ios_version=11.0
+export min_ios_version=15.1
 fi
 
 if [ -z "$bitcode_modes" ]; then
@@ -13,7 +13,7 @@ export visibility_modes="normal hidden"
 fi
 
 if [ -z "$archs_list" ]; then
-export archs_list="arm64 x86_64"
+export archs_list="arm64 simulator"
 fi
 
 if [ -z "$build_workers" ]; then

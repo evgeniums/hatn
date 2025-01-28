@@ -36,6 +36,11 @@ fi
 source $scripts_root/config.sh
 source $scripts_root/paths.sh
 
+if [[ "$arch" == "" ]]
+then
+    export arch=x86_64
+fi
+
 if [ ! -d "$build_dir" ]; then
     mkdir -p $build_dir 
 fi
