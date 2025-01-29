@@ -146,6 +146,35 @@ using TaskWithContextQueue=Queue<TaskWithContext>;
 using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
 
+struct AsyncWithCallbackT
+{
+    template <typename HandlerT>
+    void operator ()(TaskWithContextThread* thread,
+                    SharedPtr<TaskContext> ctx,
+                    HandlerT handler
+                    ) const
+    {
+        auto originThreadQ=TaskWithContextThread::current();
+
+        auto threadHandler=[originThreadQ,handler{std::move(handler)}](const SharedPtr<TaskContext>& ctx)
+        {
+            auto cb=handler(ctx);
+            auto cbTask=originThreadQ->prepare();
+            cbTask->setHandler(std::move(cb));
+            cbTask->setContext(ctx);
+            originThreadQ->post(cbTask);
+        };
+
+        auto task=thread->prepare();
+        task->setHandler(std::move(threadHandler));
+        task->setContext(std::move(ctx));
+        thread->post(task);
+    }
+
+    //! @todo Implement operator with guard
+};
+constexpr AsyncWithCallbackT AsyncWithCallback{};
+
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADWITHQUEUE_H

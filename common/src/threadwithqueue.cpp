@@ -12,8 +12,6 @@
   *     hatn thread with queue
   */
 
-#include <iostream>
-
 #include <hatn/common/mutexqueue.h>
 #include <hatn/common/mpscqueue.h>
 
@@ -26,8 +24,15 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+template class HATN_COMMON_EXPORT Queue<Task>;
+template class HATN_COMMON_EXPORT Queue<TaskWithContext>;
+
 template class HATN_COMMON_EXPORT ThreadWithQueueTraits<Task>;
 template class HATN_COMMON_EXPORT ThreadWithQueueTraits<TaskWithContext>;
+
+template class HATN_COMMON_EXPORT ThreadQ<Task,ThreadWithQueueTraits>;
+template class HATN_COMMON_EXPORT ThreadQ<TaskWithContext,ThreadWithQueueTraits>;
+
 template class HATN_COMMON_EXPORT ThreadWithQueue<Task>;
 template class HATN_COMMON_EXPORT ThreadWithQueue<TaskWithContext>;
 

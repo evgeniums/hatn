@@ -1077,4 +1077,48 @@ BOOST_FIXTURE_TEST_CASE(TestSharedLocker,MultiThreadFixture)
     BOOST_CHECK_EQUAL(sharedVal.load(),count*2);
 }
 
+BOOST_FIXTURE_TEST_CASE(TestAsyncWithCallback,MultiThreadFixture)
+{
+    size_t threadCount=4;
+    std::vector<TaskWithContextThread*> threads;
+    threads.resize(threadCount);
+    createThreads(static_cast<int>(threadCount));
+
+    for (int i=0;i<static_cast<int>(threadCount);i++)
+    {
+        thread(i)->start();
+        auto threadQ=dynamic_cast<TaskWithContextThread*>(thread(i).get());
+        BOOST_REQUIRE(threadQ!=nullptr);
+        threads[i]=threadQ;
+    }
+
+    auto originThread=threads[0];
+    auto targetThread=threads[1];
+
+    auto async1=[&targetThread,&originThread]()
+    {
+        HATN_TEST_MESSAGE_TS(fmt::format("Origin thread {}",Thread::currentThreadID()));
+        BOOST_REQUIRE(originThread->id()==Thread::currentThreadID());
+
+        auto ctx=makeShared<TaskContext>();
+        auto handler=[&targetThread,&originThread](const SharedPtr<TaskContext>&)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("Target thread {}",Thread::currentThreadID()));
+            BOOST_REQUIRE(targetThread->id()==Thread::currentThreadID());
+            auto cb=[&originThread](const SharedPtr<TaskContext>&)
+            {
+                HATN_TEST_MESSAGE_TS(fmt::format("Callback thread {}",Thread::currentThreadID()));
+                BOOST_REQUIRE(originThread->id()==Thread::currentThreadID());
+            };
+            return cb;
+        };
+
+        AsyncWithCallback(targetThread,ctx,handler);
+    };
+
+    originThread->execAsync(async1);
+
+    exec(1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
