@@ -482,7 +482,7 @@ class LruTtl
             MutexScopedLock l{pimpl->mutex};
             auto hndlr=[&handler,this](auto& item)
             {
-                if (!isExpired(item))
+                if (!this->isExpired(item))
                 {
                     return handler(item);
                 }
@@ -497,7 +497,7 @@ class LruTtl
             MutexScopedLock l{pimpl->mutex};
             auto hndlr=[&handler,this](const auto& item)
             {
-                if (!isExpired(item))
+                if (!this->isExpired(item))
                 {
                     return handler(item);
                 }
