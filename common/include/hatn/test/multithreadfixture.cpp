@@ -162,6 +162,14 @@ std::shared_ptr<Thread> MultiThreadFixture::thread(int index) const
 }
 
 //---------------------------------------------------------------
+std::shared_ptr<::hatn::common::TaskWithContextThread> MultiThreadFixture::threadWithContextTask(int index) const
+{
+    auto t=std::dynamic_pointer_cast<::hatn::common::TaskWithContextThread>(thread(index));
+    Assert(t,"Invalid thread");
+    return t;
+}
+
+//---------------------------------------------------------------
 bool MultiThreadFixture::exec(
         int timeoutSeconds
     )
