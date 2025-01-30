@@ -39,7 +39,7 @@ template <typename Traits>
 struct MqItem
 {
     lib::optional<typename Traits::PosType> pos;
-    lib::optional<typename Traits::DownstreamPos> downstreamPos;
+    common::SharedPtr<typename Traits::DownstreamPos> downstreamPos;
 
     lib::optional<typename Traits::MessageType> message;
     lib::optional<typename Traits::UpdateType> update;
@@ -49,7 +49,7 @@ struct MqItem
 
     MqItem(typename Traits::MessageType msg,
            typename Traits::PosType pos,
-           lib::optional<typename Traits::DownstreamPos> downstreamPos=lib::optional<typename Traits::DownstreamPos>{}
+           common::SharedPtr<typename Traits::DownstreamPos> downstreamPos=common::SharedPtr<typename Traits::DownstreamPos>{}
            )
         : pos(std::move(pos)),
           downstreamPos(std::move(downstreamPos)),
@@ -126,7 +126,13 @@ class MqTraitsBase
 
         using Item=MqItem<SelfT>;
 
-        using ItemCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item, bool complete)>;
+        struct DownstreamPos
+        {
+            DownstreamId downstreamId;
+            PosType pos;
+        };
+
+        using CreateCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const RefIdType& refId, const common::SharedPtr<DownstreamPos>& downstreamPos, bool complete)>;
         using ReadCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const Item& item, size_t count)>;
         using PosCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const PosType& pos)>;
         using RemoveCb=std::function<void (const common::SharedPtr<TaskContext>& ctx, Error ec, const RefIdType& refId)>;
@@ -147,12 +153,6 @@ class MqTraitsBase
             common::WeakPtr<TaskContext> ctx;
         };
         using SubscriptionT=Subscription;
-
-        struct DownstreamPos
-        {
-            DownstreamId downstreamId;
-            PosType pos;
-        };
 
         static const auto* messageId(const MessageType& msg)
         {

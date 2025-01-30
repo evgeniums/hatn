@@ -58,7 +58,10 @@ BOOST_AUTO_TEST_SUITE(TestMqinmem)
 
 BOOST_FIXTURE_TEST_CASE(TraitsInMem,MultiThreadFixture)
 {
-    InmemTraits traits;
+    createThreads(1);
+
+    mq::MqInmemPool pool{threadWithContextTask(0)};
+    InmemTraits traits{&pool};
 
     Message msg1;
     msg1.id.generate();
@@ -75,7 +78,8 @@ BOOST_FIXTURE_TEST_CASE(TraitsInMem,MultiThreadFixture)
 
 BOOST_FIXTURE_TEST_CASE(MqInmem,MultiThreadFixture)
 {
-    mq::Mq<InmemTraits> mq1;
+    mq::MqInmemPool pool{threadWithContextTask(0)};
+    mq::Mq<InmemTraits> mq1{&pool};
 
     Message msg1;
     msg1.id.generate();
@@ -89,5 +93,16 @@ BOOST_FIXTURE_TEST_CASE(MqInmem,MultiThreadFixture)
     BOOST_CHECK(msg1.id!=*InmemTraits::messageId(msg2));
     BOOST_CHECK(msg1.refId!=*InmemTraits::messageRefId(msg2));
 }
+
+BOOST_FIXTURE_TEST_CASE(Create,MultiThreadFixture)
+{
+    mq::MqInmemPool pool{threadWithContextTask(0)};
+    mq::Mq<InmemTraits> mq1{&pool};
+
+    Message msg1;
+    msg1.id.generate();
+    msg1.refId.generate();
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

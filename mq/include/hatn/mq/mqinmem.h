@@ -20,8 +20,6 @@
 #ifndef HATNMQINMEM_H
 #define HATNMQINMEM_H
 
-#include <functional>
-
 #include <boost/icl/interval_map.hpp>
 
 #include <hatn/common/pmr/allocatorfactory.h>
@@ -116,6 +114,23 @@ class MqInmemPool : public MqTraitsBase<MessageTraitsT,PosT>
 
 #endif
 
+class MqInmemPool
+{
+    public:
+
+        MqInmemPool(std::shared_ptr<common::TaskWithContextThread> thread) : m_thread(std::move(thread))
+        {}
+
+        common::TaskWithContextThread* thread() const noexcept
+        {
+            return m_thread.get();
+        }
+
+    private:
+
+        std::shared_ptr<common::TaskWithContextThread> m_thread;
+};
+
 template <typename MessageTraitsT, typename PosTraits=PosTraitsBase>
 class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosTraits>
 {
@@ -126,27 +141,39 @@ class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosTraits>
         using IdType=typename BaseT::IdType;
         using PosType=typename PosTraits::Type;
         using Item=typename BaseT::Item;
-        using ItemCb=typename BaseT::ItemCb;
+        using CreateCb=typename BaseT::CreateCb;
         using DownstreamPos=typename BaseT::DownstreamPos;
 
         //! @todo Fix constructors
-        MqInmemTraits(uint64_t ttl=1000) : m_writeQueue(ttl)
+        MqInmemTraits(MqInmemPool* pool, uint64_t ttl=1000)
+            :   m_pool(pool),
+                m_writeQueue(ttl)
         {}
 
-        void create(common::SharedPtr<TaskContext> ctx, MessageType msg, ItemCb cb, lib::optional<DownstreamPos> downstreamPos=lib::optional<DownstreamPos>{})
+        void create(common::SharedPtr<TaskContext> ctx, MessageType msg, CreateCb cb, common::SharedPtr<DownstreamPos> downstreamPos)
         {
-            //! @todo Post to thread
+            // post to pool's thread
+            auto handler=[this,cb{std::move(cb)},msg{std::move(msg)},downstreamPos{std::move(downstreamPos)}](const common::SharedPtr<TaskContext>& /*ctx*/)
+            {
+                auto pos=this->nextPos();
+                const auto& item=m_writeQueue.emplaceItem(pos,msg,pos,downstreamPos);
 
-            auto pos=this->nextPos();
-            const auto& item=m_writeQueue.emplaceItem(pos,msg,pos,std::move(downstreamPos));
+                //! @todo Update downstream pos
 
-            //! @todo Update downstream pos
+                //! @todo Process subscriptions
 
-            //! @todo Post back to origin thread
-            cb(ctx,ec,item,true);
-
-            //! @todo Process subscriptions
+                auto cb1=[cb{std::move(cb)},downstreamPos](const common::SharedPtr<TaskContext>& ctx)
+                {
+                    // post back to origin thread
+                    Error ec;
+                    cb(ctx,ec,downstreamPos,true);
+                };
+                return cb1;
+            };
+            common::AsyncWithCallback(m_pool->thread(),std::move(ctx),std::move(handler));
         }
+
+#if 0
 
         void createAfterUpstream(common::SharedPtr<TaskContext> ctx, const Item& item, ItemCb cb)
         {
@@ -157,12 +184,12 @@ class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosTraits>
             //! @todo Update downstream pos
 
             //! @todo Post back to origin thread
+            Error ec;
             cb(ctx,ec,newItem,true);
 
             //! @todo Process subscriptions
         }
 
-#if 0
         void readFromId(common::SharedPtr<TaskContext> ctx, ItemCb cb, IdType from, IdType maxTo=IdType{}, size_t maxCount=1)
         {
         }
@@ -230,6 +257,7 @@ class MqInmemTraits : public MqTraitsBase<MessageTraitsT,PosTraits>
 #endif
     private:
 
+        MqInmemPool* m_pool;
         common::CacheLruTtl<PosType,Item> m_writeQueue;
 
 #if 0
