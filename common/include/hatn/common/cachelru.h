@@ -58,7 +58,8 @@ class MapStorage
              * @param key Key
              * @return Operation status
              */
-        bool hasItem(const KeyT& key) const
+        template <typename Kt>
+        bool hasItem(const Kt& key) const
         {
             return m_map.find(key)!=m_map.end();
         }
@@ -70,7 +71,8 @@ class MapStorage
              *
              * @throws out_of_range if cache does not contain such item
              */
-        ItemT* item(const KeyT& key)
+        template <typename Kt>
+        ItemT* item(const Kt& key)
         {
             auto it=m_map.find(key);
             if (it==m_map.end())
@@ -87,7 +89,8 @@ class MapStorage
              *
              * @throws out_of_range if cache does not contain such item
              */
-        const ItemT* item(const KeyT& key) const
+        template <typename Kt>
+        const ItemT* item(const Kt& key) const
         {
             const auto* self=const_cast<const Type*>(this);
             return const_cast<ItemT*>(self->item(key));
@@ -146,7 +149,8 @@ class MapStorage
             return inserted.first->second;
         }
 
-        void doRemove(const KeyT& key)
+        template <typename Kt>
+        void doRemove(const Kt& key)
         {
             m_map.erase(key);
         }

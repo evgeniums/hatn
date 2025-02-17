@@ -1,6 +1,3 @@
-#include <iostream>
-#include <chrono>
-
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/cachelru.h>
@@ -242,19 +239,24 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
     cacheT cache1{ttl};
     lruTest(cache1);
 
+    int delayRatio=1;
+// #ifdef BUILD_DEBUG
+//     delayRatio=2;
+// #endif
+
     createThreads(1);
 
     auto thread1=thread(0);    
     thread1->start();
 
-    auto handler=[this](auto& cache)
+    auto handler=[this,delayRatio](auto& cache)
     {
-        exec(1);
+        exec(delayRatio*1);
         cache.lock();
         cache.emplaceItem(11,10);
         BOOST_CHECK_EQUAL(cache.size(),1);
         BOOST_CHECK(cache.hasItem(11));
-        exec(1);
+        exec(delayRatio*1);
         cache.unlock();
         cache.lock();
         cache.emplaceItem(22,20);
@@ -262,7 +264,7 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         BOOST_CHECK(cache.hasItem(11));
         BOOST_CHECK(cache.hasItem(22));
         cache.unlock();
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
         cache.emplaceItem(33,30);
         BOOST_CHECK_EQUAL(cache.size(),3);
@@ -270,11 +272,11 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         BOOST_CHECK(cache.hasItem(22));
         BOOST_CHECK(cache.hasItem(33));
         cache.unlock();
-        exec(1);
+        exec(delayRatio*1);
         cache.lock();
         cache.emplaceItem(44,40);
         cache.unlock();
-        exec(1);
+        exec(delayRatio*1);
 
         cache.lock();
         BOOST_CHECK_EQUAL(cache.size(),4);
@@ -284,7 +286,7 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         BOOST_CHECK(cache.hasItem(44));
         cache.unlock();
 
-        exec(1);
+        exec(delayRatio*1);
         cache.lock();
         BOOST_CHECK_EQUAL(cache.size(),3);
         BOOST_CHECK(!cache.hasItem(11));
@@ -293,7 +295,7 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         BOOST_CHECK(cache.hasItem(44));
         cache.unlock();
 
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
         BOOST_CHECK(!cache.hasItem(11));
         BOOST_CHECK(!cache.hasItem(22));
@@ -301,7 +303,7 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         BOOST_CHECK(cache.hasItem(44));
         cache.unlock();
 
-        exec(1);
+        exec(delayRatio*1);
         cache.lock();
         BOOST_CHECK_EQUAL(cache.size(),1);
         BOOST_CHECK(!cache.hasItem(11));
@@ -312,28 +314,28 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
         cache.emplaceItem(66,60);
         cache.unlock();
 
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
-        BOOST_CHECK_EQUAL(cache.size(),2);
+        BOOST_REQUIRE_EQUAL(cache.size(),2);
         BOOST_CHECK(!cache.hasItem(11));
         BOOST_CHECK(!cache.hasItem(22));
         BOOST_CHECK(!cache.hasItem(33));
         BOOST_CHECK(!cache.hasItem(44));
         cache.unlock();
 
-        exec(1);
+        exec(delayRatio*1);
         cache.lock();
         cache.touchItem(item55);
         cache.unlock();
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
         cache.touchItem(item55);
         cache.unlock();
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
         cache.touchItem(item55);
         cache.unlock();
-        exec(2);
+        exec(delayRatio*2);
         cache.lock();
         BOOST_CHECK_EQUAL(cache.size(),1);
         BOOST_CHECK(cache.hasItem(55));
@@ -346,14 +348,15 @@ BOOST_FIXTURE_TEST_CASE(LruTtlCache,MultiThreadFixture)
     cache2.start(100);
     handler(cache2);
     cache2.stop();
-    exec(1);
+    exec(delayRatio*1);
 
     {
         BOOST_TEST_MESSAGE("Running for cache 3...");
         cacheT cache3{ttl,thread1.get()};
         cache3.start(100);
         handler(cache3);
-        exec(1);
+        cache3.stop();
+        exec(3);
     }
 
     thread1->stop();
