@@ -2,7 +2,12 @@
 
 set -e
 
-export src_dir=$scripts_root/../../..
+if [[ "${src_root}" == "" ]];
+then
+    export src_root=$scripts_root/../../..
+fi
+export src_dir=$src_root
+
 export build_root=$working_dir/builds/android
 export install_root=$working_dir/install/android
 
