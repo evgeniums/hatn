@@ -70,7 +70,7 @@ then
 
     if [ ! -d "ios/scripts/$hatn_lib" ];
     then
-        source ../hatn/build/lib/ios/generate-build-scripts.sh $hatn_lib
+        source ${hatn_path}/build/lib/ios/generate-build-scripts.sh $hatn_lib
     fi
 
     export working_dir=$PWD
