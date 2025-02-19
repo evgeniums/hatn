@@ -31,7 +31,11 @@ then
 
       if [ ! -d "scripts/$hatn_lib" ];
       then
-          source ../hatn/build/lib/${hatn_target_os}/generate-build-scripts.sh $hatn_lib
+          if [[ "${hatn_path}" == "" ]];
+          then
+            export hatn_path="$PWD/../hatn"
+          fi
+          source ${hatn_path}/build/lib/${hatn_target_os}/generate-build-scripts.sh $hatn_lib
       fi
 
       if [[ "$hatn_build" == "release" ]];
