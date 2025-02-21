@@ -5,7 +5,10 @@ then
     export src_root=$scripts_root/../../..
 fi
 
-export build_root=$working_dir/builds
-export install_root=$working_dir/install
-	
-		
+if  [[ "${project_working_dir}" == "" ]];
+then
+    export $project_working_dir=$PWD/build
+fi
+
+export build_root=$project_working_dir/builds
+export install_root=$project_working_dir/install

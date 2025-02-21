@@ -5,13 +5,13 @@ set -e
 export android_scripts_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/android"
 building_target=0
 
-if [ ! -d "build" ];
+if [ ! -d $project_working_dir ];
 then
-    mkdir build
+    mkdir -p $project_working_dir
 fi
 
 _self_dir=$PWD
-cd build
+cd $project_working_dir
 
 hatn_target_os=$hatn_platform
 if [ "$hatn_platform" = "linux" ] || [ "$hatn_platform" = "macos" ]
