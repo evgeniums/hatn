@@ -82,6 +82,7 @@ SET (HEADERS
     include/hatn/common/threadwithqueue.h
     include/hatn/common/threadpoolwithqueues.h
     include/hatn/common/stream.h
+    include/hatn/common/streamchaingather.h
     include/hatn/common/timer.h
     include/hatn/common/asiotimer.h
     include/hatn/common/syncinvoker.h
