@@ -10,27 +10,26 @@
 /*
 
 */
-/** @file api/test/testsendrecv.cpp
+/** @file api/connectionpool.h
+  *
   */
 
 /****************************************************************************/
 
-#include <boost/test/unit_test.hpp>
-
-#include "hatn_test_config.h"
+#ifndef HATNAPISCONNECTIONPOOL_H
+#define HATNAPISCONNECTIONPOOL_H
 
 #include <hatn/api/api.h>
-#include <hatn/api/sender.h>
 
-HATN_API_USING
+HATN_API_NAMESPACE_BEGIN
 
-BOOST_AUTO_TEST_SUITE(TestSendRecv)
-
-BOOST_AUTO_TEST_CASE(SendRaw)
+template <typename ConnectionT>
+class ConnectionPool
 {
-    Sender sender;
+    public:
 
-    BOOST_CHECK(true);
-}
+};
 
-BOOST_AUTO_TEST_SUITE_END()
+HATN_API_NAMESPACE_END
+
+#endif // HATNAPISCONNECTIONPOOL_H

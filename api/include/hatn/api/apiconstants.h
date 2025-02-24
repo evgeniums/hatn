@@ -10,27 +10,25 @@
 /*
 
 */
-/** @file api/test/testsendrecv.cpp
+/** @file api/apiconstants.h
+  *
   */
 
 /****************************************************************************/
 
-#include <boost/test/unit_test.hpp>
-
-#include "hatn_test_config.h"
+#ifndef HATNAPICONSTANTS_H
+#define HATNAPICONSTANTS_H
 
 #include <hatn/api/api.h>
-#include <hatn/api/sender.h>
+#include <hatn/api/connection.h>
 
-HATN_API_USING
+HATN_API_NAMESPACE_BEGIN
 
-BOOST_AUTO_TEST_SUITE(TestSendRecv)
+constexpr const size_t ServiceNameLengthMax=16;
+constexpr const size_t MethodNameLengthMax=32;
+constexpr const size_t AuthProtocolNameLengthMax=8;
+constexpr const size_t ResponseCategoryNameLengthMax=32;
 
-BOOST_AUTO_TEST_CASE(SendRaw)
-{
-    Sender sender;
+HATN_API_NAMESPACE_END
 
-    BOOST_CHECK(true);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
+#endif // HATNAPICONSTANTS_H

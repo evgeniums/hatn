@@ -1,1 +1,1 @@
-SET(HATN_MODULE_DEPS common validator base logcontext dataunit network crypt PARENT_SCOPE)
+SET(HATN_MODULE_DEPS validator common base logcontext dataunit network crypt PARENT_SCOPE)

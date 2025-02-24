@@ -10,27 +10,26 @@
 /*
 
 */
-/** @file api/test/testsendrecv.cpp
+/** @file api/client/dispatcher.h
+  *
   */
 
 /****************************************************************************/
 
-#include <boost/test/unit_test.hpp>
-
-#include "hatn_test_config.h"
+#ifndef HATNAPIDISPATCHER_H
+#define HATNAPIDISPATCHER_H
 
 #include <hatn/api/api.h>
-#include <hatn/api/sender.h>
+#include <hatn/api/connection.h>
 
-HATN_API_USING
+HATN_API_NAMESPACE_BEGIN
 
-BOOST_AUTO_TEST_SUITE(TestSendRecv)
-
-BOOST_AUTO_TEST_CASE(SendRaw)
+class Dispatcher
 {
-    Sender sender;
+    public:
 
-    BOOST_CHECK(true);
-}
+};
 
-BOOST_AUTO_TEST_SUITE_END()
+HATN_API_NAMESPACE_END
+
+#endif // HATNAPIDISPATCHER_H
