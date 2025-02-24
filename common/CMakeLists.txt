@@ -145,7 +145,10 @@ SET (HEADERS
     include/hatn/common/file.h
     include/hatn/common/plainfile.h
 
+    include/hatn/common/lru.h
+    include/hatn/common/lruttl.h
     include/hatn/common/cachelru.h
+    include/hatn/common/cachelruttl.h
     include/hatn/common/flatmap.h
 
     include/hatn/common/singleton.h

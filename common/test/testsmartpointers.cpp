@@ -109,8 +109,9 @@ class PlainTestClass
         PlainTestClass& operator=(const PlainTestClass&)=default;
         PlainTestClass& operator=(PlainTestClass&&) =default;
 
-        PlainTestClass(uint32_t id, const std::string& str=std::string(), char ch=char()):m_id(id),m_str(str),m_char(ch)
+        PlainTestClass(uint32_t id, const std::string& str=std::string(), char ch=char()):m_id(id),m_str(str),m_char(ch),p(0)
         {
+            std::ignore=p;
         }
 
         virtual bool ok() const noexcept
@@ -122,7 +123,7 @@ class PlainTestClass
 
     private:
 
-        uint32_t p=0;
+        uint32_t p;
 };
 
 

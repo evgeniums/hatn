@@ -455,7 +455,7 @@ class HATN_CRYPT_EXPORT CryptFile : public common::File
                 content.clear();
             }
         };
-        using CacheType=common::CacheLRU<uint32_t,Chunk>;
+        using CacheType=common::CacheLru<uint32_t,Chunk>;
         using CachedChunk=CacheType::Item;
 
         common::Error flushChunk(CachedChunk& chunk, bool withSize=false);

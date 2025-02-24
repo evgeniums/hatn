@@ -74,6 +74,10 @@ class MultiThreadFixture
         //! Get test thread
         std::shared_ptr<::hatn::common::Thread> thread(int index=0) const;
 
+        //! Get test thread
+        std::shared_ptr<::hatn::common::TaskWithContextThread> threadWithContextTask(int index=0) const;
+
+
         //! Get main thread
         static std::shared_ptr<::hatn::common::Thread> mainThread();
 

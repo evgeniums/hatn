@@ -19,6 +19,7 @@
 #define HATNTHREADWITHQUEUE_H
 
 #include <hatn/common/common.h>
+#include <hatn/common/stdwrappers.h>
 #include <hatn/common/threadq.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/queue.h>
@@ -101,7 +102,7 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
 
         //! Constructor
         ThreadWithQueue(
-            const FixedByteArrayThrow16& id, //!< Thread's ID
+            lib::string_view id, //!< Thread's ID
             Queue<TaskT>* queue=nullptr, //!< Queue object, if null then default queue with mutex is constructed
             bool newThread=true //!< If false then no actual thread will be started, only asioContext will run
         );
@@ -144,6 +145,35 @@ using TaskQueue=Queue<Task>;
 using TaskWithContextQueue=Queue<TaskWithContext>;
 using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
+
+struct AsyncWithCallbackT
+{
+    template <typename HandlerT>
+    void operator ()(TaskWithContextThread* thread,
+                    SharedPtr<TaskContext> ctx,
+                    HandlerT handler
+                    ) const
+    {
+        auto originThreadQ=TaskWithContextThread::current();
+
+        auto threadHandler=[originThreadQ,handler{std::move(handler)}](const SharedPtr<TaskContext>& ctx)
+        {
+            auto cb=handler(ctx);
+            auto cbTask=originThreadQ->prepare();
+            cbTask->setHandler(std::move(cb));
+            cbTask->setContext(ctx);
+            originThreadQ->post(cbTask);
+        };
+
+        auto task=thread->prepare();
+        task->setHandler(std::move(threadHandler));
+        task->setContext(std::move(ctx));
+        thread->post(task);
+    }
+
+    //! @todo Implement operator with guard
+};
+constexpr AsyncWithCallbackT AsyncWithCallback{};
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

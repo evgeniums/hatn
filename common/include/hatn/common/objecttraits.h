@@ -36,9 +36,11 @@ class WithTraits<Traits,
 {
     public:
 
+        using TraitsT=Traits;
+
         //! Ctor
         template <typename ... Args>
-        WithTraits(Args&& ...traitsArgs) noexcept : m_traits(std::forward<Args>(traitsArgs)...)
+        WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
         {}
 
         ~WithTraits() = default;
@@ -91,9 +93,11 @@ class WithTraits<Traits,
 {
 public:
 
+    using TraitsT=Traits;
+
     //! Ctor
     template <typename ... Args>
-    WithTraits(Args&& ...traitsArgs) noexcept : m_traits(std::forward<Args>(traitsArgs)...)
+    WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
     {}
 
     ~WithTraits() = default;
@@ -137,9 +141,11 @@ class WithTraits<Traits,
 {
 public:
 
+    using TraitsT=Traits;
+
     //! Ctor
     template <typename ... Args>
-    WithTraits(Args&& ...traitsArgs) noexcept : m_traits(std::forward<Args>(traitsArgs)...)
+    WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
     {}
 
     ~WithTraits() = default;
