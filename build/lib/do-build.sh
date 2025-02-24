@@ -5,13 +5,13 @@ set -e
 export android_scripts_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/android"
 building_target=0
 
-if [ ! -d "build" ];
+if [ ! -d $project_working_dir ];
 then
-    mkdir build
+    mkdir -p $project_working_dir
 fi
 
 _self_dir=$PWD
-cd build
+cd $project_working_dir
 
 hatn_target_os=$hatn_platform
 if [ "$hatn_platform" = "linux" ] || [ "$hatn_platform" = "macos" ]
@@ -31,7 +31,11 @@ then
 
       if [ ! -d "scripts/$hatn_lib" ];
       then
-          source ../hatn/build/lib/${hatn_target_os}/generate-build-scripts.sh $hatn_lib
+          if [[ "${hatn_path}" == "" ]];
+          then
+            export hatn_path="$PWD/../hatn"
+          fi
+          source ${hatn_path}/build/lib/${hatn_target_os}/generate-build-scripts.sh $hatn_lib
       fi
 
       if [[ "$hatn_build" == "release" ]];
@@ -66,7 +70,7 @@ then
 
     if [ ! -d "ios/scripts/$hatn_lib" ];
     then
-        source ../hatn/build/lib/ios/generate-build-scripts.sh $hatn_lib
+        source ${hatn_path}/build/lib/ios/generate-build-scripts.sh $hatn_lib
     fi
 
     export working_dir=$PWD

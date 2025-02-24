@@ -19,8 +19,6 @@
 #ifndef HATNRELIABLESTREAM_H
 #define HATNRELIABLESTREAM_H
 
-#include <functional>
-
 #include <hatn/common/error.h>
 #include <hatn/common/withthread.h>
 #include <hatn/common/stream.h>

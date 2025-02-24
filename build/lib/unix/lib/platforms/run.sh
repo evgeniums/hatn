@@ -4,7 +4,7 @@ set -e
 
 if [ -z "$system_boost" ];
 then
-export BOOST_ROOT=$boost_root
+export Boost_DIR=$boost_root
 fi
 
 if [ -z "$system_openssl" ];
@@ -19,7 +19,7 @@ cmake -G "Unix Makefiles" \
 	-DBUILD_STATIC=$build_static \
 	-DENABLE_TRANSLATIONS=$enable_translations \
 	-DDEV_MODULE=$module \
-        -DBUILD_PLUGINS="$hatn_plugins" \
+    -DBUILD_PLUGINS="$hatn_plugins" \
 	$project_path
 
 if [ -z "$codechecker" ];

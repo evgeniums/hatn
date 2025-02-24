@@ -29,6 +29,10 @@ fi
 export build_path=$build_root/$project_full
 export install_path=$install_root/$project_full
 
+echo "******************"
+echo "build_path=${build_path}"
+echo "******************"
+
 if [ -d $build_path ]; 
 	then
 		rm -rf $build_path

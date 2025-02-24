@@ -2,6 +2,8 @@
 
 set -e
 
+export Boost_DIR=$deps_arch
+
 ios_sdk_version_x10=$(echo "($ios_deployment_target * 10)/1" | bc)
 
 cmake -G "Unix Makefiles"  \
