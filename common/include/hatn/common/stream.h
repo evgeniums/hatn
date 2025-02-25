@@ -564,10 +564,9 @@ class StreamV
             return !isClosed() && isOpen();
         }
 
-        virtual const char* idStr() const noexcept
+        virtual lib::string_view id() const noexcept
         {
-            static std::string str;
-            return str.c_str();
+            return lib::string_view{};
         }
 };
 

@@ -65,6 +65,8 @@ struct Env : public ::hatn::test::CryptTestFixture
     Env(Env&&) =delete;
     Env& operator=(const Env&)=delete;
     Env& operator=(Env&&) =delete;
+
+    std::pair<common::SharedPtr<common::TaskContext>,common::SharedPtr<common::TaskContext>> tasks;
 };
 }
 
@@ -223,7 +225,7 @@ void tlsSingleStreamNoConfig(
     tmpStream.reset();
 }
 
-void tlsStreamsInit(
+auto tlsStreamsInit(
         TlsConfig& config,
         SharedPtr<SecureStreamContext> serverContext,
         SharedPtr<SecureStreamContext> clientContext,
@@ -235,11 +237,16 @@ void tlsStreamsInit(
 {
     Error ec;
 
+    auto serverTaskCtx=common::makeShared<common::TaskContext>("server");
+    auto clientTaskCtx=common::makeShared<common::TaskContext>("client");
+
     auto serverStream=serverContext->createSecureStream(config.thread);
-    HATN_REQUIRE(serverStream);
+    BOOST_REQUIRE(serverStream);
+    serverStream->setMainCtx(serverTaskCtx.get());
 
     auto clientStream=clientContext->createSecureStream(config.thread);
-    HATN_REQUIRE(clientStream);
+    BOOST_REQUIRE(clientStream);
+    clientStream->setMainCtx(clientTaskCtx.get());
 
     cb(serverStream,clientStream);
 
@@ -297,6 +304,8 @@ void tlsStreamsInit(
         config.clientVerifyCb(ec);
     };
     clientStream->prepare(clientHandshakeCb);
+
+    return std::make_pair(serverTaskCtx,clientTaskCtx);
 }
 
 void tlsContext(
@@ -592,7 +601,7 @@ void checkHandshake(
         setupCfg(*config);
     }
 
-    testContextStorage.cfgs.push_back(config);
+    testContextStorage.cfgs.push_back(config);    
 
     config->thread->execAsync(
         [env,plugin,config,serverFail,serverCb,clientFail,clientCb]()
@@ -653,7 +662,7 @@ void checkHandshake(
                 };
             };
 
-            tlsStreamsInit(*cfg,serverContext,clientContext,streamInitCb);
+            env->tasks=tlsStreamsInit(*cfg,serverContext,clientContext,streamInitCb);
         }
     );
     if (env->exec(duration))
@@ -704,7 +713,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsEmptyContext,Env)
         };
 
         config.thread->execAsync(
-            [&plugin,&config]()
+            [&plugin,&config,this]()
             {
                 SharedPtr<SecureStreamContext> serverContext;
                 SharedPtr<SecureStreamContext> clientContext;
@@ -722,7 +731,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsEmptyContext,Env)
                 {
                     testContextStorage.streams=std::make_pair(serverStream,clientStream);
                 };
-                tlsStreamsInit(config,serverContext,clientContext,streamInitCb);
+                this->tasks=tlsStreamsInit(config,serverContext,clientContext,streamInitCb);
             }
         );
         exec(1);
@@ -784,7 +793,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsNormalHandshakeSelfSigned,Env)
         };
 
         config->thread->execAsync(
-            [&plugin,&config,&serverContext,&clientContext]()
+            [&plugin,&config,&serverContext,&clientContext,this]()
             {
                 tlsContext(*config,plugin,serverContext,clientContext);
                 HATN_REQUIRE(serverContext&&clientContext);
@@ -795,7 +804,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsNormalHandshakeSelfSigned,Env)
                 {
                     testContextStorage.streams=std::make_pair(serverStream,clientStream);
                 };
-                tlsStreamsInit(*config,serverContext,clientContext,streamInitCb);
+                this->tasks=tlsStreamsInit(*config,serverContext,clientContext,streamInitCb);
             }
         );
         exec(1);
@@ -1774,16 +1783,16 @@ static void readNext(
         HATN_REQUIRE(size>0);
         collectBuf.append(rdBuf.data(),size);
 
-        HATN_DEBUG_LVL(global,5,HATN_FORMAT("readNext {}, size={}, complete {}/{}",stream->idStr(),size,collectBuf.size(),doneSize));
+        HATN_DEBUG_LVL(global,5,HATN_FORMAT("readNext {}, size={}, complete {}/{}",stream->id(),size,collectBuf.size(),doneSize));
 
         if (collectBuf.size()>=doneSize)
         {
-            G_DEBUG(fmt::format("{} read done",stream->idStr()));
+            G_DEBUG(fmt::format("{} read done",stream->id()));
 
             stream->read(rdBuf.data(),rdBuf.size(),
                 [stream](const common::Error& ec1,size_t size1)
                 {
-                    G_DEBUG(fmt::format("{} readNext after done size={}, ec=({}): {}",stream->idStr(),size1,ec1.value(),ec1.message()));
+                    G_DEBUG(fmt::format("{} readNext after done size={}, ec=({}): {}",stream->id(),size1,ec1.value(),ec1.message()));
                 }
             );
             doneCb(Error(),stream);
@@ -1799,7 +1808,7 @@ static void readNext(
 
         if (shutdownSize>0 && collectBuf.size()>=shutdownSize)
         {
-            G_DEBUG(fmt::format("{} shutdown",stream->idStr()));
+            G_DEBUG(fmt::format("{} shutdown",stream->id()));
             stream->close(
                 [shutdownCb](const Error& ec)
                 {
@@ -1810,7 +1819,7 @@ static void readNext(
     }
     else
     {
-        G_DEBUG(fmt::format("{} read failed ({}): {}",stream->idStr(),ec.value(),ec.message()));
+        G_DEBUG(fmt::format("{} read failed ({}): {}",stream->id(),ec.value(),ec.message()));
         doneCb(ec,stream);
     }
 }
@@ -1830,11 +1839,11 @@ static void writeNext(
 
         offset+=size;
 
-        HATN_DEBUG_LVL(global,5,HATN_FORMAT("writeNext {}, size={}, complete {}/{}",stream->idStr(),size,offset,wrBuf.size()));
+        HATN_DEBUG_LVL(global,5,HATN_FORMAT("writeNext {}, size={}, complete {}/{}",stream->id(),size,offset,wrBuf.size()));
 
         if (offset==wrBuf.size())
         {
-            G_DEBUG(fmt::format("{} write done",stream->idStr()));
+            G_DEBUG(fmt::format("{} write done",stream->id()));
             doneCb(Error(),stream);
             return;
         }
@@ -1842,7 +1851,7 @@ static void writeNext(
         size_t leftSize=wrBuf.size()-offset;
         size_t nextSize=Random::uniform(1,static_cast<uint32_t>(leftSize));
 
-        HATN_DEBUG_LVL(global,5,HATN_FORMAT("writeNext {}, writing {}",stream->idStr(),nextSize));
+        HATN_DEBUG_LVL(global,5,HATN_FORMAT("writeNext {}, writing {}",stream->id(),nextSize));
 
         stream->write(wrBuf.data()+offset,nextSize,
             [&wrBuf,stream,offset,doneCb](const common::Error& ec1,size_t size1)
@@ -1853,7 +1862,7 @@ static void writeNext(
     }
     else
     {
-        G_DEBUG(fmt::format("{} write failed ({}): {}",stream->idStr(),ec.value(),ec.message()));
+        G_DEBUG(fmt::format("{} write failed ({}): {}",stream->id(),ec.value(),ec.message()));
         doneCb(ec,stream);
     }
 }
@@ -1937,14 +1946,14 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWrite,Env)
                     ByteArray& wrBuf
                 )
         {
-            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->id(),ec.value(),ec.message()));
 
             HATN_REQUIRE(stream);
             BOOST_CHECK(!ec);
 
             auto streamDoneCb=[doneCb](const Error& ec,SharedPtr<SecureStreamV> stream)
             {
-                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->id(),ec.value(),ec.message()));
                 BOOST_CHECK(!ec);
                 doneCb();
             };
@@ -2033,22 +2042,23 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWriteUniDir,Env)
                     ByteArray& wrBuf
                 )
         {
-            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->id(),ec.value(),ec.message()));
 
             HATN_REQUIRE(stream);
             BOOST_CHECK(!ec);
 
             auto streamDoneCb=[doneCb](const Error& ec,SharedPtr<SecureStreamV> stream)
             {
-                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->id(),ec.value(),ec.message()));
                 BOOST_CHECK(!ec);
                 doneCb();
             };
 
-            if (strcmp(stream->idStr(),"server")==0)
+            if (stream->id()=="server")
             {
                 auto readCb=[&rdBuf,stream,streamDoneCb,&collectBuf](const common::Error& ec1,size_t size)
                 {
+                    G_DEBUG(fmt::format("Server readCb size={}, status={} ({})",size,ec1.value(),ec1.message()));
                     readNext(ec1,size,stream,rdBuf,collectBuf,streamDoneCb,testBufSize);
                 };
                 stream->read(rdBuf.data(),rdBuf.size(),readCb);
@@ -2062,13 +2072,15 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWriteUniDir,Env)
                 stream->read(rdBuf.data(),rdBuf.size(),readCb);
             }
 
-            if (strcmp(stream->idStr(),"server")!=0)
+            if (stream->id()=="client")
             {
                 auto writeCb=[&wrBuf,stream,streamDoneCb](const common::Error& ec1,size_t size)
                 {
+                    G_DEBUG(fmt::format("Client writeCb size={}, status={} ({})",size,ec1.value(),ec1.message()));
                     writeNext(ec1,size,stream,wrBuf,0,streamDoneCb);
                 };
                 size_t wrSize=Random::uniform(1,testBufSize);
+                G_DEBUG(fmt::format("Client write size={}",wrSize));
                 stream->write(wrBuf.data(),wrSize,writeCb);
             }
         };
@@ -2142,14 +2154,14 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWriteShutdown,Env)
                         ByteArray& wrBuf
                     )
             {
-                G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+                G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->id(),ec.value(),ec.message()));
 
                 HATN_REQUIRE(stream);
                 BOOST_CHECK(!ec);
 
                 auto streamDoneCb=[doneCb](const Error& ec,SharedPtr<SecureStreamV> stream, const std::string& rdwr)
                 {
-                    G_DEBUG(fmt::format("{} operation {} done ({}): {}",stream->idStr(),rdwr,ec.value(),ec.message()));
+                    G_DEBUG(fmt::format("{} operation {} done ({}): {}",stream->id(),rdwr,ec.value(),ec.message()));
                     BOOST_CHECK(ec);
                     doneCb();
                 };
@@ -2163,7 +2175,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWriteShutdown,Env)
                 auto readCb=[&rdBuf,stream,streamDoneCb,shutdownDoneCb,&collectBuf](const common::Error& ec1,size_t size)
                 {
                     size_t shutdownSize=0;
-                    if (strcmp(stream->idStr(),"client")==0)
+                    if (stream->id()=="client")
                     {
                         shutdownSize=testBufSize/2;
                     }
@@ -2271,19 +2283,19 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsShutdownTimeout,Env)
                     ByteArray& wrBuf
                 )
         {
-            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+            G_DEBUG(fmt::format("{} handshaking done ({}): {}",stream->id(),ec.value(),ec.message()));
 
             HATN_REQUIRE(stream);
             BOOST_CHECK(!ec);
 
             auto streamDoneCb=[doneCb](const Error& ec,SharedPtr<SecureStreamV> stream)
             {
-                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->idStr(),ec.value(),ec.message()));
+                G_DEBUG(fmt::format("{} operation done ({}): {}",stream->id(),ec.value(),ec.message()));
                 BOOST_CHECK(!ec);
                 doneCb();
             };
 
-            if (strcmp(stream->idStr(),"server")==0)
+            if (stream->id()=="server")
             {
                 auto readCb=[&rdBuf,stream,streamDoneCb,&collectBuf](const common::Error& ec1,size_t size)
                 {
@@ -2292,7 +2304,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsShutdownTimeout,Env)
                 stream->read(rdBuf.data(),rdBuf.size(),readCb);
             }
 
-            if (strcmp(stream->idStr(),"server")!=0)
+            if (stream->id()=="client")
             {
                 auto writeCb=[&wrBuf,stream,streamDoneCb](const common::Error& ec1,size_t size)
                 {

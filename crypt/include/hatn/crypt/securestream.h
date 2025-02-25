@@ -124,6 +124,11 @@ class SecureStream : public common::TaskSubcontext,
             return this->traits().nativeHandler();
         }
 
+        inline lib::string_view id() const noexcept
+        {
+            return this->mainCtx().id();
+        }
+
     private:
 
         SecureStreamContext* m_context;
@@ -190,6 +195,16 @@ class SecureStreamTmplV : public common::StreamTmplV<ImplT,SecureStreamV>
         virtual void* nativeHandler() noexcept override
         {
             return this->impl().nativeHandler();
+        }
+
+        virtual lib::string_view id() const noexcept override
+        {
+            return this->impl().id();
+        }
+
+        virtual void setMainCtx(common::TaskContext* mainContext) noexcept override
+        {
+            return this->impl().setMainCtx(mainContext);
         }
 };
 

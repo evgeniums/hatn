@@ -128,6 +128,11 @@ class HATN_CRYPT_EXPORT SecureStreamV : public common::StreamV
         {
             return nullptr;
         }
+
+        virtual void setMainCtx(common::TaskContext* mainContext) noexcept
+        {
+            std::ignore=mainContext;
+        }
 };
 
 HATN_CRYPT_NAMESPACE_END
