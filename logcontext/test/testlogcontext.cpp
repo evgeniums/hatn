@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_INFO("Info without module");
     HATN_CTX_INFO("Info with module",sample_module);
     HATN_CTX_DEBUG("Debug without module");
-    HATN_CTX_DEBUG("Debug with module",sample_module);
+    HATN_CTX_DEBUG(0,"Debug with module",sample_module);
     HATN_CTX_TRACE("Trace without module");
     HATN_CTX_TRACE("Trace with module",sample_module);
 
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_INFO("Info without module");
     HATN_CTX_INFO("Info with module",sample_module);
     HATN_CTX_DEBUG("Debug without module");
-    HATN_CTX_DEBUG("Debug with module",sample_module);
+    HATN_CTX_DEBUG(0,"Debug with module",sample_module);
     HATN_CTX_TRACE("Trace without module");
     HATN_CTX_TRACE("Trace with module",sample_module);
 
@@ -351,8 +351,8 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_WARN_RECORDS_M("Warn with records with module",sample_module,r1,r2,r3);
     HATN_CTX_INFO_RECORDS("Info with records without module",r1,r2,r3);
     HATN_CTX_INFO_RECORDS_M("Info with records with module",sample_module,r1,r2,r3);
-    HATN_CTX_DEBUG_RECORDS("Debug with records without module",r1,r2,r3);
-    HATN_CTX_DEBUG_RECORDS_M("Debug with records with module",sample_module,r1,r2,r3);
+    HATN_CTX_DEBUG_RECORDS(0,"Debug with records without module",r1,r2,r3);
+    HATN_CTX_DEBUG_RECORDS_M(0,"Debug with records with module",sample_module,r1,r2,r3);
     HATN_CTX_TRACE_RECORDS("Trace with records without module",r1,r2,r3);
     HATN_CTX_TRACE_RECORDS_M("Trace with records with module",sample_module,r1,r2,r3);
 
@@ -362,6 +362,71 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     Error ec1{CommonError::NOT_IMPLEMENTED};
     HATN_CTX_CLOSE(ec1,"Closing context with error");
     HATN_CTX_CLOSE_API(ec1,"Closing context with API status and error");
+
+    ctx->afterThreadProcessing();
+
+    BOOST_CHECK(true);
+}
+
+BOOST_AUTO_TEST_CASE(TestDebugVerbosity)
+{
+    B1<A1,A2> b1;
+    std::ignore=b1;
+
+    auto handler=std::make_shared<StreamLogger>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
+
+    auto ctx=makeTaskContext<Context>();
+
+    auto& logCtx=ctx->get<Context>();
+    logCtx.mainCtx().setTz(DateTime::localTz());
+
+    ctx->beforeThreadProcessing();
+
+    BOOST_TEST_MESSAGE("Log with context log level=INFO");
+
+    Error ec{CommonError::UNKNOWN};
+
+    auto r1=makeRecord("r1","hello");
+    auto r2=makeRecord("r2",12345);
+    auto r3=makeRecord("r3",Date::currentUtc());
+
+    auto run=[ctx,&r1,&r2,&r3]()
+    {
+        HATN_CTX_DEBUG("Debug default verbosity without module");
+        HATN_CTX_DEBUG(0,"Debug 0 verbosity with module",sample_module);
+        HATN_CTX_DEBUG("Debug default verbosity without module");
+        HATN_CTX_DEBUG(0,"Debug 0 verbosity with module",sample_module);
+        HATN_CTX_DEBUG_RECORDS(0,"Debug 0 verbosity with records without module",r1,r2,r3);
+        HATN_CTX_DEBUG_RECORDS_M(0,"Debug 0 verbosity with records with module",sample_module,r1,r2,r3);
+
+        HATN_CTX_DEBUG(3,"Debug 3 verbosity");
+        HATN_CTX_DEBUG(3,"Debug 3 verbosity with module",sample_module);
+        HATN_CTX_DEBUG_RECORDS(3,"Debug 3 verbosity with records without module",r1,r2,r3);
+        HATN_CTX_DEBUG_RECORDS_M(3,"Debug 3 verbosity with records with module",sample_module,r1,r2,r3);
+
+        HATN_CTX_DEBUG(4,"Debug 4 verbosity");
+        HATN_CTX_DEBUG(4,"Debug 4 verbosity with module",sample_module);
+        HATN_CTX_DEBUG_RECORDS(4,"Debug 4 verbosity with records without module",r1,r2,r3);
+        HATN_CTX_DEBUG_RECORDS_M(4,"Debug 4 verbosity with records with module",sample_module,r1,r2,r3);
+
+        HATN_CTX_DEBUG(5,"Debug 5 verbosity");
+        HATN_CTX_DEBUG(5,"Debug 5 verbosity with module",sample_module);
+        HATN_CTX_DEBUG_RECORDS(5,"Debug 5 verbosity with records without module",r1,r2,r3);
+        HATN_CTX_DEBUG_RECORDS_M(5,"Debug 5 verbosity with records with module",sample_module,r1,r2,r3);
+    };
+
+    logCtx.setLogLevel(LogLevel::Debug);
+    logCtx.setDebugVerbosity(3);
+    BOOST_TEST_MESSAGE("Using context debug verbosity 3");
+    run();
+
+    logCtx.setLogLevel(LogLevel::Default);
+    logCtx.setDebugVerbosity(0);
+    ContextLogger::instance().setDefaultLogLevel(LogLevel::Debug);
+    ContextLogger::instance().setDefaultDebugVerbosity(4);
+    BOOST_TEST_MESSAGE("Using default debug verbosity 4");
+    run();
 
     ctx->afterThreadProcessing();
 

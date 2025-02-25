@@ -132,7 +132,8 @@ class ContextT
             :   m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_logLevel(LogLevel::Default),
-                m_enableStackLocking(true)
+                m_enableStackLocking(true),
+                m_debugVerbosity(0)
         {}
 
         ~ContextT()=default;
@@ -367,6 +368,16 @@ class ContextT
             m_logLevel=level;
         }
 
+        uint8_t debugVerbosity() const noexcept
+        {
+            return m_debugVerbosity;
+        }
+
+        void setDebugVerbosity(uint8_t val) noexcept
+        {
+            m_debugVerbosity=val;
+        }
+
         const scopeCursorT* currentScope() const
         {
             if (m_currentScopeIdx==0)
@@ -446,7 +457,7 @@ class ContextT
 
         size_t m_currentScopeIdx;
         bool m_lockStack;
-        LogLevel m_logLevel;
+        LogLevel m_logLevel;        
 
         HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
@@ -455,6 +466,7 @@ class ContextT
         HATN_COMMON_NAMESPACE::FlatSetOnStack<tagT,config::TagSetSize,std::less<tagT>> m_tags;
 
         bool m_enableStackLocking;
+        uint8_t m_debugVerbosity;
 };
 using Context=ContextT<>;
 using Subcontext=HATN_COMMON_NAMESPACE::TaskSubcontextT<Context>;

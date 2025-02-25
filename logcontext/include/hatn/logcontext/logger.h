@@ -34,6 +34,7 @@
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
+constexpr uint8_t DefaultDebugVerbosity=0;
 
 template <typename ContextT=Subcontext>
 class LoggerBaseT
@@ -107,6 +108,27 @@ class LoggerBaseT
             return level;
         }
 
+        static uint8_t contextDebugVerbosity(
+            const LoggerBaseT& logger,
+            const contextT* ctx
+            )
+        {
+            logger.lockRd();
+
+            // init current verbosity from context
+            auto v=ctx->debugVerbosity();
+
+            // use default verbosity
+            if (v==0)
+            {
+                v=logger.defaultDebugVerbosity();
+            }
+
+            // done
+            logger.unlockRd();
+            return v;
+        }
+
         static bool passLog(
                 const LoggerBaseT& logger,
                 LogLevel level,
@@ -117,6 +139,16 @@ class LoggerBaseT
             return level<=contextLogLevel(logger,ctx,module);
         }
 
+        static bool passDebugLog(
+            const LoggerBaseT& logger,
+            const contextT* ctx,
+            uint8_t debugVerbosity=0,
+            lib::string_view module=lib::string_view{}
+            )
+        {
+            return LogLevel::Debug<=contextLogLevel(logger,ctx,module) && debugVerbosity<=contextDebugVerbosity(logger,ctx);
+        }
+
         LogLevel defaultLevel() const noexcept
         {
             return m_defaultLevel;
@@ -125,6 +157,16 @@ class LoggerBaseT
         void setDefaultLogLevel(LogLevel level) noexcept
         {
             m_defaultLevel=level;
+        }
+
+        uint8_t defaultDebugVerbosity() const noexcept
+        {
+            return m_defaultDebugVerbosity;
+        }
+
+        void setDefaultDebugVerbosity(uint8_t val) noexcept
+        {
+            m_defaultDebugVerbosity=val;
         }
 
         void setTagLevel(std::string tag, LogLevel level)
@@ -227,6 +269,7 @@ class LoggerBaseT
         }
 
         LogLevel m_defaultLevel=DefaultLogLevel;
+        uint8_t m_defaultDebugVerbosity=DefaultDebugVerbosity;
 
         levelMapT m_tags;
         levelMapT m_modules;
