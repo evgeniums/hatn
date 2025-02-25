@@ -85,6 +85,9 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
 
         void cancel();
 
+        void reset()
+        {}
+
     private:
 
         TcpStream* m_stream;

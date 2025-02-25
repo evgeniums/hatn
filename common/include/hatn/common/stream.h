@@ -124,6 +124,10 @@ class WithPrepareClose : public WithTraits<Traits>,
             std::function<void (const Error &)> callback
         )
         {
+            if (isClosed())
+            {
+                reset();
+            }
             this->traits().prepare(std::move(callback));
         }
 
@@ -154,6 +158,12 @@ class WithPrepareClose : public WithTraits<Traits>,
         inline bool isActive() const noexcept
         {
             return !isClosed() && isOpen();
+        }
+
+        inline void reset()
+        {
+            this->m_closed=false;
+            this->traits().reset();
         }
 };
 

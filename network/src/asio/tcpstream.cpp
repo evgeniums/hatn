@@ -155,6 +155,11 @@ void TcpStreamTraits::prepare(
 {
     HATN_CTX_SCOPE("tcpstreamprepare")
 
+    if (isOpen())
+    {
+        close(std::function<void (const Error &)>{});
+    }
+
     boost::system::error_code ec;
 
     bool bind=false;
