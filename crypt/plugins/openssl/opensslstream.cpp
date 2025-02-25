@@ -438,7 +438,7 @@ void OpenSslStreamTraitsImpl::doneOp(const Error &ec)
     {
         HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() closed");
 
-        stream()->reset();
+        stream()->resetNextHandlers();
 
         if (m_readCb)
         {

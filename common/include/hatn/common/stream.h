@@ -414,7 +414,7 @@ class StreamChain
         }
 
         //! Reset handlers
-        inline void reset() noexcept
+        inline void resetNextHandlers() noexcept
         {
             m_writeFn=WriteFn();
             m_readFn=ReadFn();

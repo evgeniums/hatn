@@ -168,6 +168,9 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
 
         void cancel();
 
+        void reset()
+        {}
+
         //! Add peer name to use in TLS verification
         common::Error addPeerVerifyName(const X509Certificate::NameType& name);
 
