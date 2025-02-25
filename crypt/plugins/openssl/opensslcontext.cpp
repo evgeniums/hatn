@@ -112,9 +112,9 @@ OpenSslContext::~OpenSslContext()
 }
 
 //---------------------------------------------------------------
-common::SharedPtr<SecureStreamV> OpenSslContext::createSecureStream(const lib::string_view& id, common::Thread *thread)
+common::SharedPtr<SecureStreamV> OpenSslContext::createSecureStream(common::Thread *thread)
 {
-    return common::makeShared<SecureStreamTmplV<OpenSslStream>>(this,thread,id);
+    return common::makeShared<SecureStreamTmplV<OpenSslStream>>(this,thread);
 }
 
 //---------------------------------------------------------------

@@ -22,6 +22,8 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/asiotimer.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/crypt/securestream.h>
 
 #include <hatn/crypt/plugins/openssl/opensslplugindef.h>
@@ -33,6 +35,11 @@ DECLARE_LOG_MODULE_EXPORT(opensslstream,HATN_OPENSSL_EXPORT)
 HATN_OPENSSL_NAMESPACE_BEGIN
 
 class OpenSslStream;
+
+constexpr const uint8_t StreamDebugVerbosity=5;
+constexpr const uint8_t HandshakeDebugVerbosity=3;
+constexpr const uint8_t ShutdownDebugVerbosity=3;
+constexpr const uint8_t DoneDebugVerbosity=1;
 
 //! TLS stream with OpenSSL as backend
 class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
@@ -69,14 +76,16 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
             std::function<void (const Error&,size_t)> callback
         )
         {
+            HATN_CTX_SCOPE("osslwrite")
+
             if (m_closed)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"write(): closed");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"stream closed",HLOG_MODULE(opensslstream))
                 callback(makeSystemError(std::errc::connection_aborted),0);
                 return;
             }
 
-            HATN_DEBUG_ID_LVL(opensslstream,5,"write()");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"do write",HLOG_MODULE(opensslstream))
 
             m_writtenAppSize=0;
             m_writeAppBuf=data;
@@ -92,15 +101,17 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
             std::size_t maxSize,
             std::function<void (const Error&,size_t)> callback
         )
-        {            
+        {
+            HATN_CTX_SCOPE("osslread")
+
             if (m_closed)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"read(): closed");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"stream closed",HLOG_MODULE(opensslstream))
                 callback(makeSystemError(std::errc::connection_aborted),0);
                 return;
             }
 
-            HATN_DEBUG_ID_LVL(opensslstream,5,"read()");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"do read",HLOG_MODULE(opensslstream))
 
             m_readAppBuf=data;
             m_readAppMaxSize=maxSize;
@@ -125,9 +136,11 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         //! Close stream
         inline void close(const std::function<void (const Error &)>& callback, bool destroying)
         {
+            HATN_CTX_SCOPE("osslclose")
+
             if (m_closed)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,1,"close(): closed");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"stream closed",HLOG_MODULE(opensslstream))
 
                 if (callback)
                 {
@@ -138,7 +151,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
 
             if (!destroying)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,3,"close() go to doShutdown()");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"go to doShutdown",HLOG_MODULE(opensslstream))
 
                 cancel();
                 m_opCb=callback;
@@ -158,7 +171,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
             }
             else
             {
-                HATN_DEBUG_ID_LVL(opensslstream,1,"close()");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"do close",HLOG_MODULE(opensslstream))
 
                 m_writeCb=decltype(m_writeCb)();
                 m_readCb=decltype(m_writeCb)();
@@ -181,8 +194,6 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         {
             return m_stream;
         }
-
-        inline const char* idStr() const noexcept;
 
         //! Get peer name that was verified in peer certificate
         const char* getVerifiedPeerName() const;
@@ -255,19 +266,15 @@ using OpenSslStreamTraits=common::StreamGatherTraits<OpenSslStreamTraitsImpl>;
 
 class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTraits>
 {
-    //! @todo Make stream a task subcontext
-
     public:
 
         //! Constructor
         OpenSslStream(
             OpenSslContext* context,
-            common::Thread* thread,
-            const lib::string_view& id=lib::string_view{}
+            common::Thread* thread
         ) : SecureStream<OpenSslStreamTraits>(
                     context,
                     thread,
-                    id,
                     this,
                     context,
                     thread
@@ -276,9 +283,8 @@ class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTrait
 
         //! Constructor
         OpenSslStream(
-            OpenSslContext* context,
-            common::STR_ID_TYPE id=common::STR_ID_TYPE()
-        ) : OpenSslStream(context,common::Thread::currentThread(),std::move(id))
+            OpenSslContext* context
+        ) : OpenSslStream(context,common::Thread::currentThread())
         {}
 
         ~OpenSslStream();
@@ -287,11 +293,6 @@ class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTrait
         OpenSslStream& operator=(const OpenSslStream&) = delete;
         OpenSslStream& operator=(OpenSslStream&&) = delete;
 };
-
-inline const char* OpenSslStreamTraitsImpl::idStr() const noexcept
-{
-    return m_stream->idStr();
-}
 
 HATN_OPENSSL_NAMESPACE_END
 

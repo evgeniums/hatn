@@ -84,8 +84,6 @@ OpenSslStreamTraitsImpl::OpenSslStreamTraitsImpl(OpenSslStream *stream, OpenSslC
 //---------------------------------------------------------------
 OpenSslStreamTraitsImpl::~OpenSslStreamTraitsImpl()
 {
-    HATN_DEBUG_ID_LVL(opensslstream,3,HATN_FORMAT("~OpenSslStreamTraitsImpl destroying {}",idStr()));
-
     if (m_ssl)
     {
         ::SSL_free(m_ssl);
@@ -101,10 +99,11 @@ OpenSslStreamTraitsImpl::~OpenSslStreamTraitsImpl()
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::checkNeedWriteNext()
 {
+    HATN_CTX_SCOPE("checkNeedWriteNext")
+
     if (m_writingToNext)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,"checkNeedWriteNext(): already writinig to next");
-
+        HATN_CTX_DEBUG(StreamDebugVerbosity,"already writinig to next",HLOG_MODULE(opensslstream))
         return;
     }
 
@@ -112,7 +111,7 @@ void OpenSslStreamTraitsImpl::checkNeedWriteNext()
     ::ERR_clear_error();
     int ret=::BIO_read_ex(m_bio,m_writeNextBuf.data(),m_writeNextBuf.size(),&readyBytes);
 
-    HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("checkNeedWriteNext(): ret={}, readyBytes={}",ret,readyBytes));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"read BIO",HLOG_MODULE(opensslstream),{"ret",ret},{"readyBytes",readyBytes})
 
     if (!processBioResult(ret))
     {
@@ -131,11 +130,15 @@ void OpenSslStreamTraitsImpl::checkNeedWriteNext()
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
 {
-    HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("doWriteNext(): size={}, offset={}",size,offset));
+    HATN_CTX_SCOPE("doWriteNext")
+
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"size",size},{"offset",offset})
 
     auto&& cb=[this,size,offset](const Error& ec,size_t doneSize)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("doWriteNext() cb: doneSize={}, ec={}/{}",doneSize,ec.value(),ec.message()));
+        HATN_CTX_SCOPE("doWriteNextCb")
+
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"doneSize",doneSize},{"ec",ec.value()},{"error",ec.message()});
 
         if (m_handshakingError)
         {
@@ -145,7 +148,7 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
 
         if (m_stopped)
         {
-            HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: stopped");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"stopped",HLOG_MODULE(opensslstream));
 
             return;
         }
@@ -155,7 +158,7 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
         {
             if (doneSize<size)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: write next part");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"write next part",HLOG_MODULE(opensslstream));
 
                 doWriteNext(size-doneSize,offset+doneSize);
             }
@@ -163,14 +166,14 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
             {
                 if (m_shutdownNotifying)
                 {
-                    HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: shutdown complete");
+                    HATN_CTX_DEBUG(StreamDebugVerbosity,"shutdown complete",HLOG_MODULE(opensslstream));
 
                     m_stopped=true;
                     doneOp();
                 }
                 else if (m_shutdowning)
                 {
-                    HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: shutdowning");
+                    HATN_CTX_DEBUG(StreamDebugVerbosity,"shutdown in progress",HLOG_MODULE(opensslstream));
 
                     doShutdown();
                 }
@@ -180,14 +183,14 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
                     {
                         if (m_writtenAppSize<m_writeAppSize)
                         {
-                            HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: go to writeSslPipe");
+                            HATN_CTX_DEBUG(StreamDebugVerbosity,"go to writeSslPipe",HLOG_MODULE(opensslstream));
 
                             writeSslPipe(m_writeAppBuf+m_writtenAppSize,m_writeAppSize-m_writtenAppSize);
                             return;
                         }
                         else
                         {
-                            HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: call write callback");
+                            HATN_CTX_DEBUG(StreamDebugVerbosity,"call write callback",HLOG_MODULE(opensslstream));
 
                             auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
                             m_writtenAppSize=0;
@@ -197,7 +200,7 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
                     }
                     else
                     {
-                        HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext() cb: no write callback");
+                        HATN_CTX_DEBUG(StreamDebugVerbosity,"no write callback",HLOG_MODULE(opensslstream));
                     }
 
                     checkNeedWriteNext();
@@ -206,7 +209,7 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
         }
         else
         {
-            HATN_DEBUG_ID_LVL(opensslstream,5,"doWriteNext(): fail");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"failed",HLOG_MODULE(opensslstream));
 
             fail(ec);
         }
@@ -222,11 +225,13 @@ void OpenSslStreamTraitsImpl::doWriteNext(size_t size, size_t offset)
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::writeSslPipe(const char *data, size_t size)
 {
+    HATN_CTX_SCOPE("writeSslPipe")
+
     size_t writtenSize=0;
     ::ERR_clear_error();
     int ret=::SSL_write_ex(m_ssl,data,size,&writtenSize);
 
-    HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("writeSslPipe(): ret={}, size={}, writtenSize={}",ret,size,writtenSize));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"ret",ret},{"size",size},{"writtenSize",writtenSize});
 
     if (writtenSize>0)
     {
@@ -239,29 +244,33 @@ void OpenSslStreamTraitsImpl::writeSslPipe(const char *data, size_t size)
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::doReadNext()
 {
+    HATN_CTX_SCOPE("doReadNext")
+
     if (m_handshakingError)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext(): handshaking error");
+        HATN_CTX_DEBUG(StreamDebugVerbosity,"handshaking error",HLOG_MODULE(opensslstream));
         return;
     }
     if (m_readingFromNext)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext(): already reading");
+        HATN_CTX_DEBUG(StreamDebugVerbosity,"already reading",HLOG_MODULE(opensslstream));
         return;
     }
     if (m_shutdowning && !m_shutdownNotifying)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext(): shutdown waiting");
+        HATN_CTX_DEBUG(StreamDebugVerbosity,"shutdown waiting",HLOG_MODULE(opensslstream));
         return;
     }
 
     auto&& cb=[this](const common::Error& ec,size_t receivedBytes)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("doReadNext() cb: receivedBytes={}, ec={}/{}",receivedBytes,ec.value(),ec.message()));
+        HATN_CTX_SCOPE("doReadNextCb")
+
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"receivedBytes",receivedBytes},{"ec",ec.value()},{"error",ec.message()});
 
         if (m_stopped)
         {
-            HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: stopped");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"stopped",HLOG_MODULE(opensslstream));
 
             return;
         }
@@ -271,7 +280,8 @@ void OpenSslStreamTraitsImpl::doReadNext()
         {
             if (m_shutdowning && !m_shutdownNotifying)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: shutdown waiting");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"shutdown waiting",HLOG_MODULE(opensslstream));
+
                 if (!m_writingToNext)
                 {
                     doShutdown();
@@ -284,7 +294,7 @@ void OpenSslStreamTraitsImpl::doReadNext()
             int ret=::BIO_write_ex(m_bio,m_readNextBuf.data()+m_readNextBufOffset,receivedBytes,&writtenBytes);
             if (!processBioResult(ret))
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: failed processBioResult");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"failed processBioResult",HLOG_MODULE(opensslstream));
                 return;
             }
 
@@ -293,32 +303,32 @@ void OpenSslStreamTraitsImpl::doReadNext()
 
             if (m_shutdowning)
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: doShutdown");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"doShutdown",HLOG_MODULE(opensslstream));
 
                 doShutdown();
             }
             else if (!m_stream->isOpen())
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: doHandshake");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"doHandshake",HLOG_MODULE(opensslstream));
 
                 doHandshake();
             }
             else
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: readSslPipe");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"readSslPipe",HLOG_MODULE(opensslstream));
 
                 readSslPipe();
             }
         }
         else
         {
-            HATN_DEBUG_ID_LVL(opensslstream,5,"doReadNext() cb: fail");
+            HATN_CTX_DEBUG(StreamDebugVerbosity,"failed",HLOG_MODULE(opensslstream));
 
             fail(ec);
         }
     };
 
-    HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("doReadNext(): m_readNextBufSize={}",m_readNextBufSize));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"readNextBufSize",m_readNextBufSize});
 
     m_readingFromNext=true;
     if (m_readNextBufSize>0)
@@ -335,13 +345,15 @@ void OpenSslStreamTraitsImpl::doReadNext()
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::readSslPipe()
 {
+    HATN_CTX_SCOPE("readSslPipe")
+
     if (m_readCb)
     {
         size_t readyBytes=0;
         ::ERR_clear_error();
         int ret=::SSL_read_ex(m_ssl,m_readAppBuf,m_readAppMaxSize,&readyBytes);
 
-        HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("readSslPipe(): ret={}, readyBytes={}",ret,readyBytes));
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"read SSL",HLOG_MODULE(opensslstream),{"readyBytes",readyBytes});
 
         if (!processSslResult(ret))
         {
@@ -364,29 +376,30 @@ void OpenSslStreamTraitsImpl::readSslPipe()
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::doHandshake()
 {
+    HATN_CTX_SCOPE("doHandshake")
+
     if (m_writingToNext)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,"doHandshake(): already writinig to next");
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"already writinig to next",HLOG_MODULE(opensslstream));
 
         return;
     }
 
-    //! @todo Refactor logging
-    // HATN_DEBUG_ID_LVL(opensslstream,3,HATN_FORMAT("doHandshake(): before SSL_do_handshake: state={}",::SSL_get_state(m_ssl)));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"before SSL_do_handshake",HLOG_MODULE(opensslstream),{"state",::SSL_get_state(m_ssl)});
 
     ::ERR_clear_error();
     int ret=::SSL_do_handshake(m_ssl);
 
-    // HATN_DEBUG_ID_LVL(opensslstream,3,HATN_FORMAT("doHandshake(): after SSL_do_handshake: ret={}, state={}",ret,::SSL_get_state(m_ssl)));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"after SSL_do_handshake",HLOG_MODULE(opensslstream),{"state",::SSL_get_state(m_ssl)});
 
     if (!processSslResult(ret,true))
     {
-        // HATN_DEBUG_ID_LVL(opensslstream,3,"doHandshake(): fail processSslResult");
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"failed processSslResult",HLOG_MODULE(opensslstream));
         return;
     }
     if (ret==1)
     {
-        // HATN_DEBUG_ID_LVL(opensslstream,3,"doHandshake(): done");
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"done",HLOG_MODULE(opensslstream));
 
         if (m_stream->errors().empty())
         {
@@ -399,21 +412,24 @@ void OpenSslStreamTraitsImpl::doHandshake()
     }
     else
     {
-        // HATN_DEBUG_ID_LVL(opensslstream,3,"doHandshake(): not done");
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"not done",HLOG_MODULE(opensslstream));
     }
 }
 
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::doShutdown()
 {
+    HATN_CTX_SCOPE("doShutdown")
+
     ::ERR_clear_error();
     int ret=::SSL_shutdown(m_ssl);
 
-    HATN_DEBUG_ID_LVL(opensslstream,3,HATN_FORMAT("doShutdown(): ret={}",ret));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"after SSL_shutdown",HLOG_MODULE(opensslstream),{"ret",ret});
+
     if (ret==0)
     {
         ret=::SSL_shutdown(m_ssl);
-        HATN_DEBUG_ID_LVL(opensslstream,3,HATN_FORMAT("doShutdown(): again: ret={}",ret));
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"after SSL_shutdown again",HLOG_MODULE(opensslstream),{"ret",ret});
     }
 
     if (ret<0)
@@ -422,9 +438,9 @@ void OpenSslStreamTraitsImpl::doShutdown()
     }
     else
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"doShutdown(): done");
-        m_stopped=true;
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"done",HLOG_MODULE(opensslstream));
 
+        m_stopped=true;
         doneOp();
     }
 }
@@ -432,24 +448,26 @@ void OpenSslStreamTraitsImpl::doShutdown()
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::doneOp(const Error &ec)
 {
-    HATN_DEBUG_ID_LVL(opensslstream,1,HATN_FORMAT("doneOp(): {} - {}",ec.value(),ec.message()));
+    HATN_CTX_SCOPE("doneOp")
+
+    HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"ec",ec.value()},{"error",ec.message()});
 
     if (m_closed || m_shutdowning)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() closed");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"closed",HLOG_MODULE(opensslstream));
 
         stream()->resetNextHandlers();
 
         if (m_readCb)
         {
-            HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() read cb");
+            HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke read cb",HLOG_MODULE(opensslstream));
 
             auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
             readCbTmp(ec,0);
         }
         if (m_writeCb)
         {
-            HATN_DEBUG_ID_LVL(opensslstream,3,"doneOp() write cb");
+            HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke write cb",HLOG_MODULE(opensslstream));
 
             auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
             writeCbTmp(ec,0);
@@ -469,18 +487,20 @@ void OpenSslStreamTraitsImpl::fail(const Error &ec)
     m_closed=true;
     m_stopped=true;
 
-    HATN_DEBUG_ID_LVL(opensslstream,1,HATN_FORMAT("fail(): {} - {}",ec.value(),ec.message()));
+    HATN_CTX_SCOPE("fail")
+
+    HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"enter",HLOG_MODULE(opensslstream),{"ec",ec.value()},{"error",ec.message()});
 
     if (m_readCb)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Read fail");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke read cb",HLOG_MODULE(opensslstream));
 
         auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
         readCbTmp(ec,0);
     }
     if (m_writeCb)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Write fail");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke write cb",HLOG_MODULE(opensslstream));
 
         auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
         writeCbTmp(ec,0);
@@ -493,25 +513,27 @@ void OpenSslStreamTraitsImpl::cancel()
 {
     auto ec=makeSystemError(std::errc::operation_canceled);
 
-    HATN_DEBUG_ID_LVL(opensslstream,1,"cancel()");
+    HATN_CTX_SCOPE("cancel")
+
+    HATN_CTX_DEBUG(DoneDebugVerbosity,"enter",HLOG_MODULE(opensslstream));
 
     if (m_readCb)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Read cancelled");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke read cb",HLOG_MODULE(opensslstream));
 
         auto readCbTmp=std::exchange(m_readCb,common::StreamChain::ResultCb());
         readCbTmp(ec,0);
     }
     if (m_writeCb)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Write cancelled");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke write cb",HLOG_MODULE(opensslstream));
 
         auto writeCbTmp=std::exchange(m_writeCb,common::StreamChain::ResultCb());
         writeCbTmp(ec,0);
     }
     if (m_opCb)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Operation cancelled");
+        HATN_CTX_DEBUG(ShutdownDebugVerbosity,"invoke op cb",HLOG_MODULE(opensslstream));
 
         auto opCbTmp=std::exchange(m_opCb,common::StreamChain::OpCb());
         opCbTmp(ec);
@@ -521,14 +543,18 @@ void OpenSslStreamTraitsImpl::cancel()
 //---------------------------------------------------------------
 bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
 {
+    HATN_CTX_SCOPE("processSslResult")
+
     if (ret<=0)
     {
         int sslRet=::SSL_get_error(m_ssl,ret);
+        HATN_CTX_SCOPE("SSL_get_error")
+
         switch (sslRet)
         {
             case(SSL_ERROR_WANT_READ):
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"processSslResult() want read");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"want read",HLOG_MODULE(opensslstream));
 
                 checkNeedWriteNext();
                 doReadNext();
@@ -537,13 +563,16 @@ bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
 
             case(SSL_ERROR_WANT_WRITE):
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"processSslResult() want write");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"want write",HLOG_MODULE(opensslstream));
+
                 checkNeedWriteNext();
             }
             break;
 
             case(SSL_ERROR_ZERO_RETURN):
             {
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"zero return",HLOG_MODULE(opensslstream));
+
                 fail(makeLastSslError(CryptError::TLS_CLOSED));
                 return false;
             }
@@ -552,7 +581,7 @@ bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
             case(SSL_ERROR_SSL): HATN_FALLTHROUGH
             case(SSL_ERROR_SYSCALL):
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,"processSslResult() fail");
+                HATN_CTX_DEBUG(StreamDebugVerbosity,"failed",HLOG_MODULE(opensslstream));
 
                 if (handshakingRead)
                 {
@@ -571,7 +600,8 @@ bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
 
             default:
             {
-                HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("processSslResult(): default ret={}, sslRet={}",ret,sslRet));
+                HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"default case",HLOG_MODULE(opensslstream),{"ret",ret},{"sslRet",sslRet});
+
                 checkNeedWriteNext();
             }
             break;
@@ -579,7 +609,8 @@ bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
     }
     else
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("processSslResult(): ret={}",ret));
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"ret more than zero",HLOG_MODULE(opensslstream),{"ret",ret});
+
         checkNeedWriteNext();
     }
     return true;
@@ -588,22 +619,27 @@ bool OpenSslStreamTraitsImpl::processSslResult(int ret, bool handshakingRead)
 //---------------------------------------------------------------
 bool OpenSslStreamTraitsImpl::processBioResult(int ret)
 {
+    HATN_CTX_SCOPE("processBioResult")
+
     if (ret<=0 && BIO_should_retry(m_bio)==0)
     {
-        HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("processBioResult(): fail, ret={}",ret));
+        HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"failed",HLOG_MODULE(opensslstream),{"ret",ret});
 
         fail(makeLastSslError());
         return false;
     }
 
-    HATN_DEBUG_ID_LVL(opensslstream,5,HATN_FORMAT("processBioResult(): ok, ret={}",ret));
+    HATN_CTX_DEBUG_RECORDS_M(StreamDebugVerbosity,"ok",HLOG_MODULE(opensslstream),{"ret",ret});
     return true;
 }
 
 //---------------------------------------------------------------
 Error OpenSslStreamTraitsImpl::addPeerVerifyName(const X509Certificate::NameType &name)
 {
-    HATN_DEBUG_ID_LVL(opensslstream,1,HATN_FORMAT("addPeerVerifyName(): {};",name.c_str()));
+    HATN_CTX_SCOPE("addPeerVerifyName")
+
+    HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"",HLOG_MODULE(opensslstream),{"peerName",name});
+
     ::SSL_set_hostflags(m_ssl,
                         X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT
                         |
@@ -624,7 +660,10 @@ Error OpenSslStreamTraitsImpl::addPeerVerifyName(const X509Certificate::NameType
 //---------------------------------------------------------------
 Error OpenSslStreamTraitsImpl::setPeerVerifyName(const X509Certificate::NameType &name)
 {
-    HATN_DEBUG_ID_LVL(opensslstream,1,HATN_FORMAT("setPeerVerifyName(): {};",name.c_str()));
+    HATN_CTX_SCOPE("addPeerVerifyName")
+
+    HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"",HLOG_MODULE(opensslstream),{"peerName",name});
+
     ::SSL_set_hostflags(m_ssl,
                         X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT
                         |
@@ -645,6 +684,8 @@ Error OpenSslStreamTraitsImpl::setPeerVerifyName(const X509Certificate::NameType
 //---------------------------------------------------------------
 static int SslVerifyCb(int preverifyOk, X509_STORE_CTX *x509Ctx)
 {
+    HATN_CTX_SCOPE("SslVerifyCb")
+
     if (preverifyOk==1)
     {
         return preverifyOk;
@@ -672,9 +713,8 @@ static int SslVerifyCb(int preverifyOk, X509_STORE_CTX *x509Ctx)
                 auto cert=common::makeShared<OpenSslX509>();
                 cert->setNativeHandler(nativeCrt);
 
-                HATN_DEBUG_CONTEXT(opensslstream,streamTraits->idStr(),3,HATN_FORMAT("SslVerifyCb() error: ({}) {}, certificate={}",
-                                                                                   code,OpenSslError::codeToString(code),
-                                                                                   cert->toString(true,false)));
+                HATN_CTX_DEBUG_RECORDS_M(HandshakeDebugVerbosity,"",HLOG_MODULE(opensslstream),{"ec",code},{"error",OpenSslError::codeToString(code)},
+                                         {"certificate",cert->toString(true,false)});
 
                 auto&& ec=makeSslError(code,std::move(cert));
                 if (streamTraits->stream()->context()->checkAllErrorsIgnored()
@@ -682,20 +722,20 @@ static int SslVerifyCb(int preverifyOk, X509_STORE_CTX *x509Ctx)
                     streamTraits->stream()->context()->isErrorIgnored(ec)
                    )
                 {
-                    HATN_DEBUG_CONTEXT(opensslstream,streamTraits->idStr(),3,"SslVerifyCb(): error ignored");
+                    HATN_CTX_DEBUG(HandshakeDebugVerbosity,"error ignored",HLOG_MODULE(opensslstream));
 
                     return 1;
                 }
                 else if (streamTraits->stream()->context()->checkCollectAllErrors())
                 {
-                    HATN_DEBUG_CONTEXT(opensslstream,streamTraits->idStr(),3,"SslVerifyCb(): error collected and skipped for later fail report");
+                    HATN_CTX_DEBUG(HandshakeDebugVerbosity,"error collected and skipped for later fail report",HLOG_MODULE(opensslstream));
 
                     streamTraits->stream()->addError(std::move(ec));
                     return 1;
                 }
                 else
                 {
-                    HATN_DEBUG_CONTEXT(opensslstream,streamTraits->idStr(),3,"SslVerifyCb(): error activated");
+                    HATN_CTX_DEBUG(HandshakeDebugVerbosity,"error activated",HLOG_MODULE(opensslstream));
 
                     streamTraits->stream()->addError(std::move(ec));
                     return 0;
@@ -709,6 +749,8 @@ static int SslVerifyCb(int preverifyOk, X509_STORE_CTX *x509Ctx)
 //---------------------------------------------------------------
 void OpenSslStreamTraitsImpl::prepare(std::function<void (const Error &)> callback)
 {
+    HATN_CTX_SCOPE("prepare")
+
     if (::SSL_set_ex_data(m_ssl,OpenSslPlugin::sslCtxIdx(),this)!=1)
     {
         fail(makeLastSslError(CryptError::GENERAL_FAIL));
@@ -720,12 +762,14 @@ void OpenSslStreamTraitsImpl::prepare(std::function<void (const Error &)> callba
     if (server)
     {
         ::SSL_set_accept_state(m_ssl);
-        HATN_DEBUG_ID_LVL(opensslstream,1,"Prepare server mode");
+
+        HATN_CTX_DEBUG(DoneDebugVerbosity,"server mode",HLOG_MODULE(opensslstream));
     }
     else
     {
         ::SSL_set_connect_state(m_ssl);
-        HATN_DEBUG_ID_LVL(opensslstream,1,"Prepare client mode");
+
+        HATN_CTX_DEBUG(DoneDebugVerbosity,"client mode",HLOG_MODULE(opensslstream));
     }
 
     if (
@@ -734,7 +778,7 @@ void OpenSslStreamTraitsImpl::prepare(std::function<void (const Error &)> callba
         || !m_stream->context()->ignoredErrors().empty()
        )
     {
-        HATN_DEBUG_ID_LVL(opensslstream,3,"Set verify callback");
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"set verify callback",HLOG_MODULE(opensslstream));
 
         // set verify callback only if need to collect all errors at once or some errors can be ignored
         ::SSL_set_verify(m_ssl,::SSL_get_verify_mode(m_ssl),SslVerifyCb);

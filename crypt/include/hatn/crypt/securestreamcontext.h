@@ -69,13 +69,11 @@ class SecureStreamContext
 
         //! Create TLS stream
         virtual common::SharedPtr<SecureStreamV> createSecureStream(
-            const lib::string_view& id=lib::string_view{}, //!< Stream ID
             common::Thread* thread=common::Thread::currentThread() //!< Thread for stream
         )
         {
             Assert(false,"No default TLS stream builder");
             std::ignore=thread;
-            std::ignore=id;
             return common::SharedPtr<SecureStreamV>();
         }
 

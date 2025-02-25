@@ -129,7 +129,7 @@ struct TestContextStorage
     std::pair<SharedPtr<SecureStreamContext>,SharedPtr<SecureStreamContext>> contexts;
     std::pair<SharedPtr<SecureStreamV>,SharedPtr<SecureStreamV>> streams;
     //! @todo Figure out what's wrong with std::vector<SharedPtr<SecureStreamContext>> and with std::vector<SharedPtr<SecureStreamV>>
-    //! when building with mingw - come compilation warnings regagding destroyng vector elements.
+    //! when building with mingw - come compilation warnings regarding destroyng vector elements.
 
     void reset()
     {
@@ -198,7 +198,7 @@ void tlsSingleStreamNoConfig(
         SharedPtr<SecureStreamContext> serverContext
     )
 {
-    auto tmpStream=serverContext->createSecureStream("stream",Thread::mainThread().get());
+    auto tmpStream=serverContext->createSecureStream(Thread::mainThread().get());
 
     tmpStream->setWriteNext(
         [&](const char*,std::size_t size,const StreamChain::ResultCb&)
@@ -235,10 +235,10 @@ void tlsStreamsInit(
 {
     Error ec;
 
-    auto serverStream=serverContext->createSecureStream("server",config.thread);
+    auto serverStream=serverContext->createSecureStream(config.thread);
     HATN_REQUIRE(serverStream);
 
-    auto clientStream=clientContext->createSecureStream("client",config.thread);
+    auto clientStream=clientContext->createSecureStream(config.thread);
     HATN_REQUIRE(clientStream);
 
     cb(serverStream,clientStream);
@@ -2198,7 +2198,7 @@ BOOST_FIXTURE_TEST_CASE(CheckTlsReadWriteShutdown,Env)
             };
             checkHandshake(this,plugin,algName,pathPrefix,setupCfg,false,clientCb,false,serverCb,3);
 
-            // sometimes shutdown will not fully completed on the other side
+            // sometimes shutdown is not fully completed on the other side
             BOOST_CHECK_GE(doneCount,3u);
         }
     };

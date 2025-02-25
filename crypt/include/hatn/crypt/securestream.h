@@ -18,8 +18,6 @@
 #ifndef HATNSECURESTREAM_H
 #define HATNSECURESTREAM_H
 
-#include <functional>
-
 #include <hatn/common/stream.h>
 
 #include <hatn/crypt/crypt.h>
@@ -36,7 +34,8 @@ HATN_CRYPT_NAMESPACE_BEGIN
 
 //! Base template class for secure streams
 template <typename Traits>
-class SecureStream : public common::StreamWithIDThread<Traits>,
+class SecureStream : public common::TaskSubcontext,
+                     public common::StreamWithThread<Traits>,
                      public common::StreamChain
 {
     public:
@@ -46,31 +45,10 @@ class SecureStream : public common::StreamWithIDThread<Traits>,
         SecureStream(
             SecureStreamContext* context,
             common::Thread* thread,
-            const lib::string_view& id,
             Args&& ...traitsArgs
-        ) : common::StreamWithIDThread<Traits>::StreamWithIDThread(thread,id,std::forward<Args>(traitsArgs)...),
+        ) : common::StreamWithThread<Traits>::StreamWithThread(thread,std::forward<Args>(traitsArgs)...),
             m_context(context),
             m_endpointType(context->endpointType())
-        {}
-
-        //! Constructor
-        template <typename ...Args>
-        SecureStream(
-            SecureStreamContext* context,
-            common::Thread* thread,
-            Args&& ...traitsArgs
-        ) : common::StreamWithIDThread<Traits>::StreamWithIDThread(thread,std::forward<Args>(traitsArgs)...),
-            m_context(context),
-            m_endpointType(context->endpointType())
-        {}
-
-        //! Constructor
-        template <typename ...Args>
-        SecureStream(
-            SecureStreamContext* context,
-            common::STR_ID_TYPE id,
-            Args&& ...traitsArgs
-        ) : SecureStream(context,common::Thread::currentThread(),std::move(id),std::forward<Args>(traitsArgs)...)
         {}
 
         //! Constructor
@@ -144,22 +122,6 @@ class SecureStream : public common::StreamWithIDThread<Traits>,
         inline void* nativeHandler() noexcept
         {
             return this->traits().nativeHandler();
-        }
-
-    protected:
-
-        //! Add peer name to use in TLS verification
-        common::Error doAddPeerVerifyName(const X509Certificate::NameType& name)
-        {
-            std::ignore=name;
-            return common::Error();
-        }
-
-        //! Set peer name to use in TLS verification overrideing previuosly added names
-        common::Error doSetPeerVerifyName(const X509Certificate::NameType& name)
-        {
-            std::ignore=name;
-            return common::Error();
         }
 
     private:
