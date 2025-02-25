@@ -691,11 +691,6 @@ class StreamTmplV : public WithImpl<ImplStreamT>, public BaseStreamT
             return this->impl().isClosed();
         }
 
-        virtual const char* idStr() const noexcept override
-        {
-            return this->impl().idStr();
-        }
-
         //! Set write handler
         virtual void setWriteNext(StreamChain::WriteFn writeFn) noexcept override
         {
