@@ -93,6 +93,11 @@ class HATN_COMMON_EXPORT LogModule final
         //! Get module name
         const char* name() const noexcept;
 
+        operator lib::string_view() const noexcept
+        {
+            return name();
+        }
+
         //! Filter debug log by level
         SharedPtr<LogModule::Log> dbgFilter(uint8_t debugLevel=0) const;
 
@@ -435,6 +440,8 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
 
 //! Helper for calling debug module
 #define HATN_LOG_MODULE(Name) HATN_Log<HATN_Log_##Name>
+#define HLOG_MODULE(Name) HATN_LOG_MODULE(Name)::i()->name()
+
 #define LOGGER_FILTER_AND_LOG(LogRec,Msg) if (!LogRec.isNull()) ::hatn::common::Logger(LogRec)<<Msg;
 #define _DSC_EXPAND(x) x
 
