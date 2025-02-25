@@ -7,7 +7,7 @@ fi
 
 if  [[ "${project_working_dir}" == "" ]];
 then
-    export $project_working_dir=$PWD/build
+    export project_working_dir=$PWD/build
 fi
 
 export build_root=$project_working_dir/builds

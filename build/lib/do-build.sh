@@ -5,6 +5,11 @@ set -e
 export android_scripts_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/android"
 building_target=0
 
+if  [[ "${project_working_dir}" == "" ]];
+then
+    export project_working_dir=$PWD/build
+fi
+
 if [ ! -d $project_working_dir ];
 then
     mkdir -p $project_working_dir
@@ -35,6 +40,7 @@ then
           then
             export hatn_path="$PWD/../hatn"
           fi
+
           source ${hatn_path}/build/lib/${hatn_target_os}/generate-build-scripts.sh $hatn_lib
       fi
 
