@@ -16,6 +16,8 @@ SET (HEADERS
     include/hatn/api/client/client.h
     include/hatn/api/client/router.h
     include/hatn/api/client/resolver.h
+    include/hatn/api/client/iphostresolver.h
+    include/hatn/api/client/tcpclient.h
 )
 
 SET (HEADERS

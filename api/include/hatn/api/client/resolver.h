@@ -55,53 +55,7 @@ class Resolver : public common::WithTraits<Traits>
         }
 };
 
-struct IpServerName
-{
-    std::string name;
-    uint16_t port=0;
-    bool service=false;
-    HATN_NETWORK_NAMESPACE::IpVersion ipVersion=HATN_NETWORK_NAMESPACE::IpVersion::ALL;
-};
-
-class IpServerResolverTraits
-{
-    public:
-
-        using ServerName=IpServerName;
-        using ResolvedEndpoints=std::vector<HATN_NETWORK_NAMESPACE::asio::IpEndpoint>;
-
-        IpServerResolverTraits(
-                common::Thread* thread,
-                const std::vector<HATN_NETWORK_NAMESPACE::NameServer>& nameServers={},
-                const std::string& resolvConfPath={}
-            ) : m_resolver(thread,nameServers,resolvConfPath)
-        {}
-
-        template <typename ContextT>
-        void resolve(
-                common::SharedPtr<ContextT> ctx,
-                const ServerName& serverName,
-                ResolverCallbackFn<ResolvedEndpoints> callback
-            )
-        {
-            if (serverName.service)
-            {
-                m_resolver.resolveService(serverName.name,std::move(callback),std::move(ctx),serverName.ipVersion);
-            }
-            else
-            {
-                m_resolver.resolveName(serverName.name,std::move(callback),std::move(ctx),serverName.port,serverName.ipVersion);
-            }
-        }
-
-    private:
-
-        HATN_NETWORK_NAMESPACE::asio::CaResolver m_resolver;
-};
-
-using IpServerResolver=Resolver<IpServerResolverTraits>;
-
-} // namespace client
+}
 
 HATN_API_NAMESPACE_END
 
