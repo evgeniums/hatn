@@ -807,6 +807,27 @@ common::SharedPtr<X509Certificate> OpenSslStreamTraitsImpl::getPeerCertificate()
 }
 
 //---------------------------------------------------------------
+Error OpenSslStreamTraitsImpl::setupSniClient(const X509Certificate::NameType& name, bool ech)
+{
+    HATN_CTX_SCOPE("setupSniClient")
+
+    HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"",HLOG_MODULE(opensslstream),{"sni_host",name},{"ech",ech});
+
+    if (ech)
+    {
+        HATN_CTX_DEBUG(HandshakeDebugVerbosity,"ECH not supported",HLOG_MODULE(opensslstream));
+        return cryptError(CryptError::ECH_NOT_SUPPORTED);
+    }
+
+    if (::SSL_set_tlsext_host_name(m_ssl,name.c_str()) != 1)
+    {
+        return makeLastSslError();
+    }
+
+    return Error();
+}
+
+//---------------------------------------------------------------
 OpenSslStream::~OpenSslStream() = default;
 
 //---------------------------------------------------------------

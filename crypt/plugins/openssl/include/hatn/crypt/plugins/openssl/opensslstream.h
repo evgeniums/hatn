@@ -190,6 +190,9 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         //! Set peer name to use in TLS verification overrideing previuosly added names
         common::Error setPeerVerifyName(const X509Certificate::NameType& name);
 
+        //! Setup SNI/ECH extension at server side
+        common::Error setupSniClient(const X509Certificate::NameType& name, bool ech=false);
+
         inline OpenSslStream* stream() const noexcept
         {
             return m_stream;
@@ -202,7 +205,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
         common::SharedPtr<X509Certificate> getPeerCertificate() const;
 
         //! Get native stream handler
-        inline void* nativeHandler() noexcept
+        inline SSL* nativeHandler() noexcept
         {
             return m_ssl;
         }
@@ -292,7 +295,14 @@ class HATN_OPENSSL_EXPORT OpenSslStream : public SecureStream<OpenSslStreamTrait
         OpenSslStream(OpenSslStream&&) = delete;
         OpenSslStream& operator=(const OpenSslStream&) = delete;
         OpenSslStream& operator=(OpenSslStream&&) = delete;
+
+        common::Error setupSniClient(const X509Certificate::NameType& name, bool ech=false)
+        {
+            return this->traits().setupSniClient(name,ech);
+        }
 };
+
+using OpenSslStreamV=SecureStreamTmplV<OpenSslStream>;
 
 HATN_OPENSSL_NAMESPACE_END
 

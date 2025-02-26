@@ -89,6 +89,8 @@
     Do(CryptError,INVALID_STREAM_FILE_MODE,_TR("Invalid file opening mode for streaming file, can be one of: append, append_existing, scan","crypt")) \
     Do(CryptError,INSUFFITIENT_BUFFER_SIZE,_TR("Insufficient buffer size","crypt")) \
     Do(CryptError,INVALID_IV_SIZE,_TR("Invalid size of initialization vector","crypt")) \
+    Do(CryptError,SNI_NOT_SUPPORTED,_TR("SNI extension not supported by TLS plugin","crypt")) \
+    Do(CryptError,ECH_NOT_SUPPORTED,_TR("ECH extension not supported by TLS plugin","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 

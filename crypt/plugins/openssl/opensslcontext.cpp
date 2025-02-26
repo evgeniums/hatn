@@ -83,6 +83,57 @@ static const SSL_METHOD* selectSslMethod(SecureStreamTypes::Endpoint endpointTyp
     return ::TLS_method();
 }
 
+//---------------------------------------------------------------
+static int sniExtCb(SSL *s, int *al, void *arg)
+{
+    auto currentCtx=reinterpret_cast<OpenSslContext*>(arg);
+
+    // check server name type
+    auto nameType=SSL_get_servername_type(s);
+    if (nameType==-1)
+    {
+        // no SNI, not switch context
+        return SSL_TLSEXT_ERR_OK;
+    }
+
+    // extract name
+    const char* name=SSL_get_servername(s,TLSEXT_NAMETYPE_host_name);
+    if (name==nullptr)
+    {
+        // no SNI, not switch context
+        return SSL_TLSEXT_ERR_OK;
+    }
+
+    // find context for sni host
+    bool ignoreUnknownHost=false;
+    auto newCtx=currentCtx->sniContext(name,ignoreUnknownHost);
+    if (!newCtx)
+    {
+        // context not found
+        if (ignoreUnknownHost)
+        {
+            // ignore unknown context, use current context
+            return SSL_TLSEXT_ERR_OK;
+        }
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    // extract native contexts
+    auto currentNativeCtx=currentCtx->nativeContext();
+    auto newNativeCtx=reinterpret_cast<SSL_CTX*>(newCtx->nativeHandler());
+    if (currentNativeCtx==newNativeCtx)
+    {
+        // same context, not switching
+        return SSL_TLSEXT_ERR_OK;
+    }
+
+    // switch to new context
+    SSL_set_SSL_CTX(s,newNativeCtx);
+
+    // done
+    return SSL_TLSEXT_ERR_OK;
+}
+
 /*********************** OpenSslContext **************************/
 
 //---------------------------------------------------------------
@@ -103,6 +154,15 @@ OpenSslContext::OpenSslContext(
     ::SSL_CTX_set_verify(m_sslCtx,
                          m_nativeVerifyMode,
                          NULL);
+
+    if (::SSL_CTX_set_tlsext_servername_arg(m_sslCtx,this)!=OPENSSL_OK)
+    {
+        throw common::ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
+    }
+    if (::SSL_CTX_set_tlsext_servername_callback(m_sslCtx,sniExtCb)!=OPENSSL_OK)
+    {
+        throw common::ErrorException(makeLastSslError(CryptError::GENERAL_FAIL));
+    }
 }
 
 //---------------------------------------------------------------
@@ -114,7 +174,7 @@ OpenSslContext::~OpenSslContext()
 //---------------------------------------------------------------
 common::SharedPtr<SecureStreamV> OpenSslContext::createSecureStream(common::Thread *thread)
 {
-    return common::makeShared<SecureStreamTmplV<OpenSslStream>>(this,thread);
+    return common::makeShared<OpenSslStreamV>(this,thread);
 }
 
 //---------------------------------------------------------------

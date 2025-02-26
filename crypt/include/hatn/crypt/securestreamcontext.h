@@ -18,8 +18,6 @@
 #ifndef HATNSECURECONTEXT_H
 #define HATNSECURECONTEXT_H
 
-#include <functional>
-
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/memorylockeddata.h>
 #include <hatn/common/bytearray.h>
@@ -57,7 +55,8 @@ class SecureStreamContext
                 m_endpointType(endpointType),
                 m_verifyMode(verifyMode),
                 m_ignoreAllErrors(false),
-                m_collectAllErrors(false)
+                m_collectAllErrors(false),
+                m_ignoreUnknownSniHost(true)
         {
         }
 
@@ -361,6 +360,37 @@ class SecureStreamContext
             return loadSessionTicketKey(content.data(),content.size(),keepPrevious);
         }
 
+        void addSniContext(common::SharedPtr<SecureStreamContext> ctx, std::string host)
+        {
+            m_sniContexts[std::move(host)]=std::move(ctx);
+        }
+
+        void removeSniContext(const std::string& host)
+        {
+            m_sniContexts.erase(host);
+        }
+
+        common::SharedPtr<SecureStreamContext> sniContext(lib::string_view host, bool& ignoreUnknownHost) const
+        {
+            auto it=m_sniContexts.find(host);
+            if (it==m_sniContexts.end())
+            {
+                ignoreUnknownHost=m_ignoreUnknownSniHost;
+                return common::SharedPtr<SecureStreamContext>{};
+            }
+            return it->second.lock();
+        }
+
+        void setIgnoreUnknownSniHost(bool enable) noexcept
+        {
+            m_ignoreUnknownSniHost=enable;
+        }
+
+        bool ignoreUnknownSniHost() const noexcept
+        {
+            return m_ignoreUnknownSniHost;
+        }
+
     protected:
 
         //! Update endpoint type in derived class
@@ -386,6 +416,9 @@ class SecureStreamContext
         SecureStreamErrors m_ignoredErrors;
         bool m_ignoreAllErrors;
         bool m_collectAllErrors;
+
+        std::map<std::string,common::WeakPtr<SecureStreamContext>,std::less<>> m_sniContexts;
+        bool m_ignoreUnknownSniHost;
 };
 
 HATN_CRYPT_NAMESPACE_END

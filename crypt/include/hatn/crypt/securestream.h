@@ -129,6 +129,11 @@ class SecureStream : public common::TaskSubcontext,
             return this->mainCtx().id();
         }
 
+        inline common::Error setupSniClient(const X509Certificate::NameType& name, bool ech=false)
+        {
+            return this->traits().setupSniClient(name,ech);
+        }
+
     private:
 
         SecureStreamContext* m_context;

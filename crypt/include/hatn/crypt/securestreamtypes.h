@@ -133,6 +133,16 @@ class HATN_CRYPT_EXPORT SecureStreamV : public common::StreamV
         {
             std::ignore=mainContext;
         }
+
+        virtual common::Error setupSniClient(const X509Certificate::NameType& name, bool ech=false)
+        {
+            std::ignore=name;
+            if (ech)
+            {
+                return cryptError(CryptError::ECH_NOT_SUPPORTED);
+            }
+            return cryptError(CryptError::SNI_NOT_SUPPORTED);
+        }
 };
 
 HATN_CRYPT_NAMESPACE_END
