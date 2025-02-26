@@ -923,7 +923,7 @@ using TaskContextType=typename common::detail::ActualTaskContexTraits<Types...>:
  * @brief Helper to make actual task context.
  *
  * Each Type of Types... parameter pack represents a subcontext derived from TaskSubcontext.
- * The first type can also be hana::is_a(TaskContexTag), i.e. some other ActualTaskContext that will
+ * The last type can also be hana::is_a(TaskContexTag), i.e. some other ActualTaskContext that will
  * be used as a base class for created ActualTaskContext.
  *
  * Arguments are forwarded to constructor of ActualTaskContext. For arguments packing use
