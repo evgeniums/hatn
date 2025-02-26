@@ -16,8 +16,6 @@
 
 /****************************************************************************/
 
-#include <memory>
-
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -39,7 +37,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -52,12 +49,6 @@ HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpStream,TcpStream)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
-
-namespace {
-
-constexpr const char* LogModule="asio";
-
-}
 
 namespace asio {
 
@@ -91,7 +82,7 @@ void TcpStreamTraits::cancel()
     rawSocket().cancel(ec);
     if (ec)
     {
-        HATN_CTX_WARN_RECORDS_M("failed to cancel TCP socket",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
+        HATN_CTX_WARN_RECORDS_M("failed to cancel TCP socket",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
     }
 }
 
@@ -115,16 +106,16 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
             rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
             if (ec)
             {
-                HATN_CTX_WARN_RECORDS_M("failed to shutdown",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
+                HATN_CTX_WARN_RECORDS_M("failed to shutdown",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
             }
 
             rawSocket().lowest_layer().close(ec);
             if (ec)
             {
-                HATN_CTX_WARN_RECORDS_M("failed to close",LogModule,{"err_code",ec.value()},{"err_msg",ec.message()})
+                HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
                 throw boost::system::system_error(ec);
             }
-            HATN_CTX_DEBUG("stream closed",LogModule)
+            HATN_CTX_DEBUG(DoneDebugVerbosity,"stream closed",HatnAsioLog)
         }
         catch (const boost::system::system_error& e)
         {
@@ -183,7 +174,7 @@ void TcpStreamTraits::prepare(
             rawSocket().bind(localEp,ec);
             if (!ec)
             {
-                HATN_CTX_DEBUG("socket bound",LogModule);
+                HATN_CTX_DEBUG(DoneDebugVerbosity,"socket bound",HatnAsioLog);
             }
             else
             {
@@ -232,7 +223,7 @@ void TcpStreamTraits::prepare(
                                 HATN_CTX_SCOPE_PUSH("local_ip",m_stream->localEndpoint().address().to_string())
                                 HATN_CTX_SCOPE_PUSH("local_port",m_stream->localEndpoint().port())
                             }
-                            HATN_CTX_DEBUG("client connected",LogModule);
+                            HATN_CTX_DEBUG(DoneDebugVerbosity,"client connected",HatnAsioLog);
                         }
                         else
                         {
@@ -242,7 +233,7 @@ void TcpStreamTraits::prepare(
                                 rawSocket().lowest_layer().close(ec1);
                                 if (ec1)
                                 {
-                                    HATN_CTX_WARN_RECORDS_M("failed to close",LogModule,{"err_code",ec1.value()},{"err_msg",ec1.message()})
+                                    HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec1.value()},{"err_msg",ec1.message()})
                                 }
                             }
                         }

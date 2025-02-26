@@ -37,7 +37,6 @@
 #endif
 
 #include <hatn/common/error.h>
-#include <hatn/common/logger.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/weakptr.h>
 
@@ -50,10 +49,6 @@ HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServer,TcpServer)
 
 HATN_NETWORK_NAMESPACE_BEGIN
 HATN_COMMON_USING
-
-namespace {
-    constexpr const char* LogModule="asio";
-}
 
 namespace asio {
 
@@ -119,7 +114,7 @@ Error TcpServer::listen(
         // listen for incoming connections
         d->acceptor.listen(listenBacklog);
 
-        HATN_CTX_INFO_RECORDS_M("TCP server is listening",LogModule,{"local_ip",endpoint.address().to_string()},{"local_port",endpoint.port()})
+        HATN_CTX_INFO_RECORDS_M("TCP server is listening",HatnAsioLog,{"local_ip",endpoint.address().to_string()},{"local_port",endpoint.port()})
     }
     catch (boost::system::system_error& ec)
     {        
@@ -161,7 +156,7 @@ void TcpServer::accept(
         }
         if (!ec)
         {
-            HATN_CTX_DEBUG_RECORDS_M("new connection to TCP server",LogModule,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
+            HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"new connection to TCP server",HatnAsioLog,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
         }
         callback(makeBoostError(ec));
         mainCtx().onAsyncHandlerExit();
@@ -182,7 +177,7 @@ Error TcpServer::close()
         d->acceptor.close(ec);
         if (!ec)
         {
-            HATN_CTX_DEBUG("TCP server closed",LogModule)
+            HATN_CTX_DEBUG(DoneDebugVerbosity,"TCP server closed",HatnAsioLog)
         }
     }
     return makeBoostError(ec);

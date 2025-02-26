@@ -406,6 +406,8 @@ HATN_COMMON_NAMESPACE_END
     template class HATN_Log<HATN_Log_##Name>;  \
     static auto dummy##Name=HATN_Log<HATN_Log_##Name>::i();
 
+#define HATN_LOG_MODULE_DECLARE(Name) DECLARE_LOG_MODULE(Name)
+
 #if defined(_WIN32) && defined(__GNUC__)
     #define DECLARE_LOG_MODULE_EXTERN(Name,ExportAttr) template class ExportAttr HATN_Log<HATN_Log_##Name>;
 #else
@@ -424,8 +426,10 @@ HATN_COMMON_NAMESPACE_END
     }; \
     DECLARE_LOG_MODULE_EXTERN(Name,ExportAttr)
 
+#define HATN_LOG_MODULE_DECLARE_EXP(Name,ExportAttr) DECLARE_LOG_MODULE_EXPORT(Name,ExportAttr)
+
 //! Example of declaring "global" debug module
-DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
+HATN_LOG_MODULE_DECLARE_EXP(global,HATN_COMMON_EXPORT)
 
 #if defined(_WIN32) && defined(__GNUC__)
     #define INIT_LOG_MODULE_INSTANTIATE(Name,ExportAttr) ;
@@ -437,6 +441,8 @@ DECLARE_LOG_MODULE_EXPORT(global,HATN_COMMON_EXPORT)
 #define INIT_LOG_MODULE(Name,ExportAttr) \
     INIT_LOG_MODULE_INSTANTIATE(Name,ExportAttr) \
     static auto dummy##Name=HATN_Log<HATN_Log_##Name>::i();
+
+#define HATN_LOG_MODULE_INIT(Name,ExportAttr) INIT_LOG_MODULE(Name,ExportAttr)
 
 //! Helper for calling debug module
 #define HATN_LOG_MODULE(Name) HATN_Log<HATN_Log_##Name>

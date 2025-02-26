@@ -251,7 +251,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
 
                 ++acceptCount;
 
-                HATN_CTX_DEBUG_RECORDS("accepted",{"accept-count",acceptCount})
+                HATN_CTX_DEBUG_RECORDS(0,"accepted",{"accept-count",acceptCount})
             };
 
             auto acceptCb1=[&thread0,&server,&serverClient2,&acceptCb2,&acceptCount,isIpv6](const hatn::common::Error& ec)
@@ -261,7 +261,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_REQUIRE_TS(!ec);
 
                 ++acceptCount;
-                HATN_CTX_DEBUG_RECORDS("accepted",{"accept-count",acceptCount})
+                HATN_CTX_DEBUG_RECORDS(0,"accepted",{"accept-count",acceptCount})
 
                 serverClient2=asio::makeTcpStreamCtx(isIpv6?"serverClient2-6":"serverClient2-4");
                 (*server)->accept((*serverClient2)->socket(),acceptCb2);
@@ -296,7 +296,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
                 ++connectCount;
 
-                HATN_CTX_DEBUG_RECORDS("client1 connected",{"connect-count",connectCount})
+                HATN_CTX_DEBUG_RECORDS(0,"client1 connected",{"connect-count",connectCount})
             };
 
             auto client2ConnectCb=[&thread1,&connectCount](const hatn::common::Error& ec)
@@ -307,7 +307,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
                 ++connectCount;
 
-                HATN_CTX_DEBUG_RECORDS("client2 connected",{"connect-count",connectCount})
+                HATN_CTX_DEBUG_RECORDS(0,"client2 connected",{"connect-count",connectCount})
             };
 
             auto client3ConnectCb=[&thread1,&failedConnectCount](const hatn::common::Error& ec)
@@ -318,7 +318,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_CHECK_EQUAL_TS(thread1,hatn::common::Thread::currentThread());
                 ++failedConnectCount;
 
-                HATN_CTX_DEBUG_RECORDS("client3 failed to connect",{"failed-connect-count",failedConnectCount})
+                HATN_CTX_DEBUG_RECORDS(0,"client3 failed to connect",{"failed-connect-count",failedConnectCount})
                 HATN_CTX_ERROR(ec,"expected failure to connect by client3")
             };
 
@@ -378,7 +378,7 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                 HATN_CHECK_TS(!ec);
                 ++closeCount;
 
-                HATN_CTX_DEBUG_RECORDS("closed",{"close-count",closeCount})
+                HATN_CTX_DEBUG_RECORDS(0,"closed",{"close-count",closeCount})
             };
 
             BOOST_TEST_MESSAGE("Close clients");
@@ -486,7 +486,7 @@ static void readNext(const hatn::common::Error& ec,
     recvSize+=size;
     if (recvSize>=dataSize)
     {
-        HATN_CTX_DEBUG_RECORDS("read done",{"recvSize",recvSize})
+        HATN_CTX_DEBUG_RECORDS(0,"read done",{"recvSize",recvSize})
 
         checkDone();
         return;
@@ -497,13 +497,13 @@ static void readNext(const hatn::common::Error& ec,
         space=dataSize-recvSize;
     }
 
-    HATN_CTX_DEBUG_RECORDS("read",{"space",space},{"recvSize",recvSize})
+    HATN_CTX_DEBUG_RECORDS(0,"read",{"space",space},{"recvSize",recvSize})
 
     client->read(recvBuf.data()+recvSize,space,
                        [client,&recvSize,&recvBuf,checkDone](const hatn::common::Error& ec1, size_t rxSize)
                        {
                             HATN_CTX_SCOPE("readCb")
-                            HATN_CTX_DEBUG_RECORDS("read cb",{"ec1",ec1.value()},{"recvSize",rxSize})
+                            HATN_CTX_DEBUG_RECORDS(0,"read cb",{"ec1",ec1.value()},{"recvSize",rxSize})
 
                             readNext(
                                         ec1,rxSize,client,recvSize,recvBuf,checkDone
@@ -645,12 +645,12 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                                         HATN_REQUIRE_TS(!ec1);
                                         HATN_CHECK_EQUAL_TS(size,dataSize-dataSize/4);
 
-                                        HATN_CTX_DEBUG_RECORDS("written",{"writtenSize",size})
+                                        HATN_CTX_DEBUG_RECORDS(0,"written",{"writtenSize",size})
 
                                         auto&& cb1=[](const hatn::common::Error& ec2, size_t size2, const hatn::common::SpanBuffer&)
                                         {
                                             HATN_CTX_SCOPE("writeCb1")
-                                            HATN_CTX_DEBUG_RECORDS("written",{"writtenSize2",size2})
+                                            HATN_CTX_DEBUG_RECORDS(0,"written",{"writtenSize2",size2})
 
                                             HATN_REQUIRE_TS(!ec2);
                                             HATN_CHECK_EQUAL_TS(size2,dataSize/4);

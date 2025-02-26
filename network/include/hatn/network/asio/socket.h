@@ -44,8 +44,15 @@
 
 #include <hatn/network/network.h>
 
+HATN_LOG_MODULE_DECLARE_EXP(asio,HATN_NETWORK_EXPORT)
+
+#define HatnAsioLog HLOG_MODULE(asio)
+
 HATN_NETWORK_NAMESPACE_BEGIN
 namespace asio {
+
+// constexpr const uint8_t StreamDebugVerbosity=5;
+constexpr const uint8_t DoneDebugVerbosity=0;
 
 //! Base class template for raw sockets over boost asio sockets
 template <typename T> class Socket final

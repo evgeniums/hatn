@@ -32,6 +32,7 @@ SET (SOURCES
     src/resolver.cpp
     src/resolvershuffle.cpp
 
+    src/asio/socket.cpp
     src/asio/tcpstream.cpp
     src/asio/tcpserver.cpp
     src/asio/udpchannel.cpp

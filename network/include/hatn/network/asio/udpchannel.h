@@ -61,6 +61,9 @@ class UdpChannelTraits : public WithSocket<UdpSocket>
 
         void cancel();
 
+        void reset()
+        {}
+
     protected:
 
         UdpChannelT* channel() const noexcept
