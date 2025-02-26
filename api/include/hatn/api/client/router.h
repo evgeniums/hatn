@@ -40,9 +40,8 @@ class Router : public common::WithTraits<Traits>
         using common::WithTraits<Traits>::WithTraits;
 
         using Connection=typename Traits::Connection;
-        using ConnectionContext=typename Traits::ConnectionContext;
 
-        template <typename ContextT>
+        template <typename ContextT, typename ConnectionContext>
         void makeConnection(
                 common::SharedPtr<ContextT> ctx,
                 RouterCallbackFn<ConnectionContext> callback

@@ -18,6 +18,7 @@ SET (HEADERS
     include/hatn/api/client/resolver.h
     include/hatn/api/client/iphostresolver.h
     include/hatn/api/client/tcpclient.h
+    include/hatn/api/client/tcpconnection.h
 )
 
 SET (HEADERS
@@ -28,6 +29,7 @@ SET (HEADERS
 
 SET (SOURCES
     src/apierror.cpp
+    src/tcpconnection.cpp
 )
 
 BUILD_HATN_MODULE()
