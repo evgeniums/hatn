@@ -593,6 +593,10 @@ inline common::Error commonError(CommonError code) noexcept
 //! Create Error object from std system error.
 inline common::Error makeSystemError(const std::error_code& ec) noexcept
 {
+    if (!ec)
+    {
+        return OK;
+    }
     return common::Error(ec.value(),&ec.category());
 }
 
@@ -605,6 +609,10 @@ inline common::Error makeSystemError(std::errc ec) noexcept
 //! Create Error object from boost system error.
 inline common::Error makeBoostError(const boost::system::error_code& ec) noexcept
 {
+    if (!ec)
+    {
+        return OK;
+    }
     return common::Error(ec.value(),&ec.category());
 }
 
@@ -617,6 +625,10 @@ inline common::Error makeBoostError(boost::system::errc::errc_t ec)
 //! Create Error object from boost system error.
 inline common::Error makeSystemError(const boost::system::error_code& ec) noexcept
 {
+    if (!ec)
+    {
+        return OK;
+    }
     return makeBoostError(ec);
 }
 
