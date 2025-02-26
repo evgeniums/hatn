@@ -23,6 +23,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/client/client.h>
 #include <hatn/api/client/tcpconnection.h>
+#include <hatn/api/server/tcpserver.h>
 
 // HATN_API_USING
 // HATN_COMMON_USING
@@ -47,34 +48,114 @@ struct Env : public ::hatn::test::MultiThreadFixture
 };
 }
 
-BOOST_AUTO_TEST_SUITE(TestTcpConnection)
+constexpr const uint32_t TcpPort=53852;
 
-BOOST_FIXTURE_TEST_CASE(Create,Env)
+auto createClient(HATN_COMMON_NAMESPACE::Thread* thread)
 {
-    createThreads(2);
-    auto workThread=thread(1);
-
-    auto resolver=std::make_shared<HATN_API_NAMESPACE::client::IpHostResolver>(workThread.get());
+    auto resolver=std::make_shared<HATN_API_NAMESPACE::client::IpHostResolver>(thread);
     std::vector<HATN_API_NAMESPACE::client::IpHostName> hosts;
     hosts.resize(1);
     hosts[0].name="localhost";
-    hosts[0].port=8080;
+    hosts[0].port=TcpPort;
+    hosts[0].ipVersion=HATN_NETWORK_NAMESPACE::IpVersion::V4;
 
     auto connectionCtx=HATN_COMMON_NAMESPACE::makeTaskContext<
-            HATN_API_NAMESPACE::client::TcpClient,
-            HATN_API_NAMESPACE::client::TcpConnection,
-            HATN_LOGCONTEXT_NAMESPACE::Context
+        HATN_API_NAMESPACE::client::TcpClient,
+        HATN_API_NAMESPACE::client::TcpConnection,
+        HATN_LOGCONTEXT_NAMESPACE::Context
         >(
             HATN_COMMON_NAMESPACE::subcontexts(
-                HATN_COMMON_NAMESPACE::subcontext(hosts,resolver,workThread.get()),
+                HATN_COMMON_NAMESPACE::subcontext(hosts,resolver,thread),
                 HATN_COMMON_NAMESPACE::subcontext(),
                 HATN_COMMON_NAMESPACE::subcontext()
-            )
+            ),
+            "client"
         );
     auto& tcpClient=connectionCtx->get<HATN_API_NAMESPACE::client::TcpClient>();
     auto& connection=connectionCtx->get<HATN_API_NAMESPACE::client::TcpConnection>();
     connection.setStreams(&tcpClient);
-    std::ignore=connection;
+
+    return connectionCtx;
+}
+
+auto createServer(HATN_COMMON_NAMESPACE::Thread* thread)
+{
+    return HATN_COMMON_NAMESPACE::makeTaskContext<
+        HATN_API_NAMESPACE::server::PlainTcpServer,
+        HATN_LOGCONTEXT_NAMESPACE::Context
+        >(
+            HATN_COMMON_NAMESPACE::subcontexts(
+                HATN_COMMON_NAMESPACE::subcontext(thread),
+                HATN_COMMON_NAMESPACE::subcontext()
+            ),
+            "server"
+        );
+}
+
+BOOST_AUTO_TEST_SUITE(TestTcpConnection)
+
+BOOST_FIXTURE_TEST_CASE(CreateClient,Env)
+{
+    createThreads(2);
+    auto workThread=thread(1);
+
+    std::ignore=createClient(workThread.get());
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(CreateServer,Env)
+{
+    createThreads(2);
+    auto workThread=thread(1);
+
+    std::ignore=createServer(workThread.get());
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
+{
+    createThreads(2);
+    auto serverThread=thread(0);
+    auto clientThread=thread(1);
+
+    auto serverCtx=createServer(serverThread.get());
+    auto clientCtx=createClient(clientThread.get());
+
+    serverThread->start();
+    clientThread->start();
+
+    auto serverCb=[](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainConnectionContext> ctx, const HATN_NAMESPACE::Error& ec)
+    {
+        HATN_TEST_MESSAGE_TS(fmt::format("serverCb: {}/{}",ec.code(),ec.message()));
+    };
+
+    auto& server=serverCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
+    server.setConnectionHandler(serverCb);
+    HATN_NETWORK_NAMESPACE::asio::IpEndpoint serverEp{"127.0.0.1",TcpPort};
+    auto ec=server.run(serverCtx,serverEp);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("failed to listen: {}/{}",ec.code(),ec.message()));
+    }
+    BOOST_REQUIRE(!ec);
+
+    auto clientCb=[](const HATN_NAMESPACE::Error& ec)
+    {
+        HATN_TEST_MESSAGE_TS(fmt::format("clientCb: {}/{}",ec.code(),ec.message()));
+    };
+    auto& client=clientCtx->get<HATN_API_NAMESPACE::client::TcpConnection>();
+    client.connect(clientCb);
+
+    exec(1);
+
+    std::ignore=server.close();
+
+    serverThread->stop();
+    clientThread->stop();
+
+    exec(1);
 
     BOOST_CHECK(true);
 }

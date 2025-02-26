@@ -10,26 +10,14 @@
 /*
 
 */
-/** @file api/server/dispatcher.h
+/** @file api/tcpserver.сpp
   *
   */
 
-/****************************************************************************/
-
-#ifndef HATNAPIDISPATCHER_H
-#define HATNAPIDISPATCHER_H
-
-#include <hatn/api/api.h>
-#include <hatn/api/connection.h>
+#include <hatn/api/server/tcpserver.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-class Dispatcher
-{
-    public:
-
-};
-
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIDISPATCHER_H
+HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::PlainTcpServer,TcpServer)

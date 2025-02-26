@@ -25,11 +25,13 @@ SET (HEADERS
     ${HEADERS}
 
     include/hatn/api/server/dispatcher.h
+    include/hatn/api/server/tcpserver.h
 )
 
 SET (SOURCES
     src/apierror.cpp
     src/tcpconnection.cpp
+    src/tcpserver.cpp
 )
 
 BUILD_HATN_MODULE()

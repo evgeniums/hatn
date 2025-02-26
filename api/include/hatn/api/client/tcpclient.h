@@ -93,6 +93,8 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                 return;
             }
 
+            setRemoteEndpoint(eps[epIdx]);
+
             auto cb=[this,hostsIdx,epIdx{epIdx+1},eps{std::move(eps)},callback{std::move(callback)}](const Error &ec)
             {
                 if (ec)
@@ -115,9 +117,7 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                     return;
                 }
                 callback(ec);
-            };
-
-            setRemoteEndpoint(eps[epIdx]);
+            };            
             Base::prepare(cb);
         }
 
@@ -144,6 +144,19 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
             {
                 std::ignore=ctx;
                 if (ec)
+                {
+                    if (hostsIdx<m_hosts.size())
+                    {
+                        resolveNext(hostsIdx,std::move(callback));
+                    }
+                    else
+                    {
+                        callback(HATN_NETWORK_NAMESPACE::networkError(HATN_NETWORK_NAMESPACE::NetworkError::DNS_FAILED));
+                    }
+                    return;
+                }
+
+                if (eps.empty())
                 {
                     if (hostsIdx<m_hosts.size())
                     {

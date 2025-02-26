@@ -52,6 +52,13 @@ class Connection : public common::TaskSubcontext
             m_stream.setStreams(streams...);
         }
 
+        void connect(
+            std::function<void (const Error &)> callback
+        )
+        {
+            m_stream.prepare(std::move(callback));
+        }
+
         template <typename ContextT, typename CallbackT>
         void send(
             common::SharedPtr<ContextT> ctx,
@@ -59,7 +66,7 @@ class Connection : public common::TaskSubcontext
             CallbackT callback
         )
         {
-            auto cb=[ctx,callback](const Error& ec,size_t,common::SpanBuffers)
+            auto cb=[ctx,callback{std::move(callback)}](const Error& ec,size_t,common::SpanBuffers)
             {
                 callback(ctx,ec);
             };
