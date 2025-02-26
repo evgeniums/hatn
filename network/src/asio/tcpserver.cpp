@@ -108,6 +108,8 @@ Error TcpServer::listen(
             listenBacklog=d->config->listenBacklog();
         }
 
+        d->acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+
         // bind acceptor
         d->acceptor.bind(ep);
 
