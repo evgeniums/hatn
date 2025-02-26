@@ -20,6 +20,8 @@
 
 #include <functional>
 
+#include <boost/hana.hpp>
+
 #include <hatn/validator/utils/foreach_if.hpp>
 
 #include <hatn/common/meta/errorpredicate.h>
@@ -35,9 +37,10 @@ class StreamChainTraits
 {
     public:
 
-        static_assert(sizeof...(Streams)>0,"At least one stream must be added to the chain");
+        constexpr static const size_t StreamsCount=sizeof...(Streams);
+        static_assert(StreamsCount>0,"At least one stream must be added to the chain");
 
-        StreamChainTraits() : m_streams(common::replicateToTuple(nullptr,hana::size(m_streams)))
+        StreamChainTraits() : m_streams(common::replicateToTuple(nullptr,boost::hana::size_c<StreamsCount>))
         {}
 
         /**
@@ -134,26 +137,27 @@ class StreamChainTraits
 
         void close(const std::function<void (const Error &)>& callback, bool destroying)
         {
+            std::ignore=destroying;
             auto self=this;
             hana::eval_if(
                 hana::equal(hana::size(m_streams),hana::size_c<1>),
                 [&](auto _)
                 {
-                    _(self)->front()->close(_(callback),_(destroying));
+                    _(self)->front()->close(_(callback));
                 },
                 [&](auto _)
                 {
                     auto nextStreams=hana::drop_back(_(self)->m_streams,hana::size_c<1>);
 
-                    auto each=[destroying_{_(destroying)}](auto&& state,auto&& stream)
+                    auto each=[](auto&& state,auto&& stream)
                     {
-                        auto cb=[destroying_,state{std::move(state)}](const Error & ec)
+                        auto cb=[state{std::move(state)}](const Error & ec)
                         {
                             auto nextCb=hana::second(state);
                             //! @todo Collect errors
                             std::ignore=ec;
                             auto nextStream=hana::first(state);
-                            nextStream->close(nextCb,destroying_);
+                            nextStream->close(nextCb);
                         };
                         return hana::make_pair(stream,std::move(cb));
                     };
@@ -163,7 +167,7 @@ class StreamChainTraits
 
                     auto firstStream=hana::first(st);
                     auto firstCb=hana::second(st);
-                    firstStream->close(firstCb,_(destroying));
+                    firstStream->close(firstCb);
                 }
             );
         }
