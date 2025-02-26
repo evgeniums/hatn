@@ -18,6 +18,9 @@
 #ifndef DRACOSHOBJECTTRAITS_H
 #define DRACOSHOBJECTTRAITS_H
 
+#include <utility>
+#include <type_traits>
+
 #include <hatn/common/common.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
