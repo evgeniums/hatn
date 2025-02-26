@@ -278,6 +278,9 @@ class StreamGatherTraits : public Traits
             writeNext(0,std::move(buffers),std::move(callback),0,0);
         }
 
+        void reset()
+        {}
+
     private:
 
         //! Write next buffer to stream or continue writing current buffer from offset
