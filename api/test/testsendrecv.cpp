@@ -20,7 +20,7 @@
 #include "hatn_test_config.h"
 
 #include <hatn/api/api.h>
-#include <hatn/api/sender.h>
+#include <hatn/api/client/client.h>
 
 HATN_API_USING
 
@@ -28,8 +28,6 @@ BOOST_AUTO_TEST_SUITE(TestSendRecv)
 
 BOOST_AUTO_TEST_CASE(SendRaw)
 {
-    Sender sender;
-
     BOOST_CHECK(true);
 }
 
