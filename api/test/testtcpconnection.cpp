@@ -126,9 +126,16 @@ BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
     serverThread->start();
     clientThread->start();
 
-    auto serverCb=[](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainConnectionContext> ctx, const HATN_NAMESPACE::Error& ec)
+    std::atomic<size_t> clientConnectCount{0};
+    std::atomic<size_t> serverConnectCount{0};
+
+    auto serverCb=[&serverConnectCount](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainConnectionContext> ctx, const HATN_NAMESPACE::Error& ec)
     {
         HATN_TEST_MESSAGE_TS(fmt::format("serverCb: {}/{}",ec.code(),ec.message()));
+        if (!ec)
+        {
+            serverConnectCount++;
+        }
     };
 
     auto& server=serverCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
@@ -141,12 +148,25 @@ BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
     }
     BOOST_REQUIRE(!ec);
 
-    auto clientCb=[](const HATN_NAMESPACE::Error& ec)
+    auto clientCb=[&clientConnectCount](const HATN_NAMESPACE::Error& ec)
     {
         HATN_TEST_MESSAGE_TS(fmt::format("clientCb: {}/{}",ec.code(),ec.message()));
+
+        if (!ec)
+        {
+            clientConnectCount++;
+        }
+        else
+        {
+            HATN_CHECK_TS(false);
+        }
     };
     auto& client=clientCtx->get<HATN_API_NAMESPACE::client::TcpConnection>();
     client.connect(clientCb);
+
+    auto clientCtx2=createClient(clientThread.get());
+    auto& client2=clientCtx2->get<HATN_API_NAMESPACE::client::TcpConnection>();
+    client2.connect(clientCb);
 
     exec(1);
 
@@ -157,7 +177,8 @@ BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
 
     exec(1);
 
-    BOOST_CHECK(true);
+    BOOST_CHECK_EQUAL(serverConnectCount,2);
+    BOOST_CHECK_EQUAL(clientConnectCount,2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
