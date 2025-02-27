@@ -69,21 +69,15 @@ class HATN_COMMON_EXPORT Random
         template <typename ContainerT>
         static void randContainer(ContainerT& container, size_t maxSize, size_t minSize=0)
         {
-            if (maxSize==0)
+            auto size=uniform(static_cast<uint32_t>(minSize),static_cast<uint32_t>(maxSize));
+            if (size==0)
             {
                 container.clear();
+                return;
             }
-            size_t sizeDiff=0;
-            container.resize(maxSize+sizeof(sizeDiff));
 
-            bytes(container.data(),container.size());
-            memcpy(&sizeDiff,container.data()+container.size()-sizeof(sizeDiff),sizeof(sizeDiff));
-            auto size=maxSize;
-            if (minSize!=0 && minSize<maxSize)
-            {
-                size=minSize+sizeDiff%(maxSize-minSize);
-            }
             container.resize(size);
+            bytes(container.data(),container.size());
         }
 };
 
