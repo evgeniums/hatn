@@ -1,5 +1,5 @@
 SET (TEST_SOURCES
-    ${API_TEST_SRC}/testtcpconnection.cpp
+    ${API_TEST_SRC}/testplaintcpconnection.cpp
 )
 
 SET (TEST_HEADERS

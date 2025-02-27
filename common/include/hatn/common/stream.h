@@ -331,7 +331,7 @@ class StreamGatherTraits : public Traits
 
                     const auto& current=buffers[index];
                     auto span=current.span();
-                    bool sameBuffer=span.second.size()<nextCurrentOffset;
+                    bool sameBuffer=nextCurrentOffset<span.second.size();
                     size_t nextIndex=sameBuffer?index:index+1;
                     if (!sameBuffer)
                     {

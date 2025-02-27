@@ -76,7 +76,7 @@ auto createServer(HATN_COMMON_NAMESPACE::Thread* thread)
     return HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
 }
 
-BOOST_AUTO_TEST_SUITE(TestTcpConnection)
+BOOST_AUTO_TEST_SUITE(TestPlainTcpConnection)
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,Env)
 {
@@ -167,7 +167,7 @@ BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
 
 using TestBuffersSet=std::vector<std::vector<HATN_COMMON_NAMESPACE::ByteArray>>;
 
-size_t totalSentBytes=0;
+// size_t totalSentBytes=0;
 
 template <typename ConnectionT, typename ContextT, typename CallbackT>
 void sendNext(ContextT ctx, const TestBuffersSet& bufferSet, size_t idx, CallbackT cb)
@@ -187,8 +187,8 @@ void sendNext(ContextT ctx, const TestBuffersSet& bufferSet, size_t idx, Callbac
         spanBuffers,
         [idx,&bufferSet,cb{std::move(cb)}](ContextT ctx, const HATN_NAMESPACE::Error& ec, size_t sentBytes)
         {
-            totalSentBytes+=sentBytes;
-            HATN_TEST_MESSAGE_TS(fmt::format("sendNext cb {} of size {}, total {}: {}/{}",idx,sentBytes,totalSentBytes,ec.code(),ec.message()));
+            // totalSentBytes+=sentBytes;
+            // HATN_TEST_MESSAGE_TS(fmt::format("sendNext cb {} of size {}, total {}: {}/{}",idx,sentBytes,totalSentBytes,ec.code(),ec.message()));
 
             if (ec)
             {
@@ -201,7 +201,7 @@ void sendNext(ContextT ctx, const TestBuffersSet& bufferSet, size_t idx, Callbac
     );
 }
 
-size_t totalreadBytes=0;
+// size_t totalreadBytes=0;
 
 template <typename ConnectionT, typename ContextT, typename CallbackT>
 void readNext(ContextT ctx, HATN_COMMON_NAMESPACE::ByteArray& rxBuf, HATN_COMMON_NAMESPACE::ByteArray& tmpBuf, CallbackT cb, size_t dataSize)
@@ -213,8 +213,8 @@ void readNext(ContextT ctx, HATN_COMMON_NAMESPACE::ByteArray& rxBuf, HATN_COMMON
         tmpBuf.size(),
         [dataSize,cb{std::move(cb)},&tmpBuf,&rxBuf](ContextT ctx, const HATN_NAMESPACE::Error& ec, size_t readBytes)
         {
-            totalreadBytes+=readBytes;
-            HATN_TEST_MESSAGE_TS(fmt::format("recvNext cb {}, total {}/{}: {}/{}",readBytes,totalreadBytes,dataSize,ec.code(),ec.message()));
+            // totalreadBytes+=readBytes;
+            // HATN_TEST_MESSAGE_TS(fmt::format("recvNext cb {}, total {}/{}: {}/{}",readBytes,totalreadBytes,dataSize,ec.code(),ec.message()));
             rxBuf.append(tmpBuf.data(),readBytes);
 
             if (ec)
@@ -328,7 +328,7 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
                 auto cb=[ctx,&serverSendCb,&closeServerConnection](const HATN_NAMESPACE::Error& ec)
                 {
                     serverSendCb(ec);
-                    // closeServerConnection(ctx,[](){});
+                    closeServerConnection(ctx,[](){});
                 };
                 sendNext<HATN_API_NAMESPACE::server::PlainTcpConnection>(ctx,sendBuffers.first,0,cb);
             }
@@ -401,7 +401,7 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
     auto& client=clientCtx->get<HATN_API_NAMESPACE::client::PlainTcpConnection>();
     client.connect(clientConnectCb);
 
-    env->exec(5);
+    env->exec(10);
 
     serverConnectionClosed=true;
     clientConnectionClosed=true;
