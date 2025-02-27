@@ -66,11 +66,46 @@ class Connection : public common::TaskSubcontext
             CallbackT callback
         )
         {
-            auto cb=[ctx,callback{std::move(callback)}](const Error& ec,size_t,common::SpanBuffers)
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t sentBytes, common::SpanBuffers)
+            {
+                callback(ctx,ec,sentBytes);
+            };
+            m_stream.write(std::move(buffers),std::move(cb));
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void recv(
+            common::SharedPtr<ContextT> ctx,
+            char* data,
+            size_t size,
+            CallbackT callback
+        )
+        {
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t)
             {
                 callback(ctx,ec);
             };
-            m_stream.write(std::move(buffers),std::move(cb));
+            m_stream.readAll(data,size,std::move(cb));
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void read(
+            common::SharedPtr<ContextT> ctx,
+            char* data,
+            size_t maxSize,
+            CallbackT callback
+        )
+        {
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t readBytes)
+            {
+                callback(ctx,ec,readBytes);
+            };
+            m_stream.read(data,maxSize,std::move(cb));
+        }
+
+        void close(std::function<void (const Error &)> callback={})
+        {
+            m_stream.close(std::move(callback));
         }
 
     private:

@@ -22,10 +22,8 @@
 #include <hatn/common/objecttraits.h>
 
 #include <hatn/network/asio/tcpserver.h>
-#include <hatn/network/asio/tcpstream.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/connection.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -131,41 +129,8 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
         }
 };
 
-using PlainConnectionContext=common::TaskContextType<HATN_NETWORK_NAMESPACE::asio::TcpStream,HATN_LOGCONTEXT_NAMESPACE::Context>;
-
-class TcpConnectionTraits
-{
-    public:
-
-        using ConnectionContext=PlainConnectionContext;
-
-        template <typename ServerContextT>
-        auto makeContext(
-                common::SharedPtr<ServerContextT> ctx
-            ) const
-        {
-            auto& server=ctx->template get<TcpServer<TcpConnectionTraits>>();
-            return common::makeTaskContext<HATN_NETWORK_NAMESPACE::asio::TcpStream,HATN_LOGCONTEXT_NAMESPACE::Context>(
-                common::subcontexts(
-                    common::subcontext(server.thread()),
-                    common::subcontext()
-                )
-            );
-        }
-
-        HATN_NETWORK_NAMESPACE::asio::TcpSocket& connectionSocket(common::SharedPtr<ConnectionContext>& ctx) const
-        {
-            auto& tcpStream=ctx->get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
-            return tcpStream.socket();
-        }
-};
-
-using PlainTcpServer=TcpServer<TcpConnectionTraits>;
-
 }
 
 HATN_API_NAMESPACE_END
-
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::PlainTcpServer,HATN_API_EXPORT)
 
 #endif // HATNAPITCPSERVER_H

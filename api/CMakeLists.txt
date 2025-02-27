@@ -18,7 +18,7 @@ SET (HEADERS
     include/hatn/api/client/resolver.h
     include/hatn/api/client/iphostresolver.h
     include/hatn/api/client/tcpclient.h
-    include/hatn/api/client/tcpconnection.h
+    include/hatn/api/client/plaintcpconnection.h
 )
 
 SET (HEADERS
@@ -26,12 +26,13 @@ SET (HEADERS
 
     include/hatn/api/server/dispatcher.h
     include/hatn/api/server/tcpserver.h
+    include/hatn/api/server/plaintcpserver.h
 )
 
 SET (SOURCES
     src/apierror.cpp
-    src/tcpconnection.cpp
-    src/tcpserver.cpp
+    src/plaintcpclient.cpp
+    src/plaintcpserver.cpp
 )
 
 BUILD_HATN_MODULE()

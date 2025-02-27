@@ -52,12 +52,6 @@ class TaskContextWithParent : public BaseT
         common::SharedPtr<ParentT> m_parent;
 };
 
-#endif
-
-namespace client {
-
-using TcpConnection=Connection<TcpClient>;
-
 class TcpClientBuilderContext
 {
     public:
@@ -128,36 +122,50 @@ class TcpClientBuilderContext
         std::shared_ptr<HATN_NETWORK_NAMESPACE::ResolverShuffle> m_shuffle;
 };
 
-#if 0
-template <typename BaseT>
-using TcpConnectionContext=common::TaskContextType<TcpConnection,BaseT>;
-
-template <typename ConnectionCtxT>
-class TcpConnectionTraits
-{
-    public:
-
-        using Connection=TcpConnection;
-
-        template <typename ContextT>
-        void makeConnection(
-                common::SharedPtr<ContextT> ctx,
-                RouterCallbackFn<ConnectionCtxT> callback
-            )
-        {
-            TcpConnectionRouterContext* routerCtx=ctx->template get<TcpConnectionRouterContext>();
-        }
-
-    private:
-
-};
 #endif
+
+namespace client {
+
+using PlainTcpConnection=Connection<TcpClient>;
+using PlainTcpConnectionContext=common::TaskContextType<TcpClient,PlainTcpConnection,HATN_LOGCONTEXT_NAMESPACE::Context>;
+
+inline auto makePlainTcpConnectionContext(
+        std::vector<IpHostName> hosts,
+        std::shared_ptr<IpHostResolver> resolver,
+        HATN_COMMON_NAMESPACE::Thread* thread=common::Thread::currentThread(),
+        std::shared_ptr<HATN_NETWORK_NAMESPACE::ResolverShuffle> shuffle={},
+        lib::string_view name={}
+    )
+{
+    auto connectionCtx=HATN_COMMON_NAMESPACE::makeTaskContextType<PlainTcpConnectionContext>(
+        HATN_COMMON_NAMESPACE::subcontexts(
+            HATN_COMMON_NAMESPACE::subcontext(std::move(hosts),std::move(resolver),thread,std::move(shuffle)),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext()
+            ),
+        name
+        );
+    auto& tcpClient=connectionCtx->get<TcpClient>();
+    auto& connection=connectionCtx->get<PlainTcpConnection>();
+    connection.setStreams(&tcpClient);
+    return connectionCtx;
+}
+
+inline auto makePlainTcpConnectionContext(
+    std::vector<IpHostName> hosts,
+    std::shared_ptr<IpHostResolver> resolver,
+    HATN_COMMON_NAMESPACE::Thread* thread,
+    lib::string_view name={}
+    )
+{
+    return makePlainTcpConnectionContext(std::move(hosts),std::move(resolver),thread,{},name);
+}
 
 } // namespace client
 
 HATN_API_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::client::TcpClient,HATN_API_EXPORT)
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::client::TcpConnection,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::client::PlainTcpConnection,HATN_API_EXPORT)
 
 #endif // HATNAPITCPCONNECTON_H

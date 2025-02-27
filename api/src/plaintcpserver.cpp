@@ -14,10 +14,11 @@
   *
   */
 
-#include <hatn/api/server/tcpserver.h>
+#include <hatn/api/server/plaintcpserver.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 HATN_API_NAMESPACE_END
 
+HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::PlainTcpConnection,PlainTcpConnection)
 HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::PlainTcpServer,TcpServer)

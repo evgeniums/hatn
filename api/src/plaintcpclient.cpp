@@ -10,15 +10,15 @@
 /*
 
 */
-/** @file api/tcpconnection.сpp
+/** @file api/plaintcpclient.сpp
   *
   */
 
-#include <hatn/api/client/tcpconnection.h>
+#include <hatn/api/client/plaintcpconnection.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 HATN_API_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::client::TcpClient,TcpClient)
-HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::client::TcpConnection,TcpConnection)
+HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::client::PlainTcpConnection,PlainTcpConnection)
