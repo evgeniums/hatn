@@ -301,6 +301,18 @@ class SpanBuffer
 };
 using SpanBuffers=pmr::vector<SpanBuffer>;
 
+template <typename BuffersT>
+SpanBuffers spanBuffers(const BuffersT& bufs)
+{
+    SpanBuffers spanBufs;
+    spanBufs.resize(bufs.size());
+    for (auto&& it: spanBufs)
+    {
+        spanBufs.push_back(it);
+    }
+    return spanBufs;
+}
+
 struct SpanBufferTraits
 {
     static size_t size(const SpanBuffer& buffer)
