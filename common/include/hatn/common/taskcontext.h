@@ -919,6 +919,32 @@ struct ActualTaskContexTraits
 template <typename ...Types>
 using TaskContextType=typename common::detail::ActualTaskContexTraits<Types...>::type;
 
+template <typename Type>
+struct makeTaskContextTypeT
+{
+    using type=Type;
+
+    template <typename SubcontextsArgs, typename ...BaseArgs>
+    auto operator()(SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
+    {
+        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs),std::forward<BaseArgs>(baseArgs)...);
+    }
+
+    template <typename SubcontextsArgs>
+    auto operator()(SubcontextsArgs&& subcontextsArgs) const
+    {
+        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs));
+    }
+
+    auto operator()() const
+    {
+        return makeShared<type>();
+    }
+};
+template <typename Type>
+constexpr makeTaskContextTypeT<Type> makeTaskContextType{};
+
+
 /**
  * @brief Helper to make actual task context.
  *
@@ -944,35 +970,19 @@ struct makeTaskContextT
 {
     using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
 
-    template <typename SubcontextsArgs, typename ...BaseArgs>
-    auto operator()(SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
+    template <typename ...Args>
+    auto operator()(Args&&... args) const
     {
-        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs),std::forward<BaseArgs>(baseArgs)...);
-    }
-
-    template <typename SubcontextsArgs>
-    auto operator()(SubcontextsArgs&& subcontextsArgs) const
-    {
-        return makeShared<type>(std::forward<SubcontextsArgs>(subcontextsArgs));
-    }
-
-    auto operator()() const
-    {
-        return makeShared<type>();
+        return makeTaskContextType<type>(std::forward<Args>(args)...);
     }
 };
 template <typename ...Types>
 constexpr makeTaskContextT<Types...> makeTaskContext{};
 
-/**
- * @brief Helper to allocate actual task context.
- *
- * @see makeTaskContextT for more details. The first argument of functor operator is an allocator.
- */
-template <typename ...Types>
-struct allocateTaskContextT
+template <typename Type>
+struct allocateTaskContextTypeT
 {
-    using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
+    using type=Type;
 
     template <typename SubcontextsArgs, typename ...BaseArgs>
     auto operator()(const pmr::polymorphic_allocator<type>& allocator, SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
@@ -989,6 +999,25 @@ struct allocateTaskContextT
     auto operator()(const pmr::polymorphic_allocator<type>& allocator) const
     {
         return allocateShared<type>(allocator);
+    }
+};
+template <typename Type>
+constexpr allocateTaskContextTypeT<Type> allocateTaskContextType{};
+
+/**
+ * @brief Helper to allocate actual task context.
+ *
+ * @see makeTaskContextT for more details. The first argument of functor operator is an allocator.
+ */
+template <typename ...Types>
+struct allocateTaskContextT
+{
+    using type=typename common::detail::ActualTaskContexTraits<Types...>::type;
+
+    template <typename ...Args>
+    auto operator()(const pmr::polymorphic_allocator<type>& allocator, Args&&... args) const
+    {
+        return allocateTaskContextType<type>(allocator,std::forward<Args>(args)...);
     }
 };
 template <typename ...Types>
