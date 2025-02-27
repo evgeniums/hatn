@@ -305,8 +305,8 @@ template <typename BuffersT>
 SpanBuffers spanBuffers(const BuffersT& bufs)
 {
     SpanBuffers spanBufs;
-    spanBufs.resize(bufs.size());
-    for (auto&& it: spanBufs)
+    spanBufs.reserve(bufs.size());
+    for (auto&& it: bufs)
     {
         spanBufs.push_back(it);
     }
