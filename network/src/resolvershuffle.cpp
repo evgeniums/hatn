@@ -16,7 +16,7 @@
 
 /****************************************************************************/
 
-#include <hatn/common/utils.h>
+#include <hatn/common/random.h>
 
 #include <hatn/network/resolvershuffle.h>
 

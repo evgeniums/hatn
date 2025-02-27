@@ -18,16 +18,12 @@
 #ifndef HATNUTILS_H
 #define HATNUTILS_H
 
-#include <cassert>
-#include <cstdint>
-#include <cmath>
-#include <functional>
-
 #include <boost/any.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <hatn/common/common.h>
+#include <hatn/common/error.h>
 
 #ifdef BUILD_ANDROID
 
@@ -51,31 +47,6 @@ string to_string(T&& value,
 HATN_COMMON_NAMESPACE_BEGIN
 
 struct shared_pointer_tag{};
-
-//! Random nubers generator.
-class HATN_COMMON_EXPORT Random
-{
-    public:
-
-        //! Generate random value uniformly distributed in range.
-        /**
-         * @brief Get random value uniformly distributed in range.
-         * @param min Min value.
-         * @param max max value.
-         * @return Generated value.
-         */
-        static uint32_t uniform(const uint32_t& min, const uint32_t& max);
-
-        /**
-         * @brief Generate random value less than max.
-         * @param max Max value.
-         * @return Generated value.
-         */
-        static uint32_t generate(const uint32_t& max)
-        {
-            return uniform(0,max);
-        }
-};
 
 //! Common utils
 struct HATN_COMMON_EXPORT Utils final

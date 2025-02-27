@@ -13,20 +13,11 @@
   *
   */
 
-#include <random>
 #include <ctime>
 
 #include <hatn/common/utils.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
-
-//---------------------------------------------------------------
-uint32_t Random::uniform(const uint32_t& min, const uint32_t& max)
-{
-    static thread_local std::mt19937 gen{std::random_device{}()};
-    std::uniform_int_distribution<uint32_t> distr{min,max};
-    return distr(gen);
-}
 
 //---------------------------------------------------------------
 bool Utils::compareBoostAny(

@@ -55,6 +55,7 @@ SET (HEADERS
     include/hatn/common/loggermoduleimp.h
     include/hatn/common/options.h
     include/hatn/common/utils.h
+    include/hatn/common/random.h
     include/hatn/common/keyrange.h
     include/hatn/common/stdwrappers.h
     include/hatn/common/filesystem.h
@@ -202,6 +203,7 @@ SET (SOURCES
     src/logger.cpp
     src/options.cpp
     src/utils.cpp
+    src/random.cpp
     src/appversion.cpp
     src/application.cpp
     src/parameters.cpp

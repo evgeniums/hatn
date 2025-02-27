@@ -16,6 +16,7 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/random.h>
 #include <hatn/common/taskcontext.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

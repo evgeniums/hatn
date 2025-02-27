@@ -18,6 +18,8 @@
 #include <charconv>
 #endif
 
+#include <hatn/common/random.h>
+
 #include <hatn/dataunit/objectid.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
