@@ -278,6 +278,15 @@ class StreamGatherTraits : public Traits
             writeNext(0,std::move(buffers),std::move(callback),0,0);
         }
 
+        inline void readAll(
+            char* data,
+            std::size_t expectedSize,
+            std::function<void (const Error&,size_t)> callback
+            )
+        {
+            readNext(data,expectedSize,std::move(callback),0);
+        }
+
         void reset()
         {}
 
@@ -330,6 +339,34 @@ class StreamGatherTraits : public Traits
                     }
 
                     writeNext(nextIndex,std::move(buffers),std::move(callback),nextCurrentOffset,nextSentSize);
+                }
+            );
+        }
+
+        void readNext(
+                char* data,
+                std::size_t expectedSize,
+                std::function<void (const Error&,size_t)> callback,
+                size_t receivedSize
+            )
+        {
+            if (receivedSize==expectedSize)
+            {
+                callback(Error{},receivedSize);
+                return;
+            }
+
+            this->read(
+                data+receivedSize,
+                expectedSize-receivedSize,
+                [this,data,expectedSize,receivedSize,callback{std::move(callback)}](const Error& ec, size_t readBytes)
+                {
+                    if (ec)
+                    {
+                        callback(ec,receivedSize+readBytes);
+                        return;
+                    }
+                    readNext(data,std::move(callback),receivedSize+readBytes);
                 }
             );
         }
