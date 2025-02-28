@@ -19,9 +19,11 @@
 #ifndef HATNAPICLIENT_H
 #define HATNAPICLIENT_H
 
-#include <hatn/common/queue.h>
+#include <hatn/common/simplequeue.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/asiotimer.h>
+#include <hatn/common/taskcontext.h>
 
 #include <hatn/dataunit/unitwrapper.h>
 
@@ -39,7 +41,7 @@ HATN_API_NAMESPACE_BEGIN
 namespace client {
 
 template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT=request::shared_managed>
-class Client
+class Client : public common::TaskSubcontext
 {
     public:
 
@@ -52,8 +54,9 @@ class Client
         struct QueueItem
         {
             Req req;
-            common::SharedPtr<Context> ctx;
+            common::WeakPtr<Context> ctx;
             RequestCb<Context> callback;
+            common::AsioDeadlineTimer timer;
         };
 
         using Queue=common::SimpleQueue<QueueItem>;
