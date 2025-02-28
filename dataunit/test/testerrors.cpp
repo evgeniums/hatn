@@ -5,7 +5,7 @@
 bool TestRelaxMissingFieldSerializing=false;
 #define HDU_TEST_RELAX_MISSING_FIELD_SERIALIZING && !TestRelaxMissingFieldSerializing
 
-#include <hatn/common/utils.h>
+#include <hatn/common/random.h>
 
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/datauniterror.h>
