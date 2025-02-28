@@ -61,6 +61,15 @@ struct QueueItemTmpl : public QueueItem
         m_allocator(allocator)
     {}
 
+    template <typename ...Args>
+    QueueItemTmpl(
+            pmr::polymorphic_allocator<QueueItemTmpl>& allocator,
+            Args&& ...args
+        ) noexcept : m_val(std::forward(args)...),
+        m_next(nullptr),
+        m_allocator(allocator)
+    {}
+
     //! Call it to destroy the item
     void drop() noexcept
     {
@@ -115,6 +124,16 @@ class QueueTmpl : public WithTraits<Traits>
         inline void push(T val)
         {
             return pushItem(createItem(std::move(val)));
+        }
+
+        /**
+         * @brief Emplace item to the queue
+         * @param args Consturctor arguments
+         */
+        template <typename ...Args>
+        inline void emplace(Args&& ...args)
+        {
+            return pushItem(createItem(std::forward(args...)));
         }
 
         //! Prepare item
