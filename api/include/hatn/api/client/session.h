@@ -10,44 +10,45 @@
 /*
 
 */
-/** @file api/client/router.h
+/** @file api/client/session.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPIROUTER_H
-#define HATNAPIROUTER_H
+#ifndef HATNAPICLIENTSESSION_H
+#define HATNAPICLIENTSESSION_H
 
-#include <hatn/common/error.h>
-#include <hatn/common/sharedptr.h>
+#include <functional>
+
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/sharedptr.h>
+#include <hatn/common/error.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/authunit.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
-template <typename ConnectionContext>
-using RouterCallbackFn=std::function<void (const Error&, common::SharedPtr<ConnectionContext>)>;
+template <typename ContextT>
+using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, common::SharedPtr<AuthManaged> auth, const common::Error&)>;
 
 template <typename Traits>
-class Router : public common::WithTraits<Traits>
+class Session : public common::WithTraits<Traits>
 {
     public:
 
         using common::WithTraits<Traits>::WithTraits;
 
-        using ConnectionContext=typename Traits::ConnectionContext;
-
         template <typename ContextT>
-        void makeConnection(
+        void getCurrentAuth(
                 common::SharedPtr<ContextT> ctx,
-                RouterCallbackFn<ConnectionContext> callback
+                SessionCb<ContextT> cb
             )
         {
-            this->traits().makeConnection(std::move(ctx),std::move(callback));
+            this->traits().getCurrentAuth(std::move(ctx),std::move(cb));
         }
 };
 
@@ -55,4 +56,4 @@ class Router : public common::WithTraits<Traits>
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIROUTER_H
+#endif // HATNAPICLIENTSESSION_H

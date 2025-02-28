@@ -19,109 +19,144 @@
 #ifndef HATNAPICLIENT_H
 #define HATNAPICLIENT_H
 
-#include <hatn/common/stdwrappers.h>
-#include <hatn/common/allocatoronstack.h>
+#include <hatn/common/queue.h>
+#include <hatn/common/flatmap.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
-#include <hatn/dataunit/objectid.h>
+#include <hatn/dataunit/unitwrapper.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apiconstants.h>
 #include <hatn/api/connectionpool.h>
+#include <hatn/api/method.h>
+#include <hatn/api/service.h>
+#include <hatn/api/priority.h>
 #include <hatn/api/client/router.h>
+#include <hatn/api/client/session.h>
+#include <hatn/api/client/request.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-using RequestId=du::ObjectId;
-using Topic=common::lib::string_view;
-
-class Service
-{
-    public:
-
-        using NameType=common::StringOnStackT<ServiceNameLengthMax>;
-
-        template <typename T>
-        Service(T&& name, uint8_t version=1) : m_name(std::forward<T>(name)),m_version(version)
-        {}
-
-        const NameType& name() const noexcept
-        {
-            return m_name;
-        }
-
-        uint8_t version() const noexcept
-        {
-            return m_version;
-        }
-
-    private:
-
-        NameType m_name;
-        uint8_t m_version;
-};
-
-class Method
-{
-    public:
-
-        using NameType=common::StringOnStackT<MethodNameLengthMax>;
-
-        template <typename T>
-        Method(T&& name) : m_name(std::forward<T>(name))
-        {}
-
-        const NameType& name() const noexcept
-        {
-            return m_name;
-        }
-
-    private:
-
-        NameType m_name;
-};
-
-enum class Priority : uint8_t
-{
-    Lowest,
-    Low,
-    Normal,
-    Higher,
-    Highest,
-    Urgent
-};
-
 namespace client {
 
-template <typename RouterTraits>
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT=request::shared_managed>
 class Client
 {
     public:
 
         using Connection=typename RouterTraits::Connection;
+        using Context=ContextT;
+        using Req=Request<SessionTraits,ContextT,RequestUnitT>;
 
-        template <typename ContextT, typename SessionT, typename UnitT, typename CallbackT>
-        RequestId exec(
-            common::SharedPtr<ContextT> ctx,
-            const SessionT& session,
+    private:
+
+        struct QueueItem
+        {
+            Req req;
+            common::SharedPtr<Context> ctx;
+            RequestCb<Context> callback;
+        };
+
+        using Queue=common::SimpleQueue<QueueItem>;
+
+    public:
+
+        Client(
+                common::SharedPtr<Router<RouterTraits>> router,
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+               ) : m_router(std::move(router)),
+                   m_allocatorFactory(factory)
+        {
+            resetQueue(Priority::Lowest);
+            resetQueue(Priority::Low);
+            resetQueue(Priority::Normal);
+            resetQueue(Priority::High);
+            resetQueue(Priority::Highest);
+        }
+
+        template <typename UnitT>
+        Error exec(
+            common::SharedPtr<Context> ctx,
+            common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
-            common::SharedPtr<UnitT> content,
-            CallbackT callback,
-            const Topic& topic=Topic{},
-            uint32_t timeoutMs=0,
-            Priority priority=Priority::Normal
+            const UnitT& content,
+            RequestCb<Context> callback,
+            lib::string_view topic={},
+            Priority priority=Priority::Normal,
+            uint32_t timeoutMs=0
         );
 
-        template <typename ContextT, typename CallbackT>
+        template <typename UnitT>
+        common::Result<Req> prepare(
+            common::SharedPtr<Session<SessionTraits>> session,
+            const Service& service,
+            const Method& method,
+            const UnitT& content
+        );
+
+        template <typename UnitT>
+        Error exec(
+            common::SharedPtr<Context> ctx,
+            const Service& service,
+            const Method& method,
+            const UnitT& content,
+            RequestCb<Context> callback,
+            lib::string_view topic={},
+            Priority priority=Priority::Normal,
+            uint32_t timeoutMs=0
+        )
+        {
+            return exec(std::move(ctx),{},service,method,content,std::move(callback),topic,priority,timeoutMs);
+        }
+
+        template <typename UnitT>
+        common::Result<Req> prepare(
+            const Service& service,
+            const Method& method,
+            const UnitT& content
+        )
+        {
+            return prepare({},service,method,content);
+        }
+
+        void exec(
+            common::SharedPtr<Context> ctx,
+            Req req,
+            RequestCb<Context> callback
+        );
+
+        Error cancel(
+            Req req
+        );
+
+        template <typename ContextT1, typename CallbackT>
         void close(
-            common::SharedPtr<ContextT> ctx,
+            common::SharedPtr<ContextT1> ctx,
             CallbackT callback
         );
 
     private:
 
+        void doExec(
+            common::SharedPtr<Context> ctx,
+            Req req,
+            RequestCb<Context> callback,
+            bool regenId=false
+        );
+
+        void maybeReadQueue(Queue& queue);
+
+        void resetQueue(Priority priority)
+        {
+            m_queues.emplace(priority,m_allocatorFactory->objectMemoryResource());
+        }
+
         ConnectionPool<Connection> m_connections;
         common::SharedPtr<Router<RouterTraits>> m_router;
+
+        const common::pmr::AllocatorFactory* m_allocatorFactory;
+
+        common::FlatMap<Priority,Queue> m_queues;
 };
 
 } // namespace client

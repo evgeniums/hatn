@@ -161,6 +161,8 @@ inline auto makePlainTcpConnectionContext(
     return makePlainTcpConnectionContext(std::move(hosts),std::move(resolver),thread,{},name);
 }
 
+//! @todo Implement allocate plain tcp context
+
 } // namespace client
 
 HATN_API_NAMESPACE_END

@@ -58,6 +58,8 @@ class PlainTcpConnectionTraits
             return connectionCtx;
         }
 
+        //! @todo Implement allocate plain tcp context
+
         HATN_NETWORK_NAMESPACE::asio::TcpSocket& connectionSocket(common::SharedPtr<ConnectionContext>& ctx) const
         {
             auto& tcpStream=ctx->get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
@@ -94,6 +96,8 @@ inline auto makePlainTcpServerContext(const HATN_NETWORK_NAMESPACE::asio::TcpSer
         name
         );
 }
+
+//! @todo Implement allocate plain tcp server context
 
 }
 
