@@ -327,6 +327,41 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
             return m_name;
         }
 
+        /**
+         * @brief Set/reset parent task context.
+         * @param parentCtx Parent task context.
+         *
+         * Parent task context is kept as a shared pointer.
+         */
+        template <typename ParentContextT>
+        void resetParentCtx(SharedPtr<ParentContextT> parentCtx={})
+        {
+            if (!parentCtx)
+            {
+                m_parentCtx.reset();
+                return;
+            }
+            m_parentCtx=std::move(parentCtx);
+        }
+
+        /**
+         * @brief Get parent task context.
+         * @return Parent task context.
+         */
+        SharedPtr<TaskContext> parentCtx() const noexcept
+        {
+            return m_parentCtx.storage;
+        }
+
+        /**
+         * @brief Check if arent task context is set.
+         * @return Result.
+         */
+        bool hasParentCtx() const noexcept
+        {
+            return m_parentCtx.storage;
+        }
+
     private:
 
         template <typename Ts, std::size_t... I>
@@ -345,6 +380,8 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         std::chrono::time_point<SteadyClock> m_steadyFinished;
 
         int8_t m_tz;
+
+        EmbeddedSharedPtr<TaskContext> m_parentCtx;
 };
 
 namespace detail {
@@ -414,9 +451,19 @@ class TaskSubcontext
         }
 
         template <typename T>
-        static auto hasAsyncHandlerFns(T arg)
+        static auto hasAsyncHandlerFns(T t)
         {
-            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).onAsyncHandlerEnter()){})(arg);
+            return hana::is_valid([](auto v) -> decltype((void)hana::traits::declval(v).onAsyncHandlerEnter()){})(t);
+        }
+
+        template <typename T>
+        static auto hasResetParentCtxFn(T t)
+        {
+            return hana::is_valid(
+                [](auto v) -> decltype(
+                               (void)hana::traits::declval(v).resetParentCtx()
+                               ) {}
+                ) (t);
         }
 
     private:
@@ -639,6 +686,29 @@ class ActualTaskContext : public BaseTaskContext
                         [&](auto _)
                         {
                             _(subcontext).onAsyncHandlerEnter();
+                        },
+                        [&](auto)
+                        {}
+                    );
+                }
+            );
+        }
+
+        template <typename ParentContextT>
+        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<ParentContextT>& parentCtx={})
+        {
+            BaseTaskContext::resetParentCtx(parentCtx);
+
+            boost::hana::for_each(
+                m_subcontexts,
+                [parentCtx](auto& subcontext)
+                {
+                    using type=typename std::decay_t<decltype(subcontext)>;
+                    hana::eval_if(
+                        TaskSubcontext::hasResetParentCtxFn(hana::type_c<type>),
+                        [&](auto _)
+                        {
+                            _(subcontext).resetParentCtx(_(parentCtx));
                         },
                         [&](auto)
                         {}

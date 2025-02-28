@@ -113,7 +113,7 @@ template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
 
 template <typename Config=DefaultConfig>
-class ContextT
+class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 {
     public:
 
@@ -133,7 +133,8 @@ class ContextT
                 m_lockStack(false),
                 m_logLevel(LogLevel::Default),
                 m_enableStackLocking(true),
-                m_debugVerbosity(0)
+                m_debugVerbosity(0),
+                m_parentLogCtx(nullptr)
         {}
 
         ~ContextT()=default;
@@ -436,6 +437,35 @@ class ContextT
             return m_barrierStack;
         }
 
+        template <typename ParentContextT>
+        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<ParentContextT>& parentCtx={})
+        {
+            if (!parentCtx)
+            {
+                m_parentLogCtx=nullptr;
+                return;
+            }
+            m_parentLogCtx=&parentCtx->template get<ContextT>();
+        }
+
+        ContextT* actualCtx() const noexcept
+        {
+            if (m_parentLogCtx!=nullptr)
+            {
+                return m_parentLogCtx;
+            }
+            return this;
+        }
+
+        ContextT* actualCtx() noexcept
+        {
+            if (m_parentLogCtx!=nullptr)
+            {
+                return m_parentLogCtx;
+            }
+            return this;
+        }
+
     private:
 
         void restoreStackCursors()
@@ -467,9 +497,11 @@ class ContextT
 
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
+
+        ContextT* m_parentLogCtx;
 };
 using Context=ContextT<>;
-using Subcontext=HATN_COMMON_NAMESPACE::TaskSubcontextT<Context>;
+using Subcontext=Context;
 
 struct makeLogCtxT
 {
@@ -494,7 +526,21 @@ using LogCtxType=common::TaskContextType<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
+// HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
+
+HATN_COMMON_NAMESPACE_BEGIN
+template <>
+class HATN_LOGCONTEXT_EXPORT ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>
+{
+    public:
+
+        using Type=HATN_LOGCONTEXT_NAMESPACE::Context;
+
+        static Type* value() noexcept;
+        static void setValue(Type* val) noexcept;
+        static void reset() noexcept;
+};
+HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_IF() \
     if (HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)!=nullptr)
