@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/utils.h>
+#include <hatn/common/random.h>
 #include <hatn/common/fileutils.h>
 #include <hatn/common/containerutils.h>
 
