@@ -74,6 +74,21 @@ class Connection : public common::TaskSubcontext
         }
 
         template <typename ContextT, typename CallbackT>
+        void send(
+            common::SharedPtr<ContextT> ctx,
+            const char* data,
+            size_t size,
+            CallbackT callback
+            )
+        {
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t sentBytes)
+            {
+                callback(ctx,ec,sentBytes);
+            };
+            m_stream.write(data,size,std::move(cb));
+        }
+
+        template <typename ContextT, typename CallbackT>
         void recv(
             common::SharedPtr<ContextT> ctx,
             char* data,
