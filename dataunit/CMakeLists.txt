@@ -62,6 +62,8 @@ SET (HEADERS
 
     include/hatn/dataunit/objectid.h
     include/hatn/dataunit/ipp/objectid.ipp
+
+    include/hatn/dataunit/unitwrapper.h
 )
 
 SET (SOURCES
