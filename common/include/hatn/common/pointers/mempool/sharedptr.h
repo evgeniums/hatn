@@ -646,12 +646,19 @@ class EnableSharedFromThis<T,true> : public ManagedObject
 };
 
 //! SharedPtr to use in embedded fields in the same class T
-template <typename T> struct EmbeddedSharedPtr
+template <typename T>
+struct EmbeddedSharedPtr
 {
     inline EmbeddedSharedPtr& operator=(const SharedPtr<T>& sharedPtr) noexcept
     {
         storage=sharedPtr;
         ptr=sharedPtr.get();
+        return *this;
+    }
+    inline EmbeddedSharedPtr& operator=(SharedPtr<T>&& sharedPtr) noexcept
+    {
+        ptr=sharedPtr.get();
+        storage=std::move(sharedPtr);
         return *this;
     }
     inline T* operator ->() noexcept
