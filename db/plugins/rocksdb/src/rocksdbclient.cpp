@@ -399,7 +399,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
             partition=d->handler->partition(partitionDateRange.value());
             if (!partition)
             {
-                HATN_CTX_DEBUG_RECORDS("partition not registered",
+                HATN_CTX_DEBUG_RECORDS(0,"partition not registered",
                                        {"range",partitionDateRange->toString()},
                                        {"cf",parts[1]}
                                        )
@@ -409,7 +409,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
             }
             else
             {
-                HATN_CTX_DEBUG_RECORDS("date partition already registered, just add cf",
+                HATN_CTX_DEBUG_RECORDS(0,"date partition already registered, just add cf",
                                        {"range",partitionDateRange->toString()},
                                        {"cf",parts[1]}
                                        )
