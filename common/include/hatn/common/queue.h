@@ -46,6 +46,8 @@ struct QueueItem
     void* m_data=nullptr;
 };
 
+//! @todo Refactor for queue with traits
+
 //! Base queue template class
 template <typename T>
 class Queue
@@ -95,7 +97,7 @@ class Queue
 
         /**
          * @brief Add data to the queue
-         * @param val Item to enqueue, note that the item will be copied to the queue
+         * @param val Item to enqueue, note that the item will be moved to the queue
          */
         inline void push(T val)
         {
@@ -185,6 +187,11 @@ class Queue
         //! Check if queue is empty
         virtual bool isEmpty() const noexcept =0;
 
+        bool empty() const noexcept
+        {
+            return isEmpty();
+        }
+
         /**
          * @brief Clear the queue
          */
@@ -253,6 +260,14 @@ class Queue
         std::atomic<int> m_postingRefCount;
         bool m_enableStats;
         pmr::polymorphic_allocator<Item> m_allocator;
+};
+
+//! @todo Implement simple queue
+
+template <typename T>
+class SimpleQueue : public Queue<T>
+{
+
 };
 
 //---------------------------------------------------------------
