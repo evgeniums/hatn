@@ -249,6 +249,15 @@ class Stream : public WithPrepareClose<Traits>
             this->traits().read(data,maxSize,std::move(callback));
         }
 
+        inline void readAll(
+            char* data,
+            std::size_t expectedSize,
+            std::function<void (const Error&,size_t)> callback
+            )
+        {
+            this->traits().readAll(data,expectedSize,std::move(callback));
+        }
+
         //! Cancel all pending operations
         inline void cancel()
         {
@@ -366,7 +375,7 @@ class StreamGatherTraits : public Traits
                         callback(ec,receivedSize+readBytes);
                         return;
                     }
-                    readNext(data,std::move(callback),receivedSize+readBytes);
+                    readNext(data,expectedSize,std::move(callback),receivedSize+readBytes);
                 }
             );
         }
@@ -558,6 +567,17 @@ class StreamV
             callback(commonError(CommonError::UNSUPPORTED),0);
         }
 
+        virtual void readAll(
+            char* data,
+            std::size_t expectedSize,
+            std::function<void (const Error&,size_t)> callback
+            )
+        {
+            std::ignore=data;
+            std::ignore=expectedSize;
+            callback(commonError(CommonError::UNSUPPORTED),0);
+        }
+
         /**
          * @brief Prepare object
          * @param callback Status of stream preparation
@@ -700,6 +720,15 @@ class StreamTmplV : public WithImpl<ImplStreamT>, public BaseStreamT
         ) override
         {
             this->impl().read(data,maxSize,std::move(callback));
+        }
+
+        virtual void readAll(
+            char* data,
+            std::size_t expectedize,
+            std::function<void (const Error&,size_t)> callback
+            ) override
+        {
+            this->impl().read(data,expectedize,std::move(callback));
         }
 
         /**

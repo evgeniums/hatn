@@ -90,6 +90,15 @@ class StreamChainTraits
             front()->read(data,maxSize,std::move(callback));
         }
 
+        inline void readAll(
+            char* data,
+            std::size_t expectedSize,
+            std::function<void (const Error&,size_t)> callback
+            )
+        {
+            front()->readAll(data,expectedSize,std::move(callback));
+        }
+
         void cancel()
         {
             hana::for_each(m_streams,[](auto&& stream){
