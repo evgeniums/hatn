@@ -23,6 +23,7 @@ SET(TEST_SOURCES
     ${COMMON_TEST_SRC}/testdatetime.cpp
     ${COMMON_TEST_SRC}/testtaskcontext.cpp
     ${COMMON_TEST_SRC}/testlru.cpp
+    ${COMMON_TEST_SRC}/testsimplequeue.cpp
 )
 
 IF(ENABLE_TRANSLATIONS)

@@ -73,6 +73,8 @@ SET (HEADERS
     include/hatn/common/fixedbytearray.h
     include/hatn/common/thread.h
     include/hatn/common/queue.h
+    include/hatn/common/queuetmpl.h
+    include/hatn/common/simplequeue.h
     include/hatn/common/mutexqueue.h
     include/hatn/common/mpscqueue.h
     include/hatn/common/locker.h

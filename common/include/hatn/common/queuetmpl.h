@@ -14,8 +14,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNQUEUE_H
-#define HATNQUEUE_H
+#ifndef HATNQUEUETMPL_H
+#define HATNQUEUETMPL_H
 
 #include <atomic>
 #include <chrono>
@@ -23,8 +23,8 @@
 #include <hatn/common/common.h>
 #include <hatn/common/utils.h>
 #include <hatn/common/locker.h>
+#include <hatn/common/objecttraits.h>
 #include <hatn/common/pmr/pmrtypes.h>
-#include <hatn/common/queuetmpl.h>
 
 #ifdef max
 #undef max
@@ -36,11 +36,45 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! @todo Refactor for queue with traits
+//! Base queue storage item
+struct QueueItem
+{    
+    //! Ctor
+    QueueItem()=default;
+
+    std::chrono::high_resolution_clock::time_point m_enqueuedTime;
+    void* m_data=nullptr;
+};
+
+template <typename T>
+struct QueueItemTmpl : public QueueItem
+{
+    T m_val;
+    std::atomic<QueueItemTmpl*> m_next;
+
+    //! Ctor
+    QueueItemTmpl(
+        pmr::polymorphic_allocator<QueueItemTmpl>& allocator,
+        T data=T()
+        ) noexcept : m_val(std::move(data)),
+        m_next(nullptr),
+        m_allocator(allocator)
+    {}
+
+    //! Call it to destroy the item
+    void drop() noexcept
+    {
+        pmr::destroyDeallocate(this,m_allocator);
+    }
+
+    private:
+
+        pmr::polymorphic_allocator<QueueItemTmpl>& m_allocator;
+};
 
 //! Base queue template class
-template <typename T>
-class Queue
+template <typename T, typename Traits>
+class QueueTmpl : public WithTraits<Traits>
 {
     public:
 
@@ -48,19 +82,31 @@ class Queue
         using Item = QueueItemTmpl<T>;
 
         //! Ctor
-        Queue(
-                pmr::memory_resource* memResource=pmr::get_default_resource()
-            ) noexcept : m_postingRefCount(0),
+        template <typename ...TraitsArgs>
+        QueueTmpl(
+                pmr::memory_resource* memResource,
+                TraitsArgs&& ...traitsArgs
+            ) noexcept : WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+                         m_postingRefCount(0),
                          m_enableStats(false),
                          m_allocator(memResource)
         {}
 
-        virtual ~Queue()=default;
+        template <typename ...TraitsArgs>
+        QueueTmpl(
+            TraitsArgs&& ...traitsArgs
+            ) noexcept : WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+            m_postingRefCount(0),
+            m_enableStats(false),
+            m_allocator(pmr::get_default_resource())
+        {}
 
-        Queue(const Queue&)=delete;
-        Queue(Queue&&) =delete;
-        Queue& operator=(const Queue&)=delete;
-        Queue& operator=(Queue&&) =delete;
+        ~QueueTmpl()=default;
+
+        QueueTmpl(const QueueTmpl&)=delete;
+        QueueTmpl(QueueTmpl&&) =default;
+        QueueTmpl& operator=(const QueueTmpl&)=delete;
+        QueueTmpl& operator=(QueueTmpl&&) =default;
 
         /**
          * @brief Add data to the queue
@@ -92,7 +138,10 @@ class Queue
         }
 
         //! Dequeue item without destroying it
-        virtual Item* popItem() noexcept =0;
+        Item* popItem() noexcept
+        {
+            return this->traits().popItem();
+        }
 
         //! Dequeue value and destroy item
         inline bool pop(T& val) noexcept
@@ -149,12 +198,18 @@ class Queue
         }
 
         //! Get approximate size
-        virtual size_t size() const noexcept =0;
+        inline size_t size() const noexcept
+        {
+            return this->traits().size();
+        }
 
         //! Check if queue is empty
-        virtual bool isEmpty() const noexcept =0;
+        inline bool isEmpty() const noexcept
+        {
+            return this->traits().isEmpty();
+        }
 
-        bool empty() const noexcept
+        inline bool empty() const noexcept
         {
             return isEmpty();
         }
@@ -162,10 +217,16 @@ class Queue
         /**
          * @brief Clear the queue
          */
-        virtual void clear() noexcept =0;
+        inline void clear() noexcept
+        {
+            this->traits().clear();
+        }
 
         //! Read statistics
-        virtual void readStats(size_t& maxSize,size_t& minSize,int64_t& maxDuration,int64_t& minDuration) noexcept =0;
+        inline void readStats(size_t& maxSize,size_t& minSize,int64_t& maxDuration,int64_t& minDuration) noexcept
+        {
+            this->traits().readStats(maxSize,minSize,maxDuration,minDuration);
+        }
 
         //! Enabled or disable statistics
         inline void setStatsEnabled(bool enable) noexcept
@@ -181,7 +242,10 @@ class Queue
         }
 
         //! Reset statistics
-        virtual void resetStats() noexcept =0;
+        inline void resetStats() noexcept
+        {
+            this->traits().resetStats();
+        }
 
         //! Increment count of threads that are posting to queue
         inline void incPostingRefCount() noexcept
@@ -199,9 +263,6 @@ class Queue
             return m_postingRefCount.load(std::memory_order_acquire);
         }
 
-        //! Build queue of self type
-        virtual Queue<T>* buildQueue(pmr::memory_resource* memResource=nullptr) =0;
-
         //! Get allocator
         inline const pmr::polymorphic_allocator<Item>& allocator() const noexcept
         {
@@ -211,7 +272,10 @@ class Queue
     protected:
 
         //! Push item to queue
-        virtual void pushInternalItem(Item* item) noexcept =0;
+        inline void pushInternalItem(Item* item) noexcept
+        {
+            this->traits().pushInternalItem(item);
+        }
 
         //! Create item from value
         template <typename ... Args>
@@ -231,4 +295,4 @@ class Queue
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
-#endif // HATNQUEUE_H
+#endif // HATNQUEUETMPL_H
