@@ -19,6 +19,10 @@
 #ifndef HATNAPICLIENTREQUEST_H
 #define HATNAPICLIENTREQUEST_H
 
+#include <hatn/common/asiotimer.h>
+
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/dataunit/unitwrapper.h>
 
 #include <hatn/api/api.h>
@@ -26,6 +30,7 @@
 #include <hatn/api/service.h>
 #include <hatn/api/method.h>
 #include <hatn/api/requestunit.h>
+#include <hatn/api/responseunit.h>
 #include <hatn/api/client/session.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -33,9 +38,9 @@ HATN_API_NAMESPACE_BEGIN
 namespace client {
 
 template <typename ContextT>
-using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx,const Error& ec,du::UnitWrapper result)>;
+using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx,const Error& ec,const response::type response)>;
 
-template <typename SessionTraits, typename ContextT, typename RequestUnitT=request::shared_managed>
+template <typename SessionTraits, typename RequestUnitT=request::shared_managed>
 struct Request
 {
     public:
@@ -103,11 +108,6 @@ struct Request
 
     private:
 
-        void setCtx(common::SharedPtr<ContextT> ctx)
-        {
-            m_ctx=std::move(ctx);
-        }
-
         template <typename UnitT>
         Error makeUnit(
                 const Service& service,
@@ -117,6 +117,8 @@ struct Request
             );
 
         void updateSession(std::function<void (const Error&)> cb);
+
+        Error serialize();
 
         void regenId();
 
@@ -130,7 +132,18 @@ struct Request
             return m_unit->fieldValue(request::id);
         }
 
-        common::SharedPtr<ContextT> m_ctx;
+        common::SpanBuffers spanBuffers() const
+        {
+            return requestData.buffers();
+        }
+
+        common::Result<response::type> parseResponse() const;
+
+        common::SharedPtr<Session<SessionTraits>>& session()
+        {
+            return m_session;
+        }
+
         common::SharedPtr<Session<SessionTraits>> m_session;
         common::SharedPtr<RequestUnitT> m_unit;
 
@@ -139,6 +152,105 @@ struct Request
 
         bool m_pending;
         bool m_cancelled;
+
+        du::WireBufChained requestData;
+        du::WireBufSolid responseData;
+
+        template <typename ...T>
+        friend class Client;
+};
+
+template <typename RequestT, typename TaskContextT>
+class RequestContext : public RequestT,
+                       public common::EnableSharedFromThis<RequestContext<RequestT,TaskContextT>>
+{
+    public:
+
+        template <typename ...Args>
+        RequestContext(
+                common::SharedPtr<TaskContextT> taskCtx,
+                RequestCb<TaskContextT> callback,
+                common::Thread* thread,
+                Args&& ...args
+            ) : RequestT(std::forward<Args>(args)...),
+                taskCtx(std::move(taskCtx)),
+                callback(std::move(callback)),
+                timer(thread)
+        {
+            timer.setAutoAsyncGuardEnabled(false);
+        }
+
+        template <typename ...Args>
+        RequestContext(
+                common::Thread* thread,
+                Args&& ...args
+            ) : RequestT(std::forward<Args>(args)...),
+                timer(thread)
+        {
+            timer.setAutoAsyncGuardEnabled(false);
+        }
+
+    private:
+
+        void setTaskContext(
+                common::SharedPtr<TaskContextT> ctx
+            ) noexcept
+        {
+            taskCtx=std::move(ctx);
+        }
+
+        void setCallback(
+                RequestCb<TaskContextT> cb
+            ) noexcept
+        {
+            callback=std::move(cb);
+        }
+
+        void exec()
+        {
+            if (this->timeoutMs()!=0)
+            {
+                timer.setPeriodUs(this->timeoutMs*1000);
+                auto self=this->sharedFromThis();
+                timer.setHandler(
+                    [self](common::TimerTypes::Status status)
+                    {
+                        self->timerHandler(status);
+                    }
+                );
+                timer.start();
+            }
+        }
+
+        void stopTimer()
+        {
+            if (timer.isRunning())
+            {
+                timer.cancel();
+            }
+        }
+
+        void timerHandler(common::TimerTypes::Status status)
+        {
+            if (status==common::TimerTypes::Status::Cancel)
+            {
+                return;
+            }
+
+            this->cancel();
+
+            taskCtx->onAsyncHandlerEnter();
+
+            HATN_CTX_SCOPE("apirequesttimeout")
+
+            callback(taskCtx,common::CommonError::TIMEOUT,{});
+
+            taskCtx->onAsyncHandlerExit();
+        }
+
+        common::SharedPtr<TaskContextT> taskCtx;
+        RequestCb<TaskContextT> callback;
+        common::AsioDeadlineTimer timer;
 
         template <typename ...T>
         friend class Client;

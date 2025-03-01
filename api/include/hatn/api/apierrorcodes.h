@@ -26,6 +26,7 @@
 
 #define HATN_API_ERRORS(Do) \
     Do(ApiLibError,OK,_TR("OK")) \
+    Do(ApiLibError,QUEUE_OVERFLOW,_TR("Too many requests in a queue")) \
 
 HATN_API_NAMESPACE_BEGIN
 

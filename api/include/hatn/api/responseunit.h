@@ -26,9 +26,15 @@
 
 HATN_API_NAMESPACE_BEGIN
 
+enum class ResponseStatus : int
+{
+    OK=0,
+    AuthError=1
+};
+
 HDU_UNIT(response,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
-    HDU_FIELD(status,TYPE_UINT32,2,true)
+    HDU_FIELD(status,TYPE_UINT32,2,false,0)
     HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
     HDU_FIELD(content,TYPE_BYTES,4)
 )

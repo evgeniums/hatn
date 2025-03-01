@@ -27,9 +27,9 @@ namespace client {
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename ContextT, typename RequestUnitT>
+template <typename SessionTraits, typename RequestUnitT>
 template <typename UnitT>
-Error Request<SessionTraits,ContextT,RequestUnitT>::makeUnit(
+Error Request<SessionTraits,RequestUnitT>::makeUnit(
         const Service& service,
         const Method& method,
         const UnitT& content,
@@ -37,13 +37,14 @@ Error Request<SessionTraits,ContextT,RequestUnitT>::makeUnit(
     )
 {
     //! @todo Implement
+    //! @todo Serialize to shared buffer and set it to request
     return CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Request<SessionTraits,ContextT,RequestUnitT>::updateSession(
+template <typename SessionTraits, typename RequestUnitT>
+void Request<SessionTraits,RequestUnitT>::updateSession(
         std::function<void (const Error&)> cb
     )
 {
@@ -51,10 +52,20 @@ void Request<SessionTraits,ContextT,RequestUnitT>::updateSession(
     cb(Error{CommonError::NOT_IMPLEMENTED});
 }
 
-template <typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Request<SessionTraits,ContextT,RequestUnitT>::regenId()
+template <typename SessionTraits, typename RequestUnitT>
+void Request<SessionTraits,RequestUnitT>::regenId()
 {
     //! @todo Implement
+}
+
+//---------------------------------------------------------------
+
+template <typename SessionTraits, typename RequestUnitT>
+Error Request<SessionTraits,RequestUnitT>::serialize(
+    )
+{
+    //! @todo Implement
+    return CommonError::NOT_IMPLEMENTED;
 }
 
 //---------------------------------------------------------------

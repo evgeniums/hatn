@@ -22,10 +22,12 @@
 #include <hatn/common/simplequeue.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/allocatorfactory.h>
-#include <hatn/common/asiotimer.h>
 #include <hatn/common/taskcontext.h>
 
+#include <hatn/base/configobject.h>
+
 #include <hatn/dataunit/unitwrapper.h>
+#include <hatn/dataunit/syntax.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/connectionpool.h>
@@ -40,34 +42,49 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT=request::shared_managed>
+constexpr const uint32_t DefaultMaxQueueDepth=256;
+
+HDU_UNIT(config,
+    HDU_FIELD(max_queue_depth,TYPE_UINT32,1,false,DefaultMaxQueueDepth)
+)
+
+class ClientConfig : public base::ConfigObject<config::type>
+{
+    public:
+};
+
+template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename RequestUnitT=request::shared_managed>
 class Client : public common::TaskSubcontext
 {
     public:
 
-        using Connection=typename RouterTraits::Connection;
-        using Context=ContextT;
-        using Req=Request<SessionTraits,ContextT,RequestUnitT>;
+        using Req=Request<SessionTraits,RequestUnitT>;
+        using ReqCtx=RequestContext<Req,TaskContextT>;
 
     private:
 
-        struct QueueItem
+        struct Queue : public common::SimpleQueue<ReqCtx>
         {
-            Req req;
-            common::WeakPtr<Context> ctx;
-            RequestCb<Context> callback;
-            common::AsioDeadlineTimer timer;
+            using common::SimpleQueue<ReqCtx>::SimpleQueue;
+            bool busy=false;
         };
-
-        using Queue=common::SimpleQueue<QueueItem>;
 
     public:
 
+        using Context=TaskContextT;
+        using Connection=typename RouterTraits::Connection;
+
         Client(
+                std::shared_ptr<ClientConfig> cfg,
                 common::SharedPtr<Router<RouterTraits>> router,
+                common::Thread* thread=common::Thread::currentThread(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-               ) : m_router(std::move(router)),
-                   m_allocatorFactory(factory)
+            ) : m_cfg(std::move(cfg)),
+                m_router(std::move(router)),
+                m_allocatorFactory(factory),
+                m_thread(thread),
+                m_closed(false),
+                m_sessionWaitingQueues(factory->objectAllocator<typename SessionWaitingQueueMap::value_type>())
         {
             resetQueue(Priority::Lowest);
             resetQueue(Priority::Low);
@@ -75,6 +92,13 @@ class Client : public common::TaskSubcontext
             resetQueue(Priority::High);
             resetQueue(Priority::Highest);
         }
+
+        Client(
+            std::shared_ptr<ClientConfig> cfg,
+            common::SharedPtr<Router<RouterTraits>> router,
+            const common::pmr::AllocatorFactory* factory
+            ) : Client(std::move(cfg),std::move(router),common::Thread::currentThread(),factory)
+        {}
 
         template <typename UnitT>
         Error exec(
@@ -90,7 +114,7 @@ class Client : public common::TaskSubcontext
         );
 
         template <typename UnitT>
-        common::Result<Req> prepare(
+        common::Result<common::SharedPtr<ReqCtx>> prepare(
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
@@ -113,7 +137,7 @@ class Client : public common::TaskSubcontext
         }
 
         template <typename UnitT>
-        common::Result<Req> prepare(
+        common::Result<common::SharedPtr<ReqCtx>> prepare(
             const Service& service,
             const Method& method,
             const UnitT& content
@@ -124,42 +148,61 @@ class Client : public common::TaskSubcontext
 
         void exec(
             common::SharedPtr<Context> ctx,
-            Req req,
+            common::SharedPtr<ReqCtx> req,
             RequestCb<Context> callback
         );
 
         Error cancel(
-            Req req
+            common::SharedPtr<ReqCtx>& req
         );
 
         template <typename ContextT1, typename CallbackT>
         void close(
             common::SharedPtr<ContextT1> ctx,
-            CallbackT callback
+            CallbackT callback,
+            bool callbackRequests
         );
 
     private:
 
         void doExec(
             common::SharedPtr<Context> ctx,
-            Req req,
+            common::SharedPtr<ReqCtx> req,
             RequestCb<Context> callback,
             bool regenId=false
         );
 
-        void maybeReadQueue(Queue& queue);
+        void dequeue(Queue& queue);
 
         void resetQueue(Priority priority)
         {
             m_queues.emplace(priority,m_allocatorFactory->objectMemoryResource());
+            m_sessionWaitingReqCount.emplace(priority,0);
         }
 
-        ConnectionPool<Connection> m_connections;
+        void sendRequest(common::SharedPtr<ReqCtx> req);
+        void recvResponse(common::SharedPtr<ReqCtx> req, Connection* connection);
+
+        void refreshSession(common::SharedPtr<ReqCtx> req, const response::type& resp);
+
+        void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
+
+        std::shared_ptr<ClientConfig> m_cfg;
+
+        ConnectionPool<Connection> m_connectioPool;
         common::SharedPtr<Router<RouterTraits>> m_router;
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 
         common::FlatMap<Priority,Queue> m_queues;
+
+        common::Thread* m_thread;
+        bool m_closed;
+
+        using SessionWaitingQueueMap=common::pmr::map<SessionId,Queue,std::less<>>;
+
+        SessionWaitingQueueMap m_sessionWaitingQueues;
+        common::FlatMap<Priority,size_t> m_sessionWaitingReqCount;
 };
 
 } // namespace client
