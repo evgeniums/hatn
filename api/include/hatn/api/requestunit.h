@@ -27,6 +27,8 @@
 
 HATN_API_NAMESPACE_BEGIN
 
+//! @todo Maybe content is a dynamic shared unit
+
 HDU_UNIT(request,
     HDU_FIELD(session_auth,auth::TYPE,1)
     HDU_FIELD(id,TYPE_OBJECT_ID,2,true)

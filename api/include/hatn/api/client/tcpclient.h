@@ -139,7 +139,7 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
             {
                 hostsIdx=0;
             }
-            auto ctx=mainCtx().sharedFromThis();
+            auto ctx=sharedMainCtx();
             auto cb=[this,callback{std::move(callback)},ctx,hostsIdx{hostsIdx+1}](const Error& ec, std::vector<HATN_NETWORK_NAMESPACE::asio::IpEndpoint> eps)
             {
                 std::ignore=ctx;

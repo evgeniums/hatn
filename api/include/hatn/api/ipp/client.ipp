@@ -189,7 +189,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 {
     HATN_CTX_SCOPE("apiclientsend")
 
-    auto clientCtx=this->mainCtx().sharedFromThis();
+    auto clientCtx=this->sharedMainCtx();
 
     Error ec;
     // check if client is closed
@@ -271,7 +271,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
 {
     HATN_CTX_SCOPE("apiclientrecv")
 
-    auto clientCtx=this->mainCtx().sharedFromThis();
+    auto clientCtx=this->sharedMainCtx();
     auto reqPtr=req.get();
 
     m_connectionPool->recv(
@@ -303,12 +303,12 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
                     if (resp->status()==static_cast<int>(ResponseStatus::AuthError))
                     {
                         // process auth error in session
-                        refreshSession(std::move(req),resp.value());
+                        refreshSession(std::move(req),resp.takeValue());
                     }
                     else
                     {
                         // request is complete
-                        req->callback(req->taskCtx,resp.error(),resp.value());
+                        req->callback(req->taskCtx,resp.error(),resp.takeValue());
                     }
                 }
             }
@@ -409,7 +409,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
 //---------------------------------------------------------------
 
 template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, const response::type& resp)
+void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, common::SharedPtr<ResponseManaged> resp)
 {
     HATN_CTX_SCOPE("apiclientrefreshsession")
 
@@ -434,8 +434,9 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(co
     queue.push_back(std::move(req));
 
     // invoke session refresh
-    auto clientCtx=this->mainCtx().sharedFromThis();
-    reqPtr->session()->refresh(resp,
+    auto clientCtx=this->sharedMainCtx();
+    reqPtr->session()->refresh(
+        clientCtx->id(),
         [clientCtx{std::move(clientCtx)},this](Error ec, const Session<SessionTraits>* session)
         {
             auto sessionId=session->id();
@@ -491,7 +492,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(co
                     m_sessionWaitingQueues.erase(it);
                 }
             );
-        }
+        },
+        std::move(resp)
     );
 }
 

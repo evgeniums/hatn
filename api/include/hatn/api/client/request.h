@@ -137,7 +137,7 @@ struct Request
             return requestData.buffers();
         }
 
-        common::Result<response::type> parseResponse() const;
+        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
 
         common::SharedPtr<Session<SessionTraits>>& session()
         {

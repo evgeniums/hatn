@@ -32,12 +32,16 @@ enum class ResponseStatus : int
     AuthError=1
 };
 
+//! @todo Maybe content is a dynamic shared unit
+
 HDU_UNIT(response,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
     HDU_FIELD(status,TYPE_UINT32,2,false,0)
     HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
     HDU_FIELD(content,TYPE_BYTES,4)
 )
+
+using ResponseManaged=response::managed;
 
 HATN_API_NAMESPACE_END
 

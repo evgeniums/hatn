@@ -24,11 +24,14 @@
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/error.h>
+#include <hatn/common/taskcontext.h>
+#include <hatn/common/flatmap.h>
 
 #include <hatn/dataunit/objectid.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/authunit.h>
+#include <hatn/api/responseunit.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -40,34 +43,43 @@ template <typename ContextT>
 using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, common::SharedPtr<AuthManaged> auth, const common::Error&)>;
 
 template <typename Traits>
-class Session : public common::WithTraits<Traits>
+class Session : public common::WithTraits<Traits>,
+                public common::TaskSubcontext
 {
     public:
 
+        using RefreshCb=std::function<void (const Error& ec, Session* session)>;
+
         template <typename ...TraitsArgs>
         Session(TraitsArgs&& ...traitsArgs)
-            : common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...),
+            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(du::ObjectId::generateIdStr()),
               m_valid(false)
-        {}
+        {
+            init();
+        }
 
         template <typename ...TraitsArgs>
         Session(
             lib::string_view id,
             TraitsArgs&& ...traitsArgs)
-            : common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...),
+            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(id),
               m_valid(false)
-        {}
+        {
+            init();
+        }
 
         template <typename ...TraitsArgs>
         Session(
             const std::string& id,
             TraitsArgs&& ...traitsArgs)
-            : common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...),
+            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(id),
               m_valid(false)
-        {}
+        {
+            init();
+        }
 
         using common::WithTraits<Traits>::WithTraits;
 
@@ -100,10 +112,54 @@ class Session : public common::WithTraits<Traits>
             m_valid=enable;
         }
 
+        bool isRefreshing() const noexcept
+        {
+            return m_refreshing;
+        }
+
+        void setRefreshing(bool enable) noexcept
+        {
+            m_refreshing=enable;
+        }
+
+        void refresh(lib::string_view ctxId, RefreshCb callback, common::SharedPtr<ResponseManaged> resp=common::SharedPtr<ResponseManaged>{})
+        {
+            m_callbacks[ctxId]=std::move(callback);
+
+            if (isRefreshing())
+            {
+                return;
+            }
+            setRefreshing(true);
+
+            auto sessionCtx=this->sharedMainCtx();
+            this->traits().refresh(
+                [sessionCtx{std::move(sessionCtx)},this](const Error& ec)
+                {
+                    setRefreshing(false);
+                    setValid(!ec);
+
+                    for (auto&& it: m_callbacks)
+                    {
+                        it.second(ec,this);
+                    }
+                    m_callbacks.clear();
+                },
+                std::move(resp)
+            );
+        }
+
     private:
+
+        void init()
+        {
+            m_callbacks.reserve(DefaultSessionCallbacksCapacity);
+        }
 
         SessionId m_id;
         bool m_valid;
+        bool m_refreshing;
+        common::FlatMap<du::ObjectId::String,RefreshCb> m_callbacks;
 };
 
 } // namespace client

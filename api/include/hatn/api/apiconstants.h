@@ -28,6 +28,7 @@ constexpr const size_t ServiceNameLengthMax=16;
 constexpr const size_t MethodNameLengthMax=32;
 constexpr const size_t AuthProtocolNameLengthMax=8;
 constexpr const size_t ResponseCategoryNameLengthMax=32;
+constexpr const size_t DefaultSessionCallbacksCapacity=4;
 
 HATN_API_NAMESPACE_END
 

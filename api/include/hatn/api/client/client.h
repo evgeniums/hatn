@@ -183,7 +183,7 @@ class Client : public common::TaskSubcontext
         void sendRequest(common::SharedPtr<ReqCtx> req);
         void recvResponse(common::SharedPtr<ReqCtx> req, Connection* connection);
 
-        void refreshSession(common::SharedPtr<ReqCtx> req, const response::type& resp);
+        void refreshSession(common::SharedPtr<ReqCtx> req, common::SharedPtr<ResponseManaged> resp);
 
         void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
 
