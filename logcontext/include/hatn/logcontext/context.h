@@ -598,6 +598,14 @@ HATN_COMMON_NAMESPACE_END
     HATN_CTX_IF() \
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(false);
 
+#define HATN_CTX_CHECK_EC(ec) \
+    HATN_CTX_IF() \
+    if (ec) \
+    { \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(true); \
+        return ec; \
+    }
+
 #define HATN_CTX_STACK_BARRIER_ON(Name) \
     HATN_CTX_IF() \
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOn(Name);
