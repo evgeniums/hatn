@@ -27,6 +27,7 @@
 #include <hatn/common/error.h>
 #include <hatn/common/databuf.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/allocatoronstack.h>
 
 #include <hatn/dataunit/fields/custom.h>
 
@@ -43,12 +44,20 @@ class HATN_DATAUNIT_EXPORT ObjectId
         constexpr static const uint32_t RandLength=8;
 
         constexpr static const uint32_t Length=DateTimeLength+SeqLength+RandLength;
+        using String=common::StringOnStackT<Length>;
 
         static ObjectId generateId()
         {
             ObjectId id;
             id.generate();
             return id;
+        }
+
+        static String generateIdStr()
+        {
+            ObjectId id;
+            id.generate();
+            return id.string();
         }
 
         void generate();
@@ -74,6 +83,13 @@ class HATN_DATAUNIT_EXPORT ObjectId
             std::array<char,Length> buf;
             serialize(buf);
             return std::string{buf.begin(),buf.end()};
+        }
+
+        String string() const
+        {
+            String str;
+            serialize(str);
+            return str;
         }
 
         common::DateTime toDatetime() const
