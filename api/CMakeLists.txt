@@ -14,13 +14,13 @@ SET (HEADERS
     include/hatn/api/service.h
     include/hatn/api/priority.h
     include/hatn/api/typealiases.h
+    include/hatn/api/router.h
 )
 
 SET (HEADERS
     ${HEADERS}
 
-    include/hatn/api/client/client.h
-    include/hatn/api/client/router.h
+    include/hatn/api/client/client.h    
     include/hatn/api/client/resolver.h
     include/hatn/api/client/iphostresolver.h
     include/hatn/api/client/tcpclient.h

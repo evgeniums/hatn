@@ -132,6 +132,7 @@ class Session : public common::WithTraits<Traits>,
             }
             setRefreshing(true);
 
+            //! @todo Maybe switch log context to session context
             auto sessionCtx=this->sharedMainCtx();
             this->traits().refresh(
                 [sessionCtx{std::move(sessionCtx)},this](const Error& ec)
@@ -159,7 +160,7 @@ class Session : public common::WithTraits<Traits>,
         SessionId m_id;
         bool m_valid;
         bool m_refreshing;
-        common::FlatMap<du::ObjectId::String,RefreshCb> m_callbacks;
+        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;
 };
 
 } // namespace client

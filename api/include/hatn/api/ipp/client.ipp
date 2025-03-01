@@ -98,23 +98,26 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::doExec(
         bool regenId
     )
 {
-    auto it=m_queues.find(req.priority());
+    auto it=m_queues.find(req->priority());
     Assert(it!=m_queues.end(),"Unsupported API request priority");
     auto& queue=it->second;
 
     Error ec;
 
+    // check if client is closed
     if (m_closed)
     {
         ec=commonError(common::CommonError::ABORTED);
     }
     else if (req->priority()!=Priority::Highest && queue.size()>(m_cfg->config().fieldValue(config::max_queue_depth)+m_sessionWaitingReqCount[req->priority()]))
     {
+        // check if queue is filled
         ec=apiError(ApiLibError::QUEUE_OVERFLOW);
     }
 
     if (ec)
     {
+        // report on error
         m_thread->execAsync(
             [callback{std::move(callback)},ctx{std::move(ctx)},ec{std::move(ec)}]()
             {
@@ -130,55 +133,71 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::doExec(
         return;
     }
 
+    // set task context and callback
     if (!req->taskCtx)
     {
         req->setTaskContext(std::move(ctx));
         req->setCallback(std::move(callback));
     }
 
+    // if session not ready then push to waiting queue for this session
     if (!req->session()->valid())
     {
         pushToSessionWaitingQueue(std::move(req));
         return;
     }
 
+    // regenerate requiest ID if needed
     if (regenId)
     {
         req.regenId();
     }
 
-    if (!queue.busy && queue.empty())
-    {
-        sendRequest(std::move(req));
-    }
-    else
-    {
-        queue.push(std::move(req));
-    }
+    // push request to queue
+    auto priority=req->priority();
+    queue.push(std::move(req));
+
+    // try to dequeue requestss
+    auto clientCtx=this->sharedMainCtx();
+    m_thread->execAsync(
+        [priority,clientCtx{std::move(clientCtx)},this]()
+        {
+            std::ignore=clientCtx;
+            dequeue(priority);
+        }
+    );
 }
 
 //---------------------------------------------------------------
 
 template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::dequeue(Queue& queue)
+void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::dequeue(Priority priority)
 {
     if (m_closed)
     {
         return;
     }
 
-    HATN_CTX_SCOPE("apiclientdequeue")
-
+    auto it=m_queues.find(priority);
+    auto& queue=it->second;
     while (!queue.empty())
     {
-        auto req=queue.pop();
-        if (!req->cancelled())
+        auto* front=queue.front();
+        if (front->cancelled())
         {
-            req->taskCtx->onAsyncHandlerEnter();
-            sendRequest(std::move(req));
-            req->taskCtx->onAsyncHandlerExit();
+            queue.pop();
+            continue;
+        }
+
+        if (!m_connectionPool.canSend(priority))
+        {
             break;
         }
+
+        auto req=queue.pop();
+        req->taskCtx->onAsyncHandlerEnter();
+        sendRequest(std::move(req));
+        req->taskCtx->onAsyncHandlerExit();
     }
 }
 
@@ -216,7 +235,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 
                 req->taskCtx->onAsyncHandlerExit();
 
-                dequeue();
+                dequeue(req->priority());
             }
         );
         return;
@@ -226,6 +245,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
     auto reqPtr=req.get();
     m_connectionPool->send(
         reqPtr->taskCtx,
+        reqPtr->priority,
         reqPtr->spanBuiffers(),
         [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec, Connection* connection)
         {
@@ -247,10 +267,10 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 
                 // dequeue next request
                 m_thread->execAsync(
-                    [clientCtx{std::move(clientCtx)},this]()
+                    [priority{req->priority()},clientCtx{std::move(clientCtx)},this]()
                     {
                         std::ignore=clientCtx;
-                        dequeue();
+                        dequeue(priority);
                     }
                 );
 
@@ -259,8 +279,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 
             // receive response
             recvResponse(std::move(req),connection);
-        },
-        reqPtr->priority
+        }
     );
 }
 
@@ -274,9 +293,9 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
     auto clientCtx=this->sharedMainCtx();
     auto reqPtr=req.get();
 
-    m_connectionPool->recv(
-        connection,
+    m_connectionPool->recv(        
         reqPtr->taskCtx,
+        connection,
         reqPtr->responseData,
         [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec)
         {
@@ -403,7 +422,14 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
     m_sessionWaitingQueues.clear();
 
     // close connection pool
-    m_connectionPool.close(std::move(ctx),std::move(callback));
+    auto clientCtx=this->sharedMainCtx();
+    m_connectionPool.close(std::move(ctx),
+        [clientCtx{std::move(clientCtx)},callback{std::move(callback)}](const auto& ec)
+        {
+            std::ignore=clientCtx;
+            callback(ec);
+        }
+    );
 }
 
 //---------------------------------------------------------------

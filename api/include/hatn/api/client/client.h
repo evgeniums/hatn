@@ -34,7 +34,6 @@
 #include <hatn/api/method.h>
 #include <hatn/api/service.h>
 #include <hatn/api/priority.h>
-#include <hatn/api/client/router.h>
 #include <hatn/api/client/session.h>
 #include <hatn/api/client/request.h>
 
@@ -46,6 +45,7 @@ constexpr const uint32_t DefaultMaxQueueDepth=256;
 
 HDU_UNIT(config,
     HDU_FIELD(max_queue_depth,TYPE_UINT32,1,false,DefaultMaxQueueDepth)
+    HDU_FIELD(max_pool_priority_connections,TYPE_UINT32,2,false,DefaultMaxPoolPriorityConnections)
 )
 
 class ClientConfig : public base::ConfigObject<config::type>
@@ -80,17 +80,24 @@ class Client : public common::TaskSubcontext
                 common::Thread* thread=common::Thread::currentThread(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_cfg(std::move(cfg)),
-                m_router(std::move(router)),
+                m_connectionPool(std::move(router)),
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
                 m_sessionWaitingQueues(factory->objectAllocator<typename SessionWaitingQueueMap::value_type>())
         {
-            resetQueue(Priority::Lowest);
-            resetQueue(Priority::Low);
-            resetQueue(Priority::Normal);
-            resetQueue(Priority::High);
-            resetQueue(Priority::Highest);
+            handlePriorities(
+                [this](Priority priority)
+                {
+                    resetPriority(priority);
+                },
+                [this](size_t count)
+                {
+                    m_queues.reserve(count);
+                }
+            );
+
+            m_connectionPool.setMaxConnectionsPerPriority(cfg->config().fieldValue(config::max_pool_priority_connections));
         }
 
         Client(
@@ -172,9 +179,9 @@ class Client : public common::TaskSubcontext
             bool regenId=false
         );
 
-        void dequeue(Queue& queue);
+        void dequeue(Priority priority);
 
-        void resetQueue(Priority priority)
+        void resetPriority(Priority priority)
         {
             m_queues.emplace(priority,m_allocatorFactory->objectMemoryResource());
             m_sessionWaitingReqCount.emplace(priority,0);
@@ -189,8 +196,7 @@ class Client : public common::TaskSubcontext
 
         std::shared_ptr<ClientConfig> m_cfg;
 
-        ConnectionPool<Connection> m_connectioPool;
-        common::SharedPtr<Router<RouterTraits>> m_router;
+        ConnectionPool<RouterTraits> m_connectionPool;
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 

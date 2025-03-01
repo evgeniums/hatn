@@ -34,6 +34,23 @@ enum class Priority : uint8_t
     Highest
 };
 
+constexpr const size_t PrioritiesCount=5;
+
+template <typename InitT, typename EachT>
+void handlePriorities(const EachT& each, const InitT& init={})
+{
+    if (init)
+    {
+        init(PrioritiesCount);
+    }
+
+    each(Priority::Lowest);
+    each(Priority::Low);
+    each(Priority::Normal);
+    each(Priority::High);
+    each(Priority::Highest);
+}
+
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPIPRIORITY_H

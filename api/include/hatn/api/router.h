@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/client/router.h
+/** @file api/router.h
   *
   */
 
@@ -26,8 +26,6 @@
 #include <hatn/api/api.h>
 
 HATN_API_NAMESPACE_BEGIN
-
-namespace client {
 
 template <typename ConnectionContext>
 using RouterCallbackFn=std::function<void (const Error&, common::SharedPtr<ConnectionContext>)>;
@@ -50,8 +48,6 @@ class Router : public common::WithTraits<Traits>
             this->traits().makeConnection(std::move(ctx),std::move(callback));
         }
 };
-
-} // namespace client
 
 HATN_API_NAMESPACE_END
 

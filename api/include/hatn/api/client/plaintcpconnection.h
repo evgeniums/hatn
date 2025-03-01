@@ -23,7 +23,6 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/connection.h>
-#include <hatn/api/client/router.h>
 #include <hatn/api/client/tcpclient.h>
 
 HATN_API_NAMESPACE_BEGIN

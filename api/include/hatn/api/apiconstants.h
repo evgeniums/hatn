@@ -30,6 +30,8 @@ constexpr const size_t AuthProtocolNameLengthMax=8;
 constexpr const size_t ResponseCategoryNameLengthMax=32;
 constexpr const size_t DefaultSessionCallbacksCapacity=4;
 
+constexpr const size_t DefaultMaxPoolPriorityConnections=4;
+
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPICONSTANTS_H

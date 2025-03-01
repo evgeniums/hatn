@@ -23,7 +23,6 @@
 #include <hatn/common/random.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/client/client.h>
 #include <hatn/api/client/plaintcpconnection.h>
 #include <hatn/api/server/plaintcpserver.h>
 
