@@ -134,7 +134,7 @@ void TcpServer::accept(
         TcpServer::Callback callback
     )
 {
-    auto serverMainCtx=mainCtx().sharedFromThis();
+    auto serverMainCtx=sharedMainCtx();
     auto serverWptr=toWeakPtr(serverMainCtx);
 
     auto cb=[callback{std::move(callback)},

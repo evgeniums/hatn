@@ -445,6 +445,11 @@ class TaskSubcontext
             return *m_mainCtx;
         }
 
+        auto sharedMainCtx() const
+        {
+            return m_mainCtx->sharedFromThis();
+        }
+
         void setMainCtx(TaskContext* mainContext)
         {
             m_mainCtx=mainContext;

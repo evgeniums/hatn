@@ -414,7 +414,7 @@ void TcpStreamTraits::write(
 
 inline common::WeakPtr<common::TaskContext> TcpStreamTraits::ctxWeakPtr() const
 {
-    return toWeakPtr(m_stream->mainCtx().sharedFromThis());
+    return toWeakPtr(m_stream->sharedMainCtx());
 }
 
 //---------------------------------------------------------------

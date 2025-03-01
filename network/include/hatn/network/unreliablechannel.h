@@ -61,7 +61,7 @@ class UnreliableChannel : public common::TaskSubcontext,
 
         inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const
         {
-            return common::toWeakPtr(mainCtx().sharedFromThis());
+            return common::toWeakPtr(sharedMainCtx());
         }
 
         inline void leaveAsyncHandler()
