@@ -162,6 +162,11 @@ class QueueTmpl : public WithTraits<Traits>
             return this->traits().popItem();
         }
 
+        auto front() noexcept
+        {
+            return this->traits().front();
+        }
+
         //! Dequeue value and destroy item
         inline bool pop(T& val) noexcept
         {

@@ -115,6 +115,15 @@ class SimpleQueueTraits
             return first;
         }
 
+        T* front() noexcept
+        {
+            if (m_first==nullptr)
+            {
+                return nullptr;
+            }
+            return &m_first->m_val;
+        }
+
         //! Get queued size
         size_t size() const noexcept
         {
