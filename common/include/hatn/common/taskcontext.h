@@ -225,11 +225,13 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         }
 
         /**
-         * @brief Generate  task ID.
+         * @brief Generate task ID.
          * @param id Where to put result.
          * @return Timepoint of generated ID.
          */
         static std::chrono::time_point<Clock> generateId(TaskContextId& id);
+
+        static TaskContextId generateId();
 
         /**
          * @brief Check if this task valid.

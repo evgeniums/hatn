@@ -37,6 +37,13 @@ std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextI
     return started;
 }
 
+TaskContextId TaskContext::generateId()
+{
+    TaskContextId id;
+    generateId(id);
+    return id;
+}
+
 //---------------------------------------------------------------
 
 Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(const lib::string_view& id)
