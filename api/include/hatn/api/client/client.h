@@ -53,12 +53,12 @@ class ClientConfig : public base::ConfigObject<config::type>
     public:
 };
 
-template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename RequestUnitT=request::shared_managed>
+template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename MessageT=du::WireData, typename RequestUnitT=request::shared_managed>
 class Client : public common::TaskSubcontext
 {
     public:
 
-        using Req=Request<SessionTraits,RequestUnitT>;
+        using Req=Request<SessionTraits,MessageT,RequestUnitT>;
         using ReqCtx=RequestContext<Req,TaskContextT>;
 
     private:
@@ -106,50 +106,46 @@ class Client : public common::TaskSubcontext
             ) : Client(std::move(cfg),std::move(router),common::Thread::currentThread(),factory)
         {}
 
-        template <typename UnitT>
         Error exec(
             common::SharedPtr<Context> ctx,
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
-            const UnitT& content,
+            common::SharedPtr<MessageT> message,
             RequestCb<Context> callback,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0
         );
 
-        template <typename UnitT>
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
-            const UnitT& content
+            common::SharedPtr<MessageT> message
         );
 
-        template <typename UnitT>
         Error exec(
             common::SharedPtr<Context> ctx,
             const Service& service,
             const Method& method,
-            const UnitT& content,
+            common::SharedPtr<MessageT> message,
             RequestCb<Context> callback,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0
         )
         {
-            return exec(std::move(ctx),{},service,method,content,std::move(callback),topic,priority,timeoutMs);
+            return exec(std::move(ctx),{},service,method,std::move(message),std::move(callback),topic,priority,timeoutMs);
         }
 
-        template <typename UnitT>
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             const Service& service,
             const Method& method,
-            const UnitT& content
+            common::SharedPtr<MessageT> message
         )
         {
-            return prepare({},service,method,content);
+            return prepare({},service,method,std::move(message));
         }
 
         void exec(

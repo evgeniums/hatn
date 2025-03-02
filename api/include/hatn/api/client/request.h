@@ -24,6 +24,7 @@
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/unitwrapper.h>
+#include <hatn/dataunit/wirebufchained.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/priority.h>
@@ -40,16 +41,20 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
-template <typename SessionTraits, typename RequestUnitT=request::shared_managed>
+template <typename SessionTraits, typename MessageT=du::WireData, typename RequestUnitT=request::shared_managed>
 struct Request
 {
     public:
 
+        using Message=MessageT;
+
         Request(
                 common::SharedPtr<Session<SessionTraits>> session,
+                common::SharedPtr<Message> message,
                 Priority priority=Priority::Normal,
                 uint32_t timeoutMs=0
             ) : m_session(std::move(session)),
+                m_message(std::move(message)),
                 m_priority(priority),
                 m_timeoutMs(timeoutMs),
                 m_pending(true),
@@ -58,9 +63,11 @@ struct Request
         }
 
         Request(
+                common::SharedPtr<Message> message,
                 Priority priority=Priority::Normal,
                 uint32_t timeoutMs=0
-            ) : m_priority(priority),
+            ) : m_message(std::move(message)),
+                m_priority(priority),
                 m_timeoutMs(timeoutMs),
                 m_pending(true)
         {
@@ -108,13 +115,11 @@ struct Request
 
     private:
 
-        template <typename UnitT>
         Error makeUnit(
-                const Service& service,
-                const Method& method,
-                const UnitT& content,
-                lib::string_view topic={}
-            );
+            const Service& service,
+            const Method& method,
+            lib::string_view topic={}
+        );
 
         void updateSession(std::function<void (const Error&)> cb);
 
@@ -139,8 +144,14 @@ struct Request
             return m_session;
         }
 
+        common::SharedPtr<Message>& message()
+        {
+            return m_session;
+        }
+
         common::SharedPtr<Session<SessionTraits>> m_session;
-        common::SharedPtr<RequestUnitT> m_unit;
+        common::SharedPtr<Message> m_message;
+        common::SharedPtr<RequestUnitT> m_unit;        
 
         Priority m_priority;
         uint32_t m_timeoutMs;
@@ -231,14 +242,18 @@ class RequestContext : public RequestT,
 
         common::SpanBuffers spanBuffers() const
         {
-            return requestData.buffers();
+            auto bufs=requestData.buffers();
+            auto appendBufs=this->message()->buffers();
+            bufs.reserve(bufs.size()+appendBufs.size());
+            bufs.insert(bufs.end(), appendBufs.begin(), appendBufs.end());
+            return bufs;
         }
 
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
-        du::WireBufChained requestData;
+        du::WireDataChained requestData;
         du::WireBufSolidShared responseData;
 
         template <typename ...T>

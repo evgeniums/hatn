@@ -29,36 +29,34 @@ namespace client {
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-template <typename UnitT>
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
 common::Result<
-        common::SharedPtr<typename Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::ReqCtx>
+        common::SharedPtr<typename Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::ReqCtx>
     >
-    Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::prepare(
+    Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::prepare(
         common::SharedPtr<Session<SessionTraits>> session,
         const Service& service,
         const Method& method,
-        const UnitT& content
+        common::SharedPtr<MessageT> message
     )
 {
     HATN_CTX_SCOPE("apiclientprepare")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session)));
-    auto ec=req->makeUnit(service,method,content);
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(message),std::move(session)));
+    auto ec=req->makeUnit(service,method,std::move(message));
     HATN_CTX_CHECK_EC(ec)
     return req;
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-template <typename UnitT>
-Error Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+Error Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
     common::SharedPtr<Session<SessionTraits>> session,
     const Service& service,
     const Method& method,
-    const UnitT& content,
+    common::SharedPtr<MessageT> message,
     RequestCb<Context> callback,
     lib::string_view  topic,
     Priority priority,
@@ -67,8 +65,8 @@ Error Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
 {
     HATN_CTX_SCOPE("apiclientexec")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),priority,timeoutMs));
-    auto ec=req->makeUnit(service,method,content,topic);
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(message),std::move(session),priority,timeoutMs));
+    auto ec=req->makeUnit(service,method,std::move(message),topic);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),std::move(req),std::move(callback));
     return OK;
@@ -76,8 +74,8 @@ Error Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
     common::SharedPtr<ReqCtx> req,
     RequestCb<Context> callback
@@ -90,8 +88,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::doExec(
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::doExec(
         common::SharedPtr<Context> ctx,
         common::SharedPtr<ReqCtx> req,
         RequestCb<Context> callback,
@@ -170,8 +168,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::doExec(
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::dequeue(Priority priority)
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::dequeue(Priority priority)
 {
     if (m_closed)
     {
@@ -203,8 +201,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::dequeue(Priority 
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(common::SharedPtr<ReqCtx> req)
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::sendRequest(common::SharedPtr<ReqCtx> req)
 {
     HATN_CTX_SCOPE("apiclientsend")
 
@@ -285,9 +283,9 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
 template <typename Connection>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
 {
     HATN_CTX_SCOPE("apiclientrecv")
 
@@ -348,17 +346,17 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-Error Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::cancel(common::SharedPtr<ReqCtx>& req)
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+Error Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::cancel(common::SharedPtr<ReqCtx>& req)
 {
     return req->cancel();
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
 template <typename ContextT1, typename CallbackT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::close(
         common::SharedPtr<ContextT1> ctx,
         CallbackT callback,
         bool callbackRequests
@@ -434,8 +432,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
 
 //---------------------------------------------------------------
 
-template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
+template <typename RouterTraits, typename SessionTraits, typename ContextT, typename MessageT, typename RequestUnitT>
+void Client<RouterTraits,SessionTraits,ContextT,MessageT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
     HATN_CTX_SCOPE("apiclientrefreshsession")
 

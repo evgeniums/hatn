@@ -37,7 +37,7 @@ HDU_UNIT(request,
     HDU_FIELD(method,HDU_TYPE_FIXED_STRING(MethodNameLengthMax),5,true)
     HDU_FIELD(method_auth,auth::TYPE,6)
     HDU_FIELD(topic,TYPE_STRING,7)
-    HDU_FIELD(content,TYPE_BYTES,8)
+    HDU_FIELD(message,TYPE_DATAUNIT,8)
 )
 
 HATN_API_NAMESPACE_END
