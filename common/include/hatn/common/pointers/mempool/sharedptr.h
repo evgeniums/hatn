@@ -657,6 +657,15 @@ class EnableSharedFromThis<T,true> : public ManagedObject
     }
 };
 
+template <typename T>
+class SharedFromThisWrapper : public T,
+                              public EnableSharedFromThis<SharedFromThisWrapper<T>>
+{
+    public:
+
+        using T::T;
+};
+
 //! SharedPtr to use in embedded fields in the same class T
 template <typename T>
 struct EmbeddedSharedPtr
