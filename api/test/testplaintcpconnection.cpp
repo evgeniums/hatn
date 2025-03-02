@@ -184,7 +184,7 @@ void sendNext(ContextT ctx, const TestBuffersSet& bufferSet, size_t idx, Callbac
     connection.send(
         ctx,
         spanBuffers,
-        [idx,&bufferSet,cb{std::move(cb)}](ContextT ctx, const HATN_NAMESPACE::Error& ec, size_t sentBytes)
+        [idx,&bufferSet,cb{std::move(cb)}](ContextT ctx, const HATN_NAMESPACE::Error& ec, size_t sentBytes, HATN_COMMON_NAMESPACE::SpanBuffers)
         {
             totalSentBytes+=sentBytes;
             HATN_TEST_MESSAGE_TS(fmt::format("sendNext cb {} of size {}, total {}: {}/{}",idx,sentBytes,totalSentBytes,ec.code(),ec.message()));

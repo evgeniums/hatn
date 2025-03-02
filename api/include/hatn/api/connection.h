@@ -66,9 +66,9 @@ class Connection : public common::TaskSubcontext
             CallbackT callback
         )
         {
-            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t sentBytes, common::SpanBuffers)
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec, size_t sentBytes, common::SpanBuffers buffers)
             {
-                callback(ctx,ec,sentBytes);
+                callback(ctx,ec,sentBytes,std::move(buffers));
             };
             m_stream.write(std::move(buffers),std::move(cb));
         }

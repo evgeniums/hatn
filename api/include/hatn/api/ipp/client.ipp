@@ -43,7 +43,7 @@ common::Result<
 {
     HATN_CTX_SCOPE("apiclientprepare")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,std::move(session)));
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session)));
     auto ec=req->makeUnit(service,method,content);
     HATN_CTX_CHECK_EC(ec)
     return req;
@@ -67,7 +67,7 @@ Error Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::exec(
 {
     HATN_CTX_SCOPE("apiclientexec")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,std::move(session),priority,timeoutMs));
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),priority,timeoutMs));
     auto ec=req->makeUnit(service,method,content,topic);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),std::move(req),std::move(callback));
@@ -259,7 +259,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
                     req->callback(req->taskCtx,ec,{});
                 }
 
-                // nothing todo if client is closed
+                // nothing to do if client is closed
                 if (m_closed)
                 {
                     return;
@@ -296,39 +296,39 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
 
     m_connectionPool->recv(        
         reqPtr->taskCtx,
-        connection,
+        std::move(connection),
         reqPtr->responseData,
         [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec)
         {
             HATN_CTX_SCOPE("apiclientrecvcb")
 
-            if (ec)
+            if (!req->cancelled())
             {
-                // failed to receive, maybe connection is broken
-                if (!req->cancelled())
+                if (ec)
                 {
+                    // failed to receive, maybe connection is broken
                     req->callback(req->taskCtx,ec,{});
-                }
-            }
-            else
-            {
-                auto resp=req->parseResponse();
-                if (resp)
-                {
-                    // parsing error
-                    req->callback(req->taskCtx,resp.error(),{});
                 }
                 else
                 {
-                    if (resp->status()==static_cast<int>(ResponseStatus::AuthError))
+                    auto resp=req->parseResponse();
+                    if (resp)
                     {
-                        // process auth error in session
-                        refreshSession(std::move(req),resp.takeValue());
+                        // parsing error
+                        req->callback(req->taskCtx,resp.error(),{});
                     }
                     else
                     {
-                        // request is complete
-                        req->callback(req->taskCtx,resp.error(),resp.takeValue());
+                        if (resp->status()==static_cast<int>(ResponseStatus::AuthError) && !m_closed)
+                        {
+                            // process auth error in session
+                            refreshSession(std::move(req),resp.takeValue());
+                        }
+                        else
+                        {
+                            // request is complete
+                            req->callback(req->taskCtx,resp.error(),resp.takeValue());
+                        }
                     }
                 }
             }
@@ -384,8 +384,6 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
                     req->taskCtx->onAsyncHandlerExit();
                 }
             }
-
-            //! @todo Clear session queues
         }
         else
         {

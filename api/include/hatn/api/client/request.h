@@ -153,9 +153,6 @@ struct Request
         bool m_pending;
         bool m_cancelled;
 
-        du::WireBufChained requestData;
-        du::WireBufSolid responseData;
-
         template <typename ...T>
         friend class Client;
 };
@@ -168,24 +165,13 @@ class RequestContext : public RequestT,
 
         template <typename ...Args>
         RequestContext(
-                common::SharedPtr<TaskContextT> taskCtx,
-                RequestCb<TaskContextT> callback,
                 common::Thread* thread,
+                common::pmr::AllocatorFactory* factory,
                 Args&& ...args
             ) : RequestT(std::forward<Args>(args)...),
-                taskCtx(std::move(taskCtx)),
-                callback(std::move(callback)),
-                timer(thread)
-        {
-            timer.setAutoAsyncGuardEnabled(false);
-        }
-
-        template <typename ...Args>
-        RequestContext(
-                common::Thread* thread,
-                Args&& ...args
-            ) : RequestT(std::forward<Args>(args)...),
-                timer(thread)
+                timer(thread),
+                requestData(factory),
+                responseData(factory)
         {
             timer.setAutoAsyncGuardEnabled(false);
         }
@@ -251,6 +237,9 @@ class RequestContext : public RequestT,
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
+
+        du::WireBufChained requestData;
+        du::WireBufSolidShared responseData;
 
         template <typename ...T>
         friend class Client;
