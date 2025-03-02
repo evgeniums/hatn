@@ -38,7 +38,7 @@ HATN_API_NAMESPACE_BEGIN
 namespace client {
 
 template <typename ContextT>
-using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx,const Error& ec,const response::type response)>;
+using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
 template <typename SessionTraits, typename RequestUnitT=request::shared_managed>
 struct Request
@@ -130,11 +130,6 @@ struct Request
         lib::string_view id() const noexcept
         {
             return m_unit->fieldValue(request::id);
-        }
-
-        common::SpanBuffers spanBuffers() const
-        {
-            return requestData.buffers();
         }
 
         common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
@@ -232,6 +227,11 @@ class RequestContext : public RequestT,
             callback(taskCtx,common::CommonError::TIMEOUT,{});
 
             taskCtx->onAsyncHandlerExit();
+        }
+
+        common::SpanBuffers spanBuffers() const
+        {
+            return requestData.buffers();
         }
 
         common::SharedPtr<TaskContextT> taskCtx;

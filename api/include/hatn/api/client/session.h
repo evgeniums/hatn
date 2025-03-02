@@ -122,7 +122,7 @@ class Session : public common::WithTraits<Traits>,
             m_refreshing=enable;
         }
 
-        void refresh(lib::string_view ctxId, RefreshCb callback, common::SharedPtr<ResponseManaged> resp=common::SharedPtr<ResponseManaged>{})
+        void refresh(lib::string_view ctxId, RefreshCb callback, Response resp={})
         {
             m_callbacks[ctxId]=std::move(callback);
 

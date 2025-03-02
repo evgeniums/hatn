@@ -43,6 +43,12 @@ HDU_UNIT(response,
 
 using ResponseManaged=response::managed;
 
+struct Response
+{
+    common::SharedPtr<ResponseManaged> message;
+    common::ByteArrayShared data;
+};
+
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPIRESPONSEUNIT_H

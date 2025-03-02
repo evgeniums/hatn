@@ -319,15 +319,16 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(comm
                     }
                     else
                     {
+                        auto respWrapper=Response{resp.takeValue(),req->responseData.sharedBuf()};
                         if (resp->status()==static_cast<int>(ResponseStatus::AuthError) && !m_closed)
                         {
                             // process auth error in session
-                            refreshSession(std::move(req),resp.takeValue());
+                            refreshSession(std::move(req),std::move(respWrapper));
                         }
                         else
                         {
                             // request is complete
-                            req->callback(req->taskCtx,resp.error(),resp.takeValue());
+                            req->callback(req->taskCtx,resp.error(),std::move(respWrapper));
                         }
                     }
                 }
@@ -434,7 +435,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::close(
 //---------------------------------------------------------------
 
 template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, common::SharedPtr<ResponseManaged> resp)
+void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
     HATN_CTX_SCOPE("apiclientrefreshsession")
 

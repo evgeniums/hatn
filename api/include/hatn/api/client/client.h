@@ -191,7 +191,7 @@ class Client : public common::TaskSubcontext
         template <typename Connection>
         void recvResponse(common::SharedPtr<ReqCtx> req, Connection connection);
 
-        void refreshSession(common::SharedPtr<ReqCtx> req, common::SharedPtr<ResponseManaged> resp);
+        void refreshSession(common::SharedPtr<ReqCtx> req, Response resp);
 
         void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
 
