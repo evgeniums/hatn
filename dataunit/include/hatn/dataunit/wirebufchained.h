@@ -159,8 +159,8 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
         if (this->beginMain)
         {
             this->beginMain=false;
-            auto main=sharedMainContainer();
-            if (!main->isEmpty())
+            auto main=this->managedMainContainer();
+            if (main!=nullptr && !main->isEmpty())
             {
                 return common::DataBuf{*main};
             }
@@ -177,7 +177,7 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
 
     common::ByteArray* mainContainer() const noexcept
     {
-        return (m_currentMainContainer==nullptr)?sharedMainContainer():m_currentMainContainer;
+        return (m_currentMainContainer==nullptr)?this->managedMainContainer():m_currentMainContainer;
     }
 
     void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept

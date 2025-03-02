@@ -131,6 +131,16 @@ struct ContainerOnStack
         return m_container;
     }
 
+    common::ByteArrayShared sharedMainContainer() const noexcept
+    {
+        return common::ByteArrayShared{};
+    }
+
+    common::ByteArrayManaged* managedMainContainer() const noexcept
+    {
+        return nullptr;
+    }
+
     common::ByteArray m_container;
 };
 
@@ -156,9 +166,14 @@ struct ContainerShared
         return *(m_container.get());
     }
 
-    common::ByteArray* sharedMainContainer() const noexcept
+    common::ByteArrayShared sharedMainContainer() const noexcept
     {
-        return const_cast<common::ByteArrayManaged*>(m_container.get());
+        return m_container;
+    }
+
+    common::ByteArrayManaged* managedMainContainer() const noexcept
+    {
+        return const_cast<ContainerShared*>(this)->m_container.get();
     }
 
     common::ByteArrayShared m_container;

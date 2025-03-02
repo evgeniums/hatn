@@ -282,6 +282,11 @@ class WireBuf : public common::WithTraits<TraitsT>,
             return this->traits().mainContainer();
         }
 
+        common::ByteArrayShared sharedMainContainer() const noexcept
+        {
+            return this->traits().sharedMainContainer();
+        }
+
         void setCurrentMainContainer(common::ByteArray* currentMainContainer) noexcept
         {
             this->traits().setCurrentMainContainer(currentMainContainer);
