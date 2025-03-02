@@ -421,6 +421,8 @@ class HATN_DATAUNIT_EXPORT Unit
         friend struct visitors;
 };
 
+using UnitManaged = common::ManagedWrapper<Unit>;
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITBASE_H

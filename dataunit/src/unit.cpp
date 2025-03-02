@@ -208,13 +208,13 @@ bool Unit::parse(const char *data, size_t size, bool inlineBuffer)
 
 bool Unit::parse(WireData&,bool)
 {
-    // must be implemented in derived class
+    // failed for TYPE_DATAUNIT, actual parsing must be implemented in derived class
     return false;
 }
 
 bool Unit::parse(WireBufSolid&,bool)
 {
-    // must be implemented in derived class
+    // failed for TYPE_DATAUNIT, actual parsing must be implemented in derived class
     return false;
 }
 
@@ -388,8 +388,7 @@ void Unit::pushJsonParseHandler(const JsonParseHandler &handler)
 //---------------------------------------------------------------
 common::SharedPtr<Unit> Unit::createManagedUnit() const
 {
-    Assert(false,"A managed DataUnit can be created only by other managed unit");
-    return common::SharedPtr<Unit>();
+    return m_factory->createObject<UnitManaged>();
 }
 
 //---------------------------------------------------------------

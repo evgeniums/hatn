@@ -39,6 +39,8 @@
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/unit.h>
+#include <hatn/dataunit/fieldserialization.h>
 
 HATN_DATAUNIT_META_NAMESPACE_BEGIN
 
@@ -64,6 +66,22 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 struct HATN_DATAUNIT_EXPORT visitors
 {
+    template <typename BufferT>
+    static void appendFieldTag(BufferT& buf, int id, WireType type=WireType::WithLength, bool canChainBlocks=true)
+    {
+        uint32_t tag=static_cast<uint32_t>((id<<3)|static_cast<uint32_t>(type));
+        auto* buffer=buf.mainContainer();
+        bool storeTagToMeta=canChainBlocks && !buf.isSingleBuffer();
+        if (storeTagToMeta)
+        {
+            buf.appendUint32(tag);
+        }
+        else
+        {
+            buf.incSize(Stream<uint32_t>::packVarInt(buffer,tag));
+        }
+    }
+
     /**
      * @brief Serialize data unit without invokation of virtual methods.
      * @param obj Object to serialize.
@@ -129,17 +147,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                     // append tag to stream
                     if (!fieldT::fieldRepeatedUnpackedProtoBuf())
                     {
-                        constexpr uint32_t tag=static_cast<uint32_t>((fieldT::fieldId()<<3)|static_cast<uint32_t>(fieldT::fieldWireType()));
-                        auto* buffer=buf.mainContainer();
-                        bool storeTagToMeta=fieldT::fieldCanChainBlocks() && !buf.isSingleBuffer();
-                        if (storeTagToMeta)
-                        {
-                            buf.appendUint32(tag);
-                        }
-                        else
-                        {
-                            buf.incSize(Stream<uint32_t>::packVarInt(buffer,tag));
-                        }
+                        appendFieldTag(buf,fieldT::fieldId(),fieldT::fieldWireType(),fieldT::fieldCanChainBlocks());
                     }
 
                     if (!field.serialize(buf))
@@ -163,6 +171,18 @@ struct HATN_DATAUNIT_EXPORT visitors
                 return addedBytes;
             }
         );
+    }
+
+    template <typename UnitT, typename BufferT>
+    static int serializeAsSubunit(const UnitT& obj, BufferT& buf, int fieldId)
+    {
+        auto prevSize=buf.size();
+        appendFieldTag(buf,fieldId);
+        if (UnitSer::serialize(&obj,buf))
+        {
+            return buf.size()-prevSize;
+        }
+        return -1;
     }
 
     /**
@@ -606,5 +626,7 @@ using io=visitors;
 //---------------------------------------------------------------
 
 HATN_DATAUNIT_NAMESPACE_END
+
+#include <hatn/dataunit/ipp/fieldserialization.ipp>
 
 #endif // HATNDATAUNITVISITORS_H

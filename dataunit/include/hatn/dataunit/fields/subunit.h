@@ -119,15 +119,43 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return UnitSer::deserialize(value,wired);
         }
 
+        common::ByteArrayShared skippedNotParsedContent() const
+        {
+            return m_skippedNotParsedContent;
+        }
+
+        void keepContentInBufInsteadOfParsing(common::ByteArrayShared buf={}) noexcept
+        {
+            m_skippedNotParsedContent=std::move(buf);
+        }
+
         template <typename BufferT>
         bool deserialize(BufferT& wired, const AllocatorFactory* factory)
         {
-            this->fieldReset(true);
+            if (m_skippedNotParsedContent)
+            {
+                this->markSet(BytesSer<
+                    typename common::ByteArrayManaged,
+                    typename common::ByteArrayShared
+                    >
+                    ::
+                    deserialize(
+                        wired,
+                        m_skippedNotParsedContent.get(),
+                        m_skippedNotParsedContent,
+                        factory,
+                        -1,
+                        true
+                ));
+                return this->isSet();
+            }
+
             if (factory==nullptr)
             {
                 factory=this->unit()->factory();
             }
 
+            this->fieldClear();
             auto* value=mutableValue();
             io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
             this->markSet(this->deserialize(mutableValue(),wired,factory));
@@ -382,6 +410,10 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         void fieldClear()
         {
+            if (!this->mutableValue())
+            {
+                return;
+            }
             io::clear(*(this->mutableValue()));
         }
 
@@ -423,6 +455,8 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
     private:
 
         bool m_parseToSharedArrays;
+
+        common::ByteArrayShared m_skippedNotParsedContent;
 };
 
 template <>
