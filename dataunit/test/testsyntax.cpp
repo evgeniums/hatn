@@ -1442,7 +1442,6 @@ BOOST_FIXTURE_TEST_CASE(TestUnitCasting,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(ptr,unit1.get());
 }
 
-#if 1
 BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
 {
     auto factory=hatn::dataunit::AllocatorFactory::getDefault();
@@ -1490,7 +1489,6 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(levelCount,22);
     BOOST_CHECK_EQUAL(contentCount,5*count+10+20+30);
 }
-#endif
 
 BOOST_FIXTURE_TEST_CASE(TestFreeFactory,::hatn::test::MultiThreadFixture)
 {

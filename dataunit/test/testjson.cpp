@@ -727,6 +727,40 @@ BOOST_FIXTURE_TEST_CASE(TestDefaultFields,Env)
     BOOST_CHECK_EQUAL(json,jsonCheck);
 }
 
+BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
+{
+    auto factory=hatn::dataunit::AllocatorFactory::getDefault();
+    auto unit=factory->createObject<tree::managed>(factory);
+
+    auto unit1=factory->createObject<tree::managed>(factory);
+    auto unit2=factory->createObject<tree::managed>(factory);
+    auto unit3=factory->createObject<tree::managed>(factory);
+    auto unit4=factory->createObject<tree::managed>(factory);
+
+    unit2->field(tree::children).appendValues(2);
+    unit3->field(tree::children).appendValues(3);
+    unit4->field(tree::children).appendValues(4);
+
+    unit2->field(tree::f0).set(15);
+    unit3->field(tree::f0).set(25);
+    unit4->field(tree::f0).set(35);
+
+    unit->field(tree::children).appendValue(unit1);
+    unit->field(tree::children).appendValue(unit2);
+    unit->field(tree::children).appendValue(unit3);
+    unit->field(tree::children).appendValue(unit4);
+
+    auto json=unit->toString(PrettyFormat,MaxDecimalPlaces);
+#ifdef HATN_TEST_LOG_CONSOLE
+    std::cerr<<"JSON:"<<std::endl<<json<<std::endl;
+#endif
+
+    auto unitDeser=factory->createObject<tree::managed>(factory);
+    BOOST_REQUIRE(unitDeser->loadFromJSON(json));
+    auto jsonCheck=unitDeser->toString(PrettyFormat,MaxDecimalPlaces);
+    BOOST_CHECK_EQUAL(json,jsonCheck);
+}
+
 //! @todo Test Object ID, DateTime, Date, Time, DateRange
 
 BOOST_AUTO_TEST_SUITE_END()
