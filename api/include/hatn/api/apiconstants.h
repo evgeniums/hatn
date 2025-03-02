@@ -24,6 +24,7 @@
 
 HATN_API_NAMESPACE_BEGIN
 
+//! @todo move some constants to protocol.h
 constexpr const size_t ServiceNameLengthMax=16;
 constexpr const size_t MethodNameLengthMax=32;
 constexpr const size_t AuthProtocolNameLengthMax=8;
