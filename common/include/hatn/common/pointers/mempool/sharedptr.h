@@ -266,8 +266,14 @@ template <typename T> class SharedPtr<T,std::enable_if_t<std::is_base_of<Managed
 {
     public:
 
+        //! Default ctor
+        SharedPtr()
+        {
+            addRef();
+        }
+
         //! Ctor from object
-        explicit SharedPtr(T* obj=nullptr, ManagedObject* =nullptr, pmr::memory_resource* resource=nullptr):SharedPtrBase<T>(obj)
+        explicit SharedPtr(T* obj, ManagedObject* =nullptr, pmr::memory_resource* resource=nullptr):SharedPtrBase<T>(obj)
         {
             setDestructionParameters(resource);
             addRef();
@@ -430,9 +436,15 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
 {
     public:
 
+        //! Default ctor
+        SharedPtr() : SharedPtrBase<T>(nullptr),m(nullptr)
+        {
+            reset();
+        }
+
         //! Ctor from object
         explicit SharedPtr(
-                T* obj=nullptr,
+                T* obj,
                 ManagedObject* managed=nullptr,
                 pmr::memory_resource* memoryResource=nullptr
             ):SharedPtrBase<T>(nullptr),m(nullptr)
