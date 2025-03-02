@@ -72,7 +72,6 @@ class Client : public common::TaskSubcontext
     public:
 
         using Context=TaskContextT;
-        using Connection=typename RouterTraits::Connection;
 
         Client(
                 std::shared_ptr<ClientConfig> cfg,
@@ -188,7 +187,9 @@ class Client : public common::TaskSubcontext
         }
 
         void sendRequest(common::SharedPtr<ReqCtx> req);
-        void recvResponse(common::SharedPtr<ReqCtx> req, Connection* connection);
+
+        template <typename Connection>
+        void recvResponse(common::SharedPtr<ReqCtx> req, Connection connection);
 
         void refreshSession(common::SharedPtr<ReqCtx> req, common::SharedPtr<ResponseManaged> resp);
 

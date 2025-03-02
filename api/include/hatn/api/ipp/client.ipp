@@ -247,7 +247,7 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
         reqPtr->taskCtx,
         reqPtr->priority,
         reqPtr->spanBuiffers(),
-        [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec, Connection* connection)
+        [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec, auto connection)
         {
             HATN_CTX_SCOPE("apiclientsendcb")
 
@@ -286,7 +286,8 @@ void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::sendRequest(commo
 //---------------------------------------------------------------
 
 template <typename RouterTraits, typename SessionTraits, typename ContextT, typename RequestUnitT>
-void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection* connection)
+template <typename Connection>
+void Client<RouterTraits,SessionTraits,ContextT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
 {
     HATN_CTX_SCOPE("apiclientrecv")
 

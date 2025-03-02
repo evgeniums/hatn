@@ -27,6 +27,10 @@
 #define HATN_API_ERRORS(Do) \
     Do(ApiLibError,OK,_TR("OK")) \
     Do(ApiLibError,QUEUE_OVERFLOW,_TR("Too many requests in a queue")) \
+    Do(ApiLibError,CONNECTION_BUSY,_TR("Invalid operation on busy connection")) \
+    Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("Sending message size to big")) \
+    Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("Receivng message size to big")) \
+    Do(ApiLibError,CONNECTION_NOT_READY_RECV,_TR("Connection not ready to receive data")) \
 
 HATN_API_NAMESPACE_BEGIN
 

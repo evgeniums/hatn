@@ -3,6 +3,7 @@ PROJECT(hatnapi)
 SET (HEADERS
     include/hatn/api/api.h
     include/hatn/api/apiconstants.h
+    include/hatn/api/protocol.h
     include/hatn/api/apierror.h
     include/hatn/api/apierrorcodes.h
     include/hatn/api/connection.h
