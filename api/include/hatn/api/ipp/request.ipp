@@ -19,6 +19,8 @@
 #ifndef HATNAPICLIENTREQUEST_IPP
 #define HATNAPICLIENTREQUEST_IPP
 
+#include <hatn/api/apierror.h>
+#include <hatn/api/requestunit.h>
 #include <hatn/api/client/request.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -28,32 +30,36 @@ namespace client {
 //---------------------------------------------------------------
 
 template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-Error Request<SessionTraits,MessageT,RequestUnitT>::makeUnit(
+Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
         const Service& service,
         const Method& method,
         lib::string_view topic
     )
 {
-    //! @todo Implement
-    //! @todo Serialize to shared buffer and set it to request
-    return CommonError::NOT_IMPLEMENTED;
+    m_unit=m_factory->template createObject<RequestUnitT>();
+
+    auto& id=m_unit->field(request::id);
+    id.mutableValue()->generate();
+    m_unit->setFieldValue(request::service,service.name());
+    m_unit->setFieldValue(request::service,service.name());
+    m_unit->setFieldValue(request::service_version,service.version());
+    m_unit->setFieldValue(request::method,method.name());
+    if (!topic.empty())
+    {
+        m_unit->setFieldValue(request::topic,topic);
+    }
+
+    return serialize();
 }
 
 //---------------------------------------------------------------
 
 template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-void Request<SessionTraits,MessageT,RequestUnitT>::updateSession(
-        std::function<void (const Error&)> cb
-    )
-{
-    //! @todo Implement
-    cb(Error{CommonError::NOT_IMPLEMENTED});
-}
-
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
 void Request<SessionTraits,MessageT,RequestUnitT>::regenId()
 {
-    //! @todo Implement
+    auto& id=m_unit->field(request::id);
+    id.mutableValue()->generate();
+    return serialize();
 }
 
 //---------------------------------------------------------------
@@ -62,8 +68,22 @@ template <typename SessionTraits, typename MessageT, typename RequestUnitT>
 Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
     )
 {
-    //! @todo Implement
-    return CommonError::NOT_IMPLEMENTED;
+    auto ok=du::io::serialize(*m_unit,requestData);
+    if (!ok)
+    {
+        return apiError(ApiLibError::FAILED_SERIALIZE_REQUEST);
+    }
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+template <typename SessionTraits, typename MessageT, typename RequestUnitT>
+lib::string_view Request<SessionTraits,MessageT,RequestUnitT>::id() const noexcept
+{
+    auto& id=m_unit->field(request::id);;
+    return id.value();
 }
 
 //---------------------------------------------------------------

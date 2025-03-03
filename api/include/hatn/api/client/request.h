@@ -30,8 +30,10 @@
 #include <hatn/api/priority.h>
 #include <hatn/api/service.h>
 #include <hatn/api/method.h>
+#include <hatn/api/client/methodauth.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/responseunit.h>
+#include <hatn/api/message.h>
 #include <hatn/api/client/session.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -41,35 +43,28 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
-template <typename SessionTraits, typename MessageT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename SessionTraits, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
 struct Request
 {
     public:
 
-        using Message=MessageT;
+        using MessageType=Message<MessageBufT>;
 
         Request(
+                const common::pmr::AllocatorFactory* factory,
                 common::SharedPtr<Session<SessionTraits>> session,
-                common::SharedPtr<Message> message,
+                MessageType message,
+                MethodAuth methodAuth={},
                 Priority priority=Priority::Normal,
                 uint32_t timeoutMs=0
-            ) : m_session(std::move(session)),
+            ) : m_factory(factory),
+                m_session(std::move(session)),
                 m_message(std::move(message)),
                 m_priority(priority),
                 m_timeoutMs(timeoutMs),
                 m_pending(true),
-                m_cancelled(false)
-        {
-        }
-
-        Request(
-                common::SharedPtr<Message> message,
-                Priority priority=Priority::Normal,
-                uint32_t timeoutMs=0
-            ) : m_message(std::move(message)),
-                m_priority(priority),
-                m_timeoutMs(timeoutMs),
-                m_pending(true)
+                m_cancelled(false),
+                m_methodAuth(std::move(methodAuth))
         {
         }
 
@@ -113,29 +108,14 @@ struct Request
             return m_cancelled;
         }
 
-    private:
-
-        Error makeUnit(
-            const Service& service,
-            const Method& method,
-            lib::string_view topic={}
-        );
-
-        void updateSession(std::function<void (const Error&)> cb);
-
-        Error serialize();
-
-        void regenId();
+    protected:
 
         bool setNotPending() noexcept
         {
             m_pending=false;
         }
 
-        lib::string_view id() const noexcept
-        {
-            return m_unit->fieldValue(request::id);
-        }
+        lib::string_view id() const noexcept;
 
         common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
 
@@ -144,20 +124,38 @@ struct Request
             return m_session;
         }
 
-        common::SharedPtr<Message>& message()
+        const MessageType& message() const
         {
-            return m_session;
+            return m_message;
         }
 
+        const MethodAuth& methodAuth() const
+        {
+            return m_methodAuth;
+        }
+
+        const common::pmr::AllocatorFactory* m_factory;
+
         common::SharedPtr<Session<SessionTraits>> m_session;
-        common::SharedPtr<Message> m_message;
-        common::SharedPtr<RequestUnitT> m_unit;        
+        MessageType m_message;
+
+        Error serialize(
+            const Service& service,
+            const Method& method,
+            lib::string_view topic={}
+        );
+        Error serialize();
+        void regenId();
+        common::SharedPtr<RequestUnitT> m_unit;
 
         Priority m_priority;
         uint32_t m_timeoutMs;
 
         bool m_pending;
         bool m_cancelled;
+
+        MethodAuth m_methodAuth;        
+        du::WireBufSolidShared requestData;
 
         template <typename ...T>
         friend class Client;
@@ -174,10 +172,8 @@ class RequestContext : public RequestT,
                 common::Thread* thread,
                 const common::pmr::AllocatorFactory* factory,
                 Args&& ...args
-            ) : RequestT(std::forward<Args>(args)...),
-                m_factory(factory),
-                timer(thread),
-                requestData(factory),
+            ) : RequestT(factory,std::forward<Args>(args)...),
+                timer(thread),                
                 responseData(factory)
         {
             timer.setAutoAsyncGuardEnabled(false);
@@ -243,37 +239,48 @@ class RequestContext : public RequestT,
 
         common::SpanBuffers spanBuffers() const
         {
-            common::SpanBuffers bufs{m_factory->dataAllocator<common::SpanBuffer>()};
+            common::SpanBuffers bufs{this->m_factory->template dataAllocator<common::SpanBuffer>()};
             auto messageBufs=this->message()->buffers();
 
+            size_t extraCount=1;
             common::ByteArrayShared authHeader;
             if (this->sesion())
             {
                 authHeader=this->session()->authHeader();
+                if (authHeader)
+                {
+                    extraCount++;
+                }
             }
+            common::ByteArrayShared methodAuthHeader;
+            if (this->methodAuth())
+            {
+                methodAuthHeader=this->methodAuth()->authHeader();
+                if (authHeader)
+                {
+                    extraCount++;
+                }
+            }
+            bufs.reserve(extraCount+messageBufs.size());
 
             if (authHeader)
             {
-                bufs.reserve(1+1+messageBufs.size());
                 bufs.emplace_back(std::move(authHeader));
             }
-            else
+            if (methodAuthHeader)
             {
-                bufs.reserve(1+messageBufs.size());
+                bufs.emplace_back(std::move(methodAuthHeader));
             }
 
-            bufs.emplace_back(requestData.sharedMainContainer());
+            bufs.emplace_back(this->requestData.sharedMainContainer());
             bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
             return bufs;
-        }
-
-        const common::pmr::AllocatorFactory* m_factory;
+        }        
 
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
-        du::WireBufSolidShared requestData;
         du::WireBufSolidShared responseData;
 
         template <typename ...T>

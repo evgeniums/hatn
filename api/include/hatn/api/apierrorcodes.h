@@ -31,6 +31,7 @@
     Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("Sending message size to big")) \
     Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("Receivng message size to big")) \
     Do(ApiLibError,CONNECTION_NOT_READY_RECV,_TR("Connection not ready to receive data")) \
+    Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("Failed to serialize request")) \
 
 HATN_API_NAMESPACE_BEGIN
 

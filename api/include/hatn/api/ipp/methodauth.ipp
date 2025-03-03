@@ -10,21 +10,19 @@
 /*
 
 */
-/** @file api/ipp/session.ipp
+/** @file api/ipp/methodauth.ipp
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPICLIENTREQUEST_IPP
-#define HATNAPICLIENTREQUEST_IPP
+#ifndef HATNAPIAUTH_IPP
+#define HATNAPIAUTH_IPP
 
-#include <hatn/dataunit/wirebufsolid.h>
-#include <hatn/dataunit/visitors.h>
-
-#include <hatn/api/authunit.h>
 #include <hatn/api/requestunit.h>
-#include <hatn/api/client/session.h>
+
+#include <hatn/api/methodauth.h>
+#include <hatn/api/ipp/auth.ipp>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -33,17 +31,17 @@ namespace client {
 //---------------------------------------------------------------
 
 template <typename UnitT>
-Error SessionAuth::serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
+Error MethodAuth::serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
                                        const common::pmr::AllocatorFactory* factory
                                        )
 {
-    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),request::session_auth.id(),factory);
+    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),request::method_auth.id(),factory);
+}
+
 }
 
 //---------------------------------------------------------------
 
-} // namespace client
-
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPICLIENTREQUEST_IPP
+#endif // HATNAPIAUTH_IPP

@@ -53,12 +53,13 @@ class ClientConfig : public base::ConfigObject<config::type>
     public:
 };
 
-template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename MessageT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
 class Client : public common::TaskSubcontext
 {
     public:
 
-        using Req=Request<SessionTraits,MessageT,RequestUnitT>;
+        using Req=Request<SessionTraits,MessageBufT,RequestUnitT>;
+        using MessageType=typename Req::MessageType;
         using ReqCtx=RequestContext<Req,TaskContextT>;
 
     private:
@@ -111,41 +112,45 @@ class Client : public common::TaskSubcontext
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
-            common::SharedPtr<MessageT> message,
+            MessageType message,
             RequestCb<Context> callback,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
-            uint32_t timeoutMs=0
+            uint32_t timeoutMs=0,
+            MethodAuth methodAuth={}
         );
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
-            common::SharedPtr<MessageT> message
+            MessageType message,
+            MethodAuth methodAuth={}
         );
 
         Error exec(
             common::SharedPtr<Context> ctx,
             const Service& service,
             const Method& method,
-            common::SharedPtr<MessageT> message,
+            MessageType message,
             RequestCb<Context> callback,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
-            uint32_t timeoutMs=0
+            uint32_t timeoutMs=0,
+            MethodAuth methodAuth={}
         )
         {
-            return exec(std::move(ctx),{},service,method,std::move(message),std::move(callback),topic,priority,timeoutMs);
+            return exec(std::move(ctx),{},service,method,std::move(message),std::move(callback),topic,priority,timeoutMs,std::move(methodAuth));
         }
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             const Service& service,
             const Method& method,
-            common::SharedPtr<MessageT> message
+            MessageType message,
+            MethodAuth methodAuth={}
         )
         {
-            return prepare({},service,method,std::move(message));
+            return prepare({},service,method,std::move(message),std::move(methodAuth));
         }
 
         void exec(

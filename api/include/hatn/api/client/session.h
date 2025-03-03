@@ -31,12 +31,22 @@
 #include <hatn/dataunit/objectid.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/authunit.h>
+#include <hatn/api/auth.h>
 #include <hatn/api/responseunit.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace client {
+
+class SessionAuth : public Auth
+{
+public:
+
+    template <typename UnitT>
+    Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
+                              const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                              );
+};
 
 using SessionId=du::ObjectId::String;
 
@@ -45,7 +55,8 @@ using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, const commo
 
 template <typename Traits>
 class Session : public common::WithTraits<Traits>,
-                public common::TaskSubcontext
+                public common::TaskSubcontext,
+                public SessionAuth
 {
     public:
 
@@ -159,19 +170,6 @@ class Session : public common::WithTraits<Traits>,
             );
         }
 
-        auto authHeader() const
-        {
-            return m_authHeader;
-        }
-
-        void resetAuthHeader()
-        {
-            m_authHeader->reset();
-        }
-
-        template <typename UnitT>
-        Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content);
-
     private:
 
         void init()
@@ -184,9 +182,7 @@ class Session : public common::WithTraits<Traits>,
         SessionId m_id;
         bool m_valid;
         bool m_refreshing;
-        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;
-
-        common::ByteArrayShared m_authHeader;
+        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;        
 };
 
 } // namespace client

@@ -10,32 +10,24 @@
 /*
 
 */
-/** @file api/authunit.h
+/** @file api/auth.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPIAUTHUNIT_H
-#define HATNAPIAUTHUNIT_H
+#ifndef HATNAPIAUTH_H
+#define HATNAPIAUTH_H
 
-#include <hatn/dataunit/syntax.h>
+#include <hatn/common/error.h>
+#include <hatn/common/bytearray.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apiconstants.h>
-#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-HDU_UNIT(auth,
-    HDU_FIELD(protocol,HDU_TYPE_FIXED_STRING(AuthProtocolNameLengthMax),1)
-    HDU_FIELD(version,TYPE_UINT8,2,false,1)
-    HDU_FIELD(content,TYPE_DATAUNIT,3)
-)
-
-using AuthManaged=auth::managed;
-
-class WithAuth
+class Auth
 {
     public:
 
@@ -51,8 +43,9 @@ class WithAuth
 
         template <typename UnitT>
         Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
+                                  int fieldId,
                                   const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-                                );
+                                  );
 
     private:
 
@@ -61,4 +54,4 @@ class WithAuth
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIAUTHUNIT_H
+#endif // HATNAPIAUTH_H
