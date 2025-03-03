@@ -146,7 +146,7 @@ int Unit::serialize(WireData&, bool) const
     return -1;
 }
 
-#if 0
+#if 1
 //---------------------------------------------------------------
 int Unit::serialize(WireBufSolid&, bool) const
 {
@@ -218,13 +218,17 @@ bool Unit::parse(WireBufSolid&,bool)
     return false;
 }
 
-#if 0
 bool Unit::parse(WireBufSolidShared&,bool)
 {
-    // must be implemented in derived class
+    // failed for TYPE_DATAUNIT, actual parsing must be implemented in derived class
     return false;
 }
-#endif
+
+bool Unit::parse(WireBufChained&,bool)
+{
+    // failed for TYPE_DATAUNIT, actual parsing must be implemented in derived class
+    return false;
+}
 
 template <typename T> using JsonWriter=json::WriterTmpl<
 rapidjson::Writer<RapidJsonBufStream<T>>,RapidJsonBufStream<T>

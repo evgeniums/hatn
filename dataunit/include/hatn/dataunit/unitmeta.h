@@ -626,7 +626,7 @@ class unit_t : public BaseT
             }
 
             virtual int serialize(WireData& wired,bool topLevel=true) const override;
-#if 0
+#if 1
             // Maybe implement virtual serialization
             virtual int serialize(WireBufSolid& wired,bool topLevel=true) const override;
             virtual int serialize(WireBufSolidShared& wired,bool topLevel=true) const override;
@@ -634,6 +634,8 @@ class unit_t : public BaseT
 #endif
             virtual bool parse(WireData& wired,bool topLevel=true) override;
             virtual bool parse(WireBufSolid& wired,bool topLevel=true) override;
+            virtual bool parse(WireBufSolidShared& wired,bool topLevel=true) override;
+            virtual bool parse(WireBufChained& wired,bool topLevel=true) override;
 
             virtual void clear() override;
             virtual void reset(bool onlyNonClean=false) override;

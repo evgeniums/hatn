@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestSerDeser)
     BOOST_REQUIRE_GT(packedSize,0);
 
     // fill and serialize obj1 without subunit
-    HATN_DATAUNIT_NAMESPACE::WireDataSingle wbuf2;
+    HATN_DATAUNIT_NAMESPACE::WireBufSolid wbuf2;
     with_dynamic_subunit::type obj1;
     obj1.setFieldValue(with_dynamic_subunit::field1,100);
     packedSize=HATN_DATAUNIT_NAMESPACE::io::serialize(obj1,wbuf2);

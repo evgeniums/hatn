@@ -125,6 +125,16 @@ class HATN_DATAUNIT_EXPORT Unit
             bool topLevel=true
         );
 
+        virtual bool parse(
+            WireBufSolidShared& wired,
+            bool topLevel=true
+        );
+
+        virtual bool parse(
+            WireBufChained& wired,
+            bool topLevel=true
+        );
+
         /**
          * @brief Serialize DataUnit to wired data unit
          * @param wired Control structure
@@ -136,13 +146,8 @@ class HATN_DATAUNIT_EXPORT Unit
             bool topLevel=true
         ) const;
 
-#if 0
+#if 1
         //! @todo Maybe implement later
-
-        virtual bool parse(
-            WireBufSolidShared& wired,
-            bool topLevel=true
-        );
 
         virtual int serialize(
             WireBufSolid& wired,

@@ -108,7 +108,7 @@ int unit_t<BaseT,UniqueType>::serialize(WireData& wired,bool topLevel) const
     return io::serialize(*this,wired,topLevel);
 }
 
-#if 0
+#if 1
 template <typename BaseT, typename UniqueType>
 int unit_t<BaseT,UniqueType>::serialize(WireBufSolid& wired,bool topLevel) const
 {
@@ -136,6 +136,18 @@ bool unit_t<BaseT,UniqueType>::parse(WireData& wired,bool topLevel)
 
 template <typename BaseT, typename UniqueType>
 bool unit_t<BaseT,UniqueType>::parse(WireBufSolid& wired,bool topLevel)
+{
+    return io::deserialize(*this,wired,topLevel);
+}
+
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::parse(WireBufSolidShared& wired,bool topLevel)
+{
+    return io::deserialize(*this,wired,topLevel);
+}
+
+template <typename BaseT, typename UniqueType>
+bool unit_t<BaseT,UniqueType>::parse(WireBufChained& wired,bool topLevel)
 {
     return io::deserialize(*this,wired,topLevel);
 }
