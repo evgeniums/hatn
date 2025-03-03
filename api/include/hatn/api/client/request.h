@@ -172,9 +172,10 @@ class RequestContext : public RequestT,
         template <typename ...Args>
         RequestContext(
                 common::Thread* thread,
-                common::pmr::AllocatorFactory* factory,
+                const common::pmr::AllocatorFactory* factory,
                 Args&& ...args
             ) : RequestT(std::forward<Args>(args)...),
+                m_factory(factory),
                 timer(thread),
                 requestData(factory),
                 responseData(factory)
@@ -242,18 +243,37 @@ class RequestContext : public RequestT,
 
         common::SpanBuffers spanBuffers() const
         {
-            auto bufs=requestData.buffers();
-            auto appendBufs=this->message()->buffers();
-            bufs.reserve(bufs.size()+appendBufs.size());
-            bufs.insert(bufs.end(), appendBufs.begin(), appendBufs.end());
+            common::SpanBuffers bufs{m_factory->dataAllocator<common::SpanBuffer>()};
+            auto messageBufs=this->message()->buffers();
+
+            common::ByteArrayShared authHeader;
+            if (this->sesion())
+            {
+                authHeader=this->session()->authHeader();
+            }
+
+            if (authHeader)
+            {
+                bufs.reserve(1+1+messageBufs.size());
+                bufs.emplace_back(std::move(authHeader));
+            }
+            else
+            {
+                bufs.reserve(1+messageBufs.size());
+            }
+
+            bufs.emplace_back(requestData.sharedMainContainer());
+            bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
             return bufs;
         }
+
+        const common::pmr::AllocatorFactory* m_factory;
 
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
-        du::WireDataChained requestData;
+        du::WireBufSolidShared requestData;
         du::WireBufSolidShared responseData;
 
         template <typename ...T>

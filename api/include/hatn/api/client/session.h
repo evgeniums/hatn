@@ -26,6 +26,7 @@
 #include <hatn/common/error.h>
 #include <hatn/common/taskcontext.h>
 #include <hatn/common/flatmap.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/dataunit/objectid.h>
 
@@ -40,7 +41,7 @@ namespace client {
 using SessionId=du::ObjectId::String;
 
 template <typename ContextT>
-using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, common::SharedPtr<AuthManaged> auth, const common::Error&)>;
+using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, const common::Error&)>;
 
 template <typename Traits>
 class Session : public common::WithTraits<Traits>,
@@ -53,6 +54,7 @@ class Session : public common::WithTraits<Traits>,
         template <typename ...TraitsArgs>
         Session(TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
               m_id(du::ObjectId::generateIdStr()),
               m_valid(false)
         {
@@ -64,6 +66,7 @@ class Session : public common::WithTraits<Traits>,
             lib::string_view id,
             TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
               m_id(id),
               m_valid(false)
         {
@@ -75,6 +78,7 @@ class Session : public common::WithTraits<Traits>,
             const std::string& id,
             TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
               m_id(id),
               m_valid(false)
         {
@@ -83,13 +87,14 @@ class Session : public common::WithTraits<Traits>,
 
         using common::WithTraits<Traits>::WithTraits;
 
-        template <typename ContextT>
-        void getCurrentAuth(
-                common::SharedPtr<ContextT> ctx,
-                SessionCb<ContextT> cb
-            )
+        void setAllocatroFactory(const common::pmr::AllocatorFactory* factory) noexcept
         {
-            this->traits().getCurrentAuth(std::move(ctx),std::move(cb));
+            m_allocatorFactory=factory;
+        }
+
+        const common::pmr::AllocatorFactory* allocatorFactory() const noexcept
+        {
+            return m_allocatorFactory;
         }
 
         void setId(lib::string_view id) noexcept
@@ -139,6 +144,10 @@ class Session : public common::WithTraits<Traits>,
                 {
                     setRefreshing(false);
                     setValid(!ec);
+                    if (ec)
+                    {
+                        resetAuthHeader();
+                    }
 
                     for (auto&& it: m_callbacks)
                     {
@@ -150,6 +159,19 @@ class Session : public common::WithTraits<Traits>,
             );
         }
 
+        auto authHeader() const
+        {
+            return m_authHeader;
+        }
+
+        void resetAuthHeader()
+        {
+            m_authHeader->reset();
+        }
+
+        template <typename UnitT>
+        Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content);
+
     private:
 
         void init()
@@ -157,10 +179,14 @@ class Session : public common::WithTraits<Traits>,
             m_callbacks.reserve(DefaultSessionCallbacksCapacity);
         }
 
+        const common::pmr::AllocatorFactory* m_allocatorFactory;
+
         SessionId m_id;
         bool m_valid;
         bool m_refreshing;
         std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;
+
+        common::ByteArrayShared m_authHeader;
 };
 
 } // namespace client

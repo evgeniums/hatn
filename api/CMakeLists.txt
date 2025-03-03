@@ -41,6 +41,7 @@ SET (HEADERS
 SET (IPP_HEADERS
     include/hatn/api/ipp/request.ipp
     include/hatn/api/ipp/client.ipp
+    include/hatn/api/ipp/session.ipp
 )
 
 SET (HEADERS
