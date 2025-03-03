@@ -28,6 +28,7 @@ SET (HEADERS
     include/hatn/api/client/iphostresolver.h
     include/hatn/api/client/tcpclient.h
     include/hatn/api/client/plaintcpconnection.h
+    include/hatn/api/client/plaintcprouter.h
     include/hatn/api/client/request.h
     include/hatn/api/client/session.h
     include/hatn/api/client/methodauth.h

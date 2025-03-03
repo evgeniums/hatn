@@ -25,6 +25,8 @@
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/result.h>
+#include <hatn/common/allocatoronstack.h>
+#include <hatn/common/format.h>
 
 #include <hatn/dataunit/wirebufsolid.h>
 
@@ -40,6 +42,8 @@ HATN_API_NAMESPACE_BEGIN
 template <typename RouterTraits>
 class ConnectionPool
 {
+    //! @todo Move definitions to ipp
+
     using Connection=typename RouterTraits::Connection;
     using RouterConnectionCtx=typename RouterTraits::ConnectionContext;
 
@@ -85,7 +89,8 @@ class ConnectionPool
                 m_maxMessageSize(protocol::DEFAULT_MAX_MESSAGE_SIZE),
                 m_defaultConnection(common::allocateShared(factory->objectAllocator<ConnectionContext>())),
                 m_thread(thread),
-                m_autoReconnect(true)
+                m_autoReconnect(true),
+                m_totalConnectionCount(0)
         {
             handlePriorities(
                 [this](Priority priority)
@@ -305,27 +310,32 @@ class ConnectionPool
             std::function<void (const Error& ec)> cb
         )
         {
-            if (m_defaultConnection->state==ConnectionContext::State::Busy)
-            {
-                cb(apiError(ApiLibError::CONNECTION_BUSY));
-                return;
-            }
-
-            m_defaultConnection->state=ConnectionContext::State::Busy;
-            auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, RouterConnectionCtx connectionCtx)
-            {
-                if (ec)
+            m_thread->execAsync(
+                [this,ctx{std::move(ctx)},cb{std::move(cb)}]()
                 {
-                    m_defaultConnection->state=ConnectionContext::State::Disconnected;
-                    cb(ec);
-                    return;
-                }
+                    if (m_defaultConnection->state==ConnectionContext::State::Busy)
+                    {
+                        cb(apiError(ApiLibError::CONNECTION_BUSY));
+                        return;
+                    }
 
-                m_defaultConnection->ctx=std::move(connectionCtx);
-                m_defaultConnection->state=ConnectionContext::State::Ready;
-                cb(Error{});
-            };
-            makeConnection(ctx,makeCb);
+                    m_defaultConnection->state=ConnectionContext::State::Busy;
+                    auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, RouterConnectionCtx connectionCtx)
+                    {
+                        if (ec)
+                        {
+                            m_defaultConnection->state=ConnectionContext::State::Disconnected;
+                            cb(ec);
+                            return;
+                        }
+
+                        m_defaultConnection->ctx=std::move(connectionCtx);
+                        m_defaultConnection->state=ConnectionContext::State::Ready;
+                        cb(Error{});
+                    };
+                    makeConnection(ctx,makeCb,true);
+                }
+            );
         }
 
         template <typename ContextT>
@@ -348,6 +358,16 @@ class ConnectionPool
             {
                 closeNextPriority(std::move(ctx),std::move(callback));
             }
+        }
+
+        void setName(lib::string_view name)
+        {
+            m_name=name;
+        }
+
+        const std::string& name() const noexcept
+        {
+            return m_name;m_name;
         }
 
     private:
@@ -439,7 +459,9 @@ class ConnectionPool
         template <typename ContextT>
         void makeConnection(
             common::SharedPtr<ContextT> ctx,
-            std::function<void (const Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)> cb
+            std::function<void (const Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)> cb,
+            bool defaultConnection=false,
+            Priority priority=Priority::Normal
             )
         {
             auto makeCb=[this,ctx,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
@@ -459,7 +481,17 @@ class ConnectionPool
                 };
                 connection.connect(std::move(connectCb));
             };
-            m_router->makeConnection(ctx,makeCb);
+            common::StringOnStack name;
+            ++m_totalConnectionCount;
+            if (defaultConnection)
+            {
+                fmt::format_to(std::back_inserter(name),"{}_default",m_name);
+            }
+            else
+            {
+                fmt::format_to(std::back_inserter(name),"{}_{}_{}",m_name,priorityName(priority),++m_totalConnectionCount);
+            }
+            m_router->makeConnection(ctx,makeCb,name);
         }
 
         template <typename ContextT>
@@ -588,6 +620,9 @@ class ConnectionPool
         ConnectionCtxShared m_defaultConnection;
         common::Thread* m_thread;
         bool m_autoReconnect;
+
+        std::string m_name;
+        size_t m_totalConnectionCount;
 };
 
 HATN_API_NAMESPACE_END

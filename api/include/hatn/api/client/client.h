@@ -170,6 +170,15 @@ class Client : public common::TaskSubcontext
             bool callbackRequests
         );
 
+        void setName(lib::string_view name)
+        {
+            if (name.empty())
+            {
+                name=this->mainCtx().name();
+            }
+            m_connectionPool.setName(name);
+        }
+
     private:
 
         void doExec(

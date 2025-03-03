@@ -51,6 +51,19 @@ void handlePriorities(const EachT& each, const InitT& init={})
     each(Priority::Highest);
 }
 
+inline const char* priorityName(Priority priority)
+{
+    switch(priority)
+    {
+        case(Priority::Normal): return "normal";break;
+        case(Priority::Highest): return "highest";break;
+        case(Priority::High): return "highl";break;
+        case(Priority::Low): return "lowl";break;
+        case(Priority::Lowest): return "lowest";break;
+    }
+    return "";
+}
+
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPIPRIORITY_H

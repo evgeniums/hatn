@@ -42,10 +42,11 @@ class Router : public common::WithTraits<Traits>
         template <typename ContextT>
         void makeConnection(
                 common::SharedPtr<ContextT> ctx,
-                RouterCallbackFn<ConnectionContext> callback
+                RouterCallbackFn<ConnectionContext> callback,
+                lib::string_view name={}
             )
         {
-            this->traits().makeConnection(std::move(ctx),std::move(callback));
+            this->traits().makeConnection(std::move(ctx),std::move(callback),name);
         }
 };
 
