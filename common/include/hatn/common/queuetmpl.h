@@ -113,9 +113,33 @@ class QueueTmpl : public WithTraits<Traits>
         ~QueueTmpl()=default;
 
         QueueTmpl(const QueueTmpl&)=delete;
-        QueueTmpl(QueueTmpl&&) =default;
         QueueTmpl& operator=(const QueueTmpl&)=delete;
-        QueueTmpl& operator=(QueueTmpl&&) =default;
+
+        QueueTmpl(QueueTmpl&& other) : WithTraits<Traits>(std::move(other.m_traits), this),
+            m_postingRefCount(other.m_postingRefCount.load()),
+            m_enableStats(other.m_enableStats),
+            m_allocator(other.m_allocator.resource())
+        {
+            other.m_postingRefCount.store(0);
+            other.m_enableStats=false;
+        }
+
+        QueueTmpl& operator=(QueueTmpl&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            this->m_traits=std::move(other.m_traits);
+
+            m_postingRefCount.store(other.m_postingRefCount.load());
+            other.m_postingRefCount.store(0);
+            m_enableStats=other.m_enableStats;
+            other.m_enableStats=false;
+
+            return *this;
+        }
 
         /**
          * @brief Add data to the queue

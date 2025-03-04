@@ -72,6 +72,42 @@ class SimpleQueueTraits
             doClear();
         }
 
+        SimpleQueueTraits(const SimpleQueueTraits&)=delete;
+
+        SimpleQueueTraits(SimpleQueueTraits&& other, Queue* queue)
+            : m_first(other.m_first),
+              m_last(other.m_last),
+              m_size(other.m_size),
+              m_stats(std::move(other.m_stats)),
+              m_queue(queue)
+        {
+            other.m_first=nullptr;
+            other.m_last=nullptr;
+            other.m_size=0;
+        }
+
+        SimpleQueueTraits& operator=(SimpleQueueTraits&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_first=other.m_first;
+            m_last=other.m_last;
+            m_size=other.m_size;
+            m_stats=std::move(other.m_stats);
+
+            other.m_first=nullptr;
+            other.m_last=nullptr;
+            other.m_size=0;
+
+            return *this;
+        }
+
+        SimpleQueueTraits& operator=(const SimpleQueueTraits&)=delete;
+
+
         //! Push item to queue
         void pushInternalItem(Item* item) noexcept
         {
@@ -209,7 +245,7 @@ class SimpleQueueTraits
         {
             m_stats.minSize=std::min(m_stats.minSize,m_size);
             m_stats.maxSize=std::max(m_stats.maxSize,m_size);
-        }        
+        }
 
         Item* m_first;
         Item* m_last;
