@@ -17,7 +17,9 @@ SET (HEADERS
     include/hatn/api/typealiases.h
     include/hatn/api/router.h
     include/hatn/api/message.h
-    include/hatn/api/auth.h    
+    include/hatn/api/auth.h
+    include/hatn/api/tenancy.h
+    include/hatn/api/withnameandversion.h
 )
 
 SET (HEADERS
@@ -40,6 +42,12 @@ SET (HEADERS
     include/hatn/api/server/dispatcher.h
     include/hatn/api/server/tcpserver.h
     include/hatn/api/server/plaintcpserver.h
+    include/hatn/api/server/request.h
+    include/hatn/api/server/response.h
+    include/hatn/api/server/servicerouter.h
+    include/hatn/api/server/topicrouter.h
+    include/hatn/api/server/server.h
+    include/hatn/api/server/env.h
 )
 
 SET (IPP_HEADERS

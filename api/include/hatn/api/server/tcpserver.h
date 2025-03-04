@@ -20,6 +20,7 @@
 #define HATNAPITCPSERVER_H
 
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/network/asio/tcpserver.h>
 
@@ -48,7 +49,7 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
             common::Thread* thread,
             TraitsArgs&& ...traitsArgs
         ) : Base(thread,config),
-            common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...)
+            common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
         template <typename ...TraitsArgs>
@@ -57,12 +58,22 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
             common::Thread* thread,
             TraitsArgs&& ...traitsArgs
         ) : Base(thread),
-            common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...)
+            common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
         void setConnectionHandler(ConnectionHandler handler)
         {
             handleNewConnection=std::move(handler);
+        }
+
+        void setAllocatorFactory(const common::pmr::AllocatorFactory* factory) noexcept
+        {
+            m_allocatorFactory=factory;
+        }
+
+        const common::pmr::AllocatorFactory* allocatorFactory() const noexcept
+        {
+            return m_allocatorFactory;
         }
 
         template <typename ServerContextT>
@@ -89,6 +100,14 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
             return this->traits().makeContext(std::move(ctx));
         }
 
+        template <typename ServerContextT>
+        auto allocateContext(
+            common::SharedPtr<ServerContextT> ctx
+            )
+        {
+            return this->traits().allocateContext(m_allocatorFactory->objectAllocator<ConnectionContext>(),std::move(ctx));
+        }
+
         HATN_NETWORK_NAMESPACE::asio::TcpSocket& connectionSocket(common::SharedPtr<ConnectionContext>& ctx)
         {
             return this->traits().connectionSocket(ctx);
@@ -103,7 +122,7 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
             common::SharedPtr<ServerContextT> serverCtx
             )
         {
-            auto connectionCtx=makeContext(serverCtx);
+            auto connectionCtx=allocateContext(serverCtx);
             auto cb=[connectionCtx,serverCtx{std::move(serverCtx)},this](const Error& ec)
             {
                 if (ec)
@@ -127,6 +146,8 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
             };
             this->accept(connectionSocket(connectionCtx),std::move(cb));
         }
+
+        const common::pmr::AllocatorFactory* m_allocatorFactory=common::pmr::AllocatorFactory::getDefault();
 };
 
 }

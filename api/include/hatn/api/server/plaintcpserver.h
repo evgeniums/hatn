@@ -23,6 +23,8 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/connection.h>
+#include <hatn/api/tenancy.h>
+#include <hatn/api/server/env.h>
 #include <hatn/api/server/tcpserver.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -31,13 +33,25 @@ namespace server
 {
 
 using PlainTcpConnection=Connection<HATN_NETWORK_NAMESPACE::asio::TcpStream>;
-using PlainTcpConnectionContext=common::TaskContextType<HATN_NETWORK_NAMESPACE::asio::TcpStream,PlainTcpConnection,HATN_LOGCONTEXT_NAMESPACE::Context>;
 
+template <typename EnvT=SimpleEnv>
+using PlainTcpConnectionContextT=common::TaskContextType<HATN_NETWORK_NAMESPACE::asio::TcpStream,
+                                                          PlainTcpConnection,
+                                                          EnvT,
+                                                          HATN_LOGCONTEXT_NAMESPACE::Context
+                                                          >;
+using PlainTcpConnectionContext=PlainTcpConnectionContextT<>;
+
+template <typename EnvT=SimpleEnv>
 class PlainTcpConnectionTraits
 {
     public:
 
-        using ConnectionContext=PlainTcpConnectionContext;
+        PlainTcpConnectionTraits(TcpServer<PlainTcpConnectionTraits<EnvT>>*)
+        {}
+
+        using Env=EnvT;
+        using ConnectionContext=PlainTcpConnectionContextT<Env>;
 
         template <typename ServerContextT>
         auto makeContext(
@@ -45,9 +59,10 @@ class PlainTcpConnectionTraits
             ) const
         {
             auto& server=ctx->template get<TcpServer<PlainTcpConnectionTraits>>();
-            auto connectionCtx=common::makeTaskContextType<PlainTcpConnectionContext>(
+            auto connectionCtx=common::makeTaskContextType<PlainTcpConnectionContextT<Env>>(
                 common::subcontexts(
                     common::subcontext(server.thread()),
+                    common::subcontext(),
                     common::subcontext(),
                     common::subcontext()
                 )
@@ -58,16 +73,43 @@ class PlainTcpConnectionTraits
             return connectionCtx;
         }
 
-        //! @todo Implement allocate plain tcp context
-
-        HATN_NETWORK_NAMESPACE::asio::TcpSocket& connectionSocket(common::SharedPtr<ConnectionContext>& ctx) const
+        template <typename ServerContextT>
+        auto allocateContext(
+            const common::pmr::polymorphic_allocator<PlainTcpConnectionContextT<Env>>& allocator,
+            common::SharedPtr<ServerContextT> ctx
+            ) const
         {
-            auto& tcpStream=ctx->get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
+            auto& server=ctx->template get<TcpServer<PlainTcpConnectionTraits>>();
+            auto connectionCtx=common::allocateTaskContextType<PlainTcpConnectionContextT<Env>>(
+                allocator,
+                common::subcontexts(
+                    common::subcontext(server.thread()),
+                    common::subcontext(),
+                    common::subcontext(),
+                    common::subcontext()
+                    )
+                );
+            auto& tcpStream=connectionCtx->template get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
+            auto& connection=connectionCtx->template get<PlainTcpConnection>();
+            connection.setStreams(&tcpStream);
+            return connectionCtx;
+        }
+
+        static HATN_NETWORK_NAMESPACE::asio::TcpSocket& connectionSocket(common::SharedPtr<ConnectionContext>& ctx)
+        {
+            auto& tcpStream=ctx->template get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
             return tcpStream.socket();
         }
-};
 
-using PlainTcpServer=TcpServer<PlainTcpConnectionTraits>;
+        static auto& env(common::SharedPtr<ConnectionContext>& ctx)
+        {
+            return ctx->template get<Env>();
+        }
+};
+template <typename Env=SimpleEnv>
+using PlainTcpServerT=TcpServer<PlainTcpConnectionTraits<Env>>;
+
+using PlainTcpServer=PlainTcpServerT<>;
 
 inline auto makePlainTcpServerContext(HATN_COMMON_NAMESPACE::Thread* thread, lib::string_view name={})
 {
@@ -97,7 +139,34 @@ inline auto makePlainTcpServerContext(const HATN_NETWORK_NAMESPACE::asio::TcpSer
         );
 }
 
-//! @todo Implement allocate plain tcp server context
+using PlainTcpServerContext=HATN_COMMON_NAMESPACE::TaskContextType<
+    HATN_API_NAMESPACE::server::PlainTcpServer,
+    HATN_LOGCONTEXT_NAMESPACE::Context
+    >;
+
+inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocator<PlainTcpServerContext>& allocator, HATN_COMMON_NAMESPACE::Thread* thread, lib::string_view name={})
+{
+    return HATN_COMMON_NAMESPACE::allocateTaskContextType<PlainTcpServerContext>(
+        allocator,
+        HATN_COMMON_NAMESPACE::subcontexts(
+            HATN_COMMON_NAMESPACE::subcontext(thread),
+            HATN_COMMON_NAMESPACE::subcontext()
+            ),
+        name
+        );
+}
+
+inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocator<PlainTcpServerContext>& allocator, const HATN_NETWORK_NAMESPACE::asio::TcpServerConfig* config, HATN_COMMON_NAMESPACE::Thread* thread, lib::string_view name={})
+{
+    return HATN_COMMON_NAMESPACE::allocateTaskContextType<PlainTcpServerContext>(
+        allocator,
+        HATN_COMMON_NAMESPACE::subcontexts(
+            HATN_COMMON_NAMESPACE::subcontext(config,thread),
+            HATN_COMMON_NAMESPACE::subcontext()
+            ),
+        name
+        );
+}
 
 }
 

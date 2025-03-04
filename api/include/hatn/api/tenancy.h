@@ -20,7 +20,6 @@
 #define HATNAPITENANCY_H
 
 #include <hatn/common/allocatoronstack.h>
-#include <hatn/common/taskcontext.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/apiconstants.h>
@@ -64,7 +63,7 @@ class Tenancy
                 ctx.template hasSubcontext<Tenancy>(),
                 [&](auto _)
                 {
-                    return ctx.template get<Tenancy>();
+                    return _(ctx).template get<Tenancy>();
                 },
                 []()
                 {
@@ -77,6 +76,31 @@ class Tenancy
 
         common::StringOnStackT<TenancyIdLengthMax> m_tenancyId;
         common::StringOnStack m_tenancyName;
+};
+
+template <typename TenancyT=Tenancy>
+class WithTenancy
+{
+    public:
+
+        void setTenancy(common::SharedPtr<TenancyT> tenancy)
+        {
+            m_tenancy=std::move(tenancy);
+        }
+
+        common::SharedPtr<TenancyT> tenancyShared() const noexcept
+        {
+            return m_tenancy;
+        }
+
+        TenancyT* tenancy() const noexcept
+        {
+            return m_tenancy.get();
+        }
+
+    private:
+
+        common::SharedPtr<TenancyT> m_tenancy;
 };
 
 HATN_API_NAMESPACE_END
