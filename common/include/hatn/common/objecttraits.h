@@ -171,8 +171,6 @@ protected:
         return m_traits;
     }
 
-private:
-
     Traits m_traits;
 };
 
