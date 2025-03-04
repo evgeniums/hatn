@@ -124,7 +124,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return m_skippedNotParsedContent;
         }
 
-        void keepContentInBufInsteadOfParsing(common::ByteArrayShared buf={}) noexcept
+        void resetSkippedNotParsedContent(common::ByteArrayShared buf={}) noexcept
         {
             m_skippedNotParsedContent=std::move(buf);
         }
@@ -132,31 +132,45 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         template <typename BufferT>
         bool deserialize(BufferT& wired, const AllocatorFactory* factory)
         {
-            if (m_skippedNotParsedContent)
-            {
-                this->markSet(BytesSer<
-                    typename common::ByteArrayManaged,
-                    typename common::ByteArrayShared
-                    >
-                    ::
-                    deserialize(
-                        wired,
-                        m_skippedNotParsedContent.get(),
-                        m_skippedNotParsedContent,
-                        factory,
-                        -1,
-                        true
-                ));
-                return this->isSet();
-            }
-
             if (factory==nullptr)
             {
                 factory=this->unit()->factory();
             }
+            auto deserializeToBuf=[this,&wired,factory]()
+            {
+                this->markSet(BytesSer<
+                              typename common::ByteArrayManaged,
+                              typename common::ByteArrayShared
+                              >
+                              ::
+                              deserialize(
+                                  wired,
+                                  m_skippedNotParsedContent.get(),
+                                  m_skippedNotParsedContent,
+                                  factory,
+                                  -1,
+                                  true
+                                  ));
+                return this->isSet();
+            };
 
+            // deserialized to buf if it is set
+            if (m_skippedNotParsedContent)
+            {
+                return deserializeToBuf();
+            }
+
+            // get/create mutable value
+            auto* value=mutableValue();            
+            if (value==nullptr)
+            {
+                // if failed to create value then create skip buffer and deserialize to it
+                m_skippedNotParsedContent=factory->template createObject<common::ByteArrayManaged>(factory);
+                return deserializeToBuf();
+            }
+
+            // normal parsing
             this->fieldClear();
-            auto* value=mutableValue();
             io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
             this->markSet(this->deserialize(mutableValue(),wired,factory));
             return this->isSet();
@@ -257,10 +271,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                     {
                         s->m_value=s->createValue();
                     }
-                    if (s->m_value.isNull())
-                    {
-                        throw std::runtime_error("Failed to create value for dataunit field!");
-                    }
                 }
             );
             this->markSet(true);
@@ -285,11 +295,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                         f=s->unit()->factory();
                     }
                     auto val=Type::createManagedObject(f,s->unit());
-                    if (val.isNull())
-                    {
-                        HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");
-                        Assert(!val.isNull(),"Shared dataunit field is not set!");
-                    }
                     return val;
                 }
             );
@@ -410,6 +415,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         void fieldClear()
         {
+            m_skippedNotParsedContent.reset();
             if (!this->mutableValue())
             {
                 return;
@@ -420,6 +426,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         //! Reset field
         void fieldReset(bool onlyNonClean=false)
         {
+            m_skippedNotParsedContent.reset();
             auto self=this;
             boost::hana::eval_if(
                 boost::hana::is_a<common::shared_pointer_tag,decltype(this->m_value)>,

@@ -392,7 +392,7 @@ void Unit::pushJsonParseHandler(const JsonParseHandler &handler)
 //---------------------------------------------------------------
 common::SharedPtr<Unit> Unit::createManagedUnit() const
 {
-    return m_factory->createObject<UnitManaged>();
+    return common::SharedPtr<Unit>{};
 }
 
 //---------------------------------------------------------------

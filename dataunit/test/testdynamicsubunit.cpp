@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(TestSerDeser)
     auto& subField2=obj2.field(with_dynamic_subunit::sub);
     BOOST_CHECK(!subField2.skippedNotParsedContent());
     HATN_COMMON_NAMESPACE::ByteArrayShared subBuf2=HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::ByteArrayManaged>();
-    subField2.keepContentInBufInsteadOfParsing(subBuf2);
+    subField2.resetSkippedNotParsedContent(subBuf2);
     BOOST_CHECK(subField2.skippedNotParsedContent());
     BOOST_CHECK(subBuf2->empty());
 
@@ -89,6 +89,22 @@ BOOST_AUTO_TEST_CASE(TestSerDeser)
     BOOST_REQUIRE(ok);
     BOOST_CHECK_EQUAL(obj3.fieldValue(with_dynamic_subunit::field1),100);
     BOOST_CHECK(!obj3.isSet(with_dynamic_subunit::sub));
+
+    // check auto keeping not parsed content
+    with_dynamic_subunit::type obj4;
+    auto& subField4=obj4.field(with_dynamic_subunit::sub);
+    BOOST_CHECK(!subField4.skippedNotParsedContent());
+
+    // deserialize obj4 from merged buffer
+    ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(obj4,mergedWbuf);
+    BOOST_REQUIRE(ok);
+    BOOST_CHECK_EQUAL(obj4.fieldValue(with_dynamic_subunit::field1),100);
+    BOOST_CHECK(obj4.isSet(with_dynamic_subunit::sub));
+    auto subBuf4=subField4.skippedNotParsedContent();
+    BOOST_REQUIRE(subBuf4);
+    BOOST_REQUIRE(!subBuf4->empty());
+    BOOST_CHECK_EQUAL(wbuf1Sample.mainContainer()->size(),subBuf4->size());
+    BOOST_CHECK(*wbuf1Sample.mainContainer()==*subBuf4);
 }
 
 BOOST_AUTO_TEST_CASE(TestWithSubunit)
