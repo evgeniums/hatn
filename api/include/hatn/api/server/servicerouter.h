@@ -28,49 +28,59 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/service.h>
-#include <hatn/api/server/request.h>
+#include <hatn/api/server/requestrouter.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
+template <typename EnvT=SimpleEnv>
 class ServiceRouterTraits
 {
     public:
 
+        using Env=EnvT;
+
         void route(
-                common::SharedPtr<RequestContext> request,
-                MessageRouteCb cb
+                common::SharedPtr<RequestContext<Env>> reqCtx,
+                RouteCb<EnvT> cb
             )
         {
-            auto it=m_routes.find(*request);
+            auto& req=reqCtx->template get<Request<Env>>();
+
+            auto it=m_routes.find(req.serviceNameAndVersion());
             if (it==m_routes.end())
             {
-                cb(std::move(request),{});
+                req.routed=false;
+                cb(std::move(reqCtx));
                 return;
             }
-            it->second(std::move(request),std::move(cb));
+            req.routed=true;
+            it->second(std::move(reqCtx),std::move(cb));
         }
 
-        void addService(Service service, MessageRouteFh handler)
+        void registerService(Service service, RouteFh<Env> handler)
         {
             m_routes[std::move(service)]=std::move(handler);
         }
 
     private:
 
-        common::FlatMap<Service,MessageRouteFh,std::less<Service>> m_routes;
+        common::FlatMap<Service,RouteFh<EnvT>,std::less<Service>> m_routes;
 };
 
-class ServiceRouter : public RequestsRouter<ServiceRouterTraits>
+template <typename EnvT=SimpleEnv>
+class ServiceRouter : public RequestRouter<ServiceRouterTraits<EnvT>>
 {
     public:
 
-        using RequestsRouter<ServiceRouterTraits>::RequestsRouter;
+        using Env=EnvT;
 
-        void addService(Service service, MessageRouteFh handler)
+        using RequestRouter<ServiceRouterTraits<Env>>::RequestRouter;
+
+        void registerService(Service service, RouteFh<Env> handler)
         {
-            this->traits().addService(std::move(service),std::move(handler));
+            this->traits().registerService(std::move(service),std::move(handler));
         }
 };
 

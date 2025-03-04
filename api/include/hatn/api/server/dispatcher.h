@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/server/servicedispatcher.h
+/** @file api/server/dispatcher.h
   *
   */
 
@@ -18,8 +18,6 @@
 
 #ifndef HATNAPIDISPATCHER_H
 #define HATNAPIDISPATCHER_H
-
-#include <functional>
 
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/error.h>
@@ -32,20 +30,23 @@
 #include <hatn/api/service.h>
 #include <hatn/api/server/env.h>
 #include <hatn/api/server/request.h>
+#include <hatn/api/server/servicerouter.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
 template <typename EnvT=SimpleEnv>
-using DispatchCb=std::function<void (common::SharedPtr<RequestContext<EnvT>> request, bool closeConnection)>;
+using DispatchCb=RouteCb<EnvT>;
 
 template <typename Traits, typename EnvT=SimpleEnv>
-class Dispatcher : public common::WithTraits<Traits>
+class Dispatcher : public common::WithTraits<Traits>,
+                   public std::enable_shared_from_this<Dispatcher<Traits,EnvT>>
 {
     public:
 
         using Env=EnvT;
+        using Self=Dispatcher<Traits,EnvT>;
 
         template <typename ...TraitsArgs>
         Dispatcher(
@@ -57,21 +58,29 @@ class Dispatcher : public common::WithTraits<Traits>
         {}
 
         void dispatch(
-                common::SharedPtr<RequestContext<Env>> request,
+                common::SharedPtr<RequestContext<Env>> reqCtx,
                 DispatchCb<Env> cb
             )
         {
-            // auto wCtx=common::toWeakPtr(ctx);
-            // m_thread->execAsync(
-            //     [wCtx{std::move(wCtx)},request{std::move(request)},cb{std::move(cb)},this]()
-            //     {
-            //         auto ctx=wCtx.lock();
-            //         if (ctx)
-            //         {
-            //             this->traits().dispatch(std::move(wCtx),std::move(request),std::move(cb));
-            //         }
-            //     }
-            // );
+            m_thread->execAsync(
+                [reqCtx{std::move(reqCtx)},cb{std::move(cb)},this]()
+                {
+                    auto cb1=[cb{std::move(cb)}](common::SharedPtr<RequestContext<Env>> reqCtx)
+                    {
+                        auto& req=reqCtx->template get<Request>();
+                        if (!req.routed)
+                        {
+                            //! @todo report error that no route is found
+                        }
+                        else if (!req.response.unit.field(response::status).isSet())
+                        {
+                            //! @todo report internal error that response is not set
+                        }
+                        cb(std::move(reqCtx));
+                    };
+                    this->traits().dispatch(std::move(reqCtx),std::move(cb1));
+                }
+            );
         }
 
         common::Thread* thread() const
@@ -83,47 +92,6 @@ class Dispatcher : public common::WithTraits<Traits>
 
         common::Thread* m_thread;
 };
-
-#if 0
-
-template <typename ConnectionT, typename ConnectionContextT, typename ServiceRouter, typename TopicRouter>
-class DispatcherDefaultTraits
-{
-    template <typename ConnectionT1, typename ConnectionContextT1>
-    using TraitsT=DispatcherDefaultTraits<ConnectionT1,ConnectionContextT1,ServiceRouter,TopicRouter>;
-    using erT=Dispatcher<ConnectionT,ConnectionContextT,TraitsT>;
-
-    public:
-
-        using ConnectionContext=ConnectionContextT;
-        using Connection=ConnectionT;
-
-        DispatcherDefaultTraits(
-                erT* dispatcher
-            ) : m_dispatcher(dispatcher)
-        {}
-
-        void dispatch(
-            const common::SharedPtr<ConnectionContext>& ctx,
-            common::SharedPtr<RequestContext> request,
-            ServiceCb<ConnectionContext> cb
-            )
-        {
-            //! @todo Implement default request router
-        }
-
-    private:
-
-        template <typename ConnectionT1, typename ConnectionContextT1>
-        using TraitsT=DispatcherDefaultTraits<ConnectionT1,ConnectionContextT1,ServiceRouter,TopicRouter>;
-
-        Dispatcher<ConnectionT,ConnectionContextT,TraitsT>* m_dispatcher;
-
-        std::shared_ptr<ServiceRouter> m_serviceRouter;
-        std::shared_ptr<TopicRouter> m_topicRouter;
-};
-
-#endif
 
 } // namespace server
 

@@ -1,0 +1,70 @@
+/*
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+*/
+
+/****************************************************************************/
+/*
+
+*/
+/** @file api/server/servicedispatcher.h
+  *
+  */
+
+/****************************************************************************/
+
+#ifndef HATNAPISERVICEDISPATCHER_H
+#define HATNAPISERVICEDISPATCHER_H
+
+#include <hatn/api/server/dispatcher.h>
+#include <hatn/api/server/servicerouter.h>
+
+HATN_API_NAMESPACE_BEGIN
+
+namespace server {
+
+template <typename EnvT=SimpleEnv>
+class ServiceDispatcherTraits
+{
+    public:
+
+        using Env=EnvT;
+        using Self=ServiceDispatcherTraits<Env>;
+        using DispatcherType=Dispatcher<Self,Env>;
+
+        ServiceDispatcherTraits(
+                DispatcherType* dispatcher,
+                std::shared_ptr<ServiceRouter<Env>> serviceRouter
+            ) : m_dispatcher(dispatcher),
+                m_serviceRouter(std::move(serviceRouter))
+        {}
+
+        void dispatch(
+                common::SharedPtr<RequestContext<Env>> reqCtx,
+                DispatchCb<Env> cb
+            )
+        {
+            m_serviceRouter->route(
+                std::move(reqCtx),
+                std::move(cb)
+            );
+        }
+
+    private:
+
+        DispatcherType* m_dispatcher;
+
+        std::shared_ptr<ServiceRouter<Env>> m_serviceRouter;
+};
+
+template <typename EnvT=SimpleEnv>
+using ServiceDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT>,EnvT>;
+
+} // namespace server
+
+HATN_API_NAMESPACE_END
+
+#endif // HATNAPISERVICEDISPATCHER_H

@@ -47,7 +47,9 @@ class Request : public common::TaskSubcontext
 
     Request(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
         : response(factory),
-          requestBuf(factory)
+          requestBuf(factory),
+          routed(false),
+          closeConnection(false)
     {
         requestBuf.setUseInlineBuffers(true);
     }
@@ -62,6 +64,14 @@ class Request : public common::TaskSubcontext
     protocol::Header header;
 
     du::WireBufSolidShared requestBuf;
+    bool routed;
+    bool closeConnection;
+
+    const auto& id() const
+    {
+        const auto& field=unit.field(request::id);
+        return field.value();
+    }
 
     common::ByteArrayShared rawDataShared() const
     {
@@ -95,7 +105,13 @@ class Request : public common::TaskSubcontext
         Error ec;
         requestBuf.setSize(requestBuf.mainContainer()->size());
         du::io::deserialize(unit,requestBuf,ec);
+        response.unit.setFieldValue(HATN_API_NAMESPACE::response::id,id());
         return ec;
+    }
+
+    ServiceNameAndVersion serviceNameAndVersion() const noexcept
+    {
+        return ServiceNameAndVersion{unit};
     }
 };
 
@@ -121,23 +137,6 @@ using RouteCb=std::function<void (common::SharedPtr<RequestContext<EnvT>> reques
 
 template <typename EnvT=SimpleEnv>
 using RouteFh=std::function<void (common::SharedPtr<RequestContext<EnvT>> request, RouteCb<EnvT> cb)>;
-
-template <typename Traits, typename EnvT=SimpleEnv>
-class RequestsRouter : public common::WithTraits<Traits>
-{
-    public:
-
-        using Env=EnvT;
-        using common::WithTraits<Traits>::WithTraits;
-
-        void route(
-            common::SharedPtr<RequestContext<Env>> request,
-            RouteCb<Env> cb
-        )
-        {
-            this->traits().route(std::move(request),std::move(cb));
-        }
-};
 
 } // namespace server
 

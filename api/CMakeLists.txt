@@ -48,6 +48,8 @@ SET (HEADERS
     include/hatn/api/server/topicrouter.h
     include/hatn/api/server/server.h
     include/hatn/api/server/env.h
+    include/hatn/api/server/requestrouter.h
+    include/hatn/api/server/servicedispatcher.h
 )
 
 SET (IPP_HEADERS

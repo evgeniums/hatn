@@ -60,6 +60,21 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             return m_closed;
         }
 
+        std::shared_ptr<Dispatcher> dispatcher() const
+        {
+            return m_dispatcher;
+        }
+
+        std::shared_ptr<AuthDispatcher> authDispatcher() const
+        {
+            return m_authDispatcher;
+        }
+
+        const common::pmr::AllocatorFactory* factory() const noexcept
+        {
+            return m_allocatorFactory;
+        }
+
         /**
          * @brief Handle new connection by server.
          * @param ctx Connection context. Note that the context is not owned by the server and must be stored somewhere else outside the server.
@@ -202,7 +217,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
 
             auto self=this->shared_from_this();
             m_authDispatcher->dispatch(std::move(reqCtx),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, bool closeConnection)
+                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
                                    {
                                         if (m_closed)
                                         {
@@ -224,7 +239,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                                         }
 
                                         // close connection if needed
-                                        if (closeConnection)
+                                        if (req.closeConnection)
                                         {
                                             //! @todo log
                                             connection.close();
@@ -260,7 +275,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
 
             auto self=this->shared_from_this();
             m_dispatcher->dispatch(std::move(reqCtx),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, bool closeConnection)
+                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
                 {
                     if (m_closed)
                     {
@@ -280,7 +295,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                     }
 
                     // close connection if needed
-                    if (closeConnection)
+                    if (req.closeConnection)
                     {
                         connection.close();
 
