@@ -491,6 +491,7 @@ class TaskSubcontextT : public TaskSubcontext, public T
     public:
 
         using hana_tag=TaskSubcontextTag;
+        using Base=T;
 
         template <typename ...Args>
         TaskSubcontextT(
@@ -531,7 +532,33 @@ class TaskSubcontextT : public TaskSubcontext, public T
 template <typename T>
 class TaskSubcontextT<T,hana::when<std::is_base_of<TaskSubcontext,T>::value>> : public T
 {
+    template <typename Y>
+    constexpr static auto baseType(Y y)
+    {
+        auto fn=[](auto x) -> typename decltype(x)::type::Base*
+        {
+            return nullptr;
+        };
+
+        auto hasBase=hana::not_equal(boost::hana::sfinae(fn)(y),hana::nothing);
+
+        return boost::hana::eval_if(
+            hasBase,
+            [&](auto _)
+            {
+                using t=std::decay_t<decltype(_(y))>;
+                return boost::hana::type_c<typename t::type::Base>;
+            },
+            [&](auto _)
+            {
+                return _(y);
+            }
+        );
+    }
+
     public:
+
+        using Base=typename decltype(baseType(hana::type_c<T>))::type;
 
         using hana_tag=TaskSubcontextTag;
 
@@ -773,6 +800,22 @@ class ActualTaskContext : public BaseTaskContext
             return m_subcontexts;
         }
 
+        template <typename T>
+        constexpr auto hasSubcontext() const noexcept
+        {
+            using subcontextT=TaskSubcontextT<T>;
+            auto wrapper=hana::find_if(
+                m_refs,
+                [](auto&& v)
+                {
+                    using crefT=std::decay_t<decltype(v)>;
+                    using type=std::decay_t<typename crefT::type>;
+                    return std::is_base_of<typename subcontextT::Base,type>{};
+                }
+            );
+            return hana::not_equal(wrapper,hana::nothing);
+        }
+
         /**
          * @brief Get subcontext by type.
          * @return Const reference to subcontext.
@@ -788,7 +831,7 @@ class ActualTaskContext : public BaseTaskContext
                 {
                     using crefT=std::decay_t<decltype(v)>;
                     using type=std::decay_t<typename crefT::type>;
-                    return std::is_same<subcontextT,type>{};
+                    return std::is_base_of<typename subcontextT::Base,type>{};
                 }
             );
 
