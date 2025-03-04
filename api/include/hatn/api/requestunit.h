@@ -29,14 +29,19 @@ HATN_API_NAMESPACE_BEGIN
 
 HDU_UNIT(request,
     HDU_FIELD(session_auth,auth::TYPE,1)
-    HDU_FIELD(id,TYPE_OBJECT_ID,2,true)
-    HDU_FIELD(service,HDU_TYPE_FIXED_STRING(ServiceNameLengthMax),3,true)
-    HDU_FIELD(service_version,TYPE_UINT8,4,false,1)
-    HDU_FIELD(method,HDU_TYPE_FIXED_STRING(MethodNameLengthMax),5,true)
-    HDU_FIELD(method_auth,auth::TYPE,6)
-    HDU_FIELD(topic,TYPE_STRING,7)
-    HDU_FIELD(message,TYPE_DATAUNIT,8)
+    HDU_FIELD(tenancy,HDU_TYPE_FIXED_STRING(TenancyIdLengthMax),2)
+    HDU_FIELD(id,TYPE_OBJECT_ID,3,true)
+    HDU_FIELD(service,HDU_TYPE_FIXED_STRING(ServiceNameLengthMax),4,true)
+    HDU_FIELD(service_version,TYPE_UINT8,5,false,1)
+    HDU_FIELD(method,HDU_TYPE_FIXED_STRING(MethodNameLengthMax),6,true)
+    HDU_FIELD(method_auth,auth::TYPE,7)
+    HDU_FIELD(topic,TYPE_STRING,8)
+    HDU_FIELD(message,TYPE_DATAUNIT,9)
 )
+
+//! @todo Implement less operator for comparing requests with Service
+
+using RequestManaged=request::shared_managed;
 
 HATN_API_NAMESPACE_END
 

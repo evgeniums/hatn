@@ -20,6 +20,7 @@
 #define HATNAPICLIENT_IPP
 
 #include <hatn/api/apierror.h>
+#include <hatn/api/tenancy.h>
 #include <hatn/api/client/request.h>
 #include <hatn/api/client/client.h>
 
@@ -34,6 +35,7 @@ common::Result<
         common::SharedPtr<typename Client<RouterTraits,SessionTraits,ContextT,MessgaeBufT,RequestUnitT>::ReqCtx>
     >
     Client<RouterTraits,SessionTraits,ContextT,MessgaeBufT,RequestUnitT>::prepare(
+        const common::SharedPtr<Context>& ctx,
         common::SharedPtr<Session<SessionTraits>> session,
         const Service& service,
         const Method& method,
@@ -44,7 +46,8 @@ common::Result<
     HATN_CTX_SCOPE("apiclientprepare")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth)));
-    auto ec=req->serialize(service,method,std::move(message));
+    const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
+    auto ec=req->serialize(service,method,std::move(message),tenancy);
     HATN_CTX_CHECK_EC(ec)
     return req;
 }
@@ -68,7 +71,8 @@ Error Client<RouterTraits,SessionTraits,ContextT,MessgaeBufT,RequestUnitT>::exec
     HATN_CTX_SCOPE("apiclientexec")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs));
-    auto ec=req->serialize(service,method,std::move(message),topic);
+    const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
+    auto ec=req->serialize(service,method,std::move(message),topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),std::move(req),std::move(callback));
     return OK;

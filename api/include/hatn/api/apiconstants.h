@@ -30,6 +30,7 @@ constexpr const size_t MethodNameLengthMax=32;
 constexpr const size_t AuthProtocolNameLengthMax=8;
 constexpr const size_t ResponseCategoryNameLengthMax=32;
 constexpr const size_t DefaultSessionCallbacksCapacity=4;
+constexpr const size_t TenancyIdLengthMax=32;
 
 constexpr const size_t DefaultMaxPoolPriorityConnections=4;
 

@@ -121,6 +121,7 @@ class Client : public common::TaskSubcontext
         );
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
+            const common::SharedPtr<Context>& ctx,
             common::SharedPtr<Session<SessionTraits>> session,
             const Service& service,
             const Method& method,
@@ -144,13 +145,14 @@ class Client : public common::TaskSubcontext
         }
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
+            const common::SharedPtr<Context>& ctx,
             const Service& service,
             const Method& method,
             MessageType message,
             MethodAuth methodAuth={}
         )
         {
-            return prepare({},service,method,std::move(message),std::move(methodAuth));
+            return prepare(ctx,{},service,method,std::move(message),std::move(methodAuth));
         }
 
         void exec(

@@ -33,7 +33,8 @@ template <typename SessionTraits, typename MessageT, typename RequestUnitT>
 Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
         const Service& service,
         const Method& method,
-        lib::string_view topic
+        lib::string_view topic,
+        const Tenancy& tenancy
     )
 {
     m_unit=m_factory->template createObject<RequestUnitT>();
@@ -47,6 +48,10 @@ Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
     if (!topic.empty())
     {
         m_unit->setFieldValue(request::topic,topic);
+    }
+    if (!tenancy.tenancyId().empty())
+    {
+        m_unit->setFieldValue(request::tenancy,tenancy.tenancyId());
     }
 
     return serialize();

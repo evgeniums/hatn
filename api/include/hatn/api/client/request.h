@@ -34,6 +34,7 @@
 #include <hatn/api/requestunit.h>
 #include <hatn/api/responseunit.h>
 #include <hatn/api/message.h>
+#include <hatn/api/tenancy.h>
 #include <hatn/api/client/session.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -117,7 +118,12 @@ struct Request
 
         lib::string_view id() const noexcept;
 
-        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
+        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const
+        {
+            //! @todo Implement response parsing
+            //! Check id
+            return commonError(CommonError::NOT_IMPLEMENTED);
+        }
 
         common::SharedPtr<Session<SessionTraits>>& session()
         {
@@ -142,7 +148,8 @@ struct Request
         Error serialize(
             const Service& service,
             const Method& method,
-            lib::string_view topic={}
+            lib::string_view topic,
+            const Tenancy& tenancy
         );
         Error serialize();
         void regenId();
