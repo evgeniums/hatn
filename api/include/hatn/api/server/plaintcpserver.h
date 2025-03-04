@@ -37,7 +37,7 @@ using PlainTcpConnection=Connection<HATN_NETWORK_NAMESPACE::asio::TcpStream>;
 template <typename EnvT=SimpleEnv>
 using PlainTcpConnectionContextT=common::TaskContextType<HATN_NETWORK_NAMESPACE::asio::TcpStream,
                                                           PlainTcpConnection,
-                                                          EnvT,
+                                                          WithEnv<EnvT>,
                                                           HATN_LOGCONTEXT_NAMESPACE::Context
                                                           >;
 using PlainTcpConnectionContext=PlainTcpConnectionContextT<>;

@@ -39,9 +39,30 @@ HDU_UNIT(request,
     HDU_FIELD(message,TYPE_DATAUNIT,9)
 )
 
-//! @todo Implement less operator for comparing requests with Service
-
 using RequestManaged=request::shared_managed;
+
+class ServiceNameAndVersion
+{
+    public:
+
+        ServiceNameAndVersion(const request::type& req):req(req)
+        {}
+
+        const lib::string_view name() const noexcept
+        {
+            const auto& field=req.field(request::service);
+            return field.value();
+        }
+
+        uint8_t version() const noexcept
+        {
+            return req.fieldValue(request::service_version);
+        }
+
+    private:
+
+        const request::type& req;
+};
 
 HATN_API_NAMESPACE_END
 

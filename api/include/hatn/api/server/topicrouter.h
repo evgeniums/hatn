@@ -10,27 +10,31 @@
 /*
 
 */
-/** @file api/service.h
+/** @file api/server/topicrouter.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPISERVICE_H
-#define HATNAPISERVICE_H
+#ifndef HATNAPITOPICROUTER_H
+#define HATNAPITOPICROUTER_H
 
 #include <hatn/api/api.h>
-#include <hatn/api/withnameandversion.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-class Service : public WithNameAndVersion<ServiceNameLengthMax>
-{
-    public:
+namespace server {
 
-        using WithNameAndVersion<ServiceNameLengthMax>::WithNameAndVersion;
+template <typename FallbackRouterT>
+class TopicRouterTraits
+{
+    //! @todo Route by topic
+    //! Search in lru cache
+    //! If not found search in external storage
 };
+
+} // namespace server
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPISERVICE_H
+#endif // HATNAPITOPICROUTER_H

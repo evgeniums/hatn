@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file api/server/servicedispatcher.h
+/** @file api/server/authdispatcher.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPIDISPATCHER_H
-#define HATNAPIDISPATCHER_H
+#ifndef HATNAPIAUTHDISPATCHER_H
+#define HATNAPIAUTHDISPATCHER_H
 
 #include <functional>
 
@@ -129,4 +129,4 @@ class DispatcherDefaultTraits
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIDISPATCHER_H
+#endif // HATNAPIAUTHDISPATCHER_H
