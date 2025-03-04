@@ -22,6 +22,7 @@
 #include <hatn/common/memorylockeddata.h>
 #include <hatn/common/bytearray.h>
 #include <hatn/common/objectid.h>
+#include <hatn/common/taskcontext.h>
 
 #include <hatn/crypt/crypt.h>
 #include <hatn/crypt/x509certificate.h>
@@ -391,6 +392,16 @@ class SecureStreamContext
             return m_ignoreUnknownSniHost;
         }
 
+        void setParentContext(common::SharedPtr<common::TaskContext> ctx)
+        {
+            m_parentCtx=std::move(ctx);
+        }
+
+        common::SharedPtr<common::TaskContext> parentContext() const noexcept
+        {
+            return m_parentCtx;
+        }
+
     protected:
 
         //! Update endpoint type in derived class
@@ -419,6 +430,8 @@ class SecureStreamContext
 
         std::map<std::string,common::WeakPtr<SecureStreamContext>,std::less<>> m_sniContexts;
         bool m_ignoreUnknownSniHost;
+
+        common::SharedPtr<common::TaskContext> m_parentCtx;
 };
 
 HATN_CRYPT_NAMESPACE_END
