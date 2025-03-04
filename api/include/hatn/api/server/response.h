@@ -31,14 +31,33 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-using ResponseData=du::WireData;
-
-class Response
+struct Response
 {
-    ResponseStatus status;
-    common::StringOnStackT<ResponseCategoryNameLengthMax> categpry;
-    common::SharedPtr<Message<ResponseData>> message;
+    response::type unit;
+    du::WireBufChained message;
+
+    Response(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
+        : message(factory)
+    {}
+
+    auto buffers() const
+    {
+        return message.buffers();
+    }
+
+    auto size()
+    {
+        return message.size();
+    }
+
+    Error serialize()
+    {
+        Error ec;
+        du::io::serialize(unit,message,ec);
+        return ec;
+    }
 };
+
 
 } // namespace server
 

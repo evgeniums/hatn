@@ -20,13 +20,27 @@
 #define HATNAPISERVERENV_H
 
 #include <hatn/api/api.h>
-#include <hatn/api/tenancy.h>
+#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-class SimpleEnv
+//! @todo Add tenancy to Env
+//! @todo Add logger to Env
+
+struct Env
+{
+    //! @todo Reimplement using config
+    size_t maxMessageSize() const noexcept
+    {
+        return m_maxMessageSize;
+    }
+
+    size_t m_maxMessageSize=protocol::DEFAULT_MAX_MESSAGE_SIZE;
+};
+
+class SimpleEnv : public Env
 {
     public:
 };

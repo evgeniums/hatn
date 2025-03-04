@@ -22,8 +22,7 @@
 #include <functional>
 #include <memory>
 
-#include <hatn/common/objecttraits.h>
-#include <hatn/common/error.h>
+#include <hatn/common/pmr//allocatorfactory.h>
 #include <hatn/common/sharedptr.h>
 
 #include <hatn/api/api.h>
@@ -41,12 +40,14 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
 
         using Env=EnvT;
 
-        Server(
+        Server(                
                 std::shared_ptr<Dispatcher> dispatcher,
-                std::shared_ptr<AuthDispatcher> authDispatcher={}
+                std::shared_ptr<AuthDispatcher> authDispatcher={},
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_dispatcher(std::move(dispatcher)),
                 m_authDispatcher(std::move(authDispatcher)),
-                m_closed(false)
+                m_closed(false),
+                m_allocatorFactory(factory)
         {}
 
         void close()
@@ -65,7 +66,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
          * @param connection Connection.
          * @param waitNextConnection Callback for waiting for the next connection.
          */
-        template <typename ConnectionContext,typename Connection>
+        template <typename ConnectionContext, typename Connection>
         void handleNewConnection(common::SharedPtr<ConnectionContext> ctx,
                                  Connection& connection,
                                  std::function<void ()> waitNextConnection
@@ -75,6 +76,8 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             {
                 return;
             }
+
+            //! @todo maybe log
 
             waitForRequest(std::move(ctx),connection);
             waitNextConnection();
@@ -89,81 +92,190 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             }
 
             // create request
+            auto reqCtx=allocateRequestContext(m_allocatorFactory);
+            auto& req=reqCtx->template get<Request<Env>>();
+            req.connectionCtx=ctx;
 
-            // cope env from connection ctx to request
+            // copy env from connection ctx to request
+            req.env=ctx->template get<WithEnv<Env>>().envShared();
 
             // recv header
-            connection.recv();
+            auto self=this->shared_from_this();
+            connection.recv(
+                std::move(reqCtx),
+                req.header.data(),
+                req.header.size(),
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
+                {
+                    // handle error
+                    if (ec)
+                    {
+                        //! @todo Log eror?
 
-            // recv request
+                        //! @todo log
+                        closeRequest(reqCtx);
 
-            // parse request
+                        return;
+                    }
 
-            // auth request if auth dispatcher is set
+                    // if no message then wait for the next request
+                    if (req.header.messageSize()==0)
+                    {
+                        //! @todo log
+                        closeRequest(reqCtx);
 
-            // dispatch request
+                        waitForRequest(std::move(ctx));
+                        return;
+                    }
+
+                    if (req.header.messageSize()>req->env->maxMessageSize())
+                    {
+                        //! @todo report error to client
+                        //! @todo log error?
+
+                        //! @todo log
+                        connection.close();
+                        closeRequest(reqCtx);
+                        return;
+                    }
+
+                    // receive message
+                    req.requestBuf.mainContainer()->resize(req.header.messageSize());
+                    connection.recv(
+                        std::move(reqCtx),
+                        req.requestBuf.mainContainer()->data(),
+                        req.requestBuf.mainContainer()->size(),
+                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
+                        {
+                            // handle error
+                            if (ec)
+                            {
+                                //! @todo Log eror?
+
+                                //! @todo log
+                                closeRequest(reqCtx);
+
+                                return;
+                            }
+
+                            // parse request
+                            auto ec1=req.parseMessage();
+                            if (!ec1)
+                            {
+                                //! @todo report error to client
+                                //! @todo log error?
+
+                                //! @todo log
+                                closeRequest(reqCtx);
+
+                                waitForRequest(std::move(ctx));
+                                return;
+                            }
+
+                            // auth request if auth dispatcher is set
+                            if (m_authDispatcher)
+                            {
+                                authRequest(std::move(reqCtx),connection);
+                            }
+                            else
+                            {
+                                dispatchRequest(std::move(reqCtx),connection);
+                            }
+                        }
+                    );
+                }
+            );
         }
 
     private:
 
         template <typename Connection>
-        void authRequest(common::SharedPtr<RequestContext<Env>> req, Connection& connection)
+        void authRequest(common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
+                //! @todo log
+                closeRequest(reqCtx);
+
                 return;
             }
 
             auto self=this->shared_from_this();
-            m_authDispatcher->dispatch(std::move(req),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> req, bool closeConnection)
+            m_authDispatcher->dispatch(std::move(reqCtx),
+                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, bool closeConnection)
                                    {
+                                        if (m_closed)
+                                        {
+                                           //! @todo log
+                                           closeRequest(reqCtx);
+
+                                           return;
+                                        }
+                                        auto& req=reqCtx->template get<Request<Env>>();
+
                                         // check if connection was destroyed
-                                        auto ctx=req->connectionCtx.lock();
+                                        auto ctx=req.connectionCtx.lock();
                                         if (!ctx)
                                         {
+                                            //! @todo log
+                                            closeRequest(reqCtx);
+
                                             return;
                                         }
 
                                         // close connection if needed
                                         if (closeConnection)
                                         {
+                                            //! @todo log
                                             connection.close();
+                                            closeRequest(reqCtx);
                                             return;
                                         }
 
-                                        // wait for next request
-                                        if (req->response.status()==ResponseStatus::OK)
+                                        // check auth status
+                                        if (req.response.status()==ResponseStatus::OK)
                                         {
-                                            // auth is ok
+                                            // auth is ok, dispatch request
                                             dispatchRequest(std::move(req),connection);
                                         }
                                         else
                                         {
-                                            // auth failed
-                                            //! @todo send response
-                                            waitForRequest(std::move(ctx));
+                                            // auth failed, send response
+                                            sendResponse(std::move(ctx),std::move(reqCtx),connection);
                                         }
                                    }
                                 );
         }
 
         template <typename Connection>
-        void dispatchRequest(common::SharedPtr<RequestContext<Env>> req, Connection& connection)
+        void dispatchRequest(common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
+                //! @todo log
+                closeRequest(reqCtx);
+
                 return;
             }
 
             auto self=this->shared_from_this();
-            m_dispatcher->dispatch(std::move(req),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> req, bool closeConnection)
+            m_dispatcher->dispatch(std::move(reqCtx),
+                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, bool closeConnection)
                 {
+                    if (m_closed)
+                    {
+                       //! @todo log
+                       closeRequest(reqCtx);
+                       return;
+                    }
+                    auto& req=reqCtx->template get<Request<Env>>();
+
                     // check if connection was destroyed
-                    auto ctx=req->connectionCtx.lock();
+                    auto ctx=req.connectionCtx.lock();
                     if (!ctx)
                     {
+                        //! @todo log
+                        closeRequest(reqCtx);
                         return;
                     }
 
@@ -171,20 +283,100 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                     if (closeConnection)
                     {
                         connection.close();
+
+                        //! @todo log
+                        closeRequest(reqCtx);
                         return;
                     }
 
-                    //! @todo send response
-
-                    // wait for next request
-                    waitForRequest(std::move(ctx));
+                    // send response
+                    sendResponse(std::move(ctx),std::move(reqCtx),connection);
                 }
             );
+        }
+
+        template <typename ConnectionContext, typename Connection>
+        void sendResponse(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        {
+            if (m_closed)
+            {
+                //! @todo Log that server is closed
+                closeRequest(reqCtx);
+                return;
+            }
+            auto& req=reqCtx->template get<Request<Env>>();
+
+            // serialize response
+            auto ec=req.response.serialize();
+            if (ec)
+            {
+                //! @todo Report internal server error
+                //! @todo log error
+
+                closeRequest(reqCtx);
+
+                // wait for next request
+                waitForRequest(std::move(ctx));
+            }
+
+            auto self=this->shared_from_this();
+
+            // send header
+            req.header.setMessageSize(req.response.size());
+            connection.send(
+                std::move(reqCtx),
+                req.header.data(),
+                req.header.size(),
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
+                {
+                    if (m_closed)
+                    {
+                        closeRequest(reqCtx);
+                        return;
+                    }
+
+                    // handle error
+                    if (ec)
+                    {
+                        //! @todo Log eror?
+                        closeRequest(reqCtx);
+                        return;
+                    }
+
+                    // send message
+                    connection.send(
+                        std::move(reqCtx),
+                        req.response.buffers(),
+                        [ctx{std::move(ctx)},self{std::move(self)},this](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
+                        {
+                            // handle error
+                            if (ec)
+                            {
+                                //! @todo Log eror?
+                                closeRequest(reqCtx);
+                                return;
+                            }
+
+                            // close request
+                            closeRequest(reqCtx);
+
+                            // wait for next request
+                            waitForRequest(std::move(ctx));
+                        }
+                    );
+                }
+            );
+        }
+
+        void closeRequest(common::SharedPtr<RequestContext<Env>>& reqCtx)
+        {
+            //! @todo Close request context and write log
         }
 
         bool m_closed;
         std::shared_ptr<Dispatcher> m_dispatcher;
         std::shared_ptr<AuthDispatcher> m_authDispatcher;
+        const common::pmr::AllocatorFactory* m_allocatorFactory;
 };
 
 } // namespace server
