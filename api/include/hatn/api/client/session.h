@@ -185,6 +185,30 @@ class Session : public common::WithTraits<Traits>,
         std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;        
 };
 
+class SessionNoAuthTraits
+{
+    public:
+
+        using SessionType=Session<SessionNoAuthTraits>;
+        using RefreshCb=std::function<void (const Error& ec, SessionType* session)>;
+
+        SessionNoAuthTraits(SessionType* session) : m_session(session)
+        {}
+
+        void refresh(lib::string_view, RefreshCb callback, Response ={})
+        {
+            m_session->resetAuthHeader();
+            callback(Error{},m_session);
+            return;
+        }
+
+    private:
+
+        SessionType* m_session;
+};
+
+using SessionNoAuth=Session<SessionNoAuthTraits>;
+
 } // namespace client
 
 HATN_API_NAMESPACE_END

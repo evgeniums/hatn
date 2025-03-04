@@ -39,13 +39,13 @@
 
 HATN_API_NAMESPACE_BEGIN
 
-template <typename RouterTraits>
+template <typename RouterT>
 class ConnectionPool
 {
     //! @todo Move definitions to ipp
 
-    using Connection=typename RouterTraits::Connection;
-    using RouterConnectionCtx=typename RouterTraits::ConnectionContext;
+    using RouterConnectionCtx=typename RouterT::ConnectionContext;
+    using Connection=typename RouterT::Connection;
 
     struct ConnectionContext
     {
@@ -78,7 +78,7 @@ class ConnectionPool
     public:        
 
         ConnectionPool(
-                common::SharedPtr<Router<RouterTraits>> router,
+                common::SharedPtr<RouterT> router,
                 common::Thread* thread,
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_router(router),
@@ -453,7 +453,7 @@ class ConnectionPool
 
         void resetPriority(Priority priority)
         {
-            m_connections.emplace(priority,m_allocatorFactory->objectMemoryResource());
+            m_connections[priority]=Connections{m_allocatorFactory->objectMemoryResource()};
         }
 
         template <typename ContextT>
@@ -606,7 +606,7 @@ class ConnectionPool
             cb(commonError(CommonError::NOT_IMPLEMENTED),ConnectionCtxShared{});
         }
 
-        common::SharedPtr<Router<RouterTraits>> m_router;
+        common::SharedPtr<RouterT> m_router;
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 
         common::FlatMap<Priority,Connections> m_connections;

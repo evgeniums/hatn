@@ -38,6 +38,7 @@ class Router : public common::WithTraits<Traits>
         using common::WithTraits<Traits>::WithTraits;
 
         using ConnectionContext=typename Traits::ConnectionContext;
+        using Connection=typename Traits::Connection;
 
         template <typename ContextT>
         void makeConnection(

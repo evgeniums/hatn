@@ -26,6 +26,8 @@
 
 #include <hatn/base/configobject.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/dataunit/unitwrapper.h>
 #include <hatn/dataunit/syntax.h>
 
@@ -36,6 +38,7 @@
 #include <hatn/api/priority.h>
 #include <hatn/api/client/session.h>
 #include <hatn/api/client/request.h>
+#include <hatn/api/client/session.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -53,12 +56,12 @@ class ClientConfig : public base::ConfigObject<config::type>
     public:
 };
 
-template <typename RouterTraits, typename SessionTraits, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename RouterT, typename SessionT, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
 class Client : public common::TaskSubcontext
 {
     public:
 
-        using Req=Request<SessionTraits,MessageBufT,RequestUnitT>;
+        using Req=Request<SessionT,MessageBufT,RequestUnitT>;
         using MessageType=typename Req::MessageType;
         using ReqCtx=RequestContext<Req,TaskContextT>;
 
@@ -76,11 +79,11 @@ class Client : public common::TaskSubcontext
 
         Client(
                 std::shared_ptr<ClientConfig> cfg,
-                common::SharedPtr<Router<RouterTraits>> router,
+                common::SharedPtr<RouterT> router,
                 common::Thread* thread=common::Thread::currentThread(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_cfg(std::move(cfg)),
-                m_connectionPool(std::move(router)),
+                m_connectionPool(std::move(router),thread),
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
@@ -102,14 +105,14 @@ class Client : public common::TaskSubcontext
 
         Client(
             std::shared_ptr<ClientConfig> cfg,
-            common::SharedPtr<Router<RouterTraits>> router,
+            common::SharedPtr<RouterT> router,
             const common::pmr::AllocatorFactory* factory
             ) : Client(std::move(cfg),std::move(router),common::Thread::currentThread(),factory)
         {}
 
         Error exec(
             common::SharedPtr<Context> ctx,
-            common::SharedPtr<Session<SessionTraits>> session,
+            common::SharedPtr<SessionT> session,
             const Service& service,
             const Method& method,
             MessageType message,
@@ -122,7 +125,7 @@ class Client : public common::TaskSubcontext
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             const common::SharedPtr<Context>& ctx,
-            common::SharedPtr<Session<SessionTraits>> session,
+            common::SharedPtr<SessionT> session,
             const Service& service,
             const Method& method,
             MessageType message,
@@ -209,7 +212,7 @@ class Client : public common::TaskSubcontext
 
         std::shared_ptr<ClientConfig> m_cfg;
 
-        ConnectionPool<RouterTraits> m_connectionPool;
+        ConnectionPool<RouterT> m_connectionPool;
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 
@@ -223,6 +226,49 @@ class Client : public common::TaskSubcontext
         SessionWaitingQueueMap m_sessionWaitingQueues;
         common::FlatMap<Priority,size_t> m_sessionWaitingReqCount;
 };
+
+template <typename ClientT>
+using ClientContext=common::TaskContextType<ClientT,HATN_LOGCONTEXT_NAMESPACE::Context>;
+
+template <typename T>
+struct allocateClientContextT
+{
+    template <typename ...Args>
+    auto operator () (
+            const HATN_COMMON_NAMESPACE::pmr::polymorphic_allocator<T>& allocator,
+            Args&&... args
+        ) const
+    {
+        return HATN_COMMON_NAMESPACE::allocateTaskContextType<T>(
+            allocator,
+            HATN_COMMON_NAMESPACE::subcontexts(
+                    HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
+                    HATN_COMMON_NAMESPACE::subcontext()
+                )
+            );
+    }
+};
+template <typename T>
+constexpr allocateClientContextT<T> allocateClientContext{};
+
+template <typename T>
+struct makeClientContextT
+{
+    template <typename ...Args>
+    auto operator () (
+            Args&&... args
+        ) const
+    {
+        return HATN_COMMON_NAMESPACE::makeTaskContextType<T>(
+            HATN_COMMON_NAMESPACE::subcontexts(
+                HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
+                HATN_COMMON_NAMESPACE::subcontext()
+                )
+            );
+    }
+};
+template <typename T>
+constexpr makeClientContextT<T> makeClientContext{};
 
 } // namespace client
 

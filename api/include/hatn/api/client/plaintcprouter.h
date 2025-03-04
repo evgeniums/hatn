@@ -106,6 +106,7 @@ class PlainTcpRouterTraits
     public:
 
         using ConnectionContext=PlainTcpConnectionContext;
+        using Connection=PlainTcpConnection;
 
         template <typename ...Args>
         PlainTcpRouterTraits(

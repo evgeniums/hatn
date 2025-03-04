@@ -36,19 +36,21 @@ enum class Priority : uint8_t
 
 constexpr const size_t PrioritiesCount=5;
 
-template <typename InitT, typename EachT>
-void handlePriorities(const EachT& each, const InitT& init={})
+template <typename EachT>
+void handlePriorities(const EachT& each)
 {
-    if (init)
-    {
-        init(PrioritiesCount);
-    }
-
     each(Priority::Lowest);
     each(Priority::Low);
     each(Priority::Normal);
     each(Priority::High);
     each(Priority::Highest);
+}
+
+template <typename InitT, typename EachT>
+void handlePriorities(const EachT& each, const InitT& init)
+{
+    init(PrioritiesCount);
+    handlePriorities(each);
 }
 
 inline const char* priorityName(Priority priority)

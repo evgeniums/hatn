@@ -44,7 +44,7 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
-template <typename SessionTraits, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename SessionT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
 struct Request
 {
     public:
@@ -53,7 +53,7 @@ struct Request
 
         Request(
                 const common::pmr::AllocatorFactory* factory,
-                common::SharedPtr<Session<SessionTraits>> session,
+                common::SharedPtr<SessionT> session,
                 MessageType message,
                 MethodAuth methodAuth={},
                 Priority priority=Priority::Normal,
@@ -120,7 +120,7 @@ struct Request
 
         lib::string_view id() const noexcept;
 
-        common::SharedPtr<Session<SessionTraits>>& session()
+        common::SharedPtr<SessionT>& session()
         {
             return m_session;
         }
@@ -139,7 +139,7 @@ struct Request
 
         const common::pmr::AllocatorFactory* m_factory;
 
-        common::SharedPtr<Session<SessionTraits>> m_session;
+        common::SharedPtr<SessionT> m_session;
         MessageType m_message;
 
         Error serialize(
@@ -162,7 +162,7 @@ struct Request
         du::WireBufSolidShared requestData;
         du::WireBufSolidShared responseData;
 
-        template <typename ...T>
+        template <typename RouterT1, typename SessionT1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
 };
 
@@ -285,7 +285,7 @@ class RequestContext : public RequestT,
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
-        template <typename ...T>
+        template <typename RouterT1, typename SessionT1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
 };
 

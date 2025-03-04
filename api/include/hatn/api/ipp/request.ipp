@@ -29,8 +29,8 @@ namespace client {
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
+template <typename SessionT, typename MessageT, typename RequestUnitT>
+Error Request<SessionT,MessageT,RequestUnitT>::serialize(
         const Service& service,
         const Method& method,
         lib::string_view topic,
@@ -59,8 +59,8 @@ Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-void Request<SessionTraits,MessageT,RequestUnitT>::regenId()
+template <typename SessionT, typename MessageT, typename RequestUnitT>
+void Request<SessionT,MessageT,RequestUnitT>::regenId()
 {
     auto& id=m_unit->field(request::id);
     id.mutableValue()->generate();
@@ -69,8 +69,8 @@ void Request<SessionTraits,MessageT,RequestUnitT>::regenId()
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
+template <typename SessionT, typename MessageT, typename RequestUnitT>
+Error Request<SessionT,MessageT,RequestUnitT>::serialize(
     )
 {
     auto ok=du::io::serialize(*m_unit,requestData);
@@ -84,15 +84,15 @@ Error Request<SessionTraits,MessageT,RequestUnitT>::serialize(
 
 //---------------------------------------------------------------
 
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-lib::string_view Request<SessionTraits,MessageT,RequestUnitT>::id() const noexcept
+template <typename SessionT, typename MessageT, typename RequestUnitT>
+lib::string_view Request<SessionT,MessageT,RequestUnitT>::id() const noexcept
 {
     auto& id=m_unit->field(request::id);;
     return id.value();
 }
 
-template <typename SessionTraits, typename MessageT, typename RequestUnitT>
-common::Result<common::SharedPtr<ResponseManaged>> Request<SessionTraits,MessageT,RequestUnitT>::parseResponse() const
+template <typename SessionT, typename MessageT, typename RequestUnitT>
+common::Result<common::SharedPtr<ResponseManaged>> Request<SessionT,MessageT,RequestUnitT>::parseResponse() const
 {
     Error ec;
 
