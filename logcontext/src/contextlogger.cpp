@@ -58,6 +58,7 @@ Logger& ContextLogger::init(LoggerHandlerTraits handler)
 
 //---------------------------------------------------------------
 
+//! @todo Select between thread local logger and global logger
 Logger& ContextLogger::instance()
 {
     Assert(globalLogger(),"Global logger not initialized, call ContextLogger::init() first");
