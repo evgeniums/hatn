@@ -140,11 +140,11 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                     }
 
                     // receive message
-                    req.requestBuf.mainContainer()->resize(req.header.messageSize());
+                    req.rawData()->resize(req.header.messageSize());
                     connection.recv(
                         std::move(reqCtx),
-                        req.requestBuf.mainContainer()->data(),
-                        req.requestBuf.mainContainer()->size(),
+                        req.rawData()->data(),
+                        req.rawData()->size(),
                         [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
                         {
                             // handle error

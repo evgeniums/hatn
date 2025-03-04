@@ -47,9 +47,10 @@ class Request : public common::TaskSubcontext
 
     Request(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
         : response(factory),
-          requestBuf(factory),
-          message(factory->createObject<common::ByteArrayManaged>(factory))
-    {}
+          requestBuf(factory)
+    {
+        requestBuf.setUseInlineBuffers(true);
+    }
 
     common::StringOnStack subject;
     request::type unit;
@@ -60,17 +61,39 @@ class Request : public common::TaskSubcontext
     common::SharedPtr<Env> env;
     protocol::Header header;
 
-    du::WireBufSolid requestBuf;
-    common::ByteArrayShared message;
+    du::WireBufSolidShared requestBuf;
+
+    common::ByteArrayShared rawDataShared() const
+    {
+        return requestBuf.sharedMainContainer();
+    }
+
+    common::ByteArray* rawData() const
+    {
+        return requestBuf.mainContainer();
+    }
+
+    common::ByteArrayShared message() const
+    {
+        const auto& messageField=unit.field(request::message);
+        return messageField.skippedNotParsedContent();
+    }
+
+    common::ByteArrayShared authMessage() const
+    {
+        const auto& authField=unit.field(request::session_auth);
+        if (authField.isSet())
+        {
+            const auto& contentField=authField.value().field(auth::content);
+            return contentField.skippedNotParsedContent();
+        }
+        return common::ByteArrayShared{};
+    }
 
     Error parseMessage()
     {
         Error ec;
-
-        //! @todo Auto create buffer in subunit
-        auto& messageField=unit.field(request::message);
-        messageField.keepContentInBufInsteadOfParsing(message);
-
+        requestBuf.setSize(requestBuf.mainContainer()->size());
         du::io::deserialize(unit,requestBuf,ec);
         return ec;
     }
