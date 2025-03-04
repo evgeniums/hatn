@@ -323,7 +323,9 @@ void Client<RouterTraits,SessionTraits,ContextT,MessgaeBufT,RequestUnitT>::recvR
                     }
                     else
                     {
-                        auto respWrapper=Response{resp.takeValue(),req->responseData.sharedBuf()};
+                        const auto& respField=resp.field(response::message);
+                        auto respMessage=respField.skippedNotParsedContent();
+                        auto respWrapper=Response{resp.takeValue(),req->responseData.sharedBuf(),std::move(respMessage)};
                         if (resp->status()==static_cast<int>(ResponseStatus::AuthError) && !m_closed)
                         {
                             // process auth error in session

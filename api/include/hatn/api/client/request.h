@@ -65,8 +65,10 @@ struct Request
                 m_timeoutMs(timeoutMs),
                 m_pending(true),
                 m_cancelled(false),
-                m_methodAuth(std::move(methodAuth))
+                m_methodAuth(std::move(methodAuth)),
+                responseData(factory)
         {
+            responseData.setUseInlineBuffers(true);
         }
 
         void setPriority(Priority priority) noexcept
@@ -118,13 +120,6 @@ struct Request
 
         lib::string_view id() const noexcept;
 
-        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const
-        {
-            //! @todo Implement response parsing
-            //! Check id
-            return commonError(CommonError::NOT_IMPLEMENTED);
-        }
-
         common::SharedPtr<Session<SessionTraits>>& session()
         {
             return m_session;
@@ -139,6 +134,8 @@ struct Request
         {
             return m_methodAuth;
         }
+
+        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
 
         const common::pmr::AllocatorFactory* m_factory;
 
@@ -163,6 +160,7 @@ struct Request
 
         MethodAuth m_methodAuth;        
         du::WireBufSolidShared requestData;
+        du::WireBufSolidShared responseData;
 
         template <typename ...T>
         friend class Client;
@@ -180,8 +178,7 @@ class RequestContext : public RequestT,
                 const common::pmr::AllocatorFactory* factory,
                 Args&& ...args
             ) : RequestT(factory,std::forward<Args>(args)...),
-                timer(thread),                
-                responseData(factory)
+                timer(thread)
         {
             timer.setAutoAsyncGuardEnabled(false);
         }
@@ -282,13 +279,11 @@ class RequestContext : public RequestT,
             bufs.emplace_back(this->requestData.sharedMainContainer());
             bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
             return bufs;
-        }        
+        }
 
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
-
-        du::WireBufSolidShared responseData;
 
         template <typename ...T>
         friend class Client;

@@ -91,6 +91,18 @@ lib::string_view Request<SessionTraits,MessageT,RequestUnitT>::id() const noexce
     return id.value();
 }
 
+template <typename SessionTraits, typename MessageT, typename RequestUnitT>
+common::Result<common::SharedPtr<ResponseManaged>> Request<SessionTraits,MessageT,RequestUnitT>::parseResponse() const
+{
+    Error ec;
+
+    auto resp=m_factory->createObject<ResponseManaged>(m_factory);
+    du::io::deserialize(*resp,responseData,ec);
+    HATN_CHECK_EC(ec)
+
+    return resp;
+}
+
 //---------------------------------------------------------------
 
 } // namespace client

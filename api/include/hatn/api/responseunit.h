@@ -36,15 +36,16 @@ HDU_UNIT(response,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
     HDU_FIELD(status,TYPE_UINT32,2,false,0)
     HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
-    HDU_FIELD(content,TYPE_DATAUNIT,4)
+    HDU_FIELD(message,TYPE_DATAUNIT,4)
 )
 
 using ResponseManaged=response::managed;
 
 struct Response
 {
-    common::SharedPtr<ResponseManaged> message;
-    common::ByteArrayShared data;
+    common::SharedPtr<ResponseManaged> unit;
+    common::ByteArrayShared rawData;
+    common::ByteArrayShared message;
 };
 
 HATN_API_NAMESPACE_END
