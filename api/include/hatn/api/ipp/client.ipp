@@ -158,6 +158,7 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::doExec(
     }
 
     // push request to queue
+    //! @todo Use thread safe queue
     auto priority=req->priority();
     queue.push(std::move(req));
 
