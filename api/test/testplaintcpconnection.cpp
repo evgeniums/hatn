@@ -22,6 +22,8 @@
 
 #include <hatn/common/random.h>
 
+#include <hatn/network/asio/caresolver.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/client/plaintcpconnection.h>
 #include <hatn/api/server/plaintcpserver.h>
@@ -36,10 +38,17 @@ struct Env : public ::hatn::test::MultiThreadFixture
 {
     Env()
     {
+        auto ec=HATN_NETWORK_NAMESPACE::CaresLib::init();
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("cares lib init error: {}",ec.message()));
+        }
+        BOOST_REQUIRE(!ec);
     }
 
     ~Env()
     {
+        HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
     }
 
     Env(const Env&)=delete;

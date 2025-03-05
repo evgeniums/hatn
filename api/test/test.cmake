@@ -16,6 +16,7 @@ FUNCTION(TestApi)
     COPY_LIBRARY_HERE(hatnnetwork${LIB_POSTFIX} ../network/)
     COPY_LIBRARY_HERE(hatncrypt${LIB_POSTFIX} ../crypt/)
     COPY_LIBRARY_HERE(hatnapi${LIB_POSTFIX} ../api/)
+    COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
 ENDFUNCTION(TestApi)
 
 ADD_CUSTOM_TARGET(apitest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})

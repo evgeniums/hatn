@@ -113,7 +113,7 @@ struct Request
 
     protected:
 
-        bool setNotPending() noexcept
+        void setNotPending() noexcept
         {
             m_pending=false;
         }

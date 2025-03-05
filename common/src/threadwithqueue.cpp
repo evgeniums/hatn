@@ -24,6 +24,8 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
+#ifndef __MINGW32__
+
 template class HATN_COMMON_EXPORT Queue<Task>;
 template class HATN_COMMON_EXPORT Queue<TaskWithContext>;
 
@@ -38,6 +40,8 @@ template class HATN_COMMON_EXPORT ThreadWithQueue<TaskWithContext>;
 
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadWithQueue<Task>>;
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadWithQueue<TaskWithContext>>;
+
+#endif
 
 //---------------------------------------------------------------
 

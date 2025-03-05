@@ -141,6 +141,25 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
         virtual void beforeRun() override;
 };
 
+#ifdef __MINGW32__
+
+template class HATN_COMMON_EXPORT Queue<Task>;
+template class HATN_COMMON_EXPORT Queue<TaskWithContext>;
+
+template class HATN_COMMON_EXPORT ThreadWithQueueTraits<Task>;
+template class HATN_COMMON_EXPORT ThreadWithQueueTraits<TaskWithContext>;
+
+template class HATN_COMMON_EXPORT ThreadQ<Task,ThreadWithQueueTraits>;
+template class HATN_COMMON_EXPORT ThreadQ<TaskWithContext,ThreadWithQueueTraits>;
+
+template class HATN_COMMON_EXPORT ThreadWithQueue<Task>;
+template class HATN_COMMON_EXPORT ThreadWithQueue<TaskWithContext>;
+
+template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadWithQueue<Task>>;
+template class HATN_COMMON_EXPORT ThreadCategoriesPool<ThreadWithQueue<TaskWithContext>>;
+
+#endif
+
 using TaskQueue=Queue<Task>;
 using TaskWithContextQueue=Queue<TaskWithContext>;
 using TaskThread=ThreadWithQueue<Task>;
