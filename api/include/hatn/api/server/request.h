@@ -49,7 +49,8 @@ struct Request : public common::TaskSubcontext
         : response(factory),
           requestBuf(factory),
           routed(false),
-          closeConnection(false)
+          closeConnection(false),
+          requestThread(nullptr)
     {
         requestBuf.setUseInlineBuffers(true);
     }
@@ -66,6 +67,21 @@ struct Request : public common::TaskSubcontext
     du::WireBufSolidShared requestBuf;
     bool routed;
     bool closeConnection;
+
+    common::Thread* requestThread;
+
+    common::Thread* thread() const
+    {
+        if (requestThread!=nullptr)
+        {
+            return requestThread;
+        }
+        if (env)
+        {
+            return env->thread();
+        }
+        return common::Thread::currentThread();
+    }
 
     const auto& id() const
     {

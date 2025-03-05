@@ -104,7 +104,7 @@ auto createServer(Thread* thread)
 {
     auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
     using dispatcherType=server::ServiceDispatcher<>;
-    auto dispatcher=std::make_shared<dispatcherType>(thread,serviceRouter);
+    auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
     auto server=std::make_shared<server::Server<dispatcherType>>(std::move(dispatcher));
 
     auto onNewTcpConnection=[server](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec)

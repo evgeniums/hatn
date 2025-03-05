@@ -51,11 +51,9 @@ class Dispatcher : public common::WithTraits<Traits>,
 
         template <typename ...TraitsArgs>
         Dispatcher(
-                common::Thread* thread,
                 TraitsArgs&&... traitsArgs
             )
-            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
-              m_thread(thread)
+            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
         void dispatch(
@@ -63,8 +61,8 @@ class Dispatcher : public common::WithTraits<Traits>,
                 DispatchCb<Request> cb
             )
         {
-            //! @todo Use thread from request env
-            m_thread->execAsync(
+            auto& req=reqCtx->template get<Request>();
+            req.thread()->execAsync(
                 [reqCtx{std::move(reqCtx)},cb{std::move(cb)},this]()
                 {
                     auto cb1=[cb{std::move(cb)}](common::SharedPtr<RequestContext<Request>> reqCtx)
@@ -84,15 +82,6 @@ class Dispatcher : public common::WithTraits<Traits>,
                 }
             );
         }
-
-        common::Thread* thread() const
-        {
-            return m_thread;
-        }
-
-    private:
-
-        common::Thread* m_thread;
 };
 
 } // namespace server

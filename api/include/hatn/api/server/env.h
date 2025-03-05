@@ -31,13 +31,27 @@ namespace server {
 
 struct Env
 {
+    Env(
+            common::Thread* thread=common::Thread::currentThread(),
+            size_t maxMessageSize=protocol::DEFAULT_MAX_MESSAGE_SIZE
+        ) : m_thread(thread),
+            m_maxMessageSize(maxMessageSize)
+    {}
+
+
     //! @todo Reimplement using config
     size_t maxMessageSize() const noexcept
     {
         return m_maxMessageSize;
     }
 
-    size_t m_maxMessageSize=protocol::DEFAULT_MAX_MESSAGE_SIZE;
+    common::Thread* thread() const noexcept
+    {
+        return m_thread;
+    }
+
+    common::Thread* m_thread;
+    size_t m_maxMessageSize;
 };
 
 class SimpleEnv : public Env
