@@ -39,16 +39,16 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
     public:
 
         using Env=EnvT;
-        using Request=RequestT;
+        using Request=RequestT;        
 
         Server(
                 std::shared_ptr<ConnectionsStoreT> connectionsStore,
                 std::shared_ptr<DispatcherT> dispatcher,
-                std::shared_ptr<AuthDispatcherT> authDispatcherT={},
+                std::shared_ptr<AuthDispatcherT> authDispatcher={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_connectionsStore(std::move(connectionsStore)),
                 m_dispatcher(std::move(dispatcher)),
-                m_authDispatcherT(std::move(authDispatcherT)),
+                m_authDispatcher(std::move(authDispatcher)),
                 m_closed(false),
                 m_allocatorFactory(factory)
         {}
@@ -69,9 +69,9 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             return m_dispatcher;
         }
 
-        std::shared_ptr<AuthDispatcherT> authDispatcherT() const
+        std::shared_ptr<AuthDispatcherT> authDispatcher() const
         {
-            return m_authDispatcherT;
+            return m_authDispatcher;
         }
 
         const common::pmr::AllocatorFactory* factory() const noexcept
@@ -192,7 +192,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             }
 
                             // auth request if auth dispatcher is set
-                            if (m_authDispatcherT)
+                            if (m_authDispatcher)
                             {
                                 authRequest(std::move(ctx),std::move(reqCtx),connection);
                             }
@@ -233,7 +233,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             monitorConnection(std::move(ctx),connection);
 
             auto self=this->shared_from_this();
-            m_authDispatcherT->dispatch(std::move(reqCtx),
+            m_authDispatcher->dispatch(std::move(reqCtx),
                                         [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                                    {
                                         if (m_closed)
@@ -438,7 +438,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
         std::shared_ptr<ConnectionsStoreT> m_connectionsStore;
         std::shared_ptr<DispatcherT> m_dispatcher;
-        std::shared_ptr<AuthDispatcherT> m_authDispatcherT;
+        std::shared_ptr<AuthDispatcherT> m_authDispatcher;
         bool m_closed;
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 };
