@@ -40,7 +40,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=SimpleEnv, typename RequestUnitT=request::type>
 struct Request : public common::TaskSubcontext
 {
     using Env=EnvT;
@@ -55,7 +55,7 @@ struct Request : public common::TaskSubcontext
     }
 
     common::StringOnStack subject;
-    request::type unit;
+    RequestUnitT unit;
     common::WeakPtr<common::TaskContext> connectionCtx;
 
     Response response;
@@ -115,16 +115,16 @@ struct Request : public common::TaskSubcontext
     }
 };
 
-template <typename EnvT=SimpleEnv>
-using RequestContext=common::TaskContextType<Request<EnvT>,HATN_LOGCONTEXT_NAMESPACE::Context>;
+template <typename RequestT=Request<>>
+using RequestContext=common::TaskContextType<RequestT,HATN_LOGCONTEXT_NAMESPACE::Context>;
 
-template <typename EnvT=SimpleEnv>
+template <typename RequestT=Request<>>
 inline auto allocateRequestContext(
         const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
     )
 {
-    return HATN_COMMON_NAMESPACE::allocateTaskContextType<RequestContext<EnvT>>(
-        factory->objectAllocator<RequestContext<EnvT>>(),
+    return HATN_COMMON_NAMESPACE::allocateTaskContextType<RequestContext<RequestT>>(
+        factory->objectAllocator<RequestContext<RequestT>>(),
         HATN_COMMON_NAMESPACE::subcontexts(
             HATN_COMMON_NAMESPACE::subcontext(factory),
             HATN_COMMON_NAMESPACE::subcontext()
@@ -132,11 +132,11 @@ inline auto allocateRequestContext(
         );
 }
 
-template <typename EnvT=SimpleEnv>
-using RouteCb=std::function<void (common::SharedPtr<RequestContext<EnvT>> request)>;
+template <typename RequestT=Request<>>
+using RouteCb=std::function<void (common::SharedPtr<RequestContext<RequestT>> request)>;
 
-template <typename EnvT=SimpleEnv>
-using RouteFh=std::function<void (common::SharedPtr<RequestContext<EnvT>> request, RouteCb<EnvT> cb)>;
+template <typename RequestT=Request<>>
+using RouteFh=std::function<void (common::SharedPtr<RequestContext<RequestT>> request, RouteCb<RequestT> cb)>;
 
 } // namespace server
 

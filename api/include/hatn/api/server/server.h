@@ -33,12 +33,13 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv>
-class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispatcherT,EnvT>>
+template <typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispatcherT,EnvT,RequestT>>
 {
     public:
 
         using Env=EnvT;
+        using Request=RequestT;
 
         Server(                
                 std::shared_ptr<DispatcherT> dispatcher,
@@ -111,7 +112,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
             // create request
             auto reqCtx=allocateRequestContext(m_allocatorFactory);
-            auto& req=reqCtx->template get<Request<Env>>();
+            auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
 
             // copy env from connection ctx to request
@@ -123,7 +124,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 std::move(reqCtx),
                 req.header.data(),
                 req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec)
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                 {
                     // handle error
                     if (ec)
@@ -163,7 +164,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                         std::move(reqCtx),
                         req.rawData()->data(),
                         req.rawData()->size(),
-                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec)
+                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                         {
                             // handle error
                             if (ec)
@@ -208,7 +209,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
     private:
 
         template <typename ConnectionContext, typename Connection>
-        void authRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        void authRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
@@ -221,7 +222,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             auto wCtx=common::toWeakPtr(ctx);
             auto self=this->shared_from_this();
             m_authDispatcherT->dispatch(std::move(reqCtx),
-                                        [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
+                                        [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                                    {
                                         if (m_closed)
                                         {
@@ -230,7 +231,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
                                            return;
                                         }
-                                        auto& req=reqCtx->template get<Request<Env>>();
+                                        auto& req=reqCtx->template get<Request>();
                                         auto ctx=wCtx.lock();
 
                                         // close connection if needed
@@ -258,7 +259,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
         }
 
         template <typename ConnectionContext,typename Connection>
-        void dispatchRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        void dispatchRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
@@ -271,7 +272,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             auto wCtx=common::toWeakPtr(ctx);
             auto self=this->shared_from_this();
             m_dispatcher->dispatch(std::move(reqCtx),
-                                   [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
+                                   [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                 {
                     if (m_closed)
                     {
@@ -279,7 +280,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                        closeRequest(reqCtx);
                        return;
                     }
-                    auto& req=reqCtx->template get<Request<Env>>();
+                    auto& req=reqCtx->template get<Request>();
 
                     // check if connection was destroyed
                     auto ctx=wCtx.lock();
@@ -307,7 +308,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
         }
 
         template <typename ConnectionContext, typename Connection>
-        void sendResponse(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        void sendResponse(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
@@ -315,7 +316,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 closeRequest(reqCtx);
                 return;
             }
-            auto& req=reqCtx->template get<Request<Env>>();
+            auto& req=reqCtx->template get<Request>();
 
             // serialize response
             auto ec=req.response.serialize();
@@ -338,7 +339,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 std::move(reqCtx),
                 req.header.data(),
                 req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec, size_t)
                 {
                     if (m_closed)
                     {
@@ -358,7 +359,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     connection.send(
                         std::move(reqCtx),
                         req.response.buffers(),
-                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
+                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
                         {
                             // handle error
                             if (ec)
@@ -379,7 +380,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             );
         }
 
-        void closeRequest(common::SharedPtr<RequestContext<Env>>& reqCtx)
+        void closeRequest(common::SharedPtr<RequestContext<Request>>& reqCtx)
         {
             //! @todo Close request context and write log
         }

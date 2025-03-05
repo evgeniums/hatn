@@ -26,17 +26,19 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename Traits, typename EnvT=SimpleEnv>
+template <typename Traits, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
 class RequestRouter : public common::WithTraits<Traits>
 {
     public:
 
         using Env=EnvT;
+        using Request=RequestT;
+
         using common::WithTraits<Traits>::WithTraits;
 
         void route(
-            common::SharedPtr<RequestContext<Env>> request,
-            RouteCb<Env> cb
+            common::SharedPtr<RequestContext<Request>> request,
+            RouteCb<Request> cb
         )
         {
             this->traits().route(std::move(request),std::move(cb));

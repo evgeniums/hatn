@@ -26,25 +26,26 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
 class ServiceDispatcherTraits
 {
     public:
 
         using Env=EnvT;
-        using Self=ServiceDispatcherTraits<Env>;
-        using DispatcherType=Dispatcher<Self,Env>;
+        using Request=RequestT;
+        using Self=ServiceDispatcherTraits<Env,Request>;
+        using DispatcherType=Dispatcher<Self,Env,Request>;
 
         ServiceDispatcherTraits(
                 DispatcherType* dispatcher,
-                std::shared_ptr<ServiceRouter<Env>> serviceRouter
+                std::shared_ptr<ServiceRouter<Env,Request>> serviceRouter
             ) : m_dispatcher(dispatcher),
                 m_serviceRouter(std::move(serviceRouter))
         {}
 
         void dispatch(
-                common::SharedPtr<RequestContext<Env>> reqCtx,
-                DispatchCb<Env> cb
+                common::SharedPtr<RequestContext<Request>> reqCtx,
+                DispatchCb<Request> cb
             )
         {
             m_serviceRouter->route(
@@ -57,11 +58,11 @@ class ServiceDispatcherTraits
 
         DispatcherType* m_dispatcher;
 
-        std::shared_ptr<ServiceRouter<Env>> m_serviceRouter;
+        std::shared_ptr<ServiceRouter<Env,Request>> m_serviceRouter;
 };
 
-template <typename EnvT=SimpleEnv>
-using ServiceDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT>,EnvT>;
+template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+using ServiceDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT,RequestT>,EnvT,RequestT>;
 
 } // namespace server
 

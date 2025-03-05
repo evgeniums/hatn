@@ -36,17 +36,18 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv>
-using DispatchCb=RouteCb<EnvT>;
+template <typename RequestT=Request<>>
+using DispatchCb=RouteCb<RequestT>;
 
-template <typename Traits, typename EnvT=SimpleEnv>
+template <typename Traits, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
 class Dispatcher : public common::WithTraits<Traits>,
-                   public std::enable_shared_from_this<Dispatcher<Traits,EnvT>>
+                   public std::enable_shared_from_this<Dispatcher<Traits,EnvT,RequestT>>
 {
     public:
 
         using Env=EnvT;
-        using Self=Dispatcher<Traits,EnvT>;
+        using Request=RequestT;
+        using Self=Dispatcher<Traits,EnvT,Request>;
 
         template <typename ...TraitsArgs>
         Dispatcher(
@@ -58,16 +59,17 @@ class Dispatcher : public common::WithTraits<Traits>,
         {}
 
         void dispatch(
-                common::SharedPtr<RequestContext<Env>> reqCtx,
-                DispatchCb<Env> cb
+                common::SharedPtr<RequestContext<Request>> reqCtx,
+                DispatchCb<Request> cb
             )
         {
+            //! @todo Use thread from request env
             m_thread->execAsync(
                 [reqCtx{std::move(reqCtx)},cb{std::move(cb)},this]()
                 {
-                    auto cb1=[cb{std::move(cb)}](common::SharedPtr<RequestContext<Env>> reqCtx)
+                    auto cb1=[cb{std::move(cb)}](common::SharedPtr<RequestContext<Request>> reqCtx)
                     {
-                        auto& req=reqCtx->template get<Request<>>();
+                        auto& req=reqCtx->template get<Request>();
                         if (!req.routed)
                         {
                             //! @todo report error that no route is found

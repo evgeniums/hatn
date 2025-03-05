@@ -34,19 +34,20 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
 class ServiceRouterTraits
 {
     public:
 
         using Env=EnvT;
+        using Request=RequestT;
 
         void route(
-                common::SharedPtr<RequestContext<Env>> reqCtx,
-                RouteCb<EnvT> cb
+                common::SharedPtr<RequestContext<Request>> reqCtx,
+                RouteCb<Request> cb
             )
         {
-            auto& req=reqCtx->template get<Request<Env>>();
+            auto& req=reqCtx->template get<Request>();
 
             auto it=m_routes.find(req.serviceNameAndVersion());
             if (it==m_routes.end())
@@ -59,26 +60,27 @@ class ServiceRouterTraits
             it->second(std::move(reqCtx),std::move(cb));
         }
 
-        void registerService(Service service, RouteFh<Env> handler)
+        void registerService(Service service, RouteFh<Request> handler)
         {
             m_routes[std::move(service)]=std::move(handler);
         }
 
     private:
 
-        common::FlatMap<Service,RouteFh<EnvT>,std::less<WithNameAndVersion<ServiceNameLengthMax>>> m_routes;
+        common::FlatMap<Service,RouteFh<Request>,std::less<WithNameAndVersion<ServiceNameLengthMax>>> m_routes;
 };
 
-template <typename EnvT=SimpleEnv>
-class ServiceRouter : public RequestRouter<ServiceRouterTraits<EnvT>>
+template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+class ServiceRouter : public RequestRouter<ServiceRouterTraits<EnvT,RequestT>,EnvT,RequestT>
 {
     public:
 
         using Env=EnvT;
+        using Request=RequestT;
 
-        using RequestRouter<ServiceRouterTraits<Env>>::RequestRouter;
+        using RequestRouter<ServiceRouterTraits<Env,Request>,Env,Request>::RequestRouter;
 
-        void registerService(Service service, RouteFh<Env> handler)
+        void registerService(Service service, RouteFh<Request> handler)
         {
             this->traits().registerService(std::move(service),std::move(handler));
         }
