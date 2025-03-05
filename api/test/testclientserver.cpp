@@ -37,6 +37,7 @@
 
 #include <hatn/api/server/servicerouter.h>
 #include <hatn/api/server/servicedispatcher.h>
+#include <hatn/api/server/connectionsstore.h>
 #include <hatn/api/server/server.h>
 
 #include <hatn/api/ipp/client.ipp>
@@ -100,18 +101,23 @@ auto createClient(Thread* thread)
     return cl;
 }
 
-auto createServer(Thread* thread)
+auto createServer(Thread* thread, std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>>& connections)
 {
     auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
     using dispatcherType=server::ServiceDispatcher<>;
     auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
-    auto server=std::make_shared<server::Server<dispatcherType>>(std::move(dispatcher));
+    using connectionsStoreType=server::ConnectionsStore<server::PlainTcpConnectionContext,server::PlainTcpConnection>;
+    auto connectionsStore=std::make_shared<connectionsStoreType>();
 
-    auto onNewTcpConnection=[server](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec)
+    auto server=std::make_shared<server::Server<connectionsStoreType,dispatcherType>>(std::move(connectionsStore),std::move(dispatcher));
+
+    auto onNewTcpConnection=[server,&connections](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec)
     {
         BOOST_TEST_MESSAGE(fmt::format("onNewTcpConnection: {}/{}",ec.code(),ec.message()));
         if (!ec)
         {
+            connections[std::string{connectionCtx->id()}]=connectionCtx;
+
             auto& connection=connectionCtx->get<server::PlainTcpConnection>();
             server->handleNewConnection(connectionCtx,connection);
         }
@@ -148,7 +154,8 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
     createThreads(2);
     auto workThread=thread(1);
 
-    std::ignore=createServer(workThread.get());
+    std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
+    std::ignore=createServer(workThread.get(),connections);
 
     BOOST_CHECK(true);
 }

@@ -33,19 +33,21 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
-class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispatcherT,EnvT,RequestT>>
+template <typename ConnectionsStoreT, typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,DispatcherT,AuthDispatcherT,EnvT,RequestT>>
 {
     public:
 
         using Env=EnvT;
         using Request=RequestT;
 
-        Server(                
+        Server(
+                std::shared_ptr<ConnectionsStoreT> connectionsStore,
                 std::shared_ptr<DispatcherT> dispatcher,
                 std::shared_ptr<AuthDispatcherT> authDispatcherT={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_dispatcher(std::move(dispatcher)),
+            ) : m_connectionsStore(std::move(connectionsStore)),
+                m_dispatcher(std::move(dispatcher)),
                 m_authDispatcherT(std::move(authDispatcherT)),
                 m_closed(false),
                 m_allocatorFactory(factory)
@@ -54,6 +56,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
         void close()
         {
             m_closed=true;
+            closeAllConnections();
         }
 
         bool isClosed() const noexcept
@@ -78,7 +81,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
         /**
          * @brief Handle new connection by server.
-         * @param ctx Connection context. Note that the context is not owned by the server and must be stored somewhere else outside the server.
+         * @param ctx Connection context.
          * @param connection Connection.
          * @param waitNextConnection Callback for waiting for the next connection.
          */
@@ -92,6 +95,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             {
                 return;
             }
+            m_connectionsStore->registerConnection(ctx);
 
             //! @todo maybe log
 
@@ -129,11 +133,9 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     // handle error
                     if (ec)
                     {
-                        //! @todo Log eror?
-
                         //! @todo log
                         closeRequest(reqCtx);
-
+                        resetConnection(ctx);
                         return;
                     }
 
@@ -142,7 +144,6 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     {
                         //! @todo log
                         closeRequest(reqCtx);
-
                         waitForRequest(std::move(ctx),connection);
                         return;
                     }
@@ -152,9 +153,9 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                         //! @todo report error to client
                         //! @todo log error?
 
-                        //! @todo log
-                        connection.close();
+                        //! @todo log                        
                         closeRequest(reqCtx);
+                        closeConnection(ctx,connection);
                         return;
                     }
 
@@ -173,7 +174,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
                                 //! @todo log
                                 closeRequest(reqCtx);
-
+                                resetConnection(ctx);
                                 return;
                             }
 
@@ -186,7 +187,6 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
                                 //! @todo log
                                 closeRequest(reqCtx);
-
                                 waitForRequest(std::move(ctx),connection);
                                 return;
                             }
@@ -204,6 +204,16 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     );
                 }
             );
+        }
+
+        auto closeConnection(const lib::string_view& id)
+        {
+            return m_connectionsStore->closeConnection(id);
+        }
+
+        void closeAllConnections()
+        {
+            return m_connectionsStore->clear();
         }
 
     private:
@@ -230,7 +240,6 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                         {
                                            //! @todo log
                                            closeRequest(reqCtx);
-
                                            return;
                                         }
                                         auto& req=reqCtx->template get<Request>();
@@ -239,9 +248,9 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                         // close connection if needed
                                         if (req.closeConnection && ctx)
                                         {
-                                            //! @todo log
-                                            connection.close();
+                                            //! @todo log                                            
                                             closeRequest(reqCtx);
+                                            closeConnection(ctx,connection);
                                             return;
                                         }
 
@@ -307,7 +316,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     // close connection if needed
                     if (req.closeConnection)
                     {
-                        connection.close();
+                        closeConnection(ctx,connection);
 
                         //! @todo log
                         closeRequest(reqCtx);
@@ -365,6 +374,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     {
                         //! @todo Log eror?
                         closeRequest(reqCtx);
+                        resetConnection(ctx);
                         return;
                     }
 
@@ -379,6 +389,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                             {
                                 //! @todo Log eror?
                                 closeRequest(reqCtx);
+                                resetConnection(ctx);
                                 return;
                             }
 
@@ -401,22 +412,31 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
         template <typename ConnectionContext,typename Connection>
         void monitorConnection(common::SharedPtr<ConnectionContext> ctx, Connection& connection)
         {
+            auto self=this->shared_from_this();
             connection.waitForRead(
                 std::move(ctx),
-                [&connection](common::SharedPtr<ConnectionContext> ctx, const Error&)
+                [&connection,self{std::move(self)},this](common::SharedPtr<ConnectionContext> ctx, const Error&)
                 {
-                    // this callback is onvoked only if either connection is broken or unexpected data received
-                    // just close and destroy connection
-                    connection.close(
-                        [ctx{std::move(ctx)}](const Error&)
-                        {
-                            //! @todo Remove connection from connections set
-                        }
-                    );
+                    // this callback is invoked only if either connection is broken or unexpected data is received
+                    closeConnection(ctx,connection);
                 }
             );
         }
 
+        template <typename ConnectionContext,typename Connection>
+        void closeConnection(const common::SharedPtr<ConnectionContext>& ctx, Connection& connection)
+        {
+            connection.close();
+            resetConnection(ctx);
+        }
+
+        template <typename ConnectionContext>
+        void resetConnection(const common::SharedPtr<ConnectionContext>& ctx)
+        {
+            m_connectionsStore->removeConnection(ctx->id());
+        }
+
+        std::shared_ptr<ConnectionsStoreT> m_connectionsStore;
         std::shared_ptr<DispatcherT> m_dispatcher;
         std::shared_ptr<AuthDispatcherT> m_authDispatcherT;
         bool m_closed;
