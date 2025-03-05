@@ -33,6 +33,10 @@
 #include <hatn/api/client/client.h>
 #include <hatn/api/client/session.h>
 
+#include <hatn/api/server/servicerouter.h>
+#include <hatn/api/server/servicedispatcher.h>
+#include <hatn/api/server/server.h>
+
 #include <hatn/api/ipp/client.ipp>
 #include <hatn/api/ipp/request.ipp>
 #include <hatn/api/ipp/auth.ipp>
@@ -94,11 +98,35 @@ auto createClient(Thread* thread)
     return cl;
 }
 
-#if 0
-
 auto createServer(Thread* thread)
 {
-    return server::makePlainTcpServerContext(thread,"server");
+    auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
+    using dispatcherType=server::ServiceDispatcher<>;
+    auto dispatcher=std::make_shared<dispatcherType>(thread,serviceRouter);
+    auto server=std::make_shared<server::Server<dispatcherType>>(std::move(dispatcher));
+
+    auto onNewTcpConnection=[server](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("onNewTcpConnection: {}/{}",ec.code(),ec.message()));
+        if (!ec)
+        {
+            auto& connection=connectionCtx->get<server::PlainTcpConnection>();
+            server->handleNewConnection(connectionCtx,connection);
+        }
+    };
+
+    auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");;
+    auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
+    tcpServer.setConnectionHandler(onNewTcpConnection);
+    asio::IpEndpoint serverEp{"127.0.0.1",TcpPort};
+    auto ec=tcpServer.run(tcpServerCtx,serverEp);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("failed to listen: {}/{}",ec.code(),ec.message()));
+    }
+    BOOST_REQUIRE(!ec);
+
+    return std::make_pair(server,tcpServerCtx);
 }
 
 BOOST_AUTO_TEST_SUITE(TestClientServer)
@@ -122,6 +150,8 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 
     BOOST_CHECK(true);
 }
+
+#if 0
 
 BOOST_FIXTURE_TEST_CASE(ConnectClientServer,TestEnv)
 {
@@ -536,6 +566,7 @@ BOOST_FIXTURE_TEST_CASE(ServerSendClientRecv,TestEnv)
     sendRead(this,createServer,createClient,true,true);
 }
 
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()
 
-#endif

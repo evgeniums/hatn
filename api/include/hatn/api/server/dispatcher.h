@@ -53,7 +53,7 @@ class Dispatcher : public common::WithTraits<Traits>,
                 common::Thread* thread,
                 TraitsArgs&&... traitsArgs
             )
-            : Traits(this,std::forward<TraitsArgs>(traitsArgs)...),
+            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_thread(thread)
         {}
 
@@ -67,7 +67,7 @@ class Dispatcher : public common::WithTraits<Traits>,
                 {
                     auto cb1=[cb{std::move(cb)}](common::SharedPtr<RequestContext<Env>> reqCtx)
                     {
-                        auto& req=reqCtx->template get<Request>();
+                        auto& req=reqCtx->template get<Request<>>();
                         if (!req.routed)
                         {
                             //! @todo report error that no route is found

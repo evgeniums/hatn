@@ -33,19 +33,19 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename Dispatcher, typename AuthDispatcher, typename EnvT=SimpleEnv>
-class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
+template <typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv>
+class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispatcherT,EnvT>>
 {
     public:
 
         using Env=EnvT;
 
         Server(                
-                std::shared_ptr<Dispatcher> dispatcher,
-                std::shared_ptr<AuthDispatcher> authDispatcher={},
+                std::shared_ptr<DispatcherT> dispatcher,
+                std::shared_ptr<AuthDispatcherT> authDispatcherT={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_dispatcher(std::move(dispatcher)),
-                m_authDispatcher(std::move(authDispatcher)),
+                m_authDispatcherT(std::move(authDispatcherT)),
                 m_closed(false),
                 m_allocatorFactory(factory)
         {}
@@ -60,14 +60,14 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             return m_closed;
         }
 
-        std::shared_ptr<Dispatcher> dispatcher() const
+        std::shared_ptr<DispatcherT> dispatcher() const
         {
             return m_dispatcher;
         }
 
-        std::shared_ptr<AuthDispatcher> authDispatcher() const
+        std::shared_ptr<AuthDispatcherT> authDispatcherT() const
         {
-            return m_authDispatcher;
+            return m_authDispatcherT;
         }
 
         const common::pmr::AllocatorFactory* factory() const noexcept
@@ -84,7 +84,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
         template <typename ConnectionContext, typename Connection>
         void handleNewConnection(common::SharedPtr<ConnectionContext> ctx,
                                  Connection& connection,
-                                 std::function<void ()> waitNextConnection
+                                 std::function<void ()> waitNextConnection={}
                                 )
         {
             if (m_closed)
@@ -95,7 +95,10 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             //! @todo maybe log
 
             waitForRequest(std::move(ctx),connection);
-            waitNextConnection();
+            if (waitNextConnection)
+            {
+                waitNextConnection();
+            }
         }
 
         template <typename ConnectionContext, typename Connection>
@@ -120,7 +123,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                 std::move(reqCtx),
                 req.header.data(),
                 req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec)
                 {
                     // handle error
                     if (ec)
@@ -139,11 +142,11 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                         //! @todo log
                         closeRequest(reqCtx);
 
-                        waitForRequest(std::move(ctx));
+                        waitForRequest(std::move(ctx),connection);
                         return;
                     }
 
-                    if (req.header.messageSize()>req->env->maxMessageSize())
+                    if (req.header.messageSize()>req.env->maxMessageSize())
                     {
                         //! @todo report error to client
                         //! @todo log error?
@@ -160,7 +163,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                         std::move(reqCtx),
                         req.rawData()->data(),
                         req.rawData()->size(),
-                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
+                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec)
                         {
                             // handle error
                             if (ec)
@@ -183,12 +186,12 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                                 //! @todo log
                                 closeRequest(reqCtx);
 
-                                waitForRequest(std::move(ctx));
+                                waitForRequest(std::move(ctx),connection);
                                 return;
                             }
 
                             // auth request if auth dispatcher is set
-                            if (m_authDispatcher)
+                            if (m_authDispatcherT)
                             {
                                 authRequest(std::move(reqCtx),connection);
                             }
@@ -216,7 +219,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             }
 
             auto self=this->shared_from_this();
-            m_authDispatcher->dispatch(std::move(reqCtx),
+            m_authDispatcherT->dispatch(std::move(reqCtx),
                                    [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
                                    {
                                         if (m_closed)
@@ -248,10 +251,10 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                                         }
 
                                         // check auth status
-                                        if (req.response.status()==ResponseStatus::OK)
+                                        if (req.response.status()==static_cast<int>(ResponseStatus::OK))
                                         {
                                             // auth is ok, dispatch request
-                                            dispatchRequest(std::move(req),connection);
+                                            dispatchRequest(std::move(reqCtx),connection);
                                         }
                                         else
                                         {
@@ -331,7 +334,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                 closeRequest(reqCtx);
 
                 // wait for next request
-                waitForRequest(std::move(ctx));
+                waitForRequest(std::move(ctx),connection);
             }
 
             auto self=this->shared_from_this();
@@ -342,7 +345,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                 std::move(reqCtx),
                 req.header.data(),
                 req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t`)
                 {
                     if (m_closed)
                     {
@@ -362,7 +365,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                     connection.send(
                         std::move(reqCtx),
                         req.response.buffers(),
-                        [ctx{std::move(ctx)},self{std::move(self)},this](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
+                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
                         {
                             // handle error
                             if (ec)
@@ -376,7 +379,7 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
                             closeRequest(reqCtx);
 
                             // wait for next request
-                            waitForRequest(std::move(ctx));
+                            waitForRequest(std::move(ctx),connection);
                         }
                     );
                 }
@@ -388,9 +391,9 @@ class Server : public std::enable_shared_from_this<Server<Dispatcher,EnvT>>
             //! @todo Close request context and write log
         }
 
+        std::shared_ptr<DispatcherT> m_dispatcher;
+        std::shared_ptr<AuthDispatcherT> m_authDispatcherT;
         bool m_closed;
-        std::shared_ptr<Dispatcher> m_dispatcher;
-        std::shared_ptr<AuthDispatcher> m_authDispatcher;
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 };
 

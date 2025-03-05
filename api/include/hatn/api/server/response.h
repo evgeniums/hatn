@@ -56,6 +56,11 @@ struct Response
         du::io::serialize(unit,message,ec);
         return ec;
     }
+
+    auto status() const noexcept
+    {
+        return unit.fieldValue(response::status);
+    }
 };
 
 

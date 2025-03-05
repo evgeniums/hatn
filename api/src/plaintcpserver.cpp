@@ -14,6 +14,7 @@
   *
   */
 
+#include "hatn/api/server/request.h"
 #include <hatn/api/server/plaintcpserver.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -21,6 +22,8 @@ HATN_API_NAMESPACE_BEGIN
 HATN_API_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::WithEnv<HATN_API_NAMESPACE::server::SimpleEnv>,SimpleEnv)
+HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::Request<HATN_API_NAMESPACE::server::SimpleEnv>,Request)
 
 HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::PlainTcpConnection,PlainTcpConnection)
 HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::server::PlainTcpServer,TcpServer)
+
