@@ -147,6 +147,11 @@ class WithPrepareClose : public WithTraits<Traits>,
             this->traits().close(callback, this->m_destroying);
         }
 
+        void setDestroying()
+        {
+            this->m_destroying=true;
+        }
+
         inline bool isOpen() const
         {
             return this->traits().isOpen();

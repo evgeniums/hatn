@@ -146,26 +146,34 @@ class StreamChainTraits
 
         void close(const std::function<void (const Error &)>& callback, bool destroying)
         {
-            std::ignore=destroying;
+            // std::ignore=destroying;
             auto self=this;
             hana::eval_if(
                 hana::equal(hana::size(m_streams),hana::size_c<1>),
                 [&](auto _)
                 {
+                    if (_(destroying))
+                    {
+                        _(self)->front()->setDestroying();
+                    }
                     _(self)->front()->close(_(callback));
                 },
                 [&](auto _)
                 {
                     auto nextStreams=hana::drop_back(_(self)->m_streams,hana::size_c<1>);
 
-                    auto each=[](auto&& state,auto&& stream)
+                    auto each=[destroying{_(destroying)}](auto&& state,auto&& stream)
                     {
-                        auto cb=[state{std::move(state)}](const Error & ec)
+                        auto cb=[state{std::move(state)},destroying{destroying}](const Error & ec)
                         {
                             auto nextCb=hana::second(state);
                             //! @todo Collect errors
                             std::ignore=ec;
                             auto nextStream=hana::first(state);
+                            if (destroying)
+                            {
+                                nextStream->front()->setDestroying();
+                            }
                             nextStream->close(nextCb);
                         };
                         return hana::make_pair(stream,std::move(cb));
@@ -176,6 +184,10 @@ class StreamChainTraits
 
                     auto firstStream=hana::first(st);
                     auto firstCb=hana::second(st);
+                    if (destroying)
+                    {
+                        firstStream->front()->setDestroying();
+                    }
                     firstStream->close(firstCb);
                 }
             );

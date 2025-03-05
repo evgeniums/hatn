@@ -94,48 +94,64 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         return;
     }
 
-    HATN_CTX_SCOPE("tcpstreamclose")
+    auto postThread=m_stream->thread()!=common::Thread::currentThread() || static_cast<bool>(callback);
 
-    common::Error ret;
-    if (rawSocket().lowest_layer().is_open())
+    auto doClose=[callback{std::move(callback)},wptr{ctxWeakPtr()},this,postThread]()
     {
-        try
+        if (postThread)
         {
-            boost::system::error_code ec;
-
-            rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
-            if (ec)
+            if (!detail::enterAsyncHandler(wptr,callback))
             {
-                HATN_CTX_WARN_RECORDS_M("failed to shutdown",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
+                return;
             }
-
-            rawSocket().lowest_layer().close(ec);
-            if (ec)
-            {
-                HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
-                throw boost::system::system_error(ec);
-            }
-            HATN_CTX_DEBUG(DoneDebugVerbosity,"stream closed",HatnAsioLog)
         }
-        catch (const boost::system::system_error& e)
+
+        HATN_CTX_SCOPE("tcpstreamclose")
+
+        common::Error ret;
+        if (rawSocket().lowest_layer().is_open())
         {
-            ret=makeBoostError(e.code());
-        }
-    }
-
-    if (callback)
-    {
-        m_stream->thread()->execAsync(
-            [callback{std::move(callback)},wptr{ctxWeakPtr()},ret{std::move(ret)},this]()
+            try
             {
-                if (detail::enterAsyncHandler(wptr,callback))
+                boost::system::error_code ec;
+
+                rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
+                if (ec)
                 {
-                    HATN_CTX_SCOPE("tcpstreamclose")
-                    callback(ret);
-                    m_stream->mainCtx().onAsyncHandlerExit();
+                    HATN_CTX_WARN_RECORDS_M("failed to shutdown",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
                 }
+
+                rawSocket().lowest_layer().close(ec);
+                if (ec)
+                {
+                    HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
+                    throw boost::system::system_error(ec);
+                }
+                HATN_CTX_DEBUG(DoneDebugVerbosity,"stream closed",HatnAsioLog)
             }
-        );
+            catch (const boost::system::system_error& e)
+            {
+                ret=makeBoostError(e.code());
+            }
+        }
+
+        if (callback)
+        {
+            callback(ret);
+        }
+        if (postThread)
+        {
+            m_stream->mainCtx().onAsyncHandlerExit();
+        }
+    };
+
+    if (postThread)
+    {
+        m_stream->thread()->execAsync(doClose);
+    }
+    else
+    {
+        doClose();
     }
 }
 
