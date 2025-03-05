@@ -220,6 +220,8 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             }
 
             auto wCtx=common::toWeakPtr(ctx);
+            monitorConnection(std::move(ctx),connection);
+
             auto self=this->shared_from_this();
             m_authDispatcherT->dispatch(std::move(reqCtx),
                                         [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
@@ -241,6 +243,12 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                             connection.close();
                                             closeRequest(reqCtx);
                                             return;
+                                        }
+
+                                        // cancel connection monitoring
+                                        if (ctx)
+                                        {
+                                            connection.cancel();
                                         }
 
                                         // check auth status
@@ -270,6 +278,8 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
             }
 
             auto wCtx=common::toWeakPtr(ctx);
+            monitorConnection(std::move(ctx),connection);
+
             auto self=this->shared_from_this();
             m_dispatcher->dispatch(std::move(reqCtx),
                                    [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
@@ -290,6 +300,9 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                         closeRequest(reqCtx);
                         return;
                     }
+
+                    // cancel connection monitoring
+                    connection.cancel();
 
                     // close connection if needed
                     if (req.closeConnection)
@@ -383,6 +396,25 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
         void closeRequest(common::SharedPtr<RequestContext<Request>>& reqCtx)
         {
             //! @todo Close request context and write log
+        }
+
+        template <typename ConnectionContext,typename Connection>
+        void monitorConnection(common::SharedPtr<ConnectionContext> ctx, Connection& connection)
+        {
+            connection.waitForRead(
+                std::move(ctx),
+                [&connection](common::SharedPtr<ConnectionContext> ctx, const Error&)
+                {
+                    // this callback is onvoked only if either connection is broken or unexpected data received
+                    // just close and destroy connection
+                    connection.close(
+                        [ctx{std::move(ctx)}](const Error&)
+                        {
+                            //! @todo Remove connection from connections set
+                        }
+                    );
+                }
+            );
         }
 
         std::shared_ptr<DispatcherT> m_dispatcher;
