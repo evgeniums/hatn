@@ -96,14 +96,12 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
 
     auto postThread=m_stream->thread()!=common::Thread::currentThread() || static_cast<bool>(callback);
 
-    auto doClose=[callback{std::move(callback)},wptr{ctxWeakPtr()},this,postThread]()
+    auto doClose=[callback{std::move(callback)},ctx{m_stream->sharedMainCtx()},this,postThread]()
     {
+        std::ignore=ctx;
         if (postThread)
         {
-            if (!detail::enterAsyncHandler(wptr,callback))
-            {
-                return;
-            }
+            m_stream->mainCtx().onAsyncHandlerExit();
         }
 
         HATN_CTX_SCOPE("tcpstreamclose")
