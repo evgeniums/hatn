@@ -18,8 +18,6 @@
 #ifndef HATNMAKESHARED_STD_H
 #define HATNMAKESHARED_STD_H
 
-#include <functional>
-
 #include <hatn/common/common.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pointers/std/weakptr.h>
