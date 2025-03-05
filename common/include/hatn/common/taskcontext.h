@@ -546,7 +546,8 @@ class TaskSubcontextT<T,hana::when<std::is_base_of<TaskSubcontext,T>::value>> : 
             hasBase,
             [&](auto _)
             {
-                using t=std::decay_t<decltype(_(y))>;
+                const auto& y_=_(y);
+                using t=std::decay_t<decltype(y_)>;
                 return boost::hana::type_c<typename t::type::Base>;
             },
             [&](auto _)

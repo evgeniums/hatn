@@ -360,7 +360,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             auto self=this->shared_from_this();
 
             // send header
-            req.header.setMessageSize(req.response.size());
+            req.header.setMessageSize(static_cast<uint32_t>(req.response.size()));
             connection.send(
                 std::move(reqCtx),
                 req.header.data(),

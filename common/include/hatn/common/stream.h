@@ -172,6 +172,22 @@ class WithPrepareClose : public WithTraits<Traits>,
         }
 };
 
+class StreamTraitsBase
+{
+    public:
+
+        template <typename CallbackT>
+        inline void readAll(
+            char* /*data*/,
+            std::size_t /*expectedSize*/,
+            // std::function<void (const Error&,size_t)>
+                CallbackT callback
+            )
+        {
+            callback(commonError(CommonError::NOT_IMPLEMENTED),0);
+        }
+};
+
 //! Base template for asynchronous streams with static polymorphism
 template <typename Traits>
 class Stream : public WithPrepareClose<Traits>

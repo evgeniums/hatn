@@ -36,7 +36,8 @@ namespace asio {
 class TcpStream;
 
 //! TcpStream handler traits
-class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
+class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>,
+                                            public  common::StreamTraitsBase
 {
     public:
 

@@ -31,9 +31,9 @@ uint32_t Random::uniform(const uint32_t& min, const uint32_t& max)
 void Random::bytes(char* buf, size_t size)
 {
     using random_bytes_engine = std::independent_bits_engine<
-        std::default_random_engine, CHAR_BIT, uint8_t>;
+        std::default_random_engine, CHAR_BIT, uint16_t>;
     random_bytes_engine rbe;
-    auto b=reinterpret_cast<uint8_t*>(buf);
+    auto b=reinterpret_cast<uint16_t*>(buf);
     std::generate(b, b+size, std::ref(rbe));
 }
 
