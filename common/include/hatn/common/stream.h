@@ -268,6 +268,12 @@ class Stream : public WithPrepareClose<Traits>
         {
             this->traits().cancel();
         }
+
+        //! Wait for ready read or error
+        inline void waitForRead(std::function<void (const Error&)> callback)
+        {
+            this->traits().waitForRead(std::move(callback));
+        }
 };
 
 /**
@@ -448,6 +454,11 @@ class StreamChain
                                 ResultCb
                             )
                         >;
+        using WaitForReadFn=std::function<
+            void (
+                OpCb
+                )
+            >;
 
         //! Ctor
         StreamChain()=default;
@@ -461,10 +472,17 @@ class StreamChain
         {
             m_writeFn=std::move(writeFn);
         }
+
         //! Set read handler
         inline void setReadNext(ReadFn readFn) noexcept
         {
             m_readFn=std::move(readFn);
+        }
+
+        //! Set wait for read handler
+        inline void setWaitForReadNext(WaitForReadFn fn) noexcept
+        {
+            m_waitForRead=std::move(fn);
         }
 
         //! Reset handlers
@@ -508,10 +526,26 @@ class StreamChain
             }
         }
 
+        //! Wait for ready read or error
+        inline void waitForReadNext(
+                OpCb callback
+            )
+        {
+            if (m_waitForRead)
+            {
+                m_waitForRead(std::move(callback));
+            }
+            else
+            {
+                callback(makeSystemError(std::errc::broken_pipe));
+            }
+        }
+
     private:
 
         WriteFn m_writeFn;
         ReadFn m_readFn;
+        WaitForReadFn m_waitForRead;
 };
 
 //! Base class for asynchronous streams with dynamic polymorphism
@@ -581,6 +615,12 @@ class StreamV
             std::ignore=data;
             std::ignore=expectedSize;
             callback(commonError(CommonError::UNSUPPORTED),0);
+        }
+
+        //! Wait for ready read or error
+        virtual void waitForRead(std::function<void (const Error&)> callback)
+        {
+            callback(commonError(CommonError::UNSUPPORTED));
         }
 
         /**
@@ -734,6 +774,12 @@ class StreamTmplV : public WithImpl<ImplStreamT>, public BaseStreamT
             ) override
         {
             this->impl().read(data,expectedize,std::move(callback));
+        }
+
+        //! Wait for ready read or error
+        virtual void waitForRead(std::function<void (const Error&)> callback) override
+        {
+            this->impl().waitForRead(std::move(callback));
         }
 
         /**

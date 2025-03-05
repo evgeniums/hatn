@@ -81,6 +81,8 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
             std::function<void (const common::Error&,size_t)> callback
         );
 
+        void waitForRead(std::function<void (const Error&)> callback);
+
         const char* idStr() const noexcept;
 
         void cancel();
@@ -88,9 +90,11 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>
         void reset()
         {}
 
+
     private:
 
         TcpStream* m_stream;
+        bool m_cancelled;
 
         inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
         inline void leaveAsyncHandler();
@@ -107,7 +111,8 @@ class HATN_NETWORK_EXPORT TcpStream : public common::TaskSubcontext,
             common::Thread* thread=common::Thread::currentThread() //!< Thread the socket lives in
         );
 
-        ~TcpStream()=default;
+        ~TcpStream();
+
         TcpStream(const TcpStream&)=delete;
         TcpStream(TcpStream&&) =delete;
         TcpStream& operator=(const TcpStream&)=delete;

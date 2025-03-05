@@ -210,6 +210,8 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
             return m_ssl;
         }
 
+        void waitForRead(std::function<void (const Error&)> callback);
+
     private:
 
         void writeSslPipe(const char* data,size_t size);
@@ -253,7 +255,7 @@ class HATN_OPENSSL_EXPORT OpenSslStreamTraitsImpl
 
         common::StreamChain::ResultCb m_writeCb;
         common::StreamChain::ResultCb m_readCb;
-        common::StreamChain::OpCb m_opCb;
+        common::StreamChain::OpCb m_opCb;        
 
         Error m_handshakingError;
         bool m_closed;

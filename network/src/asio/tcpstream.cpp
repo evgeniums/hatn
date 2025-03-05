@@ -69,7 +69,8 @@ TcpStream::TcpStream(
 //---------------------------------------------------------------
 TcpStreamTraits::TcpStreamTraits(TcpStream *stream):
     WithSocket<TcpSocket>(stream->thread()->asioContextRef()),
-    m_stream(stream)
+    m_stream(stream),
+    m_cancelled(false)
 {
 }
 
@@ -78,10 +79,12 @@ void TcpStreamTraits::cancel()
 {
     HATN_CTX_SCOPE("tcpstreamcancel")
 
+    m_cancelled=true;
     boost::system::error_code ec;
     rawSocket().cancel(ec);
     if (ec)
     {
+        m_cancelled=false;
         HATN_CTX_WARN_RECORDS_M("failed to cancel TCP socket",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
     }
 }
@@ -94,6 +97,8 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         return;
     }
 
+    HATN_CTX_SCOPE("tcpstreamclose")
+
     auto postThread=m_stream->thread()!=common::Thread::currentThread() || static_cast<bool>(callback);
 
     auto doClose=[callback{std::move(callback)},ctx{m_stream->sharedMainCtx()},this,postThread]()
@@ -101,10 +106,10 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
         std::ignore=ctx;
         if (postThread)
         {
-            m_stream->mainCtx().onAsyncHandlerExit();
+            m_stream->mainCtx().onAsyncHandlerEnter();
         }
 
-        HATN_CTX_SCOPE("tcpstreamclose")
+        HATN_CTX_SCOPE("tcpstreamdoclose")
 
         common::Error ret;
         if (rawSocket().lowest_layer().is_open())
@@ -158,6 +163,8 @@ void TcpStreamTraits::prepare(
         std::function<void (const Error &)> callback
     )
 {
+    m_cancelled=false;
+
     HATN_CTX_SCOPE("tcpstreamprepare")
 
     if (isOpen())
@@ -227,6 +234,8 @@ void TcpStreamTraits::prepare(
                         {
                             return;
                         }
+
+                        m_cancelled=false;
                         HATN_CTX_SCOPE("tcpsocketconnect")
 
                         if (!ec)
@@ -265,6 +274,8 @@ void TcpStreamTraits::read(
         std::function<void (const common::Error &, size_t)> callback
     )
 {
+    m_cancelled=false;
+
     if (!m_stream->isActive())
     {
         m_stream->thread()->execAsync(
@@ -302,6 +313,7 @@ void TcpStreamTraits::read(
                     {
                         if (detail::enterAsyncHandler(wptr,callback,0))
                         {
+                            m_cancelled=false;
                             callback(makeBoostError(ec),size);
                             leaveAsyncHandler();
                         }
@@ -316,6 +328,8 @@ void TcpStreamTraits::write(
         std::function<void (const common::Error &, size_t)> callback
     )
 {
+    m_cancelled=false;
+
     if (!m_stream->isActive())
     {
         m_stream->thread()->execAsync(
@@ -352,6 +366,7 @@ void TcpStreamTraits::write(
                     {
                         if (detail::enterAsyncHandler(wptr,callback,0))
                         {
+                            m_cancelled=false;
                             callback(makeBoostError(ec),size);
                             leaveAsyncHandler();
                         }
@@ -365,6 +380,8 @@ void TcpStreamTraits::write(
         std::function<void (const Error &, size_t, SpanBuffers)> callback
     )
 {
+    m_cancelled=false;
+
     if (!m_stream->isActive())
     {
         m_stream->thread()->execAsync(
@@ -414,9 +431,10 @@ void TcpStreamTraits::write(
     rawSocket().async_send(
                     asioBuffers,
                     [callback{std::move(callback)},wptr{ctxWeakPtr()},buffers{std::move(buffers)},this](const boost::system::error_code &ec, size_t size)
-                    {
+                    {                        
                         if (detail::enterAsyncHandler(wptr,callback,std::move(buffers)))
                         {
+                            m_cancelled=false;
                             callback(makeBoostError(ec),size,std::move(buffers));
                             leaveAsyncHandler();
                         }
@@ -436,6 +454,48 @@ inline common::WeakPtr<common::TaskContext> TcpStreamTraits::ctxWeakPtr() const
 inline void TcpStreamTraits::leaveAsyncHandler()
 {
     m_stream->mainCtx().onAsyncHandlerExit();
+}
+
+//---------------------------------------------------------------
+
+void TcpStreamTraits::waitForRead(std::function<void (const Error&)> callback)
+{
+    if (!m_stream->isActive())
+    {
+        m_stream->thread()->execAsync(
+            [callback{std::move(callback)},wptr{ctxWeakPtr()},this]()
+            {
+                if (detail::enterAsyncHandler(wptr,callback))
+                {
+                    callback(makeBoostError(boost::asio::error::eof));
+                    leaveAsyncHandler();
+                }
+            }
+        );
+        return;
+    }
+
+    rawSocket().async_wait(
+        boost::asio::ip::tcp::socket::wait_read,
+        [callback{std::move(callback)},wptr{ctxWeakPtr()},this](const boost::system::error_code &ec)
+        {
+            if (detail::enterAsyncHandler(wptr,callback))
+            {
+                if (!m_cancelled)
+                {
+                    callback(makeBoostError(ec));
+                }
+                m_cancelled=false;
+                leaveAsyncHandler();
+            }
+        }
+    );
+}
+//---------------------------------------------------------------
+
+TcpStream::~TcpStream()
+{
+
 }
 
 //---------------------------------------------------------------

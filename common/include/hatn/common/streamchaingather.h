@@ -90,6 +90,12 @@ class StreamChainTraits
             front()->read(data,maxSize,std::move(callback));
         }
 
+        //! Wait for ready read or error
+        void waitForRead(std::function<void (const Error&)> callback)
+        {
+            front()->waitForRead(std::move(callback));
+        }
+
         inline void readAll(
             char* data,
             std::size_t expectedSize,
@@ -244,8 +250,16 @@ class StreamChainTraits
                             nextStream->read(data,maxSize,std::move(callback));
                         };
 
+                        auto waitForReadNext=[nextStream](
+                                            std::function<void (const Error&)> callback
+                                            )
+                        {
+                            nextStream->waitForRead(std::move(callback));
+                        };
+
                         stream->setWriteNext(std::move(writeNext));
                         stream->setReadNext(std::move(readNext));
+                        stream->setWaitForReadNext(std::move(waitForReadNext));
 
                         return true;
                     };

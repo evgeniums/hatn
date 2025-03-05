@@ -827,6 +827,11 @@ Error OpenSslStreamTraitsImpl::setupSniClient(const X509Certificate::NameType& n
     return Error();
 }
 
+void OpenSslStreamTraitsImpl::waitForRead(std::function<void (const Error&)> callback)
+{
+    m_stream->waitForReadNext(std::move(callback));
+}
+
 //---------------------------------------------------------------
 OpenSslStream::~OpenSslStream() = default;
 

@@ -123,6 +123,24 @@ class Connection : public common::TaskSubcontext
             m_stream.close(std::move(callback));
         }
 
+        template <typename ContextT, typename CallbackT>
+        void waitForRead(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback
+        )
+        {
+            auto cb=[ctx{std::move(ctx)},callback{std::move(callback)}](const Error& ec)
+            {
+                callback(ctx,ec);
+            };
+            m_stream.waitForRead(std::move(cb));
+        }
+
+        void cancel()
+        {
+            m_stream.cancel();
+        }
+
     private:
 
         common::StreamChainGather<Streams...> m_stream;
