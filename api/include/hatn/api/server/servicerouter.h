@@ -66,7 +66,7 @@ class ServiceRouterTraits
 
     private:
 
-        common::FlatMap<Service,RouteFh<EnvT>,std::less<Service>> m_routes;
+        common::FlatMap<Service,RouteFh<EnvT>,std::less<WithNameAndVersion<ServiceNameLengthMax>>> m_routes;
 };
 
 template <typename EnvT=SimpleEnv>

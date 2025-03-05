@@ -23,6 +23,8 @@
 #include <hatn/common/random.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/api/api.h>
 

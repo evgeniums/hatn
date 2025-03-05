@@ -193,11 +193,11 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                             // auth request if auth dispatcher is set
                             if (m_authDispatcherT)
                             {
-                                authRequest(std::move(reqCtx),connection);
+                                authRequest(std::move(ctx),std::move(reqCtx),connection);
                             }
                             else
                             {
-                                dispatchRequest(std::move(reqCtx),connection);
+                                dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
                             }
                         }
                     );
@@ -207,8 +207,8 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
 
     private:
 
-        template <typename Connection>
-        void authRequest(common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        template <typename ConnectionContext, typename Connection>
+        void authRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
@@ -218,9 +218,10 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 return;
             }
 
+            auto wCtx=common::toWeakPtr(ctx);
             auto self=this->shared_from_this();
             m_authDispatcherT->dispatch(std::move(reqCtx),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
+                                        [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
                                    {
                                         if (m_closed)
                                         {
@@ -230,19 +231,10 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                            return;
                                         }
                                         auto& req=reqCtx->template get<Request<Env>>();
-
-                                        // check if connection was destroyed
-                                        auto ctx=req.connectionCtx.lock();
-                                        if (!ctx)
-                                        {
-                                            //! @todo log
-                                            closeRequest(reqCtx);
-
-                                            return;
-                                        }
+                                        auto ctx=wCtx.lock();
 
                                         // close connection if needed
-                                        if (req.closeConnection)
+                                        if (req.closeConnection && ctx)
                                         {
                                             //! @todo log
                                             connection.close();
@@ -254,7 +246,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                         if (req.response.status()==static_cast<int>(ResponseStatus::OK))
                                         {
                                             // auth is ok, dispatch request
-                                            dispatchRequest(std::move(reqCtx),connection);
+                                            dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
                                         }
                                         else
                                         {
@@ -265,8 +257,8 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                                 );
         }
 
-        template <typename Connection>
-        void dispatchRequest(common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
+        template <typename ConnectionContext,typename Connection>
+        void dispatchRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Env>> reqCtx, Connection& connection)
         {
             if (m_closed)
             {
@@ -276,9 +268,10 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 return;
             }
 
+            auto wCtx=common::toWeakPtr(ctx);
             auto self=this->shared_from_this();
             m_dispatcher->dispatch(std::move(reqCtx),
-                                   [self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
+                                   [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Env>> reqCtx)
                 {
                     if (m_closed)
                     {
@@ -289,7 +282,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                     auto& req=reqCtx->template get<Request<Env>>();
 
                     // check if connection was destroyed
-                    auto ctx=req.connectionCtx.lock();
+                    auto ctx=wCtx.lock();
                     if (!ctx)
                     {
                         //! @todo log
@@ -345,7 +338,7 @@ class Server : public std::enable_shared_from_this<Server<DispatcherT,AuthDispat
                 std::move(reqCtx),
                 req.header.data(),
                 req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t`)
+                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Env>> reqCtx, const Error& ec, size_t)
                 {
                     if (m_closed)
                     {
