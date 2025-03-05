@@ -100,7 +100,7 @@ class Client : public common::TaskSubcontext
                 }
             );
 
-            m_connectionPool.setMaxConnectionsPerPriority(cfg->config().fieldValue(config::max_pool_priority_connections));
+            m_connectionPool.setMaxConnectionsPerPriority(m_cfg->config().fieldValue(config::max_pool_priority_connections));
         }
 
         Client(
