@@ -230,7 +230,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             {
                 //! @todo log
                 closeRequest(reqCtx);
-
                 return;
             }
 
@@ -411,7 +410,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
         void closeRequest(common::SharedPtr<RequestContext<Request>>& reqCtx)
         {
-            //! @todo Close request context and write log
+            auto& req=reqCtx->template get<Request>();
+            req.close();
         }
 
         template <typename ConnectionContext,typename Connection>

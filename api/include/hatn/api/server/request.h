@@ -129,6 +129,12 @@ struct Request : public common::TaskSubcontext
     {
         return ServiceNameAndVersion{unit};
     }
+
+    void close()
+    {
+        //! @todo Implement closing requests
+        //! e.g., flush request's logs
+    }
 };
 
 template <typename RequestT=Request<>>
