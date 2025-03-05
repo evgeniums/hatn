@@ -1160,7 +1160,7 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
 
 /**  Template class for repeated dataunit field compatible with unpacked repeated fields of Google Protocol Buffers for ordinary types*/
 template <typename Type, int Id, typename DefaultTraits>
-struct RepeatedFieldProtoBufOrdinaryTmpl : public RepeatedFieldTmpl<Type,Id,DefaultTraits>
+struct RepeatedFieldProtoBufUnpackedTmpl : public RepeatedFieldTmpl<Type,Id,DefaultTraits>
 {
     using base=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
     using type=typename RepeatedTraits<Type>::valueType;
@@ -1296,12 +1296,12 @@ struct RepeatedFieldProtoBufPacked : public FieldConf<
 };
 
 template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
-struct RepeatedFieldProtoBufOrdinary : public FieldConf<
-                                           RepeatedFieldProtoBufOrdinaryTmpl<Type,Id,DefaultTraits>,
+struct RepeatedFieldProtoBufUnpacked : public FieldConf<
+                                           RepeatedFieldProtoBufUnpackedTmpl<Type,Id,DefaultTraits>,
                                            Id,FieldName,Tag,Required>
 {
     using FieldConf<
-        RepeatedFieldProtoBufOrdinaryTmpl<Type,Id,DefaultTraits>,
+        RepeatedFieldProtoBufUnpackedTmpl<Type,Id,DefaultTraits>,
         Id,FieldName,Tag,Required>::FieldConf;
 };
 
@@ -1309,28 +1309,44 @@ enum class RepeatedMode : int
 {
     Auto,
     ProtobufPacked,
-    ProtobufOrdinary
+    ProtobufUnpacked,
+    Counted
 };
 
-template <RepeatedMode Mode>
+template <typename Type, RepeatedMode Mode, typename=hana::when<true>>
 struct SelectRepeatedType
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedField<FieldName,Type,Id,Tag,DefaultTraits,Required>;
+    template <typename FieldName,typename Type1,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufPacked<FieldName,Type1,Id,Tag,DefaultTraits,Required>;
 };
 
-template <>
-struct SelectRepeatedType<RepeatedMode::ProtobufPacked>
+template <typename Type, RepeatedMode Mode>
+struct SelectRepeatedType<Type,Mode,hana::when<Mode==RepeatedMode::Counted>>
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedFieldProtoBufPacked<FieldName,Type,Id,Tag,DefaultTraits,Required>;
+    template <typename FieldName,typename Type1,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedField<FieldName,Type1,Id,Tag,DefaultTraits,Required>;
 };
 
-template <>
-struct SelectRepeatedType<RepeatedMode::ProtobufOrdinary>
+template <typename Type, RepeatedMode Mode>
+struct SelectRepeatedType<Type,Mode,hana::when<
+                                          Mode==RepeatedMode::ProtobufPacked
+                                                 ||
+                                          (Mode==RepeatedMode::Auto && Type::isPackedProtoBufCompatible::value)
+                                        >>
 {
-    template <typename FieldName,typename Type,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
-    using type=RepeatedFieldProtoBufOrdinary<FieldName,Type,Id,Tag,DefaultTraits,Required>;
+    template <typename FieldName,typename Type1,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufPacked<FieldName,Type1,Id,Tag,DefaultTraits,Required>;
+};
+
+template <typename Type, RepeatedMode Mode>
+struct SelectRepeatedType<Type,Mode,hana::when<
+                                          Mode==RepeatedMode::ProtobufUnpacked
+                                                 ||
+                                          (Mode==RepeatedMode::Auto && !Type::isPackedProtoBufCompatible::value)
+                                    >>
+{
+    template <typename FieldName,typename Type1,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
+    using type=RepeatedFieldProtoBufUnpacked<FieldName,Type1,Id,Tag,DefaultTraits,Required>;
 };
 
 enum class RepeatedContentType : int

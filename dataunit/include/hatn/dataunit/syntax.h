@@ -103,11 +103,12 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Type Field type, Type must be one of supported types.
  * @param Id Integer identificator that must be unique per unit.
  * @param Required true if this is a required field.
- * @param Default Default value for the elements. Parameter can be omitted.
+ * @param Default Default value for the elements. Parameter can be omitted or set to Auto.
  * @param Mode Mode of packing. Parameter can be omitted.
- *        Possible values: Auto - use auto mode of packing, ProtobufOrdinary - use protobuf ordinary mode, ProtobufPacked - use protobuf packed nmode.
+ *        Possible values: Auto - use auto mode of packing depending of value type, ProtobufUnpacked - use protobuf ordinary mode, ProtobufPacked - use protobuf packed mode,
+ *        Counted - use experimental optimized mode when serialized data contains count of elements in array which is not safe when using in public API.
  * @param SubunitLinking How to link subunit if this is a subunit field. Parameter can be omitted.
- *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will using referenced by sharep pointer.
+ *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will using referenced by shared pointer.
  *
  * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode,SubunitLinking)
  * Optional repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id)
@@ -118,7 +119,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @example HDU_REPEATED_FIELD(rf1,TYPE_INT32,1)
  * @example HDU_REPEATED_FIELD(rf2,TYPE_INT32,2,true)
  * @example HDU_REPEATED_FIELD(rf3,TYPE_INT32,3,false,333)
- * @example HDU_REPEATED_FIELD(rf4,TYPE_INT32,4,true,Auto,ProtobufOrdinary)
+ * @example HDU_REPEATED_FIELD(rf4,TYPE_INT32,4,true,Auto,ProtobufUnpacked)
  * @example HDU_REPEATED_FIELD(rf5,other_unit::TYPE,5,false,Auto,Auto,Embedded)
  *
  *

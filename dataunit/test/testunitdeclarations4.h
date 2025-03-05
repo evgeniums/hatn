@@ -24,5 +24,5 @@ HDU_UNIT(wire_double_repeated_proto_packed,
             HDU_REPEATED_FIELD(f0,TYPE_DOUBLE,1,false,Auto,ProtobufPacked)
             )
 HDU_UNIT(wire_double_repeated_proto,
-            HDU_REPEATED_FIELD(f0,TYPE_DOUBLE,1,false,Auto,ProtobufOrdinary)
+            HDU_REPEATED_FIELD(f0,TYPE_DOUBLE,1,false,Auto,ProtobufUnpacked)
             )

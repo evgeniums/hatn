@@ -2,7 +2,7 @@
 
 HDU_UNIT(repeated,
   HDU_REPEATED_FIELD(type_repeated,TYPE_INT32,21)
-  HDU_REPEATED_FIELD(type_repeated_pbuf,TYPE_INT32,22,false,Auto,ProtobufOrdinary)
+  HDU_REPEATED_FIELD(type_repeated_pbuf,TYPE_INT32,22,false,Auto,ProtobufUnpacked)
   HDU_REPEATED_FIELD(type_repeated_pbuf_packed,TYPE_INT32,23,false,Auto,ProtobufPacked)
   HDU_REPEATED_FIELD(type_repeated_fixed_str1,HDU_TYPE_FIXED_STRING(8),24)
 )

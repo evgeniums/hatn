@@ -107,7 +107,7 @@ HDU_V2_UNIT_WITH(du7,
     HDU_V2_REPEATED_FIELD(f700,TYPE_UINT32,700,true)
     HDU_V2_REPEATED_FIELD(f800,TYPE_UINT64,800,false,8899)
     HDU_V2_REPEATED_FIELD(f810,TYPE_UINT64,810,false,Auto,ProtobufPacked)
-    HDU_V2_REPEATED_FIELD(f820,TYPE_UINT64,820,false,Auto,ProtobufOrdinary)
+    HDU_V2_REPEATED_FIELD(f820,TYPE_UINT64,820,false,Auto,ProtobufUnpacked)
     HDU_V2_REPEATED_FIELD(f900,du_min::TYPE,900)
     HDU_V2_REPEATED_FIELD(f1000,du_min::TYPE,1000,true)
     HDU_V2_REPEATED_FIELD(f1100,du_min::TYPE,1100)
@@ -115,7 +115,7 @@ HDU_V2_UNIT_WITH(du7,
     HDU_V2_REPEATED_FIELD(f1300,du_min::TYPE,1300,true,Auto,Auto,Embedded)
 
     // HDU_V2_REPEATED_FIELD(f17,du_min::TYPE,17,true,Auto,ProtobufPacked)
-    HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufOrdinary,External)
+    HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufUnpacked,External)
 )
 
 HDU_V2_UNIT(du8,

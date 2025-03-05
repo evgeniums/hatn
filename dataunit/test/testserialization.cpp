@@ -31,7 +31,7 @@ HDU_V2_UNIT(du4,
 )
 
 HDU_V2_UNIT(du5,
-    HDU_V2_REPEATED_FIELD(field5,TYPE_STRING,50)
+    HDU_V2_REPEATED_FIELD(field5,TYPE_STRING,50,false,Auto,Counted)
 )
 
 HDU_V2_UNIT(du6,

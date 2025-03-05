@@ -17,10 +17,10 @@ HDU_UNIT(wire_embedded_all_repeated,
             )
 
 HDU_UNIT(wire_embedded_all_repeated_protobuf,
-            HDU_REPEATED_FIELD(f0,all_types::TYPE,1,false,Auto,ProtobufOrdinary,Embedded)
+            HDU_REPEATED_FIELD(f0,all_types::TYPE,1,false,Auto,ProtobufUnpacked,Embedded)
             )
 HDU_UNIT(wire_external_all_repeated_protobuf,
-            HDU_REPEATED_FIELD(f0,all_types::TYPE,1,false,Auto,ProtobufOrdinary,External)
+            HDU_REPEATED_FIELD(f0,all_types::TYPE,1,false,Auto,ProtobufUnpacked,External)
             )
 
 HDU_UNIT(wire_simple_unit_repeated,

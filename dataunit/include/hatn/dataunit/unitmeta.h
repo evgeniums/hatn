@@ -185,7 +185,7 @@ struct repeated_config
 template <typename TypeId, RepeatedMode Mode, RepeatedContentType ContentType, typename = hana::when<true>>
 struct repeated_traits
 {
-    using selector=SelectRepeatedType<Mode>;
+    using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using type=typename selector::template type<FieldName,Type,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
@@ -197,7 +197,7 @@ struct repeated_traits
 template <typename TypeId, RepeatedMode Mode>
 struct repeated_traits<TypeId,Mode,RepeatedContentType::Auto, hana::when<TypeId::isUnitType::value>>
 {
-    using selector=SelectRepeatedType<Mode>;
+    using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
@@ -209,7 +209,7 @@ struct repeated_traits<TypeId,Mode,RepeatedContentType::Auto, hana::when<TypeId:
 template <typename TypeId, RepeatedMode Mode>
 struct repeated_traits<TypeId,Mode,RepeatedContentType::External, hana::when<TypeId::isUnitType::value>>
 {
-    using selector=SelectRepeatedType<Mode>;
+    using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
@@ -221,7 +221,7 @@ struct repeated_traits<TypeId,Mode,RepeatedContentType::External, hana::when<Typ
 template <typename TypeId, RepeatedMode Mode>
 struct repeated_traits<TypeId,Mode,RepeatedContentType::Embedded, hana::when<TypeId::isUnitType::value>>
 {
-    using selector=SelectRepeatedType<Mode>;
+    using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;

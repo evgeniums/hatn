@@ -4,19 +4,19 @@ HDU_UNIT(wire_bytes_repeated,
             HDU_REPEATED_FIELD(f0,TYPE_BYTES,1)
             )
 HDU_UNIT(wire_bytes_repeated_proto,
-            HDU_REPEATED_FIELD(f0,TYPE_BYTES,1,false,Auto,ProtobufOrdinary)
+            HDU_REPEATED_FIELD(f0,TYPE_BYTES,1,false,Auto,ProtobufUnpacked)
             )
 HDU_UNIT(wire_string_repeated,
             HDU_REPEATED_FIELD(f0,TYPE_STRING,1)
             )
 HDU_UNIT(wire_string_repeated_proto,
-            HDU_REPEATED_FIELD(f0,TYPE_STRING,1,false,Auto,ProtobufOrdinary)
+            HDU_REPEATED_FIELD(f0,TYPE_STRING,1,false,Auto,ProtobufUnpacked)
             )
 HDU_UNIT(wire_fixed_string_repeated,
             HDU_REPEATED_FIELD(f0,HDU_TYPE_FIXED_STRING(128),1)
             )
 HDU_UNIT(wire_fixed_string_repeated_proto,
-            HDU_REPEATED_FIELD(f0,HDU_TYPE_FIXED_STRING(128),1,false,Auto,ProtobufOrdinary)
+            HDU_REPEATED_FIELD(f0,HDU_TYPE_FIXED_STRING(128),1,false,Auto,ProtobufUnpacked)
             )
 
 HDU_UNIT_WITH(ext0,(HDU_BASE(all_types)),
