@@ -20,7 +20,7 @@
 #include <hatn/common/bytearray.h>
 #include <hatn/common/format.h>
 #include <hatn/common/fileutils.h>
-#include <hatn/common/utils.h>
+#include <hatn/common/random.h>
 
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/x509certificate.h>
