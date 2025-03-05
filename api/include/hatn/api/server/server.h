@@ -216,6 +216,11 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             return m_connectionsStore->clear();
         }
 
+        size_t connectionCount() const noexcept
+        {
+            return m_connectionsStore->count();
+        }
+
     private:
 
         template <typename ConnectionContext, typename Connection>

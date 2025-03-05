@@ -95,6 +95,11 @@ class ConnectionsStore
             return conn;
         }
 
+        size_t count() const noexcept
+        {
+            return m_connections.size();
+        }
+
     private:
 
         common::pmr::map<common::TaskContextId,common::SharedPtr<ConnectionContext>,std::less<common::TaskContextId>> m_connections;
