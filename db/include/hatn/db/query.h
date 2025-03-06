@@ -1049,6 +1049,11 @@ class ValueT
             return m_value;
         }
 
+        void setValue(type val)
+        {
+            m_value=std::move(val);
+        }
+
     private:
 
         type m_value;

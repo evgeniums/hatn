@@ -21,11 +21,13 @@ SET (HEADERS
     include/hatn/db/transaction.h
     include/hatn/db/find.h
     include/hatn/db/encryptionmanager.h
+    include/hatn/db/updateserialization.h
 )
 
 SET (HEADERS
     ${HEADERS}
     include/hatn/db/ipp/updateunit.ipp
+    include/hatn/db/ipp/updateserialization.ipp
 )
 
 SET (SOURCES

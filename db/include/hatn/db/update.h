@@ -21,13 +21,13 @@
 #ifndef HATNDBUPDATE_H
 #define HATNDBUPDATE_H
 
-#include <algorithm>
-
 #include <hatn/validator/utils/reference_wrapper.hpp>
 
 #include <hatn/common/objectid.h>
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/allocatorfactory.h>
+
+#include <hatn/dataunit/syntax.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>

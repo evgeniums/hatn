@@ -38,31 +38,28 @@ struct FieldVisitorT
     template <typename T>
     Error operator()(const T& val) const
     {
-        scalarFn(val);
-        return OK;
+        return scalarFn(val);
     }
 
     template <typename T>
-    void handleVector(const T& val) const
+    Error handleVector(const T& val) const
     {
         auto vis=[this](const auto& vec)
         {
-            vectorFn(vec.get());
+            return vectorFn(vec.get());
         };
-        lib::variantVisit(vis,val);
+        return lib::variantVisit(vis,val);
     }
 
     template <typename T>
     Error operator()(const VectorT<T>& val) const
     {
-        handleVector(val);
-        return OK;
+        return handleVector(val);
     }
 
     Error operator()(const VectorString& val) const
     {
-        handleVector(val);
-        return OK;
+        return handleVector(val);
     }
 
     template <typename T1, typename T2>
@@ -95,8 +92,8 @@ struct HandleFieldT
         {
             if (field->isArray())
             {
-                size_t id=static_cast<size_t>(updateField.path.at(i).id);
-                u=field->arraySubunit(id);
+                size_t idx=static_cast<size_t>(updateField.path.at(i).idx);
+                u=field->arraySubunit(idx);
                 i++;
             }
             else
@@ -117,21 +114,23 @@ struct HandleFieldT
         if (updateField.op==Operator::replace_element || updateField.op==Operator::erase_element || updateField.op==Operator::inc_element)
         {
             auto* field=getUnitField(unit,updateField,false);
-            auto id=static_cast<size_t>(updateField.path.back().id);
+            auto idx=static_cast<size_t>(updateField.path.back().idx);
 
             switch (updateField.op)
             {
                 case (Operator::replace_element):
                 {
-                    auto elementSet=[id,&field](const auto& val)
+                    auto elementSet=[idx,&field](const auto& val)
                     {
-                        if (id<field->arraySize())
+                        if (idx<field->arraySize())
                         {
-                            field->arraySet(id,val);
+                            field->arraySet(idx,val);
                         }
+                        return Error{};
                     };
                     auto vectorSet=[](const auto&)
                     {
+                        return Error{};
                     };
                     auto vis=FieldVisitor(std::move(elementSet),std::move(vectorSet));
                     std::ignore=updateField.value.handleValue(vis);
@@ -140,9 +139,9 @@ struct HandleFieldT
 
                 case (Operator::erase_element):
                 {
-                    if (id<field->arraySize())
+                    if (idx<field->arraySize())
                     {
-                        field->arrayErase(id);
+                        field->arrayErase(idx);
                     }
                 }
                 break;
@@ -150,16 +149,16 @@ struct HandleFieldT
                 case (Operator::inc_element):
                 {
                     std::ignore=updateField.value.handleValue(
-                        [id,&field](const auto& val)
+                        [idx,&field](const auto& val)
                         {
                             using type=std::decay_t<decltype(val)>;
                             hana::eval_if(
                                 std::is_arithmetic<type>{},
                                 [&](auto _)
                                 {
-                                    if (id<field->arraySize())
+                                    if (idx<field->arraySize())
                                     {
-                                        field->arrayInc(_(id),_(val));
+                                        field->arrayInc(_(idx),_(val));
                                     }
                                 },
                                 [&](auto )
@@ -192,6 +191,7 @@ struct HandleFieldT
                 auto scalarSet=[&field](const auto& val)
                 {
                     field->setV(val);
+                    return Error{};
                 };
                 auto vectorSet=[&field](const auto& val)
                 {
@@ -209,6 +209,7 @@ struct HandleFieldT
                             field->arraySet(i,val[i]);
                         }
                     }
+                    return Error{};
                 };
                 auto vis=FieldVisitor(std::move(scalarSet),std::move(vectorSet));
                 std::ignore=updateField.value.handleValue(vis);
@@ -248,9 +249,11 @@ struct HandleFieldT
                 auto elementAdd=[&field](const auto& val)
                 {
                     field->arrayAppend(val);
+                    return Error{};
                 };
                 auto vectorSet=[](const auto&)
                 {
+                    return Error{};
                 };
                 auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
                 std::ignore=updateField.value.handleValue(vis);
@@ -284,9 +287,11 @@ struct HandleFieldT
                     {
                         field->arrayAppend(val);
                     }
+                    return Error{};
                 };
                 auto vectorSet=[](const auto&)
                 {
+                    return Error{};
                 };
                 auto vis=FieldVisitor(std::move(elementAdd),std::move(vectorSet));
                 std::ignore=updateField.value.handleValue(vis);

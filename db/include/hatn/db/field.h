@@ -36,15 +36,15 @@ struct FieldPathElement
 {
     int fieldId;
     const char* name;
-    int id;
+    int idx;
 
     FieldPathElement(
             int fieldId,
             const char* name,
-            int id
+            int idx
         ) : fieldId(fieldId),
             name(name),
-            id(id)
+            idx(idx)
     {}
 };
 
