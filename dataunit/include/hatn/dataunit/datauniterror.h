@@ -101,6 +101,11 @@ public:
     static const DataunitErrorCategory& getCategory() noexcept;
 };
 
+inline Error unitError(UnitError code)
+{
+    return Error{code,&DataunitErrorCategory::getCategory()};
+}
+
 //---------------------------------------------------------------
 
 inline void fillError(UnitError code, Error& ec)
