@@ -179,8 +179,65 @@ struct ContainerShared
     common::ByteArrayShared m_container;
 };
 
+struct ContainerOnStackRef
+{
+    ContainerOnStackRef(
+            common::ByteArray& ref
+        ) : m_container(ref)
+    {}
+
+    common::ByteArray& container() noexcept
+    {
+        return m_container;
+    }
+
+    const common::ByteArray& container() const noexcept
+    {
+        return m_container;
+    }
+
+    common::ByteArrayShared sharedMainContainer() const noexcept
+    {
+        return common::ByteArrayShared{};
+    }
+
+    common::ByteArrayManaged* managedMainContainer() const noexcept
+    {
+        return nullptr;
+    }
+
+    common::ByteArray& m_container;
+};
+
+struct ContainerOnStackConstRef
+{
+    ContainerOnStackConstRef(
+        const common::ByteArray& ref
+        ) : m_container(ref)
+    {}
+
+    const common::ByteArray& container() const noexcept
+    {
+        return m_container;
+    }
+
+    common::ByteArrayShared sharedMainContainer() const noexcept
+    {
+        return common::ByteArrayShared{};
+    }
+
+    common::ByteArrayManaged* managedMainContainer() const noexcept
+    {
+        return nullptr;
+    }
+
+    const common::ByteArray& m_container;
+};
+
 using WireBufSolidTraits=WireBufSolidTraitsBase<ContainerOnStack>;
 using WireBufSolidSharedTraits=WireBufSolidTraitsBase<ContainerShared>;
+using WireBufSolidRefTraits=WireBufSolidTraitsBase<ContainerOnStackRef>;
+using WireBufSolidConstRefTraits=WireBufSolidTraitsBase<ContainerOnStackConstRef>;
 
 class HATN_DATAUNIT_EXPORT WireBufSolid : public WireBuf<WireBufSolidTraits>
 {
@@ -268,6 +325,46 @@ class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidShare
         WireBufSolidShared(WireBufSolidShared&&)=default;
         WireBufSolidShared& operator=(const WireBufSolidShared&)=delete;
         WireBufSolidShared& operator=(WireBufSolidShared&&)=default;
+};
+
+class HATN_DATAUNIT_EXPORT WireBufSolidRef : public WireBuf<WireBufSolidRefTraits>
+{
+public:
+
+    explicit WireBufSolidRef(
+            common::ByteArray& container,
+            const AllocatorFactory* factory=AllocatorFactory::getDefault()
+        ) noexcept
+        : WireBuf<WireBufSolidRefTraits>(std::ref(container),0,factory)
+    {
+        setSize(traits().container().size());
+    }
+
+    ~WireBufSolidRef()=default;
+    WireBufSolidRef(const WireBufSolidRef&)=delete;
+    WireBufSolidRef(WireBufSolidRef&&)=default;
+    WireBufSolidRef& operator=(const WireBufSolidRef&)=delete;
+    WireBufSolidRef& operator=(WireBufSolidRef&&)=default;
+};
+
+class HATN_DATAUNIT_EXPORT WireBufSolidConstRef : public WireBuf<WireBufSolidConstRefTraits>
+{
+public:
+
+    explicit WireBufSolidConstRef(
+        const common::ByteArray& container,
+        const AllocatorFactory* factory=AllocatorFactory::getDefault()
+        ) noexcept
+        : WireBuf<WireBufSolidConstRefTraits>(std::cref(container),0,factory)
+    {
+        setSize(traits().container().size());
+    }
+
+    ~WireBufSolidConstRef()=default;
+    WireBufSolidConstRef(const WireBufSolidConstRef&)=delete;
+    WireBufSolidConstRef(WireBufSolidConstRef&&)=default;
+    WireBufSolidConstRef& operator=(const WireBufSolidConstRef&)=delete;
+    WireBufSolidConstRef& operator=(WireBufSolidConstRef&&)=default;
 };
 
 HATN_DATAUNIT_NAMESPACE_END
