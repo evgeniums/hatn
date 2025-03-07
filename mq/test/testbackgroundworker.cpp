@@ -21,10 +21,29 @@
 
 #include <hatn/mq/mq.h>
 
-BOOST_AUTO_TEST_SUITE(TestMq)
+#include <hatn/mq/backgroundworker.h>
 
-BOOST_AUTO_TEST_CASE(Basic)
+struct ContextBuilder
 {
+    auto makeContext() const
+    {
+        return HATN_COMMON_NAMESPACE::makeShared<HATN_COMMON_NAMESPACE::TaskContext>();
+    }
+};
+
+struct Worker
+{
+    template <typename ContextT>
+    void run(HATN_COMMON_NAMESPACE::SharedPtr<ContextT> ctx)
+    {
+    }
+};
+
+BOOST_AUTO_TEST_SUITE(TestBackgroundWorker)
+
+BOOST_AUTO_TEST_CASE(Construct)
+{
+    HATN_MQ_NAMESPACE::BackgroundWorker<Worker,ContextBuilder> worker{};
     BOOST_CHECK(true);
 }
 
