@@ -18,8 +18,6 @@
 #ifndef HATNASIOTIMER_H
 #define HATNASIOTIMER_H
 
-#include <functional>
-
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/high_resolution_timer.hpp>
 
