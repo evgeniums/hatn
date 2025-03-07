@@ -52,7 +52,7 @@ struct UpdateObjectT
     template <typename ModelT, typename DateT>
     Result<DbObject> operator ()(const ModelT& model,
                                                   RocksdbHandler& handler,
-                                                  const Topic& topic,
+                                                  Topic topic,
                                                   const ObjectId& objectId,
                                                   const update::Request& request,
                                                   const DateT& date,
@@ -301,7 +301,7 @@ template <typename ModelT, typename DateT>
 Result<DbObject> UpdateObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const Topic& topic,
+        Topic topic,
         const ObjectId& objectId,
         const update::Request& request,
         const DateT& date,

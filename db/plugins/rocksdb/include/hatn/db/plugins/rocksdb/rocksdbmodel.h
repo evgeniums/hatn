@@ -52,14 +52,14 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const dataunit::Unit* object,
             Transaction* tx
             )> createObject;
 
         std::function<Result<DbObject> (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             Transaction* tx,
             bool forUpdate
@@ -67,7 +67,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<DbObject> (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx,
@@ -82,13 +82,13 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             Transaction* tx)> deleteObject;
 
         std::function<Error (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx
@@ -103,7 +103,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<DbObject> (
              RocksdbHandler& handler,
-             const Topic& topic,
+             Topic topic,
              const ObjectId& objectId,
              const update::Request& request,
              const HATN_COMMON_NAMESPACE::Date& date,
@@ -113,7 +113,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
 
         std::function<Result<DbObject> (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const update::Request& request,
             db::update::ModifyReturn modifyReturn,

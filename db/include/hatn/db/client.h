@@ -43,7 +43,7 @@
 #include <hatn/db/transaction.h>
 #include <hatn/db/encryptionmanager.h>
 
-//! @todo critical: use Topic instead of const Topic&
+//! @todo critical: use Topic instead of Topic
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -255,7 +255,7 @@ class HATN_DB_EXPORT Client : public common::WithID
          *
          * @note Currently not thread safe per topic. Make sure that other threads do not have access to the topic.
          */
-        Error deleteTopic(const Topic& topic)
+        Error deleteTopic(Topic topic)
         {
             HATN_CTX_SCOPE("dbdeletetopic")
             if (m_open)
@@ -268,7 +268,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error create(const Topic& topic,
+        Error create(Topic topic,
                      const std::shared_ptr<ModelT>& model,
                      dataunit::Unit* object,
                      Transaction* tx=nullptr
@@ -284,7 +284,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<DbObjectT<typename ModelT::ManagedType>> read(const Topic& topic,
+        Result<DbObjectT<typename ModelT::ManagedType>> read(Topic topic,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
                                                 Transaction* tx=nullptr,
@@ -304,7 +304,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<DbObjectT<typename ModelT::ManagedType>> read(const Topic& topic,
+        Result<DbObjectT<typename ModelT::ManagedType>> read(Topic topic,
                                                 const std::shared_ptr<ModelT>& model,
                                                 const ObjectId& id,
                                                 const common::Date& date,
@@ -323,7 +323,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error update(const Topic& topic,
+        Error update(Topic topic,
                        const std::shared_ptr<ModelT>& model,
                        const ObjectId& id,
                        const update::Request& request,                       
@@ -341,7 +341,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error update(const Topic& topic,
+        Error update(Topic topic,
                      const std::shared_ptr<ModelT>& model,
                      const ObjectId& id,
                      const update::Request& request,
@@ -360,7 +360,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<DbObjectT<typename ModelT::ManagedType>> readUpdate(const Topic& topic,
+        Result<DbObjectT<typename ModelT::ManagedType>> readUpdate(Topic topic,
                            const std::shared_ptr<ModelT>& model,
                            const ObjectId& id,
                            const update::Request& request,                           
@@ -381,7 +381,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<DbObjectT<typename ModelT::ManagedType>> readUpdate(const Topic& topic,
+        Result<DbObjectT<typename ModelT::ManagedType>> readUpdate(Topic topic,
                                                       const std::shared_ptr<ModelT>& model,
                                                       const ObjectId& id,
                                                       const update::Request& request,
@@ -404,7 +404,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
 
         template <typename ModelT>
-        Error deleteObject(const Topic& topic,
+        Error deleteObject(Topic topic,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
                             const common::Date& date,
@@ -421,7 +421,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Error deleteObject(const Topic& topic,
+        Error deleteObject(Topic topic,
                             const std::shared_ptr<ModelT>& model,
                             const ObjectId& id,
                             Transaction* tx=nullptr)
@@ -458,7 +458,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAll(
-                const Topic& topic,
+                Topic topic,
                 const std::shared_ptr<ModelT>& model,
                 query::Order order=query::Asc
             )
@@ -478,7 +478,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         template <typename ModelT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAllPartitioned(
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             query::Order order=query::Asc
             )
@@ -600,7 +600,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Result<size_t> count(
             const std::shared_ptr<ModelT>& model,
-            const Topic& topic
+            Topic topic
             )
         {
             HATN_CTX_SCOPE("dbcountmodel")
@@ -625,7 +625,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<size_t> count(
             const std::shared_ptr<ModelT>& model,
             const common::Date& date,
-            const Topic& topic=Topic{}
+            Topic topic=Topic{}
             )
         {
             HATN_CTX_SCOPE("dbcountmodel")
@@ -756,17 +756,17 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges)=0;
         virtual Result<std::set<common::DateRange>> doListDatePartitions()=0;
 
-        virtual Error doDeleteTopic(const Topic& topic)=0;
+        virtual Error doDeleteTopic(Topic topic)=0;
 
-        virtual Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
+        virtual Error doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
 
-        virtual Result<DbObject> doRead(const Topic& topic,
+        virtual Result<DbObject> doRead(Topic topic,
                                                                  const ModelInfo& model,
                                                                  const ObjectId& id,
                                                                  Transaction* tx,
                                                                  bool forUpdate
         )=0;
-        virtual Result<DbObject> doRead(const Topic& topic,
+        virtual Result<DbObject> doRead(Topic topic,
                                                                  const ModelInfo& model,
                                                                  const ObjectId& id,
                                                                  const common::Date& date,
@@ -774,31 +774,31 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                                  bool forUpdate
                                                                  )=0;
 
-        virtual Error doDeleteObject(const Topic& topic,
+        virtual Error doDeleteObject(Topic topic,
                            const ModelInfo& model,
                            const ObjectId& id,
                            const common::Date& date,
                            Transaction* tx)=0;
 
-        virtual Error doDeleteObject(const Topic& topic,
+        virtual Error doDeleteObject(Topic topic,
                                      const ModelInfo& model,
                                      const ObjectId& id,
                                      Transaction* tx)=0;
 
-        virtual Error doUpdateObject(const Topic& topic,
+        virtual Error doUpdateObject(Topic topic,
                              const ModelInfo& model,
                              const ObjectId& id,
                              const update::Request& request,
                              const common::Date& date,
                              Transaction* tx)=0;
 
-        virtual Error doUpdateObject(const Topic& topic,
+        virtual Error doUpdateObject(Topic topic,
                                const ModelInfo& model,
                                const ObjectId& id,
                                const update::Request& request,                               
                                Transaction* tx)=0;
 
-        virtual Result<DbObject> doReadUpdate(const Topic& topic,
+        virtual Result<DbObject> doReadUpdate(Topic topic,
                                      const ModelInfo& model,
                                      const ObjectId& id,
                                      const update::Request& request,                                     
@@ -806,7 +806,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                      update::ModifyReturn returnMode,
                                      Transaction* tx)=0;
 
-        virtual Result<DbObject> doReadUpdate(const Topic& topic,
+        virtual Result<DbObject> doReadUpdate(Topic topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId& id,
                                                                        const update::Request& request,                                                                       
@@ -838,13 +838,13 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Result<size_t> doCount(
             const ModelInfo& model,
-            const Topic& topic
+            Topic topic
         ) =0;
 
         virtual Result<size_t> doCount(
             const ModelInfo& model,
             const common::Date& date,
-            const Topic& topic
+            Topic topic
         ) =0;
 
         virtual Result<size_t> doUpdateMany(

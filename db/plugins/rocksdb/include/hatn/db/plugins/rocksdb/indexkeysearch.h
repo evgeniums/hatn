@@ -154,7 +154,7 @@ struct Cursor
 {
     Cursor(
             const std::string& indexId_,
-            const Topic& topic_,
+            Topic topic_,
             RocksdbPartition* partition
         ) :
             filledIndexRangeFrom(false),

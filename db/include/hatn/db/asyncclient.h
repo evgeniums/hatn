@@ -58,6 +58,8 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
     private:
 
         std::shared_ptr<Client> m_client;
+
+        //! @todo Use thread pool with threads mapped to topics
         common::TaskWithContextThread* m_thread;
 
     public:
@@ -269,7 +271,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void deleteTopic(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic
+            Topic topic
             )
         {
             common::postAsyncTask(
@@ -286,7 +288,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void create(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             dataunit::Unit* object,
             Transaction* tx=nullptr
@@ -306,7 +308,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void read(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             Transaction* tx=nullptr,
@@ -328,7 +330,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void read(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const common::Date& date,
             Transaction* tx=nullptr,
@@ -350,7 +352,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void update(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             const update::Request& request,
@@ -372,7 +374,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void update(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             const update::Request& request,
@@ -393,7 +395,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void readUpdate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             const update::Request& request,
@@ -417,7 +419,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void readUpdate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             const update::Request& request,
@@ -440,7 +442,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void deleteObject(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             const common::Date& date,
@@ -461,7 +463,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void deleteObject(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
             Transaction* tx=nullptr
@@ -517,7 +519,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void findAll(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             query::Order order=query::Asc
             )
@@ -536,7 +538,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
         void findAllPartitioned(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            const Topic& topic,
+            Topic topic,
             const std::shared_ptr<ModelT>& model,
             query::Order order=query::Asc
             )
@@ -612,7 +614,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Topic& topic
+            Topic topic
             )
         {
             common::postAsyncTask(
@@ -631,7 +633,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
             const common::Date& date,
-            const Topic& topic
+            Topic topic
             )
         {
             common::postAsyncTask(

@@ -132,7 +132,7 @@ struct DeleteObjectT
     template <typename ModelT, typename DateT>
     Error operator ()(const ModelT& model,
                       RocksdbHandler& handler,
-                      const Topic& topic,
+                      Topic topic,
                       const ObjectId& objectId,
                       const DateT& date,
                       const AllocatorFactory* allocatorFactory,
@@ -144,7 +144,7 @@ template <typename ModelT, typename DateT>
 Error DeleteObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const Topic& topic,
+        Topic topic,
         const ObjectId& objectId,
         const DateT& date,
         const AllocatorFactory* factory,

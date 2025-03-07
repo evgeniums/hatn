@@ -49,7 +49,7 @@ struct CreateObjectT
     template <typename ModelT>
     Error operator ()(const ModelT& model,
                      RocksdbHandler& handler,
-                     const Topic& topic,
+                     Topic topic,
                      const typename ModelT::UnitType::type* obj,
                      const AllocatorFactory* allocatorFactory,
                      Transaction* tx
@@ -61,7 +61,7 @@ template <typename ModelT>
 Error CreateObjectT::operator ()(
                                const ModelT& model,
                                RocksdbHandler& handler,
-                               const Topic& topic,
+                               Topic topic,
                                const typename ModelT::UnitType::type* obj,
                                const AllocatorFactory* allocatorFactory,
                                Transaction* tx

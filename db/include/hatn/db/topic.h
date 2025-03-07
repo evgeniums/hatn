@@ -68,32 +68,32 @@ class Topic
             return std::string{m_topic.data(),m_topic.size()};
         }
 
-        bool operator < (const Topic& other) const noexcept
+        bool operator < (Topic other) const noexcept
         {
             return m_topic<other.m_topic;
         }
 
-        bool operator == (const Topic& other) const noexcept
+        bool operator == (Topic other) const noexcept
         {
             return m_topic==other.m_topic;
         }
 
-        bool operator > (const Topic& other) const noexcept
+        bool operator > (Topic other) const noexcept
         {
             return m_topic>other.m_topic;
         }
 
-        bool operator != (const Topic& other) const noexcept
+        bool operator != (Topic other) const noexcept
         {
             return m_topic!=other.m_topic;
         }
 
-        bool operator >= (const Topic& other) const noexcept
+        bool operator >= (Topic other) const noexcept
         {
             return m_topic>=other.m_topic;
         }
 
-        bool operator <= (const Topic& other) const noexcept
+        bool operator <= (Topic other) const noexcept
         {
             return m_topic<other.m_topic;
         }

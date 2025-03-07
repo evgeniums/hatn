@@ -12,8 +12,6 @@
   *     hatn pool of threads with queues.
   */
 
-#include <set>
-
 #include <hatn/common/flatmap.h>
 #include <hatn/common/threadpoolwithqueues.h>
 #include <hatn/common/ipp/threadcategoriespool.ipp>

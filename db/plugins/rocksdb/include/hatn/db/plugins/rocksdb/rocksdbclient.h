@@ -72,17 +72,17 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Result<std::set<common::DateRange>> doListDatePartitions() override;
 
-        Error doDeleteTopic(const Topic& topic) override;
+        Error doDeleteTopic(Topic topic) override;
 
-        Error doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
+        Error doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
 
-        Result<DbObject> doRead(const Topic& topic,
+        Result<DbObject> doRead(Topic topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          Transaction* tx,
                                                          bool forUpdate
                                                          ) override;
-        Result<DbObject> doRead(const Topic& topic,
+        Result<DbObject> doRead(Topic topic,
                                                          const ModelInfo& model,
                                                          const ObjectId& id,
                                                          const common::Date& date,
@@ -110,22 +110,22 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         virtual Result<size_t> doCount(
             const ModelInfo& model,
-            const Topic& topic
+            Topic topic
             ) override;
 
         virtual Result<size_t> doCount(
             const ModelInfo& model,
             const common::Date& date,
-            const Topic& topic
+            Topic topic
             ) override;
 
-        Error doDeleteObject(const Topic& topic,
+        Error doDeleteObject(Topic topic,
                              const ModelInfo& model,
                              const ObjectId& id,
                              const common::Date& date,
                              Transaction* tx) override;
 
-        Error doDeleteObject(const Topic& topic,
+        Error doDeleteObject(Topic topic,
                              const ModelInfo& model,
                              const ObjectId& id,
                              Transaction* tx) override;
@@ -144,20 +144,20 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doTransaction(const TransactionFn& fn) override;
 
-        Error doUpdateObject(const Topic& topic,
+        Error doUpdateObject(Topic topic,
                        const ModelInfo& model,
                        const ObjectId& id,
                        const update::Request& request,                       
                        const common::Date& date,
                        Transaction* tx) override;
 
-        Error doUpdateObject(const Topic& topic,
+        Error doUpdateObject(Topic topic,
                        const ModelInfo& model,
                        const ObjectId& id,
                        const update::Request& request,
                        Transaction* tx) override;
 
-        Result<DbObject> doReadUpdate(const Topic& topic,
+        Result<DbObject> doReadUpdate(Topic topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId &id,
                                                                        const update::Request& request,
@@ -165,7 +165,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        update::ModifyReturn returnMode,
                                                                        Transaction* tx) override;
 
-        Result<DbObject> doReadUpdate(const Topic& topic,
+        Result<DbObject> doReadUpdate(Topic topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId& id,
                                                                        const update::Request& request,                                                                       

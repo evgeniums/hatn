@@ -70,7 +70,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 
         static Error update(
             const std::string& modelId,
-            const Topic& topic,
+            Topic topic,
             RocksdbHandler& handler,
             RocksdbPartition* partition,
             Operator action
@@ -84,7 +84,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
         );
 
         static Error deleteTopic(
-            const Topic& topic,
+            Topic topic,
             RocksdbHandler& handler,
             RocksdbPartition* partition,
             ROCKSDB_NAMESPACE::WriteBatch& batch
@@ -107,7 +107,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
          */
         static Result<size_t> count(
             const ModelInfo& model,
-            const Topic& topic,
+            Topic topic,
             const HATN_COMMON_NAMESPACE::Date& date,
             RocksdbHandler& handler
         );
@@ -119,7 +119,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 
         static void fillRelationKey(
             const std::string& modelId,
-            const Topic& topic,
+            Topic topic,
             KeyBuf& key
         );
 

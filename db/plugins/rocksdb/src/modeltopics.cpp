@@ -35,7 +35,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 Error ModelTopics::update(
         const std::string& modelId,
-        const Topic &topic,
+        Topic topic,
         RocksdbHandler &handler,
         RocksdbPartition* partition,
         Operator action
@@ -133,7 +133,7 @@ bool ModelTopics::deserializeRelation(const char *data, size_t size, Relation &r
 
 //---------------------------------------------------------------
 
-void ModelTopics::fillRelationKey(const std::string& modelId, const Topic &topic, KeyBuf& key)
+void ModelTopics::fillRelationKey(const std::string& modelId, Topic topic, KeyBuf& key)
 {
     key.clear();
     key.append(RelationKeyPrefix);
@@ -165,7 +165,7 @@ void ModelTopics::fillModelKeyPrefix(const std::string& modelId, KeyBuf& key, bo
 
 Result<size_t> ModelTopics::count(
         const ModelInfo& model,
-        const Topic &topic,
+        Topic topic,
         const common::Date &date,
         RocksdbHandler &handler
     )
@@ -379,7 +379,7 @@ Result<std::vector<TopicHolder>>
 //---------------------------------------------------------------
 
 Error ModelTopics::deleteTopic(
-        const Topic& topic,
+        Topic topic,
         RocksdbHandler &handler,
         RocksdbPartition *partition,
         ROCKSDB_NAMESPACE::WriteBatch& batch

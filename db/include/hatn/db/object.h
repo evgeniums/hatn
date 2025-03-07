@@ -86,13 +86,54 @@ auto makeInitObjectPtr()
 
 constexpr const size_t ReservedTopicLength=ObjectId::Length;
 
-using TopicContainer=HATN_COMMON_NAMESPACE::StringOnStackT<ReservedTopicLength>;
+using TopicContainer=std::string;
 
 class DbObject : public du::UnitWrapper
 {
     public:
 
-        DbObject()=default;
+        DbObject()
+        {}
+
+        ~DbObject()
+        {}
+
+        DbObject(const DbObject& other) :
+                du::UnitWrapper(other),
+                m_topic(other.topic())
+        {}
+
+        DbObject(DbObject&& other) :
+            du::UnitWrapper(std::move(other)),
+            m_topic(other.topic())
+        {
+            other.m_topic=lib::string_view{};
+        }
+
+        DbObject& operator =(DbObject&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            du::UnitWrapper::operator=(std::move(other));
+            m_topic=std::move(other.m_topic);
+            other.m_topic=lib::string_view{};
+            return *this;
+        }
+
+        DbObject& operator =(const DbObject& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            du::UnitWrapper::operator=(other);
+            m_topic=other.m_topic;
+            return *this;
+        }
 
         template <typename T>
         DbObject(HATN_COMMON_NAMESPACE::SharedPtr<T> sharedUnit,
@@ -104,8 +145,8 @@ class DbObject : public du::UnitWrapper
         DbObject(HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> sharedUnit,
                     lib::string_view topic=lib::string_view{}
                     ) :
-            UnitWrapper(std::move(sharedUnit)),
-            m_topic(topic)
+                    UnitWrapper(std::move(sharedUnit)),
+                    m_topic(topic)
         {}
 
         lib::string_view topic() const noexcept
@@ -116,6 +157,9 @@ class DbObject : public du::UnitWrapper
     private:
 
         TopicContainer m_topic;
+
+        template <typename T1>
+        friend class DbObjectT;
 };
 
 template <typename T>
@@ -125,7 +169,48 @@ class DbObjectT : public du::UnitWrapperT<T>
 
         using Base=du::UnitWrapperT<T>;
 
-        DbObjectT()=default;
+        DbObjectT()
+        {}
+
+        ~DbObjectT()
+        {}
+
+        DbObjectT(const DbObjectT& other) :
+            Base(other),
+            m_topic(other.topic())
+        {}
+
+        DbObjectT(DbObjectT&& other) :
+            Base(std::move(other)),
+            m_topic(other.topic())
+        {
+            other.m_topic=lib::string_view{};
+        }
+
+        DbObjectT& operator =(DbObjectT&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            Base::operator=(std::move(other));
+            m_topic=std::move(other.m_topic);
+            other.m_topic=lib::string_view{};
+            return *this;
+        }
+
+        DbObjectT& operator =(const DbObjectT& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            Base::operator=(other);
+            m_topic=other.m_topic;
+            return *this;
+        }
 
         template <typename T1>
         DbObjectT(HATN_COMMON_NAMESPACE::SharedPtr<T1> sharedUnit,
@@ -140,7 +225,12 @@ class DbObjectT : public du::UnitWrapperT<T>
                     m_topic(topic)
         {}
 
-        DbObjectT(DbObject other) : Base(std::move(other))
+        DbObjectT(DbObject&& other) : Base(std::move(other)),
+                                      m_topic(std::move(other.m_topic))
+        {}
+
+        DbObjectT(const DbObject& other) : Base(other),
+                                           m_topic(other.m_topic)
         {}
 
         lib::string_view topic() const noexcept

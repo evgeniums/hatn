@@ -353,7 +353,7 @@ Error RocksdbHandler::ensureModelSchema(const ModelInfo &model) const
 
 //---------------------------------------------------------------
 
-Error RocksdbHandler::deleteTopic(const Topic& topic)
+Error RocksdbHandler::deleteTopic(Topic topic)
 {
     HATN_CTX_SCOPE("rdbdeltopic")
 

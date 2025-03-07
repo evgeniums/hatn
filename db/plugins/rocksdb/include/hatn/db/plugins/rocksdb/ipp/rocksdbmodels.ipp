@@ -56,7 +56,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     static typename unitT::type sample;
 
     rdbModel->createObject=[model,allocatorFactory]
-        (RocksdbHandler& handler, const Topic& topic, const dataunit::Unit* object, Transaction* tx)
+        (RocksdbHandler& handler, Topic topic, const dataunit::Unit* object, Transaction* tx)
     {
         const auto* obj=sample.castToUnit(object);
         return CreateObject(model->model,handler,topic,obj,allocatorFactory,tx);
@@ -65,7 +65,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->readObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             Transaction* tx,
             bool forUpdate
@@ -82,7 +82,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->readObjectWithDate=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx,
@@ -122,7 +122,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->deleteObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             Transaction* tx
         )
@@ -133,7 +133,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->deleteObjectWithDate=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const HATN_COMMON_NAMESPACE::Date& date,
             Transaction* tx
@@ -156,7 +156,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->updateObjectWithDate=[model,allocatorFactory]
         (
              RocksdbHandler& handler,
-             const Topic& topic,
+             Topic topic,
              const ObjectId& objectId,
              const update::Request& request,
              const HATN_COMMON_NAMESPACE::Date& date,
@@ -170,7 +170,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
     rdbModel->updateObject=[model,allocatorFactory]
         (
             RocksdbHandler& handler,
-            const Topic& topic,
+            Topic topic,
             const ObjectId& objectId,
             const update::Request& request,
             db::update::ModifyReturn modifyReturn,

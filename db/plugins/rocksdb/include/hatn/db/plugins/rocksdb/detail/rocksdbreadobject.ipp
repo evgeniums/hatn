@@ -115,7 +115,7 @@ struct ReadObjectT
     template <typename ModelT, typename DateT>
     Result<typename ModelT::SharedPtr> operator ()(const ModelT& model,
                                                   RocksdbHandler& handler,
-                                                  const Topic& topic,
+                                                  Topic topic,
                                                   const ObjectId& objectId,
                                                   const DateT& date,
                                                   const AllocatorFactory* allocatorFactory,
@@ -129,7 +129,7 @@ template <typename ModelT, typename DateT>
 Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
         const ModelT& model,
         RocksdbHandler& handler,
-        const Topic& topic,
+        Topic topic,
         const ObjectId& objectId,
         const DateT& date,
         const AllocatorFactory* factory,

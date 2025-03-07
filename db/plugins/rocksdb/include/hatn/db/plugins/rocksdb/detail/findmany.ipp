@@ -80,7 +80,7 @@ Error FindManyT::operator ()(
     ROCKSDB_NAMESPACE::ManagedSnapshot managedSnapchot{handler.p()->db};
     const auto* snapshot=managedSnapchot.snapshot();
 
-    auto eachTopic=[&](const Topic& topic, const std::shared_ptr<RocksdbPartition>& partition)
+    auto eachTopic=[&](Topic topic, const std::shared_ptr<RocksdbPartition>& partition)
     {
         HATN_CTX_SCOPE_PUSH("topic",topic.topic())
 

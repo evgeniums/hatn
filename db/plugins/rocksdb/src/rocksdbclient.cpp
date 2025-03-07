@@ -650,7 +650,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCreate(const Topic& topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
+Error RocksdbClient::doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
 {
     HATN_CTX_SCOPE("rdbcreate")
 
@@ -664,7 +664,7 @@ Error RocksdbClient::doCreate(const Topic& topic, const ModelInfo& model, dataun
 
 //---------------------------------------------------------------
 
-Result<DbObject> RocksdbClient::doRead(const Topic& topic,
+Result<DbObject> RocksdbClient::doRead(Topic topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 Transaction* tx,
@@ -683,7 +683,7 @@ Result<DbObject> RocksdbClient::doRead(const Topic& topic,
 
 //---------------------------------------------------------------
 
-Result<DbObject> RocksdbClient::doRead(const Topic& topic,
+Result<DbObject> RocksdbClient::doRead(Topic topic,
                                                                 const ModelInfo &model,
                                                                 const ObjectId &id,
                                                                 const common::Date& date,
@@ -739,7 +739,7 @@ Result<size_t> RocksdbClient::doCount(
 
 Result<size_t> RocksdbClient::doCount(
     const ModelInfo &model,
-    const Topic& topic
+    Topic topic
     )
 {
     HATN_CTX_SCOPE("rdbcountmodel")
@@ -751,7 +751,7 @@ Result<size_t> RocksdbClient::doCount(
 Result<size_t> RocksdbClient::doCount(
     const ModelInfo &model,
     const common::Date& date,
-    const Topic& topic
+    Topic topic
     )
 {
     HATN_CTX_SCOPE("rdbcountmodel")
@@ -760,7 +760,7 @@ Result<size_t> RocksdbClient::doCount(
 //---------------------------------------------------------------
 
 Error RocksdbClient::doDeleteObject(
-        const Topic& topic,
+        Topic topic,
         const ModelInfo &model,
         const ObjectId &id,
         const common::Date& date,
@@ -780,7 +780,7 @@ Error RocksdbClient::doDeleteObject(
 //---------------------------------------------------------------
 
 Error RocksdbClient::doDeleteObject(
-        const Topic& topic,
+        Topic topic,
         const ModelInfo &model,
         const ObjectId &id,
         Transaction* tx
@@ -839,7 +839,7 @@ Result<size_t> RocksdbClient::doDeleteManyBulk(
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Topic &topic,
+Error RocksdbClient::doUpdateObject(Topic topic,
                                     const ModelInfo &model,
                                     const ObjectId& id,
                                     const update::Request &request,
@@ -864,7 +864,7 @@ Error RocksdbClient::doUpdateObject(const Topic &topic,
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doUpdateObject(const Topic &topic,
+Error RocksdbClient::doUpdateObject(Topic topic,
                                     const ModelInfo &model,
                                     const ObjectId& id,
                                     const update::Request &request,
@@ -906,7 +906,7 @@ Result<size_t> RocksdbClient::doUpdateMany(
 
 //---------------------------------------------------------------
 
-Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
+Result<DbObject> RocksdbClient::doReadUpdate(Topic topic,
                                     const ModelInfo &model,
                                     const ObjectId &id,
                                     const update::Request &request,                                    
@@ -932,7 +932,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
 
 //---------------------------------------------------------------
 
-Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
+Result<DbObject> RocksdbClient::doReadUpdate(Topic topic,
                                                                       const ModelInfo &model,
                                                                       const ObjectId &id,
                                                                       const update::Request &request,                                                                      
@@ -1021,7 +1021,7 @@ Error RocksdbClient::doFindCb(
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doDeleteTopic(const Topic &topic)
+Error RocksdbClient::doDeleteTopic(Topic topic)
 {
     return d->handler->deleteTopic(topic);
 }

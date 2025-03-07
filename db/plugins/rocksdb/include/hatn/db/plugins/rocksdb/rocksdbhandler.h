@@ -74,7 +74,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         Error ensureModelSchema(const ModelInfo &model) const;
 
-        Error deleteTopic(const Topic& topic);
+        Error deleteTopic(Topic topic);
 
     private:
 
