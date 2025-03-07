@@ -268,6 +268,17 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             return static_cast<int>(code)==m_code;
         }
 
+        template <typename T>
+        bool is(T code, const ErrorCategory& cat) const noexcept
+        {
+            if (!isType(Type::Default))
+            {
+                return false;
+            }
+
+            return static_cast<int>(code)==m_code && strcmp(cat.name(),category()->name())==0;
+        }
+
         //! Set error code.
         template <typename T>
         inline void setCode(T code, const ErrorCategory* category=&CommonErrorCategory::getCategory()) noexcept
