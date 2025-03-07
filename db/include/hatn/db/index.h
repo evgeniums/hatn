@@ -472,7 +472,7 @@ HATN_DB_NAMESPACE_END
     struct _index_##idx { \
         const auto& operator()() const \
         { \
-            static auto idx=makeIndex(DefaultIndexConfig,__VA_ARGS__); \
+            static auto idx=HATN_DB_NAMESPACE::makeIndex(HATN_DB_NAMESPACE::DefaultIndexConfig,__VA_ARGS__); \
             return idx; \
         } \
     }; \
@@ -482,7 +482,7 @@ HATN_DB_NAMESPACE_END
     struct _index_##idx { \
         const auto& operator()() const \
         { \
-            static auto idx=makeIndex(UniqueIndexConfig,__VA_ARGS__); \
+            static auto idx=HATN_DB_NAMESPACE::makeIndex(HATN_DB_NAMESPACE::UniqueIndexConfig,__VA_ARGS__); \
             return idx; \
         } \
     }; \
@@ -492,7 +492,7 @@ HATN_DB_NAMESPACE_END
     struct _index_##idx { \
             const auto& operator()() const \
         { \
-                static auto idx=makeIndex(UniqueInPartitionIndexConfig,__VA_ARGS__); \
+                static auto idx=HATN_DB_NAMESPACE::makeIndex(HATN_DB_NAMESPACE::UniqueInPartitionIndexConfig,__VA_ARGS__); \
                 return idx; \
         } \
     }; \
@@ -503,7 +503,7 @@ HATN_DB_NAMESPACE_END
     struct _index_##idx { \
             const auto& operator()() const \
         { \
-                static auto idx=makeIndex(PartitionIndexConfig,__VA_ARGS__); \
+                static auto idx=HATN_DB_NAMESPACE::makeIndex(HATN_DB_NAMESPACE::PartitionIndexConfig,__VA_ARGS__); \
                 return idx; \
         } \
     }; \
@@ -513,7 +513,7 @@ HATN_DB_NAMESPACE_END
     struct _index_##idx { \
     const auto& operator()() const \
         { \
-            static auto idx=makeIndex(TtlIndexConfig<hana::int_<Ttl>>,__VA_ARGS__); \
+            static auto idx=HATN_DB_NAMESPACE::makeIndex(HATN_DB_NAMESPACE::TtlIndexConfig<hana::int_<Ttl>>,__VA_ARGS__); \
             return idx; \
         } \
     }; \

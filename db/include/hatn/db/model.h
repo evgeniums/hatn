@@ -581,7 +581,7 @@ HATN_DB_NAMESPACE_END
     struct _model_##m { \
         const auto& operator()() const \
         { \
-            static auto mm=makeModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
+            static auto mm=HATN_DB_NAMESPACE::makeModel< type ::TYPE>(HATN_DB_NAMESPACE::DefaultModelConfig,__VA_ARGS__); \
             return mm; \
         } \
     }; \
@@ -591,7 +591,7 @@ HATN_DB_NAMESPACE_END
 struct _model_##m { \
     const auto& operator()() const \
         { \
-                static auto mm=makeOidPartitionModel< type ::TYPE>(DefaultModelConfig,__VA_ARGS__); \
+                static auto mm=HATN_DB_NAMESPACE::makeOidPartitionModel< type ::TYPE>(HATN_DB_NAMESPACE::DefaultModelConfig,__VA_ARGS__); \
                 return mm; \
         } \
     }; \
@@ -601,7 +601,7 @@ struct _model_##m { \
     struct _model_##m { \
             const auto& operator()() const \
         { \
-                static auto mm=makeModel< type ::TYPE>(cfg,__VA_ARGS__); \
+                static auto mm=HATN_DB_NAMESPACE::makeModel< type ::TYPE>(cfg,__VA_ARGS__); \
                 return mm; \
         } \
     }; \
@@ -611,7 +611,7 @@ struct _model_##m { \
     struct _model_##m { \
             const auto& operator()() const \
         { \
-                static auto mm=makeOidPartitionModel< type ::TYPE>(cfg,__VA_ARGS__); \
+                static auto mm=HATN_DB_NAMESPACE::makeOidPartitionModel< type ::TYPE>(cfg,__VA_ARGS__); \
                 return mm; \
         } \
     }; \
