@@ -165,7 +165,7 @@ using TaskWithContextQueue=Queue<TaskWithContext>;
 using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
 
-struct AsyncWithCallbackT
+struct postAsyncTaskT
 {
     template <typename HandlerT>
     void operator ()(TaskWithContextThread* thread,
@@ -192,7 +192,47 @@ struct AsyncWithCallbackT
 
     //! @todo Implement operator with guard
 };
-constexpr AsyncWithCallbackT AsyncWithCallback{};
+constexpr postAsyncTaskT postAsyncTask{};
+
+template <typename CallbackT>
+struct postAsyncCallback
+{
+    template <typename ContextT, typename ...Args>
+    void operator()(SharedPtr<ContextT> ctx, Args&&... args) const
+    {
+        auto ts=hana::make_tuple(ctx,std::forward<Args>(args)...);
+        postAsyncTask(
+            thread,
+            ctx,
+            [ts{std::move(ts)},cb{callback}](const common::SharedPtr<common::TaskContext>&)
+            {
+                hana::unpack(std::move(ts),std::move(cb));
+            }
+        );
+    }
+
+    postAsyncCallback(
+            CallbackT callback,
+            TaskWithContextThread* thread
+        ) : callback(std::move(callback)),thread(thread)
+    {}
+
+    CallbackT callback;
+    TaskWithContextThread* thread;
+};
+
+struct makePostAsynCallbackT
+{
+    template <typename CallbackT>
+    auto operator()(
+            CallbackT callback,
+            TaskWithContextThread* thread
+        ) const
+    {
+        return postAsyncCallback<CallbackT>{std::move(callback),thread};
+    }
+};
+constexpr makePostAsynCallbackT makePostAsynCallback{};
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

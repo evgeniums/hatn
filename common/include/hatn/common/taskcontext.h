@@ -1215,3 +1215,5 @@ HATN_COMMON_NAMESPACE_END
 #define HATN_TASK_CONTEXT_DEFINE(...) HATN_TASK_CONTEXT_EXPAND(HATN_TASK_CONTEXT_DEFINE_SELECT(__VA_ARGS__)(__VA_ARGS__))
 
 #endif // HATNTASKCONTEXT_H
+
+//! @todo important: Refactor all execAsync within task subcontext
