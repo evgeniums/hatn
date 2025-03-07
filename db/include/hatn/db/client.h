@@ -43,6 +43,8 @@
 #include <hatn/db/transaction.h>
 #include <hatn/db/encryptionmanager.h>
 
+//! @todo critical: use Topic instead of const Topic&
+
 HATN_DB_NAMESPACE_BEGIN
 
 class ClientEnvironment
