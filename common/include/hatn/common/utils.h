@@ -119,6 +119,16 @@ struct HATN_COMMON_EXPORT Utils final
         }
         return strcmp(l,r);
     }
+
+    template <typename T1, typename T2, typename HandlerT>
+    void applyOptionalString(T1 val, T2 fallbackVal, HandlerT fn)
+    {
+        if (!val.empty())
+        {
+            fn(val);
+        }
+        fn(fallbackVal);
+    }
 };
 
 template<class T, size_t N>
