@@ -220,7 +220,7 @@ class PublicKey : public KeyContainer<common::ByteArray>
 
     private:
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_alg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_alg;
 };
 
 HATN_CRYPT_NAMESPACE_END

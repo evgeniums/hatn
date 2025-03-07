@@ -90,7 +90,7 @@ class HATN_OPENSSL_EXPORT DSAPrivateKey : public OpenSslPrivateKey
 
     private:
 
-        common::ConstPointerWithInit<DSAAlg> m_nativeAlg;
+        common::ConstPointerWithInit<DSAAlg*> m_nativeAlg;
 };
 
 HATN_OPENSSL_NAMESPACE_END

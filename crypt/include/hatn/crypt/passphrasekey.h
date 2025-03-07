@@ -155,7 +155,7 @@ class PassphraseKey : public SymmetricKey
 
     private:
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_kdfAlg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_kdfAlg;
         common::SharedPtr<SymmetricKey> m_derivedKey;
         common::ByteArray m_salt;
 };

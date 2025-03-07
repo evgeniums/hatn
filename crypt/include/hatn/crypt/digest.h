@@ -465,7 +465,7 @@ class HATN_CRYPT_EXPORT Digest : public DigestBase
 
     private:
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_alg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_alg;
 };
 
 HATN_CRYPT_NAMESPACE_END

@@ -361,10 +361,10 @@ class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArra
 
     private:
 
-        common::PointerWithInit<KeyProtector> m_protector;
+        common::PointerWithInit<KeyProtector*> m_protector;
         common::ValueOrDefault<bool,false> m_protected;
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_alg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_alg;
 };
 
 //! Base class for private key used in asymmetric algorithms

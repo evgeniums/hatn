@@ -116,8 +116,8 @@ class KDF
 
     private:
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_targetKeyAlg;
-        common::ConstPointerWithInit<CryptAlgorithm> m_kdfAlg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_targetKeyAlg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_kdfAlg;
 };
 
 HATN_CRYPT_NAMESPACE_END

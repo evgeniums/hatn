@@ -150,7 +150,7 @@ class HATN_CRYPT_EXPORT DH : public DiffieHellman,
 
     private:
 
-        common::ConstPointerWithInit<CryptAlgorithm> m_alg;
+        common::ConstPointerWithInit<CryptAlgorithm*> m_alg;
 };
 
 //! Groups of DH parameters as defined in RFC3526
