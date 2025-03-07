@@ -363,7 +363,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                            const ObjectId& id,
                            const update::Request& request,                           
                            const common::Date& date,
-                           update::ModifyReturn returnType=update::ModifyReturn::After,
+                           update::ModifyReturn returnMode=update::ModifyReturn::After,
                            Transaction* tx=nullptr,
                            const TimePointFilter& tpFilter=TimePointFilter{}
                     )
@@ -371,7 +371,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_open)
             {
-                return afterRead(model,doReadUpdate(topic,*model->info,id,request,date,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,id,request,date,returnMode,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -383,7 +383,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                       const std::shared_ptr<ModelT>& model,
                                                       const ObjectId& id,
                                                       const update::Request& request,
-                                                      update::ModifyReturn returnType=update::ModifyReturn::After,
+                                                      update::ModifyReturn returnMode=update::ModifyReturn::After,
                                                       Transaction* tx=nullptr,
                                                       const TimePointFilter& tpFilter=TimePointFilter{}
                                                       )
@@ -393,7 +393,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("dbreadupdate")
             if (m_open)
             {
-                return afterRead(model,doReadUpdate(topic,*model->info,id,request,returnType,tx),tpFilter);
+                return afterRead(model,doReadUpdate(topic,*model->info,id,request,returnMode,tx),tpFilter);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -697,14 +697,14 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                       const QueryT& query,
                                                       const update::Request& request,
                                                       const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                                      update::ModifyReturn returnType=update::ModifyReturn::After,
+                                                      update::ModifyReturn returnMode=update::ModifyReturn::After,
                                                       Transaction* tx=nullptr)
         {
             HATN_CTX_SCOPE("dbfindupdatecreate")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
-                return afterRead(model,doFindUpdateCreate(*model->info,q,request,object,returnType,tx),TimePointFilter{});
+                return afterRead(model,doFindUpdateCreate(*model->info,q,request,object,returnMode,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -716,7 +716,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             const std::shared_ptr<ModelT>& model,
             const QueryT& query,
             const update::Request& request,
-            update::ModifyReturn returnType=update::ModifyReturn::After,
+            update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr)
         {
             HATN_CTX_SCOPE("dbfindupdate")
@@ -725,7 +725,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
                 return afterRead(model,doFindUpdateCreate(*model->info,q,request,
                                                            HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>{},
-                                                           returnType,tx),TimePointFilter{});
+                                                           returnMode,tx),TimePointFilter{});
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -801,14 +801,14 @@ class HATN_DB_EXPORT Client : public common::WithID
                                      const ObjectId& id,
                                      const update::Request& request,                                     
                                      const common::Date& date,
-                                     update::ModifyReturn returnType,
+                                     update::ModifyReturn returnMode,
                                      Transaction* tx)=0;
 
         virtual Result<DbObject> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId& id,
                                                                        const update::Request& request,                                                                       
-                                                                       update::ModifyReturn returnType,
+                                                                       update::ModifyReturn returnMode,
                                                                        Transaction* tx)=0;
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> doFind(
@@ -857,7 +857,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                             const ModelIndexQuery& query,
                                             const update::Request& request,
                                             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                            update::ModifyReturn returnType,
+                                            update::ModifyReturn returnMode,
                                             Transaction* tx)=0;
 
         virtual Result<size_t> doDeleteMany(

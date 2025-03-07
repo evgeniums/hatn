@@ -162,14 +162,14 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                                                        const ObjectId &id,
                                                                        const update::Request& request,
                                                                        const common::Date& date,
-                                                                       update::ModifyReturn returnType,
+                                                                       update::ModifyReturn returnMode,
                                                                        Transaction* tx) override;
 
         Result<DbObject> doReadUpdate(const Topic& topic,
                                                                        const ModelInfo& model,
                                                                        const ObjectId& id,
                                                                        const update::Request& request,                                                                       
-                                                                       update::ModifyReturn returnType,
+                                                                       update::ModifyReturn returnMode,
                                                                        Transaction* tx) override;
 
         Result<size_t> doUpdateMany(
@@ -184,7 +184,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
                                              const ModelIndexQuery& query,
                                              const update::Request& request,
                                              const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                             update::ModifyReturn returnType,
+                                             update::ModifyReturn returnMode,
                                              Transaction* tx) override;
 
         Result<DbObject> doFindOne(

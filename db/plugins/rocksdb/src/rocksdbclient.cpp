@@ -911,7 +911,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                     const ObjectId &id,
                                     const update::Request &request,                                    
                                     const common::Date &date,
-                                    update::ModifyReturn returnType,
+                                    update::ModifyReturn returnMode,
                                     Transaction* tx)
 {
     HATN_CTX_SCOPE("rdbreadupdate")
@@ -921,7 +921,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObjectWithDate(*d->handler,topic,id,request,date,returnType,tx);
+    auto r=rdbModel->updateObjectWithDate(*d->handler,topic,id,request,date,returnMode,tx);
     HATN_CHECK_RESULT(r)
     if (r.value().isNull())
     {
@@ -936,7 +936,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
                                                                       const ModelInfo &model,
                                                                       const ObjectId &id,
                                                                       const update::Request &request,                                                                      
-                                                                      update::ModifyReturn returnType,
+                                                                      update::ModifyReturn returnMode,
                                                                       Transaction* tx)
 {
     HATN_CTX_SCOPE("rdbreadupdate")
@@ -946,7 +946,7 @@ Result<DbObject> RocksdbClient::doReadUpdate(const Topic &topic,
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->updateObject(*d->handler,topic,id,request,returnType,tx);
+    auto r=rdbModel->updateObject(*d->handler,topic,id,request,returnMode,tx);
     HATN_CHECK_RESULT(r)
     if (r.value().isNull())
     {
@@ -962,7 +962,7 @@ Result<DbObject> RocksdbClient::doFindUpdateCreate(
                                             const ModelIndexQuery& query,
                                             const update::Request& request,
                                             const HATN_COMMON_NAMESPACE::SharedPtr<dataunit::Unit>& object,
-                                            update::ModifyReturn returnType,
+                                            update::ModifyReturn returnMode,
                                             Transaction* tx)
 {
     HATN_CTX_SCOPE("rdbfindupdatecreate")
@@ -972,7 +972,7 @@ Result<DbObject> RocksdbClient::doFindUpdateCreate(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->findUpdateCreate(*d->handler,query,request,object,returnType,tx);
+    return rdbModel->findUpdateCreate(*d->handler,query,request,object,returnMode,tx);
 }
 
 //---------------------------------------------------------------

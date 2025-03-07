@@ -22,6 +22,7 @@ SET (HEADERS
     include/hatn/db/find.h
     include/hatn/db/encryptionmanager.h
     include/hatn/db/updateserialization.h
+    include/hatn/db/asyncclient.h
 )
 
 SET (HEADERS

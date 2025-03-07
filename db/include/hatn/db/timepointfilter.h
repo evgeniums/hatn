@@ -95,6 +95,12 @@ class TimePointFilter
             return static_cast<bool>(m_intervals);
         }
 
+        static const auto& getDefault()
+        {
+            static TimePointFilter inst;
+            return inst;
+        }
+
     private:
 
         TimepointIntervalsPtr m_intervals;
