@@ -164,11 +164,12 @@ using TaskQueue=Queue<Task>;
 using TaskWithContextQueue=Queue<TaskWithContext>;
 using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
+using ThreadQWithTaskContext=std::pointer_traits<decltype(TaskWithContextThread::current())>::element_type;
 
 struct postAsyncTaskT
 {
     template <typename HandlerT>
-    void operator ()(TaskWithContextThread* thread,
+    void operator ()(ThreadQWithTaskContext* thread,
                     SharedPtr<TaskContext> ctx,
                     HandlerT handler
                     ) const
@@ -213,12 +214,12 @@ struct postAsyncCallback
 
     postAsyncCallback(
             CallbackT callback,
-            TaskWithContextThread* thread
+            ThreadQWithTaskContext* thread=ThreadQWithTaskContext::current()
         ) : callback(std::move(callback)),thread(thread)
     {}
 
     CallbackT callback;
-    TaskWithContextThread* thread;
+    ThreadQWithTaskContext* thread;
 };
 
 struct makePostAsynCallbackT
@@ -226,7 +227,7 @@ struct makePostAsynCallbackT
     template <typename CallbackT>
     auto operator()(
             CallbackT callback,
-            TaskWithContextThread* thread
+            ThreadQWithTaskContext* thread=ThreadQWithTaskContext::current()
         ) const
     {
         return postAsyncCallback<CallbackT>{std::move(callback),thread};

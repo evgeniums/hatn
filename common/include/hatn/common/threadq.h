@@ -347,7 +347,7 @@ class ThreadQ : public WithTraits<Traits<TaskT>>
         }
 
         //! Get current thread interface
-        static ThreadQ<TaskT,Traits>* current() noexcept;
+        static selfType* current() noexcept;
 
     protected:
 
