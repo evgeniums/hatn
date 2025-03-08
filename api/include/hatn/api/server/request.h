@@ -68,9 +68,9 @@ struct Request : public common::TaskSubcontext
     bool routed;
     bool closeConnection;
 
-    common::Thread* requestThread;
+    common::ThreadQWithTaskContext* requestThread;
 
-    common::Thread* thread() const
+    common::ThreadQWithTaskContext* thread() const
     {
         if (requestThread!=nullptr)
         {
@@ -78,9 +78,9 @@ struct Request : public common::TaskSubcontext
         }
         if (env)
         {
-            return env->thread();
+            return env->threads()->defaultThread();
         }
-        return common::Thread::currentThread();
+        return common::ThreadQWithTaskContext::current();
     }
 
     const auto& id() const

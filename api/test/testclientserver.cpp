@@ -39,6 +39,7 @@
 #include <hatn/api/server/servicedispatcher.h>
 #include <hatn/api/server/connectionsstore.h>
 #include <hatn/api/server/server.h>
+#include <hatn/api/server/env.h>
 
 #include <hatn/api/ipp/client.ipp>
 #include <hatn/api/ipp/request.ipp>
@@ -124,7 +125,10 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
     };
 
     auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
+    auto serverEnv=makeShared<server::SimpleEnv>();
+    serverEnv->threads()->setDefaultThread(thread);
     auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
+    tcpServer.setEnv(serverEnv);
     tcpServer.setConnectionHandler(onNewTcpConnection);
     asio::IpEndpoint serverEp{"127.0.0.1",TcpPort};
     auto ec=tcpServer.run(tcpServerCtx,serverEp);

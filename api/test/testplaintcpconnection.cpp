@@ -81,7 +81,12 @@ auto createClient(HATN_COMMON_NAMESPACE::Thread* thread)
 
 auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
 {
-    return HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
+    auto tcpServerCtx=HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
+    auto serverEnv=HATN_COMMON_NAMESPACE::makeShared<HATN_API_NAMESPACE::server::SimpleEnv>();
+    serverEnv->threads()->setDefaultThread(thread);
+    auto& tcpServer=tcpServerCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
+    tcpServer.setEnv(serverEnv);
+    return tcpServerCtx;
 }
 
 BOOST_AUTO_TEST_SUITE(TestPlainTcpConnection)

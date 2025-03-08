@@ -19,6 +19,8 @@
 #ifndef HATNAPISERVERENV_H
 #define HATNAPISERVERENV_H
 
+#include <hatn/common/threadwithqueue.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
 
@@ -29,15 +31,14 @@ namespace server {
 //! @todo Add tenancy to Env
 //! @todo Add logger to Env
 
-struct Env
+struct Env : public common::WithMappedThreads
 {
     Env(
-            common::Thread* thread=common::Thread::currentThread(),
+            common::ThreadQWithTaskContext* defaultThread=common::ThreadQWithTaskContext::current(),
             size_t maxMessageSize=protocol::DEFAULT_MAX_MESSAGE_SIZE
-        ) : m_thread(thread),
+        ) : common::WithMappedThreads(defaultThread),
             m_maxMessageSize(maxMessageSize)
     {}
-
 
     //! @todo Reimplement using config
     size_t maxMessageSize() const noexcept
@@ -45,12 +46,6 @@ struct Env
         return m_maxMessageSize;
     }
 
-    common::Thread* thread() const noexcept
-    {
-        return m_thread;
-    }
-
-    common::Thread* m_thread;
     size_t m_maxMessageSize;
 };
 
@@ -64,6 +59,12 @@ class WithEnv
 {
     public:
 
+        WithEnv()
+        {}
+
+        WithEnv(common::SharedPtr<EnvT> env):m_env(std::move(env))
+        {}
+
         void setEnv(common::SharedPtr<EnvT> env)
         {
             m_env=std::move(env);
@@ -76,7 +77,7 @@ class WithEnv
 
         EnvT* env() const noexcept
         {
-            return m_env;
+            return m_env.get();
         }
 
     private:

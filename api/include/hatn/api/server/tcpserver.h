@@ -26,6 +26,7 @@
 #include <hatn/network/asio/tcpserver.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/server/env.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -33,7 +34,7 @@ namespace server
 {
 
 template <typename Traits>
-class TcpServer : public common::MappedThreadQWithTaskContext,
+class TcpServer : public WithEnv<typename Traits::Env>,
                   public HATN_NETWORK_NAMESPACE::asio::TcpServer,
                   public common::WithTraits<Traits>
 {
@@ -50,8 +51,7 @@ class TcpServer : public common::MappedThreadQWithTaskContext,
             const HATN_NETWORK_NAMESPACE::asio::TcpServerConfig* config,
             common::ThreadQWithTaskContext* thread,
             TraitsArgs&& ...traitsArgs
-        ) : common::MappedThreadQWithTaskContext(thread),
-            Base(thread,config),
+        ) : Base(thread,config),
             common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
@@ -60,8 +60,7 @@ class TcpServer : public common::MappedThreadQWithTaskContext,
         (
             common::ThreadQWithTaskContext* thread,
             TraitsArgs&& ...traitsArgs
-        ) : common::MappedThreadQWithTaskContext(thread),
-            Base(thread),
+        ) : Base(thread),
             common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 

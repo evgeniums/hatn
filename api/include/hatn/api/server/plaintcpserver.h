@@ -61,12 +61,14 @@ class PlainTcpConnectionTraits
             auto& server=ctx->template get<TcpServer<PlainTcpConnectionTraits>>();
             auto connectionCtx=common::makeTaskContextType<PlainTcpConnectionContextT<Env>>(
                 common::subcontexts(
-                    common::subcontext(server.randomThread()),
+                    common::subcontext(server.env()->threads()->randomThread()),
                     common::subcontext(),
                     common::subcontext(),
                     common::subcontext()
                 )
             );
+            auto& withEnv=connectionCtx->template get<WithEnv<EnvT>>();
+            withEnv.setEnv(server.envShared());
             auto& tcpStream=connectionCtx->template get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
             auto& connection=connectionCtx->template get<PlainTcpConnection>();
             connection.setStreams(&tcpStream);
@@ -83,12 +85,14 @@ class PlainTcpConnectionTraits
             auto connectionCtx=common::allocateTaskContextType<PlainTcpConnectionContextT<Env>>(
                 allocator,
                 common::subcontexts(
-                    common::subcontext(server.randomThread()),
+                    common::subcontext(server.env()->threads()->randomThread()),
                     common::subcontext(),
                     common::subcontext(),
                     common::subcontext()
                     )
                 );
+            auto& withEnv=connectionCtx->template get<WithEnv<EnvT>>();
+            withEnv.setEnv(server.envShared());
             auto& tcpStream=connectionCtx->template get<HATN_NETWORK_NAMESPACE::asio::TcpStream>();
             auto& connection=connectionCtx->template get<PlainTcpConnection>();
             connection.setStreams(&tcpStream);
