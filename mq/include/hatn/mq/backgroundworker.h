@@ -96,7 +96,7 @@ class BackgroundWorker : public common::TaskSubcontext
                 return;
             }
 
-            if (m_running.load() || m_wakeUpCount.fetch_add(1)>0)
+            if (m_wakeUpCount.fetch_add(1)>0)
             {
                 return;
             }
