@@ -208,6 +208,11 @@ class Lru
         //! Check if the cache is full
         bool isFull() const noexcept
         {
+            if (m_capacity==0)
+            {
+                return false;
+            }
+
             if (!m_storage.empty() && m_storage.size()==m_capacity)
             {
                 return true;
