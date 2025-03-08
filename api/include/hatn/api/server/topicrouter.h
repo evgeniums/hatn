@@ -25,6 +25,8 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
+//! @todo In default topic router map topics to threads with task queues
+
 template <typename FallbackRouterT>
 class TopicRouterTraits
 {
