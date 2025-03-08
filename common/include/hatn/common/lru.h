@@ -265,6 +265,16 @@ class Lru
             m_storage.doRemove(item.key());
         }
 
+        template <typename KeyT1>
+        void removeItem(const KeyT1& key)
+        {
+            auto* item=m_storage.item(key);
+            if (item!=nullptr)
+            {
+                removeItem(*item);
+            }
+        }
+
         /**
          * @brief Clear cache
          */
