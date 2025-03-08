@@ -23,6 +23,7 @@
 #include <hatn/common/threadq.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/queue.h>
+#include <hatn/common/random.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -234,6 +235,137 @@ struct makePostAsynCallbackT
     }
 };
 constexpr makePostAsynCallbackT makePostAsynCallback{};
+
+enum class MappedThreadMode : uint8_t
+{
+    Caller,
+    Mapped,
+    Default
+};
+
+class MappedThreadQWithTaskContext
+{
+    public:
+
+        MappedThreadQWithTaskContext(
+                MappedThreadMode mode=MappedThreadMode::Caller,
+                ThreadQWithTaskContext* defaultThread=ThreadQWithTaskContext::current()
+            )
+            :   m_threadMode(mode),
+                m_defaultThread(defaultThread)
+        {}
+
+        void setThreadMode(MappedThreadMode threadMode) noexcept
+        {
+            m_threadMode=threadMode;
+        }
+
+        MappedThreadMode threadMode() const noexcept
+        {
+            return m_threadMode;
+        }
+
+        void setMappedThreads(std::vector<ThreadQWithTaskContext*> threads) noexcept
+        {
+            m_threads=std::move(threads);
+        }
+
+        auto mappedThreads() const
+        {
+            return m_threads;
+        }
+
+        void setDefaultThread(ThreadQWithTaskContext* defaultThread) noexcept
+        {
+            m_defaultThread=defaultThread;
+        }
+
+        ThreadQWithTaskContext* defaultThread() const noexcept
+        {
+            if (m_defaultThread==nullptr)
+            {
+                if (!m_threads.empty())
+                {
+                    return m_threads[0];
+                }
+                return callerThread();
+            }
+            return m_defaultThread;
+        }
+
+        static ThreadQWithTaskContext* callerThread()
+        {
+            return ThreadQWithTaskContext::current();
+        }
+
+        template <typename T>
+        ThreadQWithTaskContext* mappedThread(const T& key) const noexcept
+        {
+            if (m_threads.empty())
+            {
+                return defaultThread();
+            }
+
+            auto hash=std::hash<T>(key);
+            auto idx=hash%m_threads.size();
+            return m_threads.at(idx);
+        }
+
+        ThreadQWithTaskContext* mappedThread(size_t idx) const noexcept
+        {
+            if (m_threads.empty())
+            {
+                return defaultThread();
+            }
+            idx=idx%m_threads.size();
+            return m_threads.at(idx);
+        }
+
+        ThreadQWithTaskContext* randomThread() const noexcept
+        {
+            if (m_threads.empty())
+            {
+                return defaultThread();
+            }
+            size_t idx=Random::generate(m_threads.size());
+            return mappedThread(idx);
+        }
+
+        template <typename T>
+        auto thread(const T& key) const noexcept
+        {
+            switch (m_threadMode)
+            {
+                case(MappedThreadMode::Caller): return callerThread(); break;
+                case(MappedThreadMode::Default): return defaultThread(); break;
+                case(MappedThreadMode::Mapped): return mappedThread(key); break;
+            }
+            return m_defaultThread;
+        }
+
+        auto thread() const noexcept
+        {
+            switch (m_threadMode)
+            {
+                case(MappedThreadMode::Caller): return callerThread(); break;
+                case(MappedThreadMode::Default): return defaultThread(); break;
+                case(MappedThreadMode::Mapped):
+                    if (!m_threads.empty())
+                    {
+                        return m_threads[0];
+                    }
+                    return defaultThread();
+                break;
+            }
+            return m_defaultThread;
+        }
+
+    private:
+
+        MappedThreadMode m_threadMode;
+        ThreadQWithTaskContext* m_defaultThread;
+        std::vector<ThreadQWithTaskContext*> m_threads;
+};
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

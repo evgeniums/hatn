@@ -27,15 +27,17 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
+class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
+                                    public common::TaskSubcontext
 {
     public:
 
         AsyncClient(
                 std::shared_ptr<Client> client,
-                common::TaskWithContextThread* thread
-            ) : m_client(std::move(client)),
-                m_thread(thread)
+                common::MappedThreadMode threadMode=common::MappedThreadMode::Caller,
+                common::ThreadQWithTaskContext* defaultThread=common::ThreadQWithTaskContext::current()
+            ) : common::MappedThreadQWithTaskContext(threadMode,defaultThread),
+                m_client(std::move(client))
         {}
 
         ~AsyncClient()=default;
@@ -59,9 +61,6 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
 
         std::shared_ptr<Client> m_client;
 
-        //! @todo Use thread pool with threads mapped to topics
-        common::TaskWithContextThread* m_thread;
-
     public:
 
         template <typename ContextT, typename CallbackT>
@@ -72,7 +71,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},&config,this,selfCtx{sharedMainCtx()}](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -91,7 +90,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -108,7 +107,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},&config,this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -128,7 +127,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},&config,this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -148,7 +147,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},schema{std::move(schema)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -164,7 +163,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -180,7 +179,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -196,7 +195,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -215,7 +214,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,models{std::move(models)},to,from](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -231,7 +230,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -258,7 +257,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&models,&to,&from](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -275,7 +274,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -295,7 +294,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,object,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -317,7 +316,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,tx,forUpdate,&tpFilter](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -339,7 +338,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&date,tx,forUpdate,&tpFilter](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -361,7 +360,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,&date,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -382,7 +381,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -406,7 +405,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,&date,returnMode,tx,&tpFilter](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -429,7 +428,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,returnMode,tx,&tpFilter](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -450,7 +449,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,&date,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -470,7 +469,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&id,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -488,7 +487,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -506,7 +505,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -525,7 +524,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,order](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -544,7 +543,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,order](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -565,7 +564,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,findCb{std::move(findCb)},tx,forUpdate](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -583,7 +582,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -600,7 +599,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -618,7 +617,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -637,7 +636,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(topic.topic()),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&topic,&model,&date](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -655,13 +654,13 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&date](const common::SharedPtr<common::TaskContext>&)
                 {
                     cb(std::move(ctx),m_client->count(model,date));
                 }
-                );
+            );
         }
 
         template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
@@ -674,7 +673,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -693,7 +692,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -713,7 +712,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,&request,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -736,7 +735,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,&request,&object,returnMode,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -757,7 +756,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                randomThread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,&model,&query,&request,returnMode,tx](const common::SharedPtr<common::TaskContext>&)
                 {
@@ -774,7 +773,7 @@ class HATN_DB_EXPORT AsyncClient : public common::TaskSubcontext
             )
         {
             common::postAsyncTask(
-                m_thread,
+                thread(),
                 ctx,
                 [ctx,cb{std::move(cb)},this,fn{std::move(fn)}](const common::SharedPtr<common::TaskContext>&)
                 {
