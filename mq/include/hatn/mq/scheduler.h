@@ -63,32 +63,26 @@ enum class JobConflictMode : uint8_t
     UpdateTime
 };
 
-constexpr const size_t DefaultJobQueueDepth=64;
-
 HDU_UNIT(config,
     HDU_FIELD(job_bucket_size,TYPE_UINT32,1,false,32)
     HDU_FIELD(job_retry_interval,TYPE_UINT32,2,false,300)
     HDU_FIELD(job_hold_period,TYPE_UINT32,3,false,900)
-    HDU_FIELD(worker_count,TYPE_UINT8,4,false,1)
-    HDU_FIELD(job_queue_depth,TYPE_UINT32,5,false,DefaultJobQueueDepth)
 )
 
 HDU_UNIT_WITH(job,(HDU_BASE(db::object)),
     HDU_FIELD(ref_id,TYPE_UINT32,1,true)
-    HDU_FIELD(ref_type,TYPE_STRING,2)
-    HDU_FIELD(next_time,TYPE_DATETIME,3)
-    HDU_FIELD(maybe_busy,TYPE_UINT32,4)
-    HDU_FIELD(topic,TYPE_STRING,5)
-    HDU_FIELD(content,TYPE_DATAUNIT,6)
-    HDU_FIELD(period,TYPE_UINT32,7)
+    HDU_FIELD(ref_topic,TYPE_STRING,2)
+    HDU_FIELD(ref_type,TYPE_STRING,3)
+    HDU_FIELD(next_time,TYPE_DATETIME,4)
+    HDU_FIELD(content,TYPE_DATAUNIT,5)
+    HDU_FIELD(period,TYPE_UINT32,6)
 )
 
 HATN_DB_INDEX(jobTimeIdx,job::next_time)
-HATN_DB_UNIQUE_INDEX(jobRefIdx,job::ref_id,job::ref_type)
-HATN_DB_INDEX(jobBusyIdx,job::maybe_busy)
+HATN_DB_UNIQUE_INDEX(jobRefIdx,job::ref_id,job::ref_topic,job::ref_type)
 HATN_DB_INDEX(jobRefTypeIdx,job::ref_type)
 
-HATN_DB_MODEL_WITH_CFG(jobModel,job,HATN_DB_NAMESPACE::ModelConfig("scheduler_jobs"),jobTimeIdx(),jobRefIdx(),jobBusyIdx(),jobRefTypeIdx())
+HATN_DB_MODEL_WITH_CFG(jobModel,job,HATN_DB_NAMESPACE::ModelConfig("scheduler_jobs"),jobTimeIdx(),jobRefIdx(),jobRefTypeIdx())
 
 struct SchedulerTraits
 {
@@ -111,20 +105,22 @@ class WorkerPool
 struct JobKey
 {
     JobKey(
-        lib::string_view refId,
-        lib::string_view refType
-        ) : refId(refId),
-            refType(refType)
-    {
-    }
+        lib::string_view refId={},
+        lib::string_view refTopic={},
+        lib::string_view refType={},
+        const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        ) : refId(refId,factory->dataAllocator<common::pmr::string>()),
+            refTopic(refTopic,factory->dataAllocator<common::pmr::string>()),
+            refType(refType,factory->dataAllocator<common::pmr::string>())
+    {}
 
-    du::ObjectId::String refId;
-    common::StringOnStack refType;
+    std::pmr::string refId;
+    std::pmr::string refTopic;
+    std::pmr::string refType;
 };
 
 template <typename Traits=SchedulerTraits>
-class Scheduler : public common::MappedThreadQWithTaskContext,
-                  public HATN_BASE_NAMESPACE::ConfigObject<config::type>,
+class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<config::type>,
                   public common::TaskSubcontext
 {
     public:
@@ -143,10 +139,35 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
 
     public:
 
-        void init(BackgroundWorker* backgroundWorker)
+        Scheduler(
+                std::shared_ptr<db::AsyncClient> db,
+                common::TaskWithContextThread* thread=common::TaskWithContextThread::current(),
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            ) : m_db(std::move(db)),
+                m_thread(thread),
+                m_factory(factory),
+                m_timer(thread),
+                m_jobRunner(nullptr),
+                m_background(nullptr)
+        {
+            m_queue.setCapacity(0);
+        }
+
+        void init(BackgroundWorker* backgroundWorker, Worker* jobRunner)
         {
             m_background=backgroundWorker;
-            m_background->setWorker(this);
+            m_jobRunner=jobRunner;
+            m_background->setWorker(this);            
+        }
+
+        void setDefaultTopic(std::string val)
+        {
+            m_topic=std::move(val);
+        }
+
+        const std::string& defaultTopic() const noexcept
+        {
+            return m_topic;
         }
 
         template <typename ContextT, typename CallbackT>
@@ -154,18 +175,19 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                 common::SharedPtr<ContextT> ctx,
                 CallbackT callback,
                 const du::ObjectId& refId,
-                lib::string_view refType,
-                lib::string_view topic={},
+                lib::string_view refTopic,
+                lib::string_view refType={},
                 int period=0
             )
         {
             auto q=db::allocateQuery(m_factory,jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,refId).
+                                       and_(job::ref_topic,db::query::eq,refTopic).
                                        and_(job::ref_type,db::query::eq,refType),
-                                       topic
+                                       m_topic
                                        );
 
-            auto readCb=[selfCtx{sharedMainCtx()},this,ctx,callback{std::move(callback)},period,refId,refType](auto, auto r)
+            auto readCb=[selfCtx{sharedMainCtx()},this,ctx,callback{std::move(callback)},period,refId,refType,refTopic](auto, auto r)
             {
                 if (r)
                 {
@@ -180,6 +202,7 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                     newJob->setFieldValue(job::period,period);
                     newJob->setFieldValue(job::ref_id,refId);
                     newJob->setFieldValue(job::ref_type,refType);
+                    newJob->setFieldValue(job::ref_topic,refTopic);
                     postJob(std::move(ctx),std::move(callback),std::move(newJob));
                     return;
                 }
@@ -192,7 +215,7 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                 std::move(readCb),
                 jobModel(),
                 std::move(q),
-                topic
+                m_topic
             );
         }
 
@@ -201,7 +224,13 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
             common::MutexScopedLock l{m_cacheMutex};
             if (!m_queue.hasItem(*newJob))
             {
-                m_queue.emplaceItem(JobKey{newJob->fieldValue(job::ref_id),newJob->fieldValue(job::ref_type)},std::move(newJob));
+                //! @todo optimization: too many string allocations in job key
+                m_queue.emplaceItem(JobKey{newJob->fieldValue(job::ref_id),
+                                           newJob->fieldValue(job::ref_type),
+                                           newJob->fieldValue(job::ref_type),
+                                           m_factory
+                                    },
+                                    std::move(newJob));
             }
         }
 
@@ -233,7 +262,7 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
             // in direct mode invoke worker directly without saving job in db
             if (mode==Mode::Direct)
             {
-                m_worker->invoke(
+                m_jobRunner->invoke(
                     std::move(ctx),
                     std::move(newJob),
                     std::move(callback)
@@ -257,14 +286,9 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                 //! @todo log
                 callback(std::move(ctx),ec);
             };
-            lib::string_view topic=jobPtr->field(job::topic).value();
-            if (topic.empty())
-            {
-                topic=m_defaultTopic;
-            }
 
             // job creation callback
-            auto createCb=[this,jobPtr,cb{std::move(cb)},conflictMode,topic](auto ctx, const Error& ec)
+            auto createCb=[this,jobPtr,cb{std::move(cb)},conflictMode](auto ctx, const Error& ec)
             {
                 if (ec && ec.is(db::DbError::DUPLICATE_UNIQUE_KEY,db::DbErrorCategory::getCategory()) && conflictMode!=JobConflictMode::SkipNewJob)
                 {
@@ -274,8 +298,9 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
 
                     auto q=db::allocateQuery(m_factory,jobRefIdx(),
                                            db::query::where(job::ref_id,db::query::eq,jobPtr->fieldValue(job::ref_id)).
+                                                        and_(job::ref_topic,db::query::eq,jobPtr->fieldValue(job::ref_topic)).
                                                         and_(job::ref_type,db::query::eq,jobPtr->fieldValue(job::ref_type)),
-                                           topic
+                                           m_topic
                                         );
                     if (conflictMode==JobConflictMode::UpdateTime)
                     {
@@ -295,7 +320,7 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                             std::move(req),
                             jobPtr,
                             nullptr,
-                            topic
+                            m_topic
                         );
                     }
                     else
@@ -320,11 +345,10 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
                             //! @todo Log it
                             auto ec=client->deleteMany(jobModel(),*q,tx);
                             HATN_CHECK_EC(ec)
-                            ec=client->create(jobPtr->fieldValue(job::topic),jobModel(),jobPtr.get(),tx);
+                            ec=client->create(m_topic,jobModel(),jobPtr.get(),tx);
                             return ec;
-
                         };
-                        m_db->transaction(ctx,std::move(transactionCb),std::move(replaceTx),topic);
+                        m_db->transaction(ctx,std::move(transactionCb),std::move(replaceTx),m_topic);
                     }
 
                     return;
@@ -337,21 +361,54 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
             m_db->create(
                 ctx,
                 std::move(createCb),
-                topic,
+                m_topic,
                 jobModel(),
                 jobPtr
             );
         }
 
-        template <typename IdT>
-        void removeJob(IdT refId, IdT refType={})
+        template <typename ContextT, typename CallbackT>
+        void removeJob(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                lib::string_view refId,
+                lib::string_view refTopic={},
+                lib::string_view refType={}
+            )
         {
+            {
+                common::MutexScopedLock l{m_cacheMutex};
+                m_queue.removeItem(JobKey{refId,refTopic,refType,m_factory});
+            }
+
+            auto q=db::allocateQuery(m_factory,jobRefIdx(),
+                                       db::query::where(job::ref_id,db::query::eq,refId).
+                                       and_(job::ref_topic,db::query::eq,refTopic).
+                                       and_(job::ref_type,db::query::eq,refType),
+                                       m_topic
+                                       );
+            auto removeCb=[selfCtx{sharedMainCtx()},this,ctx,callback{std::move(callback)}](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo log
+                }
+
+                callback(std::move(ctx),ec);
+            };
+            m_db->deleteMany(
+                ctx,
+                std::move(removeCb),
+                jobModel(),
+                std::move(q),
+                nullptr,
+                m_topic
+            );
 
         }
 
         void wakeUp()
         {
-            dequeueJobs(true);
             m_background->wakeUp();
         }
 
@@ -368,13 +425,13 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
         template <typename ContextT>
         void run(common::SharedPtr<ContextT> ctx)
         {
-            fetchJobs(std::move(ctx));
+            dequeueJobs(std::move(ctx),true);
         }
 
     private:
 
         template <typename ContextT>
-        void fetchJobs()
+        void fetchJobs(common::SharedPtr<ContextT> ctx)
         {
             //! @todo read bucket of jobs from database
 
@@ -387,15 +444,18 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
             //! @todo post jobs to queue
 
             //! @todo invoke dequeueing
-            dequeueJobs(false);
+            // dequeueJobs(false);
 
             //! @todo sleep if queue is full
 
             //! @todo repeat
         }
 
-        void dequeueJobs(bool async)
+        template <typename ContextT>
+        void dequeueJobs(common::SharedPtr<ContextT> ctx, bool async)
         {
+            //! @todo if queue is empty then invoke fetchJobs()
+
             //! @todo exec async
 
             //! @todo check in loop if worker can accept jobs
@@ -403,23 +463,24 @@ class Scheduler : public common::MappedThreadQWithTaskContext,
             //! @todo repeat until queue is not empty or bucket size is reached
 
             //! @todo if bucket size is reached then invoke dequeueJobs() again to break a dequeuing loop
-            dequeueJobs(true);
+            // dequeueJobs(true);
 
             //! @todo if queue is empty then invoke fetching jobs again
             m_background->wakeUp();
         }
 
         std::shared_ptr<db::AsyncClient> m_db;
-        common::AsioDeadlineTimer m_timer;
-        common::CacheLru<JobKey,common::SharedPtr<Job>> m_queue;
         common::TaskWithContextThread* m_thread;
-        common::pmr::AllocatorFactory* m_factory;
-        common::SharedPtr<Worker> m_worker;
+        const common::pmr::AllocatorFactory* m_factory;
 
+        common::AsioDeadlineTimer m_timer;
+
+        common::CacheLru<JobKey,common::SharedPtr<Job>> m_queue;
         common::MutexLock m_cacheMutex;
 
+        Worker* m_jobRunner;
         BackgroundWorker* m_background;
-        std::string m_defaultTopic;
+        std::string m_topic;
 };
 
 HATN_SCHEDULER_NAMESPACE_END
@@ -432,6 +493,16 @@ struct std::less<HATN_SCHEDULER_NAMESPACE::JobKey>
     bool operator()(const HATN_SCHEDULER_NAMESPACE::JobKey& l, const HATN_SCHEDULER_NAMESPACE::JobKey& r) const noexcept
     {
         int comp=l.refId.compare(r.refId);
+        if (comp<0)
+        {
+            return true;
+        }
+        if (comp>0)
+        {
+            return false;
+        }
+
+        comp=l.refTopic.compare(r.refTopic);
         if (comp<0)
         {
             return true;
@@ -458,6 +529,16 @@ struct std::less<HATN_SCHEDULER_NAMESPACE::JobKey>
     bool operator()(const HATN_SCHEDULER_NAMESPACE::JobKey& l, const T& r) const noexcept
     {
         int comp=l.refId.compare(r.field(HATN_SCHEDULER_NAMESPACE::job::ref_id).value());
+        if (comp<0)
+        {
+            return true;
+        }
+        if (comp>0)
+        {
+            return false;
+        }
+
+        comp=l.refTopic.compare(r.field(HATN_SCHEDULER_NAMESPACE::job::ref_topic).value());
         if (comp<0)
         {
             return true;
