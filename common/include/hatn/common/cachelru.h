@@ -162,6 +162,7 @@ class MapStorage
 
     private:
 
+        //! @todo optimization: use std::set instead of map
         using mapT=pmr::map<KeyT,ItemT,CompT>;
         mapT m_map;
 };
