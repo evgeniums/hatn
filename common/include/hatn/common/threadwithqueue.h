@@ -396,6 +396,9 @@ class WithMappedThreads
         WithMappedThreads(std::shared_ptr<MappedThreadQWithTaskContext> pimpl) : pimpl(std::move(pimpl))
         {}
 
+        WithMappedThreads(ThreadQWithTaskContext* defaultThread=ThreadQWithTaskContext::current()) : pimpl(std::make_shared<MappedThreadQWithTaskContext>(defaultThread))
+        {}
+
         void setMappedThreads(std::shared_ptr<MappedThreadQWithTaskContext> threads)
         {
             pimpl=std::move(threads);
