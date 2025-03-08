@@ -175,21 +175,26 @@ using ThreadQWithTaskContext=std::pointer_traits<decltype(TaskWithContextThread:
 
 struct postAsyncTaskT
 {
-    template <typename HandlerT>
+    template <typename HandlerT, typename CallbackT>
     void operator ()(ThreadQWithTaskContext* thread,
                     SharedPtr<TaskContext> ctx,
-                    HandlerT handler
+                    HandlerT handler,
+                    CallbackT callback
                     ) const
     {
         auto originThreadQ=TaskWithContextThread::current();
 
-        auto threadHandler=[originThreadQ,handler{std::move(handler)}](const SharedPtr<TaskContext>& ctx)
+        auto cb=[originThreadQ,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args)
         {
-            auto cb=handler(ctx);
             auto cbTask=originThreadQ->prepare();
-            cbTask->setHandler(std::move(cb));
-            cbTask->setContext(ctx);
+            cbTask->setHandler(hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...));
+            cbTask->setContext(std::move(ctx));
             originThreadQ->post(cbTask);
+        };
+
+        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx)
+        {
+            handler(ctx,cb);
         };
 
         auto task=thread->prepare();
@@ -314,14 +319,8 @@ class MappedThreadQWithTaskContext
         template <typename T>
         ThreadQWithTaskContext* mappedThread(const T& key) const noexcept
         {
-            if (m_threads.empty())
-            {
-                return defaultThread();
-            }
-
-            auto hash=std::hash<T>(key);
-            auto idx=hash%m_threads.size();
-            return m_threads.at(idx);
+            size_t hash=std::hash<T>(key);
+            return mappedThread(hash);
         }
 
         ThreadQWithTaskContext* mappedThread(size_t idx) const noexcept
@@ -371,6 +370,16 @@ class MappedThreadQWithTaskContext
                 break;
             }
             return m_defaultThread;
+        }
+
+        template <typename T>
+        common::ThreadQWithTaskContext* mappedOrRandomThread(const T& key=T{}) const noexcept
+        {
+            if (key.empty())
+            {
+                return randomThread();
+            }
+            return thread(key);
         }
 
     private:

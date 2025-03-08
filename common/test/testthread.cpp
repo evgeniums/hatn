@@ -1100,20 +1100,22 @@ BOOST_FIXTURE_TEST_CASE(TestAsyncWithCallback,MultiThreadFixture)
         HATN_TEST_MESSAGE_TS(fmt::format("Origin thread {}",Thread::currentThreadID()));
         BOOST_REQUIRE(originThread->id()==Thread::currentThreadID());
 
+        auto cb=[&originThread](SharedPtr<TaskContext>, int val)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("Callback thread {}, val {}",Thread::currentThreadID(),val));
+            BOOST_REQUIRE(originThread->id()==Thread::currentThreadID());
+            BOOST_CHECK_EQUAL(val,100);
+        };
+
         auto ctx=makeShared<TaskContext>();
-        auto handler=[&targetThread,&originThread](const SharedPtr<TaskContext>&)
+        auto handler=[&targetThread](SharedPtr<TaskContext> ctx, auto cbArg)
         {
             HATN_TEST_MESSAGE_TS(fmt::format("Target thread {}",Thread::currentThreadID()));
             BOOST_REQUIRE(targetThread->id()==Thread::currentThreadID());
-            auto cb=[&originThread](const SharedPtr<TaskContext>&)
-            {
-                HATN_TEST_MESSAGE_TS(fmt::format("Callback thread {}",Thread::currentThreadID()));
-                BOOST_REQUIRE(originThread->id()==Thread::currentThreadID());
-            };
-            return cb;
+            cbArg(std::move(ctx),100);
         };
 
-        postAsyncTask(targetThread,ctx,handler);
+        postAsyncTask(targetThread,ctx,handler,cb);
     };
 
     originThread->execAsync(async1);
