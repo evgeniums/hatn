@@ -189,6 +189,11 @@ class HATN_COMMON_EXPORT AllocatorFactory final
             return vector<T>(objectAllocator<T>());
         }
 
+        auto createString() const
+        {
+            return string(dataAllocator<string>());
+        }
+
     private:
 
         common::pmr::memory_resource* m_objectResourceRef;
