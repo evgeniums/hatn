@@ -49,13 +49,6 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 m_client(std::move(client))
         {}
 
-        ~AsyncClient()=default;
-
-        AsyncClient(const AsyncClient&)=delete;
-        AsyncClient(AsyncClient&&)=default;
-        AsyncClient& operator=(const AsyncClient&)=delete;
-        AsyncClient& operator=(AsyncClient&&)=default;
-
         std::shared_ptr<ClientEnvironment> cloneEnvironment()
         {
             return m_client->cloneEnvironment();
@@ -65,12 +58,6 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
         {            
             return m_client->isOpen();
         }
-
-    private:
-
-        std::shared_ptr<Client> m_client;
-
-    public:
 
         auto client() const
         {
@@ -824,6 +811,8 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             }
             return threads()->thread(topic.topic());
         }
+
+        std::shared_ptr<Client> m_client;
 };
 
 HATN_DB_NAMESPACE_END
