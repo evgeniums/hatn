@@ -304,6 +304,16 @@ struct makeQueryT
 };
 constexpr makeQueryT makeQuery{};
 
+struct allocateQueryT
+{
+    template <typename IndexT, typename WhereT, typename ...TopicsT>
+    auto operator() (common::pmr::AllocatorFactory* factory, const IndexT& index, const WhereT& where, TopicsT&&... topics) const
+    {
+        return factory->createObject<Query<IndexT>>(index,where,std::forward<TopicsT>(topics)...);
+    }
+};
+constexpr allocateQueryT allocateQuery{};
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBINDEXQUERY_H

@@ -291,6 +291,25 @@ struct makeRequestT
 constexpr makeRequestT makeRequest{};
 constexpr makeRequestT request{};
 
+struct allocateRequestT
+{
+    template <typename ...Fields>
+    auto operator()(common::pmr::AllocatorFactory* factory, Fields&&... fields) const
+    {
+        auto r=factory->createObject<Request>();
+        r->reserve(sizeof...(fields));
+        hana::for_each(
+            hana::make_tuple(std::forward<Fields>(fields)...),
+            [&r](auto&& field)
+            {
+                r->emplace_back(std::forward<decltype(field)>(field));
+            }
+            );
+        return r;
+    }
+};
+constexpr allocateRequestT allocateRequest{};
+
 enum class ModifyReturn : int
 {
     None=0,
