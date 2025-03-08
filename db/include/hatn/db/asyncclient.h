@@ -63,6 +63,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
 
     public:
 
+        auto client() const
+        {
+            return m_client;
+        }
+
         template <typename ContextT, typename CallbackT>
         void openDb(
                 common::SharedPtr<ContextT> ctx,
@@ -73,13 +78,14 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},&config,this,selfCtx{sharedMainCtx()}](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
                     base::config_object::LogRecords records;
                     auto ec=m_client->openDb(config,records);
                     //! @todo Log error records
                     cb(std::move(ctx),std::move(ec));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -92,10 +98,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->closeDb());
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -109,13 +116,14 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},&config,this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
                     base::config_object::LogRecords records;
                     auto ec=m_client->createDb(config,records);
                     //! @todo Log error records
                     cb(std::move(ctx),std::move(ec));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -125,17 +133,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             CallbackT cb,
             const ClientConfig& config
             )
-        {
+        {            
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},&config,this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
                     base::config_object::LogRecords records;
                     auto ec=m_client->destroyDb(config,records);
                     //! @todo Log error records
                     cb(std::move(ctx),std::move(ec));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -149,10 +158,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},schema{std::move(schema)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},schema{std::move(schema)}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->setSchema(std::move(schema)));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -165,10 +175,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->schema());
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -181,10 +192,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->checkSchema());
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -197,10 +209,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->migrateSchema());
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -212,14 +225,15 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::Date to,
             common::Date from=common::Date::currentUtc()
             )
-        {
+        {            
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this,models{std::move(models)},to,from](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},models{std::move(models)},to,from](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->addDatePartitions(models,to,from));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -232,18 +246,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
-                    auto r=m_client->listDatePartitions();
-                    if (r)
-                    {
-                        cb(std::move(ctx),r.takeError(),std::shared_ptr<Schema>{});
-                    }
-                    else
-                    {
-                        cb(std::move(ctx),Error{},r.takeValue());
-                    }
-                }
+                    cb(std::move(ctx),m_client->listDatePartitions());
+                },
+                std::move(cb)
             );
         }
 
@@ -259,10 +266,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&models,&to,&from](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&models,&to,&from](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteDatePartitions(models,to,from));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -276,10 +284,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteTopic(topic));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -296,10 +305,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,object,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,object,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->create(topic,model,object,tx));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -318,10 +328,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,tx,forUpdate,&tpFilter](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->read(topic,model,id,tx,forUpdate,tpFilter));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -331,7 +342,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             CallbackT cb,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
-            const common::Date& date,
+            common::Date date,
             Transaction* tx=nullptr,
             bool forUpdate=false,
             const TimePointFilter& tpFilter=TimePointFilter::getDefault()
@@ -340,10 +351,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&date,tx,forUpdate,&tpFilter](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,date,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->read(topic,model,date,tx,forUpdate,tpFilter));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -354,18 +366,19 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
-            const update::Request& request,
-            const common::Date& date,
+            common::SharedPtr<update::Request> request,
+            common::Date date,
             Transaction* tx=nullptr
             )
         {
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,&date,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},date,tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->update(topic,model,id,request,date,tx));
-                }
+                    cb(std::move(ctx),m_client->update(topic,model,id,*request,date,tx));
+                },
+                std::move(cb)
             );
         }
 
@@ -376,18 +389,19 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
-            const update::Request& request,
+            common::SharedPtr<update::Request> request,
             Transaction* tx=nullptr
             )
         {
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->update(topic,model,id,request,tx));
-                }
-                );
+                    cb(std::move(ctx),m_client->update(topic,model,id,*request,tx));
+                },
+                std::move(cb)
+            );
         }
 
         template <typename ModelT, typename ContextT, typename CallbackT>
@@ -397,21 +411,22 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
-            const update::Request& request,
-            const common::Date& date,
+            common::SharedPtr<update::Request> request,
+            common::Date date,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
             TimePointFilter tpFilter=TimePointFilter::getDefault()
             )
-        {
+        {            
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,&date,returnMode,tx,&tpFilter](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},date,returnMode,tx,&tpFilter](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->readUpdate(topic,model,id,request,date,returnMode,tx,tpFilter));
-                }
-                );
+                    cb(std::move(ctx),m_client->readUpdate(topic,model,id,*request,date,returnMode,tx,tpFilter));
+                },
+                std::move(cb)
+            );
         }
 
         template <typename ModelT, typename ContextT, typename CallbackT>
@@ -421,19 +436,20 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
-            const update::Request& request,
+            common::SharedPtr<update::Request> request,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
             TimePointFilter tpFilter=TimePointFilter::getDefault()
             )
-        {
+        {            
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,&request,returnMode,tx,&tpFilter](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},returnMode,tx,&tpFilter](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->readUpdate(topic,model,id,request,returnMode,tx,tpFilter));
-                }
+                    cb(std::move(ctx),m_client->readUpdate(topic,model,id,*request,returnMode,tx,tpFilter));
+                },
+                std::move(cb)
             );
         }
 
@@ -444,17 +460,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
             const ObjectId& id,
-            const common::Date& date,
+            common::Date date,
             Transaction* tx=nullptr
             )
         {
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,&date,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,date,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteObject(topic,model,id,date,tx));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -471,10 +488,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&id,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteObject(topic,model,id,tx));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -483,16 +501,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query
+            common::SharedPtr<Query<IndexT>> query,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->find(model,query));
-                }
+                    cb(std::move(ctx),m_client->find(model,*query));
+                },
+                std::move(cb)
             );
         }
 
@@ -501,16 +521,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query
+            common::SharedPtr<Query<IndexT>> query,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findOne(model,query));
-                }
+                    cb(std::move(ctx),m_client->findOne(model,*query));
+                },
+                std::move(cb)
             );
         }
 
@@ -526,10 +548,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,order](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,order](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->findAll(topic,model,order));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -545,31 +568,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,order](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,order](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->findAllPartitioned(topic,model,order));
-                }
-                );
-        }
-
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
-        void findCb(
-            common::SharedPtr<ContextT> ctx,
-            CallbackT cb,
-            const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            FindCb findCb,
-            Transaction* tx=nullptr,
-            bool forUpdate=false
-            )
-        {
-            common::postAsyncTask(
-                randomThread(),
-                ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,findCb{std::move(findCb)},tx,forUpdate](const common::SharedPtr<common::TaskContext>&)
-                {
-                    cb(std::move(ctx),m_client->findCb(model,query,findCb,tx,forUpdate));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -578,16 +581,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query
+            common::SharedPtr<Query<IndexT>> query,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->count(model,query));
-                }
+                    cb(std::move(ctx),m_client->count(model,*query));
+                },
+                std::move(cb)
             );
         }
 
@@ -601,10 +606,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 randomThread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->count(model));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -619,10 +625,11 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->count(model,topic));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -631,17 +638,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const common::Date& date,
+            common::Date date,
             Topic topic
             )
         {
             common::postAsyncTask(
                 thread(topic.topic()),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&topic,&model,&date](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},topic,&model,date](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->count(model,date,topic));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -650,16 +658,17 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const common::Date& date
+            common::Date date
             )
         {
             common::postAsyncTask(
                 randomThread(),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&date](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,date](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->count(model,date));
-                }
+                },
+                std::move(cb)
             );
         }
 
@@ -668,17 +677,19 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            Transaction* tx=nullptr
+            common::SharedPtr<Query<IndexT>> query,
+            Transaction* tx=nullptr,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->deleteMany(model,query,tx));
-                }
+                    cb(std::move(ctx),m_client->deleteMany(model,*query,tx));
+                },
+                std::move(cb)
             );
         }
 
@@ -687,17 +698,19 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            Transaction* tx=nullptr
+            common::SharedPtr<Query<IndexT>> query,
+            Transaction* tx=nullptr,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->deleteManyBulk(model,query,tx));
-                }
+                    cb(std::move(ctx),m_client->deleteManyBulk(model,*query,tx));
+                },
+                std::move(cb)
             );
         }
 
@@ -706,18 +719,20 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            const update::Request& request,
-            Transaction* tx=nullptr
+            common::SharedPtr<Query<IndexT>> query,
+            common::SharedPtr<update::Request> request,
+            Transaction* tx=nullptr,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,&request,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->updateMany(model,query,request,tx));
-                }
+                    cb(std::move(ctx),m_client->updateMany(model,*query,*request,tx));
+                },
+                std::move(cb)
             );
         }
 
@@ -727,21 +742,23 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            const update::Request& request,
+            common::SharedPtr<Query<IndexT>> query,
+            common::SharedPtr<update::Request> request,
             const common::SharedPtr<dataunit::Unit>& object,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
-            Transaction* tx=nullptr
+            Transaction* tx=nullptr,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,&request,&object,returnMode,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},&object,returnMode,tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findUpdateCreate(model,query,request,object,returnMode,tx));
-                }
-                );
+                    cb(std::move(ctx),m_client->findUpdateCreate(model,*query,*request,object,returnMode,tx));
+                },
+                std::move(cb)
+            );
         }
 
         template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
@@ -749,19 +766,21 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            const update::Request& request,
+            common::SharedPtr<Query<IndexT>> query,
+            common::SharedPtr<update::Request> request,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
-            Transaction* tx=nullptr
+            Transaction* tx=nullptr,
+            Topic topic={}
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,&model,&query,&request,returnMode,tx](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},returnMode,tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findUpdate(model,query,request,returnMode,tx));
-                }
+                    cb(std::move(ctx),m_client->findUpdate(model,*query,*request,returnMode,tx));
+                },
+                std::move(cb)
             );
         }
 
@@ -769,17 +788,32 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
         void transaction(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            TransactionFn fn
+            TransactionFn fn,
+            Topic topic={}
             )
         {
+            //! @todo Implement async transactions
+
             common::postAsyncTask(
-                thread(),
+                topicOrRandomThread(topic),
                 ctx,
-                [ctx,cb{std::move(cb)},this,fn{std::move(fn)}](const common::SharedPtr<common::TaskContext>&)
+                [ctx,this,selfCtx{sharedMainCtx()},fn{std::move(fn)}](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->transaction(fn));
-                }
+                },
+                std::move(cb)
             );
+        }
+
+    private:
+
+        common::ThreadQWithTaskContext* topicOrRandomThread(Topic topic={}) const noexcept
+        {
+            if (topic.topic().empty())
+            {
+                return randomThread();
+            }
+            return thread(topic.topic());
         }
 };
 
