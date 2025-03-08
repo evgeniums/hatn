@@ -17,8 +17,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNSCHEDULER_H
-#define HATNSCHEDULER_H
+#ifndef HATNBACKGROUNDWORKER_H
+#define HATNBACKGROUNDWORKER_H
 
 #include <atomic>
 
@@ -200,4 +200,4 @@ class BackgroundWorker : public common::TaskSubcontext
 
 HATN_MQ_NAMESPACE_END
 
-#endif // HATNSCHEDULER_H
+#endif // HATNBACKGROUNDWORKER_H
