@@ -1113,7 +1113,7 @@ BOOST_FIXTURE_TEST_CASE(TestAsyncWithCallback,MultiThreadFixture)
             return cb;
         };
 
-        AsyncWithCallback(targetThread,ctx,handler);
+        postAsyncTask(targetThread,ctx,handler);
     };
 
     originThread->execAsync(async1);

@@ -137,9 +137,15 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
         //! Get thread queue interface if this thread is a part of thread pool
         ThreadQ<TaskT,ThreadWithQueueTraits>* threadQueueInterface() const noexcept;
 
+        //! Get current thread interface
+        static ThreadWithQueue<TaskT>* current() noexcept;
+
     protected:
 
         virtual void beforeRun() override;
+
+        //! Set current thread interface with thread locality
+        static void setCurrent(ThreadWithQueue<TaskT>* ptr);
 };
 
 #ifdef __MINGW32__

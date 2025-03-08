@@ -20,6 +20,7 @@
 #define HATNAPITCPSERVER_H
 
 #include <hatn/common/objecttraits.h>
+#include <hatn/common/threadwithqueue.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/network/asio/tcpserver.h>

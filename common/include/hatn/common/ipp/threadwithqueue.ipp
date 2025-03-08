@@ -298,7 +298,7 @@ Queue<TaskT>* ThreadWithQueue<TaskT>::queue() const noexcept
 template <typename TaskT>
 void ThreadWithQueue<TaskT>::beforeRun()
 {
-    this->setCurrent(this->traits().d->threadQueueInterface);
+    setCurrent(this);
 }
 
 //---------------------------------------------------------------
@@ -313,6 +313,27 @@ template <typename TaskT>
 ThreadQ<TaskT,ThreadWithQueueTraits>* ThreadWithQueue<TaskT>::threadQueueInterface() const noexcept
 {
     return this->traits().d->threadQueueInterface;
+}
+
+namespace detail
+{
+template <typename TaskT>
+thread_local static ThreadWithQueue<TaskT>* ThreadWithQueueCurrent{nullptr};
+}
+
+//---------------------------------------------------------------
+template <typename TaskT>
+void ThreadWithQueue<TaskT>::setCurrent(ThreadWithQueue<TaskT>* ptr)
+{
+    detail::ThreadWithQueueCurrent<TaskT> =ptr;
+    ThreadQ<TaskT,ThreadWithQueueTraits>::setCurrent(ptr);
+}
+
+//---------------------------------------------------------------
+template <typename TaskT>
+ThreadWithQueue<TaskT>* ThreadWithQueue<TaskT>::current() noexcept
+{
+    return detail::ThreadWithQueueCurrent<TaskT>;
 }
 
 //---------------------------------------------------------------
