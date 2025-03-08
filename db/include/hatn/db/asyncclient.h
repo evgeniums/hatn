@@ -27,7 +27,7 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
+class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                                     public common::TaskSubcontext
 {
     public:
@@ -36,7 +36,16 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
                 std::shared_ptr<Client> client,
                 common::MappedThreadMode threadMode=common::MappedThreadMode::Caller,
                 common::ThreadQWithTaskContext* defaultThread=common::ThreadQWithTaskContext::current()
-            ) : common::MappedThreadQWithTaskContext(threadMode,defaultThread),
+            ) : common::WithMappedThreads(defaultThread),
+                m_client(std::move(client))
+        {
+            threads()->setThreadMode(threadMode);
+        }
+
+        AsyncClient(
+                std::shared_ptr<Client> client,
+                std::shared_ptr<common::MappedThreadQWithTaskContext> threads
+            ) : common::WithMappedThreads(std::move(threads)),
                 m_client(std::move(client))
         {}
 
@@ -76,7 +85,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
@@ -96,7 +105,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
@@ -114,7 +123,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
@@ -135,7 +144,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {            
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&config](auto, auto cb)
                 {
@@ -156,7 +165,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},schema{std::move(schema)}](auto, auto cb)
                 {
@@ -173,7 +182,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
@@ -190,7 +199,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
@@ -207,7 +216,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
@@ -227,7 +236,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {            
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},models{std::move(models)},to,from](auto, auto cb)
                 {
@@ -244,7 +253,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()}](auto, auto cb)
                 {
@@ -264,7 +273,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(),
+                threads()->thread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&models,&to,&from](auto, auto cb)
                 {
@@ -282,7 +291,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic](auto, auto cb)
                 {
@@ -303,7 +312,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,object,tx](auto, auto cb)
                 {
@@ -326,7 +335,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
@@ -349,7 +358,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,date,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
@@ -372,7 +381,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},date,tx](auto, auto cb)
                 {
@@ -394,7 +403,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},tx](auto, auto cb)
                 {
@@ -419,7 +428,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {            
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},date,returnMode,tx,&tpFilter](auto, auto cb)
                 {
@@ -443,7 +452,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {            
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,request{std::move(request)},returnMode,tx,&tpFilter](auto, auto cb)
                 {
@@ -465,7 +474,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,date,tx](auto, auto cb)
                 {
@@ -486,7 +495,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,&id,tx](auto, auto cb)
                 {
@@ -546,7 +555,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,order](auto, auto cb)
                 {
@@ -566,7 +575,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,order](auto, auto cb)
                 {
@@ -604,7 +613,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                threads()->randomThread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model](auto, auto cb)
                 {
@@ -623,7 +632,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model](auto, auto cb)
                 {
@@ -643,7 +652,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                thread(topic.topic()),
+                threads()->thread(topic.topic()),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},topic,&model,date](auto, auto cb)
                 {
@@ -662,7 +671,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
             )
         {
             common::postAsyncTask(
-                randomThread(),
+                threads()->randomThread(),
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,date](auto, auto cb)
                 {
@@ -811,9 +820,9 @@ class HATN_DB_EXPORT AsyncClient :  public common::MappedThreadQWithTaskContext,
         {
             if (topic.topic().empty())
             {
-                return randomThread();
+                return threads()->randomThread();
             }
-            return thread(topic.topic());
+            return threads()->thread(topic.topic());
         }
 };
 
