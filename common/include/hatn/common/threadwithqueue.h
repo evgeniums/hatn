@@ -389,6 +389,33 @@ class MappedThreadQWithTaskContext
         std::vector<ThreadQWithTaskContext*> m_threads;
 };
 
+class WithMappedThreads
+{
+    public:
+
+        WithMappedThreads(std::shared_ptr<MappedThreadQWithTaskContext> pimpl) : pimpl(std::move(pimpl))
+        {}
+
+        void setMappedThreads(std::shared_ptr<MappedThreadQWithTaskContext> threads)
+        {
+            pimpl=std::move(threads);
+        }
+
+        const auto& threads() const noexcept
+        {
+            return pimpl;
+        }
+
+        auto& threads() noexcept
+        {
+            return pimpl;
+        }
+
+    private:
+
+        std::shared_ptr<MappedThreadQWithTaskContext> pimpl;
+};
+
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
 #endif // HATNTHREADWITHQUEUE_H
