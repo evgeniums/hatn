@@ -79,7 +79,7 @@ auto createClient(HATN_COMMON_NAMESPACE::Thread* thread)
     return connectionCtx;
 }
 
-auto createServer(HATN_COMMON_NAMESPACE::Thread* thread)
+auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
 {
     return HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
 }
@@ -99,7 +99,7 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,Env)
 BOOST_FIXTURE_TEST_CASE(CreateServer,Env)
 {
     createThreads(2);
-    auto workThread=thread(1);
+    auto workThread=threadWithContextTask(1);
 
     std::ignore=createServer(workThread.get());
 
@@ -109,8 +109,8 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,Env)
 BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
 {
     createThreads(2);
-    auto serverThread=thread(0);
-    auto clientThread=thread(1);
+    auto serverThread=threadWithContextTask(0);
+    auto clientThread=threadWithContextTask(1);
 
     auto serverCtx=createServer(serverThread.get());
     auto clientCtx=createClient(clientThread.get());
@@ -323,8 +323,8 @@ template <typename MakeServerT, typename MakeClientT>
 void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sendServerToClient, bool recv=false)
 {
     env->createThreads(2);
-    auto serverThread=env->thread(0);
-    auto clientThread=env->thread(1);
+    auto serverThread=env->threadWithContextTask(0);
+    auto clientThread=env->threadWithContextTask(1);
 
     auto serverCtx=createServer(serverThread.get());
     auto clientCtx=createClient(clientThread.get());

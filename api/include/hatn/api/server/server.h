@@ -115,6 +115,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             // create request
+            //! @todo set current thread as request's thread
             auto reqCtx=allocateRequestContext(m_allocatorFactory);
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;

@@ -33,7 +33,8 @@ namespace server
 {
 
 template <typename Traits>
-class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
+class TcpServer : public common::MappedThreadQWithTaskContext,
+                  public HATN_NETWORK_NAMESPACE::asio::TcpServer,
                   public common::WithTraits<Traits>
 {
     public:
@@ -47,18 +48,20 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
         TcpServer
         (
             const HATN_NETWORK_NAMESPACE::asio::TcpServerConfig* config,
-            common::Thread* thread,
+            common::ThreadQWithTaskContext* thread,
             TraitsArgs&& ...traitsArgs
-        ) : Base(thread,config),
+        ) : common::MappedThreadQWithTaskContext(thread),
+            Base(thread,config),
             common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
         template <typename ...TraitsArgs>
         TcpServer
         (
-            common::Thread* thread,
+            common::ThreadQWithTaskContext* thread,
             TraitsArgs&& ...traitsArgs
-        ) : Base(thread),
+        ) : common::MappedThreadQWithTaskContext(thread),
+            Base(thread),
             common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
@@ -132,7 +135,7 @@ class TcpServer : public HATN_NETWORK_NAMESPACE::asio::TcpServer,
                     return;
                 }
 
-                this->thread()->execAsync(
+                Base::thread()->execAsync(
                     [connectionCtx{std::move(connectionCtx)},serverCtx,this]()
                     {
                         std::ignore=serverCtx;

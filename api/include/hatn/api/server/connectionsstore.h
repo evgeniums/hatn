@@ -23,6 +23,7 @@
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/common/taskcontext.h>
 #include <hatn/common/sharedptr.h>
+#include <hatn/common/locker.h>
 
 #include <hatn/api/api.h>
 
@@ -45,16 +46,19 @@ class ConnectionsStore
 
         void registerConnection(const common::SharedPtr<ConnectionContext>& ctx)
         {
+            common::MutexScopedLock l{m_mutex};
             m_connections.emplace(ctx->id(),ctx);
         }
 
         void removeConnection(const lib::string_view& id)
         {
+            common::MutexScopedLock l{m_mutex};
             m_connections.erase(id);
         }
 
         common::SharedPtr<ConnectionContext> connectionCtx(const lib::string_view& id) const
         {
+            common::MutexScopedLock l{m_mutex};
             auto it=m_connections.find(id);
             if (it!=m_connections.end())
             {
@@ -76,6 +80,7 @@ class ConnectionsStore
 
         void clear()
         {
+            common::MutexScopedLock l{m_mutex};
             for (auto&& it:m_connections)
             {
                 auto connection=&it.second->template get<Connection>();
@@ -86,6 +91,7 @@ class ConnectionsStore
 
         auto closeConnection(const lib::string_view& id)
         {
+            common::MutexScopedLock l{m_mutex};
             auto conn=connection(id);
             if (conn.first)
             {
@@ -97,11 +103,13 @@ class ConnectionsStore
 
         size_t count() const noexcept
         {
+            common::MutexScopedLock l{m_mutex};
             return m_connections.size();
         }
 
     private:
 
+        mutable common::MutexLock m_mutex;
         common::pmr::map<common::TaskContextId,common::SharedPtr<ConnectionContext>,std::less<common::TaskContextId>> m_connections;
 };
 
