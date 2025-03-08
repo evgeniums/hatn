@@ -227,6 +227,12 @@ class UnitWrapperT : public UnitWrapper
             static_assert(std::is_same<T,T1>::value,"T1 must be the same as T");
             return get();
         }
+
+        template <typename T1>
+        auto shared() const noexcept
+        {
+            return get()->sharedFromThis();
+        }
 };
 
 HATN_DATAUNIT_NAMESPACE_END
