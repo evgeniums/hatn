@@ -294,7 +294,7 @@ constexpr makeRequestT request{};
 struct allocateRequestT
 {
     template <typename ...Fields>
-    auto operator()(common::pmr::AllocatorFactory* factory, Fields&&... fields) const
+    auto operator()(const common::pmr::AllocatorFactory* factory, Fields&&... fields) const
     {
         auto r=factory->createObject<Request>();
         r->reserve(sizeof...(fields));
