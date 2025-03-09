@@ -67,8 +67,10 @@ HDU_UNIT(scheduler_config,
     HDU_FIELD(job_bucket_size,TYPE_UINT32,1,false,64)
     HDU_FIELD(job_queue_depth,TYPE_UINT32,2,false,128)
     HDU_FIELD(job_retry_interval,TYPE_UINT32,3,false,300)
-    HDU_FIELD(job_hold_period,TYPE_UINT32,4,false,900)
+    HDU_FIELD(job_hold_period,TYPE_UINT32,4,false,300)
 )
+
+//! @todo use ObjectId for next_time to simplify jobs ordering when they are posted at the same time
 
 HDU_UNIT_WITH(job,(HDU_BASE(db::object)),
     HDU_FIELD(ref_id,TYPE_STRING,1,true)
@@ -89,19 +91,13 @@ HATN_DB_MODEL_WITH_CFG(jobModel,job,HATN_DB_NAMESPACE::ModelConfig("scheduler_jo
 struct SchedulerTraits
 {
     using Job=job::managed;    
-    using Worker=hana::false_;
+    using Worker=void; // implement worker and rebind type in derived traits
+    using WorkContextBuilder=void; // implement builder and rebind type in derived traits
 
     static const auto& jobModel()
     {
         return HATN_SCHEDULER_NAMESPACE::jobModel();
     }
-};
-
-template <typename WorkerT>
-class WorkerPool
-{
-    using Worker=WorkerT;
-    common::CacheLru<common::TaskContextId,common::SharedPtr<Worker>> m_workers;
 };
 
 struct JobKey
@@ -174,12 +170,9 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
         Scheduler(
                 std::shared_ptr<db::AsyncClient> db,
-                common::TaskWithContextThread* thread=common::TaskWithContextThread::current(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_db(std::move(db)),
-                m_thread(thread),
                 m_factory(factory),
-                m_timer(thread),
                 m_jobRunner(nullptr),
                 m_background(nullptr)
         {
@@ -282,7 +275,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 if (existingItem==nullptr)
                 {
                     // if no such job is in queue then schedule for now
-                    setJobNextTime(newJob.get(),common::DateTime::currentUtc());
+                    setJobNextTime(newJob.get(),now());
                 }
                 else
                 {
@@ -427,7 +420,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 {
                     //! @todo Log error
                 }
-                cb(ec);
+                return ec;
             };
             m_db->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
         }
@@ -520,7 +513,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         template <typename ContextT>
         void run(common::SharedPtr<ContextT> ctx)
         {
-            dequeueJobs(std::move(ctx),false);
+            dequeueJobs(std::move(ctx));
         }
 
         template <typename ContextT, typename CallbackT>
@@ -552,6 +545,11 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             );
         }
 
+        static auto now()
+        {
+            return common::DateTime::currentUtc();
+        }
+
     private:
 
         struct JobWrapper
@@ -562,26 +560,95 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         template <typename ContextT>
         void fetchJobs(common::SharedPtr<ContextT> ctx)
         {
-            //! @todo read bucket of jobs from database
+            //! @todo Implement async transaction
+            auto txHandler=[this](db::Transaction* tx)
+            {
+                auto client=m_db->client();
+                size_t jobsCount=0;
 
-            //! @todo sleep if no jobs found
+                // read jobs from database
+                auto q=db::makeQuery(jobRefIdx(),
+                                   db::query::where(job::next_time,db::query::lte,now(),db::query::Order::Asc),
+                                   m_topic
+                                );
+                auto findCb=[this,&client,tx,&jobsCount](db::DbObject obj, Error& ec)
+                {
+                    if (ec)
+                    {
+                        //! @todo Log error
+                        return false;
+                    }
 
-            //! @todo update next read time of each job
+                    // no job found, return
+                    if (obj.isNull())
+                    {
+                        return false;
+                    }
 
-            //! @todo read updated jobs
+                    // hold job until it is compleled or job_hold_interval elapsed
+                    db::DbObjectT<Job> foundJob{std::move(obj)};
+                    auto dt=now();
+                    dt.addSeconds(this->config().fieldValue(scheduler_config::job_hold_period));
+                    setJobNextTime(foundJob.get(),dt);
+                    auto req=db::update::request(
+                            db::update::field(job::next_time,db::update::set,foundJob->fieldValue(job::next_time))
+                        );
+                    ec=client->update(m_topic,jobModel(),foundJob->fieldValue(db::object::_id),req,tx);
+                    if (ec)
+                    {
+                        //! @todo Log error
+                        return false;
+                    }
 
-            //! @todo post jobs to queue
+                    // enqueue job
+                    enqueueJob(std::move(foundJob));
+                    jobsCount++;
 
-            //! @todo invoke dequeueing
-            // dequeueJobs(false);
+                    // read next job if queue is not full
+                    if (m_queue.size() < this->config().fieldValue(scheduler_config::job_queue_depth))
+                    {
+                        return true;
+                    }
+                    return false;
+                };
+                auto ec=client->findCb(jobModel(),q,std::move(findCb),tx,true);
+                if (ec)
+                {
+                    //! @todo Log error
+                    return ec;
+                }
 
-            //! @todo sleep if queue is full
+                // read next job if queueu is not full
+                //! @todo Log job count and queue size
 
-            //! @todo repeat
+                // done transaction
+                return Error{};
+            };
+            auto transactionCb=[this,ctx{std::move(ctx)},selfCtx{sharedMainCtx()}](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo Log error
+                }
+
+                m_cacheMutex.lock();
+                auto queueEmpty=m_queue.empty();
+                m_cacheMutex.unlock();
+
+                if (!queueEmpty)
+                {
+                    wakeUp();
+                }
+                else
+                {
+                    // sleep
+                }
+            };
+            m_db->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
         }
 
         template <typename ContextT>
-        void dequeueJobs(common::SharedPtr<ContextT> ctx, bool async)
+        void dequeueJobs(common::SharedPtr<ContextT> ctx)
         {
             // if queue is empty then invoke fetchJobs()
             {
@@ -593,118 +660,99 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 }
             }
 
-            auto process=[ctx{std::move(ctx)},selfCtx{this->sharedMainCtx()},this]()
+            // check in loop if worker can accept jobs
+            size_t dequeCount=0;
+            bool hasMoreJobs=false;
+            while (m_jobRunner->canAcceptJobs())
             {
-                // check in loop if worker can accept jobs
-                size_t dequeCount=0;
-                bool hasMoreJobs=false;
-                while (m_jobRunner->canAcceptJobs())
-                {
-                    // dequeue job
-                    m_cacheMutex.lock();
-                    hasMoreJobs=!m_queue.empty();
-                    if (!hasMoreJobs)
-                    {
-                        m_cacheMutex.unlock();
-                        break;
-                    }
-                    auto item=m_queue.mruItem();
-                    auto dequeueJob=item->job;
-                    m_queue.removeItem(item);
-                    m_cacheMutex.unlock();
-                    dequeCount++;
-
-                    // invoke job in worker
-                    auto completeCb=[selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto doneJob, JobResultOp postCompleteOp=JobResultOp::RetryLater)
-                    {
-                        if (ec)
-                        {
-                            //! @todo Log error
-                        }
-
-                        switch (postCompleteOp)
-                        {
-                            case (JobResultOp::Remove):
-                            {
-                                // remove job
-                                auto jobPtr=doneJob.get();
-                                removeJob(std::move(ctx),
-                                      [](auto, const Error& ec)
-                                      {
-                                        if (ec)
-                                        {
-                                            //! @todo Log error
-                                        }
-                                      },
-                                      std::move(doneJob)
-                                );
-                            }
-                            break;
-
-                            case (JobResultOp::UpdateNextTime):
-                            {
-                                // update next time using explicit time value from job object
-                                auto updateCb=[](auto, const Error& ec)
-                                {
-                                    if (ec)
-                                    {
-                                        //! @todo Log error
-                                    }
-                                };
-                                updateJobNextTime(std::move(ctx),std::move(updateCb),std::move(doneJob));
-                            }
-                            break;
-
-                            case (JobResultOp::RetryLater):
-                            {
-                                // update next time using job_retry_interval
-                                auto updateCb=[](auto, const Error& ec)
-                                {
-                                    if (ec)
-                                    {
-                                        //! @todo Log error
-                                    }
-                                };
-                                setJobRetryTime(doneJob.get(),ec);
-                                updateJobNextTime(std::move(ctx),std::move(updateCb),std::move(doneJob));
-                            }
-                            break;
-                        }
-                    };
-                    m_jobRunner->invoke(ctx,std::move(dequeueJob),std::move(completeCb));
-
-                    // repeat until queue is not empty or bucket size is reached
-                    if (dequeCount > config().fieldValue(scheduler_config::job_bucket_size))
-                    {
-                        break;
-                    }
-                }
-
-                // if worker can not accept jobs then sleep
-                if (!m_jobRunner->canAcceptJobs())
-                {
-                    return;
-                }
-
-                // if queue is empty then invoke jobs fetching
+                // dequeue job
+                m_cacheMutex.lock();
+                hasMoreJobs=!m_queue.empty();
                 if (!hasMoreJobs)
                 {
-                    fetchJobs(std::move(ctx));
+                    m_cacheMutex.unlock();
+                    break;
                 }
-                else
+                auto item=m_queue.mruItem();
+                auto dequeueJob=item->job;
+                m_queue.removeItem(item);
+                m_cacheMutex.unlock();
+                dequeCount++;
+
+                // invoke job in worker
+                auto completeCb=[selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto doneJob, JobResultOp postCompleteOp=JobResultOp::RetryLater)
                 {
-                    // if there are more jobs, i.e. the bucket size is reached, then invoke dequeueJobs() again in async mode to break a blocking zdequeuing loop
-                    dequeueJobs(std::move(ctx),true);
+                    if (ec)
+                    {
+                        //! @todo Log error
+                    }
+
+                    switch (postCompleteOp)
+                    {
+                        case (JobResultOp::Remove):
+                        {
+                            // remove job
+                            auto jobPtr=doneJob.get();
+                            removeJob(std::move(ctx),
+                                  [](auto, const Error& ec)
+                                  {
+                                    if (ec)
+                                    {
+                                        //! @todo Log error
+                                    }
+                                  },
+                                  std::move(doneJob)
+                            );
+                        }
+                        break;
+
+                        case (JobResultOp::UpdateNextTime):
+                        {
+                            // update next time using explicit time value from job object
+                            auto updateCb=[](auto, const Error& ec)
+                            {
+                                if (ec)
+                                {
+                                    //! @todo Log error
+                                }
+                            };
+                            updateJobNextTime(std::move(ctx),std::move(updateCb),std::move(doneJob));
+                        }
+                        break;
+
+                        case (JobResultOp::RetryLater):
+                        {
+                            // update next time using job_retry_interval
+                            auto updateCb=[](auto, const Error& ec)
+                            {
+                                if (ec)
+                                {
+                                    //! @todo Log error
+                                }
+                            };
+                            setJobRetryTime(doneJob.get(),ec);
+                            updateJobNextTime(std::move(ctx),std::move(updateCb),std::move(doneJob));
+                        }
+                        break;
+                    }
+                };
+                m_jobRunner->invoke(ctx,std::move(dequeueJob),std::move(completeCb));
+
+                // repeat until queue is not empty or bucket size is reached
+                if (dequeCount > config().fieldValue(scheduler_config::job_bucket_size))
+                {
+                    break;
                 }
-            };
-            if (async)
-            {
-                m_thread->execAsync(std::move(process));
             }
-            else
+
+            // if worker can not accept jobs then sleep
+            if (!m_jobRunner->canAcceptJobs())
             {
-                process();
+                return;
             }
+
+            // invoke wake up to dequeue/fetch jobs asynchronously
+            wakeUp();
         }
 
         template <typename JobT>
@@ -734,10 +782,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         }
 
         std::shared_ptr<db::AsyncClient> m_db;
-        common::TaskWithContextThread* m_thread;
         const common::pmr::AllocatorFactory* m_factory;
-
-        common::AsioDeadlineTimer m_timer;
 
         common::CacheLru<JobKey,JobWrapper> m_queue;
         common::MutexLock m_cacheMutex;
@@ -832,6 +877,6 @@ struct less<HATN_SCHEDULER_NAMESPACE::JobKey>
     }
 };
 
-}
+} // namespace std
 
 #endif // HATNSCHEDULER_H
