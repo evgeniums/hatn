@@ -881,12 +881,6 @@ struct less<HATN_COMMON_NAMESPACE::FixedByteArray<Length>>
         return l<r;
     }
 
-    // template <typename T1, typename T2>
-    // bool operator()(const T1& l, const T2& r) const
-    // {
-    //     return l<r;
-    // }
-
     template <typename T1>
     bool operator()(const T1& l, const char* r) const
     {
