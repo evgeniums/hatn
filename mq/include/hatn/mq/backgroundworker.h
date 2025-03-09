@@ -51,7 +51,8 @@ class BackgroundWorker : public common::TaskSubcontext
                 m_timer(thread),
                 m_running(false),
                 m_stopped(false),
-                m_wakeUpCount(0)
+                m_wakeUpCount(0),
+                m_async(true)
         {
             init();
         }
@@ -62,7 +63,8 @@ class BackgroundWorker : public common::TaskSubcontext
             m_timer(thread),
             m_running(false),
             m_stopped(false),
-            m_wakeUpCount(0)
+            m_wakeUpCount(0),
+            m_async(true)
         {
             init();
         }
@@ -77,6 +79,18 @@ class BackgroundWorker : public common::TaskSubcontext
         size_t periodUs() const noexcept
         {
             return m_timer.periodUs();
+        }
+
+        //! Set async mode
+        void setAsync(bool mode)
+        {
+            m_async=mode;
+        }
+
+        //! Get async mode
+        bool isAsync() const noexcept
+        {
+            return m_async;
         }
 
         void setWorker(Worker worker)
@@ -149,41 +163,71 @@ class BackgroundWorker : public common::TaskSubcontext
         void run()
         {
             if (!m_stopped.load())
-            {
-                m_running.store(true);
+            {                
+                auto selfCtx=common::toWeakPtr(this->sharedMainCtx());
+                auto cb=[selfCtx{std::move(selfCtx)},this]()
+                {
+                    auto ctx=selfCtx.lock();
+                    if (!ctx)
+                    {
+                        return;
+                    }
 
+                    auto exec=[selfCtx{std::move(selfCtx)},this]()
+                    {
+                        auto ctx=selfCtx.lock();
+                        if (!ctx)
+                        {
+                            return;
+                        }
+
+                        m_running.store(false);
+                        if (m_wakeUpCount.exchange(0)>0)
+                        {
+                            wakeUp();
+                        }
+                        else
+                        {
+                            if (m_timer.periodUs()!=0)
+                            {
+                                auto selfCtx=common::toWeakPtr(this->sharedMainCtx());
+                                m_timer.start(
+                                    [selfCtx{std::move(selfCtx)},this](common::TimerTypes::Status status)
+                                    {
+                                        if (status==common::TimerTypes::Status::Cancel)
+                                        {
+                                            return;
+                                        }
+
+                                        auto ctx=selfCtx.lock();
+                                        if (!ctx)
+                                        {
+                                            return;
+                                        }
+
+                                        wakeUp();
+                                    }
+                                );
+                            }
+                        }
+                    };
+
+                    if (m_async)
+                    {
+                        m_thread->execAsync(std::move(exec));
+                    }
+                    else
+                    {
+                        exec();
+                    }
+                };
+
+                m_running.store(true);
                 auto workCtx=m_workContextBuilder->makeContext();
                 workCtx->onAsyncHandlerEnter();
-                m_worker->run(
-                    workCtx
-                );
+                m_worker->run(workCtx,std::move(cb));
                 workCtx->onAsyncHandlerExit();
-                workCtx.reset();
-
-                m_wakeUpCount.store(0);
-                m_running.store(false);
-
-                if (m_timer.periodUs()!=0)
-                {
-                    auto selfCtx=common::toWeakPtr(this->sharedMainCtx());
-                    m_timer.start(
-                        [selfCtx{std::move(selfCtx)},this](common::TimerTypes::Status status)
-                        {
-                            if (status==common::TimerTypes::Status::Cancel)
-                            {
-                                return;
-                            }
-
-                            auto ctx=selfCtx.lock();
-                            if (!ctx)
-                            {
-                                return;
-                            }
-
-                            run();
-                        }
-                    );
-                }
+                workCtx.reset();                
             }
         }
 
@@ -196,6 +240,8 @@ class BackgroundWorker : public common::TaskSubcontext
         std::atomic<bool> m_running;
         std::atomic<bool> m_stopped;
         std::atomic<size_t> m_wakeUpCount;
+
+        bool m_async;
 };
 
 HATN_MQ_NAMESPACE_END
