@@ -277,7 +277,18 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             db::initObject(*newJob);
             if (!newJob->field(job::next_time).isSet())
             {
-                setJobRetryTime(newJob.get());
+                // if next time not explicitly set then set it
+                auto existingItem=m_queue.hasItem(*newJob);
+                if (existingItem==nullptr)
+                {
+                    // if no such job is in queue then schedule for now
+                    setJobNextTime(newJob.get(),common::DateTime::currentUtc());
+                }
+                else
+                {
+                    // if such job is already in queue then use next time of that job
+                    setJobNextTime(newJob.get(),existingItem->job->fieldValue(job::next_time));
+                }
             }
             newJob->field(job::check_id).mutableValue()->generate();
 
