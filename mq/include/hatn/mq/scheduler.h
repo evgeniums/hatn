@@ -510,10 +510,10 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             m_background->stop();
         }
 
-        template <typename ContextT>
-        void run(common::SharedPtr<ContextT> ctx)
+        template <typename ContextT, typename CallbackT>
+        void run(common::SharedPtr<ContextT> ctx, CallbackT cb)
         {
-            dequeueJobs(std::move(ctx));
+            dequeueJobs(std::move(ctx),std::move(cb));
         }
 
         template <typename ContextT, typename CallbackT>
@@ -557,8 +557,8 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             common::SharedPtr<Job> job;
         };
 
-        template <typename ContextT>
-        void fetchJobs(common::SharedPtr<ContextT> ctx)
+        template <typename ContextT, typename CallbackT>
+        void fetchJobs(common::SharedPtr<ContextT> ctx, CallbackT backgroundCb)
         {
             //! @todo Implement async transaction
             auto txHandler=[this](db::Transaction* tx)
@@ -624,12 +624,15 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 // done transaction
                 return Error{};
             };
-            auto transactionCb=[this,ctx{std::move(ctx)},selfCtx{sharedMainCtx()}](auto, const Error& ec)
+            auto transactionCb=[this,ctx{std::move(ctx)},selfCtx{sharedMainCtx()},backgroundCb{std::move(backgroundCb)}](auto, const Error& ec)
             {
                 if (ec)
                 {
                     //! @todo Log error
                 }
+
+                // call background worker callback here
+                backgroundCb();
 
                 m_cacheMutex.lock();
                 auto queueEmpty=m_queue.empty();
@@ -647,15 +650,15 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             m_db->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
         }
 
-        template <typename ContextT>
-        void dequeueJobs(common::SharedPtr<ContextT> ctx)
+        template <typename ContextT, typename CallbackT>
+        void dequeueJobs(common::SharedPtr<ContextT> ctx, CallbackT backgroundCb)
         {
             // if queue is empty then invoke fetchJobs()
             {
                 common::MutexScopedLock l{m_cacheMutex};
                 if (m_queue.empty())
                 {
-                    fetchJobs(std::move(ctx));
+                    fetchJobs(std::move(ctx),std::move(backgroundCb));
                     return;
                 }
             }
@@ -745,9 +748,12 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 }
             }
 
+            // call background worker callback here
+            backgroundCb();
+
             // if worker can not accept jobs then sleep
             if (!m_jobRunner->canAcceptJobs())
-            {
+            {                
                 return;
             }
 
