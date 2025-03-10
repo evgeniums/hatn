@@ -48,6 +48,10 @@ class Topic
             : m_topic(topic)
         {}
 
+        Topic(const std::string& topic)
+            : m_topic(topic)
+        {}
+
         template <size_t PreallocatedSize, typename FallbackAllocatorT>
         Topic(const HATN_COMMON_NAMESPACE::StringOnStackT<PreallocatedSize,FallbackAllocatorT>& topic)
             : m_topic(topic)
