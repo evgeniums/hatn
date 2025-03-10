@@ -1402,6 +1402,18 @@ auto where_partitioned(const PartitionIndexT& partitionIndex, const FieldT& fiel
 
 } // namespace query
 
+template <typename ...Args>
+auto where(Args&&... args)
+{
+    return db::where(std::forward<Args>(args)...);
+}
+
+template <typename ...Args>
+auto where_partitioned(Args&&... args)
+{
+    return db::where_partitioned(std::forward<Args>(args)...);
+}
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBQUERY_H
