@@ -37,6 +37,7 @@ HDU_UNIT(request,
     HDU_FIELD(method_auth,auth::TYPE,7)
     HDU_FIELD(topic,TYPE_STRING,8)
     HDU_FIELD(message,TYPE_DATAUNIT,9)
+    HDU_FIELD(foreign_server,TYPE_DATAUNIT,10)
 )
 
 using RequestManaged=request::shared_managed;
