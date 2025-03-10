@@ -106,6 +106,7 @@ template <typename T> class SharedPtrBase
     public:
 
         using hana_tag=shared_pointer_tag;
+        using element_type=T;
 
         //! Get held object const
         inline T* get() const noexcept
@@ -265,6 +266,9 @@ template <typename T> class SharedPtr<T,std::enable_if_t<std::is_base_of<Managed
         : public SharedPtrBase<T>
 {
     public:
+
+        using hana_tag=shared_pointer_tag;
+        using element_type=T;
 
         //! Default ctor
         SharedPtr()
@@ -435,6 +439,9 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
         : public SharedPtrBase<T>
 {
     public:
+
+        using hana_tag=shared_pointer_tag;
+        using element_type=T;
 
         //! Default ctor
         SharedPtr() : SharedPtrBase<T>(nullptr),m(nullptr)
@@ -695,6 +702,12 @@ struct EmbeddedSharedPtr
         storage.reset();
         ptr=nullptr;
     }
+
+    SharedPtr<T> castBack() const
+    {
+        return ptr->sharedFromThis();
+    }
+
     T* ptr=nullptr;
     SharedPtr<ManagedObject> storage;
 };
