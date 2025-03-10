@@ -74,9 +74,10 @@ class ProducerClient : public common::pmr::WithFactory,
                 const common::ConstDataBuf& producerId,
                 db::AsyncClient* dbClient=nullptr,
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : ProducerClient(dbClient,factory),
-                m_producerId(producerId)
-        {}
+            ) : ProducerClient(dbClient,factory)
+        {
+            setProducerId(producerId);
+        }
 
         void setProducerId(const common::ConstDataBuf& id)
         {
@@ -198,13 +199,16 @@ class ProducerClient : public common::pmr::WithFactory,
                     //! to Log error
                 }
 
-                // callback with producer_pos and error status
+                // callback with pos and error status
                 cb(std::move(ctx),ec,msg->fieldValue(message::pos));
             };
             auto txHandler=[this,topic{std::move(topic)},msg,ctx,objectContent{std::move(objectContent)},notificationContent{std::move(notificationContent)}](db::Transaction* tx)
             {
                 auto client=m_db->client();
                 auto objectQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)),topic);
+                auto findCreateOpQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
+                                                                        and_(message::operation,db::query::eq,Operation::Create)
+                                                       ,topic);
 
                 switch (msg->fieldValue(message::operation))
                 {
@@ -290,9 +294,6 @@ class ProducerClient : public common::pmr::WithFactory,
                         };
 
                         // check if Create message for that object ID exists
-                        auto findCreateOpQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
-                                                                        and_(message::operation,db::query::eq,Operation::Create)
-                                                    ,topic);
                         auto ec=client->findCb(mqMessageModel(),findCreateOpQuery,std::move(findCb),tx,true);
                         if (ec)
                         {

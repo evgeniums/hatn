@@ -55,12 +55,12 @@ HDU_UNIT(message,
 HATN_DB_UNIQUE_INDEX(messagePosIdx,message::pos)
 HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,message::producer)
 
-// HATN_DB_INDEX(objectIdIdx,message::object_id)
 HATN_DB_INDEX(typedObjectsIdx,message::object_type,message::object_id)
 HATN_DB_INDEX(expiredObjectsIdx,message::object_type,message::expired)
 HATN_DB_INDEX(objectIdOpIdx,message::object_id,message::operation)
 
-HATN_DB_TTL_INDEX(expiredIdx,1,message::expire_at)
+// expire_at is used by app logic, the messages are not auto deleted when expired
+HATN_DB_INDEX(expiredIdx,message::expire_at)
 
 HDU_UNIT_WITH(db_message,(HDU_BASE(db::object),HDU_BASE(message)))
 
