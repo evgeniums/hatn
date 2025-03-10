@@ -203,6 +203,30 @@ class HATN_COMMON_EXPORT AllocatorFactory final
         std::shared_ptr<common::pmr::memory_resource> m_dataResource;
 };
 
+class WithFactory
+{
+    public:
+
+        WithFactory(
+                const AllocatorFactory* factory=AllocatorFactory::getDefault()
+            ) : m_factory(factory)
+        {}
+
+        const AllocatorFactory* factory() const noexcept
+        {
+            return m_factory;
+        }
+
+        void setFactory(const AllocatorFactory* factory=AllocatorFactory::getDefault()) noexcept
+        {
+            m_factory=factory;
+        }
+
+    private:
+
+        const AllocatorFactory* m_factory;
+};
+
 } // namespace pmr
 HATN_COMMON_NAMESPACE_END
 #endif // HATNCOMMONFALLOCATORACTORY_H
