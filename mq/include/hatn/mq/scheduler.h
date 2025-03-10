@@ -288,7 +288,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             // in direct mode invoke worker directly without saving job in db
             if (mode==Mode::Direct)
             {
-                m_jobRunner->invoke(
+                m_jobRunner->invokeScheduledJob(
                     std::move(ctx),
                     std::move(newJob),
                     [callback{std::move(callback)}](auto ctx, const Error& ec, auto doneJob, JobResultOp postCompleteOp)
@@ -624,7 +624,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 // done transaction
                 return Error{};
             };
-            auto transactionCb=[this,ctx{std::move(ctx)},selfCtx{sharedMainCtx()},backgroundCb{std::move(backgroundCb)}](auto, const Error& ec)
+            auto transactionCb=[this,ctx,selfCtx{sharedMainCtx()},backgroundCb{std::move(backgroundCb)}](auto, const Error& ec)
             {
                 if (ec)
                 {
@@ -739,7 +739,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                         break;
                     }
                 };
-                m_jobRunner->invoke(ctx,std::move(dequeueJob),std::move(completeCb));
+                m_jobRunner->invokeScheduledJob(ctx,std::move(dequeueJob),std::move(completeCb));
 
                 // repeat until queue is not empty or bucket size is reached
                 if (dequeCount > config().fieldValue(scheduler_config::job_bucket_size))
