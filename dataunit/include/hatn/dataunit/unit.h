@@ -31,8 +31,6 @@
 #include <hatn/dataunit/wiredata.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
-#include <hatn/dataunit/field.h>
-
 #ifndef RAPIDJSON_NO_SIZETYPEDEFINE
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson { using SizeType=size_t; }
@@ -404,10 +402,7 @@ class HATN_DATAUNIT_EXPORT Unit
 
     protected:
 
-        void setFieldParent(Field& field)
-        {
-            field.setParent(this);
-        }
+        void setFieldParent(Field& field);
 
     private:
 

@@ -39,6 +39,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/valuetypes.h>
 #include <hatn/dataunit/unit.h>
 #include <hatn/dataunit/fieldserialization.h>
 

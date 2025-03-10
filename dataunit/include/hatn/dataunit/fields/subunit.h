@@ -326,6 +326,38 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             m_value=std::move(val);
         }
 
+        virtual void setV(common::SharedPtr<Unit> val) override
+        {
+            auto self=this;
+            hana::eval_if(
+                std::is_same<type,common::SharedPtr<Unit>>{},
+                [&](auto _)
+                {
+                    _(self)->set(_(val));
+                },
+                []()
+                {
+                    throw std::runtime_error("Can not set custom subunit field");
+                }
+            );
+        }
+
+        virtual void getV(common::SharedPtr<Unit>& val) const override
+        {
+            auto self=this;
+            hana::eval_if(
+                std::is_same<type,common::SharedPtr<Unit>>{},
+                [&](auto _)
+                {
+                    _(val)=_(self)->get();
+                },
+                []()
+                {
+                    throw std::runtime_error("Can not get custom subunit field");
+                }
+            );
+        }
+
         /**  Check if unit's field is set. */
         template <typename T>
         auto isSet(T&& fieldName,
@@ -441,6 +473,16 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                 }
             );
             this->markSet(false);
+        }
+
+        const type& nativeValue() const noexcept
+        {
+            return m_value;
+        }
+
+        type& nativeValue() noexcept
+        {
+            return m_value;
         }
 
     protected:

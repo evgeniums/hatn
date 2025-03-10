@@ -31,8 +31,6 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-class Unit;
-
 namespace json
 {
     class Writer;

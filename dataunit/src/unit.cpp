@@ -41,6 +41,7 @@ namespace rapidjson { using SizeType=size_t; }
 
 #include <hatn/dataunit/stream.h>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/field.h>
 #include <hatn/dataunit/unit.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
@@ -426,6 +427,12 @@ size_t Unit::fieldCount() const noexcept
 const char* Unit::name() const noexcept
 {
     return "unknown";
+}
+
+//---------------------------------------------------------------
+void Unit::setFieldParent(Field& field)
+{
+    field.setParent(this);
 }
 
 //---------------------------------------------------------------
