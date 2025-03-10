@@ -46,6 +46,11 @@ class HATN_DATAUNIT_EXPORT ObjectId
         constexpr static const uint32_t Length=DateTimeLength+SeqLength+RandLength;
         using String=common::StringOnStackT<Length>;
 
+        ObjectId() : m_timepoint(0),
+                     m_seq(0),
+                     m_rand(0)
+        {}
+
         static ObjectId generateId()
         {
             ObjectId id;
@@ -70,6 +75,14 @@ class HATN_DATAUNIT_EXPORT ObjectId
         }
 
         bool parse(const common::ConstDataBuf& buf) noexcept;
+
+        void set(const common::ConstDataBuf& buf)
+        {
+            if (!parse(buf))
+            {
+                throw std::runtime_error("Invalid object ID");
+            }
+        }
 
         std::array<char,Length> toArray() const
         {
@@ -202,9 +215,9 @@ class HATN_DATAUNIT_EXPORT ObjectId
 
     private:
 
-        uint64_t m_timepoint=0; // 5.5 bytes: 0xFFFFFFFFFFF
-        uint32_t m_seq=0; // 3 bytes: 0xFFFFFF
-        uint32_t m_rand=0; // 4 bytes: 0xFFFFFFFF
+        uint64_t m_timepoint; // 5.5 bytes: 0xFFFFFFFFFFF
+        uint32_t m_seq; // 3 bytes: 0xFFFFFF
+        uint32_t m_rand; // 4 bytes: 0xFFFFFFFF
 
         // hex string: 2*(3+4)+11 = 25 characters
 };
