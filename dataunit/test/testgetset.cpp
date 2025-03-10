@@ -686,3 +686,5 @@ BOOST_FIXTURE_TEST_CASE(TestSubunitArrays,Env)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+//! @todo Test getters/setters of subunit as a whole

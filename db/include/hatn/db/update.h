@@ -338,3 +338,5 @@ constexpr auto ReturnBefore=ModifyReturn::Before;
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBUPDATE_H
+
+//! @todo Test updating subunit fields as a whole

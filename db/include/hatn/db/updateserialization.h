@@ -51,3 +51,5 @@ HDU_UNIT(message,
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBUPDATESERIALIZATION_H
+
+//! @todo Test update serialization

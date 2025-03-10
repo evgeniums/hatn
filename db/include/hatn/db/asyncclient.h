@@ -788,8 +788,6 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             Topic topic={}
             )
         {
-            //! @todo Implement async transactions
-
             common::postAsyncTask(
                 topicOrRandomThread(topic),
                 ctx,
@@ -840,3 +838,5 @@ class WithAsyncClient
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDASYNCBCLIENT_H
+
+//! @todo Test async client
