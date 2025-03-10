@@ -115,7 +115,16 @@ struct SerializeScalar
 
     Error operator () (const String& val) const
     {
-        if (!du::BytesSer<String,common::ByteArrayShared>::serialize(buf,&val,false,false))
+        if (!du::BytesSer<String,common::ByteArrayShared>::serialize(&val,buf,false,false))
+        {
+            return du::unitError(du::UnitError::SERIALIZE_ERROR);
+        }
+        return OK;
+    }
+
+    Error operator () (const Subunit& val) const
+    {
+        if (!du::UnitSer::serialize(val.get(),buf))
         {
             return du::unitError(du::UnitError::SERIALIZE_ERROR);
         }
@@ -389,6 +398,14 @@ struct deserializeT
                         }
                         handler(tmpInlineString.stringView());
                         return Error{};
+                    }
+                    break;
+
+                    case(ValueType::Subunit): HATN_FALLTHROUGH
+                        case(ValueType::VectorSubunit):
+                    {
+                        //! @todo Implement
+                        return commonError(CommonError::NOT_IMPLEMENTED);
                     }
                     break;
 

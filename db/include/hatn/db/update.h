@@ -45,6 +45,7 @@ template <typename T>
 using Vector=query::Vector<T>;
 
 using Bytes=common::ConstDataBuf;
+using Subunit=common::SharedPtr<du::Unit>;
 
 #define HATN_DB_UPDATE_VALUE_TYPES(DO) \
     DO(bool), \
@@ -63,7 +64,8 @@ using Bytes=common::ConstDataBuf;
     DO(common::Date), \
     DO(common::Time), \
     DO(common::DateRange), \
-    DO(ObjectId)
+    DO(ObjectId), \
+    DO(Subunit)
 
 #define HATN_DB_UPDATE_VALUE_TYPE_IDS(DO) \
     DO(Bool), \
@@ -82,7 +84,8 @@ using Bytes=common::ConstDataBuf;
     DO(Date), \
     DO(Time), \
     DO(DateRange), \
-    DO(ObjectId)
+    DO(ObjectId), \
+    DO(Subunit)
 
 #define HATN_DB_UPDATE_VALUE_TYPE(Type) \
     Type, \
@@ -268,7 +271,16 @@ constexpr fieldT field{};
 constexpr const size_t PreallocatedOpsCount=8;
 using FieldsVector=common::VectorOnStack<Field,PreallocatedOpsCount>;
 
-using Request=FieldsVector;
+struct RequestTag{};
+
+class Request : public FieldsVector
+{
+    public:
+
+        using hana_tag=RequestTag;
+
+        using FieldsVector::FieldsVector;
+};
 
 //! @todo Implement operations with repeated subunits
 struct makeRequestT

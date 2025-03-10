@@ -124,6 +124,7 @@ struct HandleFieldT
                     {
                         if (idx<field->arraySize())
                         {
+                            //! @todo Implement for subunits
                             field->arraySet(idx,val);
                         }
                         return Error{};
@@ -202,6 +203,7 @@ struct HandleFieldT
                         using valueT=typename std::decay_t<decltype(val)>::value_type;
                         if constexpr (std::is_same<valueT,bool>::value)
                         {
+                            //! @todo Implement for subunits
                             field->arraySet(i,static_cast<bool>(val[i]));
                         }
                         else
@@ -248,6 +250,7 @@ struct HandleFieldT
             {
                 auto elementAdd=[&field](const auto& val)
                 {
+                    //! @todo Implement for subunits
                     field->arrayAppend(val);
                     return Error{};
                 };
@@ -274,6 +277,7 @@ struct HandleFieldT
             {                
                 auto elementAdd=[&field](const auto& val)
                 {
+                    //! @todo Not applicable for subunits?
                     bool unique=true;
                     for (size_t i=0;i<field->arraySize();i++)
                     {

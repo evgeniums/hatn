@@ -46,26 +46,6 @@ HDU_UNIT(message,
     HDU_REPEATED_FIELD(the_fields,a_field::TYPE,1)
 )
 
-#if 0
-//! @todo use enums and id types
-HDU_UNIT(op,
-    HDU_FIELD(code,TYPE_UINT8,1)
-    HDU_FIELD(content,TYPE_DATAUNIT,2)
-    HDU_FIELD(object_id,TYPE_UINT8,3)
-    HDU_FIELD(origin_op_id,TYPE_UINT8,4)
-    HDU_FIELD(origin_id,TYPE_UINT8,5)
-)
-
-HDU_UNIT(op_response,
-    HDU_FIELD(status,TYPE_UINT8,1)
-    HDU_FIELD(content,TYPE_DATAUNIT,2)
-    HDU_FIELD(object_id,TYPE_UINT8,3)
-    HDU_FIELD(origin_op_id,TYPE_UINT8,4)
-    HDU_FIELD(origin_id,TYPE_UINT8,5)
-    HDU_FIELD(op_id,TYPE_UINT8,6)
-)
-#endif
-
 } // namespace update
 
 HATN_DB_NAMESPACE_END
