@@ -815,6 +815,28 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
         std::shared_ptr<Client> m_client;
 };
 
+class WithAsyncClient
+{
+    public:
+
+        WithAsyncClient(AsyncClient* db=nullptr) : m_db(db)
+        {}
+
+        void setDbClient(AsyncClient* db) noexcept
+        {
+            m_db=db;
+        }
+
+        AsyncClient* dbClient() const noexcept
+        {
+            return m_db;
+        }
+
+    private:
+
+        AsyncClient* m_db;
+};
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDASYNCBCLIENT_H
