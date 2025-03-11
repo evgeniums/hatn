@@ -44,10 +44,16 @@ class HATN_COMMON_EXPORT DateRange
         };
 
         /**
+         * @brief Default ctor.
+         */
+        DateRange() : m_value(0)
+        {}
+
+        /**
          * @brief Ctor from number.
          * @param value Number.
          */
-        explicit DateRange(uint32_t value=0) : m_value(value)
+        explicit DateRange(uint32_t value) : m_value(value)
         {
             //! @todo Maybe validate.
         }
