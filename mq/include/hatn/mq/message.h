@@ -71,7 +71,7 @@ HATN_DB_INDEX(expiredObjectsIdx,db_message::expired,message::object_type)
 HATN_DB_MODEL_WITH_CFG(mqMessageModel,db_message,db::ModelConfig("mq_messages"),
                        messagePosIdx(),
                        objectIdOpIdx(),
-                       typedObjectsIdx(),
+                       objectIdTypeIdx(),
                        expiredObjectsIdx(),
                        expiredIdx(),
                        producerPosIdx()

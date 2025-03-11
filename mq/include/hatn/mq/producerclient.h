@@ -30,6 +30,9 @@
 #include <hatn/db/ipp/updateunit.ipp>
 
 #include <hatn/mq/mq.h>
+
+#include <hatn/mq/scheduler.h>
+
 #include <hatn/mq/mqerror.h>
 #include <hatn/mq/message.h>
 
@@ -51,6 +54,7 @@ struct Traits
 
 template <typename Traits>
 class ProducerClient : public common::pmr::WithFactory,
+                        public HATN_BASE_NAMESPACE::ConfigObject<producer_config::type>,
                        public db::WithAsyncClient,
                        public common::TaskSubcontext
 {
@@ -62,12 +66,16 @@ class ProducerClient : public common::pmr::WithFactory,
         using Notifier=typename Traits::Notifier;
         using Message=typename Traits::Message;
 
+        constexpr static const char* SchedulerJobRefType="mq_producer_dequeue";
+
         ProducerClient(
                 db::AsyncClient* dbClient=nullptr,
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : common::pmr::WithFactory(factory),
                 db::WithAsyncClient(dbClient),
-                m_stopped(false)
+                m_stopped(false),
+                m_scheduler(nullptr),
+                m_topicJobs(this->factory()->template objectAllocator<topicJobsValueT>())
         {}
 
         ProducerClient(
@@ -82,11 +90,27 @@ class ProducerClient : public common::pmr::WithFactory,
         void setProducerId(const common::ConstDataBuf& id)
         {
             m_producerId.set(id);
+            m_producerIdStr=id;
         }
 
         const du::ObjectId& producerId() const noexcept
         {
             return m_producerId;
+        }
+
+        const auto& producerIdStr() const noexcept
+        {
+            return m_producerIdStr;
+        }
+
+        void setScheduler(Scheduler* scheduler) noexcept
+        {
+            m_scheduler=scheduler;
+        }
+
+        Scheduler* scheduler() const noexcept
+        {
+            return m_scheduler;
         }
 
         template <typename ContextT, typename CallbackT, typename ContentT=du::Unit, typename NofificationT=du::Unit>
@@ -192,11 +216,17 @@ class ProducerClient : public common::pmr::WithFactory,
             }
 
             // save in db
-            auto txCb=[ctx,selfCtx{this->sharedMainCtx()},cb{std::move(cb)},msg](auto, const Error& ec)
+            auto txCb=[ctx,selfCtx{this->sharedMainCtx()},this,cb{std::move(cb)},msg,topic](auto, const Error& ec)
             {
                 if (ec)
                 {
                     //! to Log error
+                }
+
+                // wakeup dequeueing
+                if (!ec)
+                {
+                    postSchedulerJob(ctx,[](auto,auto){},topic);
                 }
 
                 // callback with pos and error status
@@ -323,7 +353,7 @@ class ProducerClient : public common::pmr::WithFactory,
         }
 
         template <typename ContextT, typename CallbackT>
-        void publish(
+        void post(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             std::string topic,
@@ -333,11 +363,11 @@ class ProducerClient : public common::pmr::WithFactory,
             uint32_t ttl
             )
         {
-            publish(std::move(ctx),std::move(cb),std::move(topic),op,objectId,objectType,{},{},ttl);
+            post(std::move(ctx),std::move(cb),std::move(topic),op,objectId,objectType,{},{},ttl);
         }
 
         template <typename ContextT, typename CallbackT, typename ContentT=du::Unit>
-        void publish(
+        void post(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             std::string topic,
@@ -348,27 +378,68 @@ class ProducerClient : public common::pmr::WithFactory,
             uint32_t ttl
             )
         {
-            publish(std::move(ctx),std::move(cb),std::move(topic),op,objectId,objectType,std::move(objectContent),{},ttl);
+            post(std::move(ctx),std::move(cb),std::move(topic),op,objectId,objectType,std::move(objectContent),{},ttl);
         }
 
-        template <typename ContextT, typename JobT, typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void invokeScheduledJob(
                 common::SharedPtr<ContextT> ctx,
-                common::SharedPtr<JobT> jobObj,
+                common::SharedPtr<typename Scheduler::Job> jb,
                 CallbackT cb
             )
         {
+            auto retryInterval=this->config()->fieldValue(producer_config::dequeue_retry_interval);
+            auto retryLater=[jb{std::move(jb)},cb{std::move(cb)},retryInterval](auto ctx)
+            {
+                jb->setFieldValue(HATN_SCHEDULER_NAMESPACE::job::period,retryInterval);
+                cb(std::move(ctx),Error{},std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+            };
 
+            // if job for that topic is already under process then return immediately with retry later
+            if (m_stopped.load() || hasTopicJob(jb))
+            {
+                common::Thread::currentThread()->execAsync(
+                    [ctx{std::move(ctx)},retryLater{std::move(retryLater)}]()
+                    {
+                        retryLater(std::move(ctx));
+                    }
+                );
+                return;
+            }
+
+            // dequeue for given topic
+            dequeue(std::move(ctx),
+                [retryLater{std::move(retryLater)}](auto ctx)
+                {
+                    retryLater(std::move(ctx));
+                },
+                std::move(jb)
+            );
         }
 
-        void start()
+        template <typename ContextT>
+        void start(common::SharedPtr<ContextT> ctx)
         {
+            m_stopped.store(false);
 
+            // wake up scheduler if there are no waiting jobs
+            if (m_topicJobs.empty())
+            {
+                m_scheduler->wakeUp();
+            }
+            else
+            {
+                // wake up all waiting jobs
+                for (auto&& it: m_topicJobs)
+                {
+                    postSchedulerJob(ctx,[](auto, auto){},it.first);
+                }
+            }
         }
 
         void stop()
         {
-
+            m_stopped.store(true);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -483,10 +554,33 @@ class ProducerClient : public common::pmr::WithFactory,
             m_db->find(ctx,std::move(findCb),mqMessageModel(),std::move(q),topicView);
         }
 
+        bool hasTopicJob(lib::string_view topic) const
+        {
+            common::MutexScopedLock l(m_topicJobsMutex);
+
+            auto it=m_topicJobs.find(topic);
+            return it!=m_topicJobs.end();
+        }
+
+        bool hasTopicJob(const common::SharedPtr<typename Scheduler::Job>& jb) const
+        {
+            return hasTopicJob(jb->field(HATN_SCHEDULER_NAMESPACE::job::ref_topic).value());
+        }
+
     private:
 
-        template <typename ContextT>
-        void dequeue(common::SharedPtr<ContextT> ctx)
+        template <typename ContextT, typename CallbackT>
+        void postSchedulerJob(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                std::string topic
+            )
+        {
+            m_scheduler->postJob(std::move(ctx),std::move(callback),m_producerIdStr,topic,SchedulerJobRefType,HATN_SCHEDULER_NAMESPACE::Mode::Queued);
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void dequeue(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb)
         {
             // check if message is expired
 
@@ -494,14 +588,21 @@ class ProducerClient : public common::pmr::WithFactory,
 
             // remove from storage on success
 
-            // notify that mq_item was sent
+            // notify that message was sent
         }
 
         du::ObjectId m_producerId;
+        du::ObjectId::String m_producerIdStr;
 
         db::AsyncClient* m_db;
 
-        bool m_stopped;
+        std::atomic<bool> m_stopped;
+
+        Scheduler* m_scheduler;
+
+        mutable common::MutexLock m_topicJobsMutex;
+        common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>> m_topicJobs;
+        using topicJobsValueT=typename common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>>::value_type;
 };
 
 HATN_MQ_NAMESPACE_END

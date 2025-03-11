@@ -84,9 +84,11 @@ HDU_UNIT_WITH(job,(HDU_BASE(db::object)),
 
 HATN_DB_INDEX(jobTimeIdx,job::next_time)
 HATN_DB_UNIQUE_INDEX(jobRefIdx,job::ref_id,job::ref_topic,job::ref_type)
-HATN_DB_INDEX(jobRefTypeIdx,job::ref_type)
+HATN_DB_INDEX(jobRefTypeIdx,job::ref_type,job::ref_topic)
 
 HATN_DB_MODEL_WITH_CFG(jobModel,job,HATN_DB_NAMESPACE::ModelConfig("scheduler_jobs"),jobTimeIdx(),jobRefIdx(),jobRefTypeIdx())
+
+constexpr const char* DefaultJobRefType="default";
 
 struct SchedulerTraits
 {
@@ -196,65 +198,141 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             return m_topic;
         }
 
-        template <typename ContextT, typename CallbackT>
-        void enqueueOrPostJob(
-                common::SharedPtr<ContextT> ctx,
-                CallbackT callback,
-                const du::ObjectId& refId,
-                lib::string_view refTopic,
-                lib::string_view refType={},
-                int period=0
-            )
+        auto makeJob() const
         {
-            auto q=db::wrapQuery(m_factory,jobRefIdx(),
-                                       db::query::where(job::ref_id,db::query::eq,refId).
-                                       and_(job::ref_topic,db::query::eq,refTopic).
-                                       and_(job::ref_type,db::query::eq,refType),
-                                       m_topic
-                                       );
-
-            auto readCb=[selfCtx{sharedMainCtx()},this,ctx,callback{std::move(callback)},period,refId,refType,refTopic](auto, auto r)
-            {
-                if (r)
-                {
-                    //! @todo log
-                    callback(std::move(ctx),r.takeError());
-                    return;
-                }
-
-                if (r->isNull())
-                {
-                    auto newJob=m_factory->createObject<Job>();
-                    newJob->setFieldValue(job::period,period);
-                    newJob->setFieldValue(job::ref_id,refId);
-                    newJob->setFieldValue(job::ref_type,refType);
-                    newJob->setFieldValue(job::ref_topic,refTopic);
-                    postJob(std::move(ctx),std::move(callback),std::move(newJob));
-                    return;
-                }
-
-                enqueueJob(std::move(r->shared()));
-                callback(std::move(ctx),Error{});
-            };
-            m_db->findOne(
-                ctx,
-                std::move(readCb),
-                jobModel(),
-                std::move(q),
-                m_topic
-            );
+            return m_factory->template createObject<Job>();
         }
 
-        void enqueueJob(common::SharedPtr<Job> newJob)
+        template <typename ContextT, typename CallbackT>
+        void postJob(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                lib::string_view refId,
+                lib::string_view refTopic,
+                lib::string_view refType=DefaultJobRefType,
+                Mode mode=Mode::Schedule,
+                int period=0
+            )
+        {            
+            // prepare job
+            auto newJob=makeJob();
+            if (period!=0)
+            {
+                newJob->setFieldValue(job::period,period);
+            }
+            if (!refId.empty())
+            {
+                newJob->setFieldValue(job::ref_id,refId);
+            }
+            if (!refType.empty())
+            {
+                newJob->setFieldValue(job::ref_type,refType);
+            }
+            if (!refTopic.empty())
+            {
+                newJob->setFieldValue(job::ref_topic,refTopic);
+            }
+
+            // wrap job for asyn lambdas
+            using jobWrapperT=common::SharedPtr<common::SharedPtr<Job>>;
+            auto jobWrapper=m_factory->createObject<jobWrapperT>(std::move(newJob));
+
+            // transaction callback
+            auto txCb=[this,ctx,jobWrapper,callback{std::move(callback)},selfCtx{this->sharedMainCtx()}](auto, const Error& ec)
+            {
+                //! @todo Log it
+
+                // invoke callback only if job is set in wrappper, otherwise it has been forwarded to other postJob() nethod
+                auto newJob=*jobWrapper;
+                if (newJob)
+                {
+                    callback(std::move(ctx),ec,std::move(newJob));
+                }
+            };
+
+            // transaction handler
+            auto txHandler=[mode,jobWrapper{std::move(jobWrapper)},this,ctx,callback{std::move(callback)}](db::Transaction* tx)
+            {
+                // find existing job
+
+                auto client=m_db->client();
+                auto q=db::makeQuery(jobRefIdx(),
+                                       db::query::where(job::ref_id,db::query::eq,(*jobWrapper)->fieldValue(job::ref_id)).
+                                       and_(job::ref_topic,db::query::eq,(*jobWrapper)->fieldValue(job::ref_topic)).
+                                       and_(job::ref_type,db::query::eq,(*jobWrapper)->fieldValue(job::ref_type)),
+                                       m_topic
+                                    );
+
+                auto findCb=[jobWrapper{std::move(jobWrapper)},this,ctx,mode,tx](db::DbObject obj, Error& ec)
+                {
+                    if (ec)
+                    {
+                        //! @todo Log error
+                        return false;
+                    }
+
+                    // no job found in db, post new job
+                    if (obj.isNull())
+                    {
+                        auto newJob=*jobWrapper;
+                        jobWrapper->reset();
+                        common::Thread::currentThread()->execAsync(
+                            [newJob{std::move(newJob)},this,selfCtx{this->sharedMainCtx()},ctx,callback{std::move(callback)}]()
+                            {
+                                postJob(std::move(ctx),std::move(callback),std::move(newJob));
+                            }
+                        );
+                        return false;
+                    }
+
+                    // enqueue existing job
+                    auto jb=db::DbObjectT<Job>{std::move(obj)}.shared();
+                    *jobWrapper=jb;
+                    if (mode==Mode::Queued)
+                    {
+                        if (!hasJobInQueue(jb))
+                        {
+                            ec=holdJob(jb,tx);
+                            if (ec)
+                            {
+                                //! @todo report error
+                                return false;
+                            }
+                            enqueueJob(std::move(jb));
+                        }
+                        wakeUp();
+                    }
+
+                    // only single job expected
+                    return false;
+                };
+                auto ec=client->findCb(jobModel(),q,std::move(findCb),tx,true);
+                if (ec)
+                {
+                    //! @todo Log error
+                }
+                return ec;
+            };
+            m_db->transaction(ctx,std::move(txHandler),std::move(txCb),m_topic);
+        }
+
+        void enqueueJob(common::SharedPtr<Job> jb)
         {
             common::MutexScopedLock l{m_cacheMutex};
 
-            JobKey key{newJob.get()};
+            JobKey key{jb.get()};
             if (!m_queue.hasItem(key))
             {
                 //! @todo optimization: too many string allocations in job key
-                m_queue.emplaceItem(std::move(key),std::move(newJob));
+                m_queue.emplaceItem(std::move(key),std::move(jb));
             }
+        }
+
+        bool hasJobInQueue(common::SharedPtr<Job> jb) const noexcept
+        {
+            common::MutexScopedLock l{m_cacheMutex};
+
+            return m_queue.hasItem(*jb);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -262,12 +340,15 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 common::SharedPtr<ContextT> ctx,
                 CallbackT callback,
                 common::SharedPtr<Job> newJob,
-                Mode mode=Mode::Queued,
+                Mode mode=Mode::Schedule,
                 JobConflictMode conflictMode=JobConflictMode::SkipNewJob
             )
         {
             // prepare job
-            db::initObject(*newJob);
+            if (!newJob->field(db::object::_id).isSet())
+            {
+                db::initObject(*newJob);
+            }
             if (!newJob->field(job::next_time).isSet())
             {
                 // if next time not explicitly set then set it
@@ -326,8 +407,6 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             };
             auto txHandler=[this,jobPtr,conflictMode,newJob{std::move(newJob)}](db::Transaction* tx)
             {
-                //! @todo critical: Implement async transaction
-
                 auto client=m_db->client();
                 auto q=db::makeQuery(jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,jobPtr->fieldValue(job::ref_id)).
@@ -431,7 +510,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 CallbackT callback,
                 lib::string_view refId,
                 lib::string_view refTopic={},
-                lib::string_view refType={}
+                lib::string_view refType=DefaultJobRefType
             )
         {
             {
@@ -557,10 +636,22 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             common::SharedPtr<Job> job;
         };
 
+        Error holdJob(common::SharedPtr<Job> jb, db::Transaction* tx=nullptr)
+        {
+            auto client=m_db->client();
+
+            auto dt=now();
+            dt.addSeconds(this->config().fieldValue(scheduler_config::job_hold_period));
+            setJobNextTime(jb.get(),dt);
+            auto req=db::update::request(
+                db::update::field(job::next_time,db::update::set,jb->fieldValue(job::next_time))
+            );
+            return client->update(m_topic,jobModel(),jb->fieldValue(db::object::_id),req,tx);
+        }
+
         template <typename ContextT, typename CallbackT>
         void fetchJobs(common::SharedPtr<ContextT> ctx, CallbackT backgroundCb)
         {
-            //! @todo Implement async transaction
             auto txHandler=[this](db::Transaction* tx)
             {
                 auto client=m_db->client();
@@ -587,13 +678,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
                     // hold job until it is compleled or job_hold_interval elapsed
                     db::DbObjectT<Job> foundJob{std::move(obj)};
-                    auto dt=now();
-                    dt.addSeconds(this->config().fieldValue(scheduler_config::job_hold_period));
-                    setJobNextTime(foundJob.get(),dt);
-                    auto req=db::update::request(
-                            db::update::field(job::next_time,db::update::set,foundJob->fieldValue(job::next_time))
-                        );
-                    ec=client->update(m_topic,jobModel(),foundJob->fieldValue(db::object::_id),req,tx);
+                    ec=holdJob(foundJob,tx);
                     if (ec)
                     {
                         //! @todo Log error
@@ -683,7 +768,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 dequeCount++;
 
                 // invoke job in worker
-                auto completeCb=[selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto doneJob, JobResultOp postCompleteOp=JobResultOp::RetryLater)
+                auto completeCb=[selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto doneJob, JobResultOp postCompleteOp)
                 {
                     if (ec)
                     {
@@ -725,7 +810,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
                         case (JobResultOp::RetryLater):
                         {
-                            // update next time using job_retry_interval
+                            // update next time using either job period or job_retry_interval
                             auto updateCb=[](auto, const Error& ec)
                             {
                                 if (ec)
@@ -776,14 +861,22 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             jobPtr->setFieldValue(job::next_time,dt);
         }
 
-        void replaceJobInQueue(common::SharedPtr<Job> newJob)
+        void replaceJobInQueue(common::SharedPtr<Job> newJob, bool enqueue=false)
         {
-            common::MutexScopedLock l{m_cacheMutex};
-
-            auto* item=m_queue.item(*newJob);
-            if (item!=nullptr)
             {
-                item->job=std::move(newJob);
+                common::MutexScopedLock l{m_cacheMutex};
+
+                auto* item=m_queue.item(*newJob);
+                if (item!=nullptr)
+                {
+                    item->job=std::move(newJob);
+                    return;
+                }
+            }
+
+            if (enqueue)
+            {
+                enqueueJob(std::move(newJob));
             }
         }
 
@@ -791,7 +884,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         const common::pmr::AllocatorFactory* m_factory;
 
         common::CacheLru<JobKey,JobWrapper> m_queue;
-        common::MutexLock m_cacheMutex;
+        mutable common::MutexLock m_cacheMutex;
 
         Worker* m_jobRunner;
         BackgroundWorker* m_background;
