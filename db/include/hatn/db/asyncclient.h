@@ -492,12 +492,12 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void find(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             Topic topic={}
             )
         {
@@ -506,18 +506,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->find(model,*query));
+                    cb(std::move(ctx),m_client->find(model,query()));
                 },
                 std::move(cb)
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void findOne(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             Topic topic={}
             )
         {
@@ -526,7 +526,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findOne(model,*query));
+                    cb(std::move(ctx),m_client->findOne(model,query()));
                 },
                 std::move(cb)
             );
@@ -572,12 +572,12 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void count(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             Topic topic={}
             )
         {
@@ -586,7 +586,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->count(model,*query));
+                    cb(std::move(ctx),m_client->count(model,query()));
                 },
                 std::move(cb)
             );
@@ -668,12 +668,12 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void deleteMany(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             Transaction* tx=nullptr,
             Topic topic={}
             )
@@ -683,18 +683,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->deleteMany(model,*query,tx));
+                    cb(std::move(ctx),m_client->deleteMany(model,query(),tx));
                 },
                 std::move(cb)
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void deleteManyBulk(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             Transaction* tx=nullptr,
             Topic topic={}
             )
@@ -704,18 +704,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->deleteManyBulk(model,*query,tx));
+                    cb(std::move(ctx),m_client->deleteManyBulk(model,query(),tx));
                 },
                 std::move(cb)
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void updateMany(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             common::SharedPtr<update::Request> request,
             Transaction* tx=nullptr,
             Topic topic={}
@@ -726,19 +726,19 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->updateMany(model,*query,*request,tx));
+                    cb(std::move(ctx),m_client->updateMany(model,query(),*request,tx));
                 },
                 std::move(cb)
             );
         }
 
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void findUpdateCreate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             common::SharedPtr<update::Request> request,
             const common::SharedPtr<dataunit::Unit>& object,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
@@ -751,18 +751,18 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},&object,returnMode,tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findUpdateCreate(model,*query,*request,object,returnMode,tx));
+                    cb(std::move(ctx),m_client->findUpdateCreate(model,query(),*request,object,returnMode,tx));
                 },
                 std::move(cb)
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT>
+        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
         void findUpdate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
-            common::SharedPtr<Query<IndexT>> query,
+            QueryT query,
             common::SharedPtr<update::Request> request,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
@@ -774,7 +774,7 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
                 ctx,
                 [ctx,this,selfCtx{sharedMainCtx()},&model,query{std::move(query)},request{std::move(request)},returnMode,tx](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findUpdate(model,*query,*request,returnMode,tx));
+                    cb(std::move(ctx),m_client->findUpdate(model,query(),*request,returnMode,tx));
                 },
                 std::move(cb)
             );

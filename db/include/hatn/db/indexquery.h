@@ -147,6 +147,19 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             DefaultLimit=limit;
         }
 
+        Topic defaultTopic(Topic other=Topic{})
+        {
+            if (!other.topic().empty())
+            {
+                return other;
+            }
+            if (!m_topics.empty())
+            {
+                return m_topics.at(0);
+            }
+            return Topic{};
+        }
+
     private:
 
         IndexQuery(
@@ -313,6 +326,72 @@ struct allocateQueryT
     }
 };
 constexpr allocateQueryT allocateQuery{};
+
+template <typename QueryBuilderT, typename TopicBuilderT>
+class QueryBuilderWrapperT
+{
+    public:
+
+        QueryBuilderWrapperT(QueryBuilderT builder, TopicBuilderT threadTopicBuilder={}) : m_builder(std::move(builder)), m_threadTopicBuilder(threadTopicBuilder)
+        {}
+
+        auto operator() () const noexcept
+        {
+            return m_builder();
+        }
+
+        const std::string& threadTopic() const
+        {
+            return m_threadTopicBuilder();
+        }
+
+    private:
+
+        QueryBuilderWrapperT m_builder;
+        TopicBuilderT m_threadTopicBuilder;
+};
+
+struct defaultThreadTopicBuilderT
+{
+    const std::string& operator() () const noexcept
+    {
+        static std::string str;
+        return str;
+    }
+};
+constexpr defaultThreadTopicBuilderT defaultThreadTopicBuilder{};
+
+template <typename QueryBuilderT, typename TopicBuilderT=defaultThreadTopicBuilderT>
+auto wrapQueryBuilder(QueryBuilderT&& builder, TopicBuilderT threadTopicBuilder=defaultThreadTopicBuilder)
+{
+    return QueryBuilderWrapperT<std::decay_t<QueryBuilderT>,std::decay_t<TopicBuilderT>>{std::forward<QueryBuilderT>(builder),std::move(threadTopicBuilder)};
+}
+
+template <typename IndexT>
+class SharedQueryWrapperT
+{
+    public:
+
+        template <typename ...Args>
+        SharedQueryWrapperT(Args&& ...args) : m_query(allocateQuery(std::forward<Args>(args)...))
+        {}
+
+        const auto& operator() () const noexcept
+        {
+            return *m_query;
+        }
+
+    private:
+
+        common::SharedPtr<Query<IndexT>> m_query;
+};
+
+template <typename IndexT, typename WhereT, typename ...TopicsT>
+auto wrapQuery(const common::pmr::AllocatorFactory* factory, const IndexT& index, const WhereT& where, TopicsT&&... topics)
+{
+    return SharedQueryWrapperT<IndexT>{factory,index,where,std::forward<TopicsT>(topics)...};
+}
+
 
 HATN_DB_NAMESPACE_END
 
