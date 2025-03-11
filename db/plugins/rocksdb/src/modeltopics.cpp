@@ -318,14 +318,16 @@ static lib::string_view topicFromKey(const Slice& key)
 
 //---------------------------------------------------------------
 
-Result<std::vector<TopicHolder>>
+Result<common::pmr::set<TopicHolder>>
     ModelTopics::modelTopics(
-            const std::string &modelId,
-            RocksdbHandler &handler,
-            RocksdbPartition *partition
+        const std::string &modelId,
+        RocksdbHandler &handler,
+        RocksdbPartition *partition,
+        bool onlyDefaultPartition,
+        const common::pmr::AllocatorFactory* factory
     )
 {
-    std::vector<TopicHolder> topics;
+    std::pmr::set<TopicHolder> topics{factory->objectAllocator<TopicHolder>()};
 
     // construct keys
     auto rdOpts=handler.p()->readOptions;
@@ -343,18 +345,20 @@ Result<std::vector<TopicHolder>>
     std::cout << "Topics from " << logKey(ksFrom) << " to " << logKey(ksTo) << std::endl;
 #endif
 
-    std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{
-                                                    handler.p()->db->NewIterator(
-                                                        rdOpts,
-                                                        partition->collectionCf.get()
-                                                    )
-                                                };
-    it->SeekToFirst();
-    auto hasKey=it->Valid();
-    while (hasKey)
+    auto eachPartition=[&](RocksdbPartition *partition)
     {
-        auto topic=topicFromKey(it->key());
-        topics.emplace_back(topic);
+        std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{
+            handler.p()->db->NewIterator(
+                rdOpts,
+                partition->collectionCf.get()
+                )
+        };
+        it->SeekToFirst();
+        auto hasKey=it->Valid();
+        while (hasKey)
+        {
+            auto topic=topicFromKey(it->key());
+            topics.insert(TopicHolder{topic});
 
 //! @maybe Log debug
 #if 0
@@ -362,17 +366,50 @@ Result<std::vector<TopicHolder>>
                   << " offset=" <<KeyPrefixOffset << std::endl;
 #endif
 
-        it->Next();
-        hasKey=it->Valid();
-    }
-    if (!it->status().ok())
-    {
-        if (it->status().code()==ROCKSDB_NAMESPACE::Status::kNotFound)
-        {
-            return Error{OK};
+            it->Next();
+            hasKey=it->Valid();
         }
-        return makeError(DbError::MODEL_TOPIC_RELATION_READ,it->status());
+        if (!it->status().ok())
+        {
+            if (it->status().code()==ROCKSDB_NAMESPACE::Status::kNotFound)
+            {
+                return Error{OK};
+            }
+            return makeError(DbError::MODEL_TOPIC_RELATION_READ,it->status());
+        }
+
+        return Error{};
+    };
+    if (partition!=nullptr)
+    {
+        auto ec=eachPartition(partition);
+        HATN_CHECK_EC(ec);
     }
+    else
+    {
+        for (auto&& it: handler.partitionRanges())
+        {
+            if (it.isNull())
+            {
+                auto ec=eachPartition(handler.defaultPartition().get());
+                HATN_CHECK_EC(ec);
+                if (onlyDefaultPartition)
+                {
+                    break;
+                }
+            }
+            else if (!onlyDefaultPartition)
+            {
+                auto p=handler.partition(it);
+                if (p)
+                {
+                    auto ec=eachPartition(p.get());
+                    HATN_CHECK_EC(ec);
+                }
+            }
+        }
+    }
+
     return topics;
 }
 

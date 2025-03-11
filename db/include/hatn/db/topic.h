@@ -109,6 +109,8 @@ class Topic
 
 using Topics=common::FlatSetOnStack<Topic,4>;
 
+using TopicHolder=std::string;
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBTOPIC_H

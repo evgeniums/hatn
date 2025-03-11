@@ -22,6 +22,8 @@
 #include <memory>
 #include <functional>
 
+#include <hatn/common/pmr/allocatorfactory.h>
+
 #include <hatn/dataunit/unit.h>
 
 #include <hatn/db/topic.h>
@@ -39,11 +41,11 @@ namespace dataunit=HATN_DATAUNIT_NAMESPACE;
 
 class RocksdbHandler;
 
-class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel
+class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel : public common::pmr::WithFactory
 {
     public:
 
-        RocksdbModel(std::shared_ptr<ModelInfo> info);
+        RocksdbModel(std::shared_ptr<ModelInfo> info, const AllocatorFactory* factory=AllocatorFactory::getDefault());
 
         const std::shared_ptr<ModelInfo>& info() const noexcept
         {

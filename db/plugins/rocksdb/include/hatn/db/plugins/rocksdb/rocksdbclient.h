@@ -42,7 +42,6 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
          *
          */
 
-
         RocksdbClient(
             const lib::string_view& id=lib::string_view{}
         );
@@ -191,6 +190,13 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             const ModelInfo& model,
             const ModelIndexQuery& query
         ) override;
+
+        Result<std::pmr::set<TopicHolder>>
+        doListModelTopics(
+            const ModelInfo& model,
+            const common::DateRange& partitionDateRange,
+            bool onlyDefaultPartition
+            ) override;
 
     private:
 

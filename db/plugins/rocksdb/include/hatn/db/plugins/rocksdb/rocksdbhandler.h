@@ -76,6 +76,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         Error deleteTopic(Topic topic);
 
+        common::FlatSet<common::DateRange> partitionRanges() const;
+
     private:
 
         std::unique_ptr<RocksdbHandler_p> d;

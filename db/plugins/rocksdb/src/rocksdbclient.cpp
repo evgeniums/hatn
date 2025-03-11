@@ -38,6 +38,7 @@
 #include <hatn/db/plugins/rocksdb/ttlcompactionfilter.h>
 #include <hatn/db/plugins/rocksdb/modeltopics.h>
 #include <hatn/db/plugins/rocksdb/rocksdbencryption.h>
+#include <hatn/db/plugins/rocksdb/rocksdbmodels.h>
 
 HATN_DB_USING
 
@@ -1031,6 +1032,39 @@ Error RocksdbClient::doDeleteTopic(Topic topic)
 std::shared_ptr<ClientEnvironment> RocksdbClient::doCloneEnvironment()
 {
     return d->env;
+}
+
+//---------------------------------------------------------------
+
+Result<std::pmr::set<TopicHolder>> RocksdbClient::doListModelTopics(
+        const ModelInfo& model,
+        const common::DateRange& partitionDateRange,
+        bool onlyDefaultPartition
+    )
+{
+    HATN_CTX_SCOPE("rdbcountmodel")
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    std::shared_ptr<RocksdbPartition> partition;
+    if (partitionDateRange.isNull())
+    {
+        if (onlyDefaultPartition)
+        {
+            partition=d->handler->defaultPartition();
+        }
+    }
+    else
+    {
+        partition=d->handler->partition(partitionDateRange);
+        if (!partition)
+        {
+            return std::pmr::set<TopicHolder>{rdbModel->factory()->objectAllocator<TopicHolder>()};
+        }
+    }
+
+    return ModelTopics::modelTopics(model.modelIdStr(),*d->handler,partition.get(),onlyDefaultPartition,rdbModel->factory());
 }
 
 //---------------------------------------------------------------

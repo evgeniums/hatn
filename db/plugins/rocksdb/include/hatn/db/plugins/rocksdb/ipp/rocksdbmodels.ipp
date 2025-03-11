@@ -48,7 +48,7 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
 {
     Assert(m_models.find(model->info->modelId())==m_models.end(),"Failed to register duplicate model");
 
-    auto rdbModel=std::make_shared<RocksdbModel>(model->info);
+    auto rdbModel=std::make_shared<RocksdbModel>(model->info,allocatorFactory);
 
     using modelT=typename std::decay_t<decltype(model)>::element_type;
     using modelType=typename modelT::ModelType;

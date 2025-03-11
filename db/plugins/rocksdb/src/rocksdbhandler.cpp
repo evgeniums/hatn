@@ -429,4 +429,22 @@ Error RocksdbHandler::deleteTopic(Topic topic)
 
 //---------------------------------------------------------------
 
+common::FlatSet<common::DateRange> RocksdbHandler::partitionRanges() const
+{
+    d->partitionMutex.lock_shared();
+
+    common::FlatSet<common::DateRange> ranges;
+    ranges.reserve(d->partitions.size()+1);
+    ranges.insert(common::DateRange{});
+    for (auto&& it: d->partitions)
+    {
+        ranges.insert(it->range);
+    }
+
+    d->partitionMutex.unlock_shared();
+    return ranges;
+}
+
+//---------------------------------------------------------------
+
 HATN_ROCKSDB_NAMESPACE_END

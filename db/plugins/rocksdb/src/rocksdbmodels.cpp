@@ -28,8 +28,9 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-RocksdbModel::RocksdbModel(std::shared_ptr<ModelInfo> info)
-    :m_modelInfo(std::move(info))
+RocksdbModel::RocksdbModel(std::shared_ptr<ModelInfo> info, const AllocatorFactory* factory)
+    : common::pmr::WithFactory(factory),
+      m_modelInfo(std::move(info))
 {
     m_modelInfo->setNativeModel(this);
 }

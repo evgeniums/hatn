@@ -22,6 +22,7 @@
 #include <rocksdb/merge_operator.h>
 
 #include <hatn/common/allocatoronstack.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/dataunit/syntax.h>
 
@@ -33,8 +34,6 @@
 #include <hatn/db/plugins/rocksdb/ttlmark.h>
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
-
-using TopicHolder=HATN_COMMON_NAMESPACE::StringOnStack;
 
 class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 {
@@ -76,11 +75,12 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             Operator action
         );
 
-        //! @todo Add modelTopics() method to db client
-        static Result<std::vector<TopicHolder>> modelTopics(
+        static Result<common::pmr::set<TopicHolder>> modelTopics(
             const std::string& modelId,
             RocksdbHandler& handler,
-            RocksdbPartition* partition
+            RocksdbPartition* partition=nullptr,
+            bool onlyDefaultPartition=false,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
         static Error deleteTopic(

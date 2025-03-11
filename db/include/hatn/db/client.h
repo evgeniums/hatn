@@ -734,6 +734,38 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        //! @todo Test list model topics
+
+        template <typename ModelT>
+        Result<std::pmr::set<TopicHolder>>
+        listModelTopics(
+            const std::shared_ptr<ModelT>& model,
+            const common::Date& partitionDate,
+            bool onlyDefaultPartition=true
+            )
+        {
+            auto range=datePartition(partitionDate,model->model);
+            return listModelTopics(model->model,range,onlyDefaultPartition);
+        }
+
+        template <typename ModelT>
+        Result<std::pmr::set<TopicHolder>>
+        listModelTopics(
+            const std::shared_ptr<ModelT>& model,
+            const common::DateRange& partitionDateRange={},
+            bool onlyDefaultPartition=true
+            )
+        {
+            HATN_CTX_SCOPE("listmodeltopics")
+            if (m_open)
+            {
+                return doListModelTopics(model->model,partitionDateRange,onlyDefaultPartition);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         Error transaction(const TransactionFn& fn)
         {
             return doTransaction(fn);
@@ -880,6 +912,13 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             return std::shared_ptr<ClientEnvironment>{};
         }
+
+        virtual Result<std::pmr::set<TopicHolder>>
+        doListModelTopics(
+            const ModelInfo& model,
+            const common::DateRange& partitionDateRange,
+            bool onlyDefaultPartition
+        )=0;
 
         void setClosed() noexcept
         {

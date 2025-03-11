@@ -780,6 +780,48 @@ class HATN_DB_EXPORT AsyncClient :  public common::WithMappedThreads,
             );
         }
 
+        template <typename ModelT,typename ContextT, typename CallbackT>
+        Result<std::pmr::set<TopicHolder>>
+        listModelTopics(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            const std::shared_ptr<ModelT>& model,
+            common::Date partitionDate,
+            bool onlyDefaultPartition=true
+            )
+        {
+            common::postAsyncTask(
+                threads()->randomThread(),
+                ctx,
+                [ctx,this,selfCtx{sharedMainCtx()},&model,partitionDate,onlyDefaultPartition](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->listModelTopics(model,partitionDate,onlyDefaultPartition));
+                },
+                std::move(cb)
+            );
+        }
+
+        template <typename ModelT,typename ContextT, typename CallbackT>
+        Result<std::pmr::set<TopicHolder>>
+        listModelTopics(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            const std::shared_ptr<ModelT>& model,
+            common::DateRange partitionDateRange={},
+            bool onlyDefaultPartition=true
+            )
+        {
+            common::postAsyncTask(
+                threads()->randomThread(),
+                ctx,
+                [ctx,this,selfCtx{sharedMainCtx()},&model,partitionDateRange,onlyDefaultPartition](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->listModelTopics(model,partitionDateRange,onlyDefaultPartition));
+                },
+                std::move(cb)
+            );
+        }
+
         template <typename ContextT, typename CallbackT>
         void transaction(
             common::SharedPtr<ContextT> ctx,
