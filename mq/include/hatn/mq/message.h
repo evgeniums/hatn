@@ -48,21 +48,25 @@ HDU_UNIT(message,
     HDU_FIELD(object_id,TYPE_STRING,5,true)
     HDU_FIELD(object_type,TYPE_STRING,6)
     HDU_FIELD(content,message_content::TYPE,7)
-    HDU_FIELD(expire_at,TYPE_DATETIME,8)
-    HDU_FIELD(expired,TYPE_BOOL,9)
+    HDU_FIELD(expire_at,TYPE_DATETIME,8)    
 )
 
-HATN_DB_UNIQUE_INDEX(messagePosIdx,message::pos)
-HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,message::producer)
+HATN_DB_UNIQUE_INDEX(messagePosIdx,message::pos,message::object_type)
+HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,message::producer,message::object_type)
 
-HATN_DB_INDEX(typedObjectsIdx,message::object_type,message::object_id)
-HATN_DB_INDEX(expiredObjectsIdx,message::object_type,message::expired)
+HATN_DB_INDEX(objectIdTypeIdx,message::object_id,message::object_type)
 HATN_DB_INDEX(objectIdOpIdx,message::object_id,message::operation)
+
+HATN_DB_INDEX(objectTypeIdx,message::object_type)
 
 // expire_at is used by app logic, the messages are not auto deleted when expired
 HATN_DB_INDEX(expiredIdx,message::expire_at)
 
-HDU_UNIT_WITH(db_message,(HDU_BASE(db::object),HDU_BASE(message)))
+HDU_UNIT_WITH(db_message,(HDU_BASE(db::object),HDU_BASE(message)),
+    HDU_FIELD(expired,TYPE_BOOL,9)
+)
+
+HATN_DB_INDEX(expiredObjectsIdx,db_message::expired,message::object_type)
 
 HATN_DB_MODEL_WITH_CFG(mqMessageModel,db_message,db::ModelConfig("mq_messages"),
                        messagePosIdx(),

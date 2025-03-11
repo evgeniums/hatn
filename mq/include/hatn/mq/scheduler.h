@@ -206,7 +206,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 int period=0
             )
         {
-            auto q=db::allocateQuery(m_factory,jobRefIdx(),
+            auto q=db::wrapQuery(m_factory,jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,refId).
                                        and_(job::ref_topic,db::query::eq,refTopic).
                                        and_(job::ref_type,db::query::eq,refType),
@@ -439,7 +439,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 m_queue.removeItem(JobKey{refId,refTopic,refType,m_factory});
             }
 
-            auto q=db::allocateQuery(m_factory,jobRefIdx(),
+            auto q=db::wrapQuery(m_factory,jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,refId).
                                        and_(job::ref_topic,db::query::eq,refTopic).
                                        and_(job::ref_type,db::query::eq,refType),
@@ -471,7 +471,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             common::SharedPtr<Job> jobObj
             )
         {
-            auto q=db::allocateQuery(m_factory,jobRefIdx(),
+            auto q=db::wrapQuery(m_factory,jobRefIdx(),
                                     db::query::where(db::object::_id,db::query::eq,jobObj->fieldValue(db::object::_id)).
                                                 and_(job::check_id,db::query::eq,jobObj->fieldValue(job::check_id)),
                                      m_topic
@@ -519,7 +519,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         template <typename ContextT, typename CallbackT>
         void updateJobNextTime(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<Job> jobObj)
         {
-            auto q=db::allocateQuery(m_factory,jobRefIdx(),
+            auto q=db::wrapQuery(m_factory,jobRefIdx(),
                                        db::query::where(db::object::_id,db::query::eq,jobObj->fieldValue(db::object::_id)).
                                                     and_(job::check_id,db::query::eq,jobObj->fieldValue(job::check_id)),
                                        m_topic

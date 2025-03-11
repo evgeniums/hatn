@@ -372,24 +372,115 @@ class ProducerClient : public common::pmr::WithFactory,
         }
 
         template <typename ContextT, typename CallbackT>
-        void removeLocalExpired(common::SharedPtr<ContextT> ctx, CallbackT cb, lib::string_view topic)
+        void removeLocalExpired(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType)
         {
+            lib::string_view topicView{topic};
+            auto q=db::wrapQueryBuilder(
+                [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()}]()
+                {
+                    return db::makeQuery(expiredObjectsIdx(),db::where(db_message::expired,db::query::eq,true).
+                                                              and_(message::object_type,db::query::eq,objectType),
+                                                    topic
+                                         );
+                }
+            );
 
+            auto deleteCb=[ctx,selfCtx{this->sharedMainCtx()},cb{std::move(cb)}](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo Log error
+                }
+                cb(std::move(ctx),ec);
+            };
+            m_db->deleteMany(ctx,std::move(deleteCb),mqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
-        void removeLocalPos(common::SharedPtr<ContextT> ctx, CallbackT cb, lib::string_view topic, const du::ObjectId& pos)
+        void removeLocalPos(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, const du::ObjectId& pos)
         {
+            lib::string_view topicView{topic};
+            auto q=db::wrapQueryBuilder(
+                [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()},pos]()
+                {
+                    return db::makeQuery(messagePosIdx(),db::where(message::pos,db::query::eq,pos).
+                                                              and_(message::object_type,db::query::eq,objectType),
+                                         topic
+                                         );
+                }
+                );
+
+            auto deleteCb=[ctx,selfCtx{this->sharedMainCtx()},cb{std::move(cb)}](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo Log error
+                }
+                cb(std::move(ctx),ec);
+            };
+            m_db->deleteMany(ctx,std::move(deleteCb),mqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
-        void removeLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, lib::string_view topic, const common::pmr::vector<du::ObjectId>& objIds={})
+        void removeLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds={})
         {
+            lib::string_view topicView{topic};
+            auto q=db::wrapQueryBuilder(
+                [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()},objIds{std::move(objIds)}]()
+                {
+                    if (objIds.empty())
+                    {
+                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType),
+                                             topic
+                                             );
+                    }
+                    return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
+                                                          and_(message::object_type,db::query::eq,objectType),
+                                         topic
+                                         );
+                }
+                );
+
+            auto deleteCb=[ctx,selfCtx{this->sharedMainCtx()},cb{std::move(cb)}](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo Log error
+                }
+                cb(std::move(ctx),ec);
+            };
+            m_db->deleteMany(ctx,std::move(deleteCb),mqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
-        void readLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, lib::string_view topic, const common::pmr::vector<du::ObjectId>& objIds={})
+        void readLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds={})
         {
+            lib::string_view topicView{topic};
+            auto q=db::wrapQueryBuilder(
+                [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()},objIds{std::move(objIds)}]()
+                {
+                    if (objIds.empty())
+                    {
+                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType),
+                                             topic
+                                             );
+                    }
+                    return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
+                                                          and_(message::object_type,db::query::eq,objectType),
+                                         topic
+                                         );
+                }
+                );
+
+            auto findCb=[ctx,selfCtx{this->sharedMainCtx()},cb{std::move(cb)}](auto, Result<common::pmr::vector<db::DbObject>> r)
+            {
+                if (r)
+                {
+                    //! @todo Log error
+                }
+                cb(std::move(ctx),std::move(r));
+            };
+            m_db->find(ctx,std::move(findCb),mqMessageModel(),std::move(q),topicView);
         }
 
     private:
@@ -410,7 +501,6 @@ class ProducerClient : public common::pmr::WithFactory,
 
         db::AsyncClient* m_db;
 
-        bool m_running;
         bool m_stopped;
 };
 
