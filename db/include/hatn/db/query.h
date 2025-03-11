@@ -1405,13 +1405,13 @@ auto where_partitioned(const PartitionIndexT& partitionIndex, const FieldT& fiel
 template <typename ...Args>
 auto where(Args&&... args)
 {
-    return db::where(std::forward<Args>(args)...);
+    return db::query::where(std::forward<Args>(args)...);
 }
 
 template <typename ...Args>
 auto where_partitioned(Args&&... args)
 {
-    return db::where_partitioned(std::forward<Args>(args)...);
+    return db::query::where_partitioned(std::forward<Args>(args)...);
 }
 
 HATN_DB_NAMESPACE_END
