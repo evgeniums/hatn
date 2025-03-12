@@ -51,6 +51,8 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
         m_content->reset();
     }
 
+    m_typeName=message.unitName();
+
     return ec;
 };
 

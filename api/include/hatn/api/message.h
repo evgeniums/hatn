@@ -20,10 +20,11 @@
 #define HATNAPIMESSAGE_H
 
 #include <hatn/common/result.h>
+#include <hatn/common/allocatoronstack.h>
 #include <hatn/dataunit/wiredata.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/connection.h>
+#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -32,6 +33,7 @@ class Message
 {
     public:
 
+        using NameType=common::StringOnStackT<MethodNameLengthMax>;
         using BufType=BufT;
 
         template <typename UnitT>
@@ -52,9 +54,15 @@ class Message
             m_content.reset();
         }
 
+        lib::string_view typeName() const noexcept
+        {
+            return m_typeName;
+        }
+
     private:
 
         common::SharedPtr<BufType> m_content;
+        NameType m_typeName;
 };
 
 HATN_API_NAMESPACE_END

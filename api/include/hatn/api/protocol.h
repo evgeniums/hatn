@@ -22,7 +22,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include <hatn/api/api.h>
-#include <hatn/api/connection.h>
+#include <hatn/api/apiconstants.h>
 
 HATN_API_NAMESPACE_BEGIN
 

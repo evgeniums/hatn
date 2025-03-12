@@ -72,7 +72,7 @@ Error Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::exec(
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs));
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
-    auto ec=req->serialize(service,method,std::move(message),topic,tenancy);
+    auto ec=req->serialize(service,method,topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),std::move(req),std::move(callback));
     return OK;

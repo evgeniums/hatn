@@ -53,6 +53,7 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
     {
         m_unit->setFieldValue(request::tenancy,tenancy.tenancyId());
     }
+    m_unit->setFieldValue(request::message_type,m_message.typeName());
 
     return serialize();
 }

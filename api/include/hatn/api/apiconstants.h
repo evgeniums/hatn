@@ -19,8 +19,9 @@
 #ifndef HATNAPICONSTANTS_H
 #define HATNAPICONSTANTS_H
 
+#include <cstddef>
+
 #include <hatn/api/api.h>
-#include <hatn/api/connection.h>
 
 HATN_API_NAMESPACE_BEGIN
 
