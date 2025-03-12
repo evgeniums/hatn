@@ -43,6 +43,12 @@ HDU_UNIT(producer_config,
     HDU_FIELD(publish_ttl,TYPE_UINT32,2,false,900)
 )
 
+enum class MessageStatus : uint8_t
+{
+    Sent,
+    Expired
+};
+
 template <typename ServerT, typename SchedulerT, typename NotifierT, typename MessageT=db_message::managed>
 struct Traits
 {
@@ -112,6 +118,26 @@ class ProducerClient : public common::pmr::WithFactory,
         Scheduler* scheduler() const noexcept
         {
             return m_scheduler;
+        }
+
+        void setNotifier(Notifier* notifier) noexcept
+        {
+            m_notifier=notifier;
+        }
+
+        Notifier* notifier() const noexcept
+        {
+            return m_notifier;
+        }
+
+        void setServer(Server* server) noexcept
+        {
+            m_server=server;
+        }
+
+        Server* server() const noexcept
+        {
+            return m_server;
         }
 
         template <typename ContextT, typename CallbackT, typename ContentT=du::Unit, typename NofificationT=du::Unit>
@@ -675,6 +701,42 @@ class ProducerClient : public common::pmr::WithFactory,
         }
 
         template <typename ContextT, typename CallbackT>
+        void sendToserver(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb, common::SharedPtr<Message> msg)
+        {
+            auto sendCb=[cb{std::move(cb)},jb{std::move(jb)},selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto msg)
+            {
+                if (ec)
+                {
+                    cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                    return;
+                }
+
+                // remove message
+                auto delCb=[ctx{std::move(ctx)},this,selfCtx{this->sharedMainCtx()},jb,cb{std::move(cb)},msg](auto, common::Error& ec)
+                {
+                    if (ec)
+                    {
+                        cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                        return;
+                    }
+
+                    auto notifyCb=[ctx,this,selfCtx{this->sharedMainCtx()},jb,cb{std::move(cb)}](auto, common::Error&)
+                    {
+                        // dequeue next message
+                        dequeue(std::move(ctx),std::move(cb),std::move(jb));
+                    };
+                    // notify that message was sent
+                    m_notifier->notify(
+                        ctx,notifyCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),msg,MessageStatus::Sent
+                    );
+                };
+                m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),mqMessageModel(),msg->fieldValue(db::object::_id));
+            };
+
+            m_server->send(std::move(ctx),std::move(msg),std::move(sendCb));
+        }
+
+        template <typename ContextT, typename CallbackT>
         void dequeue(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb)
         {
             if (m_stopped.load())
@@ -741,7 +803,11 @@ class ProducerClient : public common::pmr::WithFactory,
                             return false;
                         }
 
-                        //! @todo Notify that message was expired
+                        // notify that message expired
+                        auto notifyCb=[](auto, common::Error&){};
+                        m_notifier->notify(
+                            ctx,notifyCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),msg,MessageStatus::Expired
+                        );
 
                         // read next message
                         return true;
@@ -750,23 +816,7 @@ class ProducerClient : public common::pmr::WithFactory,
 
                     // send message to server
                     jobResultStatus->first=false;
-                    m_server->send(std::move(ctx),
-                                   [cb,jb,selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec)
-                                   {
-                                        if (!ec)
-                                        {
-                                            //! @todo Notify that message was sent
-                                        }
-
-                                        if (ec || m_stopped.load())
-                                        {
-                                            cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
-                                            return;
-                                        }
-
-                                        dequeue(std::move(ctx),std::move(cb),std::move(jb));
-                                   },
-                                   std::move(jb),std::move(msg));
+                    sendToserver(std::move(ctx),std::move(cb),std::move(jb),std::move(msg));
 
                     // wait for result of message sending
                     return false;
@@ -802,6 +852,7 @@ class ProducerClient : public common::pmr::WithFactory,
 
         Scheduler* m_scheduler;
         Server* m_server;
+        Notifier* m_notifier;
 
         mutable common::MutexLock m_topicJobsMutex;
         common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>> m_topicJobs;
