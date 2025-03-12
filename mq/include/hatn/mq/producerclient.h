@@ -129,7 +129,7 @@ class ProducerClient : public common::pmr::WithFactory,
         {
             // create message
             auto msg=this->factory()->template createObject<Message>();
-            db::initObject(*msg);
+            db::initObject(*msg);            
 
             // set producer's fields
             msg->field(message::producer).set(m_producerId);
@@ -215,6 +215,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 dt.addSeconds(ttl);
                 msg->field(message::expire_at).set(dt);
             }
+            msg->field(db_message::expired).set(false);
 
             // save in db
             auto txCb=[ctx,selfCtx{this->sharedMainCtx()},this,cb{std::move(cb)},msg,topic](auto, const Error& ec)
@@ -594,7 +595,9 @@ class ProducerClient : public common::pmr::WithFactory,
                 return;
             }
 
-            auto q=db::wrapQuery(this->factory(),messageProducerIdx(),db::where(message::producer,db::query::eq,m_producerId),*it);
+            auto q=db::wrapQuery(this->factory(),messageProducerIdx(),db::where(message::producer,db::query::eq,m_producerId).
+                                                                          and_(db_message::expired,db::query::eq,false)
+                                   ,*it);
             auto findCb=[ctx,cb{std::move(cb)},selfCtx{common::toWeakPtr(this->sharedMainCtx())},this,
                            foundTopics{std::move(foundTopics)},it](auto, Result<db::DbObjectT<Message>> res)
             {
@@ -659,16 +662,135 @@ class ProducerClient : public common::pmr::WithFactory,
             );
         }
 
+        void removeTopicJob(lib::string_view topic)
+        {
+            common::MutexScopedLock l(m_topicJobsMutex);
+
+            m_topicJobs.erase(topic);
+        }
+
+        void removeTopicJob(const common::SharedPtr<typename Scheduler::Job>& jb)
+        {
+            removeTopicJob(jb->field(HATN_SCHEDULER_NAMESPACE::job::ref_topic).value());
+        }
+
         template <typename ContextT, typename CallbackT>
         void dequeue(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb)
         {
-            // check if message is expired
+            if (m_stopped.load())
+            {
+                cb(std::move(ctx),Error{},std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                return;
+            }
 
-            // send to server
+            auto jobResultStatus=this->factory()->template createObject<
+                std::pair<bool,common::SharedPtr<HATN_SCHEDULER_NAMESPACE::JobResultOp>>
+            >(true,HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
 
-            // remove from storage on success
+            auto txCb=[ctx,cb,this,selfCtx{this->sharedMainCtx()},jb,jobResultStatus](auto, const common::Error ec)
+            {
+                if (ec)
+                {
+                    //! @todo report error
+                }
+                if (jobResultStatus->first)
+                {
+                    cb(std::move(ctx),ec,std::move(jb),*jobResultStatus);
+                }
+            };
+            auto txHandler=[this,ctx,cb,jb,jobResultStatus](db::Transaction* tx)
+            {
+                if (m_stopped)
+                {
+                    return Error{};
+                }
 
-            // notify that message was sent
+                auto client=m_db->client();
+
+                size_t foundCount=0;
+                bool findCb=[ctx,jb,cb,this,jobResultStatus,&foundCount,tx](db::DbObject obj, Error& ec)
+                {
+                    if (ec)
+                    {
+                        //! @todo report error
+                        return false;
+                    }
+
+                    // message not found
+                    if (obj.isNull())
+                    {
+                        return false;
+                    }
+
+                    auto msg=db::DbObjectT<Message>{std::move(obj)};
+
+                    // check if message expired
+                    if (msg->fieldValue(message::expire_at)>common::DateTime::currentUtc())
+                    {
+                        // update object - set expired=true
+                        auto req=db::update::request(db::update::field(db_message::expired,db::update::Operator::set,true));
+                        ec=client->update(jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),
+                                            mqMessageModel(),
+                                            msg->fieldValue(db::object::_id),
+                                            req,
+                                            tx
+                                            );
+                        if (ec)
+                        {
+                            //! @todo log error
+                            return false;
+                        }
+
+                        //! @todo Notify that message was expired
+
+                        // read next message
+                        return true;
+                    }
+                    foundCount++;
+
+                    // send message to server
+                    jobResultStatus->first=false;
+                    m_server->send(std::move(ctx),
+                                   [cb,jb,selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec)
+                                   {
+                                        if (!ec)
+                                        {
+                                            //! @todo Notify that message was sent
+                                        }
+
+                                        if (ec || m_stopped.load())
+                                        {
+                                            cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                                            return;
+                                        }
+
+                                        dequeue(std::move(ctx),std::move(cb),std::move(jb));
+                                   },
+                                   std::move(jb),std::move(msg));
+
+                    // wait for result of message sending
+                    return false;
+                };
+
+                // find non expired messages sorted by producer_pos
+                auto q=db::makeQuery(producerPosIdx(),db::where(message::producer_pos,db::query::gte,db::query::First,db::query::Order::Asc).
+                                                                          and_(db_message::expired,db::query::eq,false).
+                                                                          and_(message::producer,db::query::eq,m_producerId),
+                                       jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic)
+                                    );
+                auto ec=client->findCb(mqMessageModel(),q,findCb,tx,true);
+                if (ec)
+                {
+                    //! @todo report error
+                }
+                else if (foundCount==0)
+                {
+                    // all messages were prosecced, remove the job
+                    jobResultStatus->second=HATN_SCHEDULER_NAMESPACE::JobResultOp::Remove;
+                    removeTopicJob(jb);
+                }
+            };
+            m_db->transaction(ctx,std::move(txCb),std::move(txHandler),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic));
         }
 
         du::ObjectId m_producerId;
@@ -679,6 +801,7 @@ class ProducerClient : public common::pmr::WithFactory,
         std::atomic<bool> m_stopped;
 
         Scheduler* m_scheduler;
+        Server* m_server;
 
         mutable common::MutexLock m_topicJobsMutex;
         common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>> m_topicJobs;

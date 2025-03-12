@@ -52,8 +52,7 @@ HDU_UNIT(message,
 )
 
 HATN_DB_UNIQUE_INDEX(messageProducerIdx,message::producer)
-HATN_DB_UNIQUE_INDEX(messagePosIdx,message::pos,message::object_type,message::producer)
-HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,message::producer,message::object_type)
+HATN_DB_UNIQUE_INDEX(messagePosIdx,message::producer,message::pos)
 
 HATN_DB_INDEX(objectIdTypeIdx,message::object_id,message::object_type,message::producer)
 HATN_DB_INDEX(objectIdOpIdx,message::object_id,message::operation,message::producer)
@@ -67,7 +66,8 @@ HDU_UNIT_WITH(db_message,(HDU_BASE(db::object),HDU_BASE(message)),
     HDU_FIELD(expired,TYPE_BOOL,9)
 )
 
-HATN_DB_INDEX(expiredObjectsIdx,db_message::expired,message::object_type,message::producer)
+HATN_DB_INDEX(expiredObjectsIdx,db_message::expired,message::producer)
+HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,db_message::expired,message::producer,message::object_type)
 
 HATN_DB_MODEL_WITH_CFG(mqMessageModel,db_message,db::ModelConfig("mq_messages"),
                        messagePosIdx(),
