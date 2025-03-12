@@ -43,7 +43,7 @@ HDU_UNIT(producer_config,
     HDU_FIELD(publish_ttl,TYPE_UINT32,2,false,900)
 )
 
-template <typename ServerT, typename SchedulerT, typename NotifierT, typename MessageT=message::managed>
+template <typename ServerT, typename SchedulerT, typename NotifierT, typename MessageT=db_message::managed>
 struct Traits
 {
     using Server=ServerT;
@@ -54,7 +54,8 @@ struct Traits
 
 template <typename Traits>
 class ProducerClient : public common::pmr::WithFactory,
-                        public HATN_BASE_NAMESPACE::ConfigObject<producer_config::type>,
+                       public common::WithMappedThreads,
+                       public HATN_BASE_NAMESPACE::ConfigObject<producer_config::type>,
                        public db::WithAsyncClient,
                        public common::TaskSubcontext
 {
@@ -235,9 +236,10 @@ class ProducerClient : public common::pmr::WithFactory,
             auto txHandler=[this,topic{std::move(topic)},msg,ctx,objectContent{std::move(objectContent)},notificationContent{std::move(notificationContent)}](db::Transaction* tx)
             {
                 auto client=m_db->client();
-                auto objectQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)),topic);
+                auto objectQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id).and_(message::producer,db::query::eq,m_producerId)),topic);
                 auto findCreateOpQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
-                                                                        and_(message::operation,db::query::eq,Operation::Create)
+                                                                        and_(message::operation,db::query::eq,Operation::Create).
+                                                                        and_(message::producer,db::query::eq,m_producerId)
                                                        ,topic);
 
                 switch (msg->fieldValue(message::operation))
@@ -388,58 +390,52 @@ class ProducerClient : public common::pmr::WithFactory,
                 CallbackT cb
             )
         {
-            auto retryInterval=this->config()->fieldValue(producer_config::dequeue_retry_interval);
-            auto retryLater=[jb{std::move(jb)},cb{std::move(cb)},retryInterval](auto ctx)
-            {
-                jb->setFieldValue(HATN_SCHEDULER_NAMESPACE::job::period,retryInterval);
-                cb(std::move(ctx),Error{},std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
-            };
+            common::postAsyncTask(
+                this->threads()->mappedOrRandomThread(jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic)),
+                ctx,
+                [ctx,this,selfCtx{sharedMainCtx()},jb](auto, auto cb)
+                {
+                    auto retryInterval=this->config()->fieldValue(producer_config::dequeue_retry_interval);
+                    auto retryLater=[jb{std::move(jb)},cb{std::move(cb)},retryInterval](auto ctx)
+                    {
+                        jb->setFieldValue(HATN_SCHEDULER_NAMESPACE::job::period,retryInterval);
+                        cb(std::move(ctx),Error{},std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                    };
 
-            // if job for that topic is already under process then return immediately with retry later
-            if (m_stopped.load() || hasTopicJob(jb))
-            {
-                common::Thread::currentThread()->execAsync(
-                    [ctx{std::move(ctx)},retryLater{std::move(retryLater)}]()
+                    // if job for that topic is already under process then return immediately with retry later
+                    if (m_stopped.load() || hasTopicJob(jb))
                     {
                         retryLater(std::move(ctx));
+                        return;
                     }
-                );
-                return;
-            }
 
-            // dequeue for given topic
-            dequeue(std::move(ctx),
-                [retryLater{std::move(retryLater)}](auto ctx)
-                {
-                    retryLater(std::move(ctx));
+                    // dequeue for given topic
+                    dequeue(std::move(ctx),
+                            [retryLater{std::move(retryLater)}](auto ctx)
+                            {
+                                retryLater(std::move(ctx));
+                            },
+                            std::move(jb)
+                    );
                 },
-                std::move(jb)
+                std::move(cb)
             );
         }
 
-        template <typename ContextT>
-        void start(common::SharedPtr<ContextT> ctx)
+        template <typename ContextT, typename CallbackT>
+        void start(common::SharedPtr<ContextT> ctx, CallbackT cb)
         {
             m_stopped.store(false);
-
-            // wake up scheduler if there are no waiting jobs
-            if (m_topicJobs.empty())
-            {
-                m_scheduler->wakeUp();
-            }
-            else
-            {
-                // wake up all waiting jobs
-                for (auto&& it: m_topicJobs)
-                {
-                    postSchedulerJob(ctx,[](auto, auto){},it.first);
-                }
-            }
+            wakeUpTopics(std::move(ctx),std::move(cb));
         }
 
         void stop()
         {
             m_stopped.store(true);
+
+            m_topicJobsMutex.lock();
+            m_topicJobs.clear();
+            m_topicJobsMutex.unlock();
         }
 
         template <typename ContextT, typename CallbackT>
@@ -450,7 +446,9 @@ class ProducerClient : public common::pmr::WithFactory,
                 [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()}]()
                 {
                     return db::makeQuery(expiredObjectsIdx(),db::where(db_message::expired,db::query::eq,true).
-                                                              and_(message::object_type,db::query::eq,objectType),
+                                                              and_(message::object_type,db::query::eq,objectType).
+                                                              and_(message::producer,db::query::eq,m_producerId)
+                                                    ,
                                                     topic
                                          );
                 }
@@ -475,7 +473,9 @@ class ProducerClient : public common::pmr::WithFactory,
                 [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()},pos]()
                 {
                     return db::makeQuery(messagePosIdx(),db::where(message::pos,db::query::eq,pos).
-                                                              and_(message::object_type,db::query::eq,objectType),
+                                                              and_(message::object_type,db::query::eq,objectType).
+                                                              and_(message::producer,db::query::eq,m_producerId)
+                                         ,
                                          topic
                                          );
                 }
@@ -501,12 +501,14 @@ class ProducerClient : public common::pmr::WithFactory,
                 {
                     if (objIds.empty())
                     {
-                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType),
+                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
+                                                                       and_(message::producer,db::query::eq,m_producerId),
                                              topic
                                              );
                     }
                     return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
-                                                          and_(message::object_type,db::query::eq,objectType),
+                                                          and_(message::object_type,db::query::eq,objectType).
+                                                          and_(message::producer,db::query::eq,m_producerId),
                                          topic
                                          );
                 }
@@ -532,12 +534,14 @@ class ProducerClient : public common::pmr::WithFactory,
                 {
                     if (objIds.empty())
                     {
-                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType),
+                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
+                                             and_(message::producer,db::query::eq,m_producerId),
                                              topic
                                              );
                     }
                     return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
-                                                          and_(message::object_type,db::query::eq,objectType),
+                                                          and_(message::object_type,db::query::eq,objectType).
+                                                          and_(message::producer,db::query::eq,m_producerId),
                                          topic
                                          );
                 }
@@ -577,6 +581,82 @@ class ProducerClient : public common::pmr::WithFactory,
             )
         {
             m_scheduler->postJob(std::move(ctx),std::move(callback),m_producerIdStr,topic,SchedulerJobRefType,HATN_SCHEDULER_NAMESPACE::Mode::Queued);
+        }
+
+        template <typename ContextT, typename CallbackT, typename Iterator>
+        void checkTopicOwned(common::SharedPtr<ContextT> ctx, CallbackT cb,
+                             std::shared_ptr<std::pmr::set<db::TopicHolder>> foundTopics,
+                             Iterator it)
+        {
+            if (it==foundTopics->end() || m_stopped.load())
+            {
+                cb(ctx,Error{});
+                return;
+            }
+
+            auto q=db::wrapQuery(this->factory(),messageProducerIdx(),db::where(message::producer,db::query::eq,m_producerId),*it);
+            auto findCb=[ctx,cb{std::move(cb)},selfCtx{common::toWeakPtr(this->sharedMainCtx())},this,
+                           foundTopics{std::move(foundTopics)},it](auto, Result<db::DbObjectT<Message>> res)
+            {
+                if (res)
+                {
+                    //! @todo Log error
+                    cb(ctx,res.takeError());
+                    return;
+                }
+
+                if (m_stopped.load())
+                {
+                    cb(ctx,Error{});
+                    return;
+                }
+
+                auto sCtx=selfCtx.lock();
+                if (!sCtx)
+                {
+                    return;
+                }
+
+                if (!res->isNull())
+                {
+                    postSchedulerJob(ctx,[](auto, auto){},*it);
+                }
+
+                auto it1=it;
+                ++it1;
+                checkTopicOwned(std::move(ctx),std::move(cb),std::move(foundTopics),it1);
+            };
+            m_db->findOne(ctx,findCb,mqMessageModel(),std::move(q),*it);
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void wakeUpTopics(common::SharedPtr<ContextT> ctx, CallbackT cb)
+        {
+            auto topicsCb=[ctx,cb{std::move(cb)},this,selfCtx{this->sharedMainCtx()}](auto, Result<std::pmr::set<db::TopicHolder>> res)
+            {
+                if (res)
+                {
+                    //! @todo Log error
+                    cb(ctx,res.takeError());
+                    return;
+                }
+
+                if (m_stopped.load())
+                {
+                    cb(ctx,Error{});
+                    return;
+                }
+
+                auto topics=std::make_shared<std::pmr::set<db::TopicHolder>>(res.takeValue());
+                auto it=topics->begin();
+                checkTopicOwned(std::move(ctx),std::move(cb),std::move(topics),it);
+            };
+
+            m_db->listModelTopics(
+                ctx,
+                topicsCb,
+                mqMessageModel()
+            );
         }
 
         template <typename ContextT, typename CallbackT>
