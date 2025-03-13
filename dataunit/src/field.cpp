@@ -27,7 +27,8 @@ Field::Field(ValueType valeuTypeId,Unit* unit, bool array)
     : m_set(false),
       m_unit(unit),
       m_valueTypeId(valeuTypeId),
-      m_array(array)
+      m_array(array),
+      m_noSerialize(false)
 {}
 
 //---------------------------------------------------------------

@@ -67,6 +67,29 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 struct HATN_DATAUNIT_EXPORT visitors
 {
+    struct noFilterT
+    {
+        template <typename FieldT, typename ObjT>
+        constexpr bool operator()(FieldT&&, const ObjT&) const
+        {
+            return false;
+        }
+    };
+    constexpr static noFilterT noFilter{};
+
+    template <typename OtherUnitT>
+    struct existingFieldsFilterT
+    {
+        template <typename FieldT, typename ObjT>
+        constexpr bool operator()(FieldT&&, const ObjT&) const
+        {
+            using fieldType=typename std::decay_t<FieldT>;
+            return !OtherUnitT::hasId(hana::size_c<fieldType::ID>);
+        }
+    };
+    template <typename OtherUnitT>
+    constexpr static existingFieldsFilterT<OtherUnitT> existingFieldsFilter{};
+
     template <typename BufferT>
     static void appendFieldTag(BufferT& buf, int id, WireType type=WireType::WithLength, bool canChainBlocks=true)
     {
@@ -90,8 +113,8 @@ struct HATN_DATAUNIT_EXPORT visitors
      * @param top Is it top level object or subunit.
      * @return Serialized size or -1 in case of error.
      */
-    template <typename UnitT, typename BufferT>
-    static int serialize(const UnitT& obj, BufferT& wired, bool top=true)
+    template <typename UnitT, typename BufferT, typename FilterT=noFilterT>
+    static int serialize(const UnitT& obj, BufferT& wired, bool top=true, FilterT filter=noFilter)
     {
         return hana::eval_if(
             std::is_same<Unit,UnitT>{},
@@ -130,9 +153,21 @@ struct HATN_DATAUNIT_EXPORT visitors
                 };
 
                 // handler for each field
-                auto handler=[&buf](auto&& field, auto&&)
+                auto handler=[&buf,&filter,&obj](auto&& field, auto&&)
                 {
                     using fieldT=std::decay_t<decltype(field)>;
+
+                    // skip filtered fields
+                    if (filter(field,obj))
+                    {
+                        return true;
+                    }
+
+                    // skip fields excluded from serialization
+                    if (field.isNoSerialize())
+                    {
+                        return true;
+                    }
 
                     // skip optional fields which are not set
                     if (!field.fieldIsSet())
@@ -184,6 +219,39 @@ struct HATN_DATAUNIT_EXPORT visitors
             return buf.size()-prevSize;
         }
         return -1;
+    }
+
+    template <typename OtherUnitT, typename UnitT, typename BufferT>
+    static int serializeAs(const UnitT& obj, BufferT& buf)
+    {
+        return serialize(obj,buf,true,existingFieldsFilter<OtherUnitT>);
+    }
+
+    /**
+     * @brief Serialize data unit without invokation of virtual methods.
+     * @param obj Object to serialize.
+     * @param buf Buffer to put data to.
+     * @param error Error object to fill if serialization failed.
+     * @return Serialized size or -1 in case of error.
+     */
+    template <typename UnitT, typename BufferT, typename FilterT=noFilterT>
+    static int serialize(const UnitT& obj, BufferT& buf, Error& ec, FilterT filter=noFilter)
+    {
+        HATN_SCOPE_GUARD(
+            [&ec](){
+                fillError(UnitError::SERIALIZE_ERROR,ec);
+                RawError::setEnabledTL(false);
+            }
+            )
+
+        RawError::setEnabledTL(true);
+        return serialize(obj,buf,true,filter);
+    }
+
+    template <typename OtherUnitT, typename UnitT, typename BufferT>
+    static int serializeAs(const UnitT& obj, BufferT& buf, Error& ec)
+    {
+        return serialize(obj,buf,ec,existingFieldsFilter<OtherUnitT>);
     }
 
     /**
@@ -522,27 +590,6 @@ struct HATN_DATAUNIT_EXPORT visitors
                 return true;
             }
         );
-    }
-
-    /**
-     * @brief Serialize data unit without invokation of virtual methods.
-     * @param obj Object to serialize.
-     * @param buf Buffer to put data to.
-     * @param error Error object to fill if serialization failed.
-     * @return Serialized size or -1 in case of error.
-     */
-    template <typename UnitT, typename BufferT>
-    static int serialize(const UnitT& obj, BufferT& buf, Error& ec)
-    {
-        HATN_SCOPE_GUARD(
-            [&ec](){
-                fillError(UnitError::SERIALIZE_ERROR,ec);
-                RawError::setEnabledTL(false);
-            }
-        )
-
-        RawError::setEnabledTL(true);
-        return serialize(obj,buf);
     }
 
     /**

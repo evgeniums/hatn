@@ -187,6 +187,16 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
             return false;
         }
 
+        void setNoSerialize(bool enable) noexcept
+        {
+            m_noSerialize=enable;
+        }
+
+        bool isNoSerialize() const noexcept
+        {
+            return m_noSerialize;
+        }
+
     protected:
 
         //! Load field from wire
@@ -206,6 +216,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
         Unit* m_unit;
         ValueType m_valueTypeId;
         bool m_array;
+        bool m_noSerialize;
 
         friend class Unit;
 };

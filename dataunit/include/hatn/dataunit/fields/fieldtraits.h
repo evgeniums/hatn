@@ -160,12 +160,6 @@ struct FieldConf : public T
         return FieldName::name;
     }
 
-    //! Get static field description.
-    constexpr static const char* fieldDescription() noexcept
-    {
-        return FieldName::description;
-    }
-
     //! Get field required statically.
     constexpr static bool fieldRequired() noexcept
     {

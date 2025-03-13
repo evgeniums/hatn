@@ -285,6 +285,12 @@ bool Unit::toJSON(
         if (!iterateFieldsConst(
                     [writer](const Field& field)
                     {
+                        // skip fields excluded from serialization
+                        if (field.isNoSerialize())
+                        {
+                            return true;
+                        }
+
                         // skip optional fields which are not set
                         if (!field.isSet() && !field.hasDefaultValue())
                         {

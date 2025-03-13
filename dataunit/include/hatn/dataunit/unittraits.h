@@ -138,6 +138,25 @@ class UnitImpl
         template <typename T>
         bool iterateConst(const T& visitor) const;
 
+        /**
+         * @brief Check if field with some ID is present in the unit
+         * @param id Integral constant holding ID number
+         */
+        template <typename Id>
+        constexpr static auto hasId(Id id)
+        {
+            auto ts=hana::tuple_t<Fields...>;
+            auto ret=hana::find_if(
+                ts,
+                [id](auto field)
+                {
+                    using fieldType=typename decltype(field)::type;
+                    return hana::equal(id,hana::size_c<fieldType::ID>);
+                }
+            );
+            return hana::not_equal(ret,hana::nothing);
+        }
+
     protected:
 
         template <typename Index>
@@ -283,6 +302,13 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
         /**  Check if unit has a field. */
         template <typename T>
         constexpr static bool hasField(T&&) noexcept
+        {
+            constexpr auto idx=hana::type_c<std::decay_t<T>>;
+            return hana::contains(fieldsMap,idx);
+        }
+
+        template <typename T>
+        constexpr static bool hasField() noexcept
         {
             constexpr auto idx=hana::type_c<std::decay_t<T>>;
             return hana::contains(fieldsMap,idx);
