@@ -20,7 +20,6 @@
 #define HATNDBMODEL_H
 
 #include <type_traits>
-#include <set>
 
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/meta/foreachif.h>
@@ -574,6 +573,15 @@ struct makeModelWithIdxT
     }
 };
 template <typename UnitType> constexpr makeModelWithIdxT<UnitType> makeModelWithIdx{};
+
+struct _model_objectModel {
+    const auto& operator()() const
+    {
+        static auto mm=HATN_DB_NAMESPACE::makeModel<object::TYPE>(HATN_DB_NAMESPACE::DefaultModelConfig);
+        return mm;
+    }
+};
+constexpr _model_objectModel objectModel{};
 
 HATN_DB_NAMESPACE_END
 
