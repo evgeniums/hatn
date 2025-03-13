@@ -126,6 +126,8 @@ BOOST_AUTO_TEST_CASE(MsvcImportUnit)
     simple_int8::type du1;
     all_types::type du2;
     simple_int8::type du3;
+
+    BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

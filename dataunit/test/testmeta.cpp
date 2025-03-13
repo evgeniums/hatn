@@ -25,6 +25,7 @@ namespace unit1 {
     struct field0_strings
     {
         constexpr static const char* name=field0_name;
+        using definition=field0;
     };
 
     using field0_default_traits=hana::false_;
@@ -154,6 +155,7 @@ BOOST_AUTO_TEST_SUITE(TestMeta)
 BOOST_AUTO_TEST_CASE(SimpleField)
 {
     field0::type f0(nullptr);
+    BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_CASE(MacroV2Declare)
