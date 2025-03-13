@@ -47,8 +47,7 @@ HDU_UNIT(message,
     HDU_FIELD(operation,HDU_TYPE_ENUM(Operation),4,true)
     HDU_FIELD(object_id,TYPE_STRING,5,true)
     HDU_FIELD(object_type,TYPE_STRING,6)
-    HDU_FIELD(content,message_content::TYPE,7)
-    HDU_FIELD(expire_at,TYPE_DATETIME,8)    
+    HDU_FIELD(content,message_content::TYPE,7)    
 )
 
 HATN_DB_UNIQUE_INDEX(messageProducerIdx,message::producer)
@@ -58,25 +57,6 @@ HATN_DB_INDEX(objectIdTypeIdx,message::object_id,message::object_type,message::p
 HATN_DB_INDEX(objectIdOpIdx,message::object_id,message::operation,message::producer)
 
 HATN_DB_INDEX(objectTypeIdx,message::object_type,message::producer)
-
-// expire_at is used by app logic, the messages are not auto deleted when expired
-HATN_DB_INDEX(expiredIdx,message::expire_at,message::producer)
-
-HDU_UNIT_WITH(db_message,(HDU_BASE(db::object),HDU_BASE(message)),
-    HDU_FIELD(expired,TYPE_BOOL,9)
-)
-
-HATN_DB_INDEX(expiredObjectsIdx,db_message::expired,message::producer)
-HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,db_message::expired,message::producer,message::object_type)
-
-HATN_DB_MODEL_WITH_CFG(mqMessageModel,db_message,db::ModelConfig("mq_messages"),
-                       messagePosIdx(),
-                       objectIdOpIdx(),
-                       objectIdTypeIdx(),
-                       expiredObjectsIdx(),
-                       expiredIdx(),
-                       producerPosIdx()
-                       )
 
 /** @todo Use message validator
  *
