@@ -149,7 +149,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                         return;
                     }
 
-                    if (req.header.messageSize()>req.env->maxMessageSize())
+                    if (req.header.messageSize()>req.env->template get<ProtocolConfig>().maxMessageSize())
                     {
                         //! @todo report error to client
                         //! @todo log error?

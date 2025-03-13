@@ -24,6 +24,8 @@
 
 #include <hatn/network/asio/caresolver.h>
 
+#include <hatn/dataunit/ipp/syntax.ipp>
+
 #include <hatn/api/api.h>
 #include <hatn/api/client/plaintcpconnection.h>
 #include <hatn/api/server/plaintcpserver.h>
@@ -82,8 +84,13 @@ auto createClient(HATN_COMMON_NAMESPACE::Thread* thread)
 auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
 {
     auto tcpServerCtx=HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
-    auto serverEnv=HATN_COMMON_NAMESPACE::makeShared<HATN_API_NAMESPACE::server::SimpleEnv>();
-    serverEnv->threads()->setDefaultThread(thread);
+    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_API_NAMESPACE::server::SimpleEnv>(
+        HATN_COMMON_NAMESPACE::contexts(
+                HATN_COMMON_NAMESPACE::context(thread),
+                HATN_COMMON_NAMESPACE::context()
+            )
+        );
+    serverEnv->get<HATN_COMMON_NAMESPACE::WithMappedThreads>().threads()->setDefaultThread(thread);
     auto& tcpServer=tcpServerCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
     tcpServer.setEnv(serverEnv);
     return tcpServerCtx;

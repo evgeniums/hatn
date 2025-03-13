@@ -89,6 +89,27 @@ using tupleCToTupleType=typename tupleCToTupleTypeC<T>::type;
 template <typename T>
 using tupleCToStdTupleType=typename tupleCToStdTupleTypeC<T>::type;
 
+template <typename TupleT>
+struct TupleRefs
+{
+    constexpr static auto toRefs()
+    {
+        tupleToTupleCType<TupleT> tc;
+        auto rtc=boost::hana::transform(
+            tc,
+            [](auto&& v)
+            {
+                using type=typename std::decay_t<decltype(v)>::type;
+                return boost::hana::type_c<std::reference_wrapper<const type>>;
+            }
+            );
+        return boost::hana::unpack(rtc,boost::hana::template_<boost::hana::tuple>);
+    }
+
+    using typeC=decltype(toRefs());
+    using type=typename typeC::type;
+};
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTUPLETYPEC_H

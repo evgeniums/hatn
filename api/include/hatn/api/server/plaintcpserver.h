@@ -85,7 +85,7 @@ class PlainTcpConnectionTraits
             auto connectionCtx=common::allocateTaskContextType<PlainTcpConnectionContextT<Env>>(
                 allocator,
                 common::subcontexts(
-                    common::subcontext(server.env()->threads()->randomThread()),
+                    common::subcontext(server.env()->template get<common::WithMappedThreads>().threads()->randomThread()),
                     common::subcontext(),
                     common::subcontext(),
                     common::subcontext()

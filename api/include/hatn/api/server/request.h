@@ -78,7 +78,7 @@ struct Request : public common::TaskSubcontext
         }
         if (env)
         {
-            return env->threads()->defaultThread();
+            return env->template get<common::WithMappedThreads>().threads()->defaultThread();
         }
         return common::ThreadQWithTaskContext::current();
     }

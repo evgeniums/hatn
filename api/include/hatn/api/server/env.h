@@ -20,6 +20,11 @@
 #define HATNAPISERVERENV_H
 
 #include <hatn/common/threadwithqueue.h>
+#include <hatn/common/env.h>
+
+#include <hatn/base/configobject.h>
+
+#include <hatn/dataunit/syntax.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
@@ -31,28 +36,21 @@ namespace server {
 //! @todo Add tenancy to Env
 //! @todo Add logger to Env
 
-struct Env : public common::WithMappedThreads
-{
-    Env(
-            common::ThreadQWithTaskContext* defaultThread=common::ThreadQWithTaskContext::current(),
-            size_t maxMessageSize=protocol::DEFAULT_MAX_MESSAGE_SIZE
-        ) : common::WithMappedThreads(defaultThread),
-            m_maxMessageSize(maxMessageSize)
-    {}
+HDU_UNIT(protocol_config,
+    HDU_FIELD(max_message_size,TYPE_UINT32,1,false,protocol::DEFAULT_MAX_MESSAGE_SIZE)
+)
 
-    //! @todo Reimplement using config
-    size_t maxMessageSize() const noexcept
-    {
-        return m_maxMessageSize;
-    }
-
-    size_t m_maxMessageSize;
-};
-
-class SimpleEnv : public Env
+class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config::type>
 {
     public:
+
+        size_t maxMessageSize() const noexcept
+        {
+            return config().fieldValue(protocol_config::max_message_size);
+        }
 };
+
+using SimpleEnv = common::EnvType<common::WithMappedThreads,ProtocolConfig>;
 
 template <typename EnvT=SimpleEnv>
 class WithEnv
