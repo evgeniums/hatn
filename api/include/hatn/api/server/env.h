@@ -52,11 +52,12 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
         {
             return config().fieldValue(protocol_config::max_message_size);
         }
+    //! @todo protect with mutex
 };
 
-using SimpleEnv = common::EnvType<Threads,Db,ProtocolConfig>;
+using BasicEnv = common::Env<Threads,Db,ProtocolConfig>;
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=BasicEnv>
 class WithEnv
 {
     public:
@@ -91,7 +92,7 @@ class WithEnv
 
 HATN_API_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::WithEnv<HATN_API_NAMESPACE::server::SimpleEnv>,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::WithEnv<HATN_API_NAMESPACE::server::BasicEnv>,HATN_API_EXPORT)
 
 #endif // HATNAPISERVERCONTEXT_H
 

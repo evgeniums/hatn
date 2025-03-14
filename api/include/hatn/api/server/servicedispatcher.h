@@ -26,7 +26,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class ServiceDispatcherTraits
 {
     public:
@@ -61,7 +61,7 @@ class ServiceDispatcherTraits
         std::shared_ptr<ServiceRouter<Env,Request>> m_serviceRouter;
 };
 
-template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 using ServiceDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT,RequestT>,EnvT,RequestT>;
 
 } // namespace server

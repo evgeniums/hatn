@@ -33,7 +33,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename ConnectionsStoreT, typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename ConnectionsStoreT, typename DispatcherT, typename AuthDispatcherT=DispatcherT, typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,DispatcherT,AuthDispatcherT,EnvT,RequestT>>
 {
     public:

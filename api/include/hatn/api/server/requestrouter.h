@@ -26,7 +26,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename Traits, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename Traits, typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class RequestRouter : public common::WithTraits<Traits>
 {
     public:

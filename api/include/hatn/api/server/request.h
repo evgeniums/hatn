@@ -40,7 +40,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv, typename RequestUnitT=request::type>
+template <typename EnvT=BasicEnv, typename RequestUnitT=request::type>
 struct Request : public common::TaskSubcontext
 {
     using Env=EnvT;
@@ -164,6 +164,6 @@ using RouteFh=std::function<void (common::SharedPtr<RequestContext<RequestT>> re
 
 HATN_API_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::Request<HATN_API_NAMESPACE::server::SimpleEnv>,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::Request<HATN_API_NAMESPACE::server::BasicEnv>,HATN_API_EXPORT)
 
 #endif // HATNAPISERVERREQUEST_H

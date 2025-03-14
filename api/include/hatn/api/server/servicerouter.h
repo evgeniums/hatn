@@ -34,7 +34,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class ServiceRouterTraits
 {
     public:
@@ -70,7 +70,7 @@ class ServiceRouterTraits
         common::FlatMap<Service,RouteFh<Request>,std::less<WithNameAndVersion<ServiceNameLengthMax>>> m_routes;
 };
 
-template <typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class ServiceRouter : public RequestRouter<ServiceRouterTraits<EnvT,RequestT>,EnvT,RequestT>
 {
     public:

@@ -34,7 +34,7 @@ namespace server
 
 using PlainTcpConnection=Connection<HATN_NETWORK_NAMESPACE::asio::TcpStream>;
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=BasicEnv>
 using PlainTcpConnectionContextT=common::TaskContextType<HATN_NETWORK_NAMESPACE::asio::TcpStream,
                                                           PlainTcpConnection,
                                                           WithEnv<EnvT>,
@@ -42,7 +42,7 @@ using PlainTcpConnectionContextT=common::TaskContextType<HATN_NETWORK_NAMESPACE:
                                                           >;
 using PlainTcpConnectionContext=PlainTcpConnectionContextT<>;
 
-template <typename EnvT=SimpleEnv>
+template <typename EnvT=BasicEnv>
 class PlainTcpConnectionTraits
 {
     public:
@@ -110,7 +110,7 @@ class PlainTcpConnectionTraits
             return ctx->template get<Env>();
         }
 };
-template <typename Env=SimpleEnv>
+template <typename Env=BasicEnv>
 using PlainTcpServerT=TcpServer<PlainTcpConnectionTraits<Env>>;
 
 using PlainTcpServer=PlainTcpServerT<>;

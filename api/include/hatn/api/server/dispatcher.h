@@ -39,7 +39,7 @@ namespace server {
 template <typename RequestT=Request<>>
 using DispatchCb=RouteCb<RequestT>;
 
-template <typename Traits, typename EnvT=SimpleEnv, typename RequestT=Request<EnvT>>
+template <typename Traits, typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 class Dispatcher : public common::WithTraits<Traits>,
                    public std::enable_shared_from_this<Dispatcher<Traits,EnvT,RequestT>>
 {

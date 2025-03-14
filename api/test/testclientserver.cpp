@@ -125,7 +125,7 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
     };
 
     auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
-    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::SimpleEnv>(
+    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::BasicEnv>(
         HATN_COMMON_NAMESPACE::contexts(
             HATN_COMMON_NAMESPACE::context(thread),
             HATN_COMMON_NAMESPACE::context(),

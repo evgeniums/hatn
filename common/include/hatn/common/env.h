@@ -76,11 +76,11 @@ private:
  * @brief The Env class represent a holder of contextx where each context can be accessed with get() method.
  */
 template <typename Contexts, typename BaseT=BaseEnv>
-class Env : public BaseT
+class EnvT : public BaseT
 {
     public:
 
-        using selfT=Env<Contexts,BaseEnv>;
+        using selfT=EnvT<Contexts,BaseEnv>;
         using Base=BaseT;
 
         constexpr static auto isNested=boost::hana::not_(std::is_same<BaseT,BaseEnv>{});
@@ -88,7 +88,7 @@ class Env : public BaseT
         /**
          * @brief Default constructor.
          */
-        Env() : m_contexts(),
+        EnvT() : m_contexts(),
                 m_refs(ctxRefs())
         {}
 
@@ -98,7 +98,7 @@ class Env : public BaseT
              * @param baseTs Arguments to forward to base class.
              */
         template <typename Tts, typename ...BaseTs>
-        Env(Tts&& tts, BaseTs&& ...baseTs):
+        EnvT(Tts&& tts, BaseTs&& ...baseTs):
             BaseT(std::forward<BaseTs>(baseTs)...),
             m_contexts(std::forward<Tts>(tts)),
             m_refs(ctxRefs())
@@ -357,7 +357,7 @@ struct EnvTraits
         auto base=boost::hana::second(tc);
 
         // return actual type of Env
-        return boost::hana::template_<Env>(boost::hana::type_c<wrappersT>,base);
+        return boost::hana::template_<EnvT>(boost::hana::type_c<wrappersT>,base);
     }
 
     using tupleC=decltype(typeFn());
@@ -367,7 +367,7 @@ struct EnvTraits
 }
 
 template <typename ...Types>
-using EnvType=typename detail::EnvTraits<Types...>::type;
+using Env=typename detail::EnvTraits<Types...>::type;
 
 template <typename Type>
 struct makeEnvTypeT
@@ -417,7 +417,7 @@ constexpr makeEnvTypeT<Type> makeEnvType{};
 template <typename ...Types>
 struct makeEnvT
 {
-    using type=typename common::detail::EnvTraits<Types...>::type;
+    using type=Env<Types...>;
 
     template <typename ...Args>
     auto operator()(Args&&... args) const
@@ -461,7 +461,7 @@ constexpr allocateEnvTypeT<Type> allocateEnvType{};
 template <typename ...Types>
 struct allocateEnvT
 {
-    using type=typename common::detail::EnvTraits<Types...>::type;
+    using type=Env<Types...>;
 
     template <typename ...Args>
     auto operator()(const pmr::polymorphic_allocator<type>& allocator, Args&&... args) const
