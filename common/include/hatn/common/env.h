@@ -190,7 +190,7 @@ class EnvT : public BaseT
                     // context not found in this, try to find it in base env
 
                     using baseT=typename std::decay_t<decltype(_(bc))>::type;
-                    static_assert(!std::is_same<baseT,BaseEnv>::value,"Unknown context wrapper type");
+                    static_assert(!std::is_same<baseT,BaseEnv>::value,"Unknown context type");
 
                     using type=typename std::decay_t<decltype(_(tc))>::type;
                     const auto* base=static_cast<const baseT*>(_(self));
