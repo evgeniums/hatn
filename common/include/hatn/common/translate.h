@@ -60,25 +60,6 @@ class HATN_COMMON_EXPORT Translator
         static void setTranslator(std::shared_ptr<Translator> translator) noexcept;
 };
 
-/**
- * @brief Mark string for further localization
- * @param phrase String that will be translated
- * @param context Context of the translation
- * @return Translated string
- */
-inline std::string _TR(
-            const std::string& phrase,
-            const std::string& context="generic"
-        )
-{
-    const auto& translator=Translator::translator();
-    if (translator)
-    {
-        return translator->translate(phrase,context);
-    }
-    return phrase;
-}
-
 class BoostTranslatorFactory_p;
 /**
  * @brief Translator factory that uses boost::locale to perform translations.
@@ -176,12 +157,36 @@ HATN_COMMON_NAMESPACE_END
 
 HATN_NAMESPACE_BEGIN
 
-inline std::string _TR(
+    /**
+ * @brief Mark string for further localization
+ * @param phrase String that will be translated
+ * @param context Context of the translation
+ * @return Translated string
+ */
+    inline std::string _TR(
         const std::string& phrase,
         const std::string& context="generic"
         )
 {
-    return common::_TR(phrase,context);
+    const auto& translator=common::Translator::translator();
+    if (translator)
+    {
+        return translator->translate(phrase,context);
+    }
+    return phrase;
+}
+
+inline std::string _TR(
+    const std::string& phrase,
+    const common::Translator* translator,
+    const std::string& context="generic"
+    )
+{
+    if (translator!=nullptr)
+    {
+        return translator->translate(phrase,context);
+    }
+    return phrase;
 }
 
 HATN_NAMESPACE_END
