@@ -37,52 +37,77 @@ void ServerService<Traits>::handleRequest(
         api::server::RouteCb<RequestT> callback
     ) const
 {
-#if 0
-    // check method
-    if (request->unit.field(api::request::method).value()!=lib::string_view{ApiRequestMethod})
+    auto& req=request->template get<RequestT>();
+
+    auto cb=[callback(std::move(callback)),&req](common::SharedPtr<api::server::RequestContext<RequestT>> request)
     {
-        //! @todo report invalid service method
-        return;
-    }
+        //! @todo Log status?
+        callback(std::move(request));
+    };
 
-    // check message type
-    if (request->unit.field(api::request::message_type).value()!=lib::string_view{ApiRequestMessageType})
+    auto handleMessage=[request{std::move(request)},cb{std::move(cb)},this,&req](ServiceMethodStatus status, auto handler, auto msg, const auto& validator)
     {
-        //! @todo report invalid message type
-        return;
-    }
+        // check status
+        if (status>ServiceMethodStatus::MessageNotRequred)
+        {
+            switch (status)
+            {
+                case(ServiceMethodStatus::UnknownMethod): req.response.setStatus(protocol::ResponseStatus::UnknownMethod); break;
+                case(ServiceMethodStatus::UnknownMessageType): req.response.setStatus(protocol::ResponseStatus::UnknownMessageType); break;
+                case(ServiceMethodStatus::MessageMissing): req.response.setStatus(protocol::ResponseStatus::MessageMissing); break;
 
-    // check if message is set
-    if (!request->unit.field(api::request::message).isSet())
-    {
-        //! @todo report message not set
-        return;
-    }
+                default:
+                    req.response.setStatus(protocol::ResponseStatus::InternalServerError);
+                    break;
+            }
 
-    // parse request content
-    auto msg=request->env->template get<api::server::AllocatorFactory>().factory()->template createObject<Message>();
-    const auto& messageField=request->unit.field(api::request::message);
-    du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
-    Error ec;
-    du::io::deserialize(*msg,buf,ec);
-    if (ec)
-    {
-        //! @todo report message parsing failed
-        return;
-    }
+            cb(std::move(request));
+            return;
+        }
 
-    // fill db message fields
+        // if message not required invoke handler without message
+        if (status==ServiceMethodStatus::MessageNotRequred)
+        {
+            handler(std::move(request),std::move(msg),std::move(cb));
+            return;
+        }
 
-    // parse object
+        // build message object
+        using msgType=typename std::decay_t<decltype(msg)>::element_type;
+        msg=req.template get<AllocatorFactory>().factory()->template createObject<msgType>();
 
-    // check it producer_pos outdated
+        //  parse message
+        const auto& messageField=request->unit.field(protocol::request::message);
+        du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
+        if (!du::io::deserialize(*msg,buf))
+        {
+            req.response.setStatus(protocol::ResponseStatus::FormatError);
+            cb(std::move(request));
+            return;
+        }
 
-    // save object and mq message in db
+        // validate message
+        auto validationStatus=validator.apply(*msg);
+        if (!validationStatus)
+        {
+            //! @todo construct locale aware validation report
 
-    // notify that mq message received
+            req.response.setStatus(protocol::ResponseStatus::ValidationError);
+            cb(std::move(request));
+            return;
+        }
 
-    // invoke callback
-#endif
+        // handle message in service
+        handler(std::move(request),std::move(cb));
+    };
+
+    // prepare handler for request
+    prepareHandler(&req,
+                   req.unit.field(protocol::request::method).value(),
+                   req.unit.field(protocol::request::message).isSet(),
+                   req.unit.field(protocol::request::message_type).value(),
+                   std::move(handleMessage)
+                   );
 }
 
 //---------------------------------------------------------------

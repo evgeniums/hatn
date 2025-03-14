@@ -95,7 +95,7 @@ Error makeApiError(ErrCodeT code,
         int r=du::io::serializeAsSubunit(*dataUnit,buf,protocol::response_error_message::data);
         if (r<0)
         {
-            //! @todo Log error
+            std::cerr <<  "Failed to serialize data of API error " << dataType << std::endl;
         }
         else
         {

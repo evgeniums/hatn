@@ -99,7 +99,10 @@ enum class ResponseStatus : int
     FormatError=3,
     ValidationError=3,
     RoutingError=4,
-    ServiceError=5
+    UnknownMethod=5,
+    UnknownMessageType=6,
+    MessageMissing=7,
+    ServiceError=8
 };
 
 }
