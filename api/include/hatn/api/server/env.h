@@ -25,6 +25,7 @@
 #include <hatn/base/configobject.h>
 
 #include <hatn/dataunit/syntax.h>
+#include <hatn/db/asyncclient.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
@@ -32,6 +33,9 @@
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
+
+using Threads=common::WithMappedThreads;
+using Db=db::AsyncDb;
 
 //! @todo Add tenancy to Env
 //! @todo Add logger to Env
@@ -50,7 +54,7 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
         }
 };
 
-using SimpleEnv = common::EnvType<common::WithMappedThreads,ProtocolConfig>;
+using SimpleEnv = common::EnvType<Threads,Db,ProtocolConfig>;
 
 template <typename EnvT=SimpleEnv>
 class WithEnv

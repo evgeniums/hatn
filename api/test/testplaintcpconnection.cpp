@@ -87,6 +87,7 @@ auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
     auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_API_NAMESPACE::server::SimpleEnv>(
         HATN_COMMON_NAMESPACE::contexts(
                 HATN_COMMON_NAMESPACE::context(thread),
+                HATN_COMMON_NAMESPACE::context(),
                 HATN_COMMON_NAMESPACE::context()
             )
         );

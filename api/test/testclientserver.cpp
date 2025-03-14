@@ -128,6 +128,7 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
     auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::SimpleEnv>(
         HATN_COMMON_NAMESPACE::contexts(
             HATN_COMMON_NAMESPACE::context(thread),
+            HATN_COMMON_NAMESPACE::context(),
             HATN_COMMON_NAMESPACE::context()
         )
     );
