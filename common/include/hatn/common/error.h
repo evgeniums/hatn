@@ -514,9 +514,9 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
          *
          * This error will be swapped with the next error with moving this error to the next error as a prev error.
          */
-        void stackWith(Error&& next);
+        void stackWith(Error&& next, bool keepThisApiError=true);
 
-        void setPrevError(Error&& prev);
+        void setPrevError(Error&& prev, bool usePrevApiError=true);
 
     private:
 

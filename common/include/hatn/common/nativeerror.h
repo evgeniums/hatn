@@ -75,6 +75,17 @@ class HATN_COMMON_EXPORT NativeError
             m_boostCategory(nullptr)
         {}
 
+        NativeError(
+                int apiCode,
+                const ApiErrorCategory* apiCat,
+                const ErrorCategory* cat
+            ) : m_nativeCode(apiCode),
+                m_category(cat),
+                m_systemCategory(nullptr),
+                m_boostCategory(nullptr),
+                m_apiError(std::in_place,apiCode,apiCat)
+        {}
+
         virtual ~NativeError();
         NativeError(const NativeError&)=default;
         NativeError(NativeError&&) =default;
@@ -197,9 +208,13 @@ class HATN_COMMON_EXPORT NativeError
             return !isEqual(other);
         }
 
-        void setPrevError(Error&& error)
+        void setPrevError(Error&& error, bool usePrevApiError=true)
         {
             m_prevError=std::move(error);
+            if (usePrevApiError && m_prevError->apiError()!=nullptr)
+            {
+                m_apiError.reset();
+            }
         }
 
         void setApiError(ApiError error)
@@ -225,6 +240,15 @@ class HATN_COMMON_EXPORT NativeError
             if (m_prevError)
             {
                 return m_prevError->apiError();
+            }
+            return nullptr;
+        }
+
+        ApiError* mutableApiError()
+        {
+            if (m_apiError)
+            {
+                return &(m_apiError.value());
             }
             return nullptr;
         }

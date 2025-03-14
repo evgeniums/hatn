@@ -26,53 +26,10 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-/********************** ApiError **************************/
+/********************** ApiErrorCategory **************************/
 
-ApiError::~ApiError()=default;
-
-//---------------------------------------------------------------
-
-int ApiError::apiCode() const noexcept
-{
-    if (m_error!=nullptr)
-    {
-        return m_error->value();
-    }
-    return 0;
-}
-
-//---------------------------------------------------------------
-
-const char* ApiError::apiStatus() const noexcept
-{
-    if (m_error!=nullptr)
-    {
-        return m_error->error();
-    }
-    return DefaultStatus;
-}
-
-//---------------------------------------------------------------
-
-std::string ApiError::apiMessage() const
-{
-    if (m_error!=nullptr)
-    {
-        return m_error->message();
-    }
-    return std::string();
-}
-
-//---------------------------------------------------------------
-
-std::string ApiError::apiFamily() const
-{
-    if (m_error!=nullptr)
-    {
-        return m_error->category()->name();
-    }
-    return std::string();
-}
+ApiErrorCategory::~ApiErrorCategory()
+{}
 
 /********************** NativeError **************************/
 
@@ -145,7 +102,7 @@ int Error::nativeErrorCondition(const std::shared_ptr<NativeError>& nativeError)
 
 //---------------------------------------------------------------
 
-void Error::setPrevError(Error &&prev)
+void Error::setPrevError(Error &&prev, bool usePrevApiError)
 {
     auto n=native();
     if (n==nullptr)
@@ -158,15 +115,15 @@ void Error::setPrevError(Error &&prev)
     }
     else
     {
-        n->setPrevError(std::move(prev));
+        n->setPrevError(std::move(prev),usePrevApiError);
     }
 }
 
 //---------------------------------------------------------------
 
-void Error::stackWith(Error&& next)
+void Error::stackWith(Error&& next, bool keepThisApiError)
 {
-    next.setPrevError(std::move(*this));
+    next.setPrevError(std::move(*this),keepThisApiError);
     *this=std::move(next);
 }
 
