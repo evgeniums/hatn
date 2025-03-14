@@ -34,6 +34,7 @@ constexpr const size_t DEFAULT_MAX_MESSAGE_SIZE=0x1000000;
 
 constexpr const size_t ServiceNameLengthMax=16;
 constexpr const size_t MethodNameLengthMax=32;
+constexpr const size_t UnitNameLengthMax=32;
 constexpr const size_t AuthProtocolNameLengthMax=8;
 constexpr const size_t ResponseCategoryNameLengthMax=32;
 constexpr const size_t ResponseFamilyNameLengthMax=32;

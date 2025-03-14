@@ -29,7 +29,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/service.h>
 #include <hatn/api/server/env.h>
-#include <hatn/api/server/request.h>
+#include <hatn/api/server/serverrequest.h>
 #include <hatn/api/server/servicerouter.h>
 
 HATN_API_NAMESPACE_BEGIN

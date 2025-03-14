@@ -26,7 +26,7 @@
 #include <hatn/common/sharedptr.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/server/request.h>
+#include <hatn/api/server/serverrequest.h>
 #include <hatn/api/server/env.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -39,7 +39,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
     public:
 
         using Env=EnvT;
-        using Request=RequestT;        
+        using Request=RequestT;
+
+        //! @todo Set Env
+        //! @todo Use factory from env
 
         Server(
                 std::shared_ptr<ConnectionsStoreT> connectionsStore,
@@ -116,12 +119,9 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
             // create request
             //! @todo set current thread as request's thread
-            auto reqCtx=allocateRequestContext(m_allocatorFactory);
+            auto reqCtx=allocateRequestContext<Env,typename Request::RequestUnit>(ctx->template get<WithEnv<Env>>().envShared());
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
-
-            // copy env from connection ctx to request
-            req.env=ctx->template get<WithEnv<Env>>().envShared();
 
             // recv header
             auto self=this->shared_from_this();

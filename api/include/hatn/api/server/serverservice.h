@@ -21,7 +21,7 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/service.h>
-#include <hatn/api/server/request.h>
+#include <hatn/api/server/serverrequest.h>
 
 HATN_API_NAMESPACE_BEGIN
 

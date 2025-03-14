@@ -24,12 +24,11 @@ HATN_API_NAMESPACE_BEGIN
 
 /********************** BaseErrorCategory **************************/
 
-static ApiErrorCategory ApiErrorCategoryInstance;
-
 //---------------------------------------------------------------
 const ApiErrorCategory& ApiErrorCategory::getCategory() noexcept
 {
-    return ApiErrorCategoryInstance;
+    static ApiErrorCategory inst;
+    return inst;
 }
 
 //---------------------------------------------------------------

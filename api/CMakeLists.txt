@@ -43,8 +43,8 @@ SET (HEADERS
     include/hatn/api/server/dispatcher.h
     include/hatn/api/server/tcpserver.h
     include/hatn/api/server/plaintcpserver.h
-    include/hatn/api/server/request.h
-    include/hatn/api/server/response.h
+    include/hatn/api/server/serverrequest.h
+    include/hatn/api/server/serverresponse.h
     include/hatn/api/server/servicerouter.h
     include/hatn/api/server/topicrouter.h
     include/hatn/api/server/server.h
@@ -63,6 +63,7 @@ SET (IPP_HEADERS
     include/hatn/api/ipp/auth.ipp
     include/hatn/api/ipp/methodauth.ipp
     include/hatn/api/ipp/serverservice.ipp
+    include/hatn/api/ipp/serverresponse.ipp
 )
 
 SET (HEADERS

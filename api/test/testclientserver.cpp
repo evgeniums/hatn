@@ -46,6 +46,7 @@
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
 #include <hatn/api/ipp/methodauth.ipp>
+#include <hatn/api/ipp/serverresponse.ipp>
 
 HATN_API_USING
 HATN_COMMON_USING

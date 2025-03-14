@@ -30,18 +30,22 @@ namespace protocol
 {
 
 HDU_UNIT(response,
-         HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
-         HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::OK)
-         HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
-         HDU_FIELD(message,TYPE_DATAUNIT,4)
-         )
+    HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
+    HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::OK)
+    HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
+    HDU_FIELD(message,TYPE_DATAUNIT,4)
+)
 
-HDU_UNIT(response_error,
-         HDU_FIELD(code,TYPE_INT32,1,true)
-         HDU_FIELD(family,HDU_TYPE_FIXED_STRING(ResponseFamilyNameLengthMax),3,true)
-         HDU_FIELD(status,HDU_TYPE_FIXED_STRING(ResponseStatusLengthMax),4,true)
-         HDU_FIELD(message,TYPE_STRING,5)
-         )
+constexpr const char* ResponseCategoryError="error";
+
+HDU_UNIT(response_error_message,
+    HDU_FIELD(code,TYPE_INT32,1,true)
+    HDU_FIELD(family,HDU_TYPE_FIXED_STRING(ResponseFamilyNameLengthMax),3,true)
+    HDU_FIELD(status,HDU_TYPE_FIXED_STRING(ResponseStatusLengthMax),4)
+    HDU_FIELD(message,TYPE_STRING,5)
+    HDU_FIELD(data_type,HDU_TYPE_FIXED_STRING(UnitNameLengthMax),6)
+    HDU_FIELD(data,TYPE_BYTES,7)
+)
 
 } // namespace protocol
 

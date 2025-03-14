@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/server/request.h
+/** @file api/server/serverrequest.h
   *
   */
 
@@ -24,17 +24,18 @@
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/error.h>
 #include <hatn/common/sharedptr.h>
+#include <hatn/common/translate.h>
 
 #include <hatn/logcontext/context.h>
 
 #include <hatn/dataunit/visitors.h>
 
-
 #include <hatn/api/api.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/protocol.h>
-#include <hatn/api/server/response.h>
+#include <hatn/api/server/serverresponse.h>
 #include <hatn/api/server/env.h>
+#include <hatn/api/service.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -44,13 +45,16 @@ template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
 struct Request : public common::TaskSubcontext
 {
     using Env=EnvT;
+    using RequestUnit=RequestUnitT;
 
-    Request(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
-        : response(factory),
-          requestBuf(factory),
+    Request(common::SharedPtr<Env> env_)
+        : env(std::move(env_)),
+          response(this),
+          requestBuf(env->template get<AllocatorFactory>().factory()),
           routed(false),
           closeConnection(false),
-          requestThread(nullptr)
+          requestThread(nullptr),
+          translator(nullptr)
     {
         requestBuf.setUseInlineBuffers(true);
     }
@@ -59,9 +63,8 @@ struct Request : public common::TaskSubcontext
     RequestUnitT unit;
     common::WeakPtr<common::TaskContext> connectionCtx;
 
-    Response response;
-
     common::SharedPtr<Env> env;
+    Response<Env,RequestUnitT> response;
     protocol::Header header;
 
     du::WireBufSolidShared requestBuf;
@@ -72,6 +75,8 @@ struct Request : public common::TaskSubcontext
 
     du::ObjectId sessionId;
     du::ObjectId sessionAgentId;
+
+    const common::Translator* translator;
 
     common::ThreadQWithTaskContext* thread() const
     {
@@ -143,15 +148,16 @@ struct Request : public common::TaskSubcontext
 template <typename RequestT=Request<>>
 using RequestContext=common::TaskContextType<RequestT,HATN_LOGCONTEXT_NAMESPACE::Context>;
 
-template <typename RequestT=Request<>>
+template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
 inline auto allocateRequestContext(
-        const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        common::SharedPtr<EnvT> env
     )
 {
+    using RequestT=Request<EnvT,RequestUnitT>;
     return HATN_COMMON_NAMESPACE::allocateTaskContextType<RequestContext<RequestT>>(
-        factory->objectAllocator<RequestContext<RequestT>>(),
+        env->template get<AllocatorFactory>().factory()->template objectAllocator<RequestContext<RequestT>>(),
         HATN_COMMON_NAMESPACE::subcontexts(
-            HATN_COMMON_NAMESPACE::subcontext(factory),
+            HATN_COMMON_NAMESPACE::subcontext(env),
             HATN_COMMON_NAMESPACE::subcontext()
             )
         );

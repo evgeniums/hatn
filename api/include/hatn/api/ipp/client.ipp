@@ -327,7 +327,7 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::recvResponse(co
                         const auto& respField=resp.field(protocol::response::message);
                         auto respMessage=respField.skippedNotParsedContent();
                         auto respWrapper=Response{resp.takeValue(),req->responseData.sharedBuf(),std::move(respMessage)};
-                        if (resp->status()==static_cast<int>(protocol::ResponseStatus::AuthError) && !m_closed)
+                        if (resp->status()==protocol::ResponseStatus::AuthError && !m_closed)
                         {
                             // process auth error in session
                             refreshSession(std::move(req),std::move(respWrapper));

@@ -14,7 +14,7 @@
   *
   */
 
-#include "hatn/api/server/request.h"
+#include "hatn/api/server/serverrequest.h"
 #include <hatn/api/server/plaintcpserver.h>
 
 HATN_API_NAMESPACE_BEGIN
