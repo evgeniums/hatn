@@ -108,7 +108,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  *        Possible values: Auto - use auto mode of packing depending of value type, ProtobufUnpacked - use protobuf ordinary mode, ProtobufPacked - use protobuf packed mode,
  *        Counted - use experimental optimized mode when serialized data contains count of elements in array which is not safe when using in public API.
  * @param SubunitLinking How to link subunit if this is a subunit field. Parameter can be omitted.
- *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will using referenced by shared pointer.
+ *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will be referenced by shared pointer.
  *
  * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode,SubunitLinking)
  * Optional repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id)
