@@ -67,7 +67,7 @@ struct Response
 
     Error serialize();
 
-    void setServiceError(const Error& ec);
+    void setStatus(protocol::ResponseStatus status=protocol::ResponseStatus::Success, const Error& ec=Error{});
 };
 
 template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>

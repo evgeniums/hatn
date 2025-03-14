@@ -31,7 +31,7 @@ namespace protocol
 
 HDU_UNIT(response,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
-    HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::OK)
+    HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::Success)
     HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
     HDU_FIELD(message,TYPE_DATAUNIT,4)
 )

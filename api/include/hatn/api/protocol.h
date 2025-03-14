@@ -19,6 +19,8 @@
 #ifndef HATNAPIPROTOCOL_H
 #define HATNAPIPROTOCOL_H
 
+#include <array>
+
 #include <boost/endian/conversion.hpp>
 
 #include <hatn/api/api.h>
@@ -91,11 +93,13 @@ class Header
 
 enum class ResponseStatus : int
 {
-    OK=0,
+    Success=0,
     AuthError=1,
     InternalServerError=2,
-    RoutingError=3,
-    ServiceError=4
+    FormatError=3,
+    ValidationError=3,
+    RoutingError=4,
+    ServiceError=5
 };
 
 }
