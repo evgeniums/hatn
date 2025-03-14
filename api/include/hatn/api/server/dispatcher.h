@@ -72,7 +72,7 @@ class Dispatcher : public common::WithTraits<Traits>,
                         {
                             //! @todo report error that no route is found
                         }
-                        else if (!req.response.unit.field(response::status).isSet())
+                        else if (!req.response.unit.field(protocol::response::status).isSet())
                         {
                             //! @todo report internal error that response is not set
                         }

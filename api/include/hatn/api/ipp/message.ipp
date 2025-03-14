@@ -41,7 +41,7 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
     du::RawError::setEnabledTL(true);
 
     du::WireBufSolidShared buf{factory};
-    auto ok=du::io::serializeAsSubunit(message,buf,request::session_auth.id());
+    auto ok=du::io::serializeAsSubunit(message,buf,protocol::request::session_auth.id());
     if (ok)
     {
         m_content=buf.sharedMainContainer();
@@ -50,8 +50,10 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
     {
         m_content->reset();
     }
-
-    m_typeName=message.unitName();
+    if (m_typeName.empty())
+    {
+        m_typeName=message.unitName();
+    }
 
     return ec;
 };

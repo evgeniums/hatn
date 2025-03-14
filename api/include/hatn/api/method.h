@@ -22,7 +22,7 @@
 #include <hatn/common/allocatoronstack.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apiconstants.h>
+#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -30,7 +30,7 @@ class Method
 {
     public:
 
-        using NameType=common::StringOnStackT<MethodNameLengthMax>;
+        using NameType=common::StringOnStackT<protocol::MethodNameLengthMax>;
 
         template <typename T>
         Method(T&& name) : m_name(std::forward<T>(name))

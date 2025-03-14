@@ -39,21 +39,21 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 {
     m_unit=m_factory->template createObject<RequestUnitT>();
 
-    auto& id=m_unit->field(request::id);
+    auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
-    m_unit->setFieldValue(request::service,service.name());
-    m_unit->setFieldValue(request::service,service.name());
-    m_unit->setFieldValue(request::service_version,service.version());
-    m_unit->setFieldValue(request::method,method.name());
+    m_unit->setFieldValue(protocol::request::service,service.name());
+    m_unit->setFieldValue(protocol::request::service,service.name());
+    m_unit->setFieldValue(protocol::request::service_version,service.version());
+    m_unit->setFieldValue(protocol::request::method,method.name());
     if (!topic.empty())
     {
-        m_unit->setFieldValue(request::topic,topic);
+        m_unit->setFieldValue(protocol::request::topic,topic);
     }
     if (!tenancy.tenancyId().empty())
     {
-        m_unit->setFieldValue(request::tenancy,tenancy.tenancyId());
+        m_unit->setFieldValue(protocol::request::tenancy,tenancy.tenancyId());
     }
-    m_unit->setFieldValue(request::message_type,m_message.typeName());
+    m_unit->setFieldValue(protocol::request::message_type,m_message.typeName());
 
     return serialize();
 }
@@ -63,7 +63,7 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 template <typename SessionT, typename MessageT, typename RequestUnitT>
 void Request<SessionT,MessageT,RequestUnitT>::regenId()
 {
-    auto& id=m_unit->field(request::id);
+    auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
     return serialize();
 }
@@ -88,7 +88,7 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 template <typename SessionT, typename MessageT, typename RequestUnitT>
 lib::string_view Request<SessionT,MessageT,RequestUnitT>::id() const noexcept
 {
-    auto& id=m_unit->field(request::id);;
+    auto& id=m_unit->field(protocol::request::id);;
     return id.value();
 }
 

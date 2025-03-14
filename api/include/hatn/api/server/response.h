@@ -33,7 +33,7 @@ namespace server {
 
 struct Response
 {
-    response::type unit;
+    protocol::response::type unit;
     du::WireBufChained message;
 
     Response(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
@@ -59,7 +59,7 @@ struct Response
 
     auto status() const noexcept
     {
-        return unit.fieldValue(response::status);
+        return unit.fieldValue(protocol::response::status);
     }
 };
 

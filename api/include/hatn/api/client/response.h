@@ -10,24 +10,32 @@
 /*
 
 */
-/** @file api/apiconstants.h
+/** @file api/client/response.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPICONSTANTS_H
-#define HATNAPICONSTANTS_H
-
-#include <cstddef>
+#ifndef HATNAPICLIENTRESPONSE_H
+#define HATNAPICLIENTRESPONSE_H
 
 #include <hatn/api/api.h>
+#include <hatn/api/responseunit.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-constexpr const size_t DefaultSessionCallbacksCapacity=4;
-constexpr const size_t DefaultMaxPoolPriorityConnections=4;
+namespace client
+{
+
+struct Response
+{
+    common::SharedPtr<ResponseManaged> unit;
+    common::ByteArrayShared unitRawData;
+    common::ByteArrayShared message;
+};
+
+} // namespace client
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPICONSTANTS_H
+#endif // HATNAPICLIENTRESPONSE_H

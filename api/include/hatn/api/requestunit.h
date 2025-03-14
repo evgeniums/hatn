@@ -22,10 +22,13 @@
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apiconstants.h>
+#include <hatn/api/protocol.h>
 #include <hatn/api/authunit.h>
 
 HATN_API_NAMESPACE_BEGIN
+
+namespace protocol
+{
 
 HDU_UNIT(request,
     HDU_FIELD(session_auth,auth::TYPE,1)
@@ -41,30 +44,9 @@ HDU_UNIT(request,
     HDU_FIELD(foreign_server,TYPE_DATAUNIT,11)
 )
 
-using RequestManaged=request::shared_managed;
+} // namespace protocol
 
-class ServiceNameAndVersion
-{
-    public:
-
-        ServiceNameAndVersion(const request::type& req):req(req)
-        {}
-
-        const lib::string_view name() const noexcept
-        {
-            const auto& field=req.field(request::service);
-            return field.value();
-        }
-
-        uint8_t version() const noexcept
-        {
-            return req.fieldValue(request::service_version);
-        }
-
-    private:
-
-        const request::type& req;
-};
+using RequestManaged=protocol::request::shared_managed;
 
 HATN_API_NAMESPACE_END
 

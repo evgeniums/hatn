@@ -35,7 +35,7 @@ Error MethodAuth::serializeAuthHeader(lib::string_view protocol, uint32_t protoc
                                        const common::pmr::AllocatorFactory* factory
                                        )
 {
-    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),request::method_auth.id(),factory);
+    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),protocol::request::method_auth.id(),factory);
 }
 
 }

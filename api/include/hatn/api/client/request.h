@@ -36,6 +36,7 @@
 #include <hatn/api/message.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/session.h>
+#include <hatn/api/client/response.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -44,7 +45,7 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
-template <typename SessionT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename SessionT, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 struct Request
 {
     public:

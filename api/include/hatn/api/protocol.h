@@ -32,6 +32,14 @@ namespace protocol
 constexpr const size_t HEADER_LENGTH=4;
 constexpr const size_t DEFAULT_MAX_MESSAGE_SIZE=0x1000000;
 
+constexpr const size_t ServiceNameLengthMax=16;
+constexpr const size_t MethodNameLengthMax=32;
+constexpr const size_t AuthProtocolNameLengthMax=8;
+constexpr const size_t ResponseCategoryNameLengthMax=32;
+constexpr const size_t ResponseFamilyNameLengthMax=32;
+constexpr const size_t ResponseStatusLengthMax=32;
+constexpr const size_t TenancyIdLengthMax=32;
+
 inline uint32_t bufToSize(const char* buf) noexcept
 {
     uint32_t size=0;
@@ -78,6 +86,15 @@ class Header
     private:
 
         std::array<char,protocol::HEADER_LENGTH> m_headerBuf;
+};
+
+enum class ResponseStatus : int
+{
+    OK=0,
+    AuthError=1,
+    InternalServerError=2,
+    RoutingError=3,
+    ServiceError=4
 };
 
 }

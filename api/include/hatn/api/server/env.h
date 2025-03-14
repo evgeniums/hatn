@@ -36,6 +36,7 @@ namespace server {
 
 using Threads=common::WithMappedThreads;
 using Db=db::AsyncDb;
+using AllocatorFactory=common::pmr::WithFactory;
 
 //! @todo Add tenancy to Env
 //! @todo Add logger to Env
@@ -55,7 +56,7 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
     //! @todo protect with mutex
 };
 
-using BasicEnv = common::Env<Threads,Db,ProtocolConfig>;
+using BasicEnv = common::Env<AllocatorFactory,Threads,Db,ProtocolConfig>;
 
 template <typename EnvT=BasicEnv>
 class WithEnv

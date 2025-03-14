@@ -19,10 +19,13 @@
 #ifndef HATNAPITENANCY_H
 #define HATNAPITENANCY_H
 
+#include <boost/hana.hpp>
+
 #include <hatn/common/allocatoronstack.h>
+#include <hatn/common/sharedptr.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apiconstants.h>
+#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -59,7 +62,7 @@ class Tenancy
         template <typename ContextT>
         static const Tenancy& contextTenancy(const ContextT& ctx)
         {
-            return hana::eval_if(
+            return boost::hana::eval_if(
                 ctx.template hasSubcontext<Tenancy>(),
                 [&](auto _)
                 {
@@ -74,7 +77,7 @@ class Tenancy
 
     private:
 
-        common::StringOnStackT<TenancyIdLengthMax> m_tenancyId;
+        common::StringOnStackT<protocol::TenancyIdLengthMax> m_tenancyId;
         common::StringOnStack m_tenancyName;
 };
 

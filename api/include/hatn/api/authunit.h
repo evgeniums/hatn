@@ -28,7 +28,7 @@
 HATN_API_NAMESPACE_BEGIN
 
 HDU_UNIT(auth,
-    HDU_FIELD(protocol,HDU_TYPE_FIXED_STRING(AuthProtocolNameLengthMax),1)
+    HDU_FIELD(protocol,HDU_TYPE_FIXED_STRING(protocol::AuthProtocolNameLengthMax),1)
     HDU_FIELD(version,TYPE_UINT8,2,false,1)
     HDU_FIELD(content,TYPE_DATAUNIT,3)
 )

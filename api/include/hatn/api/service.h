@@ -21,14 +21,38 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/withnameandversion.h>
+#include <hatn/api/requestunit.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-class Service : public WithNameAndVersion<ServiceNameLengthMax>
+class Service : public WithNameAndVersion<protocol::ServiceNameLengthMax>
 {
     public:
 
-        using WithNameAndVersion<ServiceNameLengthMax>::WithNameAndVersion;
+        using WithNameAndVersion<protocol::ServiceNameLengthMax>::WithNameAndVersion;
+};
+
+class ServiceNameAndVersion
+{
+    public:
+
+        ServiceNameAndVersion(const protocol::request::type& req):req(req)
+        {}
+
+        const lib::string_view name() const noexcept
+        {
+            const auto& field=req.field(protocol::request::service);
+            return field.value();
+        }
+
+        uint8_t version() const noexcept
+        {
+            return req.fieldValue(protocol::request::service_version);
+        }
+
+    private:
+
+        const protocol::request::type& req;
 };
 
 HATN_API_NAMESPACE_END

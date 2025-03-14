@@ -33,13 +33,26 @@ class WithNameAndVersion
 
         using NameType=common::StringOnStackT<NameLength>;
 
+        WithNameAndVersion() : m_version(1)
+        {}
+
         template <typename T>
         WithNameAndVersion(T&& name, uint8_t version=1) : m_name(std::forward<T>(name)),m_version(version)
         {}
 
+        void setName(lib::string_view name)
+        {
+            m_name=name;
+        }
+
         lib::string_view name() const noexcept
         {
             return m_name;
+        }
+
+        void setVersion(uint8_t version) noexcept
+        {
+            m_version=version;
         }
 
         uint8_t version() const noexcept

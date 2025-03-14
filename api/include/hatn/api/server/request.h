@@ -40,7 +40,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-template <typename EnvT=BasicEnv, typename RequestUnitT=request::type>
+template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
 struct Request : public common::TaskSubcontext
 {
     using Env=EnvT;
@@ -70,6 +70,9 @@ struct Request : public common::TaskSubcontext
 
     common::ThreadQWithTaskContext* requestThread;
 
+    du::ObjectId sessionId;
+    du::ObjectId sessionAgentId;
+
     common::ThreadQWithTaskContext* thread() const
     {
         if (requestThread!=nullptr)
@@ -85,7 +88,7 @@ struct Request : public common::TaskSubcontext
 
     const auto& id() const
     {
-        const auto& field=unit.field(request::id);
+        const auto& field=unit.field(protocol::request::id);
         return field.value();
     }
 
@@ -101,13 +104,13 @@ struct Request : public common::TaskSubcontext
 
     common::ByteArrayShared message() const
     {
-        const auto& messageField=unit.field(request::message);
+        const auto& messageField=unit.field(protocol::request::message);
         return messageField.skippedNotParsedContent();
     }
 
     common::ByteArrayShared authMessage() const
     {
-        const auto& authField=unit.field(request::session_auth);
+        const auto& authField=unit.field(protocol::request::session_auth);
         if (authField.isSet())
         {
             const auto& contentField=authField.value().field(auth::content);
@@ -121,7 +124,7 @@ struct Request : public common::TaskSubcontext
         Error ec;
         requestBuf.setSize(requestBuf.mainContainer()->size());
         du::io::deserialize(unit,requestBuf,ec);
-        response.unit.setFieldValue(HATN_API_NAMESPACE::response::id,id());
+        response.unit.setFieldValue(HATN_API_NAMESPACE::protocol::response::id,id());
         return ec;
     }
 

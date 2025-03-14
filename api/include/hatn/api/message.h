@@ -33,7 +33,7 @@ class Message
 {
     public:
 
-        using NameType=common::StringOnStackT<MethodNameLengthMax>;
+        using NameType=common::StringOnStackT<protocol::MethodNameLengthMax>;
         using BufType=BufT;
 
         template <typename UnitT>
@@ -52,6 +52,11 @@ class Message
         void reset()
         {
             m_content.reset();
+        }
+
+        void setTypeName(lib::string_view name) noexcept
+        {
+            m_typeName=name;
         }
 
         lib::string_view typeName() const noexcept

@@ -56,7 +56,7 @@ class ClientConfig : public base::ConfigObject<config::type>
     public:
 };
 
-template <typename RouterT, typename SessionT, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=request::shared_managed>
+template <typename RouterT, typename SessionT, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 class Client : public common::TaskSubcontext
 {
     public:

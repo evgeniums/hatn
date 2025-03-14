@@ -37,7 +37,7 @@ Error SessionAuth::serializeAuthHeader(lib::string_view protocol, uint32_t proto
                                        const common::pmr::AllocatorFactory* factory
                                        )
 {
-    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),request::session_auth.id(),factory);
+    return Auth::serializeAuthHeader(protocol,protocolVersion,std::move(content),protocol::request::session_auth.id(),factory);
 }
 
 //---------------------------------------------------------------
