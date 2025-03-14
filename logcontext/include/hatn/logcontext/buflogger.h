@@ -126,7 +126,7 @@ class TextLogFormatterT
                             {
                                 if (_(ec).apiError()!=nullptr)
                                 {
-                                    status=_(ec).apiError()->apiStatus();
+                                    status=_(ec).apiError()->status();
                                 }
                                 else
                                 {
