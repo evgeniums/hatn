@@ -319,7 +319,7 @@ class MappedThreadQWithTaskContext
         template <typename T>
         ThreadQWithTaskContext* mappedThread(const T& key) const noexcept
         {
-            size_t hash=std::hash<T>(key);
+            size_t hash=std::hash<T>{}(key);
             return mappedThread(hash);
         }
 
