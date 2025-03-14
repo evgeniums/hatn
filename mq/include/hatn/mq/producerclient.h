@@ -38,6 +38,8 @@
 
 HATN_MQ_NAMESPACE_BEGIN
 
+namespace client {
+
 HDU_UNIT(producer_config,
     HDU_FIELD(dequeue_retry_interval,TYPE_UINT32,1,false,15)
     HDU_FIELD(message_ttl,TYPE_UINT32,2,false,900)
@@ -48,18 +50,23 @@ HDU_UNIT_WITH(client_db_message,(HDU_BASE(db::object),HDU_BASE(message)),
               HDU_FIELD(expired,TYPE_BOOL,9)
               )
 
-// expire_at is used by app logic, the messages are not auto deleted when expired
-HATN_DB_INDEX(expiredIdx,client_db_message::expire_at,message::producer)
-HATN_DB_INDEX(expiredObjectsIdx,client_db_message::expired,message::producer)
-HATN_DB_UNIQUE_INDEX(producerPosIdx,message::producer_pos,client_db_message::expired,message::producer,message::object_type)
+HATN_DB_INDEX(msgOidTypeIdx,message::object_id,message::object_type,message::producer,message::producer_pos)
+HATN_DB_INDEX(msgOidOpIdx,message::object_id,message::operation,message::producer,message::producer_pos)
+HATN_DB_INDEX(msgObjTypeIdx,message::object_type,message::producer,message::producer_pos)
 
-HATN_DB_MODEL_WITH_CFG(clientmqMessageModel,client_db_message,db::ModelConfig("mq_messages"),
-                       messagePosIdx(),
-                       objectIdOpIdx(),
-                       objectIdTypeIdx(),
-                       expiredObjectsIdx(),
-                       expiredIdx(),
-                       producerPosIdx()
+// expire_at is used by app logic, the messages are not auto deleted when expired
+HATN_DB_INDEX(msgExpireAtIdx,client_db_message::expire_at,message::producer,message::producer_pos)
+HATN_DB_INDEX(msgExpiredIdx,client_db_message::expired,message::producer,message::producer_pos)
+HATN_DB_UNIQUE_INDEX(msgProducerPosIdx,message::producer_pos,client_db_message::expired,message::producer,message::object_type)
+
+HATN_DB_MODEL_WITH_CFG(clientMqMessageModel,client_db_message,db::ModelConfig("mq_messages"),
+                       msgProducerPosIdx(),
+                       msgOidOpIdx(),
+                       msgOidTypeIdx(),
+                       msgExpiredIdx(),
+                       msgExpireAtIdx(),
+                       msgProducerPosIdx(),
+                       msgObjTypeIdx()
                        )
 
 enum class MessageStatus : uint8_t
@@ -94,10 +101,10 @@ class ProducerClient : public common::pmr::WithFactory,
         constexpr static const char* SchedulerJobRefType="mq_producer_dequeue";
 
         ProducerClient(
-                db::AsyncClient* dbClient=nullptr,
+            std::shared_ptr<db::AsyncClient> dbClient={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : common::pmr::WithFactory(factory),
-                db::WithAsyncClient(dbClient),
+                db::WithAsyncClient(std::move(dbClient)),
                 m_stopped(false),
                 m_scheduler(nullptr),
                 m_topicJobs(this->factory()->template objectAllocator<topicJobsValueT>())
@@ -285,8 +292,8 @@ class ProducerClient : public common::pmr::WithFactory,
             auto txHandler=[this,topic{std::move(topic)},msg,ctx,objectContent{std::move(objectContent)},notificationContent{std::move(notificationContent)}](db::Transaction* tx)
             {
                 auto client=m_db->client();
-                auto objectQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id).and_(message::producer,db::query::eq,m_producerId)),topic);
-                auto findCreateOpQuery=db::makeQuery(objectIdOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
+                auto objectQuery=db::makeQuery(msgOidOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id).and_(message::producer,db::query::eq,m_producerId)),topic);
+                auto findCreateOpQuery=db::makeQuery(msgOidOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
                                                                         and_(message::operation,db::query::eq,Operation::Create).
                                                                         and_(message::producer,db::query::eq,m_producerId)
                                                        ,topic);
@@ -296,7 +303,7 @@ class ProducerClient : public common::pmr::WithFactory,
                     case (Operation::Create):
                     {
                         // check if object ID is unique
-                        auto r=client->findOne(clientmqMessageModel(),objectQuery);
+                        auto r=client->findOne(clientMqMessageModel(),objectQuery);
 
                         // check error
                         if (r)
@@ -320,7 +327,7 @@ class ProducerClient : public common::pmr::WithFactory,
                     case (Operation::Delete):
                     {
                         // delete all pending messages for that object ID
-                        auto ec=client->deleteMany(clientmqMessageModel(),objectQuery,tx);
+                        auto ec=client->deleteMany(clientMqMessageModel(),objectQuery,tx);
                         if (ec)
                         {
                             //! @todo Log error
@@ -363,7 +370,7 @@ class ProducerClient : public common::pmr::WithFactory,
                                 }
 
                                 // update message in local db
-                                ec=client->update(topic,clientmqMessageModel(),msg->fieldValue(db::object::_id),req,tx);
+                                ec=client->update(topic,clientMqMessageModel(),msg->fieldValue(db::object::_id),req,tx);
                                 if (ec)
                                 {
                                     //! @todo report error
@@ -375,7 +382,7 @@ class ProducerClient : public common::pmr::WithFactory,
                         };
 
                         // check if Create message for that object ID exists
-                        auto ec=client->findCb(clientmqMessageModel(),findCreateOpQuery,std::move(findCb),tx,true);
+                        auto ec=client->findCb(clientMqMessageModel(),findCreateOpQuery,std::move(findCb),tx,true);
                         if (ec)
                         {
                             //! @todo Log error
@@ -393,7 +400,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 }
 
                 // create message in db
-                auto ec=client->create(topic,clientmqMessageModel(),msg.get(),tx);
+                auto ec=client->create(topic,clientMqMessageModel(),msg.get(),tx);
                 if (ec)
                 {
                     //! @todo Log error
@@ -494,7 +501,7 @@ class ProducerClient : public common::pmr::WithFactory,
             auto q=db::wrapQueryBuilder(
                 [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()}]()
                 {
-                    return db::makeQuery(expiredObjectsIdx(),db::where(client_db_message::expired,db::query::eq,true).
+                    return db::makeQuery(msgExpiredIdx(),db::where(client_db_message::expired,db::query::eq,true).
                                                               and_(message::object_type,db::query::eq,objectType).
                                                               and_(message::producer,db::query::eq,m_producerId)
                                                     ,
@@ -511,7 +518,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 }
                 cb(std::move(ctx),ec);
             };
-            m_db->deleteMany(ctx,std::move(deleteCb),clientmqMessageModel(),std::move(q),nullptr,topicView);
+            m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -538,7 +545,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 }
                 cb(std::move(ctx),ec);
             };
-            m_db->deleteMany(ctx,std::move(deleteCb),clientmqMessageModel(),std::move(q),nullptr,topicView);
+            m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -555,7 +562,7 @@ class ProducerClient : public common::pmr::WithFactory,
                                              topic
                                              );
                     }
-                    return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
+                    return db::makeQuery(msgOidTypeIdx(),db::where(message::object_id,db::query::in,objIds).
                                                           and_(message::object_type,db::query::eq,objectType).
                                                           and_(message::producer,db::query::eq,m_producerId),
                                          topic
@@ -571,7 +578,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 }
                 cb(std::move(ctx),ec);
             };
-            m_db->deleteMany(ctx,std::move(deleteCb),clientmqMessageModel(),std::move(q),nullptr,topicView);
+            m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -588,7 +595,7 @@ class ProducerClient : public common::pmr::WithFactory,
                                              topic
                                              );
                     }
-                    return db::makeQuery(objectIdTypeIdx(),db::where(message::object_id,db::query::in,objIds).
+                    return db::makeQuery(msgOidTypeIdx(),db::where(message::object_id,db::query::in,objIds).
                                                           and_(message::object_type,db::query::eq,objectType).
                                                           and_(message::producer,db::query::eq,m_producerId),
                                          topic
@@ -604,7 +611,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 }
                 cb(std::move(ctx),std::move(r));
             };
-            m_db->find(ctx,std::move(findCb),clientmqMessageModel(),std::move(q),topicView);
+            m_db->find(ctx,std::move(findCb),clientMqMessageModel(),std::move(q),topicView);
         }
 
         bool hasTopicJob(lib::string_view topic) const
@@ -643,7 +650,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 return;
             }
 
-            auto q=db::wrapQuery(this->factory(),messageProducerIdx(),db::where(message::producer,db::query::eq,m_producerId).
+            auto q=db::wrapQuery(this->factory(),msgProducerPosIdx(),db::where(message::producer,db::query::eq,m_producerId).
                                                                           and_(client_db_message::expired,db::query::eq,false)
                                    ,*it);
             auto findCb=[ctx,cb{std::move(cb)},selfCtx{common::toWeakPtr(this->sharedMainCtx())},this,
@@ -677,7 +684,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 ++it1;
                 checkTopicOwned(std::move(ctx),std::move(cb),std::move(foundTopics),it1);
             };
-            m_db->findOne(ctx,findCb,clientmqMessageModel(),std::move(q),*it);
+            m_db->findOne(ctx,findCb,clientMqMessageModel(),std::move(q),*it);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -706,7 +713,7 @@ class ProducerClient : public common::pmr::WithFactory,
             m_db->listModelTopics(
                 ctx,
                 topicsCb,
-                clientmqMessageModel()
+                clientMqMessageModel()
             );
         }
 
@@ -752,7 +759,7 @@ class ProducerClient : public common::pmr::WithFactory,
                         ctx,notifyCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),msg,MessageStatus::Sent
                     );
                 };
-                m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientmqMessageModel(),msg->fieldValue(db::object::_id));
+                m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientMqMessageModel(),msg->fieldValue(db::object::_id));
             };
 
             m_server->send(std::move(ctx),std::move(msg),std::move(sendCb));
@@ -814,7 +821,7 @@ class ProducerClient : public common::pmr::WithFactory,
                         // update object - set expired=true
                         auto req=db::update::request(db::update::field(client_db_message::expired,db::update::Operator::set,true));
                         ec=client->update(jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),
-                                            clientmqMessageModel(),
+                                            clientMqMessageModel(),
                                             msg->fieldValue(db::object::_id),
                                             req,
                                             tx
@@ -845,12 +852,12 @@ class ProducerClient : public common::pmr::WithFactory,
                 };
 
                 // find non expired messages sorted by producer_pos
-                auto q=db::makeQuery(producerPosIdx(),db::where(message::producer_pos,db::query::gte,db::query::First,db::query::Order::Asc).
+                auto q=db::makeQuery(msgProducerPosIdx(),db::where(message::producer_pos,db::query::gte,db::query::First,db::query::Order::Asc).
                                                                           and_(client_db_message::expired,db::query::eq,false).
                                                                           and_(message::producer,db::query::eq,m_producerId),
                                        jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic)
                                     );
-                auto ec=client->findCb(clientmqMessageModel(),q,findCb,tx,true);
+                auto ec=client->findCb(clientMqMessageModel(),q,findCb,tx,true);
                 if (ec)
                 {
                     //! @todo report error
@@ -880,6 +887,8 @@ class ProducerClient : public common::pmr::WithFactory,
         common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>> m_topicJobs;
         using topicJobsValueT=typename common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>>::value_type;
 };
+
+} // namespace client
 
 HATN_MQ_NAMESPACE_END
 

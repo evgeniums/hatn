@@ -50,13 +50,7 @@ HDU_UNIT(message,
     HDU_FIELD(content,message_content::TYPE,7)    
 )
 
-HATN_DB_UNIQUE_INDEX(messageProducerIdx,message::producer)
-HATN_DB_UNIQUE_INDEX(messagePosIdx,message::producer,message::pos)
-
-HATN_DB_INDEX(objectIdTypeIdx,message::object_id,message::object_type,message::producer)
-HATN_DB_INDEX(objectIdOpIdx,message::object_id,message::operation,message::producer)
-
-HATN_DB_INDEX(objectTypeIdx,message::object_type,message::producer)
+HATN_DB_UNIQUE_INDEX(msgProducerPosIdx,message::producer,message::pos)
 
 /** @todo Use message validator
  *
