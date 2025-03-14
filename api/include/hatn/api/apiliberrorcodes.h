@@ -26,12 +26,12 @@
 
 #define HATN_API_ERRORS(Do) \
     Do(ApiLibError,OK,_TR("OK")) \
-    Do(ApiLibError,QUEUE_OVERFLOW,_TR("Too many requests in a queue")) \
-    Do(ApiLibError,CONNECTION_BUSY,_TR("Invalid operation on busy connection")) \
-    Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("Sending message size to big")) \
-    Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("Receivng message size to big")) \
-    Do(ApiLibError,CONNECTION_NOT_READY_RECV,_TR("Connection not ready to receive data")) \
-    Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("Failed to serialize request")) \
+    Do(ApiLibError,QUEUE_OVERFLOW,_TR("too many requests in a queue","api")) \
+    Do(ApiLibError,CONNECTION_BUSY,_TR("invalid operation on busy connection","api")) \
+    Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("sending message size to big","api")) \
+    Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("receivng message size to big","api")) \
+    Do(ApiLibError,CONNECTION_NOT_READY_RECV,_TR("connection not ready to receive data","api")) \
+    Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("failed to serialize request","api"))
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -41,12 +41,12 @@ enum class ApiLibError : int
     HATN_API_ERRORS(HATN_ERROR_CODE)
 };
 
-//! base errors codes as strings.
+//! API errors codes as strings.
 constexpr const char* const ApiErrorStrings[] = {
     HATN_API_ERRORS(HATN_ERROR_STR)
 };
 
-//! Base error code to string.
+//! API error code to string.
 inline const char* apiErrorString(ApiLibError code)
 {
     return errorString(code,ApiErrorStrings);

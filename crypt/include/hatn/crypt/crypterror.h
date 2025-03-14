@@ -23,6 +23,8 @@
 
 #include <hatn/crypt/crypt.h>
 
+//! @todo start error message with low case letter
+
 #define HATN_CRYPT_ERRORS(Do) \
     Do(CryptError,OK,_TR("OK")) \
     Do(CryptError,GENERAL_FAIL,_TR("Request or operation failed","crypt")) \

@@ -28,7 +28,7 @@
 #define HATN_ERROR_MESSAGE(Enum,Code,Msg) \
     case (static_cast<int>(Enum::Code)): \
     result=Msg; \
-    break; \
+    break;
 
 HATN_NAMESPACE_BEGIN
 

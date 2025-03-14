@@ -20,6 +20,7 @@ SET (HEADERS
     include/hatn/api/auth.h
     include/hatn/api/tenancy.h
     include/hatn/api/withnameandversion.h
+    include/hatn/api/genericerror.h
 )
 
 SET (HEADERS
@@ -75,6 +76,7 @@ SET (SOURCES
     src/apiliberror.cpp
     src/plaintcpclient.cpp
     src/plaintcpserver.cpp
+    src/genericerror.cpp
 )
 
 BUILD_HATN_MODULE()
