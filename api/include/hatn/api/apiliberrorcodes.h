@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/apierrorcodes.h
+/** @file api/apiliberrorcodes.h
   *
   * Contains error codes for hatnapi lib.
   *
@@ -18,8 +18,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNAPIERRORCODES_H
-#define HATNAPIERRORCODES_H
+#ifndef HATNAPILIBERRORCODES_H
+#define HATNAPILIBERRORCODES_H
 
 #include <hatn/common/error.h>
 #include <hatn/api/api.h>
@@ -54,4 +54,4 @@ inline const char* apiErrorString(ApiLibError code)
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIERRORCODES_H
+#endif // HATNAPILIBERRORCODES_H

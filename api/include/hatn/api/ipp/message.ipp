@@ -21,7 +21,7 @@
 
 #include <hatn/dataunit/visitors.h>
 
-#include <hatn/api/apierror.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/message.h>
 

@@ -19,7 +19,7 @@
 #ifndef HATNAPICLIENTREQUEST_IPP
 #define HATNAPICLIENTREQUEST_IPP
 
-#include <hatn/api/apierror.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/client/request.h>
 
@@ -77,7 +77,7 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
     auto ok=du::io::serialize(*m_unit,requestData);
     if (!ok)
     {
-        return apiError(ApiLibError::FAILED_SERIALIZE_REQUEST);
+        return apiLibError(ApiLibError::FAILED_SERIALIZE_REQUEST);
     }
 
     return OK;

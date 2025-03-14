@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/apierror.h
+/** @file api/apiliberror.h
   *
   * Contains declarations of error helpers for hatnapi lib.
   *
@@ -26,12 +26,12 @@
 #include <hatn/common/result.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apierrorcodes.h>
+#include <hatn/api/apiliberrorcodes.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 //! Error category for hatnapi.
-class HATN_API_EXPORT ApiErrorCategory : public common::ErrorCategory
+class HATN_API_EXPORT ApiLibErrorCategory : public common::ErrorCategory
 {
 public:
 
@@ -48,7 +48,7 @@ public:
     virtual const char* codeString(int code) const override;
 
     //! Get category
-    static const ApiErrorCategory& getCategory() noexcept;
+    static const ApiLibErrorCategory& getCategory() noexcept;
 };
 
 /**
@@ -56,9 +56,9 @@ public:
  * @param code ApiError code.
  * @return Error object.
  */
-inline Error apiError(ApiLibError code) noexcept
+inline Error apiLibError(ApiLibError code) noexcept
 {
-    return Error(static_cast<int>(code),&ApiErrorCategory::getCategory());
+    return Error(static_cast<int>(code),&ApiLibErrorCategory::getCategory());
 }
 
 /**
@@ -67,9 +67,9 @@ inline Error apiError(ApiLibError code) noexcept
  * @param native Native error.
  * @return Error object.
  */
-inline Error apiError(ApiLibError code, std::shared_ptr<common::NativeError> err) noexcept
+inline Error apiLibError(ApiLibError code, std::shared_ptr<common::NativeError> err) noexcept
 {
-    err->setCategory(&ApiErrorCategory::getCategory());
+    err->setCategory(&ApiLibErrorCategory::getCategory());
     return Error(static_cast<int>(code),std::move(err));
 }
 

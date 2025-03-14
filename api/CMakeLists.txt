@@ -4,8 +4,8 @@ SET (HEADERS
     include/hatn/api/api.h
     include/hatn/api/apiconstants.h
     include/hatn/api/protocol.h
-    include/hatn/api/apierror.h
-    include/hatn/api/apierrorcodes.h
+    include/hatn/api/apiliberror.h
+    include/hatn/api/apiliberrorcodes.h
     include/hatn/api/connection.h
     include/hatn/api/connectionpool.h
     include/hatn/api/authunit.h
@@ -72,7 +72,7 @@ SET (HEADERS
 )
 
 SET (SOURCES
-    src/apierror.cpp
+    src/apiliberror.cpp
     src/plaintcpclient.cpp
     src/plaintcpserver.cpp
 )

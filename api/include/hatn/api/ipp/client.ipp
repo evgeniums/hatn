@@ -19,7 +19,7 @@
 #ifndef HATNAPICLIENT_IPP
 #define HATNAPICLIENT_IPP
 
-#include <hatn/api/apierror.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/request.h>
 #include <hatn/api/client/client.h>
@@ -116,7 +116,7 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::doExec(
     else if (req->priority()!=Priority::Highest && queue.size()>(m_cfg->config().fieldValue(config::max_queue_depth)+m_sessionWaitingReqCount[req->priority()]))
     {
         // check if queue is filled
-        ec=apiError(ApiLibError::QUEUE_OVERFLOW);
+        ec=apiLibError(ApiLibError::QUEUE_OVERFLOW);
     }
 
     if (ec)

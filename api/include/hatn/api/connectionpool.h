@@ -31,7 +31,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/apierror.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/router.h>
 #include <hatn/api/priority.h>
 #include <hatn/api/apiconstants.h>
@@ -175,7 +175,7 @@ class ConnectionPool
 
                 if (connectionCtx.state==ConnectionContext::State::Busy)
                 {
-                    cb(apiError(ApiLibError::CONNECTION_BUSY),ConnectionCtxShared{});
+                    cb(apiLibError(ApiLibError::CONNECTION_BUSY),ConnectionCtxShared{});
                     return;
                 }
 
@@ -238,7 +238,7 @@ class ConnectionPool
 
             if (connectionCtx.state!=ConnectionContext::State::Ready)
             {
-                cb(apiError(ApiLibError::CONNECTION_NOT_READY_RECV));
+                cb(apiLibError(ApiLibError::CONNECTION_NOT_READY_RECV));
                 return;
             }
 
@@ -282,7 +282,7 @@ class ConnectionPool
                 {
                     //! @todo destroy failed pool connection
                     connectionCtx->state=ConnectionContext::State::Error;
-                    cb(apiError(ApiLibError::TOO_BIG_RX_MESSAGE));
+                    cb(apiLibError(ApiLibError::TOO_BIG_RX_MESSAGE));
                     return;
                 }
 
@@ -315,7 +315,7 @@ class ConnectionPool
                 {
                     if (m_defaultConnection->state==ConnectionContext::State::Busy)
                     {
-                        cb(apiError(ApiLibError::CONNECTION_BUSY));
+                        cb(apiLibError(ApiLibError::CONNECTION_BUSY));
                         return;
                     }
 
@@ -508,7 +508,7 @@ class ConnectionPool
             auto messageSize=common::SpanBufferTraits::size(buffers);
             if (messageSize>m_maxMessageSize)
             {
-                cb(apiError(ApiLibError::TOO_BIG_TX_MESSAGE),nullptr);
+                cb(apiLibError(ApiLibError::TOO_BIG_TX_MESSAGE),nullptr);
                 return;
             }
             connectionCtx->header.setMessageSize(messageSize);

@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/apierror.сpp
+/** @file api/apiliberror.сpp
   *
   *      Contains definition of error category for hatn API library.
   *
@@ -18,21 +18,21 @@
 
 #include <hatn/common/translate.h>
 
-#include <hatn/api/apierror.h>
+#include <hatn/api/apiliberror.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 /********************** BaseErrorCategory **************************/
 
 //---------------------------------------------------------------
-const ApiErrorCategory& ApiErrorCategory::getCategory() noexcept
+const ApiLibErrorCategory& ApiLibErrorCategory::getCategory() noexcept
 {
-    static ApiErrorCategory inst;
+    static ApiLibErrorCategory inst;
     return inst;
 }
 
 //---------------------------------------------------------------
-std::string ApiErrorCategory::message(int code) const
+std::string ApiLibErrorCategory::message(int code) const
 {
     std::string result;
     switch (code)
@@ -47,7 +47,7 @@ std::string ApiErrorCategory::message(int code) const
 }
 
 //---------------------------------------------------------------
-const char* ApiErrorCategory::codeString(int code) const
+const char* ApiLibErrorCategory::codeString(int code) const
 {
     return errorString(code,ApiErrorStrings);
 }
