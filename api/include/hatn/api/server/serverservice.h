@@ -36,10 +36,10 @@ using ServiceMethodStatus = protocol::ResponseStatus;
 
 struct NoValidatorT
 {
-    template <typename MessageT>
-    validator::status apply(const MessageT&) const noexcept
+    template <typename RequestT, typename MessageT>
+    validator::error_report operator () (const common::SharedPtr<RequestContext<RequestT>>&) const noexcept
     {
-        return validator::status{};
+        return validator::error_report{};
     }
 };
 constexpr NoValidatorT NoValidator{};
@@ -231,6 +231,19 @@ class ServiceMethodBase
 
 //---------------------------------------------------------------
 
+/**
+ * @brief Base template class for server methods.
+ *
+ * Actual processing is performed by Traits.
+ * Traits must define two methods:
+ *
+ * template <typename RequestT, typename MessageT>
+ * void exec(common::SharedPtr<RequestContext<Request>> request,RouteCb<Request> callback, common::SharedPtr<Message> msg)
+ *
+ * template <typename RequestT, typename MessageT>
+ * validator::error_report validate(const common::SharedPtr<RequestContext<RequestT>>& request,const MessageT& msg)
+)
+ */
 template <typename RequestT, typename Traits, typename MessageT=NoMessage>
 class ServiceMethodT : public common::WithTraits<Traits>
 {

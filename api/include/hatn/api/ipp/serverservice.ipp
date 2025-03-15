@@ -61,10 +61,10 @@ void ServerServiceBase::handleMessage(
         }
 
         // validate message
-        auto validationStatus=validator(*msg);
-        if (!validationStatus)
+        auto validationEc=validator(request,*msg);
+        if (validationEc)
         {
-            //! @todo construct locale aware validation reports
+            //! @todo construct API error with validationEc
 
             req.response.setStatus(protocol::ResponseStatus::ValidationError);
             cb(std::move(request));
@@ -172,9 +172,9 @@ void ServiceMethodT<RequestT,Traits,MessageT>::exec(
                 this->traits().exec(std::move(request),std::move(callback),std::move(msg));
             },
             hana::type_c<Message>,
-            [this](const Message& msg)
+            [this](const common::SharedPtr<RequestContext<Request>>& request,const Message& msg, std::string& errorMessage)
             {
-                return this->traits().validate(msg);
+                return this->traits().validate(request,msg,errorMessage);
             }
         );
     }

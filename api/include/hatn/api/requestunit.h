@@ -42,6 +42,7 @@ HDU_UNIT(request,
     HDU_FIELD(message_type,TYPE_STRING,9)
     HDU_FIELD(message,TYPE_DATAUNIT,10)
     HDU_FIELD(foreign_server,TYPE_DATAUNIT,11)
+    HDU_FIELD(locale,HDU_TYPE_FIXED_STRING(LocaleNameLengthMax),12)
 )
 
 } // namespace protocol
