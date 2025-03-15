@@ -29,6 +29,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/service.h>
 #include <hatn/api/server/requestrouter.h>
+#include <hatn/api/server/serverservice.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -63,6 +64,15 @@ class ServiceRouterTraits
         void registerService(Service service, RouteFh<Request> handler)
         {
             m_routes[std::move(service)]=std::move(handler);
+        }
+
+        void registerLocalService(std::shared_ptr<ServerService<Request>> localService)
+        {
+            auto handler=[localService](common::SharedPtr<RequestContext<RequestT>> request, RouteCb<RequestT> cb)
+            {
+                localService->handleRequest(std::move(request),std::move(cb));
+            };
+            m_routes[Service{localService->name(),localService->version()}]=std::move(handler);
         }
 
     private:

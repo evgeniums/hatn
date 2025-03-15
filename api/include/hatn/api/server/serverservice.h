@@ -30,13 +30,9 @@ HATN_API_NAMESPACE_BEGIN
 namespace server
 {
 
-enum class ServiceMethodStatus : uint8_t
-{
-    OK=0,
-    UnknownMethod=1,
-    InvalidMessageType=2,
-    MessageMissing=3
-};
+//---------------------------------------------------------------
+
+using ServiceMethodStatus = protocol::ResponseStatus;
 
 struct NoValidatorT
 {
@@ -56,12 +52,13 @@ struct NoMessage
     }
 };
 
+/********************** ServerService **************************/
+
 class ServerServiceBase
 {
     public:
 
-        //! @todo Implement handleMessage()
-        template <typename RequestT, typename HandlerT, typename MessageT, typename ValidatorT=NoValidatorT>
+        template <typename RequestT, typename HandlerT, typename MessageT=NoMessage, typename ValidatorT=NoValidatorT>
         void handleMessage(
                 common::SharedPtr<RequestContext<RequestT>> request,
                 RouteCb<RequestT> callback,
@@ -70,14 +67,16 @@ class ServerServiceBase
                 const ValidatorT& validator=NoValidator
             )const ;
 
-        //! @todo Implement methodFailed()
         template <typename RequestT>
         void methodFailed(
             common::SharedPtr<RequestContext<RequestT>> request,
             RouteCb<RequestT> callback,
-            ServiceMethodStatus status
+            ServiceMethodStatus status,
+            const Error& ec=Error{}
         ) const;
 };
+
+//---------------------------------------------------------------
 
 template <typename RequestT, typename Traits>
 class ServerServiceT : public ServerServiceBase,
@@ -93,7 +92,6 @@ class ServerServiceT : public ServerServiceBase,
         ) : common::WithTraits<Traits>::WithTraits(this,std::forward<TraitsArgs>(traitsArgs)...)
         {}
 
-        //! @todo Implement handleRequest()
         void handleRequest(
             common::SharedPtr<RequestContext<Request>> request,
             RouteCb<RequestT> callback
@@ -103,21 +101,79 @@ class ServerServiceT : public ServerServiceBase,
 
         void exec(
                 common::SharedPtr<RequestContext<Request>> request,
+                RouteCb<Request> callback,
                 lib::string_view methodName,
                 bool messageExists,
-                lib::string_view messageType,
-                RouteCb<Request> callback
+                lib::string_view messageType
             ) const
         {
-            return this->traits.exec(std::move(request),methodName,messageExists,messageType,std::move(callback));
+            return this->traits.exec(std::move(request),std::move(callback),methodName,messageExists,messageType);
         }
 };
 
-class ServerServiceMethodBase
+//---------------------------------------------------------------
+
+template <typename RequestT>
+class ServerService : public Service
+{
+public:
+
+    using Request=RequestT;
+
+    using Service::Service;
+
+    virtual ~ServerService()
+    {}
+
+    virtual void handleRequest(
+        common::SharedPtr<RequestContext<RequestT>> request,
+        RouteCb<RequestT> callback
+    ) const =0;
+};
+
+//---------------------------------------------------------------
+
+template <typename RequestT, typename Impl>
+class ServerServiceV : public ServerService<RequestT>,
+                       public common::WithImpl<Impl>
+{
+public:
+
+    using Request=RequestT;
+
+    template <typename ...ImplArgs>
+    ServerServiceV(
+        lib::string_view name,
+        uint8_t version,
+        ImplArgs&&... implArgs
+        ) : ServerService<Request>(name,version),
+        common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
+    {}
+
+    template <typename ...ImplArgs>
+    ServerServiceV(
+        lib::string_view name,
+        ImplArgs&&... implArgs
+    ) : ServerService<Request>(name),
+        common::WithImpl<Impl>(this,std::forward<ImplArgs>(implArgs)...)
+    {}
+
+    virtual void handleRequest(
+        common::SharedPtr<RequestContext<RequestT>> request,
+        RouteCb<RequestT> callback
+    ) const override
+    {
+        this->impl().handleRequest(std::move(request),std::move(callback));
+    }
+};
+
+/********************** ServiceMethod **************************/
+
+class ServiceMethodBase
 {
     public:
 
-        ServerServiceMethodBase(
+        ServiceMethodBase(
                 std::string name
             ) : m_name(std::move(name)),
                 m_messageRequired(true),
@@ -173,8 +229,10 @@ class ServerServiceMethodBase
         ServerServiceBase* m_service;
 };
 
+//---------------------------------------------------------------
+
 template <typename RequestT, typename Traits, typename MessageT=NoMessage>
-class ServerServiceMethodT : public common::WithTraits<Traits>
+class ServiceMethodT : public common::WithTraits<Traits>
 {
     public:
 
@@ -182,8 +240,8 @@ class ServerServiceMethodT : public common::WithTraits<Traits>
         using Message=MessageT;
 
         template <typename ...TraitsArgs>
-        ServerServiceMethodT(
-            ServerServiceMethodBase* base,
+        ServiceMethodT(
+            ServiceMethodBase* base,
             TraitsArgs&& ...traitsArgs
             ) : m_base(base),
                 common::WithTraits<Traits>::WithTraits(std::forward<traitsArgs>(traitsArgs)...)
@@ -193,79 +251,42 @@ class ServerServiceMethodT : public common::WithTraits<Traits>
         }
 
         void exec(
-                common::SharedPtr<RequestContext<Request>> request,
-                RouteCb<Request> callback,
-                lib::string_view messageType
-            )
-        {
-            if constexpr (std::is_same_v<MessageT,NoMessage>)
-            {
-                // handle request withoot message
-                this->service()->handleMessage(
-                    std::move(request),
-                    std::move(callback),
-                    [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback)
-                    {
-                        this->traits().exec(std::move(request),std::move(callback));
-                    }
-                );
-            }
-            else
-            {
-                // check message type
-                if (messageType!=m_base->messageType())
-                {
-                    this->service()->methodFailed(
-                        std::move(request),
-                        std::move(callback),
-                        ServiceMethodStatus::InvalidMessageType
-                        );
-
-                    return;
-                }
-
-                // handle message
-                this->service()->handleMessage(
-                    std::move(request),
-                    std::move(callback),
-                    [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback,common::SharedPtr<Message> msg)
-                    {
-                        this->traits().exec(std::move(request),std::move(callback),std::move(msg));
-                    },
-                    hana::type_c<Message>,
-                    [this](const Message& msg)
-                    {
-                        this->traits().validate(msg);
-                    }
-                );
-            }
-        }
+            common::SharedPtr<RequestContext<Request>> request,
+            RouteCb<Request> callback,
+            bool messageExists,
+            lib::string_view messageType
+        ) const;
 
     private:
 
-        ServerServiceMethodBase* m_base;
+        ServiceMethodBase* m_base;
 };
 
+//---------------------------------------------------------------
+
 template <typename RequestT>
-class ServerServiceMethod : public ServerServiceMethodBase
+class ServiceMethod : public ServiceMethodBase
 {
     public:
 
         using Request=RequestT;
 
-        using ServerServiceMethodBase::ServerServiceMethodBase;
+        using ServiceMethodBase::ServiceMethodBase;
 
-        virtual ~ServerServiceMethod()=default;
+        virtual ~ServiceMethod()=default;
 
         virtual void exec(
             common::SharedPtr<RequestContext<Request>> request,
+            bool messageExists,
             RouteCb<Request> callback,
             lib::string_view messageType
-        ) =0;
+        ) const =0;
 };
 
+//---------------------------------------------------------------
+
 template <typename Impl, typename RequestT>
-class ServerServiceMethodV : public ServerServiceMethod<RequestT>,
+class ServiceMethodV : public ServiceMethod<RequestT>,
                              public common::WithImpl<Impl>
 {
     public:
@@ -274,24 +295,27 @@ class ServerServiceMethodV : public ServerServiceMethod<RequestT>,
         using Request=RequestT;
 
         template <typename ...ImplArgs>
-        ServerServiceMethodV(
+        ServiceMethodV(
                 std::string name,
                 ImplArgs&& ...implArgs
-            ) : ServerServiceMethod<RequestT>(std::move(name)),
+            ) : ServiceMethod<RequestT>(std::move(name)),
                 ImplBase(this,std::forward<ImplArgs>(implArgs)...)
         {}
 
         virtual void exec(
                 common::SharedPtr<RequestContext<Request>> request,
                 RouteCb<Request> callback,
+                bool messageExists,
                 lib::string_view messageType
-            ) override
+            ) const override
         {
-            this->impl().exec(std::move(request),std::move(callback),messageType);
+            this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
         }
 };
 
-class ServerServiceNoValidatorTraits
+//---------------------------------------------------------------
+
+class NoValidatorTraits
 {
     public:
 
@@ -302,134 +326,94 @@ class ServerServiceNoValidatorTraits
         }
 };
 
+//---------------------------------------------------------------
+
+/********************** ServiceMultipleMethods **************************/
+
 template <typename RequestT>
-class ServerServiceMethodsTraits
+class ServiceMultipleMethodsTraits
 {
     public:
 
         using Request=RequestT;
 
-        ServerServiceMethodsTraits(ServerServiceBase* service) : m_service(service)
+        ServiceMultipleMethodsTraits(ServerServiceBase* service) : m_service(service)
         {}
 
-        //! @todo Implement exec
-        void exec(common::SharedPtr<RequestContext<Request>> request,
-                  lib::string_view methodName,
-                  bool messageExists,
-                  lib::string_view messageType,
-                  RouteCb<Request> callback
-            );
+        void exec(
+            common::SharedPtr<RequestContext<Request>> request,
+            RouteCb<Request> callback,
+            lib::string_view methodName,
+            bool messageExists,
+            lib::string_view messageType
+        ) const;
 
-        //! @todo Implement register method
-        void registerMethod(std::shared_ptr<ServerServiceMethod<Request>> method);
+        void registerMethod(std::shared_ptr<ServiceMethod<Request>> method);
 
-        //! @todo Implement method()
-        std::shared_ptr<ServerServiceMethod<Request>> method(lib::string_view methodName);
+        std::shared_ptr<ServiceMethod<Request>> method(lib::string_view methodName) const;
 
     private:
 
         ServerServiceBase* m_service;
-        std::map<std::string,std::shared_ptr<ServerServiceMethod<Request>>,std::less<>> m_methods;
+
+        //! @todo Use FlatMap?
+        std::map<std::string,std::shared_ptr<ServiceMethod<Request>>,std::less<>> m_methods;
 };
 
+//---------------------------------------------------------------
+
 template <typename RequestT>
-class ServerServiceMultipleMethods : public ServerServiceT<RequestT,ServerServiceMethodsTraits<RequestT>>
+class ServiceMultipleMethods : public ServerServiceT<RequestT,ServiceMultipleMethodsTraits<RequestT>>
 {
     public:
 
         using Request=RequestT;
 
-        using ServerServiceT<RequestT,ServerServiceMethodsTraits<RequestT>>::ServerServiceT;
+        using ServerServiceT<RequestT,ServiceMultipleMethodsTraits<RequestT>>::ServerServiceT;
 
-        void registerMethod(std::shared_ptr<ServerServiceMethod<Request>> method)
+        void registerMethod(std::shared_ptr<ServiceMethod<Request>> method)
         {
             this->traits().registerMethod(std::move(method));
         }
 
-        std::shared_ptr<ServerServiceMethod<Request>> method(lib::string_view methodName)
+        std::shared_ptr<ServiceMethod<Request>> method(lib::string_view methodName) const
         {
             return this->traits().method(methodName);
         }
 };
 
-template <typename RequestT>
-class ServerServiceSingleMethodTraits
+/********************** ServiceSingleMethod **************************/
+
+template <typename RequestT, typename MethodT>
+class ServiceSingleMethodTraits
 {
     public:
 
         using Request=RequestT;
 
-        ServerServiceSingleMethodTraits(ServerServiceBase* service,
-                                        std::shared_ptr<ServerServiceMethod<Request>> method
+        ServiceSingleMethodTraits(ServerServiceBase* service,
+                                        std::shared_ptr<ServiceMethod<Request>> method
                                         ) : m_method(method)
         {
             m_method->setService(service);
         }
 
-        //! @todo Implement exec
         void exec(common::SharedPtr<RequestContext<Request>> request,
+                  RouteCb<Request> callback,
                   lib::string_view methodName,
                   bool messageExists,
-                  lib::string_view messageType,
-                  RouteCb<Request> callback
-                  );
+                  lib::string_view messageType
+        ) const;
 
     private:
 
-        std::shared_ptr<ServerServiceMethod<Request>> m_method;
+        std::shared_ptr<MethodT> m_method;
 };
 
-template <typename RequestT>
-using ServerServiceSingleMethod = ServerServiceT<RequestT,ServerServiceSingleMethodTraits<RequestT>>;
+template <typename RequestT, typename MethodT>
+using ServiceSingleMethod = ServerServiceT<RequestT,ServiceSingleMethodTraits<RequestT,MethodT>>;
 
-template <typename RequestT>
-class ServerService : public Service
-{
-    public:
-
-        using Request=RequestT;
-
-        using Service::Service;
-
-        virtual void handleRequest(
-            common::SharedPtr<RequestContext<RequestT>> request,
-            RouteCb<RequestT> callback
-        ) const =0;
-};
-
-template <typename RequestT, typename Impl>
-class ServerServiceV : public ServerService<RequestT>,
-                       public common::WithImpl<Impl>
-{
-    public:
-
-        using Request=RequestT;
-
-        template <typename ...ImplArgs>
-        ServerServiceV(
-                lib::string_view name,
-                uint8_t version,
-                ImplArgs&&... implArgs
-            ) : ServerService<Request>(name,version),
-                common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
-        {}
-
-        template <typename ...ImplArgs>
-        ServerServiceV(
-            lib::string_view name,
-            ImplArgs&&... implArgs
-            ) : ServerService<Request>(name),
-                common::WithImpl<Impl>(this,std::forward<ImplArgs>(implArgs)...)
-        {}
-
-        virtual void handleRequest(
-            common::SharedPtr<RequestContext<RequestT>> request,
-            RouteCb<RequestT> callback
-        ) const override
-        {
-            this->impl().handleRequest(std::move(request),std::move(callback));
-        }
-};
+//---------------------------------------------------------------
 
 } // namespace server
 

@@ -28,53 +28,27 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-//---------------------------------------------------------------
+/********************** ServerServiceBase **************************/
 
-template <typename Traits>
-template <typename RequestT>
-void ServerService<Traits>::handleRequest(
-        common::SharedPtr<api::server::RequestContext<RequestT>> request,
-        api::server::RouteCb<RequestT> callback
+template <typename RequestT, typename HandlerT, typename MessageT, typename ValidatorT>
+void ServerServiceBase::handleMessage(
+        common::SharedPtr<RequestContext<RequestT>> request,
+        RouteCb<RequestT> callback,
+        HandlerT handler,
+        hana::type<MessageT>,
+        const ValidatorT& validator
     ) const
 {
-    auto& req=request->template get<RequestT>();
-
-    auto cb=[callback(std::move(callback)),&req](common::SharedPtr<api::server::RequestContext<RequestT>> request)
+    if constexpr (std::is_same_v<MessageT,NoMessage>)
     {
-        //! @todo Log status?
-        callback(std::move(request));
-    };
-
-    auto handleMessage=[request{std::move(request)},cb{std::move(cb)},this,&req](ServiceMethodStatus status, auto handler, auto msg, const auto& validator)
+        handler(std::move(request),std::move(callback));
+    }
+    else
     {
-        // check status
-        if (status>ServiceMethodStatus::MessageNotRequred)
-        {
-            switch (status)
-            {
-                case(ServiceMethodStatus::UnknownMethod): req.response.setStatus(protocol::ResponseStatus::UnknownMethod); break;
-                case(ServiceMethodStatus::UnknownMessageType): req.response.setStatus(protocol::ResponseStatus::UnknownMessageType); break;
-                case(ServiceMethodStatus::MessageMissing): req.response.setStatus(protocol::ResponseStatus::MessageMissing); break;
-
-                default:
-                    req.response.setStatus(protocol::ResponseStatus::InternalServerError);
-                    break;
-            }
-
-            cb(std::move(request));
-            return;
-        }
-
-        // if message not required invoke handler without message
-        if (status==ServiceMethodStatus::MessageNotRequred)
-        {
-            handler(std::move(request),std::move(msg),std::move(cb));
-            return;
-        }
+        auto& req=request->template get<RequestT>();
 
         // build message object
-        using msgType=typename std::decay_t<decltype(msg)>::element_type;
-        msg=req.template get<AllocatorFactory>().factory()->template createObject<msgType>();
+        auto msg=req.template get<AllocatorFactory>().factory()->template createObject<MessageT>();
 
         //  parse message
         const auto& messageField=request->unit.field(protocol::request::message);
@@ -87,10 +61,10 @@ void ServerService<Traits>::handleRequest(
         }
 
         // validate message
-        auto validationStatus=validator.apply(*msg);
+        auto validationStatus=validator(*msg);
         if (!validationStatus)
         {
-            //! @todo construct locale aware validation report
+            //! @todo construct locale aware validation reports
 
             req.response.setStatus(protocol::ResponseStatus::ValidationError);
             cb(std::move(request));
@@ -98,21 +72,210 @@ void ServerService<Traits>::handleRequest(
         }
 
         // handle message in service
-        handler(std::move(request),std::move(cb));
-    };
-
-    // prepare handler for request
-    prepareHandler(&req,
-                   req.unit.field(protocol::request::method).value(),
-                   req.unit.field(protocol::request::message).isSet(),
-                   req.unit.field(protocol::request::message_type).value(),
-                   std::move(handleMessage)
-                   );
+        handler(std::move(request),std::move(callback), std::move(msg));
+    }
 }
 
 //---------------------------------------------------------------
 
-} // namespace client
+template <typename RequestT>
+void ServerServiceBase::methodFailed(
+        common::SharedPtr<RequestContext<RequestT>> request,
+        RouteCb<RequestT> callback,
+        ServiceMethodStatus status,
+        const Error& ec
+    ) const
+{
+    auto& req=request->template get<RequestT>();
+    req.response.setStatus(status,ec);
+    callback(std::move(request));
+}
+
+/********************** ServerServiceT **************************/
+
+template <typename RequestT, typename Traits>
+void ServerServiceT<RequestT,Traits>::handleRequest(
+        common::SharedPtr<RequestContext<Request>> request,
+        RouteCb<RequestT> callback
+    ) const
+{
+    auto& req=request->template get<RequestT>();
+
+    auto cb=[callback(std::move(callback))](common::SharedPtr<api::server::RequestContext<RequestT>> request)
+    {
+        //! @todo Log status?
+        callback(std::move(request));
+    };
+
+    exec(
+        std::move(request),
+        std::move(cb),
+        req.unit.field(protocol::request::method).value(),
+        req.unit.field(protocol::request::message).isSet(),
+        req.unit.field(protocol::request::message_type).value()
+    );
+}
+
+/********************** ServiceMethodT **************************/
+
+template <typename RequestT, typename Traits, typename MessageT>
+void ServiceMethodT<RequestT,Traits,MessageT>::exec(
+        common::SharedPtr<RequestContext<Request>> request,
+        RouteCb<Request> callback,
+        bool messageExists,
+        lib::string_view messageType
+    ) const
+{
+    if constexpr (std::is_same_v<MessageT,NoMessage>)
+    {
+        // handle request withoot message
+        this->service()->handleMessage(
+            std::move(request),
+            std::move(callback),
+            [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback)
+            {
+                this->traits().exec(std::move(request),std::move(callback));
+            }
+        );
+    }
+    else
+    {
+        // check if message is set in request
+        if (!messageExists)
+        {
+            this->service()->methodFailed(
+                std::move(request),
+                std::move(callback),
+                ServiceMethodStatus::MessageMissing
+                );
+            return;
+        }
+
+        // check message type
+        if (messageType!=m_base->messageType())
+        {
+            this->service()->methodFailed(
+                std::move(request),
+                std::move(callback),
+                ServiceMethodStatus::InvalidMessageType
+                );
+
+            return;
+        }
+
+        // handle message
+        this->service()->handleMessage(
+            std::move(request),
+            std::move(callback),
+            [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback,common::SharedPtr<Message> msg)
+            {
+                this->traits().exec(std::move(request),std::move(callback),std::move(msg));
+            },
+            hana::type_c<Message>,
+            [this](const Message& msg)
+            {
+                return this->traits().validate(msg);
+            }
+        );
+    }
+}
+
+/********************** ServiceMultipleMethodsTraits **************************/
+
+
+template <typename RequestT>
+void ServiceMultipleMethodsTraits<RequestT>::registerMethod(
+        std::shared_ptr<ServiceMethod<Request>> method
+    )
+{
+    m_methods[method->name()]=method;
+}
+
+//---------------------------------------------------------------
+
+template <typename RequestT>
+std::shared_ptr<ServiceMethod<RequestT>> ServiceMultipleMethodsTraits<RequestT>::method(
+        lib::string_view methodName
+    ) const
+{
+    auto it=m_methods.find(methodName);
+    if (it!=m_methods.end())
+    {
+        return it->second;
+    }
+    return std::shared_ptr<ServiceMethod<RequestT>>{};
+}
+
+//---------------------------------------------------------------
+
+template <typename RequestT>
+void ServiceMultipleMethodsTraits<RequestT>::exec(
+        common::SharedPtr<RequestContext<Request>> request,
+        RouteCb<Request> callback,
+        lib::string_view methodName,
+        bool messageExists,
+        lib::string_view messageType
+    ) const
+{
+    auto& req=request->template get<RequestT>();
+
+    // find method
+    auto mthd=method(methodName);
+    if (!mthd)
+    {
+        m_service->methodFailed(
+            std::move(request),
+            std::move(callback),
+            ServiceMethodStatus::UnknownMethod
+            );
+        return;
+    }
+
+    // exec method
+    mthd->exec(
+        std::move(request),
+        std::move(callback),
+        messageExists,
+        messageType
+    );
+}
+
+/********************** ServiceSingleMethodTraits **************************/
+
+template <typename RequestT, typename MethodT>
+void ServiceSingleMethodTraits<RequestT,MethodT>::exec(
+        common::SharedPtr<RequestContext<Request>> request,
+        RouteCb<Request> callback,
+        lib::string_view methodName,
+        bool messageExists,
+        lib::string_view messageType
+    ) const
+{
+    auto& req=request->template get<RequestT>();
+
+    // check if method names match
+    if (methodName!=m_method->name())
+    {
+        m_method->service()->methodFailed(
+            std::move(request),
+            std::move(callback),
+            ServiceMethodStatus::UnknownMethod
+        );
+        return;
+    }
+
+    // exec method
+    m_method->exec(
+        std::move(request),
+        std::move(callback),
+        messageExists,
+        messageType
+    );
+}
+
+//---------------------------------------------------------------
+
+} // namespace server
 
 HATN_API_NAMESPACE_END
 
