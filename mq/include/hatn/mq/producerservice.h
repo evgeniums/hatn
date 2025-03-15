@@ -20,7 +20,8 @@
 #ifndef HATNBMQPRODUCERSERVICE_H
 #define HATNBMQPRODUCERSERVICE_H
 
-#include <hatn/api/server/request.h>
+#include <hatn/api/server/serverrequest.h>
+#include <hatn/api/server/serverservice.h>
 
 #include <hatn/mq/mq.h>
 #include <hatn/mq/message.h>
@@ -56,37 +57,37 @@ HATN_DB_MODEL_WITH_CFG(serverMqMessageModel,server_db_message,db::ModelConfig("s
                        msgSessAgentPosIdx()
                 )
 
-template <typename MessageT=server_db_message::managed>
-struct Traits
+template <typename RequestT, typename MessageT=server_db_message::managed>
+struct ProducerMethodTraits
 {
+    using Request=RequestT;
     using Message=MessageT;
 
     static const auto& messageModel()
     {
         return messageModel();
     }
+
+    void exec(
+        common::SharedPtr<api::server::RequestContext<Request>> request,
+        api::server::RouteCb<Request> callback,
+        common::SharedPtr<Message> msg
+    ) const;
+
+    validator::error_report validate(
+        const common::SharedPtr<api::server::RequestContext<Request>>& request,
+        const MessageT& msg
+    ) const;
 };
 
-template <typename Traits>
-class ProducerService
-{
-    private:
+template <typename RequestT, typename MessageT=server_db_message::managed>
+using ProducerMethod=api::server::ServiceMethodT<RequestT,ProducerMethodTraits<RequestT,MessageT>,MessageT>;
 
-        static const auto& objectModel()
-        {
-            return Traits::objectModel();
-        }
+template <typename RequestT, typename MessageT=server_db_message::managed>
+using ProducerService=api::server::ServiceSingleMethod<RequestT,ProducerMethod<RequestT,MessageT>>;
 
-    public:
-
-        using Message=typename Traits::Message;
-
-        template <typename RequestT, typename CallbackT>
-        void handleRequest(
-            common::SharedPtr<api::server::RequestContext<RequestT>> request,
-            CallbackT cb
-        );
-};
+template <typename RequestT, typename MessageT=server_db_message::managed>
+using ProducerServiceV=api::server::ServerServiceV<RequestT,ProducerService<RequestT,MessageT>>;
 
 } // namespace server
 

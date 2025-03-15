@@ -50,6 +50,9 @@ HDU_UNIT(message,
     HDU_FIELD(content,message_content::TYPE,7)    
 )
 
+constexpr const char* ApiRequestMessageType="mq_message";
+constexpr const char* ApiRequestMethod="post";
+
 HATN_DB_UNIQUE_INDEX(msgProducerPosIdx,message::producer,message::pos)
 
 /** @todo Use message validator
