@@ -21,6 +21,7 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
+    include/hatn/mq/ipp/producerclient.ipp
     include/hatn/mq/ipp/producerservice.ipp
 )
 
