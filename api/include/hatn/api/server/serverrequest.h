@@ -74,7 +74,7 @@ struct Request : public common::TaskSubcontext
     common::ThreadQWithTaskContext* requestThread;
 
     du::ObjectId sessionId;
-    du::ObjectId sessionAgentId;
+    du::ObjectId sessionClienttId;
 
     const common::Translator* translator;
 
@@ -94,6 +94,12 @@ struct Request : public common::TaskSubcontext
     const auto& id() const
     {
         const auto& field=unit.field(protocol::request::id);
+        return field.value();
+    }
+
+    auto topic() const
+    {
+        const auto& field=unit.field(protocol::request::topic);
         return field.value();
     }
 
