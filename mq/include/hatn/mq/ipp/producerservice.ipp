@@ -46,7 +46,8 @@ validator::error_report ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,M
 
 /** @todo implement mq message validation
  *
- * object_type must be not empty for Operation::Create
+ * object_type must be not empty
+ * object_type must be the same as in ObjectHandlerT
  * object.object must be set for Operation::Create and Operation::Update at producer
  * producer_pos and producer must be set
  * datetime of producer_pos must be not too far in the past or in the future, check it with
@@ -215,9 +216,9 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
                 {
                     obj->setFieldValue(mq_object::mq_pos,msg->field(message::pos).value());
                     ec=objHandler->dbCreate(
+                        req.topic(),
                         client,
                         tx,
-                        msg->fieldValue(message::object_type),
                         std::move(obj)
                     );
                 }
@@ -239,9 +240,9 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
 
                     // update object
                     ec=objHandler->dbUpdate(
+                        req.topic(),
                         client,
                         tx,
-                        msg->fieldValue(message::object_type),
                         msg->fieldValue(message::object_id),
                         updateReq
                     );
@@ -251,9 +252,9 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
                 case(Operation::Delete):
                 {
                     ec=objHandler->dbDelete(
+                        req.topic(),
                         client,
                         tx,
-                        msg->fieldValue(message::object_type),
                         msg->fieldValue(message::object_id)
                     );
                 }
@@ -286,6 +287,83 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
         std::move(obj),
         std::move(updateObj)
     );
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+Error ObjectHandler<Traits>::dbCreate(
+        lib::string_view topic,
+        db::Client* dbClient,
+        db::Transaction* tx,
+        common::SharedPtr<Object> obj
+    ) const
+{
+    if constexpr (decltype(has_dbCreate<Traits>(topic,dbClient,tx,obj))::value)
+    {
+        return this->traits().dbCreate(
+                        topic,
+                        dbClient,
+                        tx,
+                        std::move(obj)
+                    );
+    }
+    else
+    {
+        return dbClient->create(topic,objectModel(),*obj,tx);
+    }
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+Error ObjectHandler<Traits>::dbUpdate(
+    lib::string_view topic,
+    db::Client* dbClient,
+    db::Transaction* tx,
+    const du::ObjectId& oid,
+    const db::update::Request& req
+    ) const
+{
+    if constexpr (decltype(has_dbUpdate<Traits>(topic,dbClient,tx,oid,req))::value)
+    {
+        return this->traits().dbCreate(
+                        topic,
+                        dbClient,
+                        tx,
+                        oid,
+                        req
+                    );
+    }
+    else
+    {
+        return dbClient->update(topic,objectModel(),oid,req,tx);
+    }
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits>
+Error ObjectHandler<Traits>::dbDelete(
+    lib::string_view topic,
+    db::Client* dbClient,
+    db::Transaction* tx,
+    const du::ObjectId& oid
+    ) const
+{
+    if constexpr (decltype(has_dbDelete<Traits>(topic,dbClient,tx,oid))::value)
+    {
+        return this->traits().dbDelete(
+                        topic,
+                        dbClient,
+                        tx,
+                        oid
+                    );
+    }
+    else
+    {
+        return dbClient->deleteObject(topic,objectModel(),oid,tx);
+    }
 }
 
 //---------------------------------------------------------------

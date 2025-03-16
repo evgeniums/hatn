@@ -20,7 +20,11 @@
 #ifndef HATNBMQPRODUCERSERVICE_H
 #define HATNBMQPRODUCERSERVICE_H
 
+#include <hatn/common/meta/hasmethod.h>
+
 #include <hatn/base/configobject.h>
+
+#include <hatn/db/client.h>
 
 #include <hatn/api/server/serverrequest.h>
 #include <hatn/api/server/serverservice.h>
@@ -68,6 +72,67 @@ HDU_UNIT(mq_config,
 class MqConfig : public HATN_BASE_NAMESPACE::ConfigObject<mq_config::type>
 {};
 
+template <typename Traits>
+class ObjectHandler : public common::WithTraits<Traits>
+{
+    public:
+
+        using Object=typename Traits::Object;
+
+        static const auto& objectModel()
+        {
+            return Traits::objectModel();
+        }
+
+        using common::WithTraits<Traits>::WithTraits;
+
+        template <typename RequestT, typename CallbackT, typename MessageT, typename UpdateObjectT>
+        void preprocess(
+            common::SharedPtr<RequestT> request,
+            CallbackT callback,
+            common::SharedPtr<MessageT> msg,
+            common::SharedPtr<Object> obj,
+            common::SharedPtr<UpdateObjectT> updateObj
+        ) const
+        {
+            this->traits().preprocess(
+                std::move(request),
+                std::move(callback),
+                std::move(msg),
+                std::move(obj),
+                std::move(updateObj)
+            );
+        }
+
+        Error dbCreate(
+            lib::string_view topic,
+            db::Client* dbClient,
+            db::Transaction* tx,
+            common::SharedPtr<Object> obj
+        ) const;
+
+        Error dbUpdate(
+            lib::string_view topic,
+            db::Client* dbClient,
+            db::Transaction* tx,
+            const du::ObjectId& oid,
+            const db::update::Request& req
+        ) const;
+
+        Error dbDelete(
+            lib::string_view topic,
+            db::Client* dbClient,
+            db::Transaction* tx,
+            const du::ObjectId& oid
+        ) const;
+
+    private:
+
+        HATN_PREPARE_HAS_METHOD(dbCreate)
+        HATN_PREPARE_HAS_METHOD(dbUpdate)
+        HATN_PREPARE_HAS_METHOD(dbDelete)
+};
+
 template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
 struct ProducerMethodTraits
 {
@@ -86,7 +151,7 @@ struct ProducerMethodTraits
 
     static const auto& messageModel()
     {
-        return messageModel();
+        return serverMqMessageModel();
     }
 
     void exec(
@@ -104,14 +169,14 @@ struct ProducerMethodTraits
     std::shared_ptr<NotifierT> notifier;
 };
 
-template <typename RequestT, typename ObjectHandlerT, typename MessageT=server_db_message::managed>
-using ProducerMethod=api::server::ServiceMethodT<RequestT,ProducerMethodTraits<RequestT,ObjectHandlerT,MessageT>,MessageT>;
+template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
+using ProducerMethod=api::server::ServiceMethodT<RequestT,ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>,MessageT>;
 
-template <typename RequestT, typename ObjectHandlerT, typename MessageT=server_db_message::managed>
-using ProducerService=api::server::ServiceSingleMethod<RequestT,ProducerMethod<RequestT,ObjectHandlerT,MessageT>>;
+template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
+using ProducerService=api::server::ServiceSingleMethod<RequestT,ProducerMethod<RequestT,ObjectHandlerT,NotifierT,MessageT>>;
 
-template <typename RequestT, typename ObjectHandlerT, typename MessageT=server_db_message::managed>
-using ProducerServiceV=api::server::ServerServiceV<RequestT,ProducerService<RequestT,ObjectHandlerT,MessageT>>;
+template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
+using ProducerServiceV=api::server::ServerServiceV<RequestT,ProducerService<RequestT,ObjectHandlerT,NotifierT,MessageT>>;
 
 } // namespace server
 
