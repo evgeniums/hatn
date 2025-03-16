@@ -22,6 +22,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/bytearray.h>
+#include <hatn/common/format.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -51,9 +52,10 @@ class HATN_COMMON_EXPORT ApiError
 
         constexpr static const char* DefaultStatus="success";
 
-        ApiError(int code, const ApiErrorCategory* cat)
+        ApiError(int code, const ApiErrorCategory* cat=nullptr)
             : m_cat(cat),
-              m_code(code)
+              m_code(code),
+              m_nestedMessage(false)
         {}
 
         void setCode(int code) noexcept
@@ -66,18 +68,52 @@ class HATN_COMMON_EXPORT ApiError
             return m_code;
         }
 
+        void setStatus(std::string status)
+        {
+            m_status=std::move(status);
+        }
+
         const char* status() const noexcept
         {
+            if (m_cat==nullptr || !m_status.empty())
+            {
+                return m_status.c_str();
+            }
             return m_cat->status(m_code);
+        }
+
+        void setDescription(std::string description, bool nested=false)
+        {
+            m_description=std::move(description);
+            m_nestedMessage=nested;
         }
 
         std::string message(const Translator* translator=nullptr) const
         {
+            if (!m_description.empty())
+            {
+                if (m_nestedMessage)
+                {
+                    auto str=m_cat->message(m_code,translator);
+                    fmt::format_to(std::back_inserter(str),": {}",m_description);
+                    return str;
+                }
+                return m_description;
+            }
             return m_cat->message(m_code,translator);
+        }
+
+        void setFamily(std::string family)
+        {
+            m_family=std::move(family);
         }
 
         const char* family() const
         {
+            if (m_cat==nullptr || !m_family.empty())
+            {
+                return m_family.c_str();
+            }
             return m_cat->family();
         }
 
@@ -112,6 +148,10 @@ class HATN_COMMON_EXPORT ApiError
         int m_code;
         ByteArrayShared m_data;
         std::string m_dataType;
+        std::string m_description;
+        std::string m_status;
+        std::string m_family;
+        bool m_nestedMessage;
 };
 
 //---------------------------------------------------------------
