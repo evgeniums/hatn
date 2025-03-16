@@ -326,6 +326,16 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
             return m_code;
         }
 
+        //! Get shared native error.
+        inline std::shared_ptr<NativeError> nativeShared() const
+        {
+            if (isType(Type::Native))
+            {
+                return lib::variantGet<std::shared_ptr<NativeError>>(m_data);
+            }
+            return std::shared_ptr<NativeError>{};
+        }
+
         //! Get native error.
         inline const NativeError* native() const noexcept
         {
