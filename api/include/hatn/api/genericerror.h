@@ -22,10 +22,7 @@
 #include <hatn/common/apierror.h>
 
 #include <hatn/api/api.h>
-
-#define HATN_API_GENERIC_ERRORS(Do) \
-    Do(ApiGenericError,OK,_TR("success",translator,"api")) \
-    Do(ApiGenericError,VALIDATION_ERROR,_TR("failed to validate request",translator,"api")) \
+#include <hatn/api/protocol.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -40,7 +37,7 @@ class HATN_API_EXPORT ApiGenericErrorCategory : public common::ApiErrorCategory
         //! Name of the category.
         virtual const char *family() const noexcept
         {
-            return "hatn.generic";
+            return "hatn.api.generic";
         }
 
         //! Get description for the code.
@@ -51,18 +48,11 @@ class HATN_API_EXPORT ApiGenericErrorCategory : public common::ApiErrorCategory
 };
 
 //! Error codes of hatnapi lib.
-enum class ApiGenericError : int
-{
-    HATN_API_GENERIC_ERRORS(HATN_ERROR_CODE)
-};
-
-constexpr const char* const ApiGenericErrorStrings[] = {
-    HATN_API_GENERIC_ERRORS(HATN_ERROR_STR)
-};
+using ApiGenericError = protocol::ResponseStatus;
 
 inline const char* apiGenericErrorString(ApiGenericError code)
 {
-    return errorString(code,ApiGenericErrorStrings);
+    return errorString(code,protocol::ResponseStatusStrings);
 }
 
 HATN_API_NAMESPACE_END

@@ -21,6 +21,7 @@ SET (HEADERS
     include/hatn/api/tenancy.h
     include/hatn/api/withnameandversion.h
     include/hatn/api/genericerror.h
+    include/hatn/api/makeapierror.h
 )
 
 SET (HEADERS
@@ -65,6 +66,7 @@ SET (IPP_HEADERS
     include/hatn/api/ipp/methodauth.ipp
     include/hatn/api/ipp/serverservice.ipp
     include/hatn/api/ipp/serverresponse.ipp
+    include/hatn/api/ipp/makeapierror.ipp
 )
 
 SET (HEADERS

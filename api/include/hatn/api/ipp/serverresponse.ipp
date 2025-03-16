@@ -63,7 +63,7 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
         errorUnit->setFieldValue(protocol::response_error_message::code,apiErr->code());
         errorUnit->setFieldValue(protocol::response_error_message::family,apiErr->family());
         errorUnit->setFieldValue(protocol::response_error_message::status,apiErr->status());
-        errorUnit->setFieldValue(protocol::response_error_message::message,apiErr->message(request->translator));
+        errorUnit->setFieldValue(protocol::response_error_message::description,apiErr->message(request->translator));
         auto data=apiErr->data();
         if (data)
         {
@@ -81,12 +81,17 @@ Error makeApiError(ErrCodeT code,
                const ErrorCatergoryT* errCat,
                ApiCodeT apiCode,
                const ApiCategoryT* apiCat,
+               std::string description,
                const DataT dataUnit,
                std::string dataType,
                const common::pmr::AllocatorFactory* factory
     )
 {
     auto nativeError=std::make_shared<common::NativeError>(static_cast<int>(apiCode),apiCat,errCat);
+    if (!description.empty())
+    {
+        nativeError->mutableApiError()->setDescription(std::move(description),true);
+    }
     if (dataUnit!=nullptr)
     {
         nativeError->apiError()->setDataType(std::move(dataType));

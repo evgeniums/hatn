@@ -34,10 +34,10 @@ std::string ApiGenericErrorCategory::message(int code,const common::Translator* 
     std::string result;
     switch (code)
     {
-        HATN_API_GENERIC_ERRORS(HATN_ERROR_MESSAGE)
+        HATN_API_RESPONSE_STATUS(HATN_ERROR_MESSAGE)
 
         default:
-            result=_TR("unknown error",translator);
+            result=_TR("unknown error","generic",translator);
     }
 
     return result;
@@ -46,7 +46,7 @@ std::string ApiGenericErrorCategory::message(int code,const common::Translator* 
 //---------------------------------------------------------------
 const char* ApiGenericErrorCategory::status(int code) const
 {
-    return errorString(code,ApiGenericErrorStrings);
+    return errorString(code,protocol::ResponseStatusStrings);
 }
 
 //---------------------------------------------------------------

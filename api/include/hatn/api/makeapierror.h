@@ -10,65 +10,20 @@
 /*
 
 */
-/** @file api/server/serverresponse.h
+/** @file api/makeapierror.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPISERVERRESPONSE_H
-#define HATNAPISERVERRESPONSE_H
+#ifndef HATNAPIMAKEAPIERROR_H
+#define HATNAPIMAKEAPIERROR_H
 
-#include <hatn/common/sharedptr.h>
-#include <hatn/common/allocatoronstack.h>
-#include <hatn/common/translate.h>
+#include <hatn/common/pmr/allocatorfactory.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/requestunit.h>
-#include <hatn/api/responseunit.h>
-#include <hatn/api/message.h>
-#include <hatn/api/server/env.h>
 
 HATN_API_NAMESPACE_BEGIN
-
-namespace server {
-
-template <typename EnvT, typename RequestUnitT>
-struct Request;
-
-template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
-struct Response
-{
-    Request<EnvT,RequestUnitT>* request;
-
-    protocol::response::shared_type unit;
-    du::WireBufChained message;
-
-    const common::pmr::AllocatorFactory* factory;
-
-    Response(
-        Request<EnvT,RequestUnitT>* req
-    );
-
-    auto buffers() const
-    {
-        return message.buffers();
-    }
-
-    auto size()
-    {
-        return message.size();
-    }
-
-    auto status() const noexcept
-    {
-        return unit.fieldValue(protocol::response::status);
-    }
-
-    Error serialize();
-
-    void setStatus(protocol::ResponseStatus status=protocol::ResponseStatus::Success, const Error& ec=Error{});
-};
 
 template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
 Error makeApiError(ErrCodeT code,
@@ -95,8 +50,6 @@ Error makeApiError(const Error& ec,
     return makeApiError(ec.code(),ec,ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
 }
 
-} // namespace server
-
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPISERVERRESPONSE_H
+#endif // HATNAPIMAKEAPIERROR_H

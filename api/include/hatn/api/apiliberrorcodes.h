@@ -28,10 +28,13 @@
     Do(ApiLibError,OK,_TR("OK")) \
     Do(ApiLibError,QUEUE_OVERFLOW,_TR("too many requests in a queue","api")) \
     Do(ApiLibError,CONNECTION_BUSY,_TR("invalid operation on busy connection","api")) \
-    Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("sending message size to big","api")) \
-    Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("receivng message size to big","api")) \
+    Do(ApiLibError,TOO_BIG_TX_MESSAGE,_TR("sending message size too big","api")) \
+    Do(ApiLibError,TOO_BIG_RX_MESSAGE,_TR("receivng message size too big","api")) \
     Do(ApiLibError,CONNECTION_NOT_READY_RECV,_TR("connection not ready to receive data","api")) \
-    Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("failed to serialize request","api"))
+    Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("failed to serialize request","api")) \
+    Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE,_TR("failed to deserialize response","api")) \
+    Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE_ERROR,_TR("failed to deserialize response error","api")) \
+    Do(ApiLibError,SERVER_RESPONDED_WITH_ERROR,_TR("server responded with error","api"))
 
 HATN_API_NAMESPACE_BEGIN
 

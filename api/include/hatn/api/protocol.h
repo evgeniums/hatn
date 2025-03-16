@@ -23,8 +23,24 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include <hatn/common/errorcodes.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/apiconstants.h>
+
+#define HATN_API_RESPONSE_STATUS(Do) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,Success,_TR("success","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,AuthError,_TR("authentification error","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,InternalServerError,_TR("internal server error","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,FormatError,_TR("invalid data format","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ValidationError,_TR("data validation failed","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RoutingError,_TR("cannot route request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,UnknownMethod,_TR("unknown method of request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,InvalidMessageType,_TR("invalid type of message in request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,MessageMissing,_TR("missing message in request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ExecFailed,_TR("failed to execute request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RetryLater,_TR("server not ready to process the request, please retry later","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ForeignServerFailed,_TR("could not forward request to foreign server, please retry later","api_protocol",translator))
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -94,17 +110,17 @@ class Header
 
 enum class ResponseStatus : int
 {
-    Success=0,
-    AuthError=1,
-    InternalServerError=2,
-    FormatError=3,
-    ValidationError=3,
-    RoutingError=4,
-    UnknownMethod=5,
-    InvalidMessageType=6,
-    MessageMissing=7,
-    ServiceError=8
+    HATN_API_RESPONSE_STATUS(HATN_ERROR_CODE)
 };
+
+constexpr const char* const ResponseStatusStrings[] = {
+    HATN_API_RESPONSE_STATUS(HATN_ERROR_STR)
+};
+
+inline const char* responseStatusString(ResponseStatus status)
+{
+    return errorString(status,ResponseStatusStrings);
+}
 
 }
 

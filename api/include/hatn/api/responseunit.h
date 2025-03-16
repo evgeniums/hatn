@@ -42,7 +42,7 @@ HDU_UNIT(response_error_message,
     HDU_FIELD(code,TYPE_INT32,1,true)
     HDU_FIELD(family,HDU_TYPE_FIXED_STRING(ResponseFamilyNameLengthMax),3,true)
     HDU_FIELD(status,HDU_TYPE_FIXED_STRING(ResponseStatusLengthMax),4)
-    HDU_FIELD(message,TYPE_STRING,5)
+    HDU_FIELD(description,TYPE_STRING,5)
     HDU_FIELD(data_type,HDU_TYPE_FIXED_STRING(UnitNameLengthMax),6)
     HDU_FIELD(data,TYPE_BYTES,7)
 )
@@ -50,6 +50,7 @@ HDU_UNIT(response_error_message,
 } // namespace protocol
 
 using ResponseManaged=protocol::response::managed;
+using ResponseErrorManaged=protocol::response_error_message::managed;
 
 HATN_API_NAMESPACE_END
 
