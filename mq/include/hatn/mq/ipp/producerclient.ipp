@@ -20,8 +20,13 @@
 #ifndef HATNBMQPRODUCERCLIENT_IPP
 #define HATNBMQPRODUCERCLIENT_IPP
 
+#include <hatn/common/meta/enumint.h>
+
 #include <hatn/db/ipp/updateserialization.ipp>
 #include <hatn/db/ipp/updateunit.ipp>
+
+#include <hatn/api/apiliberror.h>
+#include <hatn/api/genericerror.h>
 
 #include <hatn/mq/producerclient.h>
 
@@ -576,12 +581,73 @@ void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, Callb
     {
         if (ec)
         {
-            //! @todo Set failed field in case the message can not be processed by server
-            cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
-            return;
+            // check if error is not fatal
+            const auto* apiError=ec.apiError();
+            if (apiError==nullptr
+                ||
+                !ec.is(api::ApiLibError::SERVER_RESPONDED_WITH_ERROR,api::ApiLibErrorCategory::getCategory())
+                ||
+                (
+                    apiError->family()==api::ApiGenericErrorCategory::getCategory().family()
+                    &&
+                    (
+                        common::isEnumInt(apiError->code(),api::ApiGenericError::RetryLater)
+                        ||
+                        common::isEnumInt(apiError->code(),api::ApiGenericError::ForeignServerFailed)
+                    )
+                )
+                )
+            {
+                if (ec.is(api::ApiLibError::SERVER_RESPONDED_WITH_ERROR,api::ApiLibErrorCategory::getCategory()))
+                {
+                    // dequeue next message
+                    dequeue(std::move(ctx),std::move(cb),std::move(jb));
+                }
+                else
+                {
+                    // delivery error, the connection might be broken, so retry sending later instead of dequeuing next message right now
+                    cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
+                }
+
+                return;
+            }
+
+            // fatal error, set failed field in case the message cannot be processed by server
+            auto errMsg=this->factory()->template createObject<std::string>(ec.message());
+            auto updateCb=[cb{std::move(cb)},ctx{std::move(ctx)},jb{std::move(jb)},selfCtx{this->sharedMainCtx()},this,msg,errMsg](auto, const Error& ec)
+            {
+                if (ec)
+                {
+                    //! @todo log error
+                    return;
+                }
+
+                auto notifyCb=[ctx,this,selfCtx{this->sharedMainCtx()},jb,cb{std::move(cb)}](auto, common::Error&)
+                {
+                    // dequeue next message
+                    dequeue(std::move(ctx),std::move(cb),std::move(jb));
+                };
+                // notify that message was failed
+                m_notifier->notify(
+                    ctx,notifyCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),msg,MessageStatus::Failed,*errMsg
+                );
+            };
+            auto req=db::update::allocateRequest(
+                                            this->factory(),
+                                            db::update::field(client_db_message::failed,db::update::Operator::set,true),
+                                            db::update::field(client_db_message::error_message,db::update::Operator::set,*errMsg)
+                                           );
+            m_db->update(
+                std::move(ctx),
+                std::move(updateCb),
+                jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),
+                clientMqMessageModel(),
+                msg->fieldValue(db::object::_id),
+                std::move(req)
+            );
         }
 
-        // remove message
+        // remove message from queue
         auto delCb=[ctx{std::move(ctx)},this,selfCtx{this->sharedMainCtx()},jb,cb{std::move(cb)},msg](auto, common::Error& ec)
         {
             if (ec)
@@ -616,6 +682,8 @@ void ProducerClient<Traits>::dequeue(common::SharedPtr<ContextT> ctx, CallbackT 
         return;
     }
 
+    // first - if false than do not invoke calback in txCb because it would be invoked later after sending to server
+    // second - status to set for the job after db transaction completes
     auto jobResultStatus=this->factory()->template createObject<
         std::pair<bool,common::SharedPtr<HATN_SCHEDULER_NAMESPACE::JobResultOp>>
     >(true,HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
