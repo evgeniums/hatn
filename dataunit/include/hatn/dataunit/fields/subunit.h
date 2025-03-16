@@ -301,7 +301,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Get const reference to value
-        virtual const typename baseFieldType::base& value() const
+        const typename baseFieldType::base& value() const
         {
             Assert(!this->m_value.isNull(),"Shared dataunit field is not set!");
             return this->m_value.value();
