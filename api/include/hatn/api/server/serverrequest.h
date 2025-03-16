@@ -59,7 +59,7 @@ struct Request : public common::TaskSubcontext
         requestBuf.setUseInlineBuffers(true);
     }
 
-    common::StringOnStack subject;
+    common::StringOnStack sender;
     RequestUnitT unit;
     common::WeakPtr<common::TaskContext> connectionCtx;
 

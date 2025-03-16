@@ -70,7 +70,7 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
     // fill db message fields
     db::initObject(*msg);
     msg->setFieldValue(message::pos,msg->fieldValue(db::object::_id));
-    msg->setFieldValue(server_db_message::subject,req.subject);
+    msg->setFieldValue(server_db_message::sender,req.sender);
     msg->setFieldValue(server_db_message::session,req.sessionId);
     msg->setFieldValue(server_db_message::session_client,req.sessionClientId);
 

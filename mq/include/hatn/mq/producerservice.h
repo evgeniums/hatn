@@ -37,7 +37,7 @@ HATN_MQ_NAMESPACE_BEGIN
 namespace server {
 
 HDU_UNIT_WITH(server_db_message,(HDU_BASE(db::object),HDU_BASE(message)),
-    HDU_FIELD(subject,TYPE_STRING,48)
+    HDU_FIELD(sender,TYPE_STRING,48)
     HDU_FIELD(session,TYPE_OBJECT_ID,49)
     HDU_FIELD(session_client,TYPE_OBJECT_ID,50)
 )
@@ -48,7 +48,7 @@ HATN_DB_INDEX(msgOidOpPosIdx,message::object_id,message::operation,message::pos)
 HATN_DB_INDEX(msgObjTypeOpPosIdx,message::object_type,message::operation,message::pos)
 HATN_DB_INDEX(msgOpPosObjTypeIdx,message::operation,message::pos,message::object_type)
 
-HATN_DB_INDEX(msgSubjPosIdx,server_db_message::subject,message::pos)
+HATN_DB_INDEX(msgSenderPosIdx,server_db_message::sender,message::pos)
 HATN_DB_INDEX(msgSessPosIdx,server_db_message::session,message::pos)
 HATN_DB_INDEX(msgSessClientPosIdx,server_db_message::session_client,message::pos)
 
@@ -58,7 +58,7 @@ HATN_DB_MODEL_WITH_CFG(serverMqMessageModel,server_db_message,db::ModelConfig("s
                        msgOidOpPosIdx(),
                        msgObjTypeOpPosIdx(),
                        msgOpPosObjTypeIdx(),
-                       msgSubjPosIdx(),
+                       msgSenderPosIdx(),
                        msgSessPosIdx(),
                        msgSessClientPosIdx()
                 )
