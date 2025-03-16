@@ -152,7 +152,7 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
             {
                 //! @todo log error
                 //! @todo if ec does not contain ApiError then construct api error
-                req.response.setStatus(api::protocol::ResponseStatus::ServiceError,ec);
+                req.response.setStatus(api::protocol::ResponseStatus::ExecFailed,ec);
                 cb(std::move(request));
                 return;
             }
