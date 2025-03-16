@@ -45,6 +45,8 @@ HDU_UNIT(producer_config,
     HDU_FIELD(message_ttl,TYPE_UINT32,2,false,900)
 )
 
+//! @todo use fatal_error field instead of expired
+
 HDU_UNIT_WITH(client_db_message,(HDU_BASE(db::object),HDU_BASE(message)),
               HDU_FIELD(expire_at,TYPE_DATETIME,8)
               HDU_FIELD(expired,TYPE_BOOL,9)
@@ -528,7 +530,7 @@ class ProducerClient : public common::pmr::WithFactory,
             auto q=db::wrapQueryBuilder(
                 [topic{std::move(topic)},objectType{std::move(objectType)},this,selfCtx{this->sharedMainCtx()},pos]()
                 {
-                    return db::makeQuery(messagePosIdx(),db::where(message::pos,db::query::eq,pos).
+                    return db::makeQuery(msgProducerPosIdx(),db::where(message::pos,db::query::eq,pos).
                                                               and_(message::object_type,db::query::eq,objectType).
                                                               and_(message::producer,db::query::eq,m_producerId)
                                          ,
@@ -557,7 +559,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 {
                     if (objIds.empty())
                     {
-                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
+                        return db::makeQuery(msgObjTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
                                                                        and_(message::producer,db::query::eq,m_producerId),
                                              topic
                                              );
@@ -590,7 +592,7 @@ class ProducerClient : public common::pmr::WithFactory,
                 {
                     if (objIds.empty())
                     {
-                        return db::makeQuery(objectTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
+                        return db::makeQuery(msgObjTypeIdx(),db::where(message::object_type,db::query::eq,objectType).
                                              and_(message::producer,db::query::eq,m_producerId),
                                              topic
                                              );
@@ -736,6 +738,7 @@ class ProducerClient : public common::pmr::WithFactory,
             {
                 if (ec)
                 {
+                    //! @todo Set fatal_error field in case the message can not be processed by server
                     cb(std::move(ctx),ec,std::move(jb),HATN_SCHEDULER_NAMESPACE::JobResultOp::RetryLater);
                     return;
                 }

@@ -47,20 +47,17 @@ HDU_UNIT(message,
     HDU_FIELD(operation,HDU_TYPE_ENUM(Operation),4,true)
     HDU_FIELD(object_id,TYPE_STRING,5,true)
     HDU_FIELD(object_type,TYPE_STRING,6)
-    HDU_FIELD(content,message_content::TYPE,7)    
+    HDU_FIELD(content,message_content::TYPE,7)
+)
+
+HDU_UNIT(mq_object,
+    HDU_FIELD(mq_pos,TYPE_OBJECT_ID,1001)
 )
 
 constexpr const char* ApiRequestMessageType="mq_message";
 constexpr const char* ApiRequestMethod="post";
 
 HATN_DB_UNIQUE_INDEX(msgProducerPosIdx,message::producer,message::pos)
-
-/** @todo Use message validator
- *
- * object_type must be not empty for Operation::Create
- * object.object must be set for Operation::Create and Operation::Update at producer
- * producer_pos and producer must be set at producer
- */
 
 HATN_MQ_NAMESPACE_END
 

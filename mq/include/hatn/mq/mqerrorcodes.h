@@ -26,7 +26,8 @@
 
 #define HATN_MQ_ERRORS(Do) \
     Do(MqError,OK,_TR("OK")) \
-    Do(MqError,DUPLICATE_OBJECT_ID,_TR("Object with such IDawas already posted to message queue")) \
+    Do(MqError,DUPLICATE_OBJECT_ID,_TR("Object with such ID was already posted to message queue")) \
+    Do(MqError,INVALID_UPDATE_MESSAGE,_TR("Invalid update object")) \
 
 HATN_MQ_NAMESPACE_BEGIN
 
