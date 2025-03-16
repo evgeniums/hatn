@@ -178,13 +178,18 @@ HATN_NAMESPACE_BEGIN
 
 inline std::string _TR(
     const std::string& phrase,
-    const common::Translator* translator,
-    const std::string& context="generic"
+    const std::string& context,
+    const common::Translator* translator
     )
 {
     if (translator!=nullptr)
     {
         return translator->translate(phrase,context);
+    }
+    const auto& localeTr=common::Translator::translator();
+    if (localeTr)
+    {
+        return localeTr->translate(phrase,context);
     }
     return phrase;
 }
