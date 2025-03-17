@@ -18,8 +18,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNAPILIBERROR_H
-#define HATNAPILIBERROR_H
+#ifndef HATNMQERROR_H
+#define HATNMQERROR_H
 
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
@@ -75,4 +75,4 @@ inline Error mqError(MqError code, std::shared_ptr<common::NativeError> err) noe
 
 HATN_MQ_NAMESPACE_END
 
-#endif // HATNAPIERROR_H
+#endif // HATNMQERROR_H

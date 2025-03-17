@@ -28,6 +28,7 @@
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/genericerror.h>
 
+#include <hatn/mq/mqerror.h>
 #include <hatn/mq/producerclient.h>
 
 HATN_MQ_NAMESPACE_BEGIN
