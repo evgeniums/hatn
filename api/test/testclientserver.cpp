@@ -42,7 +42,7 @@
 #include <hatn/api/server/env.h>
 
 #include <hatn/api/ipp/client.ipp>
-#include <hatn/api/ipp/request.ipp>
+#include <hatn/api/ipp/clientrequest.ipp>
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
 #include <hatn/api/ipp/methodauth.ipp>

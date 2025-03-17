@@ -40,6 +40,7 @@ common::Result<
         const Service& service,
         const Method& method,
         MessageType message,
+        lib::string_view topic,
         MethodAuth methodAuth
     )
 {
@@ -47,7 +48,7 @@ common::Result<
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth)));
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
-    auto ec=req->serialize(service,method,std::move(message),tenancy);
+    auto ec=req->serialize(service,method,topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     return req;
 }

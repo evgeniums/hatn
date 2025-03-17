@@ -27,7 +27,7 @@ SET (HEADERS
 SET (HEADERS
     ${HEADERS}
 
-    include/hatn/api/client/client.h    
+    include/hatn/api/client/client.h
     include/hatn/api/client/resolver.h
     include/hatn/api/client/iphostresolver.h
     include/hatn/api/client/tcpclient.h
@@ -37,6 +37,8 @@ SET (HEADERS
     include/hatn/api/client/clientresponse.h
     include/hatn/api/client/session.h
     include/hatn/api/client/methodauth.h
+    include/hatn/api/client/sessionclient.h
+    include/hatn/api/client/serviceclient.h
 )
 
 SET (HEADERS
@@ -58,7 +60,7 @@ SET (HEADERS
 )
 
 SET (IPP_HEADERS
-    include/hatn/api/ipp/request.ipp
+    include/hatn/api/ipp/clientrequest.ipp
     include/hatn/api/ipp/client.ipp
     include/hatn/api/ipp/session.ipp
     include/hatn/api/ipp/message.ipp

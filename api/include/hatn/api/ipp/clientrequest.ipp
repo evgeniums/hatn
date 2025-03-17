@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/ipp/request.ipp
+/** @file api/ipp/clientrequest.ipp
   *
   */
 

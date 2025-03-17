@@ -129,6 +129,7 @@ class Client : public common::TaskSubcontext
             const Service& service,
             const Method& method,
             MessageType message,
+            lib::string_view topic={},
             MethodAuth methodAuth={}
         );
 
@@ -152,10 +153,11 @@ class Client : public common::TaskSubcontext
             const Service& service,
             const Method& method,
             MessageType message,
+            lib::string_view topic={},
             MethodAuth methodAuth={}
         )
         {
-            return prepare(ctx,{},service,method,std::move(message),std::move(methodAuth));
+            return prepare(ctx,{},service,method,std::move(message),topic,std::move(methodAuth));
         }
 
         void exec(
