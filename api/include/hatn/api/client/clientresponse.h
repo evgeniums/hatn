@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/client/response.h
+/** @file api/client/clientresponse.h
   *
   */
 

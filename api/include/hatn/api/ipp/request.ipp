@@ -21,7 +21,7 @@
 
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/requestunit.h>
-#include <hatn/api/client/request.h>
+#include <hatn/api/client/clientrequest.h>
 
 HATN_API_NAMESPACE_BEGIN
 

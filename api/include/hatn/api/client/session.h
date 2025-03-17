@@ -33,7 +33,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/auth.h>
 #include <hatn/api/responseunit.h>
-#include <hatn/api/client/response.h>
+#include <hatn/api/client/clientresponse.h>
 
 HATN_API_NAMESPACE_BEGIN
 

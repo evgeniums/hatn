@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/client/request.h
+/** @file api/client/clientrequest.h
   *
   */
 
@@ -36,7 +36,7 @@
 #include <hatn/api/message.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/session.h>
-#include <hatn/api/client/response.h>
+#include <hatn/api/client/clientresponse.h>
 
 HATN_API_NAMESPACE_BEGIN
 

@@ -33,8 +33,8 @@ SET (HEADERS
     include/hatn/api/client/tcpclient.h
     include/hatn/api/client/plaintcpconnection.h
     include/hatn/api/client/plaintcprouter.h
-    include/hatn/api/client/request.h
-    include/hatn/api/client/response.h
+    include/hatn/api/client/clientrequest.h
+    include/hatn/api/client/clientresponse.h
     include/hatn/api/client/session.h
     include/hatn/api/client/methodauth.h
 )

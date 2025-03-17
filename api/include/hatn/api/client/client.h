@@ -37,7 +37,7 @@
 #include <hatn/api/service.h>
 #include <hatn/api/priority.h>
 #include <hatn/api/client/session.h>
-#include <hatn/api/client/request.h>
+#include <hatn/api/client/clientrequest.h>
 #include <hatn/api/client/session.h>
 
 HATN_API_NAMESPACE_BEGIN
