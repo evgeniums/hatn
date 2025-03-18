@@ -56,7 +56,9 @@ class ClientConfig : public base::ConfigObject<config::type>
     public:
 };
 
-template <typename RouterT, typename SessionT, typename TaskContextT, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
+using ClientTaskContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
+
+template <typename RouterT, typename SessionT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 class Client : public common::TaskSubcontext
 {
     public:
@@ -64,6 +66,7 @@ class Client : public common::TaskSubcontext
         using Req=Request<SessionT,MessageBufT,RequestUnitT>;
         using MessageType=typename Req::MessageType;
         using ReqCtx=RequestContext<Req,TaskContextT>;
+        using Context=TaskContextT;
 
     private:
 
@@ -73,9 +76,7 @@ class Client : public common::TaskSubcontext
             bool busy=false;
         };
 
-    public:
-
-        using Context=TaskContextT;
+    public:        
 
         Client(
                 std::shared_ptr<ClientConfig> cfg,
