@@ -578,7 +578,7 @@ template <typename Traits>
 template <typename ContextT, typename CallbackT>
 void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb, common::SharedPtr<Message> msg)
 {
-    auto sendCb=[cb{std::move(cb)},jb{std::move(jb)},selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto msg)
+    auto sendCb=[cb{std::move(cb)},jb,selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto msg)
     {
         if (ec)
         {
@@ -669,8 +669,7 @@ void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, Callb
         };
         m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientMqMessageModel(),msg->fieldValue(db::object::_id));
     };
-
-    m_server->send(std::move(ctx),std::move(msg),std::move(sendCb));
+    m_server->send(std::move(ctx),std::move(sendCb),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),std::move(msg));
 }
 
 template <typename Traits>
