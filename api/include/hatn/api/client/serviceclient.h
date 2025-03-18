@@ -69,9 +69,9 @@ class ServiceClient : public Service,
 
         void exec(
             common::SharedPtr<Context> ctx,
-            const Method& method,
-            MessageType message,
             RequestCb<Context> callback,
+            const Method& method,
+            MessageType message,            
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0
@@ -166,6 +166,99 @@ struct makeServiceClientContextT
 };
 template <typename T>
 constexpr makeServiceClientContextT<T> makeServiceClientContext{};
+
+template <typename Traits>
+class MappedServiceClients : public common::WithTraits<Traits>,
+                             public common::TaskSubcontext
+{
+    public:
+
+        using common::WithTraits<Traits>::WithTraits;
+
+        template <typename ContextT, typename CallbackT>
+        void findServiceClient(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            lib::string_view topic={}
+        ) const
+        {
+            this->traits().findServiceClient(std::move(ctx),std::move(callback),topic);
+        }
+};
+
+template <typename ServiceClientContextT, typename ServiceClientT>
+class SingleServiceClientTraits
+{
+    public:
+
+        using ServiceClientContext=ServiceClientContextT;
+        using ServiceClient=ServiceClientT;
+
+        SingleServiceClientTraits(common::SharedPtr<ServiceClientContext> serviceClientCtx) : m_serviceClientCtx(std::move(serviceClientCtx))
+        {}
+
+        void setServiceClient(common::SharedPtr<ServiceClientContext> serviceClientCtx)
+        {
+            m_serviceClientCtx=std::move(serviceClientCtx);
+        }
+
+        common::SharedPtr<ServiceClientContext> singleServiceClientCtx() const
+        {
+            return m_serviceClientCtx;
+        }
+
+        ServiceClient* singleServiceClient() const
+        {
+            if (!m_serviceClientCtx)
+            {
+                return nullptr;
+            }
+            return &m_serviceClientCtx->template get<ServiceClient>();
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void findServiceClient(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            lib::string_view topic={}
+            ) const
+        {
+            std::ignore=topic;
+            callback(std::move(ctx),m_serviceClientCtx,m_serviceClientCtx->template get<ServiceClient>());
+        }
+
+    private:
+
+        common::SharedPtr<ServiceClientContext> m_serviceClientCtx;
+};
+
+template <typename ServiceClientContextT, typename ServiceClientT>
+class SingleServiceClient : public MappedServiceClients<SingleServiceClientTraits<ServiceClientContextT,ServiceClientT>>
+{
+    public:
+
+        using Base=MappedServiceClients<SingleServiceClientTraits<ServiceClientContextT,ServiceClientT>>;
+
+        using ServiceClientContext=typename Base::ServiceClientContext;
+        using ServiceClient=typename Base::ServiceClient;
+
+        using Base::Base;
+
+        void setServiceClient(common::SharedPtr<ServiceClientContext> serviceClientCtx)
+        {
+            this->traits().setServiceClient(std::move(serviceClientCtx));
+        }
+
+        common::SharedPtr<ServiceClientContext> singleServiceClientCtx() const
+        {
+            return this->traits().singleServiceClientCtx();
+        }
+
+        ServiceClient* singleServiceClient() const
+        {
+            return this->traits().singleServiceClient();
+        }
+};
 
 } // namespace client
 
