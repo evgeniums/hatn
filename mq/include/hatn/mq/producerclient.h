@@ -72,10 +72,10 @@ enum class MessageStatus : uint8_t
     Failed
 };
 
-template <typename ServerT, typename SchedulerT, typename NotifierT, typename MessageT=client_db_message::managed>
+template <typename ApiClientT, typename SchedulerT, typename NotifierT, typename MessageT=client_db_message::managed>
 struct Traits
 {
-    using Server=ServerT;
+    using ApiClient=ApiClientT;
     using Scheduler=SchedulerT;
     using Notifier=NotifierT;
     using Message=MessageT;
@@ -90,7 +90,7 @@ class ProducerClient : public common::pmr::WithFactory,
 {
     public:
 
-        using Server=typename Traits::Server;
+        using ApiClient=typename Traits::ApiClient;
         using Scheduler=typename Traits::Scheduler;
         using Notifier=typename Traits::Notifier;
         using Message=typename Traits::Message;
@@ -144,14 +144,14 @@ class ProducerClient : public common::pmr::WithFactory,
             return m_notifier;
         }
 
-        void setServer(Server* server) noexcept
+        void setApiClient(ApiClient* server) noexcept
         {
-            m_server=server;
+            m_apiClient=server;
         }
 
-        Server* server() const noexcept
+        ApiClient* server() const noexcept
         {
-            return m_server;
+            return m_apiClient;
         }
 
         template <typename ContextT, typename CallbackT, typename ContentT=du::Unit, typename NofificationT=du::Unit>
@@ -276,7 +276,7 @@ class ProducerClient : public common::pmr::WithFactory,
         std::atomic<bool> m_stopped;
 
         Scheduler* m_scheduler;
-        Server* m_server;
+        ApiClient* m_apiClient;
         Notifier* m_notifier;
 
         mutable common::MutexLock m_topicJobsMutex;

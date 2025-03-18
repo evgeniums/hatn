@@ -669,7 +669,7 @@ void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, Callb
         };
         m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientMqMessageModel(),msg->fieldValue(db::object::_id));
     };
-    m_server->send(std::move(ctx),std::move(sendCb),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),std::move(msg));
+    m_apiClient->producerPost(std::move(ctx),std::move(sendCb),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),std::move(msg));
 }
 
 template <typename Traits>

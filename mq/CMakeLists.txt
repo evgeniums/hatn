@@ -17,6 +17,7 @@ SET (HEADERS
     include/hatn/mq/syncclient.h
     include/hatn/mq/proxynotifier.h
     include/hatn/mq/proxylistener.h
+    include/hatn/mq/apiclient.h
 )
 
 SET (HEADERS
