@@ -27,9 +27,9 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
-template <typename SessionT, typename ClientContextT, typename ClientT, typename MethodAuthHandlerT=MethodAuthHandler<NoMethodAuthTraits>>
+template <typename SessionT, typename ClientContextT, typename ClientT, typename ServiceMethodsAuthT=ServiceMethodsAuthSingle<NoMethodAuth>>
 class ServiceClient : public Service,
-                      public ServiceMethodsAuth<MethodAuthHandlerT>,
+                      public ServiceMethodsAuthT,
                       public SessionClient<SessionT,ClientContextT,ClientT>,
                       public common::pmr::WithFactory
 {
@@ -51,7 +51,7 @@ class ServiceClient : public Service,
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault(),
                 uint8_t serviceVersion=1
             ) : Service(serviceName,serviceVersion),
-                ServiceMethodsAuth<MethodAuthHandlerT>(this),
+                ServiceMethodsAuthT(this),
                 ClientWithSession(std::move(session),std::move(clientCtx)),
                 common::pmr::WithFactory(factory)
         {}
@@ -61,13 +61,13 @@ class ServiceClient : public Service,
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault(),
                 uint8_t serviceVersion=1
             ) : Service(serviceName,serviceVersion),
-                ServiceMethodsAuth<MethodAuthHandlerT>(this),
+                ServiceMethodsAuthT(this),
                 common::pmr::WithFactory(factory)
         {}
 
         using ClientWithSession::exec;
 
-        Error exec(
+        void exec(
             common::SharedPtr<Context> ctx,
             const Method& method,
             MessageType message,
@@ -77,32 +77,55 @@ class ServiceClient : public Service,
             uint32_t timeoutMs=0
         )
         {
-            auto methodAuth=this->makeAuthHeader(method,message,topic,this->factory());
-            if (methodAuth)
+            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,&method,message,topic,callback{std::move(callback)},priority,timeoutMs]
+                    (auto ctx, const Error& ec, MethodAuth methodAuth)
             {
-                return methodAuth.takeError();
-            }
-            return ClientWithSession::exec(std::move(ctx),*this,method,std::move(message),std::move(callback),topic,priority,timeoutMs,methodAuth.takeValue());
+                if (ec)
+                {
+                    callback(std::move(ctx),ec,Response{});
+                    return;
+                }
+
+                auto ec1=ClientWithSession::exec(ctx,*this,method,std::move(message),std::move(callback),topic,priority,timeoutMs,methodAuth);
+                if (ec1)
+                {
+                    callback(ctx,ec1,Response{});
+                }
+            };
+            this->makeAuthHeader(std::move(ctx),method,message,topic,this->factory());
         }
 
-        common::Result<common::SharedPtr<ReqCtx>> prepare(
-            const common::SharedPtr<Context>& ctx,
+        template <typename CallbackT>
+        void prepare(
+            common::SharedPtr<Context> ctx,
+            CallbackT callback,
             const Method& method,
             MessageType message,
             lib::string_view topic={}
         )
         {
-            auto methodAuth=this->makeAuthHeader(method,message,topic,this->factory());
-            if (methodAuth)
+            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,&method,message,topic,callback{std::move(callback)}](auto ctx, const Error& ec, MethodAuth methodAuth)
             {
-                return methodAuth.takeError();
-            }
-            return ClientWithSession::prepare(std::move(ctx),*this,method,std::move(message),methodAuth.takeValue());
+                if (ec)
+                {
+                    callback(std::move(ctx),ec,common::SharedPtr<ReqCtx>{});
+                    return;
+                }
+
+                auto req=ClientWithSession::prepare(ctx,*this,method,std::move(message),topic,std::move(methodAuth));
+                if (req)
+                {
+                    callback(std::move(ctx),req.takeError(),common::SharedPtr<ReqCtx>{});
+                    return;
+                }
+                callback(std::move(ctx),Error{},req.takeValue());
+            };
+            this->makeAuthHeader(std::move(ctx),method,message,topic,this->factory());
         }
 };
 
-template <typename SessionT, typename ClientContextT, typename ClientT, typename MethodAuthHandlerT=MethodAuthHandler<NoMethodAuthTraits>>
-using ServiceClientContext=common::TaskContextType<ServiceClient<SessionT,ClientContextT,ClientT,MethodAuthHandlerT>,HATN_LOGCONTEXT_NAMESPACE::Context>;
+template <typename SessionT, typename ClientContextT, typename ClientT, typename ServiceMethodsAuthT=ServiceMethodsAuthSingle<NoMethodAuth>>
+using ServiceClientContext=common::TaskContextType<ServiceClient<SessionT,ClientContextT,ClientT,ServiceMethodsAuthT>,HATN_LOGCONTEXT_NAMESPACE::Context>;
 
 template <typename T>
 struct allocateServiceClientContextT

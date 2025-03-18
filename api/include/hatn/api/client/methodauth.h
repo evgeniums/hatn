@@ -55,38 +55,59 @@ class MethodAuthHandler : public common::WithTraits<Traits>
 
         using common::WithTraits<Traits>::WithTraits;
 
-        template <typename MessageT>
-        common::Result<MethodAuth> makeAuthHeader(
+        template <typename ContextT, typename CallbackT, typename MessageT>
+        void makeAuthHeader(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
             const Service& service,
             const Method& method,
             MessageT message,
             lib::string_view topic={},
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        )
+        ) const
         {
-            auto r=this->traits().makeAuthHeader(service,method,message,topic);
-            HATN_CHECK_RESULT(r)
-            MethodAuth wrapper;
-            auto ec=wrapper.serializeAuthHeader(this->traits().protocol(),this->traits().protocolVersion,r.takeValue(),factory);
-            HATN_CHECK_EC(ec)
-            return wrapper;
+            auto cb=[factory,callback{std::move(callback)},protocol{this->traits().protocol()},protocolVersion{this->traits().protocolVersion()}](auto ctx, const Error& ec, auto content)
+            {
+                if (ec)
+                {
+                    callback(std::move(ctx),ec,MethodAuth{});
+                    return;
+                }
+                MethodAuth wrapper;
+                auto ec1=wrapper.serializeAuthHeader(protocol,protocolVersion,std::move(content),factory);
+                callback(std::move(ctx),ec1,std::move(wrapper));
+            };
+
+            this->traits().makeAuthHeader(std::move(ctx),service,method,std::move(message),topic);
+        }
+
+        const char* protocol() const noexcept
+        {
+            return this->traits().protocol();
+        }
+
+        uint8_t protocolVersion() const noexcept
+        {
+            return this->traits().protocolVersioon();
         }
 };
 
-class NoMethodAuthTraits
+class NoMethodAuth
 {
     public:
 
-        template <typename MessageT>
-        common::Result<MethodAuth> makeAuthHeader(
-                const Service& /*service*/,
-                const Method& /*method*/,
-                MessageT /*message*/,
-                lib::string_view /*topic*/={},
-                const common::pmr::AllocatorFactory* /*factory*/=common::pmr::AllocatorFactory::getDefault()
-            )
+        template <typename ContextT, typename CallbackT, typename MessageT>
+        void makeAuthHeader(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            const Service&,
+            const Method&,
+            MessageT,
+            lib::string_view ={},
+            const common::pmr::AllocatorFactory* =common::pmr::AllocatorFactory::getDefault()
+        ) const
         {
-            return MethodAuth{};
+            callback(std::move(ctx),Error{},MethodAuth{});
         }
 
         constexpr static const char* protocol() noexcept
@@ -100,14 +121,23 @@ class NoMethodAuthTraits
         }
 };
 
-template <typename MethodAuthHandlerT=MethodAuthHandler<NoMethodAuthTraits>>
-class ServiceMethodsAuth
+template <typename MethodAuthHandlerT=NoMethodAuth>
+class ServiceMethodsAuthSingle
 {
     public:
 
         using MethodAuthHandler=MethodAuthHandlerT;
 
-        ServiceMethodsAuth(const Service* service=nullptr) : m_service(service)
+        ServiceMethodsAuthSingle(
+                std::shared_ptr<MethodAuthHandler> methodAuth,
+                const Service* service=nullptr
+            ) : m_methodAuth(std::move(methodAuth)),
+                m_service(service)
+        {}
+
+        ServiceMethodsAuthSingle(
+                const Service* service=nullptr
+            ) : m_service(service)
         {}
 
         void setService(const Service* service) noexcept
@@ -120,33 +150,111 @@ class ServiceMethodsAuth
             return m_service;
         }
 
-        template <typename MessageT>
-        common::Result<MethodAuth> makeAuthHeader(
+        void registerMethodAuth(const Method&, std::shared_ptr<MethodAuthHandler> handler)
+        {
+            m_methodAuth=std::move(handler);
+        }
+
+        void setMethodAuth(std::shared_ptr<MethodAuthHandler> handler) noexcept
+        {
+            m_methodAuth=std::move(handler);
+        }
+
+        std::shared_ptr<MethodAuthHandler> methodAuthShared(const Method&) const noexcept
+        {
+            return m_methodAuth;
+        }
+
+        const MethodAuthHandler* methodAuth(const Method&) const noexcept
+        {
+            return m_methodAuth.get();
+        }
+
+        template <typename ContextT, typename CallbackT, typename MessageT>
+        void makeAuthHeader(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
             const Method& mthd,
             MessageT message,
             lib::string_view topic={},
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             )
         {
-            auto m=method(mthd);
-            if (m==nullptr)
+            if (!m_methodAuth)
             {
-                return MethodAuth{};
+                callback(std::move(ctx),Error{},MethodAuth{});
+                return;
             }
-            return m->makeAuthHandler(*m_service,mthd,message,topic,factory);
+            m_methodAuth->makeAuthHandler(std::move(ctx),std::move(callback),*m_service,mthd,std::move(message),topic,factory);
         }
 
-        MethodAuthHandler* method(const Method& mthd) const
+    private:
+
+        const Service* m_service;
+        std::shared_ptr<MethodAuthHandler> m_methodAuth;
+};
+
+
+template <typename MethodAuthHandlerT=NoMethodAuth>
+class ServiceMethodsAuthMultiple
+{
+    public:
+
+        using MethodAuthHandler=MethodAuthHandlerT;
+
+        ServiceMethodsAuthMultiple(const Service* service=nullptr) : m_service(service)
+        {}
+
+        void setService(const Service* service) noexcept
+        {
+            m_service=service;
+        }
+
+        const Service* service() const noexcept
+        {
+            return m_service;
+        }
+
+        template <typename ContextT, typename CallbackT, typename MessageT>
+        void makeAuthHeader(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                const Method& mthd,
+                MessageT message,
+                lib::string_view topic={},
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            )
+        {
+            auto mthdAuth=methodAuth(mthd);
+            if (!mthdAuth)
+            {
+                callback(std::move(ctx),Error{},MethodAuth{});
+                return;
+            }
+            mthdAuth->makeAuthHandler(std::move(ctx),std::move(callback),*m_service,mthd,std::move(message),topic,factory);
+        }
+
+        MethodAuthHandler* methodAuth(const Method& mthd) const
+        {
+            auto it=m_methods.find(mthd.name());
+            if (it!=m_methods.end())
+            {
+                return it->second.get();
+            }
+            return nullptr;
+        }
+
+        std::shared_ptr<MethodAuthHandler> methodAuthShared(const Method& mthd) const
         {
             auto it=m_methods.find(mthd.name());
             if (it!=m_methods.end())
             {
                 return it->second;
             }
-            return nullptr;
+            return std::shared_ptr<MethodAuthHandler>{};
         }
 
-        void registerMethod(const Method& mthd, std::shared_ptr<MethodAuthHandler> handler)
+        void registerMethodAuth(const Method& mthd, std::shared_ptr<MethodAuthHandler> handler)
         {
             m_methods[mthd.name()]=std::move(handler);
         }

@@ -29,7 +29,7 @@ HATN_API_NAMESPACE_BEGIN
 
 template <typename BufT>
 template <typename UnitT>
-Error Message<BufT>::setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory)
+Error Message<BufT>::setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory, const char* name)
 {
     Error ec;
     HATN_SCOPE_GUARD(
@@ -50,7 +50,11 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
     {
         m_content->reset();
     }
-    if (m_typeName.empty())
+    if (name!=nullptr)
+    {
+        m_typeName=name;
+    }
+    else if (m_typeName==nullptr)
     {
         m_typeName=message.unitName();
     }

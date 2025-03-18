@@ -95,10 +95,11 @@ class SessionClient : public common::TaskSubcontext
             const Service& service,
             const Method& method,
             MessageType message,
+            lib::string_view topic={},
             MethodAuth methodAuth={}
         )
         {
-            return m_client->prepare(std::move(ctx),m_session,service,method,std::move(message),std::move(methodAuth));
+            return m_client->prepare(std::move(ctx),m_session,service,method,std::move(message),topic,std::move(methodAuth));
         }
 
         void exec(

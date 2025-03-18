@@ -33,11 +33,13 @@ class Message
 {
     public:
 
-        using NameType=common::StringOnStackT<protocol::MethodNameLengthMax>;
         using BufType=BufT;
 
+        Message(const char* typeName=nullptr) : m_typeName(typeName)
+        {}
+
         template <typename UnitT>
-        Error setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault());
+        Error setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault(), const char* name=nullptr);
 
         common::SharedPtr<BufType> content() const
         {
@@ -54,7 +56,7 @@ class Message
             m_content.reset();
         }
 
-        void setTypeName(lib::string_view name) noexcept
+        void setTypeName(const char* name) noexcept
         {
             m_typeName=name;
         }
@@ -67,7 +69,7 @@ class Message
     private:
 
         common::SharedPtr<BufType> m_content;
-        NameType m_typeName;
+        const char* m_typeName;
 };
 
 HATN_API_NAMESPACE_END
