@@ -21,8 +21,6 @@
 #ifndef HATNLOGCONTEXT_H
 #define HATNLOGCONTEXT_H
 
-#include <vector>
-
 #include <hatn/common/flatmap.h>
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/common/thread.h>
@@ -523,6 +521,7 @@ struct makeLogCtxT
 };
 constexpr makeLogCtxT makeLogCtx{};
 using LogCtxType=common::TaskContextType<Context>;
+using TaskLogContext=common::TaskContextType<Context>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
