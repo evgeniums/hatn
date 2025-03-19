@@ -58,12 +58,12 @@ class ClientConfig : public base::ConfigObject<config::type>
 
 using ClientTaskContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
 
-template <typename RouterT, typename SessionT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
+template <typename RouterT, typename SessionWrapperT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 class Client : public common::TaskSubcontext
 {
     public:
 
-        using Req=Request<SessionT,MessageBufT,RequestUnitT>;
+        using Req=Request<SessionWrapperT,MessageBufT,RequestUnitT>;
         using MessageType=typename Req::MessageType;
         using ReqCtx=RequestContext<Req,TaskContextT>;
         using Context=TaskContextT;
@@ -113,7 +113,7 @@ class Client : public common::TaskSubcontext
 
         Error exec(
             common::SharedPtr<Context> ctx,
-            common::SharedPtr<SessionT> session,
+            SessionWrapperT session,
             const Service& service,
             const Method& method,
             MessageType message,
@@ -126,7 +126,7 @@ class Client : public common::TaskSubcontext
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
             const common::SharedPtr<Context>& ctx,
-            common::SharedPtr<SessionT> session,
+            SessionWrapperT session,
             const Service& service,
             const Method& method,
             MessageType message,

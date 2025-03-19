@@ -30,13 +30,13 @@ namespace client {
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 common::Result<
-        common::SharedPtr<typename Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::ReqCtx>
+        common::SharedPtr<typename Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::ReqCtx>
     >
-    Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::prepare(
+    Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::prepare(
         const common::SharedPtr<Context>& ctx,
-        common::SharedPtr<SessionT> session,
+        SessionWrapperT session,
         const Service& service,
         const Method& method,
         MessageType message,
@@ -55,10 +55,10 @@ common::Result<
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-Error Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::exec(
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
-    common::SharedPtr<SessionT> session,
+    SessionWrapperT session,
     const Service& service,
     const Method& method,
     MessageType message,
@@ -81,8 +81,8 @@ Error Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::exec(
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
     common::SharedPtr<ReqCtx> req,
     RequestCb<Context> callback
@@ -95,8 +95,8 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::doExec(
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
         common::SharedPtr<Context> ctx,
         common::SharedPtr<ReqCtx> req,
         RequestCb<Context> callback,
@@ -176,8 +176,8 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::doExec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::dequeue(Priority priority)
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(Priority priority)
 {
     if (m_closed)
     {
@@ -209,8 +209,8 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::dequeue(Priorit
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::sendRequest(common::SharedPtr<ReqCtx> req)
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequest(common::SharedPtr<ReqCtx> req)
 {
     HATN_CTX_SCOPE("apiclientsend")
 
@@ -291,9 +291,9 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::sendRequest(com
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 template <typename Connection>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
 {
     HATN_CTX_SCOPE("apiclientrecv")
 
@@ -356,17 +356,17 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::recvResponse(co
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-Error Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::cancel(common::SharedPtr<ReqCtx>& req)
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::cancel(common::SharedPtr<ReqCtx>& req)
 {
     return req->cancel();
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 template <typename ContextT1, typename CallbackT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::close(
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
         common::SharedPtr<ContextT1> ctx,
         CallbackT callback,
         bool callbackRequests
@@ -442,8 +442,8 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::close(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
+template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
     HATN_CTX_SCOPE("apiclientrefreshsession")
 
@@ -471,7 +471,7 @@ void Client<RouterT,SessionT,ContextT,MessageBufT,RequestUnitT>::refreshSession(
     auto clientCtx=this->sharedMainCtx();
     reqPtr->session()->refresh(
         clientCtx->id(),
-        [clientCtx{std::move(clientCtx)},this](Error ec, const SessionT* session)
+        [clientCtx{std::move(clientCtx)},this](Error ec, const SessionWrapperT* session)
         {
             auto sessionId=session->id();
             // process in own thread

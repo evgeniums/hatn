@@ -96,11 +96,11 @@ class NoMethodAuth
 {
     public:
 
-        template <typename ContextT, typename CallbackT, typename MessageT>
+        template <typename ContextT, typename CallbackT, typename ServiceT, typename MessageT>
         void makeAuthHeader(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            const Service&,
+            common::SharedPtr<ServiceT>,
             const Method&,
             MessageT,
             lib::string_view ={},
@@ -128,27 +128,14 @@ class ServiceMethodsAuthSingle
 
         using MethodAuthHandler=MethodAuthHandlerT;
 
-        ServiceMethodsAuthSingle(
-                std::shared_ptr<MethodAuthHandler> methodAuth,
-                const Service* service=nullptr
-            ) : m_methodAuth(std::move(methodAuth)),
-                m_service(service)
+        template <typename ...Args>
+        ServiceMethodsAuthSingle(Args&& ...args) : ServiceMethodsAuthSingle(std::make_shared<MethodAuthHandlerT>(std::forward<Args>(args)...))
         {}
 
         ServiceMethodsAuthSingle(
-                const Service* service=nullptr
-            ) : m_service(service)
+                std::shared_ptr<MethodAuthHandler> methodAuth
+            ) : m_methodAuth(std::move(methodAuth))
         {}
-
-        void setService(const Service* service) noexcept
-        {
-            m_service=service;
-        }
-
-        const Service* service() const noexcept
-        {
-            return m_service;
-        }
 
         void registerMethodAuth(const Method&, std::shared_ptr<MethodAuthHandler> handler)
         {
@@ -170,10 +157,11 @@ class ServiceMethodsAuthSingle
             return m_methodAuth.get();
         }
 
-        template <typename ContextT, typename CallbackT, typename MessageT>
-        void makeAuthHeader(
+        template <typename ContextT, typename CallbackT, typename ServiceT, typename MessageT>
+        void makeAuthHeader(            
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
+            common::SharedPtr<ServiceT> service,
             const Method& mthd,
             MessageT message,
             lib::string_view topic={},
@@ -185,12 +173,11 @@ class ServiceMethodsAuthSingle
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            m_methodAuth->makeAuthHandler(std::move(ctx),std::move(callback),*m_service,mthd,std::move(message),topic,factory);
+            m_methodAuth->makeAuthHandler(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
         }
 
     private:
 
-        const Service* m_service;
         std::shared_ptr<MethodAuthHandler> m_methodAuth;
 };
 
@@ -202,23 +189,11 @@ class ServiceMethodsAuthMultiple
 
         using MethodAuthHandler=MethodAuthHandlerT;
 
-        ServiceMethodsAuthMultiple(const Service* service=nullptr) : m_service(service)
-        {}
-
-        void setService(const Service* service) noexcept
-        {
-            m_service=service;
-        }
-
-        const Service* service() const noexcept
-        {
-            return m_service;
-        }
-
-        template <typename ContextT, typename CallbackT, typename MessageT>
+        template <typename ContextT, typename CallbackT, typename ServiceT, typename MessageT>
         void makeAuthHeader(
                 common::SharedPtr<ContextT> ctx,
                 CallbackT callback,
+                common::SharedPtr<ServiceT> service,
                 const Method& mthd,
                 MessageT message,
                 lib::string_view topic={},
@@ -231,7 +206,7 @@ class ServiceMethodsAuthMultiple
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            mthdAuth->makeAuthHandler(std::move(ctx),std::move(callback),*m_service,mthd,std::move(message),topic,factory);
+            mthdAuth->makeAuthHandler(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
         }
 
         MethodAuthHandler* methodAuth(const Method& mthd) const
@@ -261,7 +236,6 @@ class ServiceMethodsAuthMultiple
 
     private:
 
-        const Service* m_service;
         common::FlatMap<Method::NameType,std::shared_ptr<MethodAuthHandler>> m_methods;
 };
 

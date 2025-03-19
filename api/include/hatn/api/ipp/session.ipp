@@ -16,8 +16,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNAPICLIENTREQUEST_IPP
-#define HATNAPICLIENTREQUEST_IPP
+#ifndef HATNAPICLIENTSESSION_IPP
+#define HATNAPICLIENTSESSION_IPP
 
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/visitors.h>
@@ -25,6 +25,8 @@
 #include <hatn/api/authunit.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/client/session.h>
+
+HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::client::SessionNoAuth,SessionNoAuth)
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -46,4 +48,4 @@ Error SessionAuth::serializeAuthHeader(lib::string_view protocol, uint32_t proto
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPICLIENTREQUEST_IPP
+#endif // HATNAPICLIENTSESSION_IPP

@@ -45,7 +45,7 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
-template <typename SessionT, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
+template <typename SessionWrapper, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 struct Request
 {
     public:
@@ -54,7 +54,7 @@ struct Request
 
         Request(
                 const common::pmr::AllocatorFactory* factory,
-                common::SharedPtr<SessionT> session,
+                SessionWrapper session,
                 MessageType message,
                 MethodAuth methodAuth={},
                 Priority priority=Priority::Normal,
@@ -121,9 +121,9 @@ struct Request
 
         lib::string_view id() const noexcept;
 
-        common::SharedPtr<SessionT>& session()
+        SessionWrapper* session()
         {
-            return m_session;
+            return &m_session;
         }
 
         const MessageType& message() const
@@ -140,7 +140,7 @@ struct Request
 
         const common::pmr::AllocatorFactory* m_factory;
 
-        common::SharedPtr<SessionT> m_session;
+        SessionWrapper m_session;
         MessageType m_message;
 
         Error serialize(
@@ -163,7 +163,7 @@ struct Request
         du::WireBufSolidShared requestData;
         du::WireBufSolidShared responseData;
 
-        template <typename RouterT1, typename SessionT1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
+        template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
 };
 
@@ -286,7 +286,7 @@ class RequestContext : public RequestT,
         RequestCb<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
-        template <typename RouterT1, typename SessionT1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
+        template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
 };
 

@@ -34,6 +34,7 @@
 
 #include <hatn/api/client/client.h>
 #include <hatn/api/client/session.h>
+#include <hatn/api/client/serviceclient.h>
 
 #include <hatn/api/server/servicerouter.h>
 #include <hatn/api/server/servicedispatcher.h>
@@ -48,6 +49,7 @@
 #include <hatn/api/ipp/methodauth.ipp>
 #include <hatn/api/ipp/serverresponse.ipp>
 #include <hatn/api/ipp/serverservice.ipp>
+#include <hatn/api/ipp/session.ipp>
 
 HATN_API_USING
 HATN_COMMON_USING
@@ -95,6 +97,7 @@ HDU_UNIT(service2_msg2,
 /********************** Client **************************/
 
 using ClientType=client::Client<client::PlainTcpRouter,client::SessionNoAuth,LogCtxType>;
+using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
 
@@ -121,6 +124,19 @@ auto createClient(Thread* thread)
                 thread
             );
     return cl;
+}
+
+using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,client::ClientContext<ClientType>,ClientType>;
+using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
+
+HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
+HATN_TASK_CONTEXT_DEFINE(ClientWithAuthType)
+
+template <typename SessionWrapperT>
+auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, SessionWrapperT session)
+{
+    auto scl=client::makeClientWithAuthContext<ClientWithAuthCtxType>(std::move(session),std::move(clientCtx));
+    return scl;
 }
 
 /********************** Server **************************/
@@ -304,7 +320,12 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
     auto server=createServer(serverThread.get(),connections);
 
+    auto session=client::makeSessionNoAuthContext();
     auto client=createClient(clientThread.get());
+    auto clientWithAuth=createClientWithAuth(client,session);
+
+    auto service1Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service1",clientWithAuth);
+    auto service2Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service2",clientWithAuth);
 
     BOOST_CHECK(true);
 }

@@ -44,12 +44,12 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
-template <typename SessionT, typename ClientContextT, typename ClientT>
+template <typename SessionWrapperT, typename ClientContextT, typename ClientT>
 class SessionClient : public common::TaskSubcontext
 {
     public:
 
-        using Session=SessionT;
+        using SessionWrapper=SessionWrapperT;
 
         using Client=ClientT;
         using ClientContext=ClientContextT;
@@ -58,7 +58,7 @@ class SessionClient : public common::TaskSubcontext
         using ReqCtx=typename Client::ReqCtx;
 
         SessionClient(
-                common::SharedPtr<Session> session,
+                SessionWrapperT session,
                 common::SharedPtr<ClientContext> clientCtx
             ) : m_session(std::move(session)),
                 m_client(nullptr)
@@ -67,7 +67,7 @@ class SessionClient : public common::TaskSubcontext
         }
 
         SessionClient(
-            common::SharedPtr<Session> session
+                SessionWrapper session
             ) : m_session(std::move(session)),
                 m_client(nullptr)
         {}
@@ -136,7 +136,7 @@ class SessionClient : public common::TaskSubcontext
             return m_clientCtx;
         }
 
-        void setSession(common::SharedPtr<Session> session)
+        void setSession(SessionWrapper session)
         {
             m_session=std::move(session);
         }
@@ -148,10 +148,9 @@ class SessionClient : public common::TaskSubcontext
 
     private:
 
+        SessionWrapper m_session;
         common::SharedPtr<ClientContext> m_clientCtx;
         Client* m_client;
-
-        common::SharedPtr<Session> m_session;
 };
 
 template <typename SessionT, typename ClientContextT, typename ClientT>

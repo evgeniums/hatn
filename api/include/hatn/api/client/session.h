@@ -28,6 +28,8 @@
 #include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/dataunit/objectid.h>
 
 #include <hatn/api/api.h>
@@ -39,6 +41,8 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
+/********************** SessionAuth **************************/
+
 class SessionAuth : public Auth
 {
 public:
@@ -49,6 +53,8 @@ public:
                               );
 };
 
+/********************** Session **************************/
+
 using SessionId=du::ObjectId::String;
 
 template <typename ContextT>
@@ -56,8 +62,9 @@ using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, const commo
 
 template <typename Traits>
 class Session : public common::WithTraits<Traits>,
-                public common::TaskSubcontext,
-                public SessionAuth
+                public common::pmr::WithFactory,
+                public SessionAuth,
+                public common::TaskSubcontext
 {
     public:
 
@@ -66,9 +73,9 @@ class Session : public common::WithTraits<Traits>,
         template <typename ...TraitsArgs>
         Session(TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
-              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
               m_id(du::ObjectId::generateIdStr()),
-              m_valid(false)
+              m_valid(false),
+              m_refreshing(false)
         {
             init();
         }
@@ -76,11 +83,13 @@ class Session : public common::WithTraits<Traits>,
         template <typename ...TraitsArgs>
         Session(
             lib::string_view id,
+            const common::pmr::AllocatorFactory* allocatorFactory,
             TraitsArgs&& ...traitsArgs)
-            : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
-              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
+            : common::pmr::WithFactory(allocatorFactory),
+              common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(id),
-              m_valid(false)
+              m_valid(false),
+              m_refreshing(false)
         {
             init();
         }
@@ -90,24 +99,14 @@ class Session : public common::WithTraits<Traits>,
             const std::string& id,
             TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
-              m_allocatorFactory(common::pmr::AllocatorFactory::getDefault()),
               m_id(id),
-              m_valid(false)
+              m_valid(false),
+              m_refreshing(false)
         {
             init();
         }
 
         using common::WithTraits<Traits>::WithTraits;
-
-        void setAllocatroFactory(const common::pmr::AllocatorFactory* factory) noexcept
-        {
-            m_allocatorFactory=factory;
-        }
-
-        const common::pmr::AllocatorFactory* allocatorFactory() const noexcept
-        {
-            return m_allocatorFactory;
-        }
 
         void setId(lib::string_view id) noexcept
         {
@@ -174,32 +173,93 @@ class Session : public common::WithTraits<Traits>,
     private:
 
         void init()
-        {
-            m_callbacks.reserve(DefaultSessionCallbacksCapacity);
-        }
-
-        const common::pmr::AllocatorFactory* m_allocatorFactory;
+        {}
 
         SessionId m_id;
         bool m_valid;
         bool m_refreshing;
-        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;        
+        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;
 };
+
+/********************** SessionWrapper **************************/
+
+template <typename SessionContextT, typename SessionT>
+class SessionWrapper
+{
+    public:
+
+        SessionWrapper(common::SharedPtr<SessionContextT> sessionCtx):m_sessionCtx(std::move(sessionCtx))
+        {}
+
+        const SessionT& session() const
+        {
+            return m_sessionCtx-> template get<SessionT>();
+        }
+
+        SessionT& session()
+        {
+            return m_sessionCtx-> template get<SessionT>();
+        }
+
+        void setId(lib::string_view id) noexcept
+        {
+            session().setId(id);
+        }
+
+        lib::string_view id() const noexcept
+        {
+            return session().id();
+        }
+
+        bool isValid() const noexcept
+        {
+            return session().isValid();
+        }
+
+        void setValid(bool enable) noexcept
+        {
+            session().setValid(enable);
+        }
+
+        bool isRefreshing() const noexcept
+        {
+            return session().isRefreshing();
+        }
+
+        void setRefreshing(bool enable) noexcept
+        {
+            session().setRefreshing(enable);
+        }
+
+        template <typename CallbackT>
+        void refresh(lib::string_view ctxId, CallbackT callback, Response resp={})
+        {
+            session().refresh(ctxId,std::move(callback),std::move(resp));
+        }
+
+    private:
+
+        common::SharedPtr<SessionContextT> m_sessionCtx;
+};
+
+/********************** SessionNoAuth **************************/
 
 class SessionNoAuthTraits
 {
     public:
 
         using SessionType=Session<SessionNoAuthTraits>;
-        using RefreshCb=std::function<void (const Error& ec, SessionType* session)>;
 
         SessionNoAuthTraits(SessionType* session) : m_session(session)
-        {}
+        {
+            session->setValid(true);
+        }
 
-        void refresh(lib::string_view, RefreshCb callback, Response ={})
+        template <typename CallbackT>
+        void refresh(lib::string_view, CallbackT callback, Response ={})
         {
             m_session->resetAuthHeader();
-            callback(Error{},m_session);
+            callback(Error{});
             return;
         }
 
@@ -210,8 +270,52 @@ class SessionNoAuthTraits
 
 using SessionNoAuth=Session<SessionNoAuthTraits>;
 
+using SessionNoAuthContext=common::TaskContextType<SessionNoAuth,HATN_LOGCONTEXT_NAMESPACE::Context>;
+
+struct allocateSessionNoAuthContextT
+{
+    template <typename ...Args>
+    auto operator () (
+        const HATN_COMMON_NAMESPACE::pmr::polymorphic_allocator<SessionNoAuthContext>& allocator,
+        Args&&... args
+        ) const
+    {
+        return SessionWrapper<SessionNoAuthContext,SessionNoAuth>{
+                HATN_COMMON_NAMESPACE::allocateTaskContextType<SessionNoAuthContext>(
+                    allocator,
+                    HATN_COMMON_NAMESPACE::subcontexts(
+                        HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
+                        HATN_COMMON_NAMESPACE::subcontext()
+                        )
+                )
+            };
+    }
+};
+constexpr allocateSessionNoAuthContextT allocateSessionNoAuthContext{};
+
+struct makeSessionNoAuthContextT
+{
+    template <typename ...Args>
+    auto operator () (
+        Args&&... args
+        ) const
+    {
+        return SessionWrapper<SessionNoAuthContext,SessionNoAuth>{
+            HATN_COMMON_NAMESPACE::makeTaskContextType<SessionNoAuthContext>(
+                HATN_COMMON_NAMESPACE::subcontexts(
+                    HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
+                    HATN_COMMON_NAMESPACE::subcontext()
+                    )
+            )
+        };
+    }
+};
+constexpr makeSessionNoAuthContextT makeSessionNoAuthContext{};
+
 } // namespace client
 
 HATN_API_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::client::SessionNoAuth)
 
 #endif // HATNAPICLIENTSESSION_H
