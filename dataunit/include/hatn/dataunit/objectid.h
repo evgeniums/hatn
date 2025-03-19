@@ -101,6 +101,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
         String string() const
         {
             String str;
+            str.resize(Length);
             serialize(str);
             return str;
         }
