@@ -81,6 +81,17 @@ HDU_UNIT(service1_msg1,
     HDU_FIELD(field2,TYPE_STRING,2)
 )
 
+HDU_UNIT(service2_msg1,
+    HDU_FIELD(field2,TYPE_UINT32,1)
+    HDU_FIELD(field1,TYPE_STRING,2)
+)
+
+HDU_UNIT(service2_msg2,
+    HDU_FIELD(f1,TYPE_UINT32,1)
+    HDU_FIELD(f2,TYPE_STRING,2)
+    HDU_FIELD(f3,TYPE_STRING,3)
+)
+
 /********************** Client **************************/
 
 using ClientType=client::Client<client::PlainTcpRouter,client::SessionNoAuth,LogCtxType>;
@@ -124,14 +135,13 @@ class Service1Method1Traits : public server::NoValidatorTraits
             SharedPtr<service1_msg1::managed> msg
             ) const
         {
-            BOOST_TEST_MESSAGE(fmt::format("Method exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
+            BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
 
-            // auto& req=request->get<server::Request<>>();
-            // req.response.setStatus();
+            auto& req=request->get<server::Request<>>();
+            req.response.setStatus();
             callback(std::move(request));
         }
 };
-
 class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits,service1_msg1::managed>
 {
     public:
@@ -141,16 +151,81 @@ class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits,ser
         Service1Method1() : Base("service1_method1")
         {}
 };
-
 using Service1=server::ServerServiceV<server::ServiceSingleMethod<Service1Method1>>;
+
+//---------------------------------------------------------------
+
+class Service2Method1Traits : public server::NoValidatorTraits
+{
+public:
+
+    void exec(
+        SharedPtr<server::RequestContext<server::Request<>>> request,
+        server::RouteCb<server::Request<>> callback,
+        SharedPtr<service2_msg1::managed> msg
+        ) const
+    {
+        BOOST_TEST_MESSAGE(fmt::format("Service2 method1 exec: field1={}, field2={}",msg->fieldValue(service2_msg1::field1),msg->fieldValue(service2_msg1::field2)));
+
+        auto& req=request->get<server::Request<>>();
+        req.response.setStatus();
+        callback(std::move(request));
+    }
+};
+class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service1_msg1::managed>>
+{
+    public:
+
+        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service1_msg1::managed>>;
+
+        Service2Method1() : Base("service2_method1")
+        {}
+};
+
+class Service2Method2Traits : public server::NoValidatorTraits
+{
+public:
+
+    void exec(
+        SharedPtr<server::RequestContext<server::Request<>>> request,
+        server::RouteCb<server::Request<>> callback,
+        SharedPtr<service2_msg2::managed> msg
+        ) const
+    {
+        BOOST_TEST_MESSAGE(fmt::format("Service2 method2 exec: f1={}, f2={}, f3={}",msg->fieldValue(service2_msg2::f1),msg->fieldValue(service2_msg2::f2),msg->fieldValue(service2_msg2::f3)));
+
+        auto& req=request->get<server::Request<>>();
+        req.response.setStatus();
+        callback(std::move(request));
+    }
+};
+class Service2Method2 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service1_msg1::managed>>
+{
+public:
+
+    using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service1_msg1::managed>>;
+
+    Service2Method2() : Base("service2_method2")
+    {}
+};
+
+using Service2=server::ServerServiceV<server::ServiceMultipleMethods<>>;
+
+//---------------------------------------------------------------
 
 auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>>& connections)
 {
     auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
-    auto service1Metho1=std::make_shared<Service1Method1>();
-    std::ignore=service1Metho1;
+    auto service1Method1=std::make_shared<Service1Method1>();
+    std::ignore=service1Method1;
     auto service1=std::make_shared<Service1>("service1");
     serviceRouter->registerLocalService(std::move(service1));
+    server::ServiceMultipleMethods<> serv2;
+    auto service2Method1=std::make_shared<Service2Method1>();
+    auto service2Method2=std::make_shared<Service2Method2>();
+    serv2.registerMethods({service2Method1,service2Method2});
+    auto service2=std::make_shared<Service2>("service2",std::move(serv2));
+    serviceRouter->registerLocalService(std::move(service2));
 
     using dispatcherType=server::ServiceDispatcher<>;
     auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);

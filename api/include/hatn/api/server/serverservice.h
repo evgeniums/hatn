@@ -304,8 +304,8 @@ class ServiceMethod : public ServiceMethodBase
 
         virtual void exec(
             common::SharedPtr<RequestContext<Request>> request,
-            bool messageExists,
             RouteCb<Request> callback,
+            bool messageExists,
             lib::string_view messageType
         ) const =0;
 };
@@ -336,7 +336,7 @@ class ServiceMethodV : public ServiceMethod<RequestT>,
                 lib::string_view messageType
             ) const override
         {
-            this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
+            // this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
         }
 };
 
@@ -390,17 +390,25 @@ class ServiceMultipleMethodsTraits
 //---------------------------------------------------------------
 
 template <typename RequestT=Request<>>
-class ServiceMultipleMethods : public ServerServiceT<RequestT,ServiceMultipleMethodsTraits<RequestT>>
+class ServiceMultipleMethods : public ServerServiceT<ServiceMultipleMethodsTraits<RequestT>,RequestT>
 {
     public:
 
         using Request=RequestT;
 
-        using ServerServiceT<RequestT,ServiceMultipleMethodsTraits<RequestT>>::ServerServiceT;
+        using ServerServiceT<ServiceMultipleMethodsTraits<RequestT>,RequestT>::ServerServiceT;
 
         void registerMethod(std::shared_ptr<ServiceMethod<Request>> method)
         {
             this->traits().registerMethod(std::move(method));
+        }
+
+        void registerMethods(std::initializer_list<std::shared_ptr<ServiceMethod<Request>>> methods)
+        {
+            for (auto&& it: methods)
+            {
+                this->traits().registerMethod(it);
+            }
         }
 
         std::shared_ptr<ServiceMethod<Request>> method(lib::string_view methodName) const

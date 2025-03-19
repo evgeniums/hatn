@@ -217,8 +217,6 @@ void ServiceMultipleMethodsTraits<RequestT>::exec(
         lib::string_view messageType
     ) const
 {
-    auto& req=request->template get<RequestT>();
-
     // find method
     auto mthd=method(methodName);
     if (!mthd)
