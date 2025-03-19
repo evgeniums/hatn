@@ -58,14 +58,13 @@ class ServerServiceBase
 {
     public:
 
-        template <typename RequestT, typename HandlerT, typename MessageT=NoMessage, typename ValidatorT=NoValidatorT>
+        template <typename RequestT, typename MessageT, typename HandlerT, typename ValidatorT>
         void handleMessage(
                 common::SharedPtr<RequestContext<RequestT>> request,
                 RouteCb<RequestT> callback,
                 HandlerT handler,
-                hana::type<MessageT> msgType=hana::type_c<NoMessage>,
-                const ValidatorT& validator=NoValidator
-            )const ;
+                ValidatorT validator
+            ) const;
 
         template <typename RequestT>
         void methodFailed(
@@ -78,7 +77,7 @@ class ServerServiceBase
 
 //---------------------------------------------------------------
 
-template <typename RequestT, typename Traits>
+template <typename Traits, typename RequestT=Request<>>
 class ServerServiceT : public ServerServiceBase,
                        public common::WithTraits<Traits>
 {
@@ -107,13 +106,13 @@ class ServerServiceT : public ServerServiceBase,
                 lib::string_view messageType
             ) const
         {
-            return this->traits.exec(std::move(request),std::move(callback),methodName,messageExists,messageType);
+            return this->traits().exec(std::move(request),std::move(callback),methodName,messageExists,messageType);
         }
 };
 
 //---------------------------------------------------------------
 
-template <typename RequestT>
+template <typename RequestT=Request<>>
 class ServerService : public Service
 {
 public:
@@ -133,7 +132,7 @@ public:
 
 //---------------------------------------------------------------
 
-template <typename RequestT, typename Impl>
+template <typename Impl, typename RequestT=Request<>>
 class ServerServiceV : public ServerService<RequestT>,
                        public common::WithImpl<Impl>
 {
@@ -155,7 +154,7 @@ public:
         lib::string_view name,
         ImplArgs&&... implArgs
     ) : ServerService<Request>(name),
-        common::WithImpl<Impl>(this,std::forward<ImplArgs>(implArgs)...)
+        common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
     {}
 
     virtual void handleRequest(
@@ -244,7 +243,7 @@ class ServiceMethodBase
  * validator::error_report validate(const common::SharedPtr<RequestContext<RequestT>>& request,const MessageT& msg)
 )
  */
-template <typename RequestT, typename Traits, typename MessageT=NoMessage>
+template <typename Traits, typename MessageT=NoMessage, typename RequestT=Request<>>
 class ServiceMethodT : public common::WithTraits<Traits>
 {
     public:
@@ -256,8 +255,8 @@ class ServiceMethodT : public common::WithTraits<Traits>
         ServiceMethodT(
             ServiceMethodBase* base,
             TraitsArgs&& ...traitsArgs
-            ) : m_base(base),
-                common::WithTraits<Traits>::WithTraits(std::forward<traitsArgs>(traitsArgs)...)
+            ) : common::WithTraits<Traits>::WithTraits(std::forward<TraitsArgs>(traitsArgs)...),
+                m_base(base)
         {
             m_base->setMessageType(Message::unitName());
             m_base->setMessageRequired(!std::is_same_v<MessageT,NoMessage>);
@@ -275,9 +274,24 @@ class ServiceMethodT : public common::WithTraits<Traits>
         ServiceMethodBase* m_base;
 };
 
+template <typename Traits, typename MessageT=NoMessage, typename RequestT=Request<>>
+class ServiceMethodNV : public ServiceMethodBase,
+                        public ServiceMethodT<Traits,MessageT,RequestT>
+{
+    public:
+
+        template <typename ...TraitsArgs>
+        ServiceMethodNV(
+                std::string name,
+                TraitsArgs&& ...traitsArgs
+            ) : ServiceMethodBase(std::move(name)),
+                ServiceMethodT<Traits,MessageT,RequestT>(this,std::forward<TraitsArgs>(traitsArgs)...)
+        {}
+};
+
 //---------------------------------------------------------------
 
-template <typename RequestT>
+template <typename RequestT=Request<>>
 class ServiceMethod : public ServiceMethodBase
 {
     public:
@@ -298,9 +312,9 @@ class ServiceMethod : public ServiceMethodBase
 
 //---------------------------------------------------------------
 
-template <typename Impl, typename RequestT>
+template <typename Impl, typename RequestT=Request<>>
 class ServiceMethodV : public ServiceMethod<RequestT>,
-                             public common::WithImpl<Impl>
+                       public common::WithImpl<Impl>
 {
     public:
 
@@ -332,8 +346,8 @@ class NoValidatorTraits
 {
     public:
 
-        template <typename MessageT>
-        validator::status validate(const MessageT&) const
+        template <typename RequestT, typename MessageT>
+        validator::status validate(const common::SharedPtr<RequestT>, const MessageT&) const
         {
             return validator::status::code::success;
         }
@@ -343,7 +357,7 @@ class NoValidatorTraits
 
 /********************** ServiceMultipleMethods **************************/
 
-template <typename RequestT>
+template <typename RequestT=Request<>>
 class ServiceMultipleMethodsTraits
 {
     public:
@@ -375,7 +389,7 @@ class ServiceMultipleMethodsTraits
 
 //---------------------------------------------------------------
 
-template <typename RequestT>
+template <typename RequestT=Request<>>
 class ServiceMultipleMethods : public ServerServiceT<RequestT,ServiceMultipleMethodsTraits<RequestT>>
 {
     public:
@@ -397,7 +411,7 @@ class ServiceMultipleMethods : public ServerServiceT<RequestT,ServiceMultipleMet
 
 /********************** ServiceSingleMethod **************************/
 
-template <typename RequestT, typename MethodT>
+template <typename MethodT,typename RequestT=Request<>>
 class ServiceSingleMethodTraits
 {
     public:
@@ -405,11 +419,17 @@ class ServiceSingleMethodTraits
         using Request=RequestT;
 
         ServiceSingleMethodTraits(ServerServiceBase* service,
-                                        std::shared_ptr<ServiceMethod<Request>> method
-                                        ) : m_method(method)
+                                  std::shared_ptr<MethodT> method
+                                ) : m_method(method)
         {
             m_method->setService(service);
         }
+
+        template <typename ...MethodArgs>
+        ServiceSingleMethodTraits(ServerServiceBase* service,
+                                  MethodArgs&&... methodArgs
+                                  ) : ServiceSingleMethodTraits(service,std::make_shared<MethodT>(std::forward<MethodArgs>(methodArgs)...))
+        {}
 
         void exec(common::SharedPtr<RequestContext<Request>> request,
                   RouteCb<Request> callback,
@@ -423,8 +443,8 @@ class ServiceSingleMethodTraits
         std::shared_ptr<MethodT> m_method;
 };
 
-template <typename RequestT, typename MethodT>
-using ServiceSingleMethod = ServerServiceT<RequestT,ServiceSingleMethodTraits<RequestT,MethodT>>;
+template <typename MethodT, typename RequestT=Request<>>
+using ServiceSingleMethod = ServerServiceT<ServiceSingleMethodTraits<MethodT>,RequestT>;
 
 //---------------------------------------------------------------
 

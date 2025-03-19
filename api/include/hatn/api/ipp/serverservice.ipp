@@ -30,13 +30,12 @@ namespace server {
 
 /********************** ServerServiceBase **************************/
 
-template <typename RequestT, typename HandlerT, typename MessageT, typename ValidatorT>
+template <typename RequestT, typename MessageT, typename HandlerT, typename ValidatorT>
 void ServerServiceBase::handleMessage(
         common::SharedPtr<RequestContext<RequestT>> request,
         RouteCb<RequestT> callback,
         HandlerT handler,
-        hana::type<MessageT>,
-        const ValidatorT& validator
+        ValidatorT validator
     ) const
 {
     if constexpr (std::is_same_v<MessageT,NoMessage>)
@@ -48,15 +47,15 @@ void ServerServiceBase::handleMessage(
         auto& req=request->template get<RequestT>();
 
         // build message object
-        auto msg=req.template get<AllocatorFactory>().factory()->template createObject<MessageT>();
+        auto msg=req.env->template get<AllocatorFactory>().factory()->template createObject<MessageT>();
 
         //  parse message
-        const auto& messageField=request->unit.field(protocol::request::message);
+        const auto& messageField=req.unit.field(protocol::request::message);
         du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
         if (!du::io::deserialize(*msg,buf))
         {
             req.response.setStatus(protocol::ResponseStatus::FormatError);
-            cb(std::move(request));
+            callback(std::move(request));
             return;
         }
 
@@ -67,7 +66,7 @@ void ServerServiceBase::handleMessage(
             //! @todo construct API error with validationEc
 
             req.response.setStatus(protocol::ResponseStatus::ValidationError);
-            cb(std::move(request));
+            callback(std::move(request));
             return;
         }
 
@@ -93,8 +92,8 @@ void ServerServiceBase::methodFailed(
 
 /********************** ServerServiceT **************************/
 
-template <typename RequestT, typename Traits>
-void ServerServiceT<RequestT,Traits>::handleRequest(
+template <typename Traits, typename RequestT>
+void ServerServiceT<Traits,RequestT>::handleRequest(
         common::SharedPtr<RequestContext<Request>> request,
         RouteCb<RequestT> callback
     ) const
@@ -118,8 +117,8 @@ void ServerServiceT<RequestT,Traits>::handleRequest(
 
 /********************** ServiceMethodT **************************/
 
-template <typename RequestT, typename Traits, typename MessageT>
-void ServiceMethodT<RequestT,Traits,MessageT>::exec(
+template <typename Traits, typename MessageT, typename RequestT>
+void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         common::SharedPtr<RequestContext<Request>> request,
         RouteCb<Request> callback,
         bool messageExists,
@@ -128,14 +127,15 @@ void ServiceMethodT<RequestT,Traits,MessageT>::exec(
 {
     if constexpr (std::is_same_v<MessageT,NoMessage>)
     {
-        // handle request withoot message
-        this->service()->handleMessage(
+        // handle request without message
+        this->service()->handleMessage->template handleMessage<RequestT,NoMessage>(
             std::move(request),
             std::move(callback),
             [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback)
             {
                 this->traits().exec(std::move(request),std::move(callback));
-            }
+            },
+            NoValidator
         );
     }
     else
@@ -143,10 +143,11 @@ void ServiceMethodT<RequestT,Traits,MessageT>::exec(
         // check if message is set in request
         if (!messageExists)
         {
-            this->service()->methodFailed(
+            m_base->service()->template methodFailed<RequestT>(
                 std::move(request),
                 std::move(callback),
-                ServiceMethodStatus::MessageMissing
+                ServiceMethodStatus::MessageMissing,
+                Error{}
                 );
             return;
         }
@@ -154,7 +155,7 @@ void ServiceMethodT<RequestT,Traits,MessageT>::exec(
         // check message type
         if (messageType!=m_base->messageType())
         {
-            this->service()->methodFailed(
+            m_base->service()->template methodFailed<RequestT>(
                 std::move(request),
                 std::move(callback),
                 ServiceMethodStatus::InvalidMessageType
@@ -164,17 +165,16 @@ void ServiceMethodT<RequestT,Traits,MessageT>::exec(
         }
 
         // handle message
-        this->service()->handleMessage(
+        m_base->service()->template handleMessage<RequestT,MessageT>(
             std::move(request),
             std::move(callback),
             [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback,common::SharedPtr<Message> msg)
             {
                 this->traits().exec(std::move(request),std::move(callback),std::move(msg));
             },
-            hana::type_c<Message>,
-            [this](const common::SharedPtr<RequestContext<Request>>& request,const Message& msg, std::string& errorMessage)
+            [this](const common::SharedPtr<RequestContext<Request>>& request,const Message& msg)
             {
-                return this->traits().validate(request,msg,errorMessage);
+                return this->traits().validate(request,msg);
             }
         );
     }
@@ -223,7 +223,7 @@ void ServiceMultipleMethodsTraits<RequestT>::exec(
     auto mthd=method(methodName);
     if (!mthd)
     {
-        m_service->methodFailed(
+        m_service->template methodFailed<RequestT>(
             std::move(request),
             std::move(callback),
             ServiceMethodStatus::UnknownMethod
@@ -242,8 +242,8 @@ void ServiceMultipleMethodsTraits<RequestT>::exec(
 
 /********************** ServiceSingleMethodTraits **************************/
 
-template <typename RequestT, typename MethodT>
-void ServiceSingleMethodTraits<RequestT,MethodT>::exec(
+template <typename MethodT, typename RequestT>
+void ServiceSingleMethodTraits<MethodT,RequestT>::exec(
         common::SharedPtr<RequestContext<Request>> request,
         RouteCb<Request> callback,
         lib::string_view methodName,
@@ -251,19 +251,18 @@ void ServiceSingleMethodTraits<RequestT,MethodT>::exec(
         lib::string_view messageType
     ) const
 {
-    auto& req=request->template get<RequestT>();
-
+#if 1
     // check if method names match
     if (methodName!=m_method->name())
     {
-        m_method->service()->methodFailed(
+        m_method->service()->template methodFailed<RequestT>(
             std::move(request),
             std::move(callback),
             ServiceMethodStatus::UnknownMethod
         );
         return;
     }
-
+#endif
     // exec method
     m_method->exec(
         std::move(request),

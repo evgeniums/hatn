@@ -47,13 +47,14 @@
 #include <hatn/api/ipp/message.ipp>
 #include <hatn/api/ipp/methodauth.ipp>
 #include <hatn/api/ipp/serverresponse.ipp>
+#include <hatn/api/ipp/serverservice.ipp>
 
 HATN_API_USING
 HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
 HATN_NETWORK_USING
 
-namespace {
+/********************** TestEnv **************************/
 
 struct TestEnv : public ::hatn::test::MultiThreadFixture
 {
@@ -70,9 +71,17 @@ struct TestEnv : public ::hatn::test::MultiThreadFixture
     TestEnv& operator=(const TestEnv&)=delete;
     TestEnv& operator=(TestEnv&&) =delete;
 };
-}
 
 constexpr const uint32_t TcpPort=53852;
+
+/********************** Messages **************************/
+
+HDU_UNIT(service1_msg1,
+    HDU_FIELD(field1,TYPE_UINT32,1)
+    HDU_FIELD(field2,TYPE_STRING,2)
+)
+
+/********************** Client **************************/
 
 using ClientType=client::Client<client::PlainTcpRouter,client::SessionNoAuth,LogCtxType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
@@ -103,9 +112,46 @@ auto createClient(Thread* thread)
     return cl;
 }
 
+/********************** Server **************************/
+
+class Service1Method1Traits : public server::NoValidatorTraits
+{
+    public:
+
+        void exec(
+            SharedPtr<server::RequestContext<server::Request<>>> request,
+            server::RouteCb<server::Request<>> callback,
+            SharedPtr<service1_msg1::managed> msg
+            ) const
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Method exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
+
+            // auto& req=request->get<server::Request<>>();
+            // req.response.setStatus();
+            callback(std::move(request));
+        }
+};
+
+class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits,service1_msg1::managed>
+{
+    public:
+
+        using Base=server::ServiceMethodNV<Service1Method1Traits,service1_msg1::managed>;
+
+        Service1Method1() : Base("service1_method1")
+        {}
+};
+
+using Service1=server::ServerServiceV<server::ServiceSingleMethod<Service1Method1>>;
+
 auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>>& connections)
 {
     auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
+    auto service1Metho1=std::make_shared<Service1Method1>();
+    std::ignore=service1Metho1;
+    auto service1=std::make_shared<Service1>("service1");
+    serviceRouter->registerLocalService(std::move(service1));
+
     using dispatcherType=server::ServiceDispatcher<>;
     auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
     using connectionsStoreType=server::ConnectionsStore<server::PlainTcpConnectionContext,server::PlainTcpConnection>;
@@ -149,6 +195,8 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
     return std::make_pair(server,tcpServerCtx);
 }
 
+/********************** Tests **************************/
+
 BOOST_AUTO_TEST_SUITE(TestClientServer)
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
@@ -168,6 +216,20 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 
     std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
     std::ignore=createServer(workThread.get(),connections);
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
+{
+    createThreads(2);
+    auto serverThread=threadWithContextTask(0);
+    auto clientThread=threadWithContextTask(1);
+
+    std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
+    auto server=createServer(serverThread.get(),connections);
+
+    auto client=createClient(clientThread.get());
 
     BOOST_CHECK(true);
 }

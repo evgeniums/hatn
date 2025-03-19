@@ -94,6 +94,11 @@ class ServiceRouter : public RequestRouter<ServiceRouterTraits<EnvT,RequestT>,En
         {
             this->traits().registerService(std::move(service),std::move(handler));
         }
+
+        void registerLocalService(std::shared_ptr<ServerService<Request>> localService)
+        {
+            this->traits().registerLocalService(std::move(localService));
+        }
 };
 
 } // namespace server
