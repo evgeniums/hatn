@@ -88,6 +88,11 @@ class HATN_DATAUNIT_EXPORT WireBufBase
             return m_useShareBuffers;
         }
 
+        inline void setUseSharedBuffers(bool enable) noexcept
+        {
+            m_useShareBuffers=enable;
+        }
+
     protected:
 
         inline void setFactory(const AllocatorFactory* factory) noexcept
@@ -130,6 +135,12 @@ struct HATN_DATAUNIT_EXPORT WireBufTraits
     {
         Assert(false,"Invalid operation");
         return std::vector<WireBufChainItem>{};
+    }
+
+    common::SpanBuffers chainBuffers(const AllocatorFactory* =AllocatorFactory::getDefault()) const
+    {
+        Assert(false,"Invalid operation");
+        return common::SpanBuffers{};
     }
 
     const common::ByteArray* meta() const
@@ -333,6 +344,11 @@ class WireBuf : public common::WithTraits<TraitsT>,
         std::vector<WireBufChainItem> chain() const
         {
             return this->traits().chain();
+        }
+
+        common::SpanBuffers chainBuffers(const AllocatorFactory* factory=AllocatorFactory::getDefault()) const
+        {
+            return this->traits().chainBuffers(factory);
         }
 
         const common::ByteArray* meta() const

@@ -63,6 +63,7 @@ public:
     virtual void clear()=0;
     virtual common::SpanBuffers buffers() const=0;
     virtual std::vector<WireBufChainItem> chain() const=0;
+    virtual common::SpanBuffers chainBuffers(const AllocatorFactory* factory=AllocatorFactory::getDefault()) const=0;
     virtual const common::ByteArray* meta() const=0;
 
     inline void appendBuffer(const common::ByteArrayShared& buf)
@@ -212,6 +213,11 @@ public:
     virtual std::vector<WireBufChainItem> chain() const override
     {
         return this->impl().chain();
+    }
+
+    virtual common::SpanBuffers chainBuffers(const AllocatorFactory* factory=AllocatorFactory::getDefault()) const override
+    {
+        return this->impl().chainBuffers(factory);
     }
 
     virtual const common::ByteArray* meta() const override

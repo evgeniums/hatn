@@ -1,14 +1,14 @@
 /*
     Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
-    
+
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
-      
+
 */
 
 /****************************************************************************/
 /*
-    
+
 */
 /** @file dataunit/wirebufchained.h
   *
@@ -35,7 +35,7 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
     ) : WireBufSolidSharedTraits(factory),
         m_meta(factory->dataMemoryResource()),
         m_currentMainContainer(nullptr),
-        m_buffers(factory->objectAllocator<common::ByteArrayShared>()),
+        m_buffers(factory->objectAllocator<common::SpanBuffer>()),
         m_cursor(m_chain.end())
     {
     }
@@ -149,6 +149,27 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
         return m_chain;
     }
 
+    common::SpanBuffers chainBuffers(const AllocatorFactory* factory=AllocatorFactory::getDefault()) const
+    {
+        common::SpanBuffers bufs{factory->objectAllocator<common::SpanBuffer>()};
+        auto size=m_chain.size();
+        const auto* mainBuf=mainContainer();
+        if (!mainBuf->empty())
+        {
+            size++;
+        }
+        bufs.reserve(size);
+        if (!mainBuf->empty())
+        {
+            bufs.emplace_back(*mainBuf);
+        }
+        for (auto&& it: m_chain)
+        {
+            bufs.emplace_back(it.buf);
+        }
+        return bufs;
+    }
+
     const common::ByteArray* meta() const
     {
         return &m_meta;
@@ -201,8 +222,9 @@ class HATN_DATAUNIT_EXPORT WireBufChained : public WireBuf<WireBufChainedTraits>
     public:
 
         explicit WireBufChained(
-            const AllocatorFactory* factory=AllocatorFactory::getDefault()
-        ) : WireBuf<WireBufChainedTraits>(WireBufChainedTraits{factory},factory)
+            const AllocatorFactory* factory=AllocatorFactory::getDefault(),
+            bool useShareBuffers=false
+        ) : WireBuf<WireBufChainedTraits>(WireBufChainedTraits{factory},factory,useShareBuffers)
         {}
 
         ~WireBufChained()=default;
