@@ -336,7 +336,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
          * Parent task context is kept as a shared pointer.
          */
         template <typename ParentContextT>
-        void resetParentCtx(SharedPtr<ParentContextT> parentCtx={})
+        void resetParentCtx(SharedPtr<ParentContextT> parentCtx)
         {
             if (!parentCtx)
             {
@@ -344,6 +344,11 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
                 return;
             }
             m_parentCtx=std::move(parentCtx);
+        }
+
+        void resetParentCtx()
+        {
+            m_parentCtx.reset();
         }
 
         /**
@@ -730,7 +735,7 @@ class ActualTaskContext : public BaseTaskContext
         }
 
         template <typename ParentContextT>
-        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<ParentContextT>& parentCtx={})
+        void resetParentCtx(SharedPtr<ParentContextT> parentCtx)
         {
             BaseTaskContext::resetParentCtx(parentCtx);
 
@@ -744,6 +749,28 @@ class ActualTaskContext : public BaseTaskContext
                         [&](auto _)
                         {
                             _(subcontext).resetParentCtx(_(parentCtx));
+                        },
+                        [&](auto)
+                        {}
+                    );
+                }
+            );
+        }
+
+        void resetParentCtx()
+        {
+            BaseTaskContext::resetParentCtx();
+
+            boost::hana::for_each(
+                m_subcontexts,
+                [](auto& subcontext)
+                {
+                    using type=typename std::decay_t<decltype(subcontext)>;
+                    hana::eval_if(
+                        TaskSubcontext::hasResetParentCtxFn(hana::type_c<type>),
+                        [&](auto _)
+                        {
+                            _(subcontext).resetParentCtx();
                         },
                         [&](auto)
                         {}
