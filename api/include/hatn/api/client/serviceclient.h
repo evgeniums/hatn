@@ -103,7 +103,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
             common::SharedPtr<Context> ctx,
             RequestCb<Context> callback,
             const Method& method,
-            MessageType message,            
+            MessageType message,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0
@@ -112,6 +112,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
             auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,service,&method,message,topic,callback{std::move(callback)},priority,timeoutMs]
                     (auto ctx, const Error& ec, MethodAuth methodAuth)
             {
+                std::ignore=this;
                 if (ec)
                 {
                     callback(std::move(ctx),ec,Response{});

@@ -121,6 +121,11 @@ struct Request
 
         lib::string_view id() const noexcept;
 
+        const SessionWrapper* session() const
+        {
+            return &m_session;
+        }
+
         SessionWrapper* session()
         {
             return &m_session;
@@ -161,7 +166,7 @@ struct Request
 
         MethodAuth m_methodAuth;        
         du::WireBufSolidShared requestData;
-        du::WireBufSolidShared responseData;
+        mutable du::WireBufSolidShared responseData;
 
         template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
@@ -245,11 +250,11 @@ class RequestContext : public RequestT,
         common::SpanBuffers spanBuffers() const
         {
             common::SpanBuffers bufs{this->m_factory->template dataAllocator<common::SpanBuffer>()};
-            auto messageBufs=this->message()->buffers();
+            auto messageBufs=this->message().buffers();
 
             size_t extraCount=1;
             common::ByteArrayShared authHeader;
-            if (this->sesion())
+            if (this->session())
             {
                 authHeader=this->session()->authHeader();
                 if (authHeader)
@@ -260,8 +265,8 @@ class RequestContext : public RequestT,
             common::ByteArrayShared methodAuthHeader;
             if (this->methodAuth())
             {
-                methodAuthHeader=this->methodAuth()->authHeader();
-                if (authHeader)
+                methodAuthHeader=this->methodAuth().authHeader();
+                if (methodAuthHeader)
                 {
                     extraCount++;
                 }

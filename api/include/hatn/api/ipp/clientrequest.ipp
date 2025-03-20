@@ -65,7 +65,7 @@ void Request<SessionT,MessageT,RequestUnitT>::regenId()
 {
     auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
-    return serialize();
+    std::ignore=serialize();
 }
 
 //---------------------------------------------------------------

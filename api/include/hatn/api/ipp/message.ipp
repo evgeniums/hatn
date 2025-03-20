@@ -48,7 +48,7 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
     }
     else
     {
-        m_content->reset();
+        m_content.reset();
     }
     if (name!=nullptr)
     {

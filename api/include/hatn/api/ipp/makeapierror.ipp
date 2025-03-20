@@ -28,35 +28,39 @@ HATN_API_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-template <typename ErrCodeT, typename ApiCodeT, typename ErrorCatergoryT, typename ApiCategoryT, typename DataT>
-Error makeApiError(ErrCodeT code,
+template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT>
+Error makeApiErrorT::operator() (
+               ErrCodeT code,
                const ErrorCatergoryT* errCat,
                ApiCodeT apiCode,
                const ApiCategoryT* apiCat,
                std::string description,
-               const DataT dataUnit,
+               DataT dataUnit,
                std::string dataType,
                const common::pmr::AllocatorFactory* factory
-    )
+    ) const
 {
     auto nativeError=std::make_shared<common::NativeError>(static_cast<int>(apiCode),apiCat,errCat);
     if (!description.empty())
     {
         nativeError->mutableApiError()->setDescription(std::move(description),true);
     }
-    if (dataUnit!=nullptr)
+    if constexpr (!std::is_same_v<DataT,std::nullptr_t>)
     {
-        nativeError->apiError()->setDataType(std::move(dataType));
-        du::WireBufSolidShared buf{factory};
-        Error ec;
-        int r=du::io::serializeAsSubunit(*dataUnit,buf,protocol::response_error_message::data);
-        if (r<0)
+        if (dataUnit!=nullptr)
         {
-            std::cerr <<  "Failed to serialize data of API error " << dataType << std::endl;
-        }
-        else
-        {
-            nativeError->mutableApiError()->setData(buf.sharedMainContainer());
+            nativeError->mutableApiError()->setDataType(std::move(dataType));
+            du::WireBufSolidShared buf{factory};
+            Error ec;
+            int r=du::io::serializeAsSubunit(*dataUnit,buf,protocol::response_error_message::data);
+            if (r<0)
+            {
+                std::cerr <<  "Failed to serialize data of API error " << dataType << std::endl;
+            }
+            else
+            {
+                nativeError->mutableApiError()->setData(buf.sharedMainContainer());
+            }
         }
     }
     return Error{code,std::move(nativeError)};

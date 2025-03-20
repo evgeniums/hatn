@@ -25,30 +25,35 @@
 
 HATN_API_NAMESPACE_BEGIN
 
-template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
-Error makeApiError(ErrCodeT code,
-               const ErrorCatergoryT* errCat,
-               ApiCodeT apiCode,
-               const ApiCategoryT* apiCat,
-               std::string description={},
-               const DataT dataUnit=nullptr,
-               std::string dataType={},
-               const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-);
-
-template <typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
-Error makeApiError(const Error& ec,
-    ApiCodeT apiCode,
-    const ApiCategoryT* apiCat,
-    std::string description={},
-    const DataT dataUnit=nullptr,
-    std::string dataType={},
-    const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-)
+struct makeApiErrorT
 {
-    Assert(ec.category()!=nullptr,"Can be used only for errors of ErrorCategory category");
-    return makeApiError(ec.code(),ec,ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
-}
+    template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
+    Error operator() (
+                       ErrCodeT code,
+                       const ErrorCatergoryT* errCat,
+                       ApiCodeT apiCode,
+                       const ApiCategoryT* apiCat,
+                       std::string description={},
+                       DataT dataUnit=nullptr,
+                       std::string dataType={},
+                       const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                       ) const;
+
+    template <typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
+    Error operator() (const Error& ec,
+                       ApiCodeT apiCode,
+                       const ApiCategoryT* apiCat,
+                       std::string description={},
+                       DataT dataUnit=nullptr,
+                       std::string dataType={},
+                       const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                       ) const
+    {
+        Assert(ec.category()!=nullptr,"Can be used only for errors of ErrorCategory category");
+        return makeApiErrorT{}(ec.code(),ec,ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
+    }
+};
+constexpr makeApiErrorT makeApiError{};
 
 HATN_API_NAMESPACE_END
 

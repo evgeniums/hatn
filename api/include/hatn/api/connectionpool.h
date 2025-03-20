@@ -173,7 +173,7 @@ class ConnectionPool
                 auto& connectionCtx=m_defaultConnection;
                 ConnectionCtxShared connection;
 
-                if (connectionCtx.state==ConnectionContext::State::Busy)
+                if (connectionCtx->state==ConnectionContext::State::Busy)
                 {
                     cb(apiLibError(ApiLibError::CONNECTION_BUSY),ConnectionCtxShared{});
                     return;
@@ -186,14 +186,14 @@ class ConnectionPool
                         cb(ec,ConnectionCtxShared{});
                         return;
                     }
-                    sendToConnection(std::move(ctx),std::move(buffers),std::move(cb),std::move(connection));
+                    sendToConnection(std::move(ctx),std::move(cb),std::move(connection),std::move(buffers));
                 };
 
-                if (connectionCtx.state==ConnectionContext::State::Disconnected)
+                if (connectionCtx->state==ConnectionContext::State::Disconnected)
                 {
                     connect(std::move(ctx),std::move(connectCb));
                 }
-                else if (connectionCtx.state==ConnectionContext::State::Error)
+                else if (connectionCtx->state==ConnectionContext::State::Error)
                 {
                     auto closeCb=[ctx,this,connectCb{std::move(connectCb)}](const Error&)
                     {
@@ -209,8 +209,9 @@ class ConnectionPool
             cb(commonError(CommonError::NOT_IMPLEMENTED),ConnectionCtxShared{});
             return;
 
+            std::ignore=priority;
             //! @todo implement pool operations
-            auto it=m_connections.find(priority);
+            // auto it=m_connections.find(priority);
 
             //! @todo find not busy connection
             //! check if connection is closed or failed, destroy closed and look for next
@@ -236,7 +237,7 @@ class ConnectionPool
                 return;
             }
 
-            if (connectionCtx.state!=ConnectionContext::State::Ready)
+            if (connectionCtx->state!=ConnectionContext::State::Ready)
             {
                 cb(apiLibError(ApiLibError::CONNECTION_NOT_READY_RECV));
                 return;
@@ -244,7 +245,7 @@ class ConnectionPool
 
             connectionCtx->state=ConnectionContext::State::Busy;
 
-            auto recvMessageCb=[cb,connectionCtx,this](auto, const Error& ec, size_t)
+            auto recvMessageCb=[cb,connectionCtx](auto, const Error& ec)
             {
                 connectionCtx->ctx->resetParentCtx();
 
@@ -259,7 +260,7 @@ class ConnectionPool
                 connectionCtx->state=ConnectionContext::State::Ready;
                 cb(Error{});
             };
-            auto recvHeaderCb=[cb,connectionCtx,&buf,recvMessageCb{std::move(recvMessageCb)},this](auto ctx, const Error& ec, size_t)
+            auto recvHeaderCb=[cb,connectionCtx,&buf,recvMessageCb{std::move(recvMessageCb)},this](auto ctx, const Error& ec)
             {
                 connectionCtx->ctx->resetParentCtx();
 
@@ -320,7 +321,7 @@ class ConnectionPool
                     }
 
                     m_defaultConnection->state=ConnectionContext::State::Busy;
-                    auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, RouterConnectionCtx connectionCtx)
+                    auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
                     {
                         if (ec)
                         {
@@ -372,20 +373,28 @@ class ConnectionPool
 
     private:
 
-        template <typename ContextT>
+        template <typename ContextT, typename CallbackT>
         void closeDefaultConnection(
             common::SharedPtr<ContextT> ctx,
-            std::function<void (const Error&)> cb
+            CallbackT cb
             )
         {
+            //! @todo Do we need to reset default connection?
+#if 0
+            auto cb1=[cb{std::move(cb)},this](const Error& ec)
+            {
+                m_defaultConnection=common::allocateShared(m_allocatorFactory->objectAllocator<ConnectionContext>());
+                cb(ec);
+            };
+#endif
             closeConnection(std::move(ctx),m_defaultConnection,std::move(cb));
         }
 
-        template <typename ContextT>
+        template <typename ContextT, typename CallbackT>
         void closeConnection(
             common::SharedPtr<ContextT> ctx,
             ConnectionCtxShared connection,
-            std::function<void (const Error&)> cb
+            CallbackT cb
             )
         {
             auto cb1=[ctx,cb{std::move(cb)},connection,this](const Error& ec)
@@ -394,15 +403,12 @@ class ConnectionPool
                 connection->state=ConnectionContext::State::Disconnected;
                 connection->sendTriesCount=0;
 
-                auto connectionCtx=connection->ctx;
                 m_thread->execAsync(
-                    [connectionCtx{std::move(connectionCtx)}]()
+                    [cb{std::move(cb)},ec]()
                     {
-                        connectionCtx.reset();
+                        cb(ec);
                     }
                 );
-
-                cb(ec);
             };
             connection->state=ConnectionContext::State::Busy;
             connection->ctx->resetParentCtx(ctx);
@@ -464,11 +470,11 @@ class ConnectionPool
             Priority priority=Priority::Normal
             )
         {
-            auto makeCb=[this,ctx,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
+            auto makeCb=[ctx,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
             {
                 if (ec)
                 {
-                    cb(ec,{});
+                    cb(ec,std::move(connectionCtx));
                     return;
                 }
 
@@ -477,7 +483,7 @@ class ConnectionPool
                 auto connectCb=[connectionCtx{std::move(connectionCtx)},ctx{std::move(ctx)},cb{std::move(cb)}](const common::Error& ec)
                 {
                     connectionCtx->resetParentCtx();
-                    cb(ec);
+                    cb(ec,std::move(connectionCtx));
                 };
                 connection.connect(std::move(connectCb));
             };
@@ -494,21 +500,21 @@ class ConnectionPool
             m_router->makeConnection(ctx,makeCb,name);
         }
 
-        template <typename ContextT>
+        template <typename ContextT, typename CallbackT>
         void sendToConnection(
             common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
             ConnectionCtxShared connectionCtx,
-            common::SpanBuffers buffers,
-            std::function<void (const Error& ec, ConnectionCtxShared connection)> cb
+            common::SpanBuffers buffers
             )
         {
-            connectionCtx->state==ConnectionContext::State::Busy;
+            connectionCtx->state=ConnectionContext::State::Busy;
 
             // set message size
             auto messageSize=common::SpanBufferTraits::size(buffers);
             if (messageSize>m_maxMessageSize)
             {
-                cb(apiLibError(ApiLibError::TOO_BIG_TX_MESSAGE),nullptr);
+                cb(apiLibError(ApiLibError::TOO_BIG_TX_MESSAGE),ConnectionCtxShared{});
                 return;
             }
             connectionCtx->header.setMessageSize(messageSize);
@@ -520,11 +526,11 @@ class ConnectionPool
                 if (ec)
                 {
                     //! @todo handle failed pool connection
-                    connectionCtx->state==ConnectionContext::State::Error;
+                    connectionCtx->state=ConnectionContext::State::Error;
                     cb(ec,ConnectionCtxShared{});
                     return;
                 }
-                connectionCtx->state==ConnectionContext::State::Ready;
+                connectionCtx->state=ConnectionContext::State::Ready;
                 cb(Error{},std::move(connectionCtx));
             };
             auto sendHeaderCb=[this,sendMessageCb{std::move(sendMessageCb)},connectionCtx{std::move(connectionCtx)},cb{std::move(cb)},buffers{std::move(buffers)}](
@@ -536,7 +542,7 @@ class ConnectionPool
                 // handle error
                 if (ec)
                 {
-                    connectionCtx->state==ConnectionContext::State::Error;
+                    connectionCtx->state=ConnectionContext::State::Error;
 
                     // check if auto reconnect can be invoked
                     if (connectionCtx->sendTriesCount>0 || !m_autoReconnect || m_closed)
@@ -556,7 +562,7 @@ class ConnectionPool
                         }
 
                         connection->sendTriesCount++;
-                        sendToConnection(std::move(ctx),std::move(connection),std::move(buffers),std::move(cb));
+                        this->sendToConnection(std::move(ctx),std::move(cb),std::move(connection),std::move(buffers));
                     };
 
                     // close connection

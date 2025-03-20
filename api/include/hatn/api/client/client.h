@@ -70,9 +70,9 @@ class Client : public common::TaskSubcontext
 
     private:
 
-        struct Queue : public common::SimpleQueue<ReqCtx>
+        struct Queue : public common::SimpleQueue<common::SharedPtr<ReqCtx>>
         {
-            using common::SimpleQueue<ReqCtx>::SimpleQueue;
+            using common::SimpleQueue<common::SharedPtr<ReqCtx>>::SimpleQueue;
             bool busy=false;
         };
 
@@ -209,7 +209,7 @@ class Client : public common::TaskSubcontext
         template <typename Connection>
         void recvResponse(common::SharedPtr<ReqCtx> req, Connection connection);
 
-        void refreshSession(common::SharedPtr<ReqCtx> req, Response resp);
+        void refreshSession(common::SharedPtr<ReqCtx> req, Response resp={});
 
         void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
 
@@ -219,13 +219,16 @@ class Client : public common::TaskSubcontext
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 
+        //! @todo Use thread safe queue
         common::FlatMap<Priority,Queue> m_queues;
 
+        //! @todo Use thread with task queue
         common::Thread* m_thread;
         bool m_closed;
 
         using SessionWaitingQueueMap=common::pmr::map<SessionId,Queue,std::less<>>;
 
+        //! @todo Implement thread safe session handling
         SessionWaitingQueueMap m_sessionWaitingQueues;
         common::FlatMap<Priority,size_t> m_sessionWaitingReqCount;
 };

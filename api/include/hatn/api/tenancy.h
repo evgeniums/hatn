@@ -64,11 +64,11 @@ class Tenancy
         {
             return boost::hana::eval_if(
                 ctx.template hasSubcontext<Tenancy>(),
-                [&](auto _)
+                [&](auto _) -> const Tenancy&
                 {
                     return _(ctx).template get<Tenancy>();
                 },
-                []()
+                []() -> const Tenancy&
                 {
                     return Tenancy::notTenancy();
                 }

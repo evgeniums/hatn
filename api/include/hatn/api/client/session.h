@@ -151,6 +151,7 @@ class Session : public common::WithTraits<Traits>,
             //! @todo Maybe switch log context to session context
             auto sessionCtx=this->sharedMainCtx();
             this->traits().refresh(
+                ctxId,
                 [sessionCtx{std::move(sessionCtx)},this](const Error& ec)
                 {
                     setRefreshing(false);
@@ -231,10 +232,27 @@ class SessionWrapper
             session().setRefreshing(enable);
         }
 
-        template <typename CallbackT>
-        void refresh(lib::string_view ctxId, CallbackT callback, Response resp={})
+        void refresh(lib::string_view ctxId, typename SessionT::RefreshCb callback, Response resp={})
         {
             session().refresh(ctxId,std::move(callback),std::move(resp));
+        }
+
+        template <typename UnitT>
+        Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
+                                  const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        )
+        {
+            return session().serializeAuthHeader(protocol,protocolVersion,std::move(content),factory);
+        }
+
+        auto authHeader() const
+        {
+            return session().authHeader();
+        }
+
+        void resetAuthHeader()
+        {
+            session().resetAuthHeader();
         }
 
     private:

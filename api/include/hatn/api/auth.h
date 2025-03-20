@@ -47,6 +47,11 @@ class Auth
                                   const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
                                   );
 
+        operator bool() const noexcept
+        {
+            return m_authHeader;
+        }
+
     private:
 
         common::ByteArrayShared m_authHeader;

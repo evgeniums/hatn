@@ -30,12 +30,11 @@
 
 #include <hatn/api/client/plaintcpconnection.h>
 #include <hatn/api/client/plaintcprouter.h>
-#include <hatn/api/server/plaintcpserver.h>
-
 #include <hatn/api/client/client.h>
 #include <hatn/api/client/session.h>
 #include <hatn/api/client/serviceclient.h>
 
+#include <hatn/api/server/plaintcpserver.h>
 #include <hatn/api/server/servicerouter.h>
 #include <hatn/api/server/servicedispatcher.h>
 #include <hatn/api/server/connectionsstore.h>
@@ -50,6 +49,7 @@
 #include <hatn/api/ipp/serverresponse.ipp>
 #include <hatn/api/ipp/serverservice.ipp>
 #include <hatn/api/ipp/session.ipp>
+#include <hatn/api/ipp/makeapierror.ipp>
 
 HATN_API_USING
 HATN_COMMON_USING
@@ -96,7 +96,7 @@ HDU_UNIT(service2_msg2,
 
 /********************** Client **************************/
 
-using ClientType=client::Client<client::PlainTcpRouter,client::SessionNoAuth,LogCtxType>;
+using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,LogCtxType>;
 using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
@@ -326,6 +326,42 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 
     auto service1Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service1",clientWithAuth);
     auto service2Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service2",clientWithAuth);
+
+    serverThread->start();
+    clientThread->start();
+
+    BOOST_TEST_MESSAGE("Running test for 5 seconds");
+
+    auto invokeTask1=[service1Client]()
+    {
+        auto cb=[](auto ctx, const Error& ec, auto response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_CHECK(!ec);
+        };
+
+        auto ctx=makeLogCtx();
+        service1_msg1::type msg;
+        msg.setFieldValue(service1_msg1::field1,100);
+        msg.setFieldValue(service1_msg1::field2,"hello world!");
+        Message msgData;
+        // auto ec=msgData.setContent(msg);
+        // BOOST_CHECK(!ec);
+        service1Client->exec(
+            ctx,
+            cb,
+            "service1_method1",
+            std::move(msgData),
+            "topic1"
+        );
+    };
+
+    clientThread->execAsync(invokeTask1);
+
+    exec(5);
+
+    serverThread->stop();
+    clientThread->stop();
 
     BOOST_CHECK(true);
 }

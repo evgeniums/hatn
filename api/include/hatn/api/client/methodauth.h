@@ -173,14 +173,13 @@ class ServiceMethodsAuthSingle
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            m_methodAuth->makeAuthHandler(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
+            m_methodAuth->makeAuthHeader(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
         }
 
     private:
 
         std::shared_ptr<MethodAuthHandler> m_methodAuth;
 };
-
 
 template <typename MethodAuthHandlerT=NoMethodAuth>
 class ServiceMethodsAuthMultiple
@@ -206,7 +205,7 @@ class ServiceMethodsAuthMultiple
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            mthdAuth->makeAuthHandler(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
+            mthdAuth->makeAuthHeader(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
         }
 
         MethodAuthHandler* methodAuth(const Method& mthd) const

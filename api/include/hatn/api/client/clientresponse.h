@@ -36,9 +36,25 @@ struct Response
     common::ByteArrayShared unitRawData;
     common::ByteArrayShared message;
 
+    Response()=default;
+
+    Response(
+            common::SharedPtr<ResponseManaged> unit,
+            common::ByteArrayShared unitRawData,
+            common::ByteArrayShared message
+        ) : unit(std::move(unit)),
+            unitRawData(std::move(unitRawData)),
+            message(std::move(message))
+    {}
+
+    auto status() const noexcept
+    {
+        return unit->fieldValue(protocol::response::status);
+    }
+
     bool isSuccess() const noexcept
     {
-        return unit->fieldValue(protocol::response::status)==protocol::ResponseStatus::Success;
+        return status()==protocol::ResponseStatus::Success;
     }
 
     Error parseError(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()) const
