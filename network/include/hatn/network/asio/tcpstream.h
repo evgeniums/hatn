@@ -95,7 +95,6 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>,
     private:
 
         TcpStream* m_stream;
-        bool m_cancelled;
 
         inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
         inline void leaveAsyncHandler();
