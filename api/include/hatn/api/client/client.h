@@ -73,6 +73,8 @@ class Client : public common::TaskSubcontext
         struct Queue : public common::SimpleQueue<common::SharedPtr<ReqCtx>>
         {
             using common::SimpleQueue<common::SharedPtr<ReqCtx>>::SimpleQueue;
+
+            //! @todo What is it for?
             bool busy=false;
         };
 

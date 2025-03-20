@@ -152,7 +152,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
         return;
     }
 
-    // regenerate requiest ID if needed
+    // regenerate request ID if needed
     if (regenId)
     {
         req->regenId();
@@ -201,9 +201,10 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(
         }
 
         auto req=queue.pop();
-        req->taskCtx->onAsyncHandlerEnter();
+        auto taskCtx=req->taskCtx;
+        taskCtx->onAsyncHandlerEnter();
         sendRequest(std::move(req));
-        req->taskCtx->onAsyncHandlerExit();
+        taskCtx->onAsyncHandlerExit();
     }
 }
 
@@ -522,20 +523,21 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                         // invoke callback on request
 
                         auto reqPtr=req.get();
-                        reqPtr->taskCtx->onAsyncHandlerEnter();
+                        auto taskCtx=reqPtr->taskCtx;
+                        taskCtx->onAsyncHandlerEnter();
 
                         HATN_CTX_SCOPE("apiclientrefreshsession")
 
                         if (ec)
                         {
-                           reqPtr->callback(reqPtr->taskCtx,ec,{});
+                           reqPtr->callback(taskCtx,ec,{});
                         }
                         else
                         {
-                           doExec(reqPtr->taskCtx,std::move(req),reqPtr->callback,true);
+                           doExec(taskCtx,std::move(req),reqPtr->callback,true);
                         }
 
-                        reqPtr->taskCtx->onAsyncHandlerExit();
+                        taskCtx->onAsyncHandlerExit();
                     }
 
                     // delete queue for this session

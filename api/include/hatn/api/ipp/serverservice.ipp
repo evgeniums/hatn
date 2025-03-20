@@ -249,7 +249,6 @@ void ServiceSingleMethodTraits<MethodT,RequestT>::exec(
         lib::string_view messageType
     ) const
 {
-#if 1
     // check if method names match
     if (methodName!=m_method->name())
     {
@@ -260,7 +259,7 @@ void ServiceSingleMethodTraits<MethodT,RequestT>::exec(
         );
         return;
     }
-#endif
+
     // exec method
     m_method->exec(
         std::move(request),

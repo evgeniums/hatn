@@ -250,7 +250,7 @@ class RequestContext : public RequestT,
         common::SpanBuffers spanBuffers() const
         {
             common::SpanBuffers bufs{this->m_factory->template dataAllocator<common::SpanBuffer>()};
-            auto messageBufs=this->message().buffers();
+            auto messageBufs=this->message().chainBuffers(this->m_factory);
 
             size_t extraCount=1;
             common::ByteArrayShared authHeader;
@@ -281,9 +281,13 @@ class RequestContext : public RequestT,
             {
                 bufs.emplace_back(std::move(methodAuthHeader));
             }
-
+#if 0
             bufs.emplace_back(this->requestData.sharedMainContainer());
             bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
+#else
+            bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
+            bufs.emplace_back(this->requestData.sharedMainContainer());
+#endif
             return bufs;
         }
 

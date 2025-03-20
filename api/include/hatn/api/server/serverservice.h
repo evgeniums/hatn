@@ -336,6 +336,7 @@ class ServiceMethodV : public ServiceMethod<RequestT>,
                 lib::string_view messageType
             ) const override
         {
+            //! @todo Fix it
             // this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
         }
 };
@@ -347,9 +348,9 @@ class NoValidatorTraits
     public:
 
         template <typename RequestT, typename MessageT>
-        validator::status validate(const common::SharedPtr<RequestT>, const MessageT&) const
+        validator::error_report validate(const common::SharedPtr<RequestT>, const MessageT&) const
         {
-            return validator::status::code::success;
+            return validator::error_report{};
         }
 };
 

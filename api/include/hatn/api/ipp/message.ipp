@@ -40,16 +40,17 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
         )
     du::RawError::setEnabledTL(true);
 
-    du::WireBufSolidShared buf{factory};
-    auto ok=du::io::serializeAsSubunit(message,buf,protocol::request::session_auth.id());
-    if (ok)
-    {
-        m_content=buf.sharedMainContainer();
-    }
-    else
+    auto buf=factory->createObject<du::WireDataChained>(factory,true);
+    auto ok=du::io::serializeAsSubunit(message,*buf,protocol::request::message.id());
+    if (!ok)
     {
         m_content.reset();
     }
+    else
+    {
+        m_content=std::move(buf);
+    }
+
     if (name!=nullptr)
     {
         m_typeName=name;

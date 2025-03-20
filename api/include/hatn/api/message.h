@@ -46,9 +46,9 @@ class Message
             return m_content;
         }
 
-        common::SpanBuffers buffers() const
+        common::SpanBuffers chainBuffers(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()) const
         {
-            return m_content->buffers();
+            return m_content->chainBuffers(factory);
         }
 
         void reset()

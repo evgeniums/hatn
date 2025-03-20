@@ -345,8 +345,8 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
         msg.setFieldValue(service1_msg1::field1,100);
         msg.setFieldValue(service1_msg1::field2,"hello world!");
         Message msgData;
-        // auto ec=msgData.setContent(msg);
-        // BOOST_CHECK(!ec);
+        auto ec=msgData.setContent(msg);
+        BOOST_CHECK(!ec);
         service1Client->exec(
             ctx,
             cb,

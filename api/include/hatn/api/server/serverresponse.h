@@ -41,6 +41,7 @@ struct Response
 {
     Request<EnvT,RequestUnitT>* request;
 
+    //! @todo Init with factory
     protocol::response::shared_type unit;
     du::WireBufChained message;
 
@@ -50,9 +51,9 @@ struct Response
         Request<EnvT,RequestUnitT>* req
     );
 
-    auto buffers() const
+    auto buffers(const common::pmr::AllocatorFactory* factory) const
     {
-        return message.buffers();
+        return message.chainBuffers(factory);
     }
 
     auto size()

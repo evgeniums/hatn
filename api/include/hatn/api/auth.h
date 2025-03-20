@@ -38,7 +38,7 @@ class Auth
 
         void resetAuthHeader()
         {
-            m_authHeader->reset();
+            m_authHeader.reset();
         }
 
         template <typename UnitT>

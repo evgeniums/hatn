@@ -181,7 +181,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
                             // parse request
                             auto ec1=req.parseMessage();
-                            if (!ec1)
+                            if (ec1)
                             {
                                 //! @todo report error to client
                                 //! @todo log error?
@@ -386,7 +386,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     // send message
                     connection.send(
                         std::move(reqCtx),
-                        req.response.buffers(),
+                        req.response.buffers(m_allocatorFactory),
                         [ctx{std::move(ctx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
                         {
                             // handle error

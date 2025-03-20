@@ -170,8 +170,7 @@ class ConnectionPool
             // process single connection mode
             if (m_singleConnection)
             {
-                auto& connectionCtx=m_defaultConnection;
-                ConnectionCtxShared connection;
+                auto connectionCtx=m_defaultConnection;
 
                 if (connectionCtx->state==ConnectionContext::State::Busy)
                 {
@@ -179,14 +178,14 @@ class ConnectionPool
                     return;
                 }
 
-                auto connectCb=[this,ctx,cb,buffers(std::move(buffers)),connection{std::move(connection)}](const Error& ec)
+                auto connectCb=[this,ctx,cb,buffers(std::move(buffers)),connectionCtx](const Error& ec)
                 {
                     if (ec)
                     {
                         cb(ec,ConnectionCtxShared{});
                         return;
                     }
-                    sendToConnection(std::move(ctx),std::move(cb),std::move(connection),std::move(buffers));
+                    sendToConnection(std::move(ctx),std::move(cb),std::move(connectionCtx),std::move(buffers));
                 };
 
                 if (connectionCtx->state==ConnectionContext::State::Disconnected)
@@ -288,6 +287,7 @@ class ConnectionPool
                 }
 
                 buf.mainContainer()->resize(messageSize);
+                buf.setSize(messageSize);
                 connectionCtx->ctx->resetParentCtx(ctx);
                 connectionCtx->connection().recv(
                     std::move(ctx),
@@ -520,7 +520,7 @@ class ConnectionPool
             connectionCtx->header.setMessageSize(messageSize);
 
             // send
-            auto sendMessageCb=[connectionCtx{std::move(connectionCtx)},cb{std::move(cb)}](auto, const Error& ec, size_t, common::SpanBuffers)
+            auto sendMessageCb=[connectionCtx,cb{std::move(cb)}](auto, const Error& ec, size_t, common::SpanBuffers)
             {
                 connectionCtx->ctx->resetParentCtx();
                 if (ec)
@@ -533,7 +533,7 @@ class ConnectionPool
                 connectionCtx->state=ConnectionContext::State::Ready;
                 cb(Error{},std::move(connectionCtx));
             };
-            auto sendHeaderCb=[this,sendMessageCb{std::move(sendMessageCb)},connectionCtx{std::move(connectionCtx)},cb{std::move(cb)},buffers{std::move(buffers)}](
+            auto sendHeaderCb=[this,sendMessageCb{std::move(sendMessageCb)},connectionCtx,cb{std::move(cb)},buffers{std::move(buffers)}](
                                         auto ctx, const Error& ec, size_t
                                     )
             {
