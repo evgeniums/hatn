@@ -480,7 +480,6 @@ void TcpStreamTraits::waitForRead(std::function<void (const Error&)> callback)
 
 TcpStream::~TcpStream()
 {
-
 }
 
 //---------------------------------------------------------------
