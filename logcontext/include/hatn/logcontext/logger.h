@@ -29,24 +29,23 @@
 #include <hatn/common/pmr/pmrtypes.h>
 
 #include <hatn/logcontext/logcontext.h>
-#include <hatn/logcontext/context.h>
+#include <hatn/logcontext/loggerhandler.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
 constexpr uint8_t DefaultDebugVerbosity=0;
 
-template <typename ContextT=Subcontext>
-class LoggerBaseT
+class LoggerBase
 {
     public:
 
-        using contextT=ContextT;
         using levelMapT=common::FlatMap<std::string,LogLevel,std::less<>>;
 
+        template <typename ContextT>
         static LogLevel contextLogLevel(
-                const LoggerBaseT& logger,
-                const contextT* ctx,
+                const LoggerBase& logger,
+                const ContextT* ctx,
                 lib::string_view module=lib::string_view{}
             )
         {
@@ -108,9 +107,10 @@ class LoggerBaseT
             return level;
         }
 
+        template <typename ContextT>
         static uint8_t contextDebugVerbosity(
-            const LoggerBaseT& logger,
-            const contextT* ctx
+            const LoggerBase& logger,
+            const ContextT* ctx
             )
         {
             logger.lockRd();
@@ -129,19 +129,21 @@ class LoggerBaseT
             return v;
         }
 
+        template <typename ContextT>
         static bool passLog(
-                const LoggerBaseT& logger,
+                const LoggerBase& logger,
                 LogLevel level,
-                const contextT* ctx,
+                const ContextT* ctx,
                 lib::string_view module=lib::string_view{}
             )
         {
             return level<=contextLogLevel(logger,ctx,module);
         }
 
+        template <typename ContextT>
         static bool passDebugLog(
-            const LoggerBaseT& logger,
-            const contextT* ctx,
+            const LoggerBase& logger,
+            const ContextT* ctx,
             uint8_t debugVerbosity=0,
             lib::string_view module=lib::string_view{}
             )
@@ -278,207 +280,18 @@ class LoggerBaseT
         mutable common::lib::shared_mutex m_mutex;
 };
 
-using LoggerBase=LoggerBaseT<>;
-
-template <typename ContextT=Subcontext>
-class LoggerHandlerT
+template <typename Traits>
+class LoggerT : public LoggerBase,
+                public common::WithTraits<Traits>
 {
     public:
 
-        virtual ~LoggerHandlerT()
-        {}
-
-        LoggerHandlerT()=default;
-        LoggerHandlerT(const LoggerHandlerT&)=default;
-        LoggerHandlerT(LoggerHandlerT&&)=default;
-        LoggerHandlerT& operator=(const LoggerHandlerT&)=default;
-        LoggerHandlerT& operator=(LoggerHandlerT&&)=default;
-
-        virtual void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-};
-using LoggerHandler=LoggerHandlerT<>;
-
-template <typename ContextT=Subcontext>
-class LoggerHandlerTraitsT
-{
-    public:
-
-        LoggerHandlerTraitsT(std::shared_ptr<LoggerHandlerT<ContextT>> handler)
-            : m_handler(std::move(handler))
-        {}
-
-        void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )
-        {
-            m_handler->log(level,ctx,msg,records,module);
-        }
-
-        void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )
-        {
-            m_handler->logError(level,ec,ctx,msg,records,module);
-        }
-
-        void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )
-        {
-            m_handler->logClose(level,ec,ctx,msg,records,module);
-        }
-
-        void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )
-        {
-            m_handler->logCloseApi(level,ec,ctx,msg,records,module);
-        }
-
-        void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )
-        {
-            m_handler->log(level,ctx,msg,module);
-        }
-
-        void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )
-        {
-            m_handler->logError(level,ec,ctx,msg,module);
-        }
-
-        void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )
-        {
-            m_handler->logClose(level,ec,ctx,msg,module);
-        }
-
-        void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )
-        {
-            m_handler->logCloseApi(level,ec,ctx,msg,module);
-        }
-
-    private:
-
-        std::shared_ptr<LoggerHandlerT<ContextT>> m_handler;
-};
-using LoggerHandlerTraits=LoggerHandlerTraitsT<>;
-
-template <template <typename> class Traits=LoggerHandlerTraitsT, typename ContextT=Subcontext>
-class LoggerT : public LoggerBaseT<ContextT>,
-                public common::WithTraits<Traits<ContextT>>
-{
-    public:
-
-        using baseWithTraits=common::WithTraits<Traits<ContextT>>;
-        using contextT=ContextT;
+        using baseWithTraits=common::WithTraits<Traits>;
         using levelMapT=common::FlatMap<std::string,LogLevel,std::less<>>;
 
         using baseWithTraits::baseWithTraits;
 
+        template <typename ContextT>
         void log(
             LogLevel level,
             const ContextT* ctx,
@@ -490,6 +303,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().log(level,ctx,msg,records,module);
         }
 
+        template <typename ContextT>
         void logError(
             LogLevel level,
             const Error& ec,
@@ -502,6 +316,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().logError(level,ec,ctx,msg,records,module);
         }
 
+        template <typename ContextT>
         void logClose(
             LogLevel level,
             const Error& ec,
@@ -514,6 +329,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().logClose(level,ec,ctx,msg,records,module);
         }
 
+        template <typename ContextT>
         void logCloseApi(
             LogLevel level,
             const Error& ec,
@@ -526,6 +342,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().logCloseApi(level,ec,ctx,msg,records,module);
         }
 
+        template <typename ContextT>
         void log(
             LogLevel level,
             const ContextT* ctx,
@@ -536,6 +353,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().log(level,ctx,msg,module);
         }
 
+        template <typename ContextT>
         void logError(
             LogLevel level,
             const Error& ec,
@@ -547,6 +365,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().logError(level,ec,ctx,msg,module);
         }
 
+        template <typename ContextT>
         void logClose(
             LogLevel level,
             const Error& ec,
@@ -558,6 +377,7 @@ class LoggerT : public LoggerBaseT<ContextT>,
             this->traits().logClose(level,ec,ctx,msg,module);
         }
 
+        template <typename ContextT>
         void logCloseApi(
             LogLevel level,
             const Error& ec,
@@ -570,7 +390,8 @@ class LoggerT : public LoggerBaseT<ContextT>,
         }
 };
 
-using Logger=LoggerT<>;
+template <typename ContextT>
+using LoggerWithHandler=LoggerT<LoggerHandlerTraits<ContextT>>;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 

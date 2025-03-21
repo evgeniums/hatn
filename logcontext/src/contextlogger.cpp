@@ -40,7 +40,7 @@ template class HATN_LOGCONTEXT_EXPORT LoggerHandlerT<Context>;
 
 //---------------------------------------------------------------
 
-ContextLogger::ContextLogger(LoggerHandlerTraits handler) : m_logger(std::move(handler))
+ContextLogger::ContextLogger(std::shared_ptr<LoggerHandler> handler) : m_logger(std::move(handler))
 {}
 
 //---------------------------------------------------------------
@@ -50,7 +50,7 @@ ContextLogger::~ContextLogger()
 
 //---------------------------------------------------------------
 
-Logger& ContextLogger::init(LoggerHandlerTraits handler)
+Logger& ContextLogger::init(std::shared_ptr<LoggerHandler> handler)
 {
     globalLogger().reset(new ContextLogger(std::move(handler)));
     return globalLogger()->logger();
@@ -58,7 +58,6 @@ Logger& ContextLogger::init(LoggerHandlerTraits handler)
 
 //---------------------------------------------------------------
 
-//! @todo Select between thread local logger and global logger
 Logger& ContextLogger::instance()
 {
     Assert(globalLogger(),"Global logger not initialized, call ContextLogger::init() first");

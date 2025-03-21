@@ -29,40 +29,9 @@
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
+#include <hatn/logcontext/logger.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
-
-enum class LogLevel : int8_t
-{
-    Default=-1,
-    None=0,
-    Fatal=1,
-    Error=2,
-    Warn=3,
-    Info=4,
-    Debug=5,
-    Trace=6,
-
-    Any=100
-};
-
-//---------------------------------------------------------------
-inline const char* logLevelName(LogLevel level) noexcept
-{
-    switch (level)
-    {
-        case (LogLevel::Info): return "INFO";
-        case (LogLevel::Error): return "ERROR";
-        case (LogLevel::Warn): return "WARN";
-        case (LogLevel::Debug): return "DEBUG";
-        case (LogLevel::Trace): return "TRACE";
-        case (LogLevel::Any): return "ANY";
-        case (LogLevel::Fatal): return "FATAL";
-        case (LogLevel::Default): return "DEFAULT";
-        case (LogLevel::None): return "NONE";
-    }
-    return "UNKNOWN";
-}
 
 constexpr size_t MaxVarStackSize=16;
 constexpr size_t MaxVarMapSize=8;
@@ -117,6 +86,9 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         using config=Config;
 
+        using LoggerHandler=LoggerHandlerT<ContextT<Config>>;
+        using Logger=LoggerWithHandler<ContextT<Config>>;
+
         using valueT=ValueT<config::ValueLength>;
         using keyT=KeyT<config::KeyLength>;
         using recordT=RecordT<valueT,keyT>;
@@ -132,7 +104,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 m_logLevel(LogLevel::Default),
                 m_enableStackLocking(true),
                 m_debugVerbosity(0),
-                m_parentLogCtx(nullptr)
+                m_parentLogCtx(nullptr),
+                m_logger(nullptr)
         {}
 
         ~ContextT()=default;
@@ -446,6 +419,11 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             m_parentLogCtx=&parentCtx->template get<ContextT>();
         }
 
+        void resetParentCtx()
+        {
+            m_parentLogCtx=nullptr;
+        }
+
         ContextT* actualCtx() const noexcept
         {
             if (m_parentLogCtx!=nullptr)
@@ -462,6 +440,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 return m_parentLogCtx;
             }
             return this;
+        }
+
+        void setLogger(Logger* logger) noexcept
+        {
+            m_logger=logger;
+        }
+
+        Logger* logger() const noexcept
+        {
+            return m_logger;
         }
 
     private:
@@ -490,13 +478,20 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<barrierCursorT,config::BarrierDepth> m_barrierStack;
-        HATN_COMMON_NAMESPACE::FlatMapOnStack<keyT,valueT,config::VarMapSize,std::less<keyT>> m_globalVarMap;
+        //! @todo Fix global var map
+        // HATN_COMMON_NAMESPACE::FlatMapOnStack<keyT,valueT,config::VarMapSize,std::less<keyT>> m_globalVarMap;
+        // HATN_COMMON_NAMESPACE::FlatMap<keyT,valueT> m_globalVarMap;
+        std::map<keyT,valueT> m_globalVarMap;
         HATN_COMMON_NAMESPACE::FlatSetOnStack<tagT,config::TagSetSize,std::less<tagT>> m_tags;
+
+        //! @todo Add vector of fixed context vars
 
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
 
         ContextT* m_parentLogCtx;
+
+        Logger* m_logger;
 };
 using Context=ContextT<>;
 using Subcontext=Context;
@@ -523,9 +518,10 @@ constexpr makeLogCtxT makeLogCtx{};
 using LogCtxType=common::TaskContextType<Context>;
 using TaskLogContext=common::TaskContextType<Context>;
 
-HATN_LOGCONTEXT_NAMESPACE_END
+using LoggerHandler=typename Context::LoggerHandler;
+using Logger=typename Context::Logger;
 
-// HATN_TASK_CONTEXT_DECLARE(HATN_LOGCONTEXT_NAMESPACE::Context,HATN_LOGCONTEXT_EXPORT)
+HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_COMMON_NAMESPACE_BEGIN
 template <>

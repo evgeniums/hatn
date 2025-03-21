@@ -26,6 +26,7 @@
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/logger.h>
+#include <hatn/logcontext/context.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
@@ -35,7 +36,7 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
     public:
 
-        static Logger& init(LoggerHandlerTraits handler);
+        static Logger& init(std::shared_ptr<LoggerHandler> handler);
 
         static Logger& instance();
 
@@ -47,7 +48,7 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
 
     private:
 
-        ContextLogger(LoggerHandlerTraits handler);
+        ContextLogger(std::shared_ptr<LoggerHandler> handler);
 
         Logger m_logger;
 
@@ -57,6 +58,26 @@ class HATN_LOGCONTEXT_EXPORT ContextLogger : public common::Singleton
         }
 };
 
+template <typename LogContextT>
+Logger& contextLogger(const LogContextT* ctx=nullptr)
+{
+    if (ctx!=nullptr && ctx->logger()!=nullptr)
+    {
+        return *ctx->logger();
+    }
+    return ContextLogger::instance();
+}
+
+template <typename LogContextT>
+bool contextLoggerAvailable(const LogContextT* ctx=nullptr)
+{
+    if (ctx!=nullptr && ctx->logger()!=nullptr)
+    {
+        return true;
+    }
+    return ContextLogger::available();
+}
+
 HATN_LOGCONTEXT_NAMESPACE_END
 
 #define HATN_CTX_EXPAND(x) x
@@ -64,9 +85,15 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
 #define HATN_CTX_GET_ARG5(arg1, arg2, arg3, arg4, arg5, ...) arg5
 
+#define HATN_LOG_CTX() \
+    HATN_LOGCONTEXT_NAMESPACE::contextLogger(HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context))
+
+#define HATN_LOG_CTX_AVAILABLE() \
+    HATN_LOGCONTEXT_NAMESPACE::contextLoggerAvailable(HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context))
+
 #define HATN_CTX_LOG_IF_1(Level,Module) \
-    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
+    if (HATN_LOG_CTX_AVAILABLE() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
+            HATN_LOG_CTX(), \
             Level, \
             HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
             Module ) \
@@ -75,7 +102,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_1(Level,Msg,Module) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-        HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+        HATN_LOG_CTX().log( \
             Level, \
             HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
             Msg, \
@@ -84,16 +111,16 @@ HATN_LOGCONTEXT_NAMESPACE_END
     }
 
 #define HATN_CTX_DEBUG_IF_2(Verbosity,Module) \
-    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passDebugLog( \
-                                                    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
+    if (HATN_LOG_CTX_AVAILABLE() && HATN_LOGCONTEXT_NAMESPACE::Logger::passDebugLog( \
+                                                    HATN_LOG_CTX(), \
                                                     HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                                                     Verbosity, \
                                                     Module ) \
         )
 
 #define HATN_CTX_DEBUG_IF_1(Verbosity) \
-    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passDebugLog( \
-                                                    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
+    if (HATN_LOG_CTX_AVAILABLE() && HATN_LOGCONTEXT_NAMESPACE::Logger::passDebugLog( \
+                                                    HATN_LOG_CTX(), \
                                                     HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                                                     Verbosity \
                                                 ) \
@@ -105,7 +132,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_DEBUG_2(Verbosity,Msg,Module) \
     HATN_CTX_DEBUG_IF_2(Verbosity,Module) \
     { \
-        HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+        HATN_LOG_CTX().log( \
                   HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
                   HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                   Msg, \
@@ -116,7 +143,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_DEBUG_1(Verbosity,Msg) \
     HATN_CTX_DEBUG_IF_1(Verbosity) \
     { \
-        HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+        HATN_LOG_CTX().log( \
                   HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
                   HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                   Msg \
@@ -129,7 +156,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_ERR_1(Level,Err,Msg,Module) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
+            HATN_LOG_CTX().logError( \
                       Level, \
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -139,8 +166,8 @@ HATN_LOGCONTEXT_NAMESPACE_END
     }
 
 #define HATN_CTX_LOG_IF_0(Level) \
-    if (HATN_LOGCONTEXT_NAMESPACE::ContextLogger::available() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
-                HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance(), \
+    if (HATN_LOG_CTX_AVAILABLE() && HATN_LOGCONTEXT_NAMESPACE::Logger::passLog( \
+                HATN_LOG_CTX(), \
                 Level, \
                 HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context) \
             ) \
@@ -149,7 +176,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_0(Level,Msg) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+            HATN_LOG_CTX().log( \
                       Level, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg \
@@ -159,7 +186,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_CLOSE(Err,Msg) \
     HATN_CTX_LOG_IF_0(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logClose( \
+            HATN_LOG_CTX().logClose( \
                       HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -170,7 +197,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_CLOSE_API(Err,Msg) \
     HATN_CTX_LOG_IF_0(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logCloseApi( \
+            HATN_LOG_CTX().logCloseApi( \
                            HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info, \
                            Err, \
                            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -181,7 +208,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_ERR_0(Level,Err,Msg) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
+            HATN_LOG_CTX().logError( \
                       Level, \
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -226,7 +253,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_RECORDS_M(Level,Msg,Module,...) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+            HATN_LOG_CTX().log( \
                       Level, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
@@ -238,7 +265,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_DEBUG_RECORDS_M(Verbosity,Msg,Module,...) \
     HATN_CTX_DEBUG_IF_2(Verbosity,Module) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+            HATN_LOG_CTX().log( \
                       HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
@@ -250,7 +277,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_RECORDS_ERR_M(Level,Err,Msg,Module,...) \
     HATN_CTX_LOG_IF_1(Level,Module) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
+            HATN_LOG_CTX().logError( \
                       Level, \
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -263,7 +290,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_RECORDS(Level,Msg,...) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+            HATN_LOG_CTX().log( \
               Level, \
               HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
               Msg, \
@@ -275,7 +302,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_DEBUG_RECORDS(Verbosity,Msg,...) \
     HATN_CTX_DEBUG_IF_1(Verbosity) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().log( \
+            HATN_LOG_CTX().log( \
                       HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
                       Msg, \
@@ -287,7 +314,7 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_LOG_RECORDS_ERR(Level,Err,Msg,...) \
     HATN_CTX_LOG_IF_0(Level) \
     { \
-            HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().logError( \
+            HATN_LOG_CTX().logError( \
                       Level, \
                       Err, \
                       HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
@@ -299,7 +326,6 @@ HATN_LOGCONTEXT_NAMESPACE_END
 
 #define HATN_CTX_INFO_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,Msg,__VA_ARGS__)
 #define HATN_CTX_WARN_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,Msg,__VA_ARGS__)
-// #define HATN_CTX_DEBUG_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,Msg,__VA_ARGS__)
 #define HATN_CTX_TRACE_RECORDS(Msg,...) HATN_CTX_LOG_RECORDS(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,Msg,__VA_ARGS__)
 
 #define HATN_CTX_ERROR_RECORDS(Err,Msg,...) HATN_CTX_LOG_RECORDS_ERR(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,Err,Msg,__VA_ARGS__)
@@ -307,7 +333,6 @@ HATN_LOGCONTEXT_NAMESPACE_END
 
 #define HATN_CTX_INFO_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Info,Msg,Module,__VA_ARGS__)
 #define HATN_CTX_WARN_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Warn,Msg,Module,__VA_ARGS__)
-// #define HATN_CTX_DEBUG_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug,Msg,Module,__VA_ARGS__)
 #define HATN_CTX_TRACE_RECORDS_M(Msg,Module,...) HATN_CTX_LOG_RECORDS_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,Msg,Module,__VA_ARGS__)
 
 #define HATN_CTX_ERROR_RECORDS_M(Err,Msg,Module,...) HATN_CTX_LOG_RECORDS_ERR_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,Err,Msg,Module,__VA_ARGS__)

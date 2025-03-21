@@ -8,6 +8,8 @@ SET (HEADERS
     include/hatn/logcontext/contextlogger.h
     include/hatn/logcontext/buflogger.h
     include/hatn/logcontext/streamlogger.h
+    include/hatn/logcontext/loggerhandler.h
+    include/hatn/logcontext/withlogger.h
 )
 
 SET (HEADERS

@@ -34,6 +34,37 @@
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
+enum class LogLevel : int8_t
+{
+    Default=-1,
+    None=0,
+    Fatal=1,
+    Error=2,
+    Warn=3,
+    Info=4,
+    Debug=5,
+    Trace=6,
+
+    Any=100
+};
+
+inline const char* logLevelName(LogLevel level) noexcept
+{
+    switch (level)
+    {
+    case (LogLevel::Info): return "INFO";
+    case (LogLevel::Error): return "ERROR";
+    case (LogLevel::Warn): return "WARN";
+    case (LogLevel::Debug): return "DEBUG";
+    case (LogLevel::Trace): return "TRACE";
+    case (LogLevel::Any): return "ANY";
+    case (LogLevel::Fatal): return "FATAL";
+    case (LogLevel::Default): return "DEFAULT";
+    case (LogLevel::None): return "NONE";
+    }
+    return "UNKNOWN";
+}
+
 class HATN_LOGCONTEXT_EXPORT ContextAllocatorFactory
 {
     public:

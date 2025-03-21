@@ -116,7 +116,7 @@ class TextLogFormatterT
                     }
                 },
                 [&](auto _){
-                    fmt::format_to(std::back_inserter(_(buf))," DONE={}",_(ctx)->mainCtx().finishMicroseconds());
+                    fmt::format_to(std::back_inserter(_(buf))," us={}",_(ctx)->mainCtx().finishMicroseconds());
                     hana::eval_if(
                         std::is_same<WithApiStatusT,hana::true_>{},
                         [&](auto _)

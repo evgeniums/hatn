@@ -120,6 +120,7 @@ template <typename ContextT=Subcontext>
 using StreamLoggerT=BufLoggerT<StreamLoggerTraits,ContextT>;
 
 using StreamLogger=StreamLoggerT<>;
+using StreamLogHandler=StreamLogger;
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
