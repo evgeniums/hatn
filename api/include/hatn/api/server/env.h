@@ -24,7 +24,10 @@
 
 #include <hatn/base/configobject.h>
 
+#include <hatn/logcontext/withlogger.h>
+
 #include <hatn/dataunit/syntax.h>
+
 #include <hatn/db/asyncclient.h>
 
 #include <hatn/api/api.h>
@@ -37,6 +40,7 @@ namespace server {
 using Threads=common::WithMappedThreads;
 using Db=db::AsyncDb;
 using AllocatorFactory=common::pmr::WithFactory;
+using Logger=logcontext::WithLogger;
 
 //! @todo Add tenancy to Env
 //! @todo Add logger to Env
@@ -56,7 +60,7 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
     //! @todo protect with mutex
 };
 
-using BasicEnv = common::Env<AllocatorFactory,Threads,Db,ProtocolConfig>;
+using BasicEnv = common::Env<AllocatorFactory,Threads,Logger,Db,ProtocolConfig>;
 
 template <typename EnvT=BasicEnv>
 class WithEnv

@@ -89,6 +89,7 @@ auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
                 HATN_COMMON_NAMESPACE::context(HATN_COMMON_NAMESPACE::pmr::AllocatorFactory::getDefault()),
                 HATN_COMMON_NAMESPACE::context(thread),
                 HATN_COMMON_NAMESPACE::context(),
+                HATN_COMMON_NAMESPACE::context(),
                 HATN_COMMON_NAMESPACE::context()
             )
         );

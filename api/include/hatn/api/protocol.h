@@ -35,6 +35,7 @@
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,FormatError,_TR("invalid data format","api_protocol",translator)) \
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ValidationError,_TR("data validation failed","api_protocol",translator)) \
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RoutingError,_TR("cannot route request","api_protocol",translator)) \
+    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RequestTooBig,_TR("size of request is too big","api_protocol",translator)) \
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,UnknownMethod,_TR("unknown method of request","api_protocol",translator)) \
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,InvalidMessageType,_TR("invalid type of message in request","api_protocol",translator)) \
     Do(HATN_API_NAMESPACE::protocol::ResponseStatus,MessageMissing,_TR("missing message in request","api_protocol",translator)) \

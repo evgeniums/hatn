@@ -42,8 +42,10 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
     auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
     m_unit->setFieldValue(protocol::request::service,service.name());
-    m_unit->setFieldValue(protocol::request::service,service.name());
-    m_unit->setFieldValue(protocol::request::service_version,service.version());
+    if (service.version()!=1)
+    {
+        m_unit->setFieldValue(protocol::request::service_version,service.version());
+    }
     m_unit->setFieldValue(protocol::request::method,method.name());
     if (!topic.empty())
     {

@@ -22,6 +22,8 @@
 
 #include <hatn/common/random.h>
 
+#include <hatn/logcontext/streamlogger.h>
+
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
@@ -262,16 +264,19 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
         }
     };
 
+    auto streamLogHandler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogHandler>();
+
     auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
     auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::BasicEnv>(
         HATN_COMMON_NAMESPACE::contexts(
             HATN_COMMON_NAMESPACE::context(HATN_COMMON_NAMESPACE::pmr::AllocatorFactory::getDefault()),
             HATN_COMMON_NAMESPACE::context(thread),
+            HATN_COMMON_NAMESPACE::context(streamLogHandler),
             HATN_COMMON_NAMESPACE::context(),
             HATN_COMMON_NAMESPACE::context()
         )
     );
-    serverEnv->get<HATN_COMMON_NAMESPACE::WithMappedThreads>().threads()->setDefaultThread(thread);
+    serverEnv->get<server::Threads>().threads()->setDefaultThread(thread);
     auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
     tcpServer.setEnv(serverEnv);
     tcpServer.setConnectionHandler(onNewTcpConnection);

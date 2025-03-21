@@ -26,6 +26,7 @@
 #include <hatn/common/sharedptr.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/server/serverrequest.h>
 #include <hatn/api/server/env.h>
 
@@ -41,7 +42,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         using Env=EnvT;
         using Request=RequestT;
 
-        //! @todo Set Env
         //! @todo Use factory from env
 
         Server(
@@ -122,6 +122,15 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             auto reqCtx=allocateRequestContext<Env,typename Request::RequestUnit>(ctx->template get<WithEnv<Env>>().envShared());
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
+            auto& envLogger=req.env->template get<Logger>();
+            auto& logCtx=reqCtx->template get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+            logCtx.setLogger(envLogger.logger());
+
+            ctx->resetParentCtx(reqCtx);
+
+            auto reqPtr=reqCtx.get();
+            reqPtr->beforeThreadProcessing();
+            HATN_CTX_SCOPE("apiwaitforrequest")
 
             // recv header
             auto self=this->shared_from_this();
@@ -131,11 +140,13 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                 req.header.size(),
                 [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                 {
+                    HATN_CTX_SCOPE("apireqheader")
+
                     // handle error
                     if (ec)
                     {
-                        //! @todo log
-                        closeRequest(reqCtx);
+                        HATN_CTX_SCOPE_ERROR("recv header failed")
+                        closeRequest(reqCtx,ec);
                         resetConnection(ctx);
                         return;
                     }
@@ -143,7 +154,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     // if no message then wait for the next request
                     if (req.header.messageSize()==0)
                     {
-                        //! @todo log
+                        HATN_CTX_WARN("zero request size")
                         closeRequest(reqCtx);
                         waitForRequest(std::move(ctx),connection);
                         return;
@@ -168,13 +179,13 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                         req.rawData()->size(),
                         [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                         {
+                            HATN_CTX_SCOPE("apireqbody")
+
                             // handle error
                             if (ec)
                             {
-                                //! @todo Log eror?
-
-                                //! @todo log
-                                closeRequest(reqCtx);
+                                HATN_CTX_SCOPE_ERROR("recv body failed")
+                                closeRequest(reqCtx,ec);
                                 resetConnection(ctx);
                                 return;
                             }
@@ -187,9 +198,28 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                 //! @todo log error?
 
                                 //! @todo log
-                                closeRequest(reqCtx);
+                                closeRequest(reqCtx,ec1);
                                 waitForRequest(std::move(ctx),connection);
                                 return;
+                            }
+
+                            //! @todo Fix var map in log context
+                            //! @todo Use fixed stack vars
+                            auto& req=reqCtx->template get<Request>();
+                            HATN_CTX_SET_VAR("mthd",req.unit.fieldValue(protocol::request::method))
+                            HATN_CTX_SET_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
+                            HATN_CTX_SET_VAR("srv",req.unit.fieldValue(protocol::request::service))
+                            if (req.unit.field(protocol::request::service_version).isSet())
+                            {
+                                HATN_CTX_SET_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
+                            }
+                            if (req.unit.field(protocol::request::topic).isSet())
+                            {
+                                HATN_CTX_SET_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
+                            }
+                            if (req.unit.field(protocol::request::message_type).isSet())
+                            {
+                                HATN_CTX_SET_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
                             }
 
                             // auth request if auth dispatcher is set
@@ -201,10 +231,15 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             {
                                 dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
                             }
+                            //! @todo Log tenancy / handle tenancy
+                            //! @todo Log env
+                            //! @todo Log connection
                         }
                     );
                 }
             );
+
+            reqPtr->afterThreadProcessing();
         }
 
         auto closeConnection(const lib::string_view& id)
@@ -227,6 +262,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         template <typename ConnectionContext, typename Connection>
         void authRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
+            HATN_CTX_SCOPE("apiauthrequest")
+
             if (m_closed)
             {
                 //! @todo log
@@ -241,6 +278,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             m_authDispatcher->dispatch(std::move(reqCtx),
                                         [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                                    {
+                                        HATN_CTX_SCOPE("apiauthcb")
+
                                         if (m_closed)
                                         {
                                            //! @todo log
@@ -253,8 +292,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                         // close connection if needed
                                         if (req.closeConnection && ctx)
                                         {
-                                            //! @todo log                                            
-                                            closeRequest(reqCtx);
+                                            closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                                             closeConnection(ctx,connection);
                                             return;
                                         }
@@ -283,11 +321,11 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         template <typename ConnectionContext,typename Connection>
         void dispatchRequest(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
+            HATN_CTX_SCOPE("apidispatch")
+
             if (m_closed)
             {
-                //! @todo log
-                closeRequest(reqCtx);
-
+                closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                 return;
             }
 
@@ -298,10 +336,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             m_dispatcher->dispatch(std::move(reqCtx),
                                    [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                 {
+                    HATN_CTX_SCOPE("apidispatchcb")
                     if (m_closed)
                     {
-                       //! @todo log
-                       closeRequest(reqCtx);
+                       closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                        return;
                     }
                     auto& req=reqCtx->template get<Request>();
@@ -310,8 +348,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     auto ctx=wCtx.lock();
                     if (!ctx)
                     {
-                        //! @todo log
-                        closeRequest(reqCtx);
+                        closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                         return;
                     }
 
@@ -321,9 +358,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     // close connection if needed
                     if (req.closeConnection)
                     {
-                        closeConnection(ctx,connection);
-
-                        //! @todo log
+                        HATN_CTX_WARN("force closing connection due to request processing result")
+                        closeConnection(ctx,connection);                        
                         closeRequest(reqCtx);
                         return;
                     }
@@ -337,10 +373,11 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         template <typename ConnectionContext, typename Connection>
         void sendResponse(common::SharedPtr<ConnectionContext> ctx, common::SharedPtr<RequestContext<Request>> reqCtx, Connection& connection)
         {
+            HATN_CTX_SCOPE("apisendresponse")
+
             if (m_closed)
             {
-                //! @todo Log that server is closed
-                closeRequest(reqCtx);
+                closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                 return;
             }
             auto& req=reqCtx->template get<Request>();
@@ -352,7 +389,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                 //! @todo Report internal server error
                 //! @todo log error
 
-                closeRequest(reqCtx);
+                closeRequest(reqCtx,ec);
 
                 // wait for next request
                 waitForRequest(std::move(ctx),connection);
@@ -368,17 +405,19 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                 req.header.size(),
                 [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec, size_t)
                 {
+                    HATN_CTX_SCOPE("apirespheadercb")
+
                     if (m_closed)
                     {
-                        closeRequest(reqCtx);
+                        closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                         return;
                     }
 
                     // handle error
                     if (ec)
                     {
-                        //! @todo Log eror?
-                        closeRequest(reqCtx);
+                        HATN_CTX_SCOPE_ERROR("send header failed")
+                        closeRequest(reqCtx,ec);
                         resetConnection(ctx);
                         return;
                     }
@@ -392,8 +431,9 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             // handle error
                             if (ec)
                             {
-                                //! @todo Log eror?
-                                closeRequest(reqCtx);
+                                HATN_CTX_SCOPE("apirespbodycb")
+                                HATN_CTX_SCOPE_ERROR("send body failed")
+                                closeRequest(reqCtx,ec);
                                 resetConnection(ctx);
                                 return;
                             }
@@ -409,10 +449,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             );
         }
 
-        void closeRequest(common::SharedPtr<RequestContext<Request>>& reqCtx)
+        void closeRequest(common::SharedPtr<RequestContext<Request>>& reqCtx, const Error& ec={})
         {
             auto& req=reqCtx->template get<Request>();
-            req.close();
+            req.close(ec);
         }
 
         template <typename ConnectionContext,typename Connection>
@@ -423,6 +463,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                 std::move(ctx),
                 [&connection,self{std::move(self)},this](common::SharedPtr<ConnectionContext> ctx, const Error&)
                 {
+                    HATN_CTX_SCOPE("apiwatchconnection")
+
                     // this callback is invoked only if either connection is broken or unexpected data is received
                     closeConnection(ctx,connection);
                 }
@@ -432,6 +474,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         template <typename ConnectionContext,typename Connection>
         void closeConnection(const common::SharedPtr<ConnectionContext>& ctx, Connection& connection)
         {
+            ctx->resetParentCtx();
             connection.close();
             resetConnection(ctx);
         }
@@ -439,6 +482,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         template <typename ConnectionContext>
         void resetConnection(const common::SharedPtr<ConnectionContext>& ctx)
         {
+            ctx->resetParentCtx();
             m_connectionsStore->removeConnection(ctx->id());
         }
 

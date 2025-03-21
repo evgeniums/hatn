@@ -26,7 +26,7 @@
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/translate.h>
 
-#include <hatn/logcontext/context.h>
+#include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
 
@@ -144,10 +144,10 @@ struct Request : public common::TaskSubcontext
         return ServiceNameAndVersion{unit};
     }
 
-    void close()
+    void close(const Error& ec)
     {
-        //! @todo Implement closing requests
-        //! e.g., flush request's logs
+        // flush request's logs
+        HATN_CTX_CLOSE_API(ec,"API REQUEST")
     }
 };
 
