@@ -98,10 +98,11 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
 
         using ClientWithSession::exec;
 
+        template <typename CallbackT>
         void exec(
             common::SharedPtr<Service> service,
             common::SharedPtr<Context> ctx,
-            RequestCb<Context> callback,
+            CallbackT callback,
             const Method& method,
             MessageType message,
             lib::string_view topic={},
@@ -126,6 +127,29 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 }
             };
             this->makeAuthHeader(std::move(ctx),std::move(methodAuthCb),service,method,message,topic,this->factory());
+        }
+
+        template <typename MessageUnitT, typename CallbackT>
+        void exec(
+                common::SharedPtr<Service> service,
+                common::SharedPtr<Context> ctx,
+                CallbackT callback,
+                const Method& method,
+                const MessageUnitT& message,
+                lib::string_view topic={},
+                Priority priority=Priority::Normal,
+                uint32_t timeoutMs=0
+            )
+        {
+            MessageType msg;
+            auto ec=msg.setContent(message);
+            if (ec)
+            {
+                //! @todo Log error
+                callback(std::move(ctx),ec,Response{});
+                return;
+            }
+            exec(std::move(service),std::move(ctx),std::move(callback),method,std::move(msg),topic,priority,timeoutMs);
         }
 
         template <typename CallbackT>
@@ -155,6 +179,27 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 callback(std::move(ctx),Error{},req.takeValue());
             };
             this->makeAuthHeader(std::move(ctx),std::move(methodAuthCb),service,method,message,topic,this->factory());
+        }
+
+        template <typename MessageUnitT, typename CallbackT>
+        void prepare(
+            common::SharedPtr<Service> service,
+            common::SharedPtr<Context> ctx,
+            CallbackT callback,
+            const Method& method,
+            const MessageUnitT& message,
+            lib::string_view topic={}
+            )
+        {
+            MessageType msg;
+            auto ec=msg.setContent(message);
+            if (ec)
+            {
+                //! @todo Log error
+                callback(std::move(ctx),ec,Response{});
+                return;
+            }
+            prepare(std::move(service),std::move(ctx),std::move(callback),method,std::move(msg),topic);
         }
 };
 

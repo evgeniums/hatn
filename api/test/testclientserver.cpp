@@ -372,14 +372,11 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
         service2_msg1::type msg2;
         msg2.setFieldValue(service2_msg1::field2,200);
         msg2.setFieldValue(service2_msg1::field1,"Hi!");
-        Message msgData2;
-        auto ec=msgData2.setContent(msg2);
-        BOOST_CHECK(!ec);
         service2Client->exec(
             ctx2,
             cb2,
             "service2_method1",
-            std::move(msgData2),
+            msg2,
             "topic1"
             );
 
@@ -388,14 +385,11 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
         msg3.setFieldValue(service2_msg2::f1,300);
         msg3.setFieldValue(service2_msg2::f2,"It is service2_msg2::f2");
         msg3.setFieldValue(service2_msg2::f3,"It is service2_msg2::f3");
-        Message msgData3;
-        ec=msgData3.setContent(msg3);
-        BOOST_CHECK(!ec);
         service2Client->exec(
             ctx3,
             cb3,
             "service2_method2",
-            std::move(msgData3),
+            msg3,
             "topic1"
             );
     };
