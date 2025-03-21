@@ -40,15 +40,11 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
         )
     du::RawError::setEnabledTL(true);
 
-    auto buf=factory->createObject<du::WireDataChained>(factory,true);
-    auto ok=du::io::serializeAsSubunit(message,*buf,protocol::request::message.id());
+    m_content=factory->createObject<du::WireDataChained>(factory,true);
+    auto ok=du::io::serializeAsSubunit(message,*m_content,protocol::request::message.id());
     if (!ok)
     {
         m_content.reset();
-    }
-    else
-    {
-        m_content=std::move(buf);
     }
 
     if (name!=nullptr)
