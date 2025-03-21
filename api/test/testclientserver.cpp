@@ -188,11 +188,11 @@ public:
         callback(std::move(request));
     }
 };
-class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service1_msg1::managed>>
+class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service2_msg1::managed>>
 {
     public:
 
-        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service1_msg1::managed>>;
+        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service2_msg1::managed>>;
 
         Service2Method1() : Base("service2_method1")
         {}
@@ -215,11 +215,11 @@ public:
         callback(std::move(request));
     }
 };
-class Service2Method2 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service1_msg1::managed>>
+class Service2Method2 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service2_msg2::managed>>
 {
 public:
 
-    using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service1_msg1::managed>>;
+    using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service2_msg2::managed>>;
 
     Service2Method2() : Base("service2_method2")
     {}
@@ -330,8 +330,6 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     serverThread->start();
     clientThread->start();
 
-    BOOST_TEST_MESSAGE("Running test for 5 seconds");
-
     auto invokeTask1=[service1Client]()
     {
         auto cb=[](auto ctx, const Error& ec, auto response)
@@ -355,10 +353,58 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
             "topic1"
         );
     };
+    auto invokeTasks=[service2Client,invokeTask1]()
+    {
+        invokeTask1();
 
-    clientThread->execAsync(invokeTask1);
+        auto cb2=[](auto ctx, const Error& ec, auto response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTasks cb2, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_CHECK(!ec);
+        };
+        auto cb3=[](auto ctx, const Error& ec, auto response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTasks cb3, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_CHECK(!ec);
+        };
 
-    exec(5);
+        auto ctx2=makeLogCtx();
+        service2_msg1::type msg2;
+        msg2.setFieldValue(service2_msg1::field2,200);
+        msg2.setFieldValue(service2_msg1::field1,"Hi!");
+        Message msgData2;
+        auto ec=msgData2.setContent(msg2);
+        BOOST_CHECK(!ec);
+        service2Client->exec(
+            ctx2,
+            cb2,
+            "service2_method1",
+            std::move(msgData2),
+            "topic1"
+            );
+
+        auto ctx3=makeLogCtx();
+        service2_msg2::type msg3;
+        msg3.setFieldValue(service2_msg2::f1,300);
+        msg3.setFieldValue(service2_msg2::f2,"It is service2_msg2::f2");
+        msg3.setFieldValue(service2_msg2::f3,"It is service2_msg2::f3");
+        Message msgData3;
+        ec=msgData3.setContent(msg3);
+        BOOST_CHECK(!ec);
+        service2Client->exec(
+            ctx3,
+            cb3,
+            "service2_method2",
+            std::move(msgData3),
+            "topic1"
+            );
+    };
+
+    clientThread->execAsync(invokeTasks);
+
+    int secs=3;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
 
     serverThread->stop();
     clientThread->stop();

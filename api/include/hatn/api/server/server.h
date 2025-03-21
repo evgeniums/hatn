@@ -235,7 +235,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             auto wCtx=common::toWeakPtr(ctx);
-            monitorConnection(std::move(ctx),connection);
+            watchConnection(std::move(ctx),connection);
 
             auto self=this->shared_from_this();
             m_authDispatcher->dispatch(std::move(reqCtx),
@@ -259,7 +259,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                             return;
                                         }
 
-                                        // cancel connection monitoring
+                                        // cancel connection watching
                                         if (ctx)
                                         {
                                             connection.cancel();
@@ -292,7 +292,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             auto wCtx=common::toWeakPtr(ctx);
-            monitorConnection(std::move(ctx),connection);
+            watchConnection(std::move(ctx),connection);
 
             auto self=this->shared_from_this();
             m_dispatcher->dispatch(std::move(reqCtx),
@@ -315,7 +315,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                         return;
                     }
 
-                    // cancel connection monitoring
+                    // cancel connection watching
                     connection.cancel();
 
                     // close connection if needed
@@ -416,7 +416,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         }
 
         template <typename ConnectionContext,typename Connection>
-        void monitorConnection(common::SharedPtr<ConnectionContext> ctx, Connection& connection)
+        void watchConnection(common::SharedPtr<ConnectionContext> ctx, Connection& connection)
         {
             auto self=this->shared_from_this();
             connection.waitForRead(

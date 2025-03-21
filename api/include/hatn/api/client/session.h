@@ -60,7 +60,7 @@ using SessionId=du::ObjectId::String;
 template <typename ContextT>
 using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, const common::Error&)>;
 
-template <typename Traits>
+template <typename Traits, typename NoAuthT=hana::false_>
 class Session : public common::WithTraits<Traits>,
                 public common::pmr::WithFactory,
                 public SessionAuth,
@@ -68,13 +68,14 @@ class Session : public common::WithTraits<Traits>,
 {
     public:
 
+        constexpr static const bool NoAuth=NoAuthT::value;
         using RefreshCb=std::function<void (const Error& ec, Session* session)>;
 
         template <typename ...TraitsArgs>
         Session(TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(du::ObjectId::generateIdStr()),
-              m_valid(false),
+              m_valid(NoAuth),
               m_refreshing(false)
         {
             init();
@@ -88,7 +89,7 @@ class Session : public common::WithTraits<Traits>,
             : common::pmr::WithFactory(allocatorFactory),
               common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(id),
-              m_valid(false),
+              m_valid(NoAuth),
               m_refreshing(false)
         {
             init();
@@ -100,7 +101,7 @@ class Session : public common::WithTraits<Traits>,
             TraitsArgs&& ...traitsArgs)
             : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
               m_id(id),
-              m_valid(false),
+              m_valid(NoAuth),
               m_refreshing(false)
         {
             init();
@@ -266,7 +267,7 @@ class SessionNoAuthTraits
 {
     public:
 
-        using SessionType=Session<SessionNoAuthTraits>;
+        using SessionType=Session<SessionNoAuthTraits,hana::true_>;
 
         SessionNoAuthTraits(SessionType* session) : m_session(session)
         {
@@ -286,7 +287,7 @@ class SessionNoAuthTraits
         SessionType* m_session;
 };
 
-using SessionNoAuth=Session<SessionNoAuthTraits>;
+using SessionNoAuth=Session<SessionNoAuthTraits,hana::true_>;
 
 using SessionNoAuthContext=common::TaskContextType<SessionNoAuth,HATN_LOGCONTEXT_NAMESPACE::Context>;
 

@@ -336,8 +336,7 @@ class ServiceMethodV : public ServiceMethod<RequestT>,
                 lib::string_view messageType
             ) const override
         {
-            //! @todo Fix it
-            // this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
+            this->impl().exec(std::move(request),std::move(callback),messageExists,messageType);
         }
 };
 

@@ -178,7 +178,7 @@ class ConnectionPool
                     return;
                 }
 
-                auto connectCb=[this,ctx,cb,buffers(std::move(buffers)),connectionCtx](const Error& ec)
+                auto doSend=[this,ctx,cb,buffers(std::move(buffers)),connectionCtx](const Error& ec)
                 {
                     if (ec)
                     {
@@ -190,15 +190,19 @@ class ConnectionPool
 
                 if (connectionCtx->state==ConnectionContext::State::Disconnected)
                 {
-                    connect(std::move(ctx),std::move(connectCb));
+                    connect(std::move(ctx),std::move(doSend));
                 }
                 else if (connectionCtx->state==ConnectionContext::State::Error)
                 {
-                    auto closeCb=[ctx,this,connectCb{std::move(connectCb)}](const Error&)
+                    auto closeCb=[ctx,this,doSend{std::move(doSend)}](const Error&)
                     {
-                        connect(std::move(ctx),std::move(connectCb));
+                        connect(std::move(ctx),std::move(doSend));
                     };
                     closeDefaultConnection(ctx,closeCb);
+                }
+                else
+                {
+                    doSend(Error{});
                 }
 
                 return;
@@ -311,32 +315,27 @@ class ConnectionPool
             std::function<void (const Error& ec)> cb
         )
         {
-            m_thread->execAsync(
-                [this,ctx{std::move(ctx)},cb{std::move(cb)}]()
+            if (m_defaultConnection->state==ConnectionContext::State::Busy)
+            {
+                cb(apiLibError(ApiLibError::CONNECTION_BUSY));
+                return;
+            }
+
+            m_defaultConnection->state=ConnectionContext::State::Busy;
+            auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
+            {
+                if (ec)
                 {
-                    if (m_defaultConnection->state==ConnectionContext::State::Busy)
-                    {
-                        cb(apiLibError(ApiLibError::CONNECTION_BUSY));
-                        return;
-                    }
-
-                    m_defaultConnection->state=ConnectionContext::State::Busy;
-                    auto makeCb=[this,cb{std::move(cb)}](const common::Error& ec, common::SharedPtr<RouterConnectionCtx> connectionCtx)
-                    {
-                        if (ec)
-                        {
-                            m_defaultConnection->state=ConnectionContext::State::Disconnected;
-                            cb(ec);
-                            return;
-                        }
-
-                        m_defaultConnection->ctx=std::move(connectionCtx);
-                        m_defaultConnection->state=ConnectionContext::State::Ready;
-                        cb(Error{});
-                    };
-                    makeConnection(ctx,makeCb,true);
+                    m_defaultConnection->state=ConnectionContext::State::Disconnected;
+                    cb(ec);
+                    return;
                 }
-            );
+
+                m_defaultConnection->ctx=std::move(connectionCtx);
+                m_defaultConnection->state=ConnectionContext::State::Ready;
+                cb(Error{});
+            };
+            makeConnection(ctx,makeCb,true);
         }
 
         template <typename ContextT>
@@ -573,16 +572,16 @@ class ConnectionPool
                             if (connectionCtx->defaultConnection)
                             {
                                 connect(ctx,
-                                    [connectionCtx,reconnectCb{std::move(reconnectCb)},cb](const Error& ec)
-                                    {
-                                        if (ec)
+                                        [connectionCtx,reconnectCb{std::move(reconnectCb)},cb](const Error& ec)
                                         {
-                                            cb(ec,ConnectionCtxShared{});
-                                            return;
+                                            if (ec)
+                                            {
+                                                cb(ec,ConnectionCtxShared{});
+                                                return;
+                                            }
+                                            reconnectCb(Error{},std::move(connectionCtx));
                                         }
-                                        reconnectCb(Error{},std::move(connectionCtx));
-                                    }
-                                );
+                                    );
                             }
                             else
                             {
