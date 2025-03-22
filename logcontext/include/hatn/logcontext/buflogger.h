@@ -30,8 +30,7 @@
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
-template <typename ContextT=Subcontext>
-class TextLogFormatterT
+class TextLogFormatterBase
 {
     public:
 
@@ -43,6 +42,12 @@ class TextLogFormatterT
             buf.append(lib::string_view("="));
             serializeValue(buf,rec.second);
         }
+};
+
+template <typename ContextT=Subcontext>
+class TextLogFormatterT : public TextLogFormatterBase
+{
+    public:
 
         template <typename BufT,
                   typename ErrorT=hana::false_,
