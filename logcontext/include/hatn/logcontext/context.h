@@ -182,6 +182,12 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         }
 
         template <typename T>
+        void pushFixedVar(const lib::string_view& key, T&& value)
+        {
+            m_fixedVars.emplace_back(key,std::forward<T>(value));
+        }
+
+        template <typename T>
         void setGlobalVar(const lib::string_view& key, T&& value)
         {
             m_globalVarMap.emplace(key,std::forward<T>(value));
@@ -381,6 +387,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             resetStacks();
             m_globalVarMap.clear();
             m_tags.clear();
+            m_fixedVars.clear();
         }
 
         const auto& scopeStack() const noexcept
@@ -396,6 +403,11 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         const auto& globalVars() const noexcept
         {
             return m_globalVarMap;
+        }
+
+        const auto& fixedVars() const noexcept
+        {
+            return m_fixedVars;
         }
 
         const auto& tags() const noexcept
@@ -424,7 +436,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             m_parentLogCtx=nullptr;
         }
 
-        ContextT* actualCtx() const noexcept
+        const ContextT* actualCtx() const noexcept
         {
             if (m_parentLogCtx!=nullptr)
             {
@@ -478,13 +490,10 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<barrierCursorT,config::BarrierDepth> m_barrierStack;
-        //! @todo Fix global var map
-        // HATN_COMMON_NAMESPACE::FlatMapOnStack<keyT,valueT,config::VarMapSize,std::less<keyT>> m_globalVarMap;
-        // HATN_COMMON_NAMESPACE::FlatMap<keyT,valueT> m_globalVarMap;
         std::map<keyT,valueT> m_globalVarMap;
         HATN_COMMON_NAMESPACE::FlatSetOnStack<tagT,config::TagSetSize,std::less<tagT>> m_tags;
 
-        //! @todo Add vector of fixed context vars
+        HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_fixedVars;
 
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
@@ -554,6 +563,10 @@ HATN_COMMON_NAMESPACE_END
     HATN_CTX_SCOPE_DEFER()
 
 #define HATN_CTX_SET_VAR(Name,Value) \
+    HATN_CTX_IF() \
+    ScopeCtx->setGlobalVar(Name,Value);
+
+#define HATN_CTX_PUSH_VAR(Name,Value) \
     HATN_CTX_IF() \
     ScopeCtx->setGlobalVar(Name,Value);
 

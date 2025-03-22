@@ -180,6 +180,12 @@ class TextLogFormatterT : public TextLogFormatterBase
                 buf.append(module);
             }
 
+            // add context's fixed vars
+            for (const auto& rec:ctx->fixedVars())
+            {
+                appendRecord(buf,rec);
+            }
+
             // add context's map vars
             for (const auto& rec:ctx->globalVars())
             {
