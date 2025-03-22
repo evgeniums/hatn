@@ -461,8 +461,6 @@ class FixedByteArray
             return !(*this==data);
         }
 
-        //! @todo Test comparison operators.
-
         //! Overload == operator
         template <typename T>
         inline bool operator == (const T& other) const noexcept
@@ -481,54 +479,96 @@ class FixedByteArray
         template <typename T>
         inline bool operator <(const T& other) const noexcept
         {
-            if (m_size==other.size())
+            int ret=0;
+            auto sz=std::min(m_size,other.size());
+            if (sz!=0)
             {
-                return memcmp(data(),other.data(),m_size)<0;
+                ret=memcmp(privDataConst(),other.data(),sz);
             }
-            return m_size<other.size();
+            if (ret==0)
+            {
+                return m_size<other.size();
+            }
+            return ret<0;
         }
 
         //! Overload > operator
         template <typename T>
         inline bool operator >(const T& other) const noexcept
         {
-            if (m_size==other.size())
+            int ret=0;
+            auto sz=std::min(m_size,other.size());
+            if (sz!=0)
             {
-                return memcmp(data(),other.data(),m_size)>0;
+                ret=memcmp(privDataConst(),other.data(),sz);
             }
-            return m_size>other.size();
+            if (ret==0)
+            {
+                return m_size>other.size();
+            }
+            return ret>0;
         }
 
         //! Overload >= operator
         template <typename T>
         inline bool operator >=(const T& other) const noexcept
         {
-            if (m_size>other.size())
+            int ret=0;
+            auto sz=std::min(m_size,other.size());
+            if (sz!=0)
             {
-                return true;
+                ret=memcmp(privDataConst(),other.data(),sz);
             }
-            else if (m_size<other.size())
+            if (ret==0)
             {
-                return false;
+                return m_size>=other.size();
             }
-
-            return memcmp(data(),other.data(),m_size)>=0;
+            return ret>0;
         }
 
-        //! Overload >= operator
+        //! Overload <= operator
         template <typename T>
-        inline bool operator <=(const T& other) const noexcept
+        inline bool operator <= (const T& other) const noexcept
         {
-            if (m_size<other.size())
+            int ret=0;
+            auto sz=std::min(m_size,other.size());
+            if (sz!=0)
             {
-                return true;
+                ret=memcmp(privDataConst(),other.data(),sz);
             }
-            else if (m_size>other.size())
+            if (ret==0)
             {
-                return false;
+                return m_size<=other.size();
             }
+            return ret<0;
+        }
 
-            return memcmp(data(),other.data(),m_size)<=0;
+        //! Check if content is equal to some data
+        inline bool isEqual(const char* data, size_t size) const noexcept
+        {
+            return m_size==size && (size==0 || memcmp(privDataConst(),data,size)==0);
+        }
+
+        //! Check if content is less than some data
+        inline bool isLess(const char* data, size_t size) const noexcept
+        {
+            return *this<lib::string_view{data,size};
+        }
+
+        //! Check if content is less than some data
+        inline bool isLess(const char* data) const noexcept
+        {
+            return *this<lib::string_view{data};
+        }
+
+        inline bool isGte(const char* data) const noexcept
+        {
+            return *this>=lib::string_view{data};
+        }
+
+        inline bool isLte(const char* data) const noexcept
+        {
+            return *this<=lib::string_view{data};
         }
 
         //! Get string view
@@ -554,32 +594,6 @@ class FixedByteArray
             length=(length==0)?(size()-offset):length;
             return lib::string_view(privDataConst()+offset,length);
         }
-
-        //! Check if content is equal to some data
-        inline bool isEqual(const char* data, size_t size) const noexcept
-        {
-            bool ok=m_size==size&&(memcmp(privDataConst(),data,m_size)==0);
-            return ok;
-        }
-
-        //! Check if content is less than some data
-        inline bool isLess(const char* data, size_t size) const noexcept
-        {
-            if (m_size==size)
-            {
-                return memcmp(privDataConst(),data,size)<0;
-            }
-            return m_size<size;
-        }
-
-        // friend inline bool operator <(const FixedByteArray& left,const FixedByteArray& right) noexcept
-        // {
-        //     if (left.m_size==right.m_size)
-        //     {
-        //         return memcmp(left.data(),right.data(),left.m_size)<0;
-        //     }
-        //     return left.m_size<right.m_size;
-        // }
 
         //! Check if array is empty
         inline bool isEmpty() const noexcept
@@ -873,7 +887,7 @@ struct less<HATN_COMMON_NAMESPACE::FixedByteArray<Length>>
 
     bool operator()(const HATN_COMMON_NAMESPACE::lib::string_view& l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
     {
-        return !(r>=l);
+        return !(r<=l);
     }
 
     bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const HATN_COMMON_NAMESPACE::lib::string_view& r) const
@@ -881,16 +895,14 @@ struct less<HATN_COMMON_NAMESPACE::FixedByteArray<Length>>
         return l<r;
     }
 
-    template <typename T1>
-    bool operator()(const T1& l, const char* r) const
+    bool operator()(const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& l, const char* r) const
     {
-        return l<HATN_COMMON_NAMESPACE::lib::string_view(r);
+        return l.isLess(r);
     }
 
-    template <typename T2>
-    bool operator()(const char* l, const T2& r) const
+    bool operator()(const char* l, const HATN_COMMON_NAMESPACE::FixedByteArray<Length>& r) const
     {
-        return HATN_COMMON_NAMESPACE::lib::string_view(l)<r;
+        return !r.isLte(l);
     }
 };
 

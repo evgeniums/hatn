@@ -351,4 +351,106 @@ BOOST_AUTO_TEST_CASE(FixedByteArrayFill)
     BOOST_CHECK(ok);
 }
 
+BOOST_AUTO_TEST_CASE(FixedByteArrayCompare)
+{
+    FixedByteArray<16> arr1{"mthd"};
+    auto less1=std::less<FixedByteArray<16>>{}(arr1,"req");
+    BOOST_CHECK(less1);
+    auto less2=std::less<FixedByteArray<16>>{}("req",arr1);
+    BOOST_CHECK(!less2);
+    auto less3=std::less<FixedByteArray<16>>{}(arr1,lib::string_view{"req"});
+    BOOST_CHECK(less3);
+    auto less4=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr1);
+    BOOST_CHECK(!less4);
+
+    FixedByteArray<16> arr2{"req"};
+    auto less11=std::less<FixedByteArray<16>>{}(arr2,"req");
+    BOOST_CHECK(!less11);
+    auto less22=std::less<FixedByteArray<16>>{}("req",arr2);
+    BOOST_CHECK(!less22);
+    auto less33=std::less<FixedByteArray<16>>{}(arr2,lib::string_view{"req"});
+    BOOST_CHECK(!less33);
+    auto less44=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr2);
+    BOOST_CHECK(!less44);
+
+    FixedByteArray<16> arr3{"req1"};
+    auto less111=std::less<FixedByteArray<16>>{}(arr3,"req");
+    BOOST_CHECK(!less111);
+    auto less222=std::less<FixedByteArray<16>>{}("req",arr3);
+    BOOST_CHECK(less222);
+    auto less333=std::less<FixedByteArray<16>>{}(arr3,lib::string_view{"req"});
+    BOOST_CHECK(!less333);
+    auto less444=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr3);
+    BOOST_CHECK(less444);
+
+    FixedByteArray<16> arr4{"re"};
+    BOOST_CHECK(arr4.isLess("req"));
+    auto less1111=std::less<FixedByteArray<16>>{}(arr4,"req");
+    BOOST_CHECK(less1111);
+    auto less2222=std::less<FixedByteArray<16>>{}("req",arr4);
+    BOOST_CHECK(!less2222);
+    auto less3333=std::less<FixedByteArray<16>>{}(arr4,lib::string_view{"req"});
+    BOOST_CHECK(less3333);
+    auto less4444=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr4);
+    BOOST_CHECK(!less4444);
+
+    FixedByteArray<16> arr5{"rep"};
+    auto less11111=std::less<FixedByteArray<16>>{}(arr5,"req");
+    BOOST_CHECK(less11111);
+    auto less22222=std::less<FixedByteArray<16>>{}("req",arr5);
+    BOOST_CHECK(!less22222);
+    auto less33333=std::less<FixedByteArray<16>>{}(arr5,lib::string_view{"req"});
+    BOOST_CHECK(less33333);
+    auto less44444=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr5);
+    BOOST_CHECK(!less44444);
+
+    FixedByteArray<16> arr6{"res"};
+    auto less111111=std::less<FixedByteArray<16>>{}(arr6,"req");
+    BOOST_CHECK(!less111111);
+    auto less222222=std::less<FixedByteArray<16>>{}("req",arr6);
+    BOOST_CHECK(less222222);
+    auto less333333=std::less<FixedByteArray<16>>{}(arr6,lib::string_view{"req"});
+    BOOST_CHECK(!less333333);
+    auto less444444=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr6);
+    BOOST_CHECK(less444444);
+
+    FixedByteArray<16> arr7{""};
+    auto less1111111=std::less<FixedByteArray<16>>{}(arr7,"req");
+    BOOST_CHECK(less1111111);
+    auto less2222222=std::less<FixedByteArray<16>>{}("req",arr7);
+    BOOST_CHECK(!less2222222);
+    auto less3333333=std::less<FixedByteArray<16>>{}(arr7,lib::string_view{"req"});
+    BOOST_CHECK(less3333333);
+    auto less4444444=std::less<FixedByteArray<16>>{}(lib::string_view{"req"},arr7);
+    BOOST_CHECK(!less4444444);
+
+    FixedByteArray<16> arr8{"res"};
+    auto less11111111=std::less<FixedByteArray<16>>{}(arr8,"");
+    BOOST_CHECK(!less11111111);
+    auto less22222222=std::less<FixedByteArray<16>>{}("",arr8);
+    BOOST_CHECK(less22222222);
+    auto less3333333333=std::less<FixedByteArray<16>>{}(arr8,lib::string_view{""});
+    BOOST_CHECK(!less3333333333);
+    auto less44444444=std::less<FixedByteArray<16>>{}(lib::string_view{""},arr8);
+    BOOST_CHECK(less44444444);
+
+    BOOST_CHECK(arr6==arr8);
+    BOOST_CHECK(!(arr6<arr8));
+    BOOST_CHECK(!(arr6>arr8));
+    BOOST_CHECK(arr6<=arr8);
+    BOOST_CHECK(arr6>=arr8);
+
+    BOOST_CHECK(!(arr7==arr8));
+    BOOST_CHECK((arr7<arr8));
+    BOOST_CHECK(!(arr7>arr8));
+    BOOST_CHECK(arr7<=arr8);
+    BOOST_CHECK(!(arr7>=arr8));
+
+    BOOST_CHECK(!(arr5==arr8));
+    BOOST_CHECK((arr5<arr8));
+    BOOST_CHECK(!(arr5>arr8));
+    BOOST_CHECK(arr5<=arr8);
+    BOOST_CHECK(!(arr5>=arr8));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
