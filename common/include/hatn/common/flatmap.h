@@ -509,7 +509,7 @@ class FlatContainer
         }
 
         template <typename Arg>
-        std::pair<iterator,bool> insert(Arg&& val,
+        std::pair<iterator,bool> insert(Arg&& val, bool orAssign=false,
                     typename std::enable_if_t<
                                         std::is_same<
                                             std::decay_t<Arg>,ItemT
@@ -520,10 +520,13 @@ class FlatContainer
         {
             auto it=detail::lowerBound(m_vec.begin(),m_vec.end(),val,m_comp);
             bool created=true;
-            if (it!=m_vec.end() && !m_comp(val,*it))
+            if (it!=m_vec.end() && !m_comp(val,*it) && !m_comp(*it,val))
             {
                 created=false;
-                *it=std::forward<Arg>(val);
+                if (orAssign)
+                {
+                    *it=std::forward<Arg>(val);
+                }
             }
             else
             {
@@ -619,7 +622,7 @@ struct FlatMapCompareItem
     template <typename T1, typename T2>
     constexpr bool operator() (const T1& l,const T2& r) noexcept
     {
-        return std::less<KeyT>{}(l,r);
+        return CompareKeyT{}(l,r);
     }
 };
 }
@@ -651,11 +654,17 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
 
         std::pair<iterator,bool> insert_or_assign(const ItemT& val)
         {
-            return this->insert(val);
+            return this->insert(val,true);
         }
         std::pair<iterator,bool> insert_or_assign(ItemT&& val)
         {
-            return this->insert(std::move(val));
+            return this->insert(std::move(val),true);
+        }
+
+        template <typename KeyT1, typename ValueT1>
+        std::pair<iterator,bool> insert_or_assign(KeyT1&& key, ValueT1&& val)
+        {
+            return insert_or_assign(std::make_pair(std::forward<KeyT1>(key),std::forward<ValueT1>(val)));
         }
 
         ValueT& operator[](const KeyT& key)
@@ -680,22 +689,34 @@ class FlatMap : public FlatContainer<std::pair<KeyT,ValueT>,
         }
 
         template <typename KeyT1, typename ValueT1>
-        std::pair<iterator,bool> emplace(KeyT1&& key, ValueT1&& val)
+        std::pair<iterator,bool> emplace(KeyT1&& key, ValueT1&& val, bool orAssign=false)
         {
             auto it=detail::lowerBound(this->m_vec.begin(),this->m_vec.end(),key,this->m_comp);
             bool created=true;
-            if (it!=this->m_vec.end() && !this->m_comp(key,it->first))
+            if (it!=this->m_vec.end())
             {
-                created=false;
-                it->first=std::forward<KeyT1>(key);
-                it->second=std::forward<ValueT1>(val);
+                if (!this->m_comp(key,it->first) && !this->m_comp(it->first,key))
+                {
+                    created=false;
+                    if (orAssign)
+                    {
+                        it->first=std::forward<KeyT1>(key);
+                        it->second=std::forward<ValueT1>(val);
+                    }
+                }
             }
-            else
+            if (created)
             {
                 it=this->m_vec.emplace(it,std::forward<KeyT1>(key),std::forward<ValueT1>(val));
             }
             auto idx=detail::vector_iterator_index(this->m_vec,it);
             return std::make_pair(iterator(&this->m_vec,idx),created);
+        }
+
+        template <typename KeyT1, typename ValueT1>
+        std::pair<iterator,bool> emplace_or_assign(KeyT1&& key, ValueT1&& val)
+        {
+            return emplace(std::forward<KeyT1>(key),std::forward<ValueT1>(val),true);
         }
 
         template<typename T>

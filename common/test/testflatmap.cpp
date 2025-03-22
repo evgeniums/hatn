@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapOps)
     BOOST_CHECK_EQUAL(ok,0);
     BOOST_CHECK_EQUAL(iterCount,count);
 
-    auto res=fm.insert(std::make_pair(count/2,count*2));
+    auto res=fm.insert_or_assign(std::make_pair(count/2,count*2));
     BOOST_CHECK(!res.second);
     BOOST_CHECK_EQUAL(fm.size(),count);
     auto it=fm.find(count/2);
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(CheckFlatMapOps)
     BOOST_CHECK_EQUAL(it->second,count*2+1);
 
     const auto item=std::make_pair(count+2,count*2+2);
-    res=fm.insert(item);
+    res=fm.insert_or_assign(item);
     BOOST_CHECK(res.second);
     BOOST_CHECK_EQUAL(fm.size(),count+2);
     auto it1=fm.find(count+2);
@@ -294,6 +294,110 @@ BOOST_AUTO_TEST_CASE(CheckVectorOnStack)
 
     //! @todo Test allocation in heap when size exceeds preallocated
 }
+
+BOOST_AUTO_TEST_CASE(CheckInsert)
+{
+    std::map<std::string,std::string> sample;
+    FlatMap<std::string,std::string> m;
+
+    auto emplace=[&sample,&m](auto key, auto val)
+    {
+        sample.emplace(key,val);
+        m.emplace(key,val);
+    };
+
+    emplace("one","one_val");
+    emplace("two","two_val");
+    emplace("three","three_val");
+    emplace("four","four_val");
+    emplace("five","five_val");
+    emplace("six","six_val");
+    emplace("seven","seven_val");
+    emplace("eight","eight_val");
+    emplace("nine","nine_val");
+    emplace("ten","ten_val");
+
+    std::vector<std::pair<std::string,std::string>> sampleV;
+    std::vector<std::pair<std::string,std::string>> v;
+
+    auto fillV=[&sample,&m,&sampleV,&v]()
+    {
+        sampleV.clear();
+        v.clear();
+        for (auto&& it: sample)
+        {
+            sampleV.push_back(it);
+        }
+        for (auto&& it: m)
+        {
+            v.push_back(it);
+        }
+    };
+
+    fillV();
+    BOOST_CHECK(sampleV==v);
+
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val"));
+    emplace("seven","seven_val2");
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val"));
+
+    fillV();
+    BOOST_CHECK(sampleV==v);
+
+    sample.clear();
+    m.clear();
+    BOOST_CHECK(m.empty());
+
+    auto insert=[&sample,&m](std::string key, std::string val)
+    {
+        sample.insert(std::make_pair(key,val));
+        m.insert(std::make_pair(key,val));
+    };
+
+    insert("one","one_val");
+    insert("two","two_val");
+    insert("three","three_val");
+    insert("four","four_val");
+    insert("five","five_val");
+    insert("six","six_val");
+    insert("seven","seven_val");
+    insert("eight","eight_val");
+    insert("nine","nine_val");
+    insert("ten","ten_val");
+
+    fillV();
+    BOOST_CHECK(sampleV==v);
+
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val"));
+    insert("seven","seven_val2");
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val"));
+
+    fillV();
+    BOOST_CHECK(sampleV==v);
+
+#if __cplusplus >= 201703L
+
+    auto insert_or_assign=[&sample,&m](std::string key, std::string val)
+    {
+        sample.insert_or_assign(key,val);
+        m.insert_or_assign(key,val);
+    };
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val"));
+    insert_or_assign("seven","seven_val2");
+    BOOST_CHECK_EQUAL(sample["seven"],std::string("seven_val2"));
+    BOOST_CHECK_EQUAL(m["seven"],std::string("seven_val2"));
+
+    fillV();
+    BOOST_CHECK(sampleV==v);
+
+#endif
+}
+
 
 // #define TEST_FLATMAP_PERFORMANCE
 
