@@ -42,8 +42,9 @@ enum class LogLevel : int8_t
     Error=2,
     Warn=3,
     Info=4,
-    Debug=5,
-    Trace=6,
+    Details=5,
+    Debug=6,
+    Trace=7,
 
     Any=100
 };
@@ -53,6 +54,7 @@ inline const char* logLevelName(LogLevel level) noexcept
     switch (level)
     {
     case (LogLevel::Info): return "INFO";
+    case (LogLevel::Details): return "DETAILS";
     case (LogLevel::Error): return "ERROR";
     case (LogLevel::Warn): return "WARN";
     case (LogLevel::Debug): return "DEBUG";
