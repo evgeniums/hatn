@@ -252,7 +252,7 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
 
     auto server=std::make_shared<server::Server<connectionsStoreType,dispatcherType>>(std::move(connectionsStore),std::move(dispatcher));
 
-    auto onNewTcpConnection=[server,&connections](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec)
+    auto onNewTcpConnection=[server,&connections](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec, auto cb)
     {
         BOOST_TEST_MESSAGE(fmt::format("onNewTcpConnection: {}/{}",ec.code(),ec.message()));
         if (!ec)
@@ -260,7 +260,7 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
             connections[std::string{connectionCtx->id()}]=connectionCtx;
 
             auto& connection=connectionCtx->get<server::PlainTcpConnection>();
-            server->handleNewConnection(connectionCtx,connection);
+            server->handleNewConnection(connectionCtx,connection,cb);
         }
     };
 
@@ -277,6 +277,7 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
         )
     );
     serverEnv->get<server::Threads>().threads()->setDefaultThread(thread);
+    serverEnv->get<server::Logger>().logger()->setModuleLevel("tcpserver",HATN_LOGCONTEXT_NAMESPACE::LogLevel::Details);
     auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
     tcpServer.setEnv(serverEnv);
     tcpServer.setConnectionHandler(onNewTcpConnection);
@@ -314,6 +315,37 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
     std::ignore=createServer(workThread.get(),connections);
 
     BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(TestMapVars,TestEnv)
+{
+    auto ctx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
+    auto& logCtx=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+    logCtx.setGlobalVar("mthd","method1");
+    logCtx.setGlobalVar("req","request1");
+    logCtx.setGlobalVar("srv","service1");
+    logCtx.setGlobalVar("typ","type1");
+    logCtx.setGlobalVar("tpc","topic1");
+    ByteArray buf;
+    for (auto&& it: logCtx.globalVars())
+    {
+        TextLogFormatterBase::appendRecord(buf,it);
+    }
+    std::cout << "Vars1:" << buf.stringView() << std::endl;
+
+    FlatMap<FixedByteArray<16>,std::string> m;
+    m.emplace("mthd","method1");
+    m.emplace("req","request1");
+    m.emplace("srv","service1");
+    m.emplace("typ","type1");
+    m.emplace("tpc","topic1");
+    m.emplace("req","request2");
+    std::cout<<"Vars2: ";
+    for (auto&& it: m)
+    {
+        std::cout << it.first.stringView() << "=\"" << it.second << "\" ";
+    }
+    std::cout << std::endl;
 }
 
 BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
@@ -401,7 +433,7 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 
     clientThread->execAsync(invokeTasks);
 
-    int secs=3;
+    int secs=90;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 

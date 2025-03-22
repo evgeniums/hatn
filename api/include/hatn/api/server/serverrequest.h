@@ -147,7 +147,7 @@ struct Request : public common::TaskSubcontext
     void close(const Error& ec)
     {
         // flush request's logs
-        HATN_CTX_CLOSE_API(ec,"API REQUEST")
+        HATN_CTX_CLOSE_API(ec,"API EXEC")
     }
 };
 

@@ -88,10 +88,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
          * @param connection Connection.
          * @param waitNextConnection Callback for waiting for the next connection.
          */
-        template <typename ConnectionContext, typename Connection>
+        template <typename ConnectionContext, typename Connection, typename CallbackT>
         void handleNewConnection(common::SharedPtr<ConnectionContext> ctx,
                                  Connection& connection,
-                                 std::function<void ()> waitNextConnection={}
+                                 CallbackT waitNextConnection
                                 )
         {
             if (m_closed)
@@ -100,12 +100,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
             m_connectionsStore->registerConnection(ctx);
 
-            //! @todo maybe log
-
             waitForRequest(std::move(ctx),connection);
             if (waitNextConnection)
             {
-                waitNextConnection();
+                waitNextConnection(Error{});
             }
         }
 
@@ -127,9 +125,11 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             logCtx.setLogger(envLogger.logger());
 
             ctx->resetParentCtx(reqCtx);
+            //! @todo Fill request parameters with connection parameters
 
             auto reqPtr=reqCtx.get();
             reqPtr->beforeThreadProcessing();
+
             HATN_CTX_SCOPE("apiwaitforrequest")
 
             // recv header
@@ -203,23 +203,21 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                 return;
                             }
 
-                            //! @todo Fix var map in log context
-                            //! @todo Use fixed stack vars
                             auto& req=reqCtx->template get<Request>();
-                            HATN_CTX_SET_VAR("mthd",req.unit.fieldValue(protocol::request::method))
-                            HATN_CTX_SET_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
-                            HATN_CTX_SET_VAR("srv",req.unit.fieldValue(protocol::request::service))
+                            HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
+                            HATN_CTX_PUSH_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
+                            HATN_CTX_PUSH_VAR("srv",req.unit.fieldValue(protocol::request::service))
                             if (req.unit.field(protocol::request::service_version).isSet())
                             {
-                                HATN_CTX_SET_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
+                                HATN_CTX_PUSH_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
                             }
                             if (req.unit.field(protocol::request::topic).isSet())
                             {
-                                HATN_CTX_SET_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
+                                HATN_CTX_PUSH_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
                             }
                             if (req.unit.field(protocol::request::message_type).isSet())
                             {
-                                HATN_CTX_SET_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
+                                HATN_CTX_PUSH_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
                             }
 
                             // auth request if auth dispatcher is set

@@ -43,7 +43,7 @@ class TcpServer : public WithEnv<typename Traits::Env>,
         using Base=HATN_NETWORK_NAMESPACE::asio::TcpServer;
 
         using ConnectionContext=typename Traits::ConnectionContext;
-        using ConnectionHandler=std::function<void (common::SharedPtr<ConnectionContext> ctx, const Error& ec)>;
+        using ConnectionHandler=std::function<void (common::SharedPtr<ConnectionContext> ctx, const Error& ec, std::function<void (const Error&)> cb)>;
 
         template <typename ...TraitsArgs>
         TcpServer
@@ -122,32 +122,62 @@ class TcpServer : public WithEnv<typename Traits::Env>,
 
         template <typename ServerContextT>
         void acceptNext(
-            common::SharedPtr<ServerContextT> serverCtx
+                common::SharedPtr<ServerContextT> serverCtx
             )
         {
             auto connectionCtx=allocateContext(serverCtx);
-            auto cb=[connectionCtx,serverCtx{std::move(serverCtx)},this](const Error& ec)
+            if (this->env())
+            {
+                auto& envLogger=this->env()->template get<Logger>();
+                auto& logCtx=connectionCtx->template get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+                logCtx.setLogger(envLogger.logger());
+            }
+
+            auto& socket=connectionSocket(connectionCtx);
+            auto cb=[connectionCtx,serverCtx{std::move(serverCtx)},this,&socket](const Error& ec)
             {
                 if (ec)
                 {
-                    this->handleNewConnection(std::move(connectionCtx),ec);
+                    this->handleNewConnection(std::move(connectionCtx),ec,[](const Error&){});
                     return;
                 }
 
-                Base::thread()->execAsync(
-                    [connectionCtx{std::move(connectionCtx)},serverCtx,this]()
+                connectionCtx->onAsyncHandlerEnter();
+
+                HATN_CTX_SCOPE("tcpserveraccept")
+
+                //! @todo Fill connection parameters
+
+                boost::system::error_code ec1;
+                auto ep=socket.socket().remote_endpoint(ec1);
+                if (!ec1)
+                {
+                    HATN_CTX_PUSH_VAR("r_ip",ep.address().to_string())
+                    HATN_CTX_PUSH_VAR("r_port",ep.port())
+                }
+
+                HATN_CTX_DETAILS("connection accepted","tcpserver");
+
+                this->handleNewConnection(connectionCtx,Error{},
+                  [selfCtxW{common::toWeakPtr(this->sharedMainCtx())},this,serverCtx{std::move(serverCtx)}](const Error& ec)
+                  {
+                    if (ec)
                     {
-                        std::ignore=serverCtx;
-                        connectionCtx->onAsyncHandlerEnter();
-                        HATN_CTX_SCOPE("tcpserveraccept")
-                        this->handleNewConnection(connectionCtx,Error{});
-                        connectionCtx->onAsyncHandlerExit();
+                        return;
                     }
+
+                    auto selfCtx=selfCtxW.lock();
+                    if (!selfCtx)
+                    {
+                        return;
+                    }
+                    this->acceptNext(std::move(serverCtx));
+                  }
                 );
 
-                this->acceptNext(std::move(serverCtx));
+                connectionCtx->onAsyncHandlerExit();
             };
-            this->accept(connectionSocket(connectionCtx),std::move(cb));
+            this->accept(socket,std::move(cb));
         }
 
         const common::pmr::AllocatorFactory* m_allocatorFactory=common::pmr::AllocatorFactory::getDefault();

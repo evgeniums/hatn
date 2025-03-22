@@ -136,13 +136,14 @@ BOOST_FIXTURE_TEST_CASE(ConnectClientServer,Env)
     std::atomic<size_t> clientConnectCount{0};
     std::atomic<size_t> serverConnectCount{0};
 
-    auto serverCb=[&serverConnectCount](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainTcpConnectionContext> ctx, const HATN_NAMESPACE::Error& ec)
+    auto serverCb=[&serverConnectCount](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainTcpConnectionContext> ctx, const HATN_NAMESPACE::Error& ec, auto cb)
     {
         HATN_TEST_MESSAGE_TS(fmt::format("serverCb: {}/{}",ec.code(),ec.message()));
         if (!ec)
         {
             serverConnectCount++;
         }
+        cb(HATN_NAMESPACE::Error{});
     };
 
     auto& server=serverCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
@@ -387,7 +388,7 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
         HATN_CHECK_TS(!ec);
     };
     HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainTcpConnectionContext> serverConnectionCtx;;
-    auto serverConnectCb=[recv,sendServerToClient,&serverConnectionCtx,&serverConnectionClosed,&serverSendCb,&closeServerConnection,&sendBuffers,&serverReadCb,&rxBuf,&tmpBuf](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainTcpConnectionContext> ctx, const HATN_NAMESPACE::Error& ec)
+    auto serverConnectCb=[recv,sendServerToClient,&serverConnectionCtx,&serverConnectionClosed,&serverSendCb,&closeServerConnection,&sendBuffers,&serverReadCb,&rxBuf,&tmpBuf](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::server::PlainTcpConnectionContext> ctx, const HATN_NAMESPACE::Error& ec, auto cb)
     {
         HATN_TEST_MESSAGE_TS(fmt::format("serverCb: {}/{}",ec.code(),ec.message()));
         serverConnectionCtx=ctx;
@@ -428,6 +429,7 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
                 }
             }
         }
+        cb(HATN_NAMESPACE::Error{});
     };
 
     auto& server=serverCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
