@@ -70,11 +70,8 @@ class Dispatcher : public common::WithTraits<Traits>,
                         auto& req=reqCtx->template get<Request>();
                         if (!req.routed)
                         {
-                            //! @todo report error that no route is found
-                        }
-                        else if (!req.response.unit.field(protocol::response::status).isSet())
-                        {
-                            //! @todo report internal error that response is not set
+                            // report error that no route is found
+                            req.response.setStatus(protocol::ResponseStatus::RoutingError);
                         }
                         cb(std::move(reqCtx));
                     };

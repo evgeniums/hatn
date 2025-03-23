@@ -49,7 +49,8 @@ struct Request : public common::TaskSubcontext
 
     Request(common::SharedPtr<Env> env_)
         : env(std::move(env_)),
-          response(this),
+          unit(env->template get<AllocatorFactory>().factory()),
+          response(this),          
           requestBuf(env->template get<AllocatorFactory>().factory()),
           routed(false),
           closeConnection(false),
@@ -59,11 +60,12 @@ struct Request : public common::TaskSubcontext
         requestBuf.setUseInlineBuffers(true);
     }
 
+    common::SharedPtr<Env> env;
+
     common::StringOnStack sender;
     RequestUnitT unit;
     common::WeakPtr<common::TaskContext> connectionCtx;
 
-    common::SharedPtr<Env> env;
     Response<Env,RequestUnitT> response;
     protocol::Header header;
 

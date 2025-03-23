@@ -32,8 +32,8 @@ template <typename EnvT, typename RequestUnitT>
 Response<EnvT,RequestUnitT>::Response(
         Request<EnvT,RequestUnitT>* req
     ) : request(req),
-        message(req->env->template get<AllocatorFactory>().factory()),
-        factory(req->env->template get<AllocatorFactory>().factory())
+        unit(req->env->template get<AllocatorFactory>().factory()),
+        message(req->env->template get<AllocatorFactory>().factory())
 {}
 
 //---------------------------------------------------------------
@@ -64,7 +64,7 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
 
         const common::ApiError* apiErr=ec.native()->apiError();
 
-        auto errorUnit=factory->createObject<protocol::response_error_message::shared_managed>();        
+        auto errorUnit=request->env->template get<AllocatorFactory>().factory()->template createObject<protocol::response_error_message::shared_managed>();
         errorUnit->setFieldValue(protocol::response_error_message::code,apiErr->code());
         errorUnit->setFieldValue(protocol::response_error_message::family,apiErr->family());
         errorUnit->setFieldValue(protocol::response_error_message::status,apiErr->status());

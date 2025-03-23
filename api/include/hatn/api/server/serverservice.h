@@ -382,9 +382,7 @@ class ServiceMultipleMethodsTraits
     private:
 
         ServerServiceBase* m_service;
-
-        //! @todo Use FlatMap?
-        std::map<std::string,std::shared_ptr<ServiceMethod<Request>>,std::less<>> m_methods;
+        common::FlatMap<std::string,std::shared_ptr<ServiceMethod<Request>>,std::less<>> m_methods;
 };
 
 //---------------------------------------------------------------

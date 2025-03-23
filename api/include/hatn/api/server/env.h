@@ -43,7 +43,6 @@ using AllocatorFactory=common::pmr::WithFactory;
 using Logger=logcontext::WithLogger;
 
 //! @todo Add tenancy to Env
-//! @todo Add logger to Env
 
 HDU_UNIT(protocol_config,
     HDU_FIELD(max_message_size,TYPE_UINT32,1,false,protocol::DEFAULT_MAX_MESSAGE_SIZE)

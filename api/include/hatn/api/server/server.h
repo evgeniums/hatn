@@ -19,7 +19,6 @@
 #ifndef HATNAPISERVER_H
 #define HATNAPISERVER_H
 
-#include <functional>
 #include <memory>
 
 #include <hatn/common/pmr//allocatorfactory.h>
@@ -42,18 +41,14 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         using Env=EnvT;
         using Request=RequestT;
 
-        //! @todo Use factory from env
-
         Server(
                 std::shared_ptr<ConnectionsStoreT> connectionsStore,
                 std::shared_ptr<DispatcherT> dispatcher,
-                std::shared_ptr<AuthDispatcherT> authDispatcher={},
-                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                std::shared_ptr<AuthDispatcherT> authDispatcher={}
             ) : m_connectionsStore(std::move(connectionsStore)),
                 m_dispatcher(std::move(dispatcher)),
                 m_authDispatcher(std::move(authDispatcher)),
-                m_closed(false),
-                m_allocatorFactory(factory)
+                m_closed(false)
         {}
 
         void close()
@@ -75,11 +70,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         std::shared_ptr<AuthDispatcherT> authDispatcher() const
         {
             return m_authDispatcher;
-        }
-
-        const common::pmr::AllocatorFactory* factory() const noexcept
-        {
-            return m_allocatorFactory;
         }
 
         /**
@@ -116,10 +106,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             // create request
-            //! @todo set current thread as request's thread
             auto reqCtx=allocateRequestContext<Env,typename Request::RequestUnit>(ctx->template get<WithEnv<Env>>().envShared());
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
+            req.requestThread=common::ThreadQWithTaskContext::current();
             auto& envLogger=req.env->template get<Logger>();
             auto& logCtx=reqCtx->template get<HATN_LOGCONTEXT_NAMESPACE::Context>();
             logCtx.setLogger(envLogger.logger());
@@ -202,6 +192,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             }
 
                             //! @todo Validate request
+
+                            //! @todo Handle proxy field if allowed by server settings
 
                             auto& req=reqCtx->template get<Request>();
                             HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
@@ -413,7 +405,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     // send message
                     connection.send(
                         std::move(reqCtx),
-                        req.response.buffers(m_allocatorFactory),
+                        req.response.buffers(req.env->template get<AllocatorFactory>().factory()),
                         [ctx{std::move(ctx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec, size_t,common::SpanBuffers)
                         {
                             // handle error
@@ -478,7 +470,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
         std::shared_ptr<DispatcherT> m_dispatcher;
         std::shared_ptr<AuthDispatcherT> m_authDispatcher;
         bool m_closed;
-        const common::pmr::AllocatorFactory* m_allocatorFactory;
 };
 
 } // namespace server

@@ -60,6 +60,7 @@ constexpr const size_t ResponseFamilyNameLengthMax=32;
 constexpr const size_t ResponseStatusLengthMax=32;
 constexpr const size_t TenancyIdLengthMax=32;
 constexpr const size_t LocaleNameLengthMax=16;
+constexpr const size_t IpAddressLength=32;
 
 inline uint32_t bufToSize(const char* buf) noexcept
 {

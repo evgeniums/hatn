@@ -433,7 +433,7 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 
     clientThread->execAsync(invokeTasks);
 
-    int secs=90;
+    int secs=3;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 

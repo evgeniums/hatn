@@ -102,7 +102,6 @@ void ServerServiceT<Traits,RequestT>::handleRequest(
 
     auto cb=[callback(std::move(callback))](common::SharedPtr<api::server::RequestContext<RequestT>> request)
     {
-        //! @todo Log status?
         callback(std::move(request));
     };
 

@@ -41,11 +41,8 @@ struct Response
 {
     Request<EnvT,RequestUnitT>* request;
 
-    //! @todo Init with factory
     protocol::response::shared_type unit;
     du::WireBufChained message;
-
-    const common::pmr::AllocatorFactory* factory;
 
     Response(
         Request<EnvT,RequestUnitT>* req
