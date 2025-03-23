@@ -35,7 +35,9 @@
     Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE,_TR("failed to deserialize response","api")) \
     Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE_ERROR,_TR("failed to deserialize response error","api")) \
     Do(ApiLibError,SERVER_RESPONDED_WITH_ERROR,_TR("server responded with error","api")) \
-    Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request handling","api")) \
+    Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request","api")) \
+    Do(ApiLibError,CONNECTION_CLOSED,_TR("connection was closed during request","api")) \
+    Do(ApiLibError,FORCE_CONNECTION_CLOSE,_TR("connection was forced to close","api")) \
 
 HATN_API_NAMESPACE_BEGIN
 

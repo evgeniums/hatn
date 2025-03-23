@@ -127,6 +127,10 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             ctx->resetParentCtx(reqCtx);
             //! @todo Fill request parameters with connection parameters
 
+            //! @todo Log tenancy / handle tenancy
+            //! @todo Log env
+            //! @todo Log connection
+
             auto reqPtr=reqCtx.get();
             reqPtr->beforeThreadProcessing();
 
@@ -160,14 +164,12 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                         return;
                     }
 
-                    if (req.header.messageSize()>req.env->template get<ProtocolConfig>().maxMessageSize())
+                    if (req.header.messageSize() > req.env->template get<ProtocolConfig>().maxMessageSize())
                     {
-                        //! @todo report error to client
-                        //! @todo log error?
+                        //! @todo Detect HTTP request and optionally redirect to some URL or send http-response
 
-                        //! @todo log                        
-                        closeRequest(reqCtx);
-                        closeConnection(ctx,connection);
+                        req.response.setStatus(protocol::ResponseStatus::RequestTooBig);
+                        sendResponse(std::move(ctx),std::move(reqCtx),connection);
                         return;
                     }
 
@@ -194,14 +196,12 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             auto ec1=req.parseMessage();
                             if (ec1)
                             {
-                                //! @todo report error to client
-                                //! @todo log error?
-
-                                //! @todo log
-                                closeRequest(reqCtx,ec1);
-                                waitForRequest(std::move(ctx),connection);
+                                req.response.setStatus(protocol::ResponseStatus::FormatError,ec1);
+                                sendResponse(std::move(ctx),std::move(reqCtx),connection);
                                 return;
                             }
+
+                            //! @todo Validate request
 
                             auto& req=reqCtx->template get<Request>();
                             HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
@@ -229,9 +229,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             {
                                 dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
                             }
-                            //! @todo Log tenancy / handle tenancy
-                            //! @todo Log env
-                            //! @todo Log connection
                         }
                     );
                 }
@@ -264,8 +261,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
             if (m_closed)
             {
-                //! @todo log
-                closeRequest(reqCtx);
+                closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                 return;
             }
 
@@ -280,9 +276,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
                                         if (m_closed)
                                         {
-                                           //! @todo log
-                                           closeRequest(reqCtx);
-                                           return;
+                                            closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
+                                            return;
                                         }
                                         auto& req=reqCtx->template get<Request>();
                                         auto ctx=wCtx.lock();
@@ -290,7 +285,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                         // close connection if needed
                                         if (req.closeConnection && ctx)
                                         {
-                                            closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
+                                            closeRequest(reqCtx,apiLibError(ApiLibError::FORCE_CONNECTION_CLOSE));
                                             closeConnection(ctx,connection);
                                             return;
                                         }
@@ -346,7 +341,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     auto ctx=wCtx.lock();
                     if (!ctx)
                     {
-                        closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
+                        closeRequest(reqCtx,apiLibError(ApiLibError::CONNECTION_CLOSED));
                         return;
                     }
 
@@ -384,13 +379,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             auto ec=req.response.serialize();
             if (ec)
             {
-                //! @todo Report internal server error
-                //! @todo log error
-
-                closeRequest(reqCtx,ec);
-
-                // wait for next request
-                waitForRequest(std::move(ctx),connection);
+                HATN_CTX_ERROR(ec,"failed to serialize response")
+                req.response.setStatus(protocol::ResponseStatus::InternalServerError);
             }
 
             auto self=this->shared_from_this();

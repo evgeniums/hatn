@@ -52,6 +52,11 @@ template <typename EnvT, typename RequestUnitT>
 void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, const Error& ec)
 {
     unit.setFieldValue(protocol::response::status,status);
+    if (status!=protocol::ResponseStatus::Success)
+    {
+        unit.field(protocol::response::message).fieldReset();
+        unit.field(protocol::response::category).fieldReset();
+    }
 
     if (ec && ec.apiError()!=nullptr)
     {
