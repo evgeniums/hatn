@@ -260,7 +260,7 @@ constexpr makeClientWithAuthContextT<T> makeClientWithAuthContext{};
 
 template <typename Traits>
 class MappedClientsWithAuth : public common::WithTraits<Traits>,
-                              public common::TaskSubcontext
+                              public common::EnableSharedFromThis<MappedClientsWithAuth<Traits>>
 {
     public:
 
