@@ -30,6 +30,12 @@ class Service : public WithNameAndVersion<protocol::ServiceNameLengthMax>
     public:
 
         using WithNameAndVersion<protocol::ServiceNameLengthMax>::WithNameAndVersion;
+
+        ~Service()=default;
+        Service(const Service&)=delete;
+        Service(Service&&)=default;
+        Service& operator =(const Service&)=delete;
+        Service& operator =(Service&&)=default;
 };
 
 class ServiceNameAndVersion

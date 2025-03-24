@@ -58,11 +58,11 @@ common::Result<
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
+    RequestCb<Context> callback,
     SessionWrapperT session,
     const Service& service,
     const Method& method,
-    MessageType message,
-    RequestCb<Context> callback,
+    MessageType message,    
     lib::string_view  topic,
     Priority priority,
     uint32_t timeoutMs,
@@ -75,7 +75,7 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
     auto ec=req->serialize(service,method,topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
-    doExec(std::move(ctx),std::move(req),std::move(callback));
+    doExec(std::move(ctx),std::move(callback),std::move(req));
     return OK;
 }
 
@@ -84,13 +84,13 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     common::SharedPtr<Context> ctx,
-    common::SharedPtr<ReqCtx> req,
-    RequestCb<Context> callback
+    RequestCb<Context> callback,
+    common::SharedPtr<ReqCtx> req
     )
 {
     HATN_CTX_SCOPE("apiclientexec")
 
-    doExec(std::move(ctx),std::move(req),std::move(callback));
+    doExec(std::move(ctx),std::move(callback),std::move(req));
 }
 
 //---------------------------------------------------------------
@@ -98,8 +98,8 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
         common::SharedPtr<Context> ctx,
-        common::SharedPtr<ReqCtx> req,
         RequestCb<Context> callback,
+        common::SharedPtr<ReqCtx> req,
         bool regenId
     )
 {
@@ -534,7 +534,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                         }
                         else
                         {
-                           doExec(taskCtx,std::move(req),reqPtr->callback,true);
+                           doExec(taskCtx,reqPtr->callback,std::move(req),true);
                         }
 
                         taskCtx->onAsyncHandlerExit();

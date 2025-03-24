@@ -77,17 +77,17 @@ class SessionClient : public common::TaskSubcontext
 
         Error exec(
             common::SharedPtr<Context> ctx,
+            RequestCb<Context> callback,
             const Service& service,
             const Method& method,
-            MessageType message,
-            RequestCb<Context> callback,
+            MessageType message,            
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
             MethodAuth methodAuth={}
         )
         {
-            return m_client->exec(std::move(ctx),m_session,service,method,std::move(message),std::move(callback),topic,priority,timeoutMs,std::move(methodAuth));
+            return m_client->exec(std::move(ctx),std::move(callback),m_session,service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
         }
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
@@ -104,11 +104,11 @@ class SessionClient : public common::TaskSubcontext
 
         void exec(
             common::SharedPtr<Context> ctx,
-            common::SharedPtr<ReqCtx> req,
-            RequestCb<Context> callback
+            RequestCb<Context> callback,
+            common::SharedPtr<ReqCtx> req
         )
         {
-            return m_client->exec(std::move(ctx),std::move(req),std::move(callback));
+            return m_client->exec(std::move(ctx),std::move(callback),std::move(req));
         }
 
         Error cancel(

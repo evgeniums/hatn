@@ -30,8 +30,7 @@ namespace client {
 /********************** ServiceClient **************************/
 
 template <typename ClientWithAuthContextT, typename ClientWithAuthT>
-class ServiceClient : public Service,
-                      public common::EnableSharedFromThis<ServiceClient<ClientWithAuthContextT,ClientWithAuthT>>
+class ServiceClient : public Service
 {
     public:
 
@@ -43,16 +42,24 @@ class ServiceClient : public Service,
                 m_clientWithAuthCtx(std::move(clientWithAuthCtx))
         {}
 
-        template <typename ...Args>
-        void exec(Args ...args)
+        template <typename ContextT, typename CallbackT, typename ...Args>
+        void exec(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                Args&& ...args
+            )
         {
-            impl().exec(this->sharedFromThis(),std::forward<Args>(args)...);
+            impl().exec(std::move(ctx),std::move(callback),*this,std::forward<Args>(args)...);
         }
 
-        template <typename ...Args>
-        void prepare(Args ...args)
+        template <typename ContextT, typename CallbackT, typename ...Args>
+        void prepare(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                Args&& ...args
+            )
         {
-            impl().prepare(this->sharedFromThis(),std::forward<Args>(args)...);
+            impl().prepare(std::move(ctx),std::move(callback),*this,std::forward<Args>(args)...);
         }
 
     private:
@@ -100,9 +107,9 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
 
         template <typename CallbackT>
         void exec(
-            common::SharedPtr<Service> service,
             common::SharedPtr<Context> ctx,
             CallbackT callback,
+            const Service& service,
             const Method& method,
             MessageType message,
             lib::string_view topic={},
@@ -110,7 +117,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
             uint32_t timeoutMs=0
         )
         {
-            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,service,&method,message,topic,callback{std::move(callback)},priority,timeoutMs]
+            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,&service,&method,message,topic,callback{std::move(callback)},priority,timeoutMs]
                     (auto ctx, const Error& ec, MethodAuth methodAuth)
             {
                 std::ignore=this;
@@ -120,7 +127,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                     return;
                 }
 
-                auto ec1=ClientWithSession::exec(ctx,*service,method,std::move(message),std::move(callback),topic,priority,timeoutMs,methodAuth);
+                auto ec1=ClientWithSession::exec(ctx,std::move(callback),service,method,std::move(message),topic,priority,timeoutMs,methodAuth);
                 if (ec1)
                 {
                     callback(ctx,ec1,Response{});
@@ -130,10 +137,10 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
         }
 
         template <typename MessageUnitT, typename CallbackT>
-        void exec(
-                common::SharedPtr<Service> service,
+        void exec(                
                 common::SharedPtr<Context> ctx,
                 CallbackT callback,
+                const Service& service,
                 const Method& method,
                 const MessageUnitT& message,
                 lib::string_view topic={},
@@ -149,20 +156,20 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 callback(std::move(ctx),ec,Response{});
                 return;
             }
-            exec(std::move(service),std::move(ctx),std::move(callback),method,std::move(msg),topic,priority,timeoutMs);
+            exec(std::move(ctx),std::move(callback),service,method,std::move(msg),topic,priority,timeoutMs);
         }
 
         template <typename CallbackT>
-        void prepare(
-            common::SharedPtr<Service> service,
+        void prepare(            
             common::SharedPtr<Context> ctx,
             CallbackT callback,
+            const Service& service,
             const Method& method,
             MessageType message,
             lib::string_view topic={}
         )
         {
-            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,service,&method,message,topic,callback{std::move(callback)}](auto ctx, const Error& ec, MethodAuth methodAuth)
+            auto methodAuthCb=[selfCtx{this->sharedMainCtx()},this,&service,&method,message,topic,callback{std::move(callback)}](auto ctx, const Error& ec, MethodAuth methodAuth)
             {
                 if (ec)
                 {
@@ -170,7 +177,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                     return;
                 }
 
-                auto req=ClientWithSession::prepare(ctx,*service,method,std::move(message),topic,std::move(methodAuth));
+                auto req=ClientWithSession::prepare(ctx,service,method,std::move(message),topic,std::move(methodAuth));
                 if (req)
                 {
                     callback(std::move(ctx),req.takeError(),common::SharedPtr<ReqCtx>{});
@@ -183,9 +190,9 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
 
         template <typename MessageUnitT, typename CallbackT>
         void prepare(
-            common::SharedPtr<Service> service,
             common::SharedPtr<Context> ctx,
             CallbackT callback,
+            const Service& service,
             const Method& method,
             const MessageUnitT& message,
             lib::string_view topic={}
@@ -199,7 +206,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 callback(std::move(ctx),ec,Response{});
                 return;
             }
-            prepare(std::move(service),std::move(ctx),std::move(callback),method,std::move(msg),topic);
+            prepare(std::move(ctx),std::move(callback),service,method,std::move(msg),topic);
         }
 };
 
@@ -252,97 +259,97 @@ constexpr makeClientWithAuthContextT<T> makeClientWithAuthContext{};
 /********************** MappedServiceClients **************************/
 
 template <typename Traits>
-class MappedServiceClients : public common::WithTraits<Traits>,
-                             public common::TaskSubcontext
+class MappedClientsWithAuth : public common::WithTraits<Traits>,
+                              public common::TaskSubcontext
 {
     public:
 
         using common::WithTraits<Traits>::WithTraits;
 
         template <typename ContextT, typename CallbackT>
-        void findServiceClient(
+        void findClientWithAuth(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             lib::string_view topic={}
         ) const
         {
-            this->traits().findServiceClient(std::move(ctx),std::move(callback),topic);
+            this->traits().findClientWithAuth(std::move(ctx),std::move(callback),topic);
         }
 };
 
 /********************** SingleServiceClient **************************/
 
-template <typename ServiceClientContextT, typename ServiceClientT>
-class SingleServiceClientTraits
+template <typename ClientWithAuthContextT, typename ClientWithAuthT>
+class SingleClientWithAuthTraits
 {
     public:
 
-        using ServiceClientContext=ServiceClientContextT;
-        using ServiceClient=ServiceClientT;
+        using ClientWithAuthContext=ClientWithAuthContextT;
+        using ClientWithAuth=ClientWithAuthT;
 
-        SingleServiceClientTraits(common::SharedPtr<ServiceClientContext> serviceClientCtx) : m_serviceClientCtx(std::move(serviceClientCtx))
+        SingleClientWithAuthTraits(common::SharedPtr<ClientWithAuthContext> clientWithAuthCtx) : m_clientWithAuthCtx(std::move(clientWithAuthCtx))
         {}
 
-        void setServiceClient(common::SharedPtr<ServiceClientContext> serviceClientCtx)
+        void setClientWithAuth(common::SharedPtr<ClientWithAuthContext> clientWithAuthCtx)
         {
-            m_serviceClientCtx=std::move(serviceClientCtx);
+            m_clientWithAuthCtx=std::move(clientWithAuthCtx);
         }
 
-        common::SharedPtr<ServiceClientContext> singleServiceClientCtx() const
+        common::SharedPtr<ClientWithAuthContext> singleClientWithAuthCtx() const
         {
-            return m_serviceClientCtx;
+            return m_clientWithAuthCtx;
         }
 
-        ServiceClient* singleServiceClient() const
+        ClientWithAuth* singleClientWithAuth() const
         {
-            if (!m_serviceClientCtx)
+            if (!m_clientWithAuthCtx)
             {
                 return nullptr;
             }
-            return &m_serviceClientCtx->template get<ServiceClient>();
+            return &m_clientWithAuthCtx->template get<ClientWithAuth>();
         }
 
         template <typename ContextT, typename CallbackT>
-        void findServiceClient(
+        void findClientWithAuth(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             lib::string_view topic={}
             ) const
         {
             std::ignore=topic;
-            callback(std::move(ctx),m_serviceClientCtx,m_serviceClientCtx->template get<ServiceClient>());
+            callback(std::move(ctx),m_clientWithAuthCtx,m_clientWithAuthCtx->template get<ClientWithAuth>());
         }
 
     private:
 
-        common::SharedPtr<ServiceClientContext> m_serviceClientCtx;
+        common::SharedPtr<ClientWithAuthContext> m_clientWithAuthCtx;
 };
 
-template <typename ServiceClientContextT, typename ServiceClientT>
-class SingleServiceClient : public MappedServiceClients<SingleServiceClientTraits<ServiceClientContextT,ServiceClientT>>
+template <typename ClientWithAuthContextT, typename ClientWithAuthT>
+class SingleClientWithAuth : public MappedClientsWithAuth<SingleClientWithAuthTraits<ClientWithAuthContextT,ClientWithAuthT>>
 {
     public:
 
-        using Base=MappedServiceClients<SingleServiceClientTraits<ServiceClientContextT,ServiceClientT>>;
+        using Base=MappedClientsWithAuth<SingleClientWithAuthTraits<ClientWithAuthContextT,ClientWithAuthT>>;
 
-        using ServiceClientContext=typename Base::ServiceClientContext;
-        using ServiceClient=typename Base::ServiceClient;
+        using ClientWithAuthContext=ClientWithAuthContextT;
+        using ClientWithAuth=ClientWithAuthT;
 
         using Base::Base;
 
-        void setServiceClient(common::SharedPtr<ServiceClientContext> serviceClientCtx)
+        void setClientWithAuth(common::SharedPtr<ClientWithAuthContext> clientWithAuthCtx)
         {
-            this->traits().setServiceClient(std::move(serviceClientCtx));
+            this->traits().setClientWithAuth(std::move(clientWithAuthCtx));
         }
 
-        common::SharedPtr<ServiceClientContext> singleServiceClientCtx() const
+        common::SharedPtr<ClientWithAuthContext> singleClientWithAuthCtx() const
         {
-            return this->traits().singleServiceClientCtx();
+            return this->traits().singleClientWithAuthCtx();
         }
 
-        ServiceClient* singleServiceClient() const
+        ClientWithAuth* singleClientWithAuth() const
         {
-            return this->traits().singleServiceClient();
+            return this->traits().singleClientWithAuth();
         }
 };
 

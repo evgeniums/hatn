@@ -100,7 +100,7 @@ class NoMethodAuth
         void makeAuthHeader(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            common::SharedPtr<ServiceT>,
+            const ServiceT&,
             const Method&,
             MessageT,
             lib::string_view ={},
@@ -161,7 +161,7 @@ class ServiceMethodsAuthSingle
         void makeAuthHeader(            
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            common::SharedPtr<ServiceT> service,
+            const ServiceT& service,
             const Method& mthd,
             MessageT message,
             lib::string_view topic={},
@@ -173,7 +173,7 @@ class ServiceMethodsAuthSingle
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            m_methodAuth->makeAuthHeader(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
+            m_methodAuth->makeAuthHeader(std::move(ctx),std::move(callback),service,mthd,std::move(message),topic,factory);
         }
 
     private:
@@ -192,7 +192,7 @@ class ServiceMethodsAuthMultiple
         void makeAuthHeader(
                 common::SharedPtr<ContextT> ctx,
                 CallbackT callback,
-                common::SharedPtr<ServiceT> service,
+                const ServiceT& service,
                 const Method& mthd,
                 MessageT message,
                 lib::string_view topic={},
@@ -205,7 +205,7 @@ class ServiceMethodsAuthMultiple
                 callback(std::move(ctx),Error{},MethodAuth{});
                 return;
             }
-            mthdAuth->makeAuthHeader(std::move(ctx),std::move(callback),std::move(service),mthd,std::move(message),topic,factory);
+            mthdAuth->makeAuthHeader(std::move(ctx),std::move(callback),service,mthd,std::move(message),topic,factory);
         }
 
         MethodAuthHandler* methodAuth(const Method& mthd) const

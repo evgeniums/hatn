@@ -115,11 +115,11 @@ class Client : public common::TaskSubcontext
 
         Error exec(
             common::SharedPtr<Context> ctx,
+            RequestCb<Context> callback,
             SessionWrapperT session,
             const Service& service,
             const Method& method,
-            MessageType message,
-            RequestCb<Context> callback,
+            MessageType message,            
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
@@ -138,17 +138,17 @@ class Client : public common::TaskSubcontext
 
         Error exec(
             common::SharedPtr<Context> ctx,
+            RequestCb<Context> callback,
             const Service& service,
             const Method& method,
             MessageType message,
-            RequestCb<Context> callback,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
             MethodAuth methodAuth={}
         )
         {
-            return exec(std::move(ctx),{},service,method,std::move(message),std::move(callback),topic,priority,timeoutMs,std::move(methodAuth));
+            return exec(std::move(ctx),std::move(callback),{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
         }
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
@@ -165,8 +165,8 @@ class Client : public common::TaskSubcontext
 
         void exec(
             common::SharedPtr<Context> ctx,
-            common::SharedPtr<ReqCtx> req,
-            RequestCb<Context> callback
+            RequestCb<Context> callback,
+            common::SharedPtr<ReqCtx> req
         );
 
         Error cancel(
@@ -193,8 +193,8 @@ class Client : public common::TaskSubcontext
 
         void doExec(
             common::SharedPtr<Context> ctx,
-            common::SharedPtr<ReqCtx> req,
             RequestCb<Context> callback,
+            common::SharedPtr<ReqCtx> req,            
             bool regenId=false
         );
 
