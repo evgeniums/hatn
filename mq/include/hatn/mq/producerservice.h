@@ -170,13 +170,13 @@ struct ProducerMethodTraits
 };
 
 template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
-using ProducerMethod=api::server::ServiceMethodT<RequestT,ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>,MessageT>;
+using ProducerMethod=api::server::ServiceMethodT<ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>,MessageT,RequestT>;
 
 template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
-using ProducerService=api::server::ServiceSingleMethod<RequestT,ProducerMethod<RequestT,ObjectHandlerT,NotifierT,MessageT>>;
+using ProducerService=api::server::ServiceSingleMethod<ProducerMethod<RequestT,ObjectHandlerT,NotifierT,MessageT>,RequestT>;
 
 template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT=server_db_message::managed>
-using ProducerServiceV=api::server::ServerServiceV<RequestT,ProducerService<RequestT,ObjectHandlerT,NotifierT,MessageT>>;
+using ProducerServiceV=api::server::ServerServiceV<ProducerService<RequestT,ObjectHandlerT,NotifierT,MessageT>,RequestT>;
 
 } // namespace server
 

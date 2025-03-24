@@ -54,10 +54,17 @@ HDU_UNIT(mq_object,
     HDU_FIELD(mq_pos,TYPE_OBJECT_ID,1001)
 )
 
-constexpr const char* ApiRequestMessageType="mq_message";
-constexpr const char* ApiRequestMethod="post";
+constexpr const char* ApiPostMessageType="mq_message";
+constexpr const char* ApiPostMethod="post";
 
 HATN_DB_UNIQUE_INDEX(msgProducerPosIdx,message::producer,message::pos)
+
+
+enum class MessageStatus : uint8_t
+{
+    Sent,
+    Failed
+};
 
 HATN_MQ_NAMESPACE_END
 

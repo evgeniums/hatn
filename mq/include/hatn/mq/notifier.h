@@ -20,31 +20,39 @@
 #ifndef HATNBMQNOTIFIER_H
 #define HATNBMQNOTIFIER_H
 
+#include <hatn/common/objecttraits.h>
 #include <hatn/common/taskcontext.h>
 
-#include <hatn/dataunit/syntax.h>
-
 #include <hatn/mq/mq.h>
+#include <hatn/mq/message.h>
 
 HATN_MQ_NAMESPACE_BEGIN
 
-template <typename LocalStorageT, typename ServerT, typename SchedulerT>
-struct Traits
-{
-    using LocalStorage=LocalStorageT;
-    using Server=ServerT;
-    using Scheduler=SchedulerT;
-};
+namespace client {
 
 template <typename Traits>
-class Notifier : public common::TaskSubcontext
+class Notifier : public common::WithTraits<Traits>,
+                 public common::TaskSubcontext
 {
     public:
 
-        using LocalStorage=typename Traits::LocalStorage;
-        using Server=typename Traits::Server;
-        using Scheduler=typename Traits::Scheduler;
+        using common::WithTraits<Traits>::WithTraits;
+
+        template <typename ContextT, typename CallbackT, typename MessageT>
+        void notify(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT callback,
+                lib::string_view topic,
+                common::SharedPtr<MessageT> msg,
+                MessageStatus status,
+                const std::string& errMsg
+            )
+        {
+            this->traits().notify(std::move(ctx),std::move(callback),topic,std::move(msg),status,errMsg);
+        }
 };
+
+}
 
 HATN_MQ_NAMESPACE_END
 

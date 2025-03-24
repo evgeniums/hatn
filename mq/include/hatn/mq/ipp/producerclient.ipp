@@ -35,30 +35,32 @@ HATN_MQ_NAMESPACE_BEGIN
 
 namespace client {
 
-template <typename Traits>
-ProducerClient<Traits>::ProducerClient(
+template <typename ConfigT>
+ProducerClient<ConfigT>::ProducerClient(
     std::shared_ptr<db::AsyncClient> dbClient,
         const common::pmr::AllocatorFactory* factory
     ) : common::pmr::WithFactory(factory),
         db::WithAsyncClient(std::move(dbClient)),
         m_stopped(false),
-        m_scheduler(nullptr),
+        m_scheduler(nullptr),        
+        m_apiClient(nullptr),
+        m_notifier(nullptr),
         m_topicJobs(this->factory()->template objectAllocator<topicJobsValueT>())
 {}
 
-template <typename Traits>
-ProducerClient<Traits>::ProducerClient(
+template <typename ConfigT>
+ProducerClient<ConfigT>::ProducerClient(
         const common::ConstDataBuf& producerId,
-        db::AsyncClient* dbClient,
+        std::shared_ptr<db::AsyncClient> dbClient,
         const common::pmr::AllocatorFactory* factory
-    ) : ProducerClient(dbClient,factory)
+    ) : ProducerClient(std::move(dbClient),factory)
 {
     setProducerId(producerId);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT, typename ContentT, typename NofificationT>
-void ProducerClient<Traits>::ProducerClient<Traits>::post(
+void ProducerClient<ConfigT>::post(
     common::SharedPtr<ContextT> ctx,
     CallbackT cb,
     std::string topic,
@@ -104,7 +106,6 @@ void ProducerClient<Traits>::ProducerClient<Traits>::post(
             [&](auto _)
             {
                 Assert(op==Operation::Update,"Invalid object content for Update operation");
-
                 auto subunit=this->factory()->template createObject<db::update::message::managed>();
                 auto ec=db::update::serialize(*_(objectContent),*subunit);
                 if (ec)
@@ -132,7 +133,6 @@ void ProducerClient<Traits>::ProducerClient<Traits>::post(
             [&](auto _)
             {
                 Assert(op==Operation::Update,"Invalid notification content for Update operation");
-
                 auto subunit=this->factory()->template createObject<db::update::message::managed>();
                 auto ec=db::update::serialize(*_(notificationContent),*subunit);
                 if (ec)
@@ -182,7 +182,7 @@ void ProducerClient<Traits>::ProducerClient<Traits>::post(
     };
     auto txHandler=[this,topic{std::move(topic)},msg,ctx,objectContent{std::move(objectContent)},notificationContent{std::move(notificationContent)}](db::Transaction* tx)
     {
-        auto client=m_db->client();
+        auto client=this->dbClient()->client();
         auto objectQuery=db::makeQuery(msgOidOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id).and_(message::producer,db::query::eq,m_producerId)),topic);
         auto findCreateOpQuery=db::makeQuery(msgOidOpIdx(),db::where(message::object_id,db::query::eq,msg->fieldValue(message::object_id)).
                                                                 and_(message::operation,db::query::eq,Operation::Create).
@@ -301,9 +301,9 @@ void ProducerClient<Traits>::ProducerClient<Traits>::post(
     this->dbClient()->transaction(ctx,std::move(txHandler),std::move(txCb));
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::invokeScheduledJob(
+void ProducerClient<ConfigT>::invokeScheduledJob(
         common::SharedPtr<ContextT> ctx,
         common::SharedPtr<typename Scheduler::Job> jb,
         CallbackT cb
@@ -341,16 +341,16 @@ void ProducerClient<Traits>::invokeScheduledJob(
     );
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::start(common::SharedPtr<ContextT> ctx, CallbackT cb)
+void ProducerClient<ConfigT>::start(common::SharedPtr<ContextT> ctx, CallbackT cb)
 {
     m_stopped.store(false);
     wakeUpTopics(std::move(ctx),std::move(cb));
 }
 
-template <typename Traits>
-void ProducerClient<Traits>::stop()
+template <typename ConfigT>
+void ProducerClient<ConfigT>::stop()
 {
     m_stopped.store(true);
 
@@ -359,9 +359,9 @@ void ProducerClient<Traits>::stop()
     m_topicJobsMutex.unlock();
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::removeLocalFailed(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType)
+void ProducerClient<ConfigT>::removeLocalFailed(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType)
 {
     lib::string_view topicView{topic};
     auto q=db::wrapQueryBuilder(
@@ -384,12 +384,12 @@ void ProducerClient<Traits>::removeLocalFailed(common::SharedPtr<ContextT> ctx, 
         }
         cb(std::move(ctx),ec);
     };
-    m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
+    this->dbClient()->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::removeLocalPos(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, const du::ObjectId& pos)
+void ProducerClient<ConfigT>::removeLocalPos(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, const du::ObjectId& pos)
 {
     lib::string_view topicView{topic};
     auto q=db::wrapQueryBuilder(
@@ -412,12 +412,12 @@ void ProducerClient<Traits>::removeLocalPos(common::SharedPtr<ContextT> ctx, Cal
         }
         cb(std::move(ctx),ec);
     };
-    m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
+    this->dbClient()->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::removeLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds)
+void ProducerClient<ConfigT>::removeLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds)
 {
     lib::string_view topicView{topic};
     auto q=db::wrapQueryBuilder(
@@ -446,12 +446,12 @@ void ProducerClient<Traits>::removeLocal(common::SharedPtr<ContextT> ctx, Callba
         }
         cb(std::move(ctx),ec);
     };
-    m_db->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
+    this->dbClient()->deleteMany(ctx,std::move(deleteCb),clientMqMessageModel(),std::move(q),nullptr,topicView);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::readLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds)
+void ProducerClient<ConfigT>::readLocal(common::SharedPtr<ContextT> ctx, CallbackT cb, std::string topic, std::string objectType, common::pmr::vector<du::ObjectId> objIds)
 {
     lib::string_view topicView{topic};
     auto q=db::wrapQueryBuilder(
@@ -480,12 +480,12 @@ void ProducerClient<Traits>::readLocal(common::SharedPtr<ContextT> ctx, Callback
         }
         cb(std::move(ctx),std::move(r));
     };
-    m_db->find(ctx,std::move(findCb),clientMqMessageModel(),std::move(q),topicView);
+    this->dbClient()->find(ctx,std::move(findCb),clientMqMessageModel(),std::move(q),topicView);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::postSchedulerJob(
+void ProducerClient<ConfigT>::postSchedulerJob(
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
         std::string topic
@@ -494,9 +494,9 @@ void ProducerClient<Traits>::postSchedulerJob(
     m_scheduler->postJob(std::move(ctx),std::move(callback),m_producerIdStr,topic,SchedulerJobRefType,HATN_SCHEDULER_NAMESPACE::Mode::Queued);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT, typename Iterator>
-void ProducerClient<Traits>::checkTopicOwned(common::SharedPtr<ContextT> ctx, CallbackT cb,
+void ProducerClient<ConfigT>::checkTopicOwned(common::SharedPtr<ContextT> ctx, CallbackT cb,
                      std::shared_ptr<std::pmr::set<db::TopicHolder>> foundTopics,
                      Iterator it)
 {
@@ -540,12 +540,12 @@ void ProducerClient<Traits>::checkTopicOwned(common::SharedPtr<ContextT> ctx, Ca
         ++it1;
         checkTopicOwned(std::move(ctx),std::move(cb),std::move(foundTopics),it1);
     };
-    m_db->findOne(ctx,findCb,clientMqMessageModel(),std::move(q),*it);
+    this->dbClient()->findOne(ctx,findCb,clientMqMessageModel(),std::move(q),*it);
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::wakeUpTopics(common::SharedPtr<ContextT> ctx, CallbackT cb)
+void ProducerClient<ConfigT>::wakeUpTopics(common::SharedPtr<ContextT> ctx, CallbackT cb)
 {
     auto topicsCb=[ctx,cb{std::move(cb)},this,selfCtx{this->sharedMainCtx()}](auto, Result<std::pmr::set<db::TopicHolder>> res)
     {
@@ -567,16 +567,16 @@ void ProducerClient<Traits>::wakeUpTopics(common::SharedPtr<ContextT> ctx, Callb
         checkTopicOwned(std::move(ctx),std::move(cb),std::move(topics),it);
     };
 
-    m_db->listModelTopics(
+    this->dbClient()->listModelTopics(
         ctx,
         topicsCb,
         clientMqMessageModel()
     );
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb, common::SharedPtr<Message> msg)
+void ProducerClient<ConfigT>::sendToserver(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb, common::SharedPtr<Message> msg)
 {
     auto sendCb=[cb{std::move(cb)},jb,selfCtx{this->sharedMainCtx()},this](auto ctx, const Error& ec, auto msg)
     {
@@ -638,7 +638,7 @@ void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, Callb
                                             db::update::field(client_db_message::failed,db::update::Operator::set,true),
                                             db::update::field(client_db_message::error_message,db::update::Operator::set,*errMsg)
                                            );
-            m_db->update(
+            this->dbClient()->update(
                 std::move(ctx),
                 std::move(updateCb),
                 jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),
@@ -667,14 +667,14 @@ void ProducerClient<Traits>::sendToserver(common::SharedPtr<ContextT> ctx, Callb
                 ctx,notifyCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),msg,MessageStatus::Sent
             );
         };
-        m_db->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientMqMessageModel(),msg->fieldValue(db::object::_id));
+        this->dbClient()->deleteObject(ctx,delCb,jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),clientMqMessageModel(),msg->fieldValue(db::object::_id));
     };
     m_apiClient->producerPost(std::move(ctx),std::move(sendCb),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic),std::move(msg));
 }
 
-template <typename Traits>
+template <typename ConfigT>
 template <typename ContextT, typename CallbackT>
-void ProducerClient<Traits>::dequeue(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb)
+void ProducerClient<ConfigT>::dequeue(common::SharedPtr<ContextT> ctx, CallbackT cb, common::SharedPtr<typename Scheduler::Job> jb)
 {
     if (m_stopped.load())
     {
@@ -706,7 +706,7 @@ void ProducerClient<Traits>::dequeue(common::SharedPtr<ContextT> ctx, CallbackT 
             return Error{};
         }
 
-        auto client=m_db->client();
+        auto client=this->dbClient()->client();
 
         size_t foundCount=0;
         bool findCb=[ctx,jb,cb,this,jobResultStatus,&foundCount,tx](db::DbObject obj, Error& ec)
@@ -781,7 +781,7 @@ void ProducerClient<Traits>::dequeue(common::SharedPtr<ContextT> ctx, CallbackT 
             removeTopicJob(jb);
         }
     };
-    m_db->transaction(ctx,std::move(txCb),std::move(txHandler),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic));
+    this->dbClient()->transaction(ctx,std::move(txCb),std::move(txHandler),jb->fieldValue(HATN_SCHEDULER_NAMESPACE::job::ref_topic));
 }
 
 } // namespace client

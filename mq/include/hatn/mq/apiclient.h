@@ -26,17 +26,16 @@
 #include <hatn/api/client/serviceclient.h>
 
 #include <hatn/mq/mq.h>
+#include <hatn/mq/message.h>
+#include <hatn/mq/methods.h>
 
 HATN_MQ_NAMESPACE_BEGIN
 
-//! @todo Move it to mq service definitions
-constexpr const char* ProducerPostMethod="producer_post";
-class MethodProducerPost : public api::Method
+template <typename ClientWithAuthContextT, typename ClientWithAuthT>
+struct ApiClientDefaultTraits
 {
-    public:
-
-    MethodProducerPost() : api::Method(ProducerPostMethod)
-    {}
+    using MappedClients=api::client::SingleClientWithAuth<ClientWithAuthContextT,ClientWithAuthT>;
+    using Message=message::managed;
 };
 
 template <typename Traits>
@@ -45,36 +44,44 @@ class ApiClient : public common::pmr::WithFactory,
 {
     public:
 
-        using MappedServiceClients=typename Traits::MappedServiceClients;
-        using MappedServiceClientsCtx=typename Traits::MappedServiceClientsCtx;
+        using MappedClients=typename Traits::MappedClients;
         using Message=typename Traits::Message;
 
         ApiClient(
-                common::SharedPtr<MappedServiceClientsCtx> serviceClients,
+                api::Service mqService,
+                common::SharedPtr<MappedClients> topicClients={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : common::pmr::WithFactory(factory),
-                m_serviceClients(std::move(serviceClients))
+                m_mqService(std::move(mqService)),
+                m_topicClients(std::move(topicClients))
         {}
 
-        void setServiceClients(common::SharedPtr<MappedServiceClientsCtx> serviceClients)
+        ApiClient(
+            lib::string_view serviceName,
+            common::SharedPtr<MappedClients> topicClients={},
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault(),
+            uint8_t serviceVersion=1
+            ) : ApiClient(api::Service{serviceName,serviceVersion},std::move(topicClients),factory)
+        {}
+
+        void setServiceClients(common::SharedPtr<MappedClients> topicClients)
         {
-            m_serviceClients=std::move(serviceClients);
+            m_topicClients=std::move(topicClients);
         }
 
-        common::SharedPtr<MappedServiceClientsCtx> serviceClientsShared() const
+        common::SharedPtr<MappedClients> topicClients() const
         {
-            return m_serviceClients;
+            return m_topicClients;
         }
 
-        const MappedServiceClientsCtx* serviceClients() const
+        void setMqService(api::Service mqService)
         {
-            if (!m_serviceClients)
-            {
-                return nullptr;
-            }
+            m_mqService=std::move(mqService);
+        }
 
-            auto& subctx=m_serviceClients->template get<MappedServiceClients>();
-            return &subctx;
+        const api::Service& mqService() const
+        {
+            return m_mqService;
         }
 
         template <typename ContextT, typename CallbackT, typename MessageT>
@@ -85,7 +92,7 @@ class ApiClient : public common::pmr::WithFactory,
                 common::SharedPtr<MessageT> msg
             )
         {
-            serviceClients()->findServiceClient(
+            m_topicClients->findClientWithAuth(
                 std::move(ctx),
                 [selfCtx{this->sharedMainCtx()},this,callback{std::move(callback)},msg{std::move(msg)},topic](auto ctx, auto clientCtx, auto& client)
                 {
@@ -111,7 +118,7 @@ class ApiClient : public common::pmr::WithFactory,
                         std::ignore=response;
                         callback(std::move(ctx),ec,std::move(msg));
                     };
-                    client.exec(ctx,std::move(execCb),m_methodProducerPost,std::move(reqMsg),topic);
+                    client.exec(ctx,std::move(execCb),m_mqService,m_methodProducerPost,std::move(reqMsg),topic);
                 },
                 topic
             );
@@ -119,7 +126,8 @@ class ApiClient : public common::pmr::WithFactory,
 
     private:
 
-        common::SharedPtr<MappedServiceClientsCtx> m_serviceClients;
+        api::Service m_mqService;
+        common::SharedPtr<MappedClients> m_topicClients;
 
         MethodProducerPost m_methodProducerPost;
 };

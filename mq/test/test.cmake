@@ -1,5 +1,6 @@
 SET (TEST_SOURCES
     ${MQ_TEST_SRC}/testbackgroundworker.cpp
+    ${MQ_TEST_SRC}/testproducer.cpp
 )
 
 SET (TEST_HEADERS

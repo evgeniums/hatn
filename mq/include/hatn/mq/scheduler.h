@@ -90,18 +90,6 @@ HATN_DB_MODEL_WITH_CFG(jobModel,job,HATN_DB_NAMESPACE::ModelConfig("scheduler_jo
 
 constexpr const char* DefaultJobRefType="default";
 
-struct SchedulerTraits
-{
-    using Job=job::managed;    
-    using Worker=void; // implement worker and rebind type in derived traits
-    using WorkContextBuilder=void; // implement builder and rebind type in derived traits
-
-    static const auto& jobModel()
-    {
-        return HATN_SCHEDULER_NAMESPACE::jobModel();
-    }
-};
-
 struct JobKey
 {
     JobKey(
@@ -150,30 +138,65 @@ void addToJobNextTime(JobT* jobPtr, int seconds)
     setJobNextTime(jobPtr,dt);
 }
 
-template <typename Traits=SchedulerTraits>
+//! @todo Move to separate file
+template <typename ContextT, typename JobT=job::managed>
+class Worker
+{
+    public:
+
+        using Context=ContextT;
+        using Job=JobT;
+
+        using Callback=std::function<void (const Error&)>;
+
+        virtual ~Worker()=default;
+
+        virtual void invokeScheduledJob(
+            common::SharedPtr<Context> ctx,
+            common::SharedPtr<Job> jb,
+            Callback cb
+        ) =0;
+};
+
+template <typename WorkContextBuilderT>
+struct DefaultSchedulerConfig
+{
+    using Job=job::managed;
+    using WorkContextBuilder=WorkContextBuilderT;
+
+    static const auto& jobModel()
+    {
+        return HATN_SCHEDULER_NAMESPACE::jobModel();
+    }
+};
+
+//! @todo Split to .h and .ipp
+
+template <typename WorkerT, typename ConfigT>
 class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::type>,
+                  public db::WithAsyncClient,
                   public common::TaskSubcontext
 {
     public:
 
-        using Job=typename Traits::Job;
-        using Worker=typename Traits::Worker;
-        using WorkContextBuilder=typename Traits::WorkContextBuilder;
-        using BackgroundWorker=HATN_MQ_NAMESPACE::BackgroundWorker<Scheduler<Traits>,WorkContextBuilder>;
+        using Job=typename ConfigT::Job;
+        using Worker=WorkerT;
+        using WorkContextBuilder=typename ConfigT::WorkContextBuilder;
+        using BackgroundWorker=HATN_MQ_NAMESPACE::BackgroundWorker<Scheduler<Worker,ConfigT>,WorkContextBuilder>;
 
     private:
 
         static const auto& jobModel()
         {
-            return Traits::jobModel();
+            return ConfigT::jobModel();
         }
 
     public:
 
         Scheduler(
-                std::shared_ptr<db::AsyncClient> db,
+                std::shared_ptr<db::AsyncClient> dbClient={},
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_db(std::move(db)),
+            ) : db::WithAsyncClient(std::move(dbClient)),
                 m_factory(factory),
                 m_jobRunner(nullptr),
                 m_background(nullptr)
@@ -255,7 +278,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             {
                 // find existing job
 
-                auto client=m_db->client();
+                auto client=this->dbClient()->client();
                 auto q=db::makeQuery(jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,(*jobWrapper)->fieldValue(job::ref_id)).
                                        and_(job::ref_topic,db::query::eq,(*jobWrapper)->fieldValue(job::ref_topic)).
@@ -313,7 +336,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 }
                 return ec;
             };
-            m_db->transaction(ctx,std::move(txHandler),std::move(txCb),m_topic);
+            this->dbClient()->transaction(ctx,std::move(txHandler),std::move(txCb),m_topic);
         }
 
         void enqueueJob(common::SharedPtr<Job> jb)
@@ -407,7 +430,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             };
             auto txHandler=[this,jobPtr,conflictMode,newJob{std::move(newJob)}](db::Transaction* tx)
             {
-                auto client=m_db->client();
+                auto client=this->dbClient()->client();
                 auto q=db::makeQuery(jobRefIdx(),
                                        db::query::where(job::ref_id,db::query::eq,jobPtr->fieldValue(job::ref_id)).
                                        and_(job::ref_topic,db::query::eq,jobPtr->fieldValue(job::ref_topic)).
@@ -501,7 +524,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 }
                 return ec;
             };
-            m_db->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
+            this->dbClient()->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -533,7 +556,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
                 callback(std::move(ctx),ec);
             };
-            m_db->deleteMany(
+            this->dbClient()->deleteMany(
                 ctx,
                 std::move(removeCb),
                 jobModel(),
@@ -564,7 +587,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
                 callback(std::move(ctx),ec);
             };
-            m_db->deleteMany(
+            this->dbClient()->deleteMany(
                 ctx,
                 std::move(removeCb),
                 jobModel(),
@@ -613,7 +636,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                 }
                 cb(ec);
             };
-            m_db->updateMany(
+            this->dbClient()->updateMany(
                 ctx,
                 std::move(updateCb),
                 jobModel(),
@@ -638,7 +661,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
 
         Error holdJob(common::SharedPtr<Job> jb, db::Transaction* tx=nullptr)
         {
-            auto client=m_db->client();
+            auto client=this->dbClient()->client();
 
             auto dt=now();
             dt.addSeconds(this->config().fieldValue(scheduler_config::job_hold_period));
@@ -654,7 +677,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
         {
             auto txHandler=[this](db::Transaction* tx)
             {
-                auto client=m_db->client();
+                auto client=this->dbClient()->client();
                 size_t jobsCount=0;
 
                 // read jobs from database
@@ -732,7 +755,7 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
                     // sleep
                 }
             };
-            m_db->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
+            this->dbClient()->transaction(ctx,std::move(transactionCb),std::move(txHandler),m_topic);
         }
 
         template <typename ContextT, typename CallbackT>
@@ -880,7 +903,6 @@ class Scheduler : public HATN_BASE_NAMESPACE::ConfigObject<scheduler_config::typ
             }
         }
 
-        std::shared_ptr<db::AsyncClient> m_db;
         const common::pmr::AllocatorFactory* m_factory;
 
         common::CacheLru<JobKey,JobWrapper> m_queue;

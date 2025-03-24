@@ -31,6 +31,7 @@
 #include <hatn/mq/scheduler.h>
 #include <hatn/mq/mqerror.h>
 #include <hatn/mq/message.h>
+#include <hatn/mq/scheduler.h>
 
 HATN_MQ_NAMESPACE_BEGIN
 
@@ -66,34 +67,57 @@ HATN_DB_MODEL_WITH_CFG(clientMqMessageModel,client_db_message,db::ModelConfig("m
                        msgObjTypeIdx()
                        )
 
-enum class MessageStatus : uint8_t
-{
-    Sent,
-    Failed
-};
-
-template <typename ApiClientT, typename SchedulerT, typename NotifierT, typename MessageT=client_db_message::managed>
-struct Traits
+template <typename ApiClientT, typename NotifierT, typename SchedulerConfigT, typename MessageT=client_db_message::managed>
+struct ProducerClientConfig
 {
     using ApiClient=ApiClientT;
-    using Scheduler=SchedulerT;
     using Notifier=NotifierT;
     using Message=MessageT;
+
+    using SchedulerConfig=SchedulerConfigT;
 };
 
-template <typename Traits>
+template <typename ConfigT>
 class ProducerClient : public common::pmr::WithFactory,
                        public common::WithMappedThreads,
                        public HATN_BASE_NAMESPACE::ConfigObject<producer_config::type>,
                        public db::WithAsyncClient,
                        public common::TaskSubcontext
 {
+    using SchedulerConfig=typename ConfigT::SchedulerConfig;
+
+    constexpr static auto schedulerWorkerType()
+    {
+        auto workerDefined=[](auto v) -> typename decltype(v)::type::Worker*
+        {
+            return nullptr;
+        };
+        auto cfg=hana::type_c<SchedulerConfig>;
+        auto isWorkerDefined=hana::is_valid(workerDefined)(cfg);
+        return hana::eval_if(
+            isWorkerDefined,
+            [&](auto _)
+            {
+                using cgfType=typename std::decay_t<decltype(_(cfg))>::type;
+                using workerType=typename cgfType::Worker;
+                return hana::type_c<workerType>;
+            },
+            []()
+            {
+                using workerType=ProducerClient<ConfigT>;
+                return hana::type_c<workerType>;
+            }
+        );
+    }
+
     public:
 
-        using ApiClient=typename Traits::ApiClient;
-        using Scheduler=typename Traits::Scheduler;
-        using Notifier=typename Traits::Notifier;
-        using Message=typename Traits::Message;
+        using SchedulerWorker=typename decltype(schedulerWorkerType())::type;
+
+        using ApiClient=typename ConfigT::ApiClient;
+        using Scheduler=HATN_SCHEDULER_NAMESPACE::Scheduler<SchedulerWorker,SchedulerConfig>;
+        using Notifier=typename ConfigT::Notifier;
+        using Message=typename ConfigT::Message;
 
         constexpr static const char* SchedulerJobRefType="mq_producer_dequeue";
 
@@ -104,14 +128,14 @@ class ProducerClient : public common::pmr::WithFactory,
 
         ProducerClient(
             const common::ConstDataBuf& producerId,
-            db::AsyncClient* dbClient=nullptr,
+            std::shared_ptr<db::AsyncClient> dbClient={},
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
         void setProducerId(const common::ConstDataBuf& id)
         {
             m_producerId.set(id);
-            m_producerIdStr=id;
+            m_producerIdStr.load(id);
         }
 
         const du::ObjectId& producerId() const noexcept
@@ -149,7 +173,7 @@ class ProducerClient : public common::pmr::WithFactory,
             m_apiClient=server;
         }
 
-        ApiClient* server() const noexcept
+        ApiClient* apiCLient() const noexcept
         {
             return m_apiClient;
         }
@@ -271,13 +295,11 @@ class ProducerClient : public common::pmr::WithFactory,
         du::ObjectId m_producerId;
         du::ObjectId::String m_producerIdStr;
 
-        db::AsyncClient* m_db;
-
         std::atomic<bool> m_stopped;
 
         Scheduler* m_scheduler;
         ApiClient* m_apiClient;
-        Notifier* m_notifier;
+        Notifier* m_notifier;        
 
         mutable common::MutexLock m_topicJobsMutex;
         common::pmr::map<std::string,common::SharedPtr<typename Scheduler::Job>,std::less<>> m_topicJobs;
