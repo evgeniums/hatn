@@ -115,7 +115,7 @@ struct SerializeScalar
 
     Error operator () (const String& val) const
     {
-        if (!du::BytesSer<String,common::ByteArrayShared>::serialize(&val,buf,false,false))
+        if (!du::BytesSer<String,common::ByteArrayShared>::serialize(buf,&val,common::ByteArrayShared{},false))
         {
             return du::unitError(du::UnitError::SERIALIZE_ERROR);
         }
@@ -195,20 +195,35 @@ struct serializeFieldT
             item.setFieldValue(field_id::field_name,it.name);
         }
 
-        Error scalarFn=[&field](const auto& val)
+        if (updateField.op==Operator::unset
+            ||
+            updateField.op==Operator::pop
+            ||
+            updateField.op==Operator::erase_element
+            )
+        {
+            return Error{};
+        }
+
+        auto scalarFn=[&field](const auto& val) -> Error
         {
             auto& scalar=field.mutableValue()->field(a_field::scalar);
             common::ByteArray* buf=scalar.buf();
             du::WireBufSolidRef wbuf{*buf};
             return SerializeScalar{wbuf}(val);
         };
-        Error vectorFn=[&field](const auto& val)
+        auto vectorFn=[&field](const auto& val) -> Error
         {
             auto& vector=field.mutableValue()->field(a_field::vector);
-            auto& scalar=vector.createAndAppendValue();
-            common::ByteArray* buf=scalar.buf();
-            du::WireBufSolidRef wbuf{*buf};
-            return SerializeScalar{wbuf}(val);
+            for (const auto& it: val)
+            {
+                auto& scalar=vector.createAndAppendValue();
+                common::ByteArray* buf=scalar.buf();
+                du::WireBufSolidRef wbuf{*buf};
+                auto ec=SerializeScalar{wbuf}(it);
+                HATN_CHECK_EC(ec)
+            }
+            return Error{};
         };
 
         auto vis=FieldVisitor(std::move(scalarFn),std::move(vectorFn));
@@ -311,8 +326,9 @@ struct deserializeT
             FieldPath path;
             for (auto&& it1: fieldPath)
             {
+                //! @todo Check if const char* name is OK
                 path.emplace_back(it1.fieldValue(field_id::id),
-                                it1.fieldValue(field_id::field_name),
+                                it1.field(field_id::field_name).c_str(),
                                 it1.fieldValue(field_id::idx)
                                );
             }
@@ -414,7 +430,7 @@ struct deserializeT
                     {
                         ObjectId val;
                         du::WireBufSolidConstRef wbuf(buf);
-                        if (!du::OidTraits::deserialize(val,buf))
+                        if (!du::OidTraits::deserialize(val,wbuf))
                         {
                             return du::unitError(du::UnitError::SERIALIZE_ERROR);
                         }
@@ -428,7 +444,7 @@ struct deserializeT
                     {
                         common::Date val;
                         du::WireBufSolidConstRef wbuf(buf);
-                        if (!du::DateTraits::deserialize(val,buf))
+                        if (!du::DateTraits::deserialize(val,wbuf))
                         {
                             return du::unitError(du::UnitError::SERIALIZE_ERROR);
                         }
@@ -442,7 +458,7 @@ struct deserializeT
                     {
                         common::DateRange val;
                         du::WireBufSolidConstRef wbuf(buf);
-                        if (!du::DateRangeTraits::deserialize(val,buf))
+                        if (!du::DateRangeTraits::deserialize(val,wbuf))
                         {
                             return du::unitError(du::UnitError::SERIALIZE_ERROR);
                         }
@@ -456,7 +472,7 @@ struct deserializeT
                     {
                         common::Time val;
                         du::WireBufSolidConstRef wbuf(buf);
-                        if (!du::TimeTraits::deserialize(val,buf))
+                        if (!du::TimeTraits::deserialize(val,wbuf))
                         {
                             return du::unitError(du::UnitError::SERIALIZE_ERROR);
                         }
@@ -470,7 +486,7 @@ struct deserializeT
                     {
                         common::DateTime val;
                         du::WireBufSolidConstRef wbuf(buf);
-                        if (!du::DateTime::deserialize(val,buf))
+                        if (!du::DateTime::deserialize(val,wbuf))
                         {
                             return du::unitError(du::UnitError::SERIALIZE_ERROR);
                         }
@@ -483,7 +499,17 @@ struct deserializeT
                 return Error{};
             };
 
-            if (field.field(a_field::scalar).isSet())
+            auto op=field.field(a_field::op).value();
+            if (op==Operator::unset
+                ||
+                op==Operator::erase_element
+                ||
+                op==Operator::pop
+                )
+            {
+                request.emplace_back(std::move(path),field.field(a_field::op).value());
+            }
+            else if (field.field(a_field::scalar).isSet())
             {
                 // parse scalar field
                 auto handler=[&request,&field,&path](const auto& val)
@@ -643,8 +669,6 @@ struct deserializeT
 
 constexpr serialization::serializeT serialize{};
 constexpr serialization::deserializeT deserialize{};
-
-//! @todo Test serialization/deserialization of update request
 
 } // namespace update
 
