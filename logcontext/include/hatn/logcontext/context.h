@@ -504,6 +504,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 };
 using Context=ContextT<>;
 using Subcontext=Context;
+using LogContext=Context;
 
 struct makeLogCtxT
 {
