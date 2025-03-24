@@ -36,8 +36,7 @@ class WithNameAndVersion
         WithNameAndVersion() : m_version(1)
         {}
 
-        template <typename T>
-        WithNameAndVersion(T&& name, uint8_t version=1) : m_name(std::forward<T>(name)),m_version(version)
+        WithNameAndVersion(lib::string_view name, uint8_t version=1) : m_name(name),m_version(version)
         {}
 
         void setName(lib::string_view name)
