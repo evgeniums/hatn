@@ -147,7 +147,6 @@ int Unit::serialize(WireData&, bool) const
     return -1;
 }
 
-#if 1
 //---------------------------------------------------------------
 int Unit::serialize(WireBufSolid&, bool) const
 {
@@ -163,12 +162,18 @@ int Unit::serialize(WireBufSolidShared&, bool) const
 }
 
 //---------------------------------------------------------------
+int Unit::serialize(WireBufSolidRef&, bool) const
+{
+    // must be implemented in derived class
+    return -1;
+}
+
+//---------------------------------------------------------------
 int Unit::serialize(WireBufChained&, bool) const
 {
     // must be implemented in derived class
     return -1;
 }
-#endif
 
 //---------------------------------------------------------------
 int Unit::serialize(char *buf, size_t bufSize, bool checkSize) const

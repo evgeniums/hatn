@@ -144,9 +144,6 @@ class HATN_DATAUNIT_EXPORT Unit
             bool topLevel=true
         ) const;
 
-#if 1
-        //! @todo Maybe implement later
-
         virtual int serialize(
             WireBufSolid& wired,
             bool topLevel=true
@@ -158,10 +155,15 @@ class HATN_DATAUNIT_EXPORT Unit
         ) const;
 
         virtual int serialize(
+            WireBufSolidRef& wired,
+            bool topLevel=true
+        ) const;
+
+        virtual int serialize(
             WireBufChained& wired,
             bool topLevel=true
         ) const;
-#endif
+
         /**
          * @brief Serialize DataUnit to plain data buffer
          * @param buf Buffer
