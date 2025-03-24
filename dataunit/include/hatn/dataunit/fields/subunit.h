@@ -337,7 +337,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                 },
                 []()
                 {
-                    throw std::runtime_error("Can not set custom subunit field");
+                    throw std::runtime_error("Cannot set custom subunit field");
                 }
             );
         }

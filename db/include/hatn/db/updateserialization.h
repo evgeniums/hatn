@@ -28,6 +28,8 @@ HATN_DB_NAMESPACE_BEGIN
 
 namespace update {
 
+//! @todo Use fixed string for name?
+
 HDU_UNIT(field_id,
     HDU_FIELD(id,TYPE_INT32,1)
     HDU_FIELD(idx,TYPE_UINT32,2)

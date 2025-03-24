@@ -957,23 +957,23 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     virtual void arrayGet(size_t idx,common::DataBuf& val) const override {RepeatedGetterSetter<Type>::bufGet(vector,idx,val);}
     virtual void arrayGet(size_t idx,ObjectId& val) const override {RepeatedGetterSetter<Type>::getVal(vector[idx],val);}
 
-    virtual void arrayAppend(bool val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(uint8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(uint16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(uint32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(uint64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(int8_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(int16_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(int32_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(int64_t val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(float val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(double val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(const common::DateTime& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(const common::Date& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(const common::Time& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(const common::DateRange& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
-    virtual void arrayAppend(const common::ConstDataBuf& val) override {RepeatedGetterSetter<Type>::bufAppendValue(this,val.data(),val.size());}
-    virtual void arrayAppend(const ObjectId& val) override {RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(bool val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint8_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint16_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint32_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(uint64_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int8_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int16_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int32_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(int64_t val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(float val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(double val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::DateTime& val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::Date& val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::Time& val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::DateRange& val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
+    virtual void arrayAppend(const common::ConstDataBuf& val) override {this->markSet();RepeatedGetterSetter<Type>::bufAppendValue(this,val.data(),val.size());}
+    virtual void arrayAppend(const ObjectId& val) override {this->markSet();RepeatedGetterSetter<Type>::appendVal(vector,val);}
 
     virtual void arrayInc(size_t idx,uint8_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
     virtual void arrayInc(size_t idx,uint16_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}

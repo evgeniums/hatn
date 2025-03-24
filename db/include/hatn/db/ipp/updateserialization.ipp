@@ -236,6 +236,7 @@ struct serializeT
 {
     Error operator() (const Request& request, message::type& msg) const
     {
+        msg.clear();
         for (const auto& field: request)
         {
             auto ec=serializeField(field,msg);
@@ -306,16 +307,21 @@ constexpr fixedDeserT<T,T1> fixedDeser{};
 
 struct deserializeT
 {
-    common::Result<common::pmr::vector<VectorsHolder> > operator() (const message::type& msg, Request& request,
+    Error operator() (const message::type& msg, Request& request,
+                                             common::pmr::vector<VectorsHolder>& vectorsHolder,
                                              const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) const
     {
-        common::pmr::vector<VectorsHolder> vectorsHolder{factory->createObjectVector<VectorsHolder>()};
+        request.clear();
+        vectorsHolder.clear();
+
         const auto& fields=msg.field(message::the_fields).value();
         common::ByteArray tmpInlineString;
         common::ByteArrayShared fooBuf;
         const char* nullbuf=nullptr;
         tmpInlineString.loadInline(nullbuf,0);
+        request.reserve(fields.size());
+        vectorsHolder.reserve(fields.size());
 
         for (size_t i=0;i<fields.size();i++)
         {
@@ -326,7 +332,6 @@ struct deserializeT
             FieldPath path;
             for (auto&& it1: fieldPath)
             {
-                //! @todo Check if const char* name is OK
                 path.emplace_back(it1.fieldValue(field_id::id),
                                 it1.field(field_id::field_name).c_str(),
                                 it1.fieldValue(field_id::idx)
@@ -530,7 +535,7 @@ struct deserializeT
                 auto vectorHandler=[&vectorsHolder,&request,&path,&field,&vector,&parseValue](auto vec)
                 {
                     // parse each element of the vector
-                    using vecValType=std::decay_t<decltype(vec)>;
+                    using vecValType=typename std::decay_t<decltype(vec)>::value_type;
                     auto itemHandler=[&vec](const auto& val)
                     {
                         using valType=std::decay_t<decltype(val)>;
@@ -629,27 +634,27 @@ struct deserializeT
                     break;
                     case(ValueType::VectorObjectId):
                     {
-                        HATN_CHECK_RETURN(vectorHandler(factory->createDataVector<ObjectId>()));
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<ObjectId>()));
                     }
                     break;
                     case(ValueType::VectorDate):
                     {
-                        HATN_CHECK_RETURN(vectorHandler(factory->createDataVector<common::Date>()));
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<common::Date>()));
                     }
                     break;
                     case(ValueType::VectorDateRange):
                     {
-                        HATN_CHECK_RETURN(vectorHandler(factory->createDataVector<common::DateRange>()));
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<common::DateRange>()));
                     }
                     break;
                     case(ValueType::VectorTime):
                     {
-                        HATN_CHECK_RETURN(vectorHandler(factory->createDataVector<common::Time>()));
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<common::Time>()));
                     }
                     break;
                     case(ValueType::VectorDateTime):
                     {
-                        HATN_CHECK_RETURN(vectorHandler(factory->createDataVector<common::DateTime>()));
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<common::DateTime>()));
                     }
                     break;
 
@@ -661,7 +666,7 @@ struct deserializeT
                 }
             }
         }
-        return vectorsHolder;
+        return OK;
     }
 };
 
