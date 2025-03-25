@@ -58,6 +58,15 @@ HDU_UNIT_WITH(vec,(HDU_BASE(object)),
     HDU_REPEATED_FIELD(f20,TYPE_DOUBLE,20)
 )
 
+HDU_UNIT(sub,
+    HDU_FIELD(f1,TYPE_UINT32,1)
+    HDU_FIELD(f2,TYPE_STRING,2)
+)
+
+HDU_UNIT_WITH(emb,(HDU_BASE(object)),
+    HDU_FIELD(ff1,TYPE_UINT32,1)
+    HDU_FIELD(ff2,sub::TYPE,2)
+)
 
 BOOST_AUTO_TEST_SUITE(TestUpdateSerialize)
 
@@ -82,7 +91,7 @@ BOOST_AUTO_TEST_CASE(OneFieldSerDeser)
     BOOST_CHECK_EQUAL(msg1.toString(),msg2.toString());
 }
 
-BOOST_AUTO_TEST_CASE(ScalarSetUnset)
+BOOST_AUTO_TEST_CASE(ScalarOps)
 {
     common::pmr::vector<update::serialization::VectorsHolder> vectorsHolder;
     auto dt=common::DateTime::parseIsoString("2024-03-24T13:32:19.432Z");
@@ -142,6 +151,27 @@ BOOST_AUTO_TEST_CASE(ScalarSetUnset)
     update::apply(&obj,r3_);
     BOOST_TEST_MESSAGE(fmt::format("after apply unset: {}",obj.toString(true,4)));
     std::string sample1="{\"f1\":true,\"f2\":100,\"f3\":1000,\"f4\":10000,\"f5\":100000,\"f6\":200,\"f7\":2000,\"f8\":20000,\"f9\":200000,\"f11\":3,\"f12\":\"hi!\",\"f13\":\"2024-03-24T13:32:19.432Z\",\"f14\":\"2024-03-24\",\"f15\":\"13:32:19\",\"f16\":\"195c85aa86900000190592bde\",\"f17\":\"32024003\",\"f18\":\"SGkgYnl0ZXMh\",\"f19\":101.202,\"f20\":1001.2002}";
+    BOOST_CHECK_EQUAL(sample1,obj.toString(false,4));
+
+    r1=update::request(
+        update::field(plain::f2,update::inc,-10),
+        update::field(plain::f3,update::inc,1000),
+        update::field(plain::f4,update::inc,10000),
+        update::field(plain::f5,update::inc,100000),
+        update::field(plain::f6,update::inc,-20),
+        update::field(plain::f7,update::inc,2000),
+        update::field(plain::f8,update::inc,20000),
+        update::field(plain::f9,update::inc,200000)
+    );
+    ec=update::serialize(r1,msg1);
+    BOOST_CHECK(!ec);
+    res=update::deserialize(msg1,r2,vectorsHolder);
+    BOOST_CHECK(!res);
+    ec=update::serialize(r2,msg2);
+    BOOST_CHECK(!ec);
+    update::apply(&obj,r2);
+    BOOST_TEST_MESSAGE(fmt::format("after apply inc: {}",obj.toString(true,4)));
+    sample1="{\"f1\":true,\"f2\":90,\"f3\":2000,\"f4\":20000,\"f5\":200000,\"f6\":180,\"f7\":4000,\"f8\":40000,\"f9\":400000,\"f11\":3,\"f12\":\"hi!\",\"f13\":\"2024-03-24T13:32:19.432Z\",\"f14\":\"2024-03-24\",\"f15\":\"13:32:19\",\"f16\":\"195c85aa86900000190592bde\",\"f17\":\"32024003\",\"f18\":\"SGkgYnl0ZXMh\",\"f19\":101.202,\"f20\":1001.2002}";
     BOOST_CHECK_EQUAL(sample1,obj.toString(false,4));
 }
 
@@ -285,7 +315,66 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     BOOST_CHECK_EQUAL(sample5,obj.toString(false,4));
 
     //! @todo check vetor set of all types
-    //! @todo check inc of scalar types
+}
+
+BOOST_AUTO_TEST_CASE(Subunit)
+{
+    common::pmr::vector<update::serialization::VectorsHolder> vectorsHolder;
+    emb::type obj;
+
+    auto r1=update::request(
+        update::field(update::path(emb::ff1),update::inc,7090),
+        update::field(update::path(emb::ff2,sub::f1),update::inc,900),
+        update::field(update::path(emb::ff2,sub::f2),update::set,"Hello world!")
+    );
+    update::message::type msg1;
+    auto ec=update::serialize(r1,msg1);
+    BOOST_CHECK(!ec);
+    BOOST_TEST_MESSAGE(fmt::format("msg1: {}",msg1.toString(true,4)));
+    update::Request r2;
+    auto res=update::deserialize(msg1,r2,vectorsHolder);
+    BOOST_CHECK(!res);
+    update::apply(&obj,r2);
+    auto str1=obj.toString(true,4);
+    BOOST_TEST_MESSAGE(fmt::format("after apply 1: {}",str1));
+    auto sample="{\"ff1\":7090,\"ff2\":{\"f1\":900,\"f2\":\"Hello world!\"}}";
+    BOOST_CHECK_EQUAL(sample,obj.toString(false,4));
+
+    r1=update::request(
+        update::field(update::path(emb::ff2),update::unset)
+    );
+    ec=update::serialize(r1,msg1);
+    BOOST_CHECK(!ec);
+    BOOST_TEST_MESSAGE(fmt::format("msg1: {}",msg1.toString(true,4)));
+    res=update::deserialize(msg1,r2,vectorsHolder);
+    BOOST_CHECK(!res);
+    update::apply(&obj,r2);
+    str1=obj.toString(true,4);
+    BOOST_TEST_MESSAGE(fmt::format("after apply 2: {}",str1));
+    sample="{\"ff1\":7090}";
+    BOOST_CHECK_EQUAL(sample,obj.toString(false,4));
+
+    emb::shared_type objShared;
+    auto subObj1=common::makeShared<sub::managed>();
+    subObj1->setFieldValue(sub::f1,9000);
+    subObj1->setFieldValue(sub::f2,"Hi from shared subunit");
+    objShared.field(emb::ff2).setV(subObj1);
+    auto str2=objShared.toString(true,4);
+    BOOST_TEST_MESSAGE(fmt::format("objShared after setV: {}",str2));
+
+    emb::shared_type objShared2;
+    auto r3=update::request(
+            update::field(update::path(emb::ff2),update::set,common::SharedPtr<du::Unit>{subObj1})
+        );
+    update::apply(&objShared2,r3);
+    auto str3=objShared2.toString(true,4);
+    BOOST_TEST_MESSAGE(fmt::format("objShared2 after apply: {}",str3));
+
+    ec=update::serialize(r3,msg1);
+    BOOST_CHECK(!ec);
+    BOOST_TEST_MESSAGE(fmt::format("msg1: {}",msg1.toString(true,4)));
+
+    //! @todo test deserialization and applying
 }
 
 BOOST_AUTO_TEST_SUITE_END()

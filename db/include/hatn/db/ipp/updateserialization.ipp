@@ -426,6 +426,7 @@ struct deserializeT
                         case(ValueType::VectorSubunit):
                     {
                         //! @todo Implement
+                        //! @todo Deserealize to bytearray, then when applying call setV() for uint foeld with raw data in bytearray
                         return commonError(CommonError::NOT_IMPLEMENTED);
                     }
                     break;
