@@ -64,7 +64,7 @@ class ApiClient : public common::pmr::WithFactory,
             ) : ApiClient(api::Service{serviceName,serviceVersion},std::move(topicClients),factory)
         {}
 
-        void setServiceClients(common::SharedPtr<MappedClients> topicClients)
+        void setTopicClients(common::SharedPtr<MappedClients> topicClients)
         {
             m_topicClients=std::move(topicClients);
         }
