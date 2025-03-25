@@ -196,7 +196,7 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
                                                          and_(message::producer_pos,db::query::gte,msg->field(message::producer_pos).value()),
                                                          req.topic()
                                                         );
-            //! @todo iplement exists() method in db
+            //! @todo implement exists() method in db
             auto r=client->findOne(messageModel(),q);
             if (r)
             {
@@ -228,14 +228,16 @@ void ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::exec(
                 {
                     // deserialize update request
                     db::update::Request updateReq;
-                    auto res=db::update::deserialize(*updateObj,updateReq,req.env->template get<api::server::AllocatorFactory>().factory());
-                    if (res)
+                    auto vectorsHolder=req.env->template get<api::server::AllocatorFactory>().factory()->template createObjectVector<db::update::serialization::VectorsHolder>();
+                    auto ec=db::update::deserialize(*updateObj,updateReq,vectorsHolder,req.env->template get<api::server::AllocatorFactory>().factory());
+                    if (ec)
                     {
                         //! @todo Log error
                         //! @todo decribe that update content is invalid
                         req.response.setStatus(api::protocol::ResponseStatus::FormatError);
                         return mqError(MqError::INVALID_UPDATE_MESSAGE);
                     }
+                    // append mq_pos to the list of update fields
                     updateReq.push_back(db::update::field(mq_object::mq_pos,db::update::set,msg->field(message::pos).value()));
 
                     // update object
