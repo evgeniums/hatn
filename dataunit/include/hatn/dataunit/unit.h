@@ -374,6 +374,8 @@ class HATN_DATAUNIT_EXPORT Unit
 
         virtual common::SharedPtr<Unit> toManagedUnit() const;
 
+        virtual bool isManagedUnit() const noexcept;
+
         /**  Check if unit has a field. */
         template <typename T>
         constexpr static bool hasField(T&& fieldName) noexcept

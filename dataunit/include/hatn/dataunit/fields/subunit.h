@@ -328,6 +328,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         virtual void setV(common::SharedPtr<Unit> val) override
         {
+#if 0
             auto self=this;
             hana::eval_if(
                 std::is_same<type,common::SharedPtr<Unit>>{},
@@ -335,11 +336,44 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
                 {
                     _(self)->set(_(val));
                 },
-                []()
+                [&](auto _)
                 {
-                    throw std::runtime_error("Cannot set custom subunit field");
+                    using selfType=std::remove_pointer_t<std::decay_t<decltype(_(self))>>;
+                    hana::eval_if(
+                        hana::is_a<common::shared_pointer_tag,typename selfType::type>,
+                        [&]( auto _)
+                        {
+                            using sType=std::remove_pointer_t<std::decay_t<decltype(_(self))>>;
+                            using vType=typename sType::type::element_type;
+
+                            hana::eval_if(
+                                std::is_base_of<common::ManagedObject,vType>{},
+                                [&](auto _)
+                                {
+                                    using sType=std::remove_pointer_t<std::decay_t<decltype(_(self))>>;
+                                    using vType=typename sType::type::element_type;
+
+                                    Assert(strcmp(_(val)->name(),vType::unitName())==0,"Mismatched unit types");
+
+                                    static vType sample;
+                                    auto* casted=sample.castToUnit(_(val).get());
+                                    _(self)->set(casted->sharedFromThis());
+                                },
+                                []()
+                                {
+                                    Assert(false,"Cannot set unmanaged unit");
+                                }
+                            );
+                        },
+                        []()
+                        {
+                            Assert(false,"Only shared subunits can be set with setV()");
+                        }
+                    );
                 }
             );
+#endif
+            FTraits<Type,Shared>::setV(this,std::move(val));
         }
 
         virtual void getV(common::SharedPtr<Unit>& val) const override

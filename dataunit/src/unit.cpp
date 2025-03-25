@@ -415,6 +415,12 @@ common::SharedPtr<Unit> Unit::toManagedUnit() const
 }
 
 //---------------------------------------------------------------
+bool Unit::isManagedUnit() const noexcept
+{
+    return false;
+}
+
+//---------------------------------------------------------------
 bool Unit::iterateFields(const Unit::FieldVisitor& visitor)
 {
     std::ignore=visitor;

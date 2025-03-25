@@ -656,6 +656,11 @@ class ManagedUnit : public common::EnableSharedFromThis<ManagedUnit<UnitType>>, 
         {
             return common::SharedPtr<Unit>{this->sharedFromThis()};
         }
+
+        virtual bool isManagedUnit() const noexcept override
+        {
+            return true;
+        }
 };
 
 /**  Empty DataUnit template */

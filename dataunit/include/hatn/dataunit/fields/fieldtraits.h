@@ -21,12 +21,6 @@
 #ifndef HATNDATAUNITFIELDIMPL_H
 #define HATNDATAUNITFIELDIMPL_H
 
-#include <functional>
-#include <tuple>
-#include <type_traits>
-#include <vector>
-#include <array>
-
 #include <boost/endian/conversion.hpp>
 #include <boost/intrusive/avl_set.hpp>
 
@@ -38,6 +32,7 @@
 #include <hatn/common/makeshared.h>
 #include <hatn/common/classuid.h>
 #include <hatn/common/format.h>
+#include <hatn/common/meta/hasmethod.h>
 
 #include <hatn/dataunit/dataunit.h>
 #include <hatn/dataunit/allocatorfactory.h>
@@ -49,6 +44,8 @@
 #include <hatn/dataunit/rapidjsonsaxhandlers.h>
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
+
+HATN_PREPARE_HAS_METHOD(sharedFromThis)
 
 using namespace types;
 
@@ -88,12 +85,47 @@ struct FTraits
 {
     using type=typename Type::type;
     using base=typename Type::type;
+
+    template <typename UnitT>
+    static void setV(UnitT*, common::SharedPtr<Unit>)
+    {
+        Assert(false,"Only shared subunits can be set with setV()");
+    }
 };
 template <typename Type>
 struct FTraits<Type,true>
 {
     using type=typename Type::shared_type;
     using base=typename Type::base_shared_type;
+
+    template <typename UnitT>
+    static void setV(UnitT* self, common::SharedPtr<Unit> val,
+              std::enable_if_t<
+                  decltype(hana::is_a<common::shared_pointer_tag,typename UnitT::type>)::value
+                    &&
+                  decltype(has_sharedFromThis<typename UnitT::type::element_type>())::value
+                >* =nullptr
+        )
+    {
+        using vType=typename UnitT::type::element_type;
+        Assert(strcmp(val->name(),vType::unitName())==0,"Mismatched unit types");
+
+        static vType sample;
+        vType* casted=sample.castToManagedUnit(val.get());
+        self->set(casted->sharedFromThis());
+    }
+
+    template <typename UnitT>
+    static void setV(UnitT*, common::SharedPtr<Unit>,
+              std::enable_if_t<
+                  !decltype(hana::is_a<common::shared_pointer_tag,typename UnitT::type>)::value
+                  ||
+                  !std::is_base_of<common::ManagedObject,typename UnitT::type::element_type>::value
+                  >* =nullptr
+              )
+    {
+        Assert(false,"Cannot set unmanaged unit");
+    }
 };
 
 template <typename T,typename,typename=void>
