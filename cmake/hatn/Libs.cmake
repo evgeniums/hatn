@@ -9,5 +9,6 @@ SET (HATN_MODULES
 	crypt
 	db
 	api
+	app
 	mq	
 )
