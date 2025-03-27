@@ -21,7 +21,7 @@
 #ifndef HATNAPI_H
 #define HATNAPI_H
 
-#include <hatn/base/config.h>
+#include <hatn/api/config.h>
 
 // define export symbols for windows platform
 #ifdef WIN32
