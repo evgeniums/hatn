@@ -64,6 +64,7 @@ HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
 HATN_NETWORK_USING
 
+namespace db=HATN_DB_NAMESPACE;
 namespace mq=HATN_MQ_NAMESPACE;
 namespace scheduler=HATN_SCHEDULER_NAMESPACE;
 
@@ -85,12 +86,25 @@ struct TestEnv : public HATN_TEST_NAMESPACE::MultiThreadFixture
     TestEnv& operator=(TestEnv&&) =delete;
 };
 
-// constexpr const uint32_t TcpPort=53852;
+constexpr const uint32_t TcpPort=53852;
 
 using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,LogCtxType>;
 using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
+
+using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,client::ClientContext<ClientType>,ClientType>;
+using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
+
+HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
+HATN_TASK_CONTEXT_DEFINE(ClientWithAuthType)
+
+template <typename SessionWrapperT>
+auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, SessionWrapperT session)
+{
+    auto scl=client::makeClientWithAuthContext<ClientWithAuthCtxType>(std::move(session),std::move(clientCtx));
+    return scl;
+}
 
 struct ContextBuilder
 {
@@ -126,7 +140,7 @@ class NotifierTraits
         }
 };
 using MqNotifier=mq::client::Notifier<NotifierTraits>;
-using MqApiClient=mq::ApiClient<mq::ApiClientDefaultTraits<ClientCtxType,ClientType>>;
+using MqApiClient=mq::ApiClient<mq::ApiClientDefaultTraits<ClientWithAuthCtxType,ClientWithAuthType>>;
 using MqProducerClientConfig=mq::client::ProducerClientConfig<MqApiClient,MqNotifier,scheduler::DefaultSchedulerConfig<ContextBuilder>>;
 using MqProducerClient=mq::client::ProducerClient<MqProducerClientConfig>;
 using MqClientScheduler=MqProducerClient::Scheduler;
@@ -160,6 +174,31 @@ HATN_TASK_CONTEXT_DEFINE(MqProducerClientW,MqProducerClientW)
 
 using MqProducerClientCtx=TaskContextType<MqProducerClient,MqApiClient,MqBackgroundWorker,MqNotifier,MqClientScheduler,LogContext>;
 
+auto createClient(Thread* thread)
+{
+    auto resolver=std::make_shared<client::IpHostResolver>(thread);
+    std::vector<client::IpHostName> hosts;
+    hosts.resize(1);
+    hosts[0].name="localhost";
+    hosts[0].port=TcpPort;
+    hosts[0].ipVersion=IpVersion::V4;
+
+    auto router=makeShared<client::PlainTcpRouter>(
+        hosts,
+        resolver,
+        thread
+        );
+
+    auto cfg=std::make_shared<client::ClientConfig>();
+
+    auto cl=client::makeClientContext<client::ClientContext<ClientType>>(
+        std::move(cfg),
+        std::move(router),
+        thread
+        );
+    return cl;
+}
+
 BOOST_AUTO_TEST_SUITE(TestProducer)
 
 BOOST_AUTO_TEST_CASE(ConstructClient)
@@ -173,12 +212,18 @@ BOOST_AUTO_TEST_CASE(ConstructClient)
 BOOST_FIXTURE_TEST_CASE(ProducerClientCtx,TestEnv)
 {
     createThreads(4);
+    auto clientThread=thread(2);
     auto mqClientThread=thread(3);
+
+    auto session=client::makeSessionNoAuthContext();
+    auto rawClientCtx=createClient(clientThread.get());
+    auto clientWithAuthCtx=createClientWithAuth(rawClientCtx,session);
+    auto mappedClients=makeShared<MqApiClient::MappedClients>(clientWithAuthCtx);
 
     auto ctx=makeTaskContextType<MqProducerClientCtx>(
         subcontexts(
             subcontext("mq_producer1"),
-            subcontext("mq_service1"),
+            subcontext("mq_service1",mappedClients),
             subcontext(mqClientThread.get()),
             subcontext(),
             subcontext(),
