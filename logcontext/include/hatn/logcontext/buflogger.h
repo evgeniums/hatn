@@ -232,7 +232,11 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
 {
     public:
 
-        using common::WithTraits<Traits>::WithTraits;
+        template <typename ...TraitsArgs>
+        BufLoggerT(std::string name, TraitsArgs&& ...traitsArgs) :
+            LoggerHandlerT<ContextT>(std::move(name)),
+            common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...)
+        {}
 
         void log(
             LogLevel level,

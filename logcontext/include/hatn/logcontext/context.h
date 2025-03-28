@@ -531,6 +531,8 @@ using TaskLogContext=common::TaskContextType<Context>;
 using LoggerHandler=typename Context::LoggerHandler;
 using Logger=typename Context::Logger;
 
+using LoggerHandlerBuilder=std::function<std::shared_ptr<LoggerHandler> ()>;
+
 HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_COMMON_NAMESPACE_BEGIN

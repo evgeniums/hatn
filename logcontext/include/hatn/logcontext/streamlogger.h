@@ -116,8 +116,18 @@ class StreamLoggerTraits : public BufToStream
         }
 };
 
+constexpr const char* StreamLoggerName="streamlogger";
+
 template <typename ContextT=Subcontext>
-using StreamLoggerT=BufLoggerT<StreamLoggerTraits,ContextT>;
+class StreamLoggerT : public BufLoggerT<StreamLoggerTraits,ContextT>
+{
+    public:
+
+        template <typename ...TraitsArgs>
+        StreamLoggerT(TraitsArgs&& ...traitsArgs) :
+            BufLoggerT<StreamLoggerTraits,ContextT>(StreamLoggerName,std::forward<TraitsArgs>(traitsArgs)...)
+        {}
+};
 
 using StreamLogger=StreamLoggerT<>;
 using StreamLogHandler=StreamLogger;
