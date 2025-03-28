@@ -158,6 +158,8 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const std::string& format=std::string()
         ) const;
 
+        //! @todo Implement overriding individual valuues in path
+
     protected:
 
         /**
