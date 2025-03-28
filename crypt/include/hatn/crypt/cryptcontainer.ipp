@@ -373,7 +373,7 @@ common::Error CryptContainer::packDescriptor(
 
     if (salt().empty() && m_autoSalt)
     {
-        auto randGen=CipherSuites::instance().defaultRandomGenerator();
+        auto randGen=m_suites->defaultRandomGenerator();
         if (randGen!=nullptr)
         {
             common::ByteArray saltBuf;
@@ -434,12 +434,12 @@ common::Error CryptContainer::unpackDescriptor(
         const auto& suiteIdField=m_descriptor.field(container_descriptor::cipher_suite_id);
         if (suiteIdField.isSet() && suiteIdField.size()!=0)
         {
-            m_cipherSuite=CipherSuites::instance().suite(suiteIdField.buf()->data(),suiteIdField.buf()->size());
+            m_cipherSuite=m_suites->suite(suiteIdField.buf()->data(),suiteIdField.buf()->size());
         }
     }
     if (m_cipherSuite==nullptr)
     {
-        m_cipherSuite=CipherSuites::instance().defaultSuite();
+        m_cipherSuite=m_suites->defaultSuite();
         if (m_cipherSuite==nullptr)
         {
             return cryptError(CryptError::INVALID_CIPHER_SUITE);

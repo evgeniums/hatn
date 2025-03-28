@@ -167,6 +167,19 @@ class HATN_CRYPT_EXPORT CryptContainer
         inline const CipherSuite* cipherSuite() const noexcept;
 
         /**
+         * @brief Set cipher suites
+         * @param suites Cipher suites
+         */
+        inline void setCipherSuites(const CipherSuites* suites) noexcept
+        {
+            m_suites=suites;
+        }
+        inline const CipherSuites* cipherSuites() const noexcept
+        {
+            return m_suites;
+        }
+
+        /**
          * @brief Enable attaching full descriptor of cipher suite to container's descriptor
          * @param enable Flag enable/disable
          *
@@ -511,6 +524,8 @@ class HATN_CRYPT_EXPORT CryptContainer
 
         bool m_autoSalt;
         bool m_streamingMode;
+
+        const CipherSuites* m_suites;
 };
 
 HATN_CRYPT_NAMESPACE_END

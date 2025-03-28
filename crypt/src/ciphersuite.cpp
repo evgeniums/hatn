@@ -43,7 +43,8 @@ CipherSuite::CipherSuite() noexcept
       m_pbkdfAlgorithm(nullptr),
       m_dhAlgorithm(nullptr),
       m_ecdhAlgorithm(nullptr),
-      m_signatureAlgorithm(nullptr)
+      m_signatureAlgorithm(nullptr),
+      m_suites(nullptr)
 {}
 
 //---------------------------------------------------------------
@@ -128,11 +129,11 @@ common::Error CipherSuite::findAlgorithm(
             return cryptError(CryptError::SUITE_ALGORITHM_NOT_FOUND);
         }
         // try to find engine specific for this algorithm type and name
-        auto engine=CipherSuites::instance().engineForAlgorithm(type,algField.buf()->data(),algField.buf()->size(),false);
+        auto engine=suites()->engineForAlgorithm(type,algField.buf()->data(),algField.buf()->size(),false);
         if (engine==nullptr || engine->plugin()==nullptr)
         {
             // try to find engine specific for any algorithm of this type
-            engine=CipherSuites::instance().engineForAlgorithm(type);
+            engine=suites()->engineForAlgorithm(type);
             if (engine==nullptr || engine->plugin()==nullptr)
             {
                 return cryptError(CryptError::INVALID_ALGORITHM);
@@ -503,9 +504,19 @@ common::SharedPtr<X509CertificateStore> CipherSuite::createX509CertificateStore(
     return ret;
 }
 
+//---------------------------------------------------------------
+const CipherSuites* CipherSuite::suites() const noexcept
+{
+    if (m_suites==nullptr)
+    {
+        return &CipherSuitesGlobal::instance();
+    }
+    return m_suites;
+}
+
 /*********************** CipherSuites **************************/
 
-HATN_SINGLETON_INIT(CipherSuites)
+HATN_SINGLETON_INIT(CipherSuitesGlobal)
 
 //---------------------------------------------------------------
 CryptEngine* CipherSuites::engineForAlgorithm(
@@ -537,13 +548,6 @@ CryptEngine* CipherSuites::engineForAlgorithm(
         }
     }
     return it->second.get();
-}
-
-//---------------------------------------------------------------
-CipherSuites& CipherSuites::instance() noexcept
-{
-    static CipherSuites inst;
-    return inst;
 }
 
 //---------------------------------------------------------------
@@ -599,6 +603,7 @@ const CipherSuite* CipherSuites::suite(const CipherSuite::IdType &key) const noe
 //---------------------------------------------------------------
 void CipherSuites::addSuite(std::shared_ptr<CipherSuite> suite)
 {
+    suite->setSuites(this);
     CipherSuite::IdType key(suite->id());
 #if __cplusplus < 201703L
     m_suites[std::move(key)]=std::move(suite);
@@ -617,6 +622,13 @@ void CipherSuites::setDefaultSuite(std::shared_ptr<CipherSuite> suite) noexcept
 const CipherSuite* CipherSuites::defaultSuite() const noexcept
 {
     return m_defaultSuite.get();
+}
+
+//---------------------------------------------------------------
+CipherSuitesGlobal& CipherSuitesGlobal::instance() noexcept
+{
+    static CipherSuitesGlobal inst;
+    return inst;
 }
 
 //---------------------------------------------------------------

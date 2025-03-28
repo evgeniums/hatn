@@ -232,9 +232,9 @@ BOOST_AUTO_TEST_CASE(CheckDHKeyExportImport)
                         auto cipherSuite=std::make_shared<CipherSuite>();
                         auto ec=cipherSuite->loadFromFile(suiteFile);
                         BOOST_CHECK(!ec);
-                        CipherSuites::instance().addSuite(cipherSuite);
+                        CipherSuitesGlobal::instance().addSuite(cipherSuite);
                         auto engine=std::make_shared<CryptEngine>(plugin.get());
-                        CipherSuites::instance().setDefaultEngine(std::move(engine));
+                        CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
                         // find key protection algorithm
                         const CryptAlgorithm* protectAlg=nullptr;
@@ -530,11 +530,11 @@ BOOST_AUTO_TEST_CASE(CheckDHKeyExportImport)
                         BOOST_TEST_MESSAGE(fmt::format("Done {} with protecting algorithm {}",dhAlg->name(),protectAlg->name()));
                     }
                 };
-                CipherSuites::instance().reset();
+                CipherSuitesGlobal::instance().reset();
                 eachPath(PluginList::assetsPath("crypt"));
-                CipherSuites::instance().reset();
+                CipherSuitesGlobal::instance().reset();
                 eachPath(PluginList::assetsPath("crypt",plugin->info()->name));
-                CipherSuites::instance().reset();
+                CipherSuitesGlobal::instance().reset();
             }
         }
     );

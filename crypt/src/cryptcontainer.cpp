@@ -36,7 +36,8 @@ CryptContainer::CryptContainer(
           m_attachSuite(false),
           m_factory(factory),
           m_autoSalt(true),
-          m_streamingMode(false)
+          m_streamingMode(false),
+          m_suites(&CipherSuitesGlobal::instance())
 {}
 
 //---------------------------------------------------------------

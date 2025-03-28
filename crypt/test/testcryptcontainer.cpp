@@ -121,15 +121,15 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             checkSuite.reset();
 
             // add suite to table of suites
-            CipherSuites::instance().addSuite(createSuite);
+            CipherSuitesGlobal::instance().addSuite(createSuite);
             auto suiteCopy=createSuite;
 
             // set engine
             auto engine=std::make_shared<CryptEngine>(plugin.get());
-            CipherSuites::instance().setDefaultEngine(std::move(engine));
+            CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
             // check suite
-            auto suite=CipherSuites::instance().suite(suiteID.c_str());
+            auto suite=CipherSuitesGlobal::instance().suite(suiteID.c_str());
             HATN_REQUIRE(suite);
 
             // check AEAD algorithm
@@ -360,7 +360,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             BOOST_CHECK(ec);
 
             //! check not existing cipher suite
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             CryptContainer container14(masterKey.get());
             ByteArray plaintext15;
             ec=container14.unpack(ciphertext1,plaintext15);
@@ -368,17 +368,17 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             if (attachCipherSuite)
             {
                 engine=std::make_shared<CryptEngine>(plugin.get());
-                CipherSuites::instance().setDefaultEngine(std::move(engine));
+                CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
                 plaintext15.clear();
                 ec=container14.unpack(ciphertext1,plaintext15);
                 BOOST_CHECK(!ec);
-                CipherSuites::instance().reset();
+                CipherSuitesGlobal::instance().reset();
             }
 
             //! check default cipher suite
-            CipherSuites::instance().setDefaultSuite(std::move(suiteCopy));
+            CipherSuitesGlobal::instance().setDefaultSuite(std::move(suiteCopy));
             CryptContainer container15(masterKey.get());
-            container15.setCipherSuite(CipherSuites::instance().defaultSuite());
+            container15.setCipherSuite(CipherSuitesGlobal::instance().defaultSuite());
             container15.setKdfType(kdfType);
             if (!defaultChunkSizes)
             {
@@ -392,7 +392,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             if (attachCipherSuite)
             {
                 engine=std::make_shared<CryptEngine>(plugin.get());
-                CipherSuites::instance().setDefaultEngine(std::move(engine));
+                CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
             }
             CryptContainer container16(masterKey.get());
             ByteArray plaintext16;
@@ -401,7 +401,7 @@ static void checkCryptContainer(std::shared_ptr<CryptPlugin>& plugin, const std:
             BOOST_CHECK(plaintext1==plaintext16);
 
             // reset suites
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
 
             BOOST_TEST_MESSAGE(fmt::format("Done vector #{}",i));
             ++runCount;
@@ -415,11 +415,11 @@ BOOST_AUTO_TEST_CASE(CheckCryptContainer)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkCryptContainer(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkCryptContainer(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
     );
 }
@@ -459,11 +459,11 @@ static void checkAutoSalt(std::shared_ptr<CryptPlugin>& plugin, const std::strin
         BOOST_REQUIRE(!ec);
 
         // add suite to table of suites
-        CipherSuites::instance().addSuite(suite);
+        CipherSuitesGlobal::instance().addSuite(suite);
 
         // set engine
         auto engine=std::make_shared<CryptEngine>(plugin.get());
-        CipherSuites::instance().setDefaultEngine(std::move(engine));
+        CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
         // check AEAD algorithm
         const CryptAlgorithm* aeadAlg=nullptr;
@@ -531,11 +531,11 @@ BOOST_AUTO_TEST_CASE(CheckAutoSalt)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAutoSalt(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAutoSalt(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
         );
 }

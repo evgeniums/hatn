@@ -65,11 +65,11 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
     HATN_REQUIRE(!ec);
 
     // add suite to table of suites
-    CipherSuites::instance().addSuite(suite);
+    CipherSuitesGlobal::instance().addSuite(suite);
 
     // set engine
     auto engine=std::make_shared<CryptEngine>(plugin.get());
-    CipherSuites::instance().setDefaultEngine(std::move(engine));
+    CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
     // check cipher algorithm
     const CryptAlgorithm* streamCipherAlg=nullptr;
@@ -378,7 +378,7 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
     }
     BOOST_REQUIRE(!ec);
     ByteArray buf8;
-    std::ignore=CipherSuites::instance().defaultRandomGenerator()->randContainer(buf8,500,100);
+    std::ignore=CipherSuitesGlobal::instance().defaultRandomGenerator()->randContainer(buf8,500,100);
     BOOST_TEST_MESSAGE(fmt::format("Write to first chunk bufSize={}",buf8.size()));
     written=0;
     for (size_t i=0;i<100;i++)
@@ -430,11 +430,11 @@ BOOST_AUTO_TEST_CASE(CheckStreamFile)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAppend(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAppend(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
     );
 }

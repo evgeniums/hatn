@@ -550,14 +550,14 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             checkSuite.reset();
 
             // add suite to table of suites
-            CipherSuites::instance().addSuite(createSuite);
+            CipherSuitesGlobal::instance().addSuite(createSuite);
 
             // set engine
             auto engine=std::make_shared<CryptEngine>(plugin.get());
-            CipherSuites::instance().setDefaultEngine(std::move(engine));
+            CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
             // check suite
-            auto suite=CipherSuites::instance().suite(suiteID.c_str());
+            auto suite=CipherSuitesGlobal::instance().suite(suiteID.c_str());
             HATN_REQUIRE(suite);
 
             // check AEAD algorithm
@@ -785,7 +785,7 @@ static void checkReadWrite(std::shared_ptr<CryptPlugin>& plugin, const std::stri
             }
 
             // reset suites
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
 
             BOOST_TEST_MESSAGE(fmt::format("Done vector #{}",i));
             ++runCount;
@@ -816,11 +816,11 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     HATN_REQUIRE(!ec);
 
     // add suite to table of suites
-    CipherSuites::instance().addSuite(suite);
+    CipherSuitesGlobal::instance().addSuite(suite);
 
     // set engine
     auto engine=std::make_shared<CryptEngine>(plugin.get());
-    CipherSuites::instance().setDefaultEngine(std::move(engine));
+    CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
     // check AEAD algorithm
     const CryptAlgorithm* aeadAlg=nullptr;
@@ -1192,7 +1192,7 @@ static void checkFileStamp(std::shared_ptr<CryptPlugin>& plugin, const std::stri
     }
 
     // reset suites
-    CipherSuites::instance().reset();
+    CipherSuitesGlobal::instance().reset();
 }
 
 BOOST_AUTO_TEST_CASE(CheckReadWrite)
@@ -1200,11 +1200,11 @@ BOOST_AUTO_TEST_CASE(CheckReadWrite)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkReadWrite(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkReadWrite(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
     );
 }
@@ -1231,11 +1231,11 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
     HATN_REQUIRE(!ec);
 
     // add suite to table of suites
-    CipherSuites::instance().addSuite(suite);
+    CipherSuitesGlobal::instance().addSuite(suite);
 
     // set engine
     auto engine=std::make_shared<CryptEngine>(plugin.get());
-    CipherSuites::instance().setDefaultEngine(std::move(engine));
+    CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
     // check AEAD algorithm
     const CryptAlgorithm* aeadAlg=nullptr;
@@ -1382,11 +1382,11 @@ BOOST_AUTO_TEST_CASE(CheckAppend)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAppend(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkAppend(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
         );
 }
@@ -1396,11 +1396,11 @@ BOOST_AUTO_TEST_CASE(CheckFileStamp)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkFileStamp(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkFileStamp(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
     );
 }
@@ -1427,11 +1427,11 @@ static void checkTruncate(std::shared_ptr<CryptPlugin>& plugin, const std::strin
     HATN_REQUIRE(!ec);
 
     // add suite to table of suites
-    CipherSuites::instance().addSuite(suite);
+    CipherSuitesGlobal::instance().addSuite(suite);
 
     // set engine
     auto engine=std::make_shared<CryptEngine>(plugin.get());
-    CipherSuites::instance().setDefaultEngine(std::move(engine));
+    CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
     // check AEAD algorithm
     const CryptAlgorithm* aeadAlg=nullptr;
@@ -2007,11 +2007,11 @@ BOOST_AUTO_TEST_CASE(CheckTruncate)
     CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkTruncate(plugin,PluginList::assetsPath("crypt"));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
             checkTruncate(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
-            CipherSuites::instance().reset();
+            CipherSuitesGlobal::instance().reset();
         }
     );
 }

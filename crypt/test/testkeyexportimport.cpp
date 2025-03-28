@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(CheckMultipleRawEncrypted)
                 std::vector<std::string> algs=plugin->listCiphers();
                 for (auto&& it:algs)
                 {
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
                     std::string algPathName=it;
                     boost::algorithm::replace_all(algPathName,std::string("/"),std::string("-"));
                     boost::algorithm::replace_all(algPathName,std::string(":"),std::string("-"));
@@ -106,9 +106,9 @@ BOOST_AUTO_TEST_CASE(CheckMultipleRawEncrypted)
                         auto suite=std::make_shared<CipherSuite>();
                         auto ec=suite->loadFromFile(suiteFile);
                         BOOST_CHECK(!ec);
-                        CipherSuites::instance().addSuite(suite);
+                        CipherSuitesGlobal::instance().addSuite(suite);
                         auto engine=std::make_shared<CryptEngine>(plugin.get());
-                        CipherSuites::instance().setDefaultEngine(std::move(engine));
+                        CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
                         // find algorithm
                         const CryptAlgorithm* alg=nullptr;
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(CheckMultipleRawEncrypted)
                     path=fmt::format("{}/key-export-import-cipher-{}",PluginList::assetsPath("crypt",plugin->info()->name),algPathName);
                     handler(path);
 
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
                 }
             }
         }
@@ -308,9 +308,9 @@ static void algHandler(
         auto cipherSuite=std::make_shared<CipherSuite>();
         ec=cipherSuite->loadFromFile(suiteFile);
         BOOST_CHECK(!ec);
-        CipherSuites::instance().addSuite(cipherSuite);
+        CipherSuitesGlobal::instance().addSuite(cipherSuite);
         auto engine=std::make_shared<CryptEngine>(plugin.get());
-        CipherSuites::instance().setDefaultEngine(std::move(engine));
+        CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
         // create passhrase
         auto passphrase=cipherSuite->createPassphraseKey(ec,alg);
@@ -628,7 +628,7 @@ static void testAlgKey(AlgConfig& config)
                 HATN_REQUIRE(!algs.empty());
                 for (auto&& it:algs)
                 {
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
 
                     std::string algPathName=it;
                     boost::algorithm::replace_all(algPathName,std::string("/"),std::string("-"));
@@ -639,7 +639,7 @@ static void testAlgKey(AlgConfig& config)
                     path=fmt::format("{}/key-export-import-{}-{}",PluginList::assetsPath("crypt",plugin->info()->name),config.typeStr,algPathName);
                     config.testHandler(plugin,config,it,path);
 
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
                 }
             }
         }
@@ -983,7 +983,7 @@ static void checkSignatureKey(ContainerFormat format, bool encrypted)
                 };
                 for (auto&& it:algs)
                 {
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
                     std::string algPathName=it;
                     boost::algorithm::replace_all(algPathName,std::string("/"),std::string("-"));
                     boost::algorithm::replace_all(algPathName,std::string(":"),std::string("-"));
@@ -993,7 +993,7 @@ static void checkSignatureKey(ContainerFormat format, bool encrypted)
                     path=fmt::format("{}/key-export-import-{}-{}",PluginList::assetsPath("crypt",plugin->info()->name),config.typeStr,algPathName);
                     config.testHandler(plugin,config,it,path);
 
-                    CipherSuites::instance().reset();
+                    CipherSuitesGlobal::instance().reset();
                 }
             }
         }

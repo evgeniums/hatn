@@ -74,13 +74,13 @@ static void checkAlg(
                             auto suite=std::make_shared<CipherSuite>();
                             auto ec=suite->loadFromFile(suiteFile);
                             BOOST_CHECK(!ec);
-                            CipherSuites::instance().addSuite(suite);
+                            CipherSuitesGlobal::instance().addSuite(suite);
                             auto engine=std::make_shared<CryptEngine>(plugin.get());
-                            CipherSuites::instance().setDefaultEngine(std::move(engine));
+                            CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
 
                             handler(plugin,suite,algName,prefix);
 
-                            CipherSuites::instance().reset();
+                            CipherSuitesGlobal::instance().reset();
                         }
                     };
                     std::string fileName=fmt::format("{}/x509-algs.txt",path);

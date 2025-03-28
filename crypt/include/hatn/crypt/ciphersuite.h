@@ -32,6 +32,8 @@
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
+class CipherSuites;
+
 /**
  * @brief Cipher suite
  *
@@ -312,6 +314,11 @@ class HATN_CRYPT_EXPORT CipherSuite
          */
         common::SharedPtr<X509CertificateStore> createX509CertificateStore(common::Error& ec) const;
 
+        void setSuites(const CipherSuites* suites)
+        {
+            m_suites=suites;
+        }
+
     private:
 
         //! Clear container with preserialized suite
@@ -327,6 +334,8 @@ class HATN_CRYPT_EXPORT CipherSuite
             CryptAlgorithm::Type type
         ) const;
 
+        const CipherSuites* suites() const noexcept;
+
         common::SharedPtr<cipher_suite::shared_traits::managed> m_suite;
 
         mutable const CryptAlgorithm* m_cipherAlgorithm;
@@ -338,14 +347,14 @@ class HATN_CRYPT_EXPORT CipherSuite
         mutable const CryptAlgorithm* m_dhAlgorithm;
         mutable const CryptAlgorithm* m_ecdhAlgorithm;
         mutable const CryptAlgorithm* m_signatureAlgorithm;
+
+        const CipherSuites* m_suites;
 };
 
 //! Set of sipher suites
-class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
+class HATN_CRYPT_EXPORT CipherSuites
 {
     public:
-
-        HATN_SINGLETON_DECLARE()
 
         //! Ctor
         CipherSuites()=default;
@@ -356,17 +365,6 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
         CipherSuites(CipherSuites&&) =delete;
         CipherSuites& operator=(const CipherSuites&)=delete;
         CipherSuites& operator=(CipherSuites&&) =delete;
-
-        //! Signleton instance
-        static CipherSuites& instance() noexcept;
-
-        //! Reset the set
-        void reset() noexcept;
-
-        static void free() noexcept
-        {
-            instance().reset();
-        }
 
         /**
          * @brief Set default suite
@@ -450,7 +448,10 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
             const char* name=nullptr,
             size_t nameLength=0,
             bool fallBackDefault=true
-        ) const noexcept;
+        ) const noexcept;        
+
+        //! Reset the set
+        void reset() noexcept;
 
     private:
 
@@ -461,6 +462,51 @@ class HATN_CRYPT_EXPORT CipherSuites : public common::Singleton
         std::shared_ptr<CryptEngine> m_defaultEngine;
 
         common::SharedPtr<RandomGenerator> m_randomGenerator;
+};
+
+class HATN_CRYPT_EXPORT CipherSuitesGlobal : public CipherSuites,
+                                             public common::Singleton
+{
+    public:
+
+        HATN_SINGLETON_DECLARE()
+
+        using CipherSuites::CipherSuites;
+
+        //! Signleton instance
+        static CipherSuitesGlobal& instance() noexcept;
+
+        static void free() noexcept
+        {
+            instance().reset();
+        }
+};
+
+class WithCipherSuites
+{
+    public:
+
+        WithCipherSuites(std::shared_ptr<CipherSuites> suites={}) : m_suites(std::move(suites))
+        {}
+
+        void setSuites(std::shared_ptr<CipherSuites> suites)
+        {
+            m_suites=std::move(suites);
+        }
+
+        const CipherSuites* suites() const noexcept
+        {
+            return m_suites.get();
+        }
+
+        std::shared_ptr<CipherSuites> suitesShared() const noexcept
+        {
+            return m_suites;
+        }
+
+    private:
+
+        std::shared_ptr<CipherSuites> m_suites;
 };
 
 HATN_CRYPT_NAMESPACE_END
