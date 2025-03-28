@@ -128,10 +128,10 @@ RocksdbClient::~RocksdbClient()
 
 //---------------------------------------------------------------
 
-void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records)
+void RocksdbClient::doOpenDb(const ClientConfig &config, Error &ec, base::config_object::LogRecords& records, bool creatIfNotExists)
 {
     HATN_CTX_SCOPE("rdbopen")
-    invokeOpenDb(config,ec,records,false);
+    invokeOpenDb(config,ec,records,creatIfNotExists);
 }
 
 //---------------------------------------------------------------

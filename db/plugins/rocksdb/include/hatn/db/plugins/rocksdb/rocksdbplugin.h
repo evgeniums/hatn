@@ -29,7 +29,7 @@ class HATN_ROCKSDB_EXPORT RocksdbPlugin : public DbPlugin
 
         constexpr static const char* Name="hatnrocksdb";
         constexpr static const char* Description="hatn database driver for RocksDB backend";
-        constexpr static const char* Vendor="github.com/evgeniums/hatn";
+        constexpr static const char* Vendor="decfile.com";
         constexpr static const char* Revision="1.0.0";
 
         using DbPlugin::DbPlugin;

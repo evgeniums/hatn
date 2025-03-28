@@ -109,7 +109,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             return m_open;
         }
 
-        Error openDb(const ClientConfig& config, base::config_object::LogRecords& records)
+        Error openDb(const ClientConfig& config, base::config_object::LogRecords& records, bool creatIfNotExists=true)
         {
             HATN_CTX_SCOPE("dbopendb")
 
@@ -128,7 +128,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             };
             auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));\
             std::ignore=scopeGuard;
-            doOpenDb(config,ec,records);
+            doOpenDb(config,ec,records,creatIfNotExists);
             return ec;
         }
 
@@ -776,7 +776,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Error doCreateDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
         virtual Error doDestroyDb(const ClientConfig& config, base::config_object::LogRecords& records)=0;
 
-        virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records)=0;
+        virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool creatIfNotExists)=0;
         virtual void doCloseDb(Error& ec)=0;
 
         virtual Error doSetSchema(std::shared_ptr<Schema> schema)=0;

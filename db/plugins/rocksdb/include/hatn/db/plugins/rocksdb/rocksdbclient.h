@@ -63,7 +63,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         Error doCheckSchema() override;
         Error doMigrateSchema() override;
 
-        void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records) override;
+        void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool creatIfNotExists) override;
         void doCloseDb(Error& ec) override;
 
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
