@@ -92,8 +92,10 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
 {
     public:
 
+        //! @todo Change plugin type
+
         //! Crypt plugin type
-        constexpr static const char* Type="com.hatn.cryptplugin";
+        constexpr static const char* Type="hatncryptplugin";
 
         //! Ctor
         explicit CryptPlugin(
