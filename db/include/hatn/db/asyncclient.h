@@ -889,23 +889,50 @@ class SingleAsyncClient : public WithAsyncClient
         {
             return WithAsyncClient::dbClient();
         }
-};
 
-template <typename Traits=SingleAsyncClient>
-class MappedAsyncClientsT : public common::WithTraits<Traits>
-{
-    public:
-
-        using common::WithTraits<Traits>::WithTraits;
-
-        const std::shared_ptr<AsyncClient>& dbClient(Topic topic={}) const noexcept
+        void registerDbClient(const Topic&, std::shared_ptr<AsyncClient> client)
         {
-            return this->traits().dbClient(topic);
+            setDbClient(client);
         }
 };
 
+class MultipleAsyncClients : public WithAsyncClient
+{
+    public:
+
+        MultipleAsyncClients(std::shared_ptr<AsyncClient> db={})
+            : WithAsyncClient(std::move(db))
+        {}
+
+        const std::shared_ptr<AsyncClient>& dbClient(const Topic& topic) const noexcept
+        {
+            auto it=m_clients.find(topic.topic());
+            if (it==m_clients.end())
+            {
+                return WithAsyncClient::dbClient();
+            }
+            return it->second;
+        }
+
+        void registerDbClient(std::string topic, std::shared_ptr<AsyncClient> client)
+        {
+            if (topic.empty())
+            {
+                setDbClient(std::move(client));
+            }
+            else
+            {
+                m_clients[std::move(topic)]=std::move(client);
+            }
+        }
+
+    private:
+
+        common::FlatMap<std::string,std::shared_ptr<AsyncClient>,std::less<>> m_clients;
+};
+
 #ifndef HATN_DB_MAPPED_ASYNC_CLIENTS
-using MappedAsyncClients=SingleAsyncClient;
+using MappedAsyncClients=MultipleAsyncClients;
 #else
 using MappedAsyncClients==HATN_DB_MAPPED_ASYNC_CLIENTS;
 #endif
