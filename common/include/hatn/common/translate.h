@@ -60,6 +60,34 @@ class HATN_COMMON_EXPORT Translator
         static void setTranslator(std::shared_ptr<Translator> translator) noexcept;
 };
 
+class WithTranslator
+{
+    public:
+
+        WithTranslator(std::shared_ptr<Translator> translator={}) : m_translator(std::move(translator))
+        {}
+
+        void setTranslator(std::shared_ptr<Translator> translator)
+        {
+            m_translator=std::move(translator);
+        }
+
+        const Translator* translator() const noexcept
+        {
+            return m_translator.get();
+        }
+
+        std::shared_ptr<Translator> translatorShared() const noexcept
+        {
+            return m_translator;
+        }
+
+    private:
+
+        std::shared_ptr<Translator> m_translator;
+};
+
+
 class BoostTranslatorFactory_p;
 /**
  * @brief Translator factory that uses boost::locale to perform translations.
