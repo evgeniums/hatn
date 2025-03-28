@@ -466,4 +466,17 @@ Result<ConfigTree> ConfigTreeLoader::createFromFile(const std::string& filename,
 
 //---------------------------------------------------------------
 
+Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view source, const ConfigTreePath &root, const std::string &format) const
+{
+    auto loader=handler(format);
+    if (!loader)
+    {
+        auto msg=fmt::format(_TR("unsupported config format \"{}\"","base"), format);
+        return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
+    }
+    return loader->parse(target,source,root,format);
+}
+
+//---------------------------------------------------------------
+
 HATN_BASE_NAMESPACE_END

@@ -217,6 +217,13 @@ class HATN_BASE_EXPORT ConfigTreeLoader
             return m_prefixSubstitutions;
         }
 
+        Error loadFromString(
+            ConfigTree& target,
+            lib::string_view source,
+            const ConfigTreePath& root=ConfigTreePath(),
+            const std::string& format=std::string()
+        ) const;
+
     private:
 
         std::string m_defaultFormat;
