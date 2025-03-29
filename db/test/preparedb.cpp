@@ -139,7 +139,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 // cleanup
                 currentCfg=nullptr;
             }
-            crypt::CipherSuites::instance().reset();
+            crypt::CipherSuitesGlobal::instance().reset();
         }
     );
 }
@@ -235,10 +235,10 @@ bool PrepareDbAndRun::prepareEncryption(
     ec=suite->loadFromJSON(cipherSuiteJson);
     BOOST_REQUIRE(!ec);
     // add suite to table of suites
-    crypt::CipherSuites::instance().addSuite(suite);
+    crypt::CipherSuitesGlobal::instance().addSuite(suite);
     // set engine
     auto engine=std::make_shared<crypt::CryptEngine>(cryptPlugin.get());
-    crypt::CipherSuites::instance().setDefaultEngine(std::move(engine));
+    crypt::CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
     // load passphrase
     auto passphrase=suite->createPassphraseKey(ec);
     BOOST_REQUIRE(!ec);
