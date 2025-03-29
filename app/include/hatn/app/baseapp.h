@@ -180,6 +180,11 @@ class HATN_APP_EXPORT BaseApp
 
         Error destroyDb();
 
+        common::SharedPtr<AppEnv> env() const
+        {
+            return m_env;
+        }
+
     private:
 
         Error applyConfig();
