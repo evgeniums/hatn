@@ -283,9 +283,14 @@ class MappedThreadQWithTaskContext
             return m_threadMode;
         }
 
-        void setMappedThreads(std::vector<ThreadQWithTaskContext*> threads) noexcept
+        void setMappedThreads(std::vector<ThreadQWithTaskContext*> threads)
         {
             m_threads=std::move(threads);
+        }
+
+        void addMappedThread(ThreadQWithTaskContext* thread)
+        {
+            m_threads.push_back(thread);
         }
 
         auto mappedThreads() const
