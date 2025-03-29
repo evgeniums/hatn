@@ -109,9 +109,9 @@ constexpr static const char* DbPluginsFolder="db";
 //---------------------------------------------------------------
 
 HDU_UNIT(app_config,
-    HDU_FIELD(thread_count,TYPE_UINT8,1,DefaultThreadCount)
+    HDU_FIELD(thread_count,TYPE_UINT8,1,false,DefaultThreadCount)
     HDU_FIELD(data_folder,TYPE_STRING,2)
-    HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)
+    HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)    
 )
 
 HDU_UNIT(logger_config,
@@ -120,6 +120,7 @@ HDU_UNIT(logger_config,
 
 HDU_UNIT(db_config,
     HDU_FIELD(provider,TYPE_STRING,1,false,"hatnrocksdb")
+    HDU_FIELD(thread_count,TYPE_UINT8,2,false,1)
 )
 
 HDU_UNIT(crypt_config,
@@ -327,13 +328,13 @@ Error BaseApp::init()
 
 void BaseApp::close()
 {
-    //! @todo close db client async
-    if (d->dbClient)
+    if (m_env)
     {
-        auto ec=d->dbClient->closeDb();
+        // close db client
+        auto ec=database().close();
         //! @todo log error
         std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
-        d->dbClient.reset();
+        database().reset();
     }
 
     //! @todo close logger
@@ -502,9 +503,19 @@ Error BaseApp::openDb(bool create)
     d->dbClient=d->dbPlugin->makeClient();
     Assert(d->dbClient,"Failed to create db client in plugin");
 
+    auto threadIt=m_threads.begin();
+    Assert(threadIt!=m_threads.end(),"Threads must be initialized before opening database");
+    auto thread=threadIt->second;
+
     // open db
+    Error ec;
     base::config_object::LogRecords logRecords;
-    auto ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+    std::ignore=thread->execSync(
+        [this,&ec,&logRecords,&name,create]()
+        {
+            ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+        }
+    );
     //! @todo log records
     if (ec)
     {
@@ -512,8 +523,29 @@ Error BaseApp::openDb(bool create)
         return ec;
     }
 
-    // set db client in context
-    database().setDbClient(std::make_shared<db::AsyncClient>(d->dbClient));
+    // set db client in env
+    auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread.get());
+    uint8_t dbThreadCount=d->dbConfig.config().fieldValue(db_config::thread_count);
+    if (dbThreadCount>m_threads.size())
+    {
+        dbThreadCount=static_cast<uint8_t>(m_threads.size());
+    }
+    if (dbThreadCount>1)
+    {
+        mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
+        size_t i=0;
+        for (auto&& it:m_threads)
+        {
+            mappedThreads->addMappedThread(it.second.get());
+            i++;
+            if (i==dbThreadCount)
+            {
+                break;
+            }
+        }
+    }
+    auto asyncDbClient=std::make_shared<db::AsyncClient>(d->dbClient,std::move(mappedThreads));
+    database().setDbClient(std::move(asyncDbClient));
 
     // done
     return OK;
