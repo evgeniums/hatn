@@ -227,6 +227,7 @@ Error BaseApp::applyConfig()
     ec=logHandler->loadConfig(*m_configTree,loggerConfigPath);
     HATN_CHECK_EC(ec)
     d->logger=log::makeLogger(logHandler);
+    //! @todo configure logger
     d->currentThreadLogCtx=log::makeLogCtx();
     auto& currentLogCtx=d->currentThreadLogCtx->get<log::Context>();
     currentLogCtx.setLogger(d->logger.get());
