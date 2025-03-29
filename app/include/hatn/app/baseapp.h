@@ -22,6 +22,7 @@
 #include <hatn/common/threadwithqueue.h>
 #include <hatn/common/env.h>
 #include <hatn/common/translate.h>
+#include <hatn/common/logger.h>
 
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreeloader.h>
@@ -33,6 +34,8 @@
 #include <hatn/db/asyncclient.h>
 
 #include <hatn/app/app.h>
+
+DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
 
 HATN_APP_NAMESPACE_BEGIN
 

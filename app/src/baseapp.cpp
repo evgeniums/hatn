@@ -30,6 +30,11 @@
 
 #include <hatn/app/baseapp.h>
 
+#include <hatn/common/loggermoduleimp.h>
+
+INIT_LOG_MODULE(app,HATN_APP_EXPORT)
+
+
 HATN_APP_NAMESPACE_BEGIN
 
 namespace base=HATN_BASE_NAMESPACE;
@@ -145,6 +150,9 @@ class BaseApp_p
         std::shared_ptr<db::DbPlugin> dbPlugin;
         std::shared_ptr<db::Client> dbClient;
 
+        common::SharedPtr<log::TaskLogContext> currentThreadLogCtx;
+        std::map<std::string,common::SharedPtr<log::TaskLogContext>> threadLogCtxs;
+
         void loadCryptPlugins();
         void loadDbPlugins();
         void loadPlugins(const std::string& pluginFolder);
@@ -218,6 +226,10 @@ Error BaseApp::applyConfig()
     ec=logHandler->loadConfig(*m_configTree,loggerConfigPath);
     HATN_CHECK_EC(ec)
     d->logger=log::makeLogger(logHandler);
+    d->currentThreadLogCtx=log::makeLogCtx();
+    auto& currentLogCtx=d->currentThreadLogCtx->get<log::Context>();
+    currentLogCtx.setLogger(d->logger.get());
+    log::ThreadLocalFallbackContext::set(&currentLogCtx);
 
     //! @todo Log app config
     //! @todo validate app config
@@ -276,7 +288,19 @@ Error BaseApp::init()
         auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
         m_threads.emplace(threadName,thread);
         thread->start();
-    }
+
+        // create fallback log context for thread
+        std::ignore=thread->execSync(
+            [this,&threadName]()
+            {
+                auto taskCtx=log::makeLogCtx();
+                auto& currentLogCtx=taskCtx->get<log::Context>();
+                currentLogCtx.setLogger(d->logger.get());
+                log::ThreadLocalFallbackContext::set(&currentLogCtx);
+                d->threadLogCtxs[threadName]=taskCtx;
+            }
+        );
+    }        
 
     //! @todo configure/create allocator factory
 
@@ -311,6 +335,8 @@ void BaseApp::close()
         std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
         d->dbClient.reset();
     }
+
+    //! @todo close logger
 
     // stop all threads
     for (auto&& it: m_threads)
