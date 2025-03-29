@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file base/error.сpp
+/** @file base/baseerror.сpp
   *
   *      Contains definition of error category;
   *
@@ -24,11 +24,10 @@ HATN_BASE_NAMESPACE_BEGIN
 
 /********************** BaseErrorCategory **************************/
 
-static BaseErrorCategory BaseErrorCategoryInstance;
-
 //---------------------------------------------------------------
 const BaseErrorCategory& BaseErrorCategory::getCategory() noexcept
 {
+    static BaseErrorCategory BaseErrorCategoryInstance;
     return BaseErrorCategoryInstance;
 }
 
