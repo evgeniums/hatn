@@ -104,6 +104,18 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
+        Error closeDbSync()
+        {
+            Error ec;
+            std::ignore=threads()->thread()->execSync(
+                [&ec,this,self{shared_from_this()}]()
+                {
+                    ec=m_client->closeDb();
+                }
+            );
+            return ec;
+        }
+
         template <typename ContextT, typename CallbackT>
         void createDb(
                 common::SharedPtr<ContextT> ctx,
@@ -874,6 +886,20 @@ class WithAsyncClient
             return m_db;
         }
 
+        Error close()
+        {
+            if (m_db)
+            {
+                return m_db->closeDbSync();
+            }
+            return OK;
+        }
+
+        void reset()
+        {
+            m_db.reset();
+        }
+
     private:
 
         std::shared_ptr<AsyncClient> m_db;
@@ -924,6 +950,31 @@ class MultipleAsyncClients : public WithAsyncClient
             {
                 m_clients[std::move(topic)]=std::move(client);
             }
+        }
+
+        Error close()
+        {
+            Error ec;
+            for (auto&& it: m_clients)
+            {
+                auto ec1=it.second->closeDbSync();
+                if (!ec && ec1)
+                {
+                    ec=ec1;
+                }
+            }
+            auto ec1=WithAsyncClient::close();
+            if (!ec && ec1)
+            {
+                ec=ec1;
+            }
+            return ec;
+        }
+
+        void reset()
+        {
+            m_clients.clear();
+            WithAsyncClient::reset();
         }
 
     private:
