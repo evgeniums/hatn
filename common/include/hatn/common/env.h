@@ -29,9 +29,28 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 struct EnvTag{};
-struct BaseEnv
+class BaseEnv
 {
-    using hana_tag=EnvTag;
+    public:
+
+        using hana_tag=EnvTag;
+
+        BaseEnv(std::string name={}) : m_name(std::move(name))
+        {}
+
+        const std::string& name() const noexcept
+        {
+            return m_name;
+        }
+
+        void setName(std::string name)
+        {
+            m_name=std::move(name);
+        }
+
+    private:
+
+        std::string m_name;
 };
 
 struct EnvContextTag{};
@@ -49,16 +68,16 @@ public:
 
     template <typename ...Args>
     EnvContext(
-        Args&& ...args
+            Args&& ...args
         ) : T(std::forward<Args>(args)...)
     {}
 
-    template <template <typename ...> class Ts, typename ...Types>
+    template <typename ...Types>
     EnvContext(
-        Ts<Types...>&& ts
+            std::tuple<Types...>&& ts
         ) : EnvContext(
-              std::forward<Ts<Types...>>(ts),
-              std::make_index_sequence<std::tuple_size<std::remove_reference_t<Ts<Types...>>>::value>{}
+              std::forward<std::tuple<Types...>>(ts),
+              std::make_index_sequence<std::tuple_size<std::remove_reference_t<std::tuple<Types...>>>::value>{}
               )
     {}
 
@@ -73,7 +92,7 @@ private:
 };
 
 /**
- * @brief The Env class represent a holder of contextx where each context can be accessed with get() method.
+ * @brief The Env class represent a holder of contexts where each context can be accessed with get() method.
  */
 template <typename Contexts, typename BaseT=BaseEnv>
 class EnvT : public BaseT
@@ -88,7 +107,9 @@ class EnvT : public BaseT
         /**
          * @brief Default constructor.
          */
-        EnvT() : m_contexts(),
+        EnvT(std::string name={}) :
+                Base(std::move(name)),
+                m_contexts(),
                 m_refs(ctxRefs())
         {}
 
@@ -288,7 +309,7 @@ class EnvT : public BaseT
     private:
 
         Contexts m_contexts;
-        typename TupleRefs<Contexts>::type m_refs;
+        typename TupleRefs<Contexts>::type m_refs;        
 };
 
 /**
