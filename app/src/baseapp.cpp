@@ -16,6 +16,7 @@
 
 #include <hatn/common/filesystem.h>
 #include <hatn/common/plugin.h>
+#include <hatn/common/threadwithqueue.h>
 
 #include <hatn/base/configobject.h>
 
@@ -28,6 +29,7 @@
 
 #include <hatn/db/dbplugin.h>
 
+#include <hatn/app/apperror.h>
 #include <hatn/app/baseapp.h>
 
 #include <hatn/common/loggermoduleimp.h>
@@ -219,8 +221,7 @@ Error BaseApp::applyConfig()
     auto logHandlerIt=d->loggerBuilders.find(loggerName);
     if (logHandlerIt==d->loggerBuilders.end())
     {
-        //! @todo Use app error code
-        return commonError(CommonError::UNSUPPORTED);
+        return appError(AppError::UNKNOWN_LOGGER);
     }
     auto logHandler=logHandlerIt->second();
     std::string loggerConfigPath=fmt::format("{}.{}",LoggerConfigRoot,loggerName);
@@ -302,7 +303,8 @@ Error BaseApp::init()
                 d->threadLogCtxs[threadName]=taskCtx;
             }
         );
-    }        
+    }
+    std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,appThread());
 
     //! @todo configure/create allocator factory
 
@@ -314,12 +316,13 @@ Error BaseApp::init()
     m_env=common::makeEnvType<AppEnv>(
         common::subcontexts(
             common::subcontext(),
+            common::subcontext(std::move(mappedThreads)),
             common::subcontext(d->logger),
             common::subcontext(),
             common::subcontext(),
             common::subcontext()
         )
-    );    
+    );
 
     // done
     return OK;
@@ -504,9 +507,8 @@ Error BaseApp::openDb(bool create)
     d->dbClient=d->dbPlugin->makeClient();
     Assert(d->dbClient,"Failed to create db client in plugin");
 
-    auto threadIt=m_threads.begin();
-    Assert(threadIt!=m_threads.end(),"Threads must be initialized before opening database");
-    auto thread=threadIt->second;
+    auto thread=appThread();
+    Assert(thread!=nullptr,"Threads must be initialized before opening database");
 
     // open db
     Error ec;
@@ -525,7 +527,7 @@ Error BaseApp::openDb(bool create)
     }
 
     // set db client in env
-    auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread.get());
+    auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
     uint8_t dbThreadCount=d->dbConfig.config().fieldValue(db_config::thread_count);
     if (dbThreadCount>m_threads.size())
     {

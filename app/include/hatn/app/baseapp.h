@@ -20,33 +20,16 @@
 #define HATNAPPBASEAPP_H
 
 #include <hatn/common/threadwithqueue.h>
-#include <hatn/common/env.h>
-#include <hatn/common/translate.h>
-#include <hatn/common/logger.h>
 
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreeloader.h>
 
-#include <hatn/logcontext/withlogger.h>
-
-#include <hatn/crypt/ciphersuite.h>
-
-#include <hatn/db/asyncclient.h>
-
 #include <hatn/app/app.h>
+#include <hatn/app/appenv.h>
 
 DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
 
 HATN_APP_NAMESPACE_BEGIN
-
-using Logger=HATN_LOGCONTEXT_NAMESPACE::WithLogger;
-using LoggerHandlerBuilder=HATN_LOGCONTEXT_NAMESPACE::LoggerHandlerBuilder;
-using Db=HATN_DB_NAMESPACE::AsyncDb;
-using AllocatorFactory=common::pmr::WithFactory;
-using CipherSuites=HATN_CRYPT_NAMESPACE::WithCipherSuites;
-using Translator=common::WithTranslator;
-
-using AppEnv=common::Env<AllocatorFactory,Logger,Db,CipherSuites,Translator>;
 
 class BaseApp_p;
 
@@ -183,6 +166,16 @@ class HATN_APP_EXPORT BaseApp
         common::SharedPtr<AppEnv> env() const
         {
             return m_env;
+        }
+
+        common::ThreadQWithTaskContext* appThread() const noexcept
+        {
+            auto it=m_threads.rbegin();
+            if (it==m_threads.rend())
+            {
+                return nullptr;
+            }
+            return it->second.get();
         }
 
     private:
