@@ -533,9 +533,19 @@ using Logger=typename Context::Logger;
 
 using LoggerHandlerBuilder=std::function<std::shared_ptr<LoggerHandler> ()>;
 
+struct HATN_LOGCONTEXT_EXPORT ThreadLocalFallbackContext
+{
+    static void reset(Context* val=nullptr) noexcept;
+    static void set(Context* val) noexcept
+    {
+        reset(val);
+    }
+};
+
 HATN_LOGCONTEXT_NAMESPACE_END
 
 HATN_COMMON_NAMESPACE_BEGIN
+
 template <>
 class HATN_LOGCONTEXT_EXPORT ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>
 {
@@ -546,7 +556,11 @@ class HATN_LOGCONTEXT_EXPORT ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NA
         static Type* value() noexcept;
         static void setValue(Type* val) noexcept;
         static void reset() noexcept;
+
+        static void resetFallbackContext(Type* val=nullptr) noexcept;
+
 };
+
 HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_IF() \

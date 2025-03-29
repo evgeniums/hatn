@@ -19,18 +19,29 @@
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/context.h>
 
+namespace {
+    thread_local static HATN_LOGCONTEXT_NAMESPACE::Context* TSInstance_Context{nullptr};
+    thread_local static HATN_LOGCONTEXT_NAMESPACE::Context* TSFallback_Context{nullptr};
+}
+
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
+
+void ThreadLocalFallbackContext::reset(Context* val) noexcept
+{
+    TSFallback_Context=val;
+}
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-namespace {
-    thread_local static HATN_LOGCONTEXT_NAMESPACE::Context* TSInstance_Context{nullptr};
-}
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 HATN_LOGCONTEXT_NAMESPACE::Context* ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::value() noexcept
 {
+    if (TSInstance_Context==nullptr)
+    {
+        return TSFallback_Context;
+    }
     return TSInstance_Context;
 }
 
