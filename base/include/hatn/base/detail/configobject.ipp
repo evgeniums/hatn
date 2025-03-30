@@ -132,6 +132,8 @@ struct FieldTraits<T,hana::when<T::isRepeatedType::value>>
     }
 };
 
+//! @todo Support map fields
+
 } // namespace config_object_detail
 
 //---------------------------------------------------------------
