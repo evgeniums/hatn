@@ -131,6 +131,11 @@ class LoggerHandlerT
             lib::string_view module=lib::string_view{}
             )=0;
 
+        virtual Error close()
+        {
+            return OK;
+        }
+
     private:
 
         std::string m_name;
@@ -233,6 +238,11 @@ class LoggerHandlerTraits
             )
         {
             m_handler->logCloseApi(level,ec,ctx,msg,module);
+        }
+
+        Error close()
+        {
+            return m_handler->close();
         }
 
     private:

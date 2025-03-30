@@ -395,6 +395,11 @@ class LoggerT : public LoggerBase,
         {
             this->traits().logCloseApi(level,ec,ctx,msg,module);
         }
+
+        Error close()
+        {
+            return this->traits().close();
+        }
 };
 
 template <typename ContextT>
