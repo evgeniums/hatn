@@ -337,11 +337,22 @@ void BaseApp::close()
         // close db client
         auto ec=database().close();
         //! @todo log error
-        std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
+        if (ec)
+        {
+            std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
+        }
         database().reset();
     }
 
-    //! @todo close logger
+    // close logger
+    if (d->logger)
+    {
+        auto ec=d->logger->close();
+        if (ec)
+        {
+            std::cerr << "Failed to close logger: "<< ec.value() << ": " << ec.message() << std::endl;
+        }
+    }
 
     // stop all threads
     for (auto&& it: m_threads)
@@ -356,7 +367,10 @@ void BaseApp::close()
     if (d->dbPlugin)
     {
         auto ec=d->dbPlugin->cleanup();
-        std::cerr << "Failed to cleanup db plugin " << d->dbPlugin->info()->name << ": " << ec.value() << ": " << ec.message() << std::endl;
+        if (ec)
+        {
+            std::cerr << "Failed to cleanup db plugin " << d->dbPlugin->info()->name << ": " << ec.value() << ": " << ec.message() << std::endl;
+        }
     }
 }
 
