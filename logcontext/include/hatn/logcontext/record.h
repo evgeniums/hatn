@@ -36,6 +36,8 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 enum class LogLevel : int8_t
 {
+    Unknown=-100,
+
     Default=-1,
     None=0,
     Fatal=1,
@@ -44,27 +46,46 @@ enum class LogLevel : int8_t
     Info=4,
     Details=5,
     Debug=6,
-    Trace=7,
-
-    Any=100
+    Trace=7
 };
 
 inline const char* logLevelName(LogLevel level) noexcept
 {
     switch (level)
     {
-    case (LogLevel::Info): return "INFO";
-    case (LogLevel::Details): return "DETAILS";
-    case (LogLevel::Error): return "ERROR";
-    case (LogLevel::Warn): return "WARN";
-    case (LogLevel::Debug): return "DEBUG";
-    case (LogLevel::Trace): return "TRACE";
-    case (LogLevel::Any): return "ANY";
-    case (LogLevel::Fatal): return "FATAL";
-    case (LogLevel::Default): return "DEFAULT";
-    case (LogLevel::None): return "NONE";
+        case (LogLevel::Info): return "INFO";
+        case (LogLevel::Details): return "DETAILS";
+        case (LogLevel::Error): return "ERROR";
+        case (LogLevel::Warn): return "WARN";
+        case (LogLevel::Debug): return "DEBUG";
+        case (LogLevel::Trace): return "TRACE";
+        case (LogLevel::Fatal): return "FATAL";
+        case (LogLevel::Default): return "DEFAULT";
+        case (LogLevel::None): return "NONE";
+        case (LogLevel::Unknown): return "UNKNOWN";
     }
     return "UNKNOWN";
+}
+
+inline LogLevel parseLogLevel(lib::string_view name) noexcept
+{
+    static std::map<std::string,LogLevel,std::less<>> m{
+        {"INFO",LogLevel::Info},
+        {"DETAILS",LogLevel::Details},
+        {"ERROR",LogLevel::Error},
+        {"WARN",LogLevel::Warn},
+        {"DEBUG",LogLevel::Debug},
+        {"TRACE",LogLevel::Trace},
+        {"FATAL",LogLevel::Fatal},
+        {"NONE",LogLevel::None}
+    };
+
+    auto it=m.find(name);
+    if (it!=m.end())
+    {
+        return it->second;
+    }
+    return LogLevel::Unknown;
 }
 
 class HATN_LOGCONTEXT_EXPORT ContextAllocatorFactory

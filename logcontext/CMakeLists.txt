@@ -10,6 +10,8 @@ SET (HEADERS
     include/hatn/logcontext/streamlogger.h
     include/hatn/logcontext/loggerhandler.h
     include/hatn/logcontext/withlogger.h
+    include/hatn/logcontext/loggererror.h
+    include/hatn/logcontext/loggererrorcodes.h
 )
 
 SET (HEADERS
@@ -19,8 +21,10 @@ SET (HEADERS
 SET (SOURCES
     src/record.cpp
     src/context.cpp
+    src/logger.cpp
     src/contextlogger.cpp
     src/streamlogger.cpp
+    src/loggererror.cpp
 )
 
 BUILD_HATN_MODULE()

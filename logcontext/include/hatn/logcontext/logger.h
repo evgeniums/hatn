@@ -28,6 +28,8 @@
 #include <hatn/common/singleton.h>
 #include <hatn/common/pmr/pmrtypes.h>
 
+#include <hatn/base/base.h>
+
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/loggerhandler.h>
 
@@ -36,11 +38,16 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
 constexpr uint8_t DefaultDebugVerbosity=0;
 
-class LoggerBase
+class HATN_LOGCONTEXT_EXPORT LoggerBase
 {
     public:
 
         using levelMapT=common::FlatMap<std::string,LogLevel,std::less<>>;
+
+        Error loadConfig(
+            const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+            const std::string& configPath
+        );
 
         template <typename ContextT>
         static LogLevel contextLogLevel(
