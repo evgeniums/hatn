@@ -212,9 +212,7 @@ Error BaseApp::applyConfig()
 {
     base::config_object::LogRecords logRecords;
 
-    // make and init logger
-    //! @todo Log logger config
-    //! @todo validate log config
+    // make and init logger    
     auto ec=d->loggerConfig.loadLogConfig(*m_configTree,LoggerConfigRoot,logRecords);
     HATN_CHECK_EC(ec)
     std::string loggerName{d->loggerConfig.config().fieldValue(logger_config::name)};
@@ -228,11 +226,13 @@ Error BaseApp::applyConfig()
     ec=logHandler->loadConfig(*m_configTree,loggerConfigPath);
     HATN_CHECK_EC(ec)
     d->logger=log::makeLogger(logHandler);
-    //! @todo configure logger
+    ec=d->logger->loadConfig(*m_configTree,LoggerConfigRoot);
+    HATN_CHECK_EC(ec)
     d->currentThreadLogCtx=log::makeLogCtx();
     auto& currentLogCtx=d->currentThreadLogCtx->get<log::Context>();
     currentLogCtx.setLogger(d->logger.get());
     log::ThreadLocalFallbackContext::set(&currentLogCtx);
+    //! @todo Log logger config
 
     //! @todo Log app config
     //! @todo validate app config
