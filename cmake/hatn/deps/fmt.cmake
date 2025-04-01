@@ -16,15 +16,27 @@ ELSE()
 IF (INSTALL_DEV)
 
 INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/thirdparty/fmt/include/fmt" DESTINATION include)
+
 IF (MSVC)
-    INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmtd.lib
-            DESTINATION lib
-            CONFIGURATIONS Debug
-           )
-    INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmt.lib
-           DESTINATION lib
-           CONFIGURATIONS Release
-          )
+    IF (HATN_CMAKE_MSVC)
+        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmtd.lib
+                DESTINATION lib
+                CONFIGURATIONS Debug
+               )
+        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmt.lib
+               DESTINATION lib
+               CONFIGURATIONS Release
+              )
+    ELSE (HATN_CMAKE_MSVC)
+        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/fmtd.lib
+                DESTINATION lib
+                CONFIGURATIONS Debug
+               )
+        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt.lib
+               DESTINATION lib
+               CONFIGURATIONS Release
+              )
+    ENDIF(HATN_CMAKE_MSVC)
 ELSE (MSVC)
     INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/libfmtd.a
             DESTINATION lib
