@@ -110,7 +110,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             std::cout<<"Move constructor StringOnStackT"<<std::endl;
 #endif
             this->reserve(PreallocatedSize);
-            this->append(other);
+            BaseT::append(other);
             other.clear();
         }
 
