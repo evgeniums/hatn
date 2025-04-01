@@ -124,7 +124,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             std::cout<<"Copy assignment StringOnStackT"<<std::endl;
 #endif
             this->clear();
-            this->append(other);
+            BaseT::append(other);
             return *this;
         }
 
@@ -136,7 +136,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             }
 
             this->clear();
-            this->append(other);
+            BaseT::append(other);
             other.clear();
             return *this;
         }
