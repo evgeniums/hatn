@@ -1,0 +1,12 @@
+--- boost/beast/core/file_win32.hpp	2023-12-07 00:03:10 +0000
++++ boost/beast/core/file_win32.hpp	2024-12-19 22:13:48 +0000
+@@ -38,6 +38,9 @@
+ */
+ class file_win32
+ {
++
++protected:
++	
+     boost::winapi::HANDLE_ h_ =
+         boost::winapi::INVALID_HANDLE_VALUE_;
+ 

@@ -16,7 +16,11 @@ if %errorlevel% neq 0 (
 
 cd %build_dir%
 
-IF %ADDRESS_MODEL%==32 SET ARCH_CMAKE=-A %MSVC_BUILD_ARCH% -T %MSVC_TOOLSET%
+IF DEFINED CMAKE_MSVC_GENERATOR (
+
+SET ARCH_CMAKE=-G "%CMAKE_MSVC_GENERATOR%" -A %MSVC_BUILD_ARCH% -T %MSVC_TOOLSET%
+
+)
 
 cmake %ARCH_CMAKE% ^
     -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
@@ -28,7 +32,17 @@ cmake %ARCH_CMAKE% ^
 
 if %errorlevel% neq 0 exit %errorlevel%
 @ECHO OFF
+
+IF NOT DEFINED CMAKE_MSVC_GENERATOR (
+
+cmake --build . --target install --config Release -- -j %BUILD_WORKERS%
+if %errorlevel% neq 0 exit %errorlevel%
+
+) ELSE (
+
 cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 if %errorlevel% neq 0 exit %errorlevel%
+
+)
 
 cd %WORKING_DIR%
