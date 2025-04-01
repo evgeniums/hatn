@@ -344,7 +344,7 @@ class MappedThreadQWithTaskContext
             {
                 return defaultThread();
             }
-            size_t idx=Random::generate(m_threads.size());
+            size_t idx=static_cast<size_t>(Random::generate(static_cast<uint32_t>(m_threads.size())));
             return mappedThread(idx);
         }
 
