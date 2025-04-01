@@ -347,9 +347,9 @@ public:
 
     ~WireBufSolidRef()=default;
     WireBufSolidRef(const WireBufSolidRef&)=delete;
-    WireBufSolidRef(WireBufSolidRef&&)=default;
+    WireBufSolidRef(WireBufSolidRef&&)=delete;
     WireBufSolidRef& operator=(const WireBufSolidRef&)=delete;
-    WireBufSolidRef& operator=(WireBufSolidRef&&)=default;
+    WireBufSolidRef& operator=(WireBufSolidRef&&)=delete;
 };
 
 class HATN_DATAUNIT_EXPORT WireBufSolidConstRef : public WireBuf<WireBufSolidConstRefTraits>
@@ -367,9 +367,9 @@ public:
 
     ~WireBufSolidConstRef()=default;
     WireBufSolidConstRef(const WireBufSolidConstRef&)=delete;
-    WireBufSolidConstRef(WireBufSolidConstRef&&)=default;
+    WireBufSolidConstRef(WireBufSolidConstRef&&)=delete;
     WireBufSolidConstRef& operator=(const WireBufSolidConstRef&)=delete;
-    WireBufSolidConstRef& operator=(WireBufSolidConstRef&&)=default;
+    WireBufSolidConstRef& operator=(WireBufSolidConstRef&&)=delete;
 };
 
 HATN_DATAUNIT_NAMESPACE_END
