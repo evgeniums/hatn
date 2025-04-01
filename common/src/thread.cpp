@@ -34,6 +34,7 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/high_resolution_timer.hpp>
 #include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/post.hpp>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -103,14 +104,15 @@ struct Timer final
             {
                 stopped.store(true,std::memory_order_release);
                 if (uninstall) {
-                    asioContext.post(uninstall);
+                    boost::asio::post(asioContext,uninstall);
+                    // asioContext.post(uninstall);
                 }
             }
             else
             {                
                 if (highResTimer!=nullptr)
                 {
-                    highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
+                    highResTimer->expires_after(std::chrono::microseconds(periodUs));
                     highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
                 }
                 else
@@ -143,7 +145,7 @@ struct Timer final
         if (highResolution)
         {
             highResTimer=std::make_unique<boost::asio::high_resolution_timer>(asioContext);
-            highResTimer->expires_from_now(std::chrono::microseconds(periodUs));
+            highResTimer->expires_after(std::chrono::microseconds(periodUs));
             highResTimer->async_wait([this](const boost::system::error_code& ec){this->timeout(ec);});
         }
         else
@@ -368,7 +370,8 @@ void Thread::execAsync(
     )
 {
     d->handlersPending.fetch_add(1,std::memory_order_acquire);
-    d->asioContext->post(
+    boost::asio::post(
+        *d->asioContext,
         [this,handler{std::move(handler)}]()
         {
             d->handlersPending.fetch_sub(1,std::memory_order_acquire);

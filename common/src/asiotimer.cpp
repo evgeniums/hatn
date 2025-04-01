@@ -29,7 +29,7 @@ inline void expiresFromNow(boost::asio::deadline_timer& timer,uint64_t period)
 
 inline void expiresFromNow(boost::asio::high_resolution_timer& timer,uint64_t period)
 {
-    timer.expires_from_now(std::chrono::microseconds(period));
+    timer.expires_after(std::chrono::microseconds(period));
 }
 
 }

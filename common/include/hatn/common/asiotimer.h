@@ -57,8 +57,7 @@ class AsioTimerTraits
             if (m_running.load())
             {
                 m_running.store(false);
-                boost::system::error_code ec;
-                m_native.cancel(ec);
+                m_native.cancel();
             }
         }
 
