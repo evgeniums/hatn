@@ -221,6 +221,11 @@ struct ContainerOnStackConstRef
         return m_container;
     }
 
+    common::ByteArray& container() noexcept
+    {
+        return const_cast<common::ByteArray&>(m_container);
+    }
+
     common::ByteArrayShared sharedMainContainer() const noexcept
     {
         return common::ByteArrayShared{};

@@ -33,8 +33,8 @@ class WithTraits
  * @brief Base class template for class templates with traits
  */
 template <typename Traits>
-class WithTraits<Traits, 
-                std::enable_if_t<std::is_copy_constructible<Traits>::value && std::is_move_constructible<Traits>::value>
+class WithTraits<Traits,
+                std::enable_if_t<std::is_copy_constructible<Traits>::value && std::is_copy_assignable<Traits>::value && std::is_move_constructible<Traits>::value>
                 >
 {
     public:
@@ -91,7 +91,7 @@ class WithTraits<Traits,
 
 template <typename Traits>
 class WithTraits<Traits,
-    std::enable_if_t<!std::is_copy_constructible<Traits>::value && std::is_move_constructible<Traits>::value>
+    std::enable_if_t<!(std::is_copy_constructible<Traits>::value && std::is_copy_assignable<Traits>::value) && (std::is_move_constructible<Traits>::value && std::is_move_assignable<Traits>::value)>
 >
 {
 public:
@@ -139,14 +139,14 @@ private:
 
 template <typename Traits>
 class WithTraits<Traits,
-    std::enable_if_t<!std::is_copy_constructible<Traits>::value && !std::is_move_constructible<Traits>::value>
+            std::enable_if_t<!(std::is_copy_constructible<Traits>::value && std::is_copy_assignable<Traits>::value) && !(std::is_move_constructible<Traits>::value && std::is_move_assignable<Traits>::value)>
 >
 {
 public:
 
     using TraitsT=Traits;
 
-    //! Ctor
+    //! Ctorsb
     template <typename ... Args>
     WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
     {}
