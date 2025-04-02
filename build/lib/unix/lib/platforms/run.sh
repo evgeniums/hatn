@@ -4,7 +4,10 @@ set -e
 
 if [ -z "$system_boost" ];
 then
-export Boost_DIR=$boost_root
+    if [[ "$boost_version" != "" ]]
+    then
+	export with_boost_dir="-DBoost_DIR=$deps_root/lib/cmake/Boost-$boost_version"
+    fi
 fi
 
 if [ -z "$system_openssl" ];
@@ -19,7 +22,8 @@ cmake -G "Unix Makefiles" \
 	-DBUILD_STATIC=$build_static \
 	-DENABLE_TRANSLATIONS=$enable_translations \
 	-DDEV_MODULE=$module \
-    -DBUILD_PLUGINS="$hatn_plugins" \
+	-DBUILD_PLUGINS="$hatn_plugins" \
+	$with_boost_dir \
 	$project_path
 
 if [ -z "$codechecker" ];
