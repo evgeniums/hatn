@@ -155,45 +155,56 @@ BOOST_AUTO_TEST_CASE(Utf8Operations)
     BOOST_CHECK(strings3==checkStrings3);
 
     auto strings4=strings;
-    boost::locale::comparator<char> comp1{utfLoc,boost::locale::collate_level::primary};
-    BOOST_CHECK(!comp1(one,sampleLowerOne));
-    BOOST_CHECK(!comp1(sampleLowerOne,one));
-    std::sort(strings4.begin(),strings4.end(),comp1);
-    BOOST_TEST_MESSAGE("Case insensitive sorted strings in en_US.UTF-8 locale using boost::locale::comparator");
-    i=0;
-    for (auto&& it:strings4)
+    bool hasCollFacet=std::has_facet<boost::locale::collator<char>>(utfLoc);
+    BOOST_WARN_MESSAGE(hasCollFacet,"Collation facet not installed in locale");
+    if (hasCollFacet)
     {
-        if (i!=0)
-        {
-            std::cout<<",";
-        }
-        std::cout<<it;
-        i++;
-    }
-    std::cout<<std::endl;
-    std::vector<std::string> checkStrings4{"Алмаз","алмаз","Ангара","бард","Барс","Волга"};
-    BOOST_CHECK(strings4==checkStrings4);
+        try {
+            boost::locale::comparator<char> comp1{utfLoc,boost::locale::collate_level::primary};
+            auto ok=!comp1(one,sampleLowerOne);
+            BOOST_CHECK(ok);
+            BOOST_CHECK(!comp1(sampleLowerOne,one));
+            std::sort(strings4.begin(),strings4.end(),comp1);
+            BOOST_TEST_MESSAGE("Case insensitive sorted strings in en_US.UTF-8 locale using boost::locale::comparator");
+            i=0;
+            for (auto&& it:strings4)
+            {
+                if (i!=0)
+                {
+                    std::cout<<",";
+                }
+                std::cout<<it;
+                i++;
+            }
+            std::cout<<std::endl;
+            std::vector<std::string> checkStrings4{"Алмаз","алмаз","Ангара","бард","Барс","Волга"};
+            BOOST_CHECK(strings4==checkStrings4);
 
-    auto strings5=strings;
-    boost::locale::comparator<char> comp2{utfLoc,boost::locale::collate_level::tertiary};
-    BOOST_CHECK(!comp2(one,lowerOne));
-    BOOST_CHECK(comp2(lowerOne,one));
-    std::sort(strings5.begin(),strings5.end(),comp2);
-    BOOST_TEST_MESSAGE("Case sensitive sorted strings in en_US.UTF-8 locale using boost::locale::comparator");
-    i=0;
-    for (auto&& it:strings5)
-    {
-        if (i!=0)
-        {
-            std::cout<<",";
+            auto strings5=strings;
+            boost::locale::comparator<char> comp2{utfLoc,boost::locale::collate_level::tertiary};
+            BOOST_CHECK(!comp2(one,lowerOne));
+            BOOST_CHECK(comp2(lowerOne,one));
+            std::sort(strings5.begin(),strings5.end(),comp2);
+            BOOST_TEST_MESSAGE("Case sensitive sorted strings in en_US.UTF-8 locale using boost::locale::comparator");
+            i=0;
+            for (auto&& it:strings5)
+            {
+                if (i!=0)
+                {
+                    std::cout<<",";
+                }
+                std::cout<<it;
+                i++;
+            }
+            std::cout<<std::endl;
+            std::vector<std::string> checkStrings5{"алмаз","Алмаз","Ангара","бард","Барс","Волга"};
+            BOOST_CHECK(strings5==checkStrings5);
         }
-        std::cout<<it;
-        i++;
+        catch (std::bad_cast e)
+        {
+            BOOST_FAIL(e.what());
+        }
     }
-    std::cout<<std::endl;
-    std::vector<std::string> checkStrings5{"алмаз","Алмаз","Ангара","бард","Барс","Волга"};
-    BOOST_CHECK(strings5==checkStrings5);
-
     std::string latin{"Hello 12345678 0xABCDEF!"};
     std::string sampleLatinLower{"hello 12345678 0xabcdef!"};
     auto latinLower=boost::locale::to_lower(latin,ruLoc);
