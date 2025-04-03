@@ -101,7 +101,7 @@ Error TcpServer::listen(
         d->acceptor.open(ep.protocol());
 
         // set options on acceptor
-        int listenBacklog=boost::asio::ip::tcp::socket::max_connections;
+        int listenBacklog=boost::asio::ip::tcp::socket::max_listen_connections;
         if (d->config!=nullptr)
         {
             d->config->fillAcceptorOptions(d->acceptor);

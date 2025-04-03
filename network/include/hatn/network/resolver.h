@@ -38,7 +38,7 @@ HATN_NETWORK_NAMESPACE_BEGIN
 //! Nameserver
 struct NameServer
 {
-    asio::IpAddress address;
+    asio::IpAddress::type address;
     uint16_t udpPort=53;
     uint16_t tcpPort=53;
 

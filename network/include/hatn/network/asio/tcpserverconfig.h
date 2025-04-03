@@ -34,7 +34,7 @@ class HATN_NETWORK_EXPORT TcpServerConfig
 
         //! Ctor
         TcpServerConfig(
-            int listenBacklog=boost::asio::ip::tcp::socket::max_connections
+            int listenBacklog=boost::asio::ip::tcp::socket::max_listen_connections
         )  noexcept : m_listenBacklog(listenBacklog)
         {
         }

@@ -63,14 +63,36 @@ template <> struct FromBoostProtocol<boost::asio::ip::udp>
     static const IpProtocol protocol=IpProtocol::UDP;
 };
 
-using IpAddress=boost::asio::ip::address;
-using IpEndpoint=network::IpEndpoint<IpAddress>;
-
 template <typename T>
 auto makeAddress(T&& addr)
 {
     return boost::asio::ip::make_address(std::forward<T>(addr));
 }
+
+template <typename T>
+auto makeAddress(T&& addr, boost::system::error_code& ec)
+{
+    return boost::asio::ip::make_address(std::forward<T>(addr),ec);
+}
+
+// using IpAddress=boost::asio::ip::address;
+
+struct IpAddressHelpers
+{
+    template <typename ...Args>
+    static auto makeAddress(Args&&... args)
+    {
+        return asio::makeAddress(std::forward<Args>(args)...);
+    }
+};
+
+struct IpAddress
+{
+    using type=boost::asio::ip::address;
+    using helpers=IpAddressHelpers;
+};
+
+using IpEndpoint=network::IpEndpoint<IpAddress>;
 
 //! Template class for IP protocol endpoints using Boost ASIO
 template <IpProtocol ProtoT>
@@ -95,19 +117,19 @@ class IpEndpointT final : public IpEndpoint
         IpEndpointT(
                     const char* address,
                     uint16_t port=0
-                ) : IpEndpoint(boost::asio::ip::make_address(address),port,proto)
+                ) : IpEndpoint(makeAddress(address),port,proto)
         {}
 
         IpEndpointT(
                     const std::string& address,
                     uint16_t port=0
-                ) : IpEndpoint(boost::asio::ip::make_address(address),port,proto)
+                ) : IpEndpoint(makeAddress(address),port,proto)
         {}
 
         IpEndpointT(
             lib::string_view address,
             uint16_t port=0
-            ) : IpEndpoint(boost::asio::ip::make_address(address),port,proto)
+            ) : IpEndpoint(makeAddress(address),port,proto)
         {}
 
         explicit IpEndpointT(
@@ -157,32 +179,32 @@ class IpEndpointT final : public IpEndpoint
 
         void setAddress(const char* address)
         {
-            this->setAddress(boost::asio::ip::make_address(address));
+            this->setAddress(makeAddress(address));
         }
 
         void setAddress(lib::string_view address)
         {
-            this->setAddress(boost::asio::ip::make_address(address));
+            this->setAddress(makeAddress(address));
         }
 
         void setAddress(const std::string& address)
         {
-            this->setAddress(boost::asio::ip::make_address(address));
+            this->setAddress(makeAddress(address));
         }
 
         void setAddress(const char* address, boost::system::error_code& ec)
         {
-            this->setAddress(boost::asio::ip::make_address(address,ec));
+            this->setAddress(makeAddress(address,ec));
         }
 
         void setAddress(lib::string_view address, boost::system::error_code& ec)
         {
-            this->setAddress(boost::asio::ip::make_address(address,ec));
+            this->setAddress(makeAddress(address,ec));
         }
 
         void setAddress(const std::string& address, boost::system::error_code& ec)
         {
-            this->setAddress(boost::asio::ip::make_address(address,ec));
+            this->setAddress(makeAddress(address,ec));
         }
 };
 

@@ -784,7 +784,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                     auto& record=records[i];
                     uint16_t port=(record->port==0)?q->port:record->port;
                     boost::system::error_code ec;
-                    boost::asio::ip::address addr=boost::asio::ip::address::from_string(record->host,ec);
+                    boost::asio::ip::address addr=boost::asio::ip::make_address(record->host,ec);
                     if (ec)
                     {
                         q->intermediateEndpoints.emplace_back(record->host,port);
@@ -845,7 +845,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                 {
                     auto& record=records[i];
                     boost::system::error_code ec;
-                    boost::asio::ip::address addr=boost::asio::ip::address::from_string(record->host,ec);
+                    boost::asio::ip::address addr=boost::asio::ip::make_address(record->host,ec);
                     if (ec)
                     {
                         q->intermediateEndpoints.emplace_back(record->host,query->port);

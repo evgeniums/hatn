@@ -63,7 +63,7 @@ class Endpoint
         Endpoint(
                 const char* address,
                 typename PortT::type port
-            ) : m_address(AddressT::type::from_string(address)),
+            ) : m_address(AddressT::helpers::makeAddress(address)),
                   m_port(std::move(port)),
                   m_type(TypeT::defaultValue())
         {}
@@ -159,7 +159,8 @@ inline bool operator == (const Endpoint<AddressT,PortT,TypeT>& left,
 //! Type wrapper to use with Endpoint template
 template <typename Type,typename=void> struct TypeWrapper
 {
-    using type=Type;
+    using type=typename Type::type;
+    using helpers=typename Type::helpers;
     constexpr static const type defaultValue() noexcept
     {
         return type();
