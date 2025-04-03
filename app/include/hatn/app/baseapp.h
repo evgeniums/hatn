@@ -25,6 +25,7 @@
 #include <hatn/base/configtreeloader.h>
 
 #include <hatn/app/app.h>
+#include <hatn/app/appname.h>
 #include <hatn/app/appenv.h>
 
 DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
@@ -33,17 +34,17 @@ HATN_APP_NAMESPACE_BEGIN
 
 class BaseApp_p;
 
-struct AppName
-{
-    std::string execName;
-    std::string displayName;
-};
-
 class HATN_APP_EXPORT BaseApp
 {
     public:
 
         BaseApp(AppName appName);
+        ~BaseApp();
+
+        BaseApp(const BaseApp&)=delete;
+        BaseApp(BaseApp&&)=default;
+        BaseApp& operator= (const BaseApp&)=delete;
+        BaseApp& operator= (BaseApp&&)=default;
 
         Error loadConfigString(
             common::lib::string_view source,
@@ -176,6 +177,11 @@ class HATN_APP_EXPORT BaseApp
                 return nullptr;
             }
             return it->second.get();
+        }
+
+        const AppName& appName() const
+        {
+            return m_appName;
         }
 
     private:

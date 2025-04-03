@@ -183,6 +183,10 @@ BaseApp::BaseApp(AppName appName) :
 }
 
 //---------------------------------------------------------------
+BaseApp::~BaseApp()
+{}
+
+//---------------------------------------------------------------
 
 Error BaseApp::loadConfigString(
         common::lib::string_view source,
