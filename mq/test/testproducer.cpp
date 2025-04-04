@@ -73,12 +73,26 @@ namespace db=HATN_DB_NAMESPACE;
 namespace mq=HATN_MQ_NAMESPACE;
 namespace scheduler=HATN_SCHEDULER_NAMESPACE;
 
+void checkEc(const HATN_NAMESPACE::Error& ec, std::string context)
+{
+    BOOST_TEST_CONTEXT(context)
+    {
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+    }
+}
+
 /********************** TestEnv **************************/
 
 struct TestEnv : public HATN_TEST_NAMESPACE::MultiThreadFixture
 {
     TestEnv()
     {
+        auto ec=MultiThreadFixture::clearTmpPath();
+        checkEc(ec,"clear_tmp_path");
     }
 
     ~TestEnv()
@@ -179,18 +193,6 @@ HATN_TASK_CONTEXT_DEFINE(MqProducerClientW,MqProducerClientW)
 
 using MqProducerClientCtx=TaskContextType<MqProducerClient,MqApiClient,MqBackgroundWorker,MqNotifier,MqClientScheduler,LogContext>;
 
-void checkEc(const HATN_NAMESPACE::Error& ec, std::string context)
-{
-    BOOST_TEST_CONTEXT(context)
-    {
-        if (ec)
-        {
-            BOOST_TEST_MESSAGE(ec.message());
-        }
-        BOOST_REQUIRE(!ec);
-    }
-}
-
 auto createClient(Thread* thread)
 {
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
@@ -230,6 +232,9 @@ auto createClientApp()
 
     ec=app->init();
     checkEc(ec,"client_app_init");
+
+    ec=app->openDb();
+    checkEc(ec,"open_db");
 
     return app;
 }

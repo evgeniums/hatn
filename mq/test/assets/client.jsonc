@@ -3,5 +3,13 @@
         "thread_count" : 2,
         "plugin_folders" : ["./plugins"],
         "data_folder" : "$data_root"
+    },
+    "db": {
+        "provider": "hatnrocksdb",
+        "hatnrocksdb": {
+            "main" : {
+                "dbpath" : "db/clientrocksdb"
+            }
+        }
     }
 }
