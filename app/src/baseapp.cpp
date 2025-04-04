@@ -55,7 +55,7 @@ void initOpensslPlugin()
 {}
 #endif
 
-#ifdef HATN_ENABLE_PLUGIN_OPENSSL
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 HATN_PLUGIN_INIT_FN(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin,initRocksdbPlugin)
 #else
 void initRocksdbPlugin()
