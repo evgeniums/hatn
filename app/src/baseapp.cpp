@@ -376,6 +376,8 @@ void BaseApp::close()
             std::cerr << "Failed to cleanup db plugin " << d->dbPlugin->info()->name << ": " << ec.value() << ": " << ec.message() << std::endl;
         }
     }
+
+    //! @todo Log app close
 }
 
 //---------------------------------------------------------------
@@ -504,6 +506,7 @@ db::ClientConfig BaseApp_p::dbClientConfig(lib::string_view name) const
                          cfgPath.copyAppend("main"),
                          cfgPath.copyAppend("options")
                          };
+    cfg.dbPathPrefix=app->m_appDataFolder;
     return cfg;
 }
 
