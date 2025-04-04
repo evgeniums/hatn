@@ -1,0 +1,7 @@
+{
+    "app": {
+        "thread_count" : 2,
+        "plugin_folders" : ["./plugins"],
+        "data_folder" : "$data_root"
+    }
+}

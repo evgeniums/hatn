@@ -19,8 +19,11 @@
 
 #include "hatn_test_config.h"
 #include <hatn/test/multithreadfixture.h>
+#include <hatn/test/pluginlist.h>
 
 #include <hatn/logcontext/streamlogger.h>
+
+#include <hatn/dataunit/objectid.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
@@ -56,6 +59,8 @@
 #include <hatn/mq/apiclient.h>
 #include <hatn/mq/scheduler.h>
 #include <hatn/mq/notifier.h>
+
+#include <hatn/app/baseapp.h>
 
 #include <hatn/mq/ipp/producerclient.ipp>
 
@@ -174,6 +179,18 @@ HATN_TASK_CONTEXT_DEFINE(MqProducerClientW,MqProducerClientW)
 
 using MqProducerClientCtx=TaskContextType<MqProducerClient,MqApiClient,MqBackgroundWorker,MqNotifier,MqClientScheduler,LogContext>;
 
+void checkEc(const HATN_NAMESPACE::Error& ec, std::string context)
+{
+    BOOST_TEST_CONTEXT(context)
+    {
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+    }
+}
+
 auto createClient(Thread* thread)
 {
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
@@ -199,6 +216,24 @@ auto createClient(Thread* thread)
     return cl;
 }
 
+auto createClientApp()
+{
+    HATN_APP_NAMESPACE::AppName appName{"mqproducerclient","mq producer test client"};
+    auto app=std::make_shared<HATN_APP_NAMESPACE::BaseApp>(appName);
+
+    auto clientDataPath=fmt::format("{}/data/client",HATN_TEST_NAMESPACE::MultiThreadFixture::tmpPath());
+    app->configTreeLoader()->setPrefixSubstitution("$data_root",clientDataPath);
+
+    auto configFile=HATN_TEST_NAMESPACE::PluginList::assetsFilePath("mq","client.jsonc");
+    auto ec=app->loadConfigFile(configFile);
+    checkEc(ec,"client_load_config");
+
+    ec=app->init();
+    checkEc(ec,"client_app_init");
+
+    return app;
+}
+
 BOOST_AUTO_TEST_SUITE(TestProducer)
 
 BOOST_AUTO_TEST_CASE(ConstructClient)
@@ -211,20 +246,21 @@ BOOST_AUTO_TEST_CASE(ConstructClient)
 
 BOOST_FIXTURE_TEST_CASE(ProducerClientCtx,TestEnv)
 {
-    createThreads(4);
-    auto clientThread=thread(2);
-    auto mqClientThread=thread(3);
+    auto clientApp=createClientApp();
+    auto clientThread=clientApp->appThread();
+    auto mqClientThread=clientApp->thread(0);
 
     auto session=client::makeSessionNoAuthContext();
-    auto rawClientCtx=createClient(clientThread.get());
+    auto rawClientCtx=createClient(clientThread);
     auto clientWithAuthCtx=createClientWithAuth(rawClientCtx,session);
     auto mappedClients=makeShared<MqApiClient::MappedClients>(clientWithAuthCtx);
+    auto producerId=HATN_DATAUNIT_NAMESPACE::ObjectId::generateIdStr();
 
     auto ctx=makeTaskContextType<MqProducerClientCtx>(
         subcontexts(
-            subcontext("mq_producer1"),
+            subcontext(producerId),
             subcontext("mq_service1",mappedClients),
-            subcontext(mqClientThread.get()),
+            subcontext(mqClientThread),
             subcontext(),
             subcontext(),
             subcontext()
@@ -232,6 +268,13 @@ BOOST_FIXTURE_TEST_CASE(ProducerClientCtx,TestEnv)
     );
 
     BOOST_CHECK(static_cast<bool>(ctx));
+
+    exec(1);
+
+    ctx.reset();
+    clientApp->close();
+
+    exec(1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
