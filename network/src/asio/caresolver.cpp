@@ -16,6 +16,9 @@
 
 /****************************************************************************/
 
+//! @todo Refactor cares to use modern not deprecated API
+#define CARES_NO_DEPRECATED
+
 #include <ares.h>
 #include <ares_build.h>
 
