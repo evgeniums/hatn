@@ -35,8 +35,10 @@
 #include <hatn/common/format.h>
 
 #include <hatn/common/utils.h>
+#include <hatn/common/fileutils.h>
 #include <hatn/common/weakptr.h>
 #include <hatn/common/bytearray.h>
+#include <hatn/common/filesystem.h>
 
 #include <hatn/common/pointers/mempool/weakpool.h>
 
@@ -195,9 +197,24 @@ std::string MultiThreadFixture::tmpPath()
 {
     if (!boost::filesystem::exists(TMP_PATH))
     {
-        boost::filesystem::create_directory(TMP_PATH);
+        lib::filesystem::create_directory(TMP_PATH);
     }
     return TMP_PATH;
+}
+
+//---------------------------------------------------------------
+Error MultiThreadFixture::clearTmpPath()
+{
+    lib::fs_error_code fec;
+
+    lib::filesystem::remove_all(TMP_PATH,fec);
+    if (fec)
+    {
+        return Error(fec.value(),&fec.category());
+    }
+
+    lib::filesystem::create_directory(TMP_PATH,fec);
+    return Error(fec.value(),&fec.category());
 }
 
 #ifdef TEST_ASSETS_PATH

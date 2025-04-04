@@ -124,6 +124,8 @@ class MultiThreadFixture
 
         static std::string tmpPath();
 
+        static Error clearTmpPath();
+
         static std::string assetsPath() noexcept
         {
             return ASSETS_PATH;
