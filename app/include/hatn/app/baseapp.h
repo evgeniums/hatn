@@ -95,11 +95,6 @@ class HATN_APP_EXPORT BaseApp
             return m_configTree;
         }
 
-        const auto& threads() const noexcept
-        {
-            return m_threads;
-        }
-
         void setConfigTreeLoader(std::shared_ptr<HATN_BASE_NAMESPACE::ConfigTreeLoader> configTreeLoader)
         {
             m_configTreeLoader=std::move(configTreeLoader);
@@ -171,17 +166,36 @@ class HATN_APP_EXPORT BaseApp
 
         common::ThreadQWithTaskContext* appThread() const noexcept
         {
-            auto it=m_threads.rbegin();
-            if (it==m_threads.rend())
+            if (m_threads.empty())
             {
                 return nullptr;
             }
-            return it->second.get();
+            return m_threads.back().get();
         }
 
         const AppName& appName() const
         {
             return m_appName;
+        }
+
+        std::shared_ptr<common::ThreadQWithTaskContext> threadShared(size_t idx) const
+        {
+            return m_threads[idx];
+        }
+
+        common::ThreadQWithTaskContext* thread(size_t idx) const
+        {
+            return m_threads[idx].get();
+        }
+
+        size_t threadCount() const noexcept
+        {
+            return m_threads.size();
+        }
+
+        static std::string threadName(size_t idx)
+        {
+            return fmt::format("t{}",idx);
         }
 
     private:
@@ -194,7 +208,7 @@ class HATN_APP_EXPORT BaseApp
         std::shared_ptr<HATN_BASE_NAMESPACE::ConfigTree> m_configTree;
         std::shared_ptr<HATN_BASE_NAMESPACE::ConfigTreeLoader> m_configTreeLoader;
 
-        std::map<std::string,std::shared_ptr<common::ThreadQWithTaskContext>> m_threads;
+        std::vector<std::shared_ptr<common::ThreadQWithTaskContext>> m_threads;
 
         common::SharedPtr<AppEnv> m_env;
 

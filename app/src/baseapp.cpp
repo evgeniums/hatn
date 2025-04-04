@@ -293,7 +293,7 @@ Error BaseApp::init()
     {
         auto threadName=fmt::format("t{}",i);
         auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
-        m_threads.emplace(threadName,thread);
+        m_threads.push_back(thread);
         thread->start();
 
         // create fallback log context for thread
@@ -361,7 +361,7 @@ void BaseApp::close()
     // stop all threads
     for (auto&& it: m_threads)
     {
-        it.second->stop();
+        it->stop();
     }
 
     // destroy env
@@ -547,9 +547,9 @@ Error BaseApp::openDb(bool create)
     // set db client in env
     auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
     uint8_t dbThreadCount=d->dbConfig.config().fieldValue(db_config::thread_count);
-    if (dbThreadCount>m_threads.size())
+    if (dbThreadCount>m_threads.size()-1)
     {
-        dbThreadCount=static_cast<uint8_t>(m_threads.size());
+        dbThreadCount=static_cast<uint8_t>(m_threads.size()-1);
     }
     if (dbThreadCount>1)
     {
@@ -557,7 +557,7 @@ Error BaseApp::openDb(bool create)
         size_t i=0;
         for (auto&& it:m_threads)
         {
-            mappedThreads->addMappedThread(it.second.get());
+            mappedThreads->addMappedThread(it.get());
             i++;
             if (i==dbThreadCount)
             {
