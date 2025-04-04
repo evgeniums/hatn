@@ -23,6 +23,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/common/utils.h>
+#include <hatn/common/filesystem.h>
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -256,7 +257,19 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     ttlCfOptions.compression=compression;
 
+    // construct db path
     std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
+    if (!config.dbPathPrefix.empty())
+    {
+        lib::filesystem::path path{dbPath};
+        if (!path.is_absolute())
+        {
+            lib::filesystem::path dir{config.dbPathPrefix};
+            dir.append(dbPath);
+            dbPath=dir.string();
+        }
+    }
+
     bool createNew=false;
     bool readOnly=d->opt.config().field(rocksdb_options::readonly).value();
 
@@ -310,6 +323,15 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     std::vector<ROCKSDB_NAMESPACE::ColumnFamilyHandle*> cfHandles;
     if (createNew)
     {
+        lib::filesystem::path dbDir{dbPath};
+        lib::fs_error_code fec;
+        lib::filesystem::create_directories(dbDir.parent_path(),fec);
+        if (fec)
+        {
+            ec=Error{fec.value(),&fec.category()};
+            return;
+        }
+
         status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,&transactionDb);
         db=transactionDb;
     }

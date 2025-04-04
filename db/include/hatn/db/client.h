@@ -71,6 +71,8 @@ struct ClientConfig
     std::shared_ptr<EncryptionManager> encryptionManager;
     std::shared_ptr<ClientEnvironment> environment;
 
+    std::string dbPathPrefix;
+
     ClientConfig(
             std::shared_ptr<base::ConfigTree> main,
             std::shared_ptr<base::ConfigTree> opt,
