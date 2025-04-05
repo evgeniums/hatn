@@ -34,5 +34,10 @@ export deps_arch=$deps_root/release/$bitcode_mode/$visibility_mode/$arch_
 export build_path=$build_root/$arch_rel_path
 export install_path=$install_root/$arch_rel_path
 
+if [ -z "$hatn_path" ]
+then
+    export hatn_path=$src_root
+fi
+
 export IOS_CMAKE=$hatn_path/thirdparty/ios-cmake/ios.toolchain.cmake
 
