@@ -26,8 +26,19 @@
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/crypt/cryptplugin.h>
-
 #include <hatn/db/dbplugin.h>
+
+#ifdef NO_DYNAMIC_HATN_PLUGINS
+
+#ifdef HATN_ENABLE_PLUGIN_OPENSSL
+#include <hatn/crypt/plugins/openssl/opensslplugin.h>
+#endif
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/rocksdbplugin.h>
+#endif
+
+#endif
 
 #include <hatn/app/apperror.h>
 #include <hatn/app/baseapp.h>
