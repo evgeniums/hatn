@@ -31,7 +31,8 @@ ${CONFIG_H_TEXT}
 
                 STRING (TOUPPER ${plugin} UPPER_PLUGIN_NAME)
                 SET (CONFIG_H_TEXT ${CONFIG_H_TEXT}
-"#ifndef HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
+" \n\
+#ifndef HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
 #define HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
 #endif \n\
 "
