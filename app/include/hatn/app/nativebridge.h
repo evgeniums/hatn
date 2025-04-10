@@ -40,6 +40,18 @@ struct Request
     std::string messageTypeName;
     common::SharedPtr<du::Unit> message;
     std::vector<common::ByteArrayShared> dataArrays;
+
+    Request()
+    {}
+
+    Request(
+            std::string envId,
+            std::string topic,
+            std::string messageTypeName
+        ) : envId(std::move(envId)),
+            topic(std::move(topic)),
+            messageTypeName(std::move(messageTypeName))
+    {}
 };
 
 using Response=Request;
