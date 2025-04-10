@@ -106,3 +106,12 @@ SET (SOURCES
 
 BUILD_HATN_PLUGIN(db)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
+
+IF (BUILD_STATIC)
+    INSTALL(TARGETS hatnrocksdbschema ARCHIVE DESTINATION lib/hatn/plugins)
+ELSE(BUILD_STATIC)
+    INSTALL(TARGETS hatnrocksdbschema
+        RUNTIME DESTINATION lib/hatn/plugins
+        LIBRARY DESTINATION lib/hatn/plugins
+    )
+ENDIF(BUILD_STATIC)
