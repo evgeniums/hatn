@@ -235,17 +235,19 @@ FUNCTION(BUILD_HATN_PLUGIN module_name)
     ENDIF(WIN32)
     READ_HATN_MODULE_PLUGIN_DEPS(${module_name} ${small_name})
     ADD_HATN_MODULES(${PROJECT_NAME} PRIVATE ${HATN_PLUGIN_DEPS})
-    IF(BUILD_STATIC)
-        TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-        INSTALL(TARGETS ${PROJECT_NAME}
-            ARCHIVE DESTINATION lib/hatn/plugins
-        )
-    ELSE(BUILD_STATIC)
-        INSTALL(TARGETS ${PROJECT_NAME}
-            RUNTIME DESTINATION lib/hatn/plugins
-            LIBRARY DESTINATION lib/hatn/plugins
-        )
-    ENDIF(BUILD_STATIC)
+    IF (NOT DONT_INSTALL_PLUGIN)
+        IF(BUILD_STATIC)
+            TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+            INSTALL(TARGETS ${PROJECT_NAME}
+                ARCHIVE DESTINATION lib/hatn/plugins
+            )
+        ELSE(BUILD_STATIC)
+            INSTALL(TARGETS ${PROJECT_NAME}
+                RUNTIME DESTINATION lib/hatn/plugins
+                LIBRARY DESTINATION lib/hatn/plugins
+            )
+        ENDIF(BUILD_STATIC)
+    ENDIF()
 
     IF(ENABLE_TRANSLATIONS)
         COMPILE_TRANSLATIONS()
