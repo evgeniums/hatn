@@ -290,6 +290,12 @@ void Thread::start(bool waitForStarted)
 //---------------------------------------------------------------
 void Thread::stop()
 {
+    bool expectedStopped=false;
+    if (!d->stopped.compare_exchange_strong(expectedStopped,true))
+    {
+        return;
+    }
+
     d->asioContext->stop();
     if (d->thread.joinable())
     {
@@ -343,7 +349,6 @@ void Thread::run()
                 it.second->stopped.store(true,std::memory_order_release);
             }
             d->running.store(false,std::memory_order_release);
-            d->stopped.store(true,std::memory_order_release);
         }
     }
     catch(std::exception &e)
