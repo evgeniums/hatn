@@ -352,7 +352,7 @@ void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logS
                     dataunit::types::IsString<T::typeId>,
                     [&](auto _)
                     {
-                        std::string v{_(field).c_str()};
+                        std::string v{_(field).value()};
                         _(logSettings).mask(_(field).name(),v);
                         return fmt::format("\"{}\"",v);
                     },
