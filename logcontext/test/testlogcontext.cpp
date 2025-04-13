@@ -319,8 +319,8 @@ BOOST_AUTO_TEST_CASE(TestStreamLogger)
     HATN_CTX_TRACE("Trace without module");
     HATN_CTX_TRACE("Trace with module",sample_module);
 
-    BOOST_TEST_MESSAGE("Log with context log level=ANY");
-    logCtx.setLogLevel(LogLevel::Any);
+    BOOST_TEST_MESSAGE("Log with context log level=Default");
+    logCtx.setLogLevel(LogLevel::Default);
 
     HATN_CTX_FATAL(ec,"Fatal without module");
     HATN_CTX_FATAL(ec,"Fatal with module",sample_module);
