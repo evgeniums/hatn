@@ -7,14 +7,11 @@ SET (HEADERS
     include/hatn/app/appenv.h
     include/hatn/app/appname.h
     include/hatn/app/baseapp.h
-    include/hatn/app/appclient.h
-    include/hatn/app/clientbridge.h
 )
 
 SET (SOURCES
     src/apperror.cpp
     src/baseapp.cpp
-    src/clientbridge.cpp
 )
 
 BUILD_HATN_MODULE()

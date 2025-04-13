@@ -27,8 +27,7 @@
 #define HATN_APP_ERRORS(Do) \
     Do(AppError,OK,_TR("OK")) \
     Do(AppError,UNKNOWN_LOGGER,_TR("unknown logger type","app")) \
-    Do(AppError,UNKNOWN_BRIDGE_SERVICE,_TR("unknown bridge service","app")) \
-    Do(AppError,UNKNOWN_BRIDGE_METHOD,_TR("unknown bridge method","app")) \
+
 
 HATN_APP_NAMESPACE_BEGIN
 

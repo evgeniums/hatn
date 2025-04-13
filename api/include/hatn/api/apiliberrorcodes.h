@@ -38,6 +38,9 @@
     Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request","api")) \
     Do(ApiLibError,CONNECTION_CLOSED,_TR("connection was closed during request","api")) \
     Do(ApiLibError,FORCE_CONNECTION_CLOSE,_TR("connection was forced to close","api")) \
+    Do(ApiLibError,UNKNOWN_BRIDGE_SERVICE,_TR("unknown bridge service","api")) \
+    Do(ApiLibError,UNKNOWN_BRIDGE_METHOD,_TR("unknown bridge method","api")) \
+
 
 HATN_API_NAMESPACE_BEGIN
 

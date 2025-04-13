@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file app/clientbridge.h
+/** @file api/clientbridge.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPPCLIENTBRIDGE_H
-#define HATNAPPCLIENTBRIDGE_H
+#ifndef HATNAPICLIENTBRIDGE_H
+#define HATNAPICLIENTBRIDGE_H
 
 #include <functional>
 
@@ -26,11 +26,15 @@
 
 #include <hatn/dataunit/unit.h>
 
-#include <hatn/app/app.h>
 #include <hatn/app/appenv.h>
-#include <hatn/app/appclient.h>
 
-HATN_APP_CLIENT_NAMESPACE_BEGIN
+#include <hatn/api/api.h>
+
+#define HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN namespace hatn { namespace api { namespace client { namespace bridge {
+#define HATN_API_CLIEN_BRIDGE_NAMESPACE_END }}}}
+#define HATN_API_CLIEN_BRIDGE_NAMESPACE hatn::api::client::bridge
+
+HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN
 
 struct Request
 {
@@ -58,7 +62,7 @@ using Response=Request;
 using Context=common::TaskContext;
 using Callback=std::function<void (const Error& ec, Response response)>;
 
-class HATN_APP_EXPORT ContextBuilder
+class HATN_API_EXPORT ContextBuilder
 {
     public:
 
@@ -69,10 +73,10 @@ class HATN_APP_EXPORT ContextBuilder
         ContextBuilder& operator=(const ContextBuilder&)=delete;
         ContextBuilder& operator=(ContextBuilder&&)=default;
 
-        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<AppEnv> env)=0;
+        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env)=0;
 };
 
-class HATN_APP_EXPORT Method
+class HATN_API_EXPORT Method
 {
     public:
 
@@ -87,7 +91,7 @@ class HATN_APP_EXPORT Method
         Method& operator=(Method&&)=default;
 
         virtual void exec(
-            common::SharedPtr<AppEnv> env,
+            common::SharedPtr<app::AppEnv> env,
             common::SharedPtr<Context> ctx,
             Request request,
             Callback callback
@@ -103,7 +107,7 @@ class HATN_APP_EXPORT Method
         std::string m_name;
 };
 
-class HATN_APP_EXPORT Service
+class HATN_API_EXPORT Service
 {
     public:
 
@@ -111,7 +115,7 @@ class HATN_APP_EXPORT Service
         {}
 
         void exec(
-            common::SharedPtr<AppEnv> env,
+            common::SharedPtr<app::AppEnv> env,
             const std::string& method,
             Request request,
             Callback callback
@@ -146,7 +150,7 @@ class HATN_APP_EXPORT Service
         common::FlatMap<std::string,std::shared_ptr<Method>> m_methods;
 };
 
-class HATN_APP_EXPORT Dispatcher
+class HATN_API_EXPORT Dispatcher
 {
     public:
 
@@ -171,7 +175,7 @@ class HATN_APP_EXPORT Dispatcher
             std::shared_ptr<Service> service
         );
 
-        void resetDefaultEnv(common::SharedPtr<AppEnv> defaultEnv={})
+        void resetDefaultEnv(common::SharedPtr<app::AppEnv> defaultEnv={})
         {
             m_defaultEnv=std::move(defaultEnv);
         }
@@ -181,12 +185,12 @@ class HATN_APP_EXPORT Dispatcher
             return m_defaultEnv;
         }
 
-        void addEnv(common::SharedPtr<AppEnv> env)
+        void addEnv(common::SharedPtr<app::AppEnv> env)
         {
             m_envs[env->name()]=env;
         }
 
-        common::SharedPtr<AppEnv> env(const std::string& envId) const
+        common::SharedPtr<app::AppEnv> env(const std::string& envId) const
         {
             auto it=m_envs.find(envId);
             if (it==m_envs.end())
@@ -199,12 +203,12 @@ class HATN_APP_EXPORT Dispatcher
     private:
 
         common::FlatMap<std::string,std::shared_ptr<Service>> m_services;
-        common::FlatMap<std::string,common::SharedPtr<AppEnv>> m_envs;
+        common::FlatMap<std::string,common::SharedPtr<app::AppEnv>> m_envs;
 
         std::shared_ptr<ContextBuilder>  m_defaultCtxBuilder;
-        common::SharedPtr<AppEnv> m_defaultEnv;
+        common::SharedPtr<app::AppEnv> m_defaultEnv;
 };
 
-HATN_APP_CLIENT_NAMESPACE_END
+HATN_API_CLIEN_BRIDGE_NAMESPACE_END
 
-#endif // HATNAPPCLIENTBRIDGE_H
+#endif // HATNAPICLIENTBRIDGE_H

@@ -14,10 +14,10 @@
   *
   */
 
-#include <hatn/app/apperror.h>
-#include <hatn/app/clientbridge.h>
+#include <hatn/api/apiliberror.h>
+#include <hatn/api/client/clientbridge.h>
 
-HATN_APP_CLIENT_NAMESPACE_BEGIN
+HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
@@ -32,20 +32,20 @@ Method::~Method()
 //---------------------------------------------------------------
 
 void Service::exec(
-        common::SharedPtr<AppEnv> env,
+        common::SharedPtr<app::AppEnv> env,
         const std::string& method,
         Request request,
         Callback callback
     )
 {
-    auto thread=env->get<Threads>().threads()->defaultThread();
+    auto thread=env->get<app::Threads>().threads()->defaultThread();
     auto it=m_methods.find(method);
     if (it==m_methods.end())
     {
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(appError(AppError::UNKNOWN_BRIDGE_METHOD),Response{});
+                callback(apiLibError(ApiLibError::UNKNOWN_BRIDGE_METHOD),Response{});
             }
         );
         return;
@@ -84,11 +84,11 @@ void Dispatcher::exec(
     auto it=m_services.find(service);
     if (it==m_services.end())
     {
-        auto thread=m_defaultEnv->get<Threads>().threads()->defaultThread();
+        auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(appError(AppError::UNKNOWN_BRIDGE_SERVICE),Response{});
+                callback(apiLibError(ApiLibError::UNKNOWN_BRIDGE_SERVICE),Response{});
             }
         );
         return;
@@ -100,4 +100,4 @@ void Dispatcher::exec(
 
 //---------------------------------------------------------------
 
-HATN_APP_CLIENT_NAMESPACE_END
+HATN_API_CLIEN_BRIDGE_NAMESPACE_END
