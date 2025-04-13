@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file app/bativebridge.h
+/** @file app/clientbridge.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPPNATIVEBRIDGE_H
-#define HATNAPPNATIVEBRIDGE_H
+#ifndef HATNAPPCLIENTBRIDGE_H
+#define HATNAPPCLIENTBRIDGE_H
 
 #include <functional>
 
@@ -28,10 +28,9 @@
 
 #include <hatn/app/app.h>
 #include <hatn/app/appenv.h>
+#include <hatn/app/appclient.h>
 
-HATN_APP_NAMESPACE_BEGIN
-
-namespace bridge {
+HATN_APP_CLIENT_NAMESPACE_BEGIN
 
 struct Request
 {
@@ -206,8 +205,6 @@ class HATN_APP_EXPORT Dispatcher
         common::SharedPtr<AppEnv> m_defaultEnv;
 };
 
-} // namespace bridge
+HATN_APP_CLIENT_NAMESPACE_END
 
-HATN_APP_NAMESPACE_END
-
-#endif // HATNAPPNATIVEBRIDGE_H
+#endif // HATNAPPCLIENTBRIDGE_H

@@ -10,16 +10,14 @@
 /*
 
 */
-/** @file api/nativebridge.сpp
+/** @file api/clientbridge.сpp
   *
   */
 
 #include <hatn/app/apperror.h>
-#include <hatn/app/nativebridge.h>
+#include <hatn/app/clientbridge.h>
 
-HATN_APP_NAMESPACE_BEGIN
-
-namespace bridge {
+HATN_APP_CLIENT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
@@ -102,6 +100,4 @@ void Dispatcher::exec(
 
 //---------------------------------------------------------------
 
-} // namespace bridge
-
-HATN_APP_NAMESPACE_END
+HATN_APP_CLIENT_NAMESPACE_END
