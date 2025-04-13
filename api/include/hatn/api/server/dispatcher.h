@@ -81,6 +81,40 @@ class Dispatcher : public common::WithTraits<Traits>,
         }
 };
 
+template <typename DispatcherT>
+class DispatchersStore
+{
+    public:
+
+        using Dispatcher=DispatcherT;
+
+        void registerDispatcher(
+            std::string name,
+            std::shared_ptr<Dispatcher> dispatcher
+            )
+        {
+            m_dispatchers[std::move(name)]=std::move(dispatcher);
+        }
+
+        std::shared_ptr<Dispatcher> dispatcher(
+                const std::string& name
+            ) const
+        {
+            auto it=m_dispatchers.find(name);
+            if (it!=m_dispatchers.end())
+            {
+                return it->second;
+            }
+            return std::shared_ptr<Dispatcher>{};
+        }
+
+
+    private:
+
+        std::map<std::string,std::shared_ptr<Dispatcher>> m_dispatchers;
+};
+
+
 } // namespace server
 
 HATN_API_NAMESPACE_END

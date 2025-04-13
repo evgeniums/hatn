@@ -30,8 +30,14 @@
 
 #include <hatn/db/asyncclient.h>
 
+#include <hatn/app/app.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
+
+HATN_APP_NAMESPACE_BEGIN
+class BaseApp;
+HATN_APP_NAMESPACE_END
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -90,6 +96,21 @@ class WithEnv
     private:
 
         common::SharedPtr<EnvT> m_env;
+};
+
+template <typename Traits>
+struct EnvConfig
+{
+    using Env=typename Traits::Env;
+
+    static Result<common::SharedPtr<Env>> makeEnv(
+        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+    )
+    {
+        return Traits::makeEnv(app,configTree,configTreePath);
+    }
 };
 
 } // namespace server

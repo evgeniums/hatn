@@ -10,34 +10,31 @@
 /*
 
 */
-/** @file api/server/authdispatcher.h
+/** @file api/server/microserviceconfig.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPIAUTHDISPATCHER_H
-#define HATNAPIAUTHDISPATCHER_H
+#ifndef HATNAPIMICROSERVICECONFIG_H
+#define HATNAPIMICROSERVICECONFIG_H
+
+#include <hatn/dataunit/syntax.h>
 
 #include <hatn/api/api.h>
-#include <hatn/api/server/servicedispatcher.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-//! @todo Implement auth dispatcher
-
-template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
-using AuthDispatcherTraits=ServiceDispatcherTraits<EnvT,RequestT>;
-
-template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
-using AuthDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT,RequestT>,EnvT,RequestT>;
-
-class NoAuthDispatcher;
+HDU_UNIT(microservice_config,
+    HDU_FIELD(name,TYPE_STRING,1,true)
+    HDU_FIELD(dispatcher,TYPE_STRING,2)
+    HDU_FIELD(auth_dispatcher,TYPE_STRING,3)
+)
 
 } // namespace server
 
 HATN_API_NAMESPACE_END
 
-#endif // HATNAPIAUTHDISPATCHER_H
+#endif // HATNAPIMICROSERVICECONFIG_H
