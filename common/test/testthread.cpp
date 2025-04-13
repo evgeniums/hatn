@@ -326,17 +326,33 @@ void testQueueLoad(TaskQueue* queue,
     std::atomic<int> counter3(0);
     std::atomic<int> counter4(0);
 
-    auto checkForDone=[&counter1,&counter2,&counter3,&counter4,&count,&testFxt]()
+    auto checkForDone=[&counter1,&counter2,&counter3,&counter4,&count,testFxt]()
     {
         if (counter1==count && counter2==count && counter3==count && counter4==count)
         {
-            testFxt->quit();
+            Thread::currentThread()->installTimer(
+                3000000,
+                [testFxt]()
+                {
+                    testFxt->quit();
+                    return true;
+                },
+                true
+            );
         }
     };
 
-    auto handler1=[&counter1,&count,&start,&checkForDone]()
+    size_t progressCount=count/5;
+
+    auto handler1=[progressCount,&counter1,&count,&start,&checkForDone]()
     {
         ++counter1;
+
+        if (counter1%progressCount==0)
+        {
+            std::cout << "Counter1 processed "<<counter1<< std::endl;
+        }
+
         if (counter1==count)
         {
             auto end = std::chrono::system_clock::now();
@@ -346,9 +362,15 @@ void testQueueLoad(TaskQueue* queue,
             checkForDone();
         }
     };
-    auto handler2=[&counter2,&count,&start,&checkForDone]()
+    auto handler2=[progressCount,&counter2,&count,&start,&checkForDone]()
     {
         ++counter2;
+
+        if (counter2%progressCount==0)
+        {
+            std::cout << "Counter2 processed "<<counter2<< std::endl;
+        }
+
         if (counter2==count)
         {
             auto end = std::chrono::system_clock::now();
@@ -358,9 +380,15 @@ void testQueueLoad(TaskQueue* queue,
             checkForDone();
         }
     };
-    auto handler3=[&counter3,&count,&start,&checkForDone]()
+    auto handler3=[progressCount,&counter3,&count,&start,&checkForDone]()
     {
         ++counter3;
+
+        if (counter3%progressCount==0)
+        {
+            std::cout << "Counter3 processed "<<counter3<< std::endl;
+        }
+
         if (counter3==count)
         {
             auto end = std::chrono::system_clock::now();
@@ -370,9 +398,15 @@ void testQueueLoad(TaskQueue* queue,
             checkForDone();
         }
     };
-    auto handler4=[&counter4,&count,&start,&checkForDone]()
+    auto handler4=[progressCount,&counter4,&count,&start,&checkForDone]()
     {
         ++counter4;
+
+        if (counter4%progressCount==0)
+        {
+            std::cout << "Counter4 processed "<<counter4<< std::endl;
+        }
+
         if (counter4==count)
         {
             auto end = std::chrono::system_clock::now();
@@ -472,7 +506,15 @@ BOOST_FIXTURE_TEST_CASE(MutexQueueLoad,MultiThreadFixture)
 #ifdef BUILD_VALGRIND
     int count=20;
 #else
-    int count=200000;
+    #if defined (BUILD_ANDROID)
+        int count=200000;
+    #else
+        #if defined(BUILD_DEBUG) || (defined(_WIN32) && !defined(_WIN64))
+            int count=100000;
+        #else
+            int count=10000000;
+        #endif
+    #endif
 #endif
     auto queue=new MutexQueue<Task>();
     testQueueLoad(queue,count,180,this);
@@ -498,7 +540,7 @@ BOOST_FIXTURE_TEST_CASE(MpscQueueLoad,MultiThreadFixture)
 #endif
 
     auto queue=new MPSCQueue<Task>();
-    testQueueLoad(queue,count,180,this);
+    testQueueLoad(queue,count,15,this);
 }
 
 void testQueueBoundaries(TaskQueue* queue,

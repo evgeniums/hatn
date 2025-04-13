@@ -71,8 +71,8 @@ class MPSCQueue : public Queue<T>
 
         //! Push item to queue
         virtual void pushInternalItem(typename Queue<T>::Item* item) noexcept override final
-        {            
-            m_size.fetch_add(1,std::memory_order_acquire);
+        {
+            m_size.fetch_add(1);
 
             if (m_enableStats)
             {
@@ -81,53 +81,62 @@ class MPSCQueue : public Queue<T>
 
             // put the item to tail
             typename Queue<T>::Item* tail=nullptr;
-            while(!m_tail.compare_exchange_weak(tail,item,std::memory_order_acquire))
-            {
-            }
+            while(!m_tail.compare_exchange_weak(tail,item))
+            {}
 
             if (tail!=nullptr)
             {
-                // set the item as next for the last tail
-                tail->m_next.store(item,std::memory_order_release);
+                // set the item as next for the previous tail
+                tail->m_next.store(item);
             }
             else
             {
                 // set the item as head
-                m_head.store(item,std::memory_order_relaxed);
+                m_head.store(item);
             }
         }
 
         //! Dequeue item without destroying it
         virtual typename Queue<T>::Item* popItem() noexcept override final
         {
-            auto item=m_head.load(std::memory_order_relaxed);
+            auto item=m_head.load();
             if (item!=nullptr)
             {                
                 // clear tail if head==tail
                 auto tmpItem=item;
-                if (m_tail.compare_exchange_strong(tmpItem,nullptr,std::memory_order_acquire))
+                if (m_tail.compare_exchange_strong(tmpItem,nullptr))
                 {
                     // clear head
-                    m_head.compare_exchange_strong(tmpItem,nullptr,std::memory_order_relaxed);
+                    m_head.compare_exchange_strong(tmpItem,nullptr);
                 }
                 else
                 {
                     // read next item
                     typename Queue<T>::Item* next=nullptr;
+
                     // here we have minor spin-lock, but hope it is very fast and of rare case
                     // we are sure that either the next is already set or it will be set soon to the tail because the item points to the head now
                     // and the head is not equal to the tail in this if-else-branch
-                    do
+                    size_t i=0;
+                    for(;;)
                     {
-                        next=item->m_next.load(std::memory_order_relaxed);
-                    } while (next==nullptr);
+                        next=item->m_next.load();
+                        if (next!=nullptr)
+                        {
+                            break;
+                        }
+                        if (++i%10000000==0)
+                        {
+                            std::cout << "Waiting for next in queue" << std::endl;
+                        }
+                    }
 
                     // put the next item to head
-                    m_head.store(next,std::memory_order_release);
+                    m_head.store(next);
                 }
 
                 // decrement size
-                m_size.fetch_sub(1,std::memory_order_release);
+                m_size.fetch_sub(1);
 
                 // update statistics
                 if (m_enableStats)
