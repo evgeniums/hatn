@@ -1,14 +1,15 @@
-IF (INSTALL_DEV)
-    INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/cmake" DESTINATION lib)
-    INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/scripts" DESTINATION lib/hatn
-        PATTERN "__pycache__" EXCLUDE
-        PATTERN "*.pyc" EXCLUDE
-    )
-    INSTALL(FILES ${HATN_SOURCE_DIR}/VERSION
-        DESTINATION lib/cmake/hatn
-    )
-ENDIF()
-
+MACRO (INSTALL_HATN_FILES)
+    IF (INSTALL_DEV)
+        INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/cmake" DESTINATION lib)
+        INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/scripts" DESTINATION lib/hatn
+            PATTERN "__pycache__" EXCLUDE
+            PATTERN "*.pyc" EXCLUDE
+        )
+        INSTALL(FILES ${HATN_SOURCE_DIR}/VERSION
+            DESTINATION lib/cmake/hatn
+        )
+    ENDIF()
+ENDMACRO(INSTALL_HATN_FILES)
 
 MACRO(HATN_INSTALL_LIB LibName)
 
