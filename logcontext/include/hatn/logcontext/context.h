@@ -143,7 +143,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         void leaveScope()
         {
             const auto* scopeCursor=currentScope();
+#if 0
             Assert(scopeCursor!=nullptr,"leaveScope() forbidden in empty scope stack");
+#else
+            if (scopeCursor==nullptr)
+            {
+                // scope cursor can be nullptr only after resetting/closing API, ensure context's reset
+                reset();
+                return;
+            }
+#endif
             bool freeScope=true;
 
             if (!m_barrierStack.empty())
