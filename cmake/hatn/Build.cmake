@@ -179,11 +179,11 @@ FUNCTION(INSTALL_MODULE)
     ENDIF()
 
     IF (INSTALL_DEV
-            OR (
-                (NOT ("${HATN_${MODULE_NAME}_HEADER_ONLY}" STREQUAL ""))
-                AND
-                (${HATN_${MODULE_NAME}_HEADER_ONLY})
-               )
+            # OR (
+            #     (NOT ("${HATN_${MODULE_NAME}_HEADER_ONLY}" STREQUAL ""))
+            #     AND
+            #     (${HATN_${MODULE_NAME}_HEADER_ONLY})
+            #    )
         )
         INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/hatn DESTINATION include)
         INSTALL(DIRECTORY ${HATN_BINARY_DIR}/include/hatn DESTINATION include)

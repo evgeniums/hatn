@@ -10,6 +10,8 @@ IF (THIRDPARTY_ENABLE_FMT)
       IF (INSTALL_DEV)
           MESSAGE(STATUS "Install fmt")
           SET(FMT_INSTALL ON CACHE BOOL "Install fmt")
+      ELSE()
+          SET(FMT_INSTALL OFF CACHE BOOL "Do not install fmt")
       ENDIF()
 
       IF (NOT WIN32)
