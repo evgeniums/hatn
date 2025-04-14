@@ -83,7 +83,7 @@ TcpServer::TcpServer(
 //---------------------------------------------------------------
 TcpServer::~TcpServer()
 {
-    std::ignore=close();
+    std::ignore=close(true);
 }
 
 //---------------------------------------------------------------
@@ -175,21 +175,30 @@ void TcpServer::accept(
 }
 
 //---------------------------------------------------------------
-Error TcpServer::close()
+Error TcpServer::close(bool destroying)
 {
-    HATN_CTX_SCOPE("tcpserverclose")
-
-    boost::system::error_code ec;
-    if (!d->closed&&d->acceptor.is_open())
+    auto doClose=[destroying,this]()
     {
-        d->closed=true;
-        d->acceptor.close(ec);
-        if (!ec)
+        boost::system::error_code ec;
+        if (!d->closed&&d->acceptor.is_open())
         {
-            HATN_CTX_DEBUG(DoneDebugVerbosity,"TCP server closed",HatnAsioLog)
+            d->closed=true;
+            d->acceptor.close(ec);
+            if (!destroying && !ec)
+            {
+                HATN_CTX_DEBUG(DoneDebugVerbosity,"TCP server closed",HatnAsioLog)
+            }
         }
+        return makeBoostError(ec);
+    };
+
+    if (destroying)
+    {
+        return doClose();
     }
-    return makeBoostError(ec);
+
+    HATN_CTX_SCOPE("tcpserverclose")
+    return doClose();
 }
 
 //---------------------------------------------------------------

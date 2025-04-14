@@ -74,7 +74,7 @@ class HATN_NETWORK_EXPORT TcpServer : public common::TaskSubcontext, public comm
         );
 
         //! Close
-        common::Error close();
+        common::Error close(bool destroying=false);
 
         void setConfig(const TcpServerConfig* config);
 
