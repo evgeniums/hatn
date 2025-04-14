@@ -7,3 +7,6 @@
 [submodule "validator"]
 	path = validator
 	url = https://github.com/evgeniums/cpp-validator
+[submodule "thirdparty/args"]
+	path = thirdparty/args
+	url = https://github.com/Taywee/args
