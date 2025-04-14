@@ -63,7 +63,7 @@ class MicroServiceV : public common::WithImpl<ImplT>,
 {
     public:
 
-        using common::WithImpl<ImplT>::common::WithImpl;
+        using common::WithImpl<ImplT>::WithImpl;
 
         virtual Error start(
                 const HATN_APP_NAMESPACE::BaseApp& app,
@@ -148,7 +148,7 @@ class MicroServiceT : public common::WithTraits<Traits>
             {
                 return envR.takeError();
             }
-            return this->traits().start(envR.takeValue(),app,configTree,configTreePath);
+            return this->traits().start(name(),envR.takeValue(),app,configTree,configTreePath);
         }
 
         void close()

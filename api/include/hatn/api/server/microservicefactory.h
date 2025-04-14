@@ -31,7 +31,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-class HATN_API_EXPORT MicroserviceFactory
+class HATN_API_EXPORT MicroServiceFactory
 {
     public:
 
@@ -51,13 +51,13 @@ class HATN_API_EXPORT MicroserviceFactory
         Result<std::shared_ptr<MicroService>> makeAndRun(
             const HATN_APP_NAMESPACE::BaseApp& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-            const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+            const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath={}
         ) const;
 
         Result<std::map<std::string,std::shared_ptr<MicroService>>> makeAndRunAll(
             const HATN_APP_NAMESPACE::BaseApp& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-            const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+            const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath={}
         ) const;
 
     private:

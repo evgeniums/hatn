@@ -72,8 +72,8 @@ class ConnectionsStore
             auto ctx=connectionCtx(id);
             if (ctx)
             {
-                auto connection=&ctx->template get<Connection>();
-                std::make_pair(std::move(ctx),connection);
+                auto& connection=ctx->template get<Connection>();
+                std::make_pair(std::move(ctx),&connection);
             }
             return std::pair<Connection*,common::SharedPtr<ConnectionContext>>{{},nullptr};
         }
@@ -83,7 +83,7 @@ class ConnectionsStore
             common::MutexScopedLock l{m_mutex};
             for (auto&& it:m_connections)
             {
-                auto connection=&it.second->template get<Connection>();
+                auto& connection=it.second->template get<Connection>();
                 connection.close();
             }
             m_connections.clear();

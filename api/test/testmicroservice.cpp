@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/test/testclientserver.cpp
+/** @file api/test/testmicroservice.cpp
   */
 
 /****************************************************************************/
@@ -43,6 +43,9 @@
 #include <hatn/api/server/server.h>
 #include <hatn/api/server/env.h>
 
+#include <hatn/api/server/plaintcpmicroservice.h>
+#include <hatn/api/server/microservicefactory.h>
+
 #include <hatn/api/ipp/client.ipp>
 #include <hatn/api/ipp/clientrequest.ipp>
 #include <hatn/api/ipp/auth.ipp>
@@ -52,7 +55,12 @@
 #include <hatn/api/ipp/serverservice.ipp>
 #include <hatn/api/ipp/session.ipp>
 #include <hatn/api/ipp/makeapierror.ipp>
+#include <hatn/api/ipp/networkmicroservice.ipp>
+#include <hatn/api/ipp/plaintcpmicroservice.ipp>
 
+HATN_TEST_USING
+
+HATN_APP_USING
 HATN_API_USING
 HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
@@ -60,7 +68,7 @@ HATN_NETWORK_USING
 
 /********************** TestEnv **************************/
 
-struct TestEnv : public ::hatn::test::MultiThreadFixture
+struct TestEnv : public MultiThreadFixture
 {
     TestEnv()
     {
@@ -231,8 +239,48 @@ using Service2=server::ServerServiceV<server::ServiceMultipleMethods<>>;
 
 //---------------------------------------------------------------
 
-auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>>& connections)
+struct ServerApp
 {
+    std::shared_ptr<BaseApp> app;
+    std::map<std::string,std::shared_ptr<server::MicroService>> microservices;
+};
+
+Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode=0)
+{
+    std::string expectedFail;
+    if (expectedErrorCode!=0)
+    {
+        expectedFail="expected: ";
+    }
+
+    // init server app
+    AppName appName{"testmicroservice","Test Microservice"};
+    auto app=std::make_shared<BaseApp>(appName);
+    auto configFile=MultiThreadFixture::assetsFilePath("api",configFileName);
+    auto ec=app->loadConfigFile(configFile);
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("{}failed to load app config: {}",expectedFail,ec.message()));
+        if (expectedErrorCode!=0)
+        {
+            BOOST_CHECK_EQUAL(ec.value(),expectedErrorCode);
+            return ec;
+        }
+    }
+    BOOST_REQUIRE(!ec);
+    ec=app->init();
+    if (ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("{}failed to init app: {}",ec.message()));
+        if (expectedErrorCode!=0)
+        {
+            BOOST_CHECK_EQUAL(ec.value(),expectedErrorCode);
+            return ec;
+        }
+    }
+    BOOST_REQUIRE(!ec);
+
+    // create service dispatcher
     auto serviceRouter=std::make_shared<server::ServiceRouter<>>();
     auto service1Method1=std::make_shared<Service1Method1>();
     std::ignore=service1Method1;
@@ -244,118 +292,105 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
     serv2.registerMethods({service2Method1,service2Method2});
     auto service2=std::make_shared<Service2>("service2",std::move(serv2));
     serviceRouter->registerLocalService(std::move(service2));
-
     using dispatcherType=server::ServiceDispatcher<>;
     auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
-    using connectionsStoreType=server::ConnectionsStore<server::PlainTcpConnectionContext,server::PlainTcpConnection>;
-    auto connectionsStore=std::make_shared<connectionsStoreType>();
 
-    auto server=std::make_shared<server::Server<connectionsStoreType,dispatcherType>>(std::move(connectionsStore),std::move(dispatcher));
+    // prepare factory
+    auto dispatchers=std::make_shared<server::DispatchersStore<dispatcherType>>();
+    dispatchers->registerDispatcher("simple_dispatcher1",std::move(dispatcher));
+    server::PlainTcpMicroServiceBuilder microserviceBuilder{dispatchers};
+    server::MicroServiceFactory factory;
+    factory.registerBuilder("microservice1",microserviceBuilder);
+    factory.registerBuilder("microservice2",microserviceBuilder);
 
-    auto onNewTcpConnection=[server,&connections](SharedPtr<server::PlainTcpConnectionContext> connectionCtx, const Error& ec, auto cb)
+    // craete and run microservices
+    auto microservicesR=factory.makeAndRunAll(*app,app->configTree());
+    if (microservicesR)
     {
-        BOOST_TEST_MESSAGE(fmt::format("onNewTcpConnection: {}/{}",ec.code(),ec.message()));
-        if (!ec)
+        BOOST_TEST_MESSAGE(fmt::format("{}failed to makeAndRunAll: {}",expectedFail,microservicesR.error().message()));
+        if (expectedErrorCode!=0)
         {
-            connections[std::string{connectionCtx->id()}]=connectionCtx;
-
-            auto& connection=connectionCtx->get<server::PlainTcpConnection>();
-            server->handleNewConnection(connectionCtx,connection,cb);
+            BOOST_CHECK_EQUAL(microservicesR.error().value(),expectedErrorCode);
+            app->close();
+            return microservicesR.takeError();
         }
-    };
-
-    auto streamLogHandler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogHandler>();
-
-    auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
-    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::BasicEnv>(
-        HATN_COMMON_NAMESPACE::contexts(
-            HATN_COMMON_NAMESPACE::context(HATN_COMMON_NAMESPACE::pmr::AllocatorFactory::getDefault()),
-            HATN_COMMON_NAMESPACE::context(thread),
-            HATN_COMMON_NAMESPACE::context(streamLogHandler),
-            HATN_COMMON_NAMESPACE::context(),
-            HATN_COMMON_NAMESPACE::context()
-        )
-    );
-    serverEnv->get<server::Threads>().threads()->setDefaultThread(thread);
-    serverEnv->get<server::Logger>().logger()->setModuleLevel("tcpserver",HATN_LOGCONTEXT_NAMESPACE::LogLevel::Details);
-    auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
-    tcpServer.setEnv(serverEnv);
-    tcpServer.setConnectionHandler(onNewTcpConnection);
-    asio::IpEndpoint serverEp{"127.0.0.1",TcpPort};
-    auto ec=tcpServer.run(tcpServerCtx,serverEp);
-    if (ec)
-    {
-        BOOST_TEST_MESSAGE(fmt::format("failed to listen: {}/{}",ec.code(),ec.message()));
     }
-    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE(!microservicesR);
 
-    return std::make_pair(server,tcpServerCtx);
+    auto microservices=microservicesR.takeValue();
+    BOOST_REQUIRE_EQUAL(microservices.size(),2);
+    BOOST_CHECK_EQUAL(microservices.begin()->first,"microservice1");
+    BOOST_CHECK_EQUAL((++(microservices.begin()))->first,"microservice2");
+
+    return ServerApp{std::move(app),std::move(microservices)};
+}
+
+template <typename T>
+void runCreateServer(std::string configFile, TestEnv* env, T expectedErrorCode)
+{
+    auto appCtx=createServer(configFile,static_cast<int>(expectedErrorCode));
+    if (appCtx)
+    {
+        return;
+    }
+
+    BOOST_REQUIRE(appCtx->app);
+
+    env->exec(3);
+
+    for (auto&& it: appCtx->microservices)
+    {
+        it.second->close();
+    }
+    env->exec(1);
+    appCtx->app->close();
 }
 
 /********************** Tests **************************/
 
-BOOST_AUTO_TEST_SUITE(TestClientServer)
+BOOST_AUTO_TEST_SUITE(TestMicroService)
 
-BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
+BOOST_FIXTURE_TEST_CASE(CreateServerOk,TestEnv)
 {
-    createThreads(2);
-    auto workThread=threadWithContextTask(1);
-
-    std::ignore=createClient(workThread.get());
-
-    BOOST_CHECK(true);
+    runCreateServer("microservices.jsonc",this,0);
 }
 
-BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
+BOOST_FIXTURE_TEST_CASE(MicroserviceDuplicate,TestEnv)
 {
-    createThreads(2);
-    auto workThread=threadWithContextTask(1);
-
-    std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
-    std::ignore=createServer(workThread.get(),connections);
-
-    BOOST_CHECK(true);
+    runCreateServer("microservice-duplicate.jsonc",this,ApiLibError::DUPLICATE_MICROSERVICE);
 }
 
-BOOST_FIXTURE_TEST_CASE(TestMapVars,TestEnv)
+BOOST_FIXTURE_TEST_CASE(MicroserviceMissingIpAddr,TestEnv)
 {
-    auto ctx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
-    auto& logCtx=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
-    logCtx.setGlobalVar("mthd","method1");
-    logCtx.setGlobalVar("req","request1");
-    logCtx.setGlobalVar("srv","service1");
-    logCtx.setGlobalVar("typ","type1");
-    logCtx.setGlobalVar("tpc","topic1");
-    ByteArray buf;
-    for (auto&& it: logCtx.globalVars())
-    {
-        TextLogFormatterBase::appendRecord(buf,it);
-    }
-    std::cout << "Vars1:" << buf.stringView() << std::endl;
+    runCreateServer("microservice-missing-ip-addr.jsonc",this,ApiLibError::MICROSERVICE_RUN_FAILED);
+}
 
-    FlatMap<FixedByteArray<16>,std::string> m;
-    m.emplace("mthd","method1");
-    m.emplace("req","request1");
-    m.emplace("srv","service1");
-    m.emplace("typ","type1");
-    m.emplace("tpc","topic1");
-    m.emplace("req","request2");
-    std::cout<<"Vars2: ";
-    for (auto&& it: m)
-    {
-        std::cout << it.first.stringView() << "=\"" << it.second << "\" ";
-    }
-    std::cout << std::endl;
+BOOST_FIXTURE_TEST_CASE(MicroserviceInvalidIpAddr,TestEnv)
+{
+    runCreateServer("microservice-invalid-ip-addr.jsonc",this,ApiLibError::MICROSERVICE_RUN_FAILED);
+}
+
+BOOST_FIXTURE_TEST_CASE(MicroserviceUnknownDispatcher,TestEnv)
+{
+    runCreateServer("microservice-unknown-dispatcher.jsonc",this,ApiLibError::MICROSERVICE_CREATE_FAILED);
+}
+
+BOOST_FIXTURE_TEST_CASE(MicroserviceUnknownAuthDispatcher,TestEnv)
+{
+    runCreateServer("microservice-unknown-authdispatcher.jsonc",this,ApiLibError::MICROSERVICE_CREATE_FAILED);
+}
+
+BOOST_FIXTURE_TEST_CASE(MicroservicePortBusy,TestEnv)
+{
+    runCreateServer("microservice-port-busy.jsonc",this,ApiLibError::MICROSERVICE_RUN_FAILED);
 }
 
 BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 {
-    createThreads(2);
-    auto serverThread=threadWithContextTask(0);
-    auto clientThread=threadWithContextTask(1);
+    auto serverCtx=createServer("microservices.jsonc");
 
-    std::map<std::string,SharedPtr<server::PlainTcpConnectionContext>> connections;
-    auto server=createServer(serverThread.get(),connections);
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
 
     auto session=client::makeSessionNoAuthContext();
     auto client=createClient(clientThread.get());
@@ -364,7 +399,6 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     auto service1Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service1",clientWithAuth);
     auto service2Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service2",clientWithAuth);
 
-    serverThread->start();
     clientThread->start();
 
     auto invokeTask1=[service1Client]()
@@ -437,8 +471,16 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
-    serverThread->stop();
     clientThread->stop();
+
+    for (auto&& it: serverCtx->microservices)
+    {
+        it.second->close();
+    }
+    exec(1);
+    serverCtx->app->close();
+
+    exec(1);
 
     BOOST_CHECK(true);
 }

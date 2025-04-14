@@ -30,7 +30,7 @@ using MicroserviceConfig=HATN_BASE_NAMESPACE::ConfigObject<microservice_config::
 struct makeMicroserviceAndRunT
 {
     Result<std::shared_ptr<MicroService>> operator () (
-            const MicroserviceFactory* factory,
+            const MicroServiceFactory* factory,
             MicroserviceConfig& cfg,
             const HATN_APP_NAMESPACE::BaseApp& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
@@ -46,7 +46,7 @@ struct makeMicroserviceAndRunT
         {
             // failed to find microservice
             auto ec1=apiLibError(ApiLibError::UNKNOWN_MICROSERVICE_TYPE,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice {} at path {}","api"),microserviceName,configTreePath.path()))
+                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
                                    );
             ec.stackWith(std::move(ec1));
             return ec;
@@ -61,8 +61,9 @@ struct makeMicroserviceAndRunT
         if (microservice)
         {
             // failed to load microservice config
+            ec=microservice.takeError();
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_CREATE_FAILED,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice {} at path {}","api"),microserviceName,configTreePath.path()))
+                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
                                    );
             ec.stackWith(std::move(ec1));
             return ec;
@@ -73,7 +74,7 @@ struct makeMicroserviceAndRunT
         if (ec)
         {
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_RUN_FAILED,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("at path {}","api"),configTreePath.path()))
+                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
                                    );
             ec.stackWith(std::move(ec1));
             return ec;
@@ -91,7 +92,7 @@ constexpr makeMicroserviceAndRunT makeMicroserviceAndRun{};
 
 //---------------------------------------------------------------
 
-Result<std::shared_ptr<MicroService>> MicroserviceFactory::makeAndRun(
+Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
         const HATN_APP_NAMESPACE::BaseApp& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
@@ -106,7 +107,7 @@ Result<std::shared_ptr<MicroService>> MicroserviceFactory::makeAndRun(
     {
         // failed to load microservice config
         auto ec1=apiLibError(ApiLibError::MICROSERVICE_CONFIG_INVALID,
-                               std::make_shared<common::NativeError>(fmt::format(_TR("at path {}","api"),configTreePath.path()))
+                               std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),configTreePath.path()))
                                );
         ec.stackWith(std::move(ec1));
         return ec;
@@ -117,7 +118,7 @@ Result<std::shared_ptr<MicroService>> MicroserviceFactory::makeAndRun(
 
 //---------------------------------------------------------------
 
-Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroserviceFactory::makeAndRunAll(
+Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory::makeAndRunAll(
         const HATN_APP_NAMESPACE::BaseApp& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
@@ -130,7 +131,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroserviceFactory:
     if (!configTree.isSet(path))
     {
         return apiLibError(ApiLibError::MICROSERVICES_CONFIG_SECTION_MISSING,
-                           std::make_shared<common::NativeError>(fmt::format(_TR("at path {}","api"),configTreePath.path()))
+                           std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),path.path()))
                            );
     }
     auto microservicesSection=configTree.get(path);
@@ -138,7 +139,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroserviceFactory:
     if (microservicesSection->type()!=HATN_BASE_NAMESPACE::config_tree::Type::ArrayTree)
     {
         return apiLibError(ApiLibError::MICROSERVICES_CONFIG_SECTION_INVALID,
-                           std::make_shared<common::NativeError>(fmt::format(_TR("at path {}","api"),configTreePath.path()))
+                           std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),path.path()))
                            );
     }
     auto configs=microservicesSection->asArray<HATN_BASE_NAMESPACE::ConfigTree>();
@@ -157,7 +158,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroserviceFactory:
         {
             // failed to load microservice config
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_CONFIG_INVALID,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("at path {}.{}","api"),configTreePath.path(),i))
+                                   std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}.{}\"","api"),path.path(),i))
                                    );
             ec.stackWith(std::move(ec1));
         }
@@ -170,7 +171,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroserviceFactory:
             if (microservices.find(microserviceName)!=microservices.end())
             {
                 ec=apiLibError(ApiLibError::DUPLICATE_MICROSERVICE,
-                                 std::make_shared<common::NativeError>(fmt::format(_TR("microservice {} at path {}.{}","api"),microserviceName,configTreePath.path(),i))
+                                 std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\" at path \"{}.{}\"","api"),microserviceName,path.path(),i))
                                        );
             }
 

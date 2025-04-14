@@ -1,0 +1,28 @@
+{
+    "app" : {
+        "thread_count" : 4
+    },
+
+    "logger" : {
+        "name" : "streamlogger"
+    },
+
+    "microservices" : [
+        {
+            "name": "microservice1",
+            "dispatcher": "simple_dispatcher1",
+            "microservice": {
+                "ip_address" : "127.0.0.1",
+                "port" : 11223
+            }
+        },
+        {
+            "name": "microservice2",
+            "dispatcher": "dispatcher2",
+            "microservice": {
+                "ip_address" : "0.0.0.0",
+                "port" : 11224
+            }
+        }
+    ]
+}

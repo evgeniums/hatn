@@ -66,7 +66,7 @@ struct PlainTcpMicroServiceBuilderTraits
 {
     static auto makeMicroService(std::string name, std::shared_ptr<DispatcherT> dispatcher, std::shared_ptr<AuthDispatcherT> authDispatcher)
     {
-        return std::make_shared<PlainTcpMicroServiceT<EnvConfigT,DispatcherT,AuthDispatcherT>>(
+        return std::make_shared<MicroServiceV<PlainTcpMicroServiceT<EnvConfigT,DispatcherT,AuthDispatcherT>>>(
                 std::move(name),
                 std::move(dispatcher),
                 std::move(authDispatcher)

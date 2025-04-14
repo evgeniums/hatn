@@ -27,8 +27,12 @@ namespace server {
 
 //---------------------------------------------------------------
 
-template <typename MicroServiceT, typename NetworkMicroServiceConfigT>
-Error NetworkMicroServiceTraits<MicroServiceT,NetworkMicroServiceConfigT>::start(
+template <typename MicroServiceT,
+         typename EnvT,
+         typename DispatcherT,
+         typename AuthDispatcherT,
+         typename NetworkMicroServiceConfigT>
+Error NetworkMicroServiceTraits<MicroServiceT,EnvT,DispatcherT,AuthDispatcherT,NetworkMicroServiceConfigT>::start(
         lib::string_view name,
         common::SharedPtr<Env> env,
         const HATN_APP_NAMESPACE::BaseApp& app,
@@ -85,8 +89,12 @@ Error NetworkMicroServiceTraits<MicroServiceT,NetworkMicroServiceConfigT>::start
 
 //---------------------------------------------------------------
 
-template <typename MicroServiceT, typename NetworkMicroServiceConfigT>
-void NetworkMicroServiceTraits<MicroServiceT,NetworkMicroServiceConfigT>::close()
+template <typename MicroServiceT,
+         typename EnvT,
+         typename DispatcherT,
+         typename AuthDispatcherT,
+         typename NetworkMicroServiceConfigT>
+void NetworkMicroServiceTraits<MicroServiceT,EnvT,DispatcherT,AuthDispatcherT,NetworkMicroServiceConfigT>::close()
 {
     if (m_server)
     {

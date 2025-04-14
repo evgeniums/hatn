@@ -33,28 +33,33 @@ class MicroServiceBuilder
     public:
 
         MicroServiceBuilder(
-            DispatchersStore<DispatcherT> dispatchers,
-            DispatchersStore<AuthDispatcherT> authDispatchers={}
+            std::shared_ptr<DispatchersStore<DispatcherT>> dispatchers,
+            std::shared_ptr<DispatchersStore<AuthDispatcherT>> authDispatchers={}
             ) : m_dispatchers(std::move(dispatchers)),
                 m_authDispatchers(std::move(authDispatchers))
         {}
 
         Result<std::shared_ptr<MicroService>> operator()
-            (std::string name, std::string dispatcherName, std::string authDispatcherName) const
+            (std::string name, const std::string& dispatcherName, const std::string& authDispatcherName) const
         {
-            auto dispatcher=m_dispatchers.dispatcher(dispatcherName);
+            auto dispatcher=m_dispatchers->dispatcher(dispatcherName);
             if (!dispatcher)
             {
-                return apiLibError(ApiLibError::UNKNOWN_SERVICE_DISPATCHER,std::make_shared<common::NativeError>(dispatcherName));
+                return apiLibError(ApiLibError::UNKNOWN_SERVICE_DISPATCHER,std::make_shared<common::NativeError>(fmt::format("\"{}\"",dispatcherName)));
             }
 
             std::shared_ptr<AuthDispatcherT> authDispathcer;
             if (!authDispatcherName.empty())
             {
-                authDispathcer=m_authDispatchers.dispatcher(authDispatcherName);
+                if (!m_authDispatchers)
+                {
+                    return apiLibError(ApiLibError::UNKNOWN_AUTH_DISPATCHER,std::make_shared<common::NativeError>(fmt::format("\"{}\"",authDispatcherName)));
+                }
+
+                authDispathcer=m_authDispatchers->dispatcher(authDispatcherName);
                 if (!authDispathcer)
                 {
-                    return apiLibError(ApiLibError::UNKNOWN_AUTH_DISPATCHER,std::make_shared<common::NativeError>(authDispatcherName));
+                    return apiLibError(ApiLibError::UNKNOWN_AUTH_DISPATCHER,std::make_shared<common::NativeError>(fmt::format("\"{}\"",authDispatcherName)));
                 }
             }
 
@@ -63,8 +68,8 @@ class MicroServiceBuilder
 
     private:
 
-        DispatchersStore<DispatcherT> m_dispatchers;
-        DispatchersStore<AuthDispatcherT> m_authDispatchers;
+        std::shared_ptr<DispatchersStore<DispatcherT>> m_dispatchers;
+        std::shared_ptr<DispatchersStore<AuthDispatcherT>> m_authDispatchers;
 };
 
 } // namespace server

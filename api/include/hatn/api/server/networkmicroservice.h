@@ -55,24 +55,27 @@ struct NetworkMicroServiceConfig
     );
 };
 
-template <typename MicroServiceT, typename NetworkMicroServiceConfigT>
+template <typename MicroServiceT,
+         typename EnvT,
+         typename DispatcherT,
+         typename AuthDispatcherT,
+         typename NetworkMicroServiceConfigT>
 class NetworkMicroServiceTraits
 {    
     public:
 
-        using Env=typename MicroServiceT::Env;
+        using Env=EnvT;
 
-        using Dispatcher=typename MicroServiceT::Dispatcher;
-        using AuthDispatcher=typename MicroServiceT::AuthDispatcher;
+        using Dispatcher=DispatcherT;
+        using AuthDispatcher=AuthDispatcherT;
 
         using ConnectionCtx=typename NetworkMicroServiceConfigT::ConnectionCtx;
         using Connection=typename NetworkMicroServiceConfigT::Connection;
         using ConnectionsStore=ConnectionsStore<ConnectionCtx,Connection>;
-        using NetworkServerCtx=typename NetworkMicroServiceConfigT::ServerCtx;
-        using NetworkServer=typename NetworkMicroServiceConfigT::Server;
+        using NetworkServerCtx=typename NetworkMicroServiceConfigT::NetworkServerCtx;
+        using NetworkServer=typename NetworkMicroServiceConfigT::NetworkServer;
 
-        using Server=server::Server<Dispatcher,ConnectionsStore,AuthDispatcher,Env>;
-        using SeviceRouter=server::ServiceRouter<Env>;
+        using Server=server::Server<ConnectionsStore,Dispatcher,AuthDispatcher,Env>;
 
         NetworkMicroServiceTraits(MicroServiceT* microservice) : m_microservice(microservice)
         {}
@@ -111,7 +114,13 @@ template <typename NetworkMicroServiceConfigT,
          typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>
          >
 class NetworkMicroService : public MicroServiceT<
-                                    NetworkMicroServiceTraits<NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,NetworkMicroServiceConfigT>,
+                                    NetworkMicroServiceTraits<
+                                        NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,
+                                        typename EnvConfigT::Env,
+                                        DispatcherT,
+                                        AuthDispatcherT,
+                                        NetworkMicroServiceConfigT
+                                    >,
                                     EnvConfigT,
                                     DispatcherT,
                                     AuthDispatcherT
@@ -120,7 +129,13 @@ class NetworkMicroService : public MicroServiceT<
     public:
 
         using Base=MicroServiceT<
-            NetworkMicroServiceTraits<NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,NetworkMicroServiceConfigT>,
+            NetworkMicroServiceTraits<
+                NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,
+                typename EnvConfigT::Env,
+                DispatcherT,
+                AuthDispatcherT,
+                NetworkMicroServiceConfigT
+                >,
             EnvConfigT,
             DispatcherT,
             AuthDispatcherT

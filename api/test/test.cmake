@@ -1,6 +1,7 @@
 SET (TEST_SOURCES
     ${API_TEST_SRC}/testplaintcpconnection.cpp
     ${API_TEST_SRC}/testclientserver.cpp
+    ${API_TEST_SRC}/testmicroservice.cpp
 )
 
 SET (TEST_HEADERS
@@ -21,3 +22,15 @@ FUNCTION(TestApi)
 ENDFUNCTION(TestApi)
 
 ADD_CUSTOM_TARGET(apitest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
+
+SET (TEST_JSON
+    ${API_TEST_SRC}/assets/microservices.jsonc
+    ${API_TEST_SRC}/assets/microservice-duplicate.jsonc
+    ${API_TEST_SRC}/assets/microservice-missing-ip-addr.jsonc
+    ${API_TEST_SRC}/assets/microservice-invalid-ip-addr.jsonc
+    ${API_TEST_SRC}/assets/microservice-unknown-dispatcher.jsonc
+    ${API_TEST_SRC}/assets/microservice-unknown-authdispatcher.jsonc
+    ${API_TEST_SRC}/assets/microservice-port-busy.jsonc
+)
+
+ADD_CUSTOM_TARGET(apitest-json SOURCES ${TEST_JSON})
