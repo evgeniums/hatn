@@ -150,6 +150,24 @@ class MultiThreadFixture
             return fmt::format("{}/{}",tmpPath(),relPath);
         }
 
+        static std::string assetsPath(const std::string& module, const std::string& pluginName=std::string())
+        {
+            if (pluginName.empty())
+            {
+                return fmt::format("{}/{}/assets",assetsPath(),module);
+            }
+            return fmt::format("{}/plugins/{}/{}/assets",assetsPath(),module,pluginName);
+        }
+
+        static std::string assetsFilePath(const std::string& module, const std::string& file, const std::string& pluginName=std::string())
+        {
+            if (pluginName.empty())
+            {
+                return fmt::format("{}/{}/assets/{}",assetsPath(),module,file);
+            }
+            return fmt::format("{}/plugins/{}/{}/assets/{}",assetsPath(),module,pluginName,file);
+        }
+
     private:
 
         static std::string ASSETS_PATH;
