@@ -10,5 +10,6 @@ SET (HATN_MODULES
 	db
 	api
 	app
-	mq	
+	mq
+	serverapp
 )
