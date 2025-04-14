@@ -34,8 +34,6 @@ using AuthDispatcherTraits=ServiceDispatcherTraits<EnvT,RequestT>;
 template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>>
 using AuthDispatcher=Dispatcher<ServiceDispatcherTraits<EnvT,RequestT>,EnvT,RequestT>;
 
-class NoAuthDispatcher;
-
 } // namespace server
 
 HATN_API_NAMESPACE_END

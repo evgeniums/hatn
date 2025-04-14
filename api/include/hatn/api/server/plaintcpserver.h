@@ -20,6 +20,7 @@
 #define HATNAPIPLAINTCPSERVER_H
 
 #include <hatn/network/asio/tcpstream.h>
+#include <hatn/network/asio/tcpserverconfig.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/connection.h>
@@ -115,14 +116,21 @@ using PlainTcpServerT=TcpServer<PlainTcpConnectionTraits<Env>>;
 
 using PlainTcpServer=PlainTcpServerT<>;
 
+template <typename Env=BasicEnv>
+using PlainTcpServerContextT=HATN_COMMON_NAMESPACE::TaskContextType<
+    HATN_API_NAMESPACE::server::PlainTcpServerT<Env>,
+    HATN_LOGCONTEXT_NAMESPACE::Context,
+    HATN_NETWORK_NAMESPACE::asio::TcpServerConfig
+    >;
+
+using PlainTcpServerContext=PlainTcpServerContextT<>;
+
 inline auto makePlainTcpServerContext(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread, lib::string_view name={})
 {
-    return HATN_COMMON_NAMESPACE::makeTaskContext<
-        HATN_API_NAMESPACE::server::PlainTcpServer,
-        HATN_LOGCONTEXT_NAMESPACE::Context
-        >(
+    return HATN_COMMON_NAMESPACE::makeTaskContextType<PlainTcpServerContext>(
         HATN_COMMON_NAMESPACE::subcontexts(
             HATN_COMMON_NAMESPACE::subcontext(thread),
+            HATN_COMMON_NAMESPACE::subcontext(),
             HATN_COMMON_NAMESPACE::subcontext()
             ),
         name
@@ -131,22 +139,15 @@ inline auto makePlainTcpServerContext(HATN_COMMON_NAMESPACE::ThreadQWithTaskCont
 
 inline auto makePlainTcpServerContext(const HATN_NETWORK_NAMESPACE::asio::TcpServerConfig* config, HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread, lib::string_view name={})
 {
-    return HATN_COMMON_NAMESPACE::makeTaskContext<
-        HATN_API_NAMESPACE::server::PlainTcpServer,
-        HATN_LOGCONTEXT_NAMESPACE::Context
-        >(
+    return HATN_COMMON_NAMESPACE::makeTaskContextType<PlainTcpServerContext>(
         HATN_COMMON_NAMESPACE::subcontexts(
             HATN_COMMON_NAMESPACE::subcontext(config,thread),
+            HATN_COMMON_NAMESPACE::subcontext(),
             HATN_COMMON_NAMESPACE::subcontext()
             ),
         name
         );
 }
-
-using PlainTcpServerContext=HATN_COMMON_NAMESPACE::TaskContextType<
-    HATN_API_NAMESPACE::server::PlainTcpServer,
-    HATN_LOGCONTEXT_NAMESPACE::Context
-    >;
 
 inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocator<PlainTcpServerContext>& allocator, HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread, lib::string_view name={})
 {
@@ -154,6 +155,7 @@ inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocat
         allocator,
         HATN_COMMON_NAMESPACE::subcontexts(
             HATN_COMMON_NAMESPACE::subcontext(thread),
+            HATN_COMMON_NAMESPACE::subcontext(),
             HATN_COMMON_NAMESPACE::subcontext()
             ),
         name
@@ -166,6 +168,7 @@ inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocat
         allocator,
         HATN_COMMON_NAMESPACE::subcontexts(
             HATN_COMMON_NAMESPACE::subcontext(config,thread),
+            HATN_COMMON_NAMESPACE::subcontext(),
             HATN_COMMON_NAMESPACE::subcontext()
             ),
         name

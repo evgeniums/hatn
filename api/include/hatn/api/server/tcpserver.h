@@ -66,7 +66,7 @@ class TcpServer : public WithEnv<typename Traits::Env>,
 
         void setConnectionHandler(ConnectionHandler handler)
         {
-            handleNewConnection=std::move(handler);
+            m_handleNewConnection=std::move(handler);
         }
 
         void setAllocatorFactory(const common::pmr::AllocatorFactory* factory) noexcept
@@ -96,6 +96,24 @@ class TcpServer : public WithEnv<typename Traits::Env>,
         }
 
         template <typename ServerContextT>
+        Error run(
+                common::SharedPtr<ServerContextT> serverCtx
+            )
+        {
+            return run(std::move(serverCtx),m_serverEndpoint);
+        }
+
+        void setServerEndpoint(HATN_NETWORK_NAMESPACE::asio::TcpEndpoint ep)
+        {
+            m_serverEndpoint=std::move(ep);
+        }
+
+        const HATN_NETWORK_NAMESPACE::asio::TcpEndpoint& serverEndpoint() const noexcept
+        {
+            return m_serverEndpoint;
+        }
+
+        template <typename ServerContextT>
         auto makeContext(
                 common::SharedPtr<ServerContextT> ctx
             )
@@ -118,7 +136,8 @@ class TcpServer : public WithEnv<typename Traits::Env>,
 
     private:
 
-        ConnectionHandler handleNewConnection;
+        ConnectionHandler m_handleNewConnection;
+        HATN_NETWORK_NAMESPACE::asio::TcpEndpoint m_serverEndpoint;
 
         template <typename ServerContextT>
         void acceptNext(
@@ -138,7 +157,7 @@ class TcpServer : public WithEnv<typename Traits::Env>,
             {
                 if (ec)
                 {
-                    this->handleNewConnection(std::move(connectionCtx),ec,[](const Error&){});
+                    this->m_handleNewConnection(std::move(connectionCtx),ec,[](const Error&){});
                     return;
                 }
 
@@ -158,7 +177,7 @@ class TcpServer : public WithEnv<typename Traits::Env>,
 
                 HATN_CTX_DETAILS("connection accepted","tcpserver");
 
-                this->handleNewConnection(connectionCtx,Error{},
+                this->m_handleNewConnection(connectionCtx,Error{},
                   [selfCtxW{common::toWeakPtr(this->sharedMainCtx())},this,serverCtx{std::move(serverCtx)}](const Error& ec)
                   {
                     if (ec)

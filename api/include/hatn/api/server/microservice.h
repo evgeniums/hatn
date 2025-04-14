@@ -106,7 +106,7 @@ class MicroServiceT : public common::WithTraits<Traits>
                 std::shared_ptr<Dispatcher> dispatcher,
                 std::shared_ptr<AuthDispatcher> authDispatcher,
                 TraitsArgs&& ...traitsArgs
-            ) : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+            ) : common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...),
                 m_name(std::move(name)),
                 m_dispatcher(std::move(dispatcher)),
                 m_authDispatcher(std::move(authDispatcher))
@@ -117,7 +117,7 @@ class MicroServiceT : public common::WithTraits<Traits>
                 std::string name,
                 std::shared_ptr<Dispatcher> dispatcher,
                 TraitsArgs&& ...traitsArgs
-            ) : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+            ) : common::WithTraits<Traits>(std::forward<TraitsArgs>(traitsArgs)...),
                 m_name(std::move(name)),
                 m_dispatcher(std::move(dispatcher))
         {}

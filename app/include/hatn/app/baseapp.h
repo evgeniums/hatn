@@ -65,7 +65,17 @@ class HATN_APP_EXPORT BaseApp
             return m_env->get<Logger>();
         }
 
+        const Logger& logger() const noexcept
+        {
+            return m_env->get<Logger>();
+        }
+
         Db& database() noexcept
+        {
+            return m_env->get<Db>();
+        }
+
+        const Db& database() const noexcept
         {
             return m_env->get<Db>();
         }
@@ -183,8 +193,13 @@ class HATN_APP_EXPORT BaseApp
             return m_threads[idx];
         }
 
-        common::ThreadQWithTaskContext* thread(size_t idx) const
+        common::ThreadQWithTaskContext* thread(size_t idx, bool appThreadFallback=true) const
         {
+            if (idx>=m_threads.size() && appThreadFallback)
+            {
+                return appThread();
+            }
+
             return m_threads[idx].get();
         }
 
@@ -196,6 +211,16 @@ class HATN_APP_EXPORT BaseApp
         static std::string threadName(size_t idx)
         {
             return fmt::format("t{}",idx);
+        }
+
+        const Threads& envThreads() const noexcept
+        {
+            return m_env->get<Threads>();
+        }
+
+        Threads& envThreads() noexcept
+        {
+            return m_env->get<Threads>();
         }
 
     private:

@@ -45,33 +45,40 @@ struct NetworkMicroServiceConfig
     using NetworkServerCtx=NetworkServerCtxT;
     using NetworkServer=NetworkServerT;
 
-    static common::SharedPtr<NetworkServerCtx> makeNetworkServer();
+    template <typename EnvT>
+    static Result<common::SharedPtr<NetworkServerCtx>> makeAndInitNetworkServer(
+        lib::string_view name,
+        common::SharedPtr<EnvT> env,
+        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+    );
 };
 
-template <typename NetworkMicroserviceConfig,
-         typename EnvT,
-         typename DispatcherT=ServiceDispatcher<EnvT>,
-         typename AuthDispatcherT=AuthDispatcher<EnvT>
-         >
+template <typename MicroServiceT, typename NetworkMicroServiceConfigT>
 class NetworkMicroServiceTraits
-{
+{    
     public:
 
-        using Env=EnvT;
+        using Env=typename MicroServiceT::Env;
 
-        using Dispatcher=DispatcherT;
-        using AuthDispatcher=AuthDispatcherT;
+        using Dispatcher=typename MicroServiceT::Dispatcher;
+        using AuthDispatcher=typename MicroServiceT::AuthDispatcher;
 
-        using ConnectionCtx=typename NetworkMicroserviceConfig::ConnectionCtx;
-        using Connection=typename NetworkMicroserviceConfig::Connection;
+        using ConnectionCtx=typename NetworkMicroServiceConfigT::ConnectionCtx;
+        using Connection=typename NetworkMicroServiceConfigT::Connection;
         using ConnectionsStore=ConnectionsStore<ConnectionCtx,Connection>;
-        using NetworkServerCtx=typename NetworkMicroserviceConfig::ServerCtx;
-        using NetworkServer=typename NetworkMicroserviceConfig::Server;
+        using NetworkServerCtx=typename NetworkMicroServiceConfigT::ServerCtx;
+        using NetworkServer=typename NetworkMicroServiceConfigT::Server;
 
         using Server=server::Server<Dispatcher,ConnectionsStore,AuthDispatcher,Env>;
         using SeviceRouter=server::ServiceRouter<Env>;
 
+        NetworkMicroServiceTraits(MicroServiceT* microservice) : m_microservice(microservice)
+        {}
+
         Error start(
+            lib::string_view name,
             common::SharedPtr<Env> env,
             const HATN_APP_NAMESPACE::BaseApp& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
@@ -92,17 +99,19 @@ class NetworkMicroServiceTraits
 
     private:
 
+        MicroServiceT* m_microservice;
+
         common::SharedPtr<NetworkServerCtx> m_networkServerCtx;
         std::shared_ptr<Server> m_server;
 };
 
-template <typename NetworkMicroserviceConfig,
+template <typename NetworkMicroServiceConfigT,
          typename EnvConfigT,
          typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env>,
          typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>
          >
 class NetworkMicroService : public MicroServiceT<
-                                    NetworkMicroServiceTraits<NetworkMicroserviceConfig,typename EnvConfigT::Env,DispatcherT,AuthDispatcherT>,
+                                    NetworkMicroServiceTraits<NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,NetworkMicroServiceConfigT>,
                                     EnvConfigT,
                                     DispatcherT,
                                     AuthDispatcherT
@@ -111,13 +120,15 @@ class NetworkMicroService : public MicroServiceT<
     public:
 
         using Base=MicroServiceT<
-            NetworkMicroServiceTraits<NetworkMicroserviceConfig,typename EnvConfigT::Env,DispatcherT,AuthDispatcherT>,
+            NetworkMicroServiceTraits<NetworkMicroService<NetworkMicroServiceConfigT,EnvConfigT,DispatcherT,AuthDispatcherT>,NetworkMicroServiceConfigT>,
             EnvConfigT,
             DispatcherT,
             AuthDispatcherT
             >;
 
-        using Base::Base;
+        template <typename ...Args>
+        NetworkMicroService(Args&& ...args) : Base(std::forward<Args>(args)...,this)
+        {}
 
         auto& server()
         {

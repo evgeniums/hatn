@@ -56,12 +56,15 @@ SET (HEADERS
     include/hatn/api/server/env.h
     include/hatn/api/server/requestrouter.h
     include/hatn/api/server/servicedispatcher.h
+    include/hatn/api/server/authdispatcher.h
     include/hatn/api/server/connectionsstore.h
     include/hatn/api/server/serverservice.h
     include/hatn/api/server/microservice.h
     include/hatn/api/server/microserviceconfig.h
     include/hatn/api/server/networkmicroservice.h
     include/hatn/api/server/microservicefactory.h
+    include/hatn/api/server/microservicebuilder.h
+    include/hatn/api/server/plaintcpmicroservice.h
 )
 
 SET (IPP_HEADERS
@@ -74,6 +77,8 @@ SET (IPP_HEADERS
     include/hatn/api/ipp/serverservice.ipp
     include/hatn/api/ipp/serverresponse.ipp
     include/hatn/api/ipp/makeapierror.ipp
+    include/hatn/api/ipp/networkmicroservice.ipp
+    include/hatn/api/ipp/plaintcpmicroservice.ipp
 )
 
 SET (HEADERS
@@ -89,6 +94,7 @@ SET (SOURCES
     src/clientbridge.cpp
     src/microservicefactory.cpp
     src/microservice.cpp
+    src/serverenv.cpp
 )
 
 BUILD_HATN_MODULE()

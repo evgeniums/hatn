@@ -20,7 +20,6 @@
 #define HATNAPIMICROSERVICEFACTORY_H
 
 #include <hatn/common/error.h>
-#include <hatn/common/objecttraits.h>
 
 #include <hatn/app/baseapp.h>
 
@@ -39,7 +38,7 @@ class HATN_API_EXPORT MicroserviceFactory
         constexpr static const char* MicroserivicesConfigSection="microservices";
         constexpr static const char* MicroserviceConfigSection="microservice";
 
-        using Builder=std::function<Result<std::shared_ptr<MicroService>> (std::string name, std::string dispatcher, std::string authDispatcher)>;
+        using Builder=std::function<Result<std::shared_ptr<MicroService>> (std::string name, const std::string& dispatcher, const std::string& authDispatcher)>;
 
         void registerBuilder(
                 std::string name,

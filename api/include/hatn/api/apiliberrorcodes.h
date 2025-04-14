@@ -47,6 +47,12 @@
     Do(ApiLibError,MICROSERVICE_CREATE_FAILED,_TR("failed to create microservice","api")) \
     Do(ApiLibError,MICROSERVICE_RUN_FAILED,_TR("failed to run microservice","api")) \
     Do(ApiLibError,DUPLICATE_MICROSERVICE,_TR("duplicate microservice","api")) \
+    Do(ApiLibError,TCP_SERVER_CONFIG_FAILED,_TR("failed to load configuration of TCP server","api")) \
+    Do(ApiLibError,TCP_SERVER_INVALID_IP_ADDRESS,_TR("invalid IP address of TCP server","api")) \
+    Do(ApiLibError,TCP_SERVER_INVALID_IP_PORT,_TR("invalid port of TCP server","api")) \
+    Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
+    Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
+    Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
 
 
 HATN_API_NAMESPACE_BEGIN

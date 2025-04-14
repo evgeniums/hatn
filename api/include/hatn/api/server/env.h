@@ -98,8 +98,19 @@ class WithEnv
         common::SharedPtr<EnvT> m_env;
 };
 
-template <typename Traits>
-struct EnvConfig
+struct HATN_API_EXPORT BasicEnvConfig
+{
+    using Env=BasicEnv;
+
+    static Result<common::SharedPtr<Env>> makeEnv(
+        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+    );
+};
+
+template <typename Traits=BasicEnvConfig>
+struct EnvConfigT
 {
     using Env=typename Traits::Env;
 
@@ -112,6 +123,7 @@ struct EnvConfig
         return Traits::makeEnv(app,configTree,configTreePath);
     }
 };
+using EnvConfig=EnvConfigT<>;
 
 } // namespace server
 
