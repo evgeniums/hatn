@@ -12,7 +12,7 @@
   *
   */
 
-// #include <args.hxx>
+#include <args.hxx>
 
 #include <boost/asio/signal_set.hpp>
 
@@ -20,6 +20,8 @@
 #include <hatn/common/thread.h>
 
 #include <hatn/app/baseapp.h>
+
+#include <hatn/api/server/microservicefactory.h>
 
 #include <hatn/serverapp/serverapp.h>
 
@@ -38,8 +40,7 @@ class ServerApp_p
 
         HATN_APP_NAMESPACE::BaseApp app;
 
-        std::shared_ptr<HATN_API_NAMESPACE::server::MicroServiceFactory> factory;
-        std::shared_ptr<std::map<std::string,std::shared_ptr<HATN_API_NAMESPACE::server::MicroService>>> microservices;
+        std::map<std::string,std::shared_ptr<HATN_API_NAMESPACE::server::MicroService>> microservices;
 };
 
 //--------------------------------------------------------------------------
@@ -55,14 +56,21 @@ ServerApp::~ServerApp()
 
 //--------------------------------------------------------------------------
 
-HATN_APP_NAMESPACE::BaseApp& ServerApp::app()
+HATN_APP_NAMESPACE::BaseApp& ServerApp::app() noexcept
 {
     return pimpl->app;
 }
-#if 0
+
 //--------------------------------------------------------------------------
 
-int ServerApp::init(
+const HATN_APP_NAMESPACE::BaseApp& ServerApp::app() const noexcept
+{
+    return pimpl->app;
+}
+
+//--------------------------------------------------------------------------
+
+Error ServerApp::initApp(
         int argc,
         char *argv[]
     )
@@ -70,8 +78,8 @@ int ServerApp::init(
     // parse command line arguments
 
     args::ArgumentParser parser(pimpl->app.appName().displayName);
-    args::HelpFlag help(parser, "help", HATN_NAMESPACE::_TR("Display this help message","whitemserver"), {'h', "help"});
-    args::ValueFlag<std::string> config(parser, "config", HATN_NAMESPACE::_TR("Configuration file","whitemserver"), {'c',"config"});
+    args::HelpFlag help(parser, "help", HATN_NAMESPACE::_TR("Display this help message","serverapp"), {'h', "help"});
+    args::ValueFlag<std::string> config(parser, "config", HATN_NAMESPACE::_TR("Configuration file","serverapp"), {'c',"config"});
     try
     {
         parser.ParseCLI(argc, argv);
@@ -79,32 +87,32 @@ int ServerApp::init(
     catch (args::Help)
     {
         std::cout << parser;
-        return 0;
+        return OK;
     }
     catch (args::ParseError e)
     {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
-        return 1;
+        return commonError(CommonError::INVALID_COMMAND_LINE_ARGUMENTS);
     }
     catch (args::ValidationError e)
     {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
-        return 2;
+        return commonError(CommonError::INVALID_COMMAND_LINE_ARGUMENTS);
     }
 
     auto configFilePath=args::get(config);
     if (configFilePath.empty())
     {
-        std::cerr << HATN_NAMESPACE::_TR("Error: path to configuration file must be defined in command line arguments with --config","whitemserver") << std::endl;
-        return 3;
+        std::cerr << HATN_NAMESPACE::_TR("Error: path to configuration file must be defined in command line arguments with --config","serverapp") << std::endl;
+        return commonError(CommonError::INVALID_COMMAND_LINE_ARGUMENTS);
     }
 
-    auto description=fmt::format(HATN_NAMESPACE::_TR("Running \"{}\" with config file \"{}\"","whitemserver"),pimpl->app.appName().displayName,configFilePath);
+    auto description=fmt::format(HATN_NAMESPACE::_TR("Running \"{}\" with config file \"{}\"","serverapp"),pimpl->app.appName().displayName,configFilePath);
     std::cout << description << std::endl;
 
-    auto runningFailedMessage=HATN_NAMESPACE::_TR("Failed to run server:","whitemserver");
+    auto runningFailedMessage=HATN_NAMESPACE::_TR("Failed to initialize server application:","serverapp");
 
     // load config file
     auto ec=pimpl->app.loadConfigFile(configFilePath);
@@ -112,7 +120,7 @@ int ServerApp::init(
     {
         std::cerr << runningFailedMessage << " ";
         std::cerr << ec.message() << std::endl;
-        return ec.value();
+        return ec;
     }
 
     // init application
@@ -121,15 +129,30 @@ int ServerApp::init(
     {
         std::cerr << runningFailedMessage << " ";
         std::cerr << ec.message() << std::endl;
-        return ec.value();
+        return ec;
     }
 
-    //! @todo init API server
-
     // done
-    return 0;
+    return OK;
 }
-#endif
+
+//--------------------------------------------------------------------------
+
+Error ServerApp::initMicroServices(std::shared_ptr<HATN_API_NAMESPACE::server::MicroServiceFactory> factory)
+{
+    auto r=factory->makeAndRunAll(pimpl->app,pimpl->app.configTree());
+    if (r)
+    {
+        auto initFailedMessage=HATN_NAMESPACE::_TR("Failed to initialize server services:","serverapp");
+        std::cerr << initFailedMessage << " ";
+        std::cerr << r.error().message() << std::endl;
+        return r.takeError();
+    }
+    pimpl->microservices=r.takeValue();
+
+    return OK;
+}
+
 //--------------------------------------------------------------------------
 
 void ServerApp::exec()
@@ -177,6 +200,11 @@ void ServerApp::stop()
 
 void ServerApp_p::close()
 {
+    for (auto&& it: microservices)
+    {
+        it.second->close();
+    }
+
     app.close();
 }
 

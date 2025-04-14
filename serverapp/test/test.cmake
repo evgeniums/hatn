@@ -18,6 +18,6 @@ FUNCTION(TestServerApp)
     COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
     COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)
     COPY_LIBRARY_HERE(hatnapp${LIB_POSTFIX} ../app/)
-ENDFUNCTION(TestApp)
+ENDFUNCTION(TestServerApp)
 
 ADD_CUSTOM_TARGET(serverapptest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
