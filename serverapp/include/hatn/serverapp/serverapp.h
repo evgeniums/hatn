@@ -64,7 +64,7 @@ class HATN_SERVERAPP_EXPORT ServerApp
             std::shared_ptr<HATN_API_NAMESPACE::server::MicroServiceFactory> factory
         );
 
-        void exec();
+        int exec();
         void close();
         void stop();
 

@@ -155,7 +155,7 @@ Error ServerApp::initMicroServices(std::shared_ptr<HATN_API_NAMESPACE::server::M
 
 //--------------------------------------------------------------------------
 
-void ServerApp::exec()
+int ServerApp::exec()
 {
     auto mainThread=std::make_shared<HATN_COMMON_NAMESPACE::Thread>("main",false);
 
@@ -180,6 +180,8 @@ void ServerApp::exec()
 
     auto description=fmt::format(HATN_NAMESPACE::_TR("Finished \"{}\"","whitemserver"),pimpl->app.appName().displayName);
     std::cout << description << std::endl;
+
+    return 0;
 }
 
 //--------------------------------------------------------------------------
