@@ -46,7 +46,9 @@
     Do(CommonError,INVALID_TIME_FORMAT,_TR("invalid time format","common")) \
     Do(CommonError,INVALID_DATE_FORMAT,_TR("invalid date format","common")) \
     Do(CommonError,INVALID_DATETIME_FORMAT,_TR("invalid datetime format","common")) \
-    Do(CommonError,INVALID_DATERANGE_FORMAT,_TR("invalid format of date range","common"))
+    Do(CommonError,INVALID_DATERANGE_FORMAT,_TR("invalid format of date range","common")) \
+    Do(CommonError,INVALID_COMMAND_LINE_ARGUMENTS,_TR("invalid command line arguments","common")) \
+    Do(CommonError,VALIDATION_ERROR,_TR("validation error","common")) \
 
 HATN_COMMON_NAMESPACE_BEGIN
 
