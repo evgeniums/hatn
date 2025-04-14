@@ -45,6 +45,7 @@
 #include <hatn/network/asio/tcpserverconfig.h>
 #include <hatn/network/asio/tcpserver.h>
 
+HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServerConfig,TcpServerConfig)
 HATN_TASK_CONTEXT_DEFINE(HATN_NETWORK_NAMESPACE::asio::TcpServer,TcpServer)
 
 HATN_NETWORK_NAMESPACE_BEGIN
@@ -189,6 +190,12 @@ Error TcpServer::close()
         }
     }
     return makeBoostError(ec);
+}
+
+//---------------------------------------------------------------
+void TcpServer::setConfig(const HATN_NETWORK_NAMESPACE::asio::TcpServerConfig* config)
+{
+    d->config=config;
 }
 
 //---------------------------------------------------------------

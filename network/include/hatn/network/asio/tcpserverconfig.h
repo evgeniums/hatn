@@ -20,6 +20,7 @@
 #define HATNASIOTCPSERVERCONFIG_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/taskcontext.h>
 
 #include <hatn/network/network.h>
 #include <hatn/network/asio/socket.h>
@@ -76,5 +77,7 @@ class HATN_NETWORK_EXPORT TcpServerConfig
 } // namespace asio
 
 HATN_NETWORK_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE(HATN_NETWORK_NAMESPACE::asio::TcpServerConfig,HATN_NETWORK_EXPORT)
 
 #endif // HATNASIOTCPSERVERCONFIG_H

@@ -76,6 +76,8 @@ class HATN_NETWORK_EXPORT TcpServer : public common::TaskSubcontext, public comm
         //! Close
         common::Error close();
 
+        void setConfig(const TcpServerConfig* config);
+
     private:
 
         std::unique_ptr<TcpServer_p> d;
