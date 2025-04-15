@@ -272,7 +272,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Error create(Topic topic,
                      const std::shared_ptr<ModelT>& model,
-                     dataunit::Unit* object,
+                     const dataunit::Unit* object,
                      Transaction* tx=nullptr
                      )
         {
@@ -792,7 +792,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Error doDeleteTopic(Topic topic)=0;
 
-        virtual Error doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
+        virtual Error doCreate(Topic topic, const ModelInfo& model, const dataunit::Unit* object, Transaction* tx)=0;
 
         virtual Result<DbObject> doRead(Topic topic,
                                                                  const ModelInfo& model,

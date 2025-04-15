@@ -673,7 +673,7 @@ Error RocksdbClient::doDeleteDatePartitions(const std::vector<ModelInfo>&, const
 
 //---------------------------------------------------------------
 
-Error RocksdbClient::doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)
+Error RocksdbClient::doCreate(Topic topic, const ModelInfo& model, const dataunit::Unit* object, Transaction* tx)
 {
     HATN_CTX_SCOPE("rdbcreate")
 
