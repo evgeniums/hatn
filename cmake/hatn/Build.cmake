@@ -25,25 +25,24 @@ ${CONFIG_H_TEXT}
 
             SET(LINKING "STATIC")
 
-            MESSAGE(STATUS "Adding plugins \"${${MODULE_NAME}_PLUGIN_LIST}\" to ${MODULE_NAME}/config.h")
-
-            FOREACH(plugin ${${MODULE_NAME}_PLUGIN_LIST})
-
-                STRING (TOUPPER ${plugin} UPPER_PLUGIN_NAME)
-                SET (CONFIG_H_TEXT ${CONFIG_H_TEXT}
-" \n\
-#ifndef HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
-#define HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
-#endif \n\
-"
-                )
-
-            ENDFOREACH()
         ELSE(BUILD_STATIC)
 
             SET(LINKING "DYNAMIC")
 
         ENDIF(BUILD_STATIC)
+
+        MESSAGE(STATUS "Adding plugins \"${${MODULE_NAME}_PLUGIN_LIST}\" to ${MODULE_NAME}/config.h")
+        FOREACH(plugin ${${MODULE_NAME}_PLUGIN_LIST})
+            STRING (TOUPPER ${plugin} UPPER_PLUGIN_NAME)
+            SET (CONFIG_H_TEXT ${CONFIG_H_TEXT}
+" \n\
+#ifndef HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
+#define HATN_ENABLE_PLUGIN_${UPPER_PLUGIN_NAME} \n\
+#endif \n\
+"
+            )
+        ENDFOREACH()
+
 
         FILE(WRITE ${HATN_BINARY_DIR}/${CONFIG_FILE}
 "/***************************************************/\n\
@@ -131,6 +130,10 @@ FUNCTION(BUILD_MODULE)
         TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PUBLIC ${HATN_COMPILE_DEFINITIONS})
         TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PUBLIC ${HATN_COMPILE_OPTIONS})
         TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE ${HATN_COMPILE_EXTRA_WARNINGS})
+
+        IF (HATN_PRIVATE_COMPILE_OPTIONS)
+            TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE ${HATN_PRIVATE_COMPILE_OPTIONS})
+        ENDIF()
 
     ENDIF()
 
