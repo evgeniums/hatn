@@ -11,4 +11,5 @@ SET (HATN_MODULES
 	api
 	app
 	mq
+	adminclient
 )

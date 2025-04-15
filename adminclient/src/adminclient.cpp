@@ -8,17 +8,17 @@
 /*
 
 */
-/** @file serveradmin/admindb.сpp
+/** @file adminclient/admindb.сpp
   *
   */
 
-#include <hatn/serveradmin/admindb.h>
+#include <hatn/adminclient/adminclient.h>
 
-HATN_SERVER_ADMIN_NAMESPACE_BEGIN
-
-//--------------------------------------------------------------------------
-
+HATN_ADMIN_CLIENT_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-HATN_SERVER_ADMIN_NAMESPACE_END
+
+//--------------------------------------------------------------------------
+
+HATN_ADMIN_CLIENT_NAMESPACE_END

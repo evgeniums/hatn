@@ -8,19 +8,19 @@
 /*
     
 */
-/** @file serveradmin/admin.h
+/** @file adminclient/admin.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNSERVERAADMINADMIN_H
-#define HATNSERVERAADMINADMIN_H
+#ifndef HATNADMINCLIENTADMIN_H
+#define HATNADMINCLIENTADMIN_H
 
 #include <hatn/db/object.h>
 
-#include <hatn/serveradmin/serveradmin.h>
+#include <hatn/adminclient/adminclient.h>
 
-HATN_SERVER_ADMIN_NAMESPACE_BEGIN
+HATN_ADMIN_CLIENT_NAMESPACE_BEGIN
 
 enum class AuthMode : uint8_t
 {
@@ -47,6 +47,9 @@ HDU_UNIT_WITH(admin_group,(HDU_BASE(db::object)),
     HDU_FIELD(roles,TYPE_UINT32,3)
 )
 
-HATN_SERVER_ADMIN_NAMESPACE_END
+using Admin=admin::managed;
+using AdminGroup=admin_group::managed;
 
-#endif // HATNSERVERAADMINADMIN_H
+HATN_ADMIN_CLIENT_NAMESPACE_END
+
+#endif // HATNADMINCLIENTADMIN_H

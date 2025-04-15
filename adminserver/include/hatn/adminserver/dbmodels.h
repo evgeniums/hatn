@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file serveradmin/dbmodels.h
+/** @file adminserver/dbmodels.h
   */
 
 /****************************************************************************/
@@ -18,11 +18,11 @@
 
 #include <hatn/db/modelsprovider.h>
 
-#include <hatn/serveradmin/serveradmin.h>
+#include <hatn/adminserver/adminserver.h>
 
-HATN_SERVER_ADMIN_NAMESPACE_BEGIN
+HATN_ADMIN_SERVER_NAMESPACE_BEGIN
 
-class HATN_SERVER_ADMIN_EXPORT DbModels : public db::ModelsProvider
+class HATN_ADMIN_SERVER_EXPORT DbModels : public db::ModelsProvider
 {
     public:
 
@@ -31,6 +31,6 @@ class HATN_SERVER_ADMIN_EXPORT DbModels : public db::ModelsProvider
         virtual std::vector<std::shared_ptr<db::ModelInfo>> models() const override;
 };
 
-HATN_SERVER_ADMIN_NAMESPACE_END
+HATN_ADMIN_SERVER_NAMESPACE_END
 
 #endif // HATNSERVERAADMINDBMODELS_H

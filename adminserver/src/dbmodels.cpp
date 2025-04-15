@@ -8,7 +8,7 @@
 /*
 
 */
-/** @file serveradmin/dbmodels.сpp
+/** @file adminserver/dbmodels.сpp
   *
   */
 
@@ -25,10 +25,10 @@
 
 #endif
 
-#include <hatn/serveradmin/admindb.h>
-#include <hatn/serveradmin/dbmodels.h>
+#include <hatn/adminserver/admindb.h>
+#include <hatn/adminserver/dbmodels.h>
 
-HATN_SERVER_ADMIN_NAMESPACE_BEGIN
+HATN_ADMIN_SERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -68,4 +68,4 @@ void DbModels::registerRocksdbModels()
 
 //--------------------------------------------------------------------------
 
-HATN_SERVER_ADMIN_NAMESPACE_END
+HATN_ADMIN_SERVER_NAMESPACE_END

@@ -124,10 +124,10 @@ void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         lib::string_view messageType
     ) const
 {
-    if constexpr (std::is_same_v<MessageT,NoMessage>)
+    if constexpr (std::is_same_v<Message,NoMessage>)
     {
         // handle request without message
-        this->service()->handleMessage->template handleMessage<RequestT,NoMessage>(
+        this->service()->handleMessage->template handleMessage<Request,NoMessage>(
             std::move(request),
             std::move(callback),
             [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback)
@@ -142,7 +142,7 @@ void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         // check if message is set in request
         if (!messageExists)
         {
-            m_base->service()->template methodFailed<RequestT>(
+            m_base->service()->template methodFailed<Request>(
                 std::move(request),
                 std::move(callback),
                 ServiceMethodStatus::MessageMissing,
@@ -154,7 +154,7 @@ void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         // check message type
         if (messageType!=m_base->messageType())
         {
-            m_base->service()->template methodFailed<RequestT>(
+            m_base->service()->template methodFailed<Request>(
                 std::move(request),
                 std::move(callback),
                 ServiceMethodStatus::InvalidMessageType
@@ -164,7 +164,7 @@ void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         }
 
         // handle message
-        m_base->service()->template handleMessage<RequestT,MessageT>(
+        m_base->service()->template handleMessage<Request,Message>(
             std::move(request),
             std::move(callback),
             [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback,common::SharedPtr<Message> msg)
