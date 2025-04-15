@@ -23,6 +23,7 @@ SET (HEADERS
     include/hatn/db/encryptionmanager.h
     include/hatn/db/updateserialization.h
     include/hatn/db/asyncclient.h
+    include/hatn/db/modelsprovider.h
 )
 
 SET (HEADERS
@@ -39,6 +40,7 @@ SET (SOURCES
     src/object.cpp
     src/modelregistry.cpp
     src/query.cpp
+    src/modelsprovider.cpp
 )
 
 BUILD_HATN_MODULE()

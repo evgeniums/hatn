@@ -23,6 +23,7 @@
 
 #include <hatn/db/db.h>
 #include <hatn/db/model.h>
+#include <hatn/db/modelsprovider.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -57,6 +58,15 @@ class HATN_DB_EXPORT Schema
         const std::map<std::string,std::shared_ptr<ModelInfo>>& models() const noexcept
         {
             return m_models;
+        }
+
+        void addModels(const ModelsProvider* provider)
+        {
+            auto models=provider->models();
+            for (auto&& model: models)
+            {
+                addModel(model);
+            }
         }
 
     private:
