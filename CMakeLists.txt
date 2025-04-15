@@ -23,10 +23,11 @@ INCLUDE(hatn/Install)
 INCLUDE(hatn/Libs)
 
 IF ($ENV{HATN_SERVER_LIBS})
-    SET(BUILD_SEVER_LIBS $ENV{HATN_SERVER_LIBS})
+    SET(BUILD_SEVER_LIBS $ENV{HATN_SERVER_LIBS} CACHE BOOL "Building server libs")
 ENDIF()
 
 IF (BUILD_SEVER_LIBS)
+    MESSAGE(STATUS "Building server libs")
     INCLUDE(hatn/ServerLibs)
 ENDIF()
 
