@@ -237,6 +237,8 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
 
                                 IF (NOT MSVC)
                                     TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE -Wall -Wno-sign-compare)
+                                ELSE()
+                                    TARGET_COMPILE_OPTIONS(${TARGET_EXE} PRIVATE "/bigobj")
                                 ENDIF()
 
 			ELSE()	

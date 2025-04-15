@@ -15,6 +15,7 @@
 /****************************************************************************/
 
 #include <hatn/db/client.h>
+#include <hatn/db/asyncclient.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -51,6 +52,27 @@ std::set<common::DateRange> Client::datePartitionRanges(
     }
     return ranges;
 }
+
+//---------------------------------------------------------------
+
+AsyncClient::AsyncClient(
+    std::shared_ptr<Client> client,
+    common::MappedThreadMode threadMode,
+    common::ThreadQWithTaskContext* defaultThread
+    ) : common::WithMappedThreads(defaultThread),
+    m_client(std::move(client))
+{
+    threads()->setThreadMode(threadMode);
+}
+
+//---------------------------------------------------------------
+
+AsyncClient::AsyncClient(
+    std::shared_ptr<Client> client,
+    std::shared_ptr<common::MappedThreadQWithTaskContext> threads
+    ) : common::WithMappedThreads(std::move(threads)),
+    m_client(std::move(client))
+{}
 
 //---------------------------------------------------------------
 

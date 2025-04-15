@@ -154,6 +154,11 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             this->push_back(symbol);
         }
 
+        void append(lib::string_view str)
+        {
+            BaseT::append(str);
+        }
+
         template <typename ContiguousRange>
         void load(const ContiguousRange& range)
         {

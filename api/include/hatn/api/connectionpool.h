@@ -516,7 +516,7 @@ class ConnectionPool
                 cb(apiLibError(ApiLibError::TOO_BIG_TX_MESSAGE),ConnectionCtxShared{});
                 return;
             }
-            connectionCtx->header.setMessageSize(messageSize);
+            connectionCtx->header.setMessageSize(static_cast<uint32_t>(messageSize));
 
             // send
             auto sendMessageCb=[connectionCtx,cb{std::move(cb)}](auto, const Error& ec, size_t, common::SpanBuffers)

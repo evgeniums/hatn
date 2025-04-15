@@ -31,7 +31,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace server {
 
-using MicroServiceBuilder=std::function<Result<std::shared_ptr<MicroService>> (std::string name, const std::string& dispatcher, const std::string& authDispatcher)>;
+using MicroServiceBuilderFn=std::function<Result<std::shared_ptr<MicroService>> (std::string name, const std::string& dispatcher, const std::string& authDispatcher)>;
 
 class HATN_API_EXPORT MicroServiceFactory
 {
@@ -40,7 +40,7 @@ class HATN_API_EXPORT MicroServiceFactory
         constexpr static const char* MicroserivicesConfigSection="microservices";
         constexpr static const char* MicroserviceConfigSection="microservice";
 
-        using Builder=MicroServiceBuilder;
+        using Builder=MicroServiceBuilderFn;
 
         void registerBuilder(
                 std::string name,

@@ -177,8 +177,9 @@ class TcpServer : public WithEnv<typename Traits::Env>,
 
                 HATN_CTX_DETAILS("connection accepted","tcpserver");
 
+                auto selfCtxW=common::toWeakPtr(this->sharedMainCtx());
                 this->m_handleNewConnection(connectionCtx,Error{},
-                  [selfCtxW{common::toWeakPtr(this->sharedMainCtx())},this,serverCtx{std::move(serverCtx)}](const Error& ec)
+                  [selfCtxW{std::move(selfCtxW)},this,serverCtx{std::move(serverCtx)}](const Error& ec)
                   {
                     if (ec)
                     {

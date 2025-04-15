@@ -38,18 +38,12 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
                 std::shared_ptr<Client> client,
                 common::MappedThreadMode threadMode=common::MappedThreadMode::Caller,
                 common::ThreadQWithTaskContext* defaultThread=common::ThreadQWithTaskContext::current()
-            ) : common::WithMappedThreads(defaultThread),
-                m_client(std::move(client))
-        {
-            threads()->setThreadMode(threadMode);
-        }
+            );
 
         AsyncClient(
                 std::shared_ptr<Client> client,
                 std::shared_ptr<common::MappedThreadQWithTaskContext> threads
-            ) : common::WithMappedThreads(std::move(threads)),
-                m_client(std::move(client))
-        {}
+            );
 
         std::shared_ptr<ClientEnvironment> cloneEnvironment()
         {

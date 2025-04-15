@@ -216,7 +216,7 @@ struct HATN_DATAUNIT_EXPORT visitors
         appendFieldTag(buf,fieldId);
         if (UnitSer::serialize(&obj,buf))
         {
-            return buf.size()-prevSize;
+            return static_cast<int>(buf.size()-prevSize);
         }
         return -1;
     }

@@ -544,7 +544,7 @@ struct deserializeT
                             std::is_convertible<valType,vecValType>{},
                             [&](auto _)
                             {
-                                _(vec).push_back(_(val));
+                                _(vec).push_back(static_cast<vecValType>(_(val)));
                             },
                             [](){}
                         );
