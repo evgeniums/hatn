@@ -42,7 +42,7 @@ cmake -G "$cmake_gen_prefix Makefiles" \
 	-DUSE_RTTI=true \
         $folder
 
-$make_tool install -j$build_workers install
+$make_tool install -j $build_workers install
 
 unset LDFLAGS
 unset CXXFLAGS
