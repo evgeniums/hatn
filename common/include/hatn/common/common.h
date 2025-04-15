@@ -42,7 +42,11 @@
 #            define HATN_COMMON_EXPORT __declspec(dllimport)
 #        endif
 #  else
-#    define HATN_COMMON_EXPORT
+#        ifdef BUILD_HATN_COMMON
+#           define HATN_COMMON_EXPORT __attribute__((visibility("default")))
+#        else
+#           define HATN_COMMON_EXPORT
+#        endif
 #  endif
 #endif
 

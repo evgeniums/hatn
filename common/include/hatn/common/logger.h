@@ -411,7 +411,7 @@ HATN_COMMON_NAMESPACE_END
 #if defined(_WIN32) && defined(__GNUC__)
     #define DECLARE_LOG_MODULE_EXTERN(Name,ExportAttr) template class ExportAttr HATN_Log<HATN_Log_##Name>;
 #else
-    #define DECLARE_LOG_MODULE_EXTERN(Name,ExportAttr) extern template class HATN_Log<HATN_Log_##Name>;
+    #define DECLARE_LOG_MODULE_EXTERN(Name,ExportAttr) extern template class ExportAttr HATN_Log<HATN_Log_##Name>;
 #endif
 
 //! Use this macro to declare exported debug module
