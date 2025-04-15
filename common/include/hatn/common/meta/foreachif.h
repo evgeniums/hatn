@@ -41,7 +41,7 @@ struct foreach_if_t
         auto&& val=boost::hana::at(obj,index);
         auto res=fn(val,index);
 
-        return hana::eval_if(
+        return boost::hana::eval_if(
             pred(res),
             [&](auto _)
             {
