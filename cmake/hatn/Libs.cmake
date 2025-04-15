@@ -11,5 +11,4 @@ SET (HATN_MODULES
 	api
 	app
 	mq
-	serverapp
 )

@@ -60,6 +60,8 @@ OPTION(TREAT_WARNING_AS_ERROR "Treat all warnings as errors" OFF)
 OPTION(ENABLE_DYNAMIC_PLUGINS_FOR_STATIC_BUILD "Enable dynamic plugins for static library" OFF)
 OPTION(HATN_SMARTPOINTERS_STD "Use smartpointers from standard std library instead of hatn library" ${HATN_SMARTPOINTERS_STD_DEFAULT})
 
+OPTION(BUILD_SERVER_LIBS "Build server hatn libraries" OFF)
+
 IF (BUILD_IOS)
     MESSAGE(STATUS "Building for iOS")
     SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_IOS)

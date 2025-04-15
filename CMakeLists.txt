@@ -21,6 +21,14 @@ INCLUDE(hatn/Build)
 
 INCLUDE(hatn/Libs)
 
+IF ($ENV{HATN_SERVER_LIBS})
+    SET(BUILD_SEVER_LIBS $ENV{HATN_SERVER_LIBS})
+ENDIF()
+
+IF (BUILD_SEVER_LIBS)
+    INCLUDE(hatn/ServerLibs)
+ENDIF()
+
 SETUP_HATN_VERSION()
 
 # Init variables for hatn modules without actually building them
