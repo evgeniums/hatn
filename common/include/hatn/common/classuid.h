@@ -16,6 +16,8 @@
 #ifndef HATNCLASSUID_H
 #define HATNCLASSUID_H
 
+#include <cstdint>
+
 #include <tuple>
 #include <string>
 #include <set>
