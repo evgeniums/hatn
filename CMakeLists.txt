@@ -18,6 +18,7 @@ INCLUDE(hatn/Utils)
 INCLUDE(hatn/Config)
 INCLUDE(hatn/Module)
 INCLUDE(hatn/Build)
+INCLUDE(hatn/Install)
 
 INCLUDE(hatn/Libs)
 
