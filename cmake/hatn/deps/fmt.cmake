@@ -10,44 +10,4 @@ IF (SYSTEM_FMTLIB)
     IF (FMT_INCLUDE_DIR)
         INCLUDE_DIRECTORIES(${INCLUDE_DIRECTORIES} ${FMT_INCLUDE_DIR})
     ENDIF(FMT_INCLUDE_DIR)
-
-ELSE()
-
-IF (INSTALL_DEV)
-
-INSTALL(DIRECTORY "${HATN_SOURCE_DIR}/thirdparty/fmt/include/fmt" DESTINATION include)
-
-IF (MSVC)
-    IF (HATN_CMAKE_MSVC)
-        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmtd.lib
-                DESTINATION lib
-                CONFIGURATIONS Debug
-               )
-        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/$<CONFIGURATION>/fmt.lib
-               DESTINATION lib
-               CONFIGURATIONS Release
-              )
-    ELSE (HATN_CMAKE_MSVC)
-        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/fmtd.lib
-                DESTINATION lib
-                CONFIGURATIONS Debug
-               )
-        INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt.lib
-               DESTINATION lib
-               CONFIGURATIONS Release
-              )
-    ENDIF(HATN_CMAKE_MSVC)
-ELSE (MSVC)
-    INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/libfmtd.a
-            DESTINATION lib
-            CONFIGURATIONS Debug
-            )
-    INSTALL(FILES ${HATN_BINARY_DIR}/thirdparty/fmt/libfmt.a
-            DESTINATION lib
-            CONFIGURATIONS Release
-            )
-ENDIF (MSVC)
-
-ENDIF()
-    
 ENDIF (SYSTEM_FMTLIB)
