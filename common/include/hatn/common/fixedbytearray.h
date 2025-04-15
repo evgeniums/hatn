@@ -779,49 +779,49 @@ class FixedByteArray
  */
 template <size_t Capacity, bool ThrowOnOverflow=false> using FixedByteArrayManaged=ManagedWrapper<FixedByteArray<Capacity,ThrowOnOverflow>>;
 
-typedef HATN_COMMON_EXPORT FixedByteArray<8> FixedByteArray8;
-typedef HATN_COMMON_EXPORT FixedByteArray<16> FixedByteArray16;
-typedef HATN_COMMON_EXPORT FixedByteArray<20> FixedByteArray20;
-typedef HATN_COMMON_EXPORT FixedByteArray<32> FixedByteArray32;
-typedef HATN_COMMON_EXPORT FixedByteArray<40> FixedByteArray40;
-typedef HATN_COMMON_EXPORT FixedByteArray<64> FixedByteArray64;
-typedef HATN_COMMON_EXPORT FixedByteArray<128> FixedByteArray128;
-typedef HATN_COMMON_EXPORT FixedByteArray<256> FixedByteArray256;
-typedef HATN_COMMON_EXPORT FixedByteArray<512> FixedByteArray512;
-typedef HATN_COMMON_EXPORT FixedByteArray<1024> FixedByteArray1024;
+typedef FixedByteArray<8> FixedByteArray8;
+typedef FixedByteArray<16> FixedByteArray16;
+typedef FixedByteArray<20> FixedByteArray20;
+typedef FixedByteArray<32> FixedByteArray32;
+typedef FixedByteArray<40> FixedByteArray40;
+typedef FixedByteArray<64> FixedByteArray64;
+typedef FixedByteArray<128> FixedByteArray128;
+typedef FixedByteArray<256> FixedByteArray256;
+typedef FixedByteArray<512> FixedByteArray512;
+typedef FixedByteArray<1024> FixedByteArray1024;
 
-typedef HATN_COMMON_EXPORT FixedByteArray<8,true> FixedByteArrayThrow8;
-typedef HATN_COMMON_EXPORT FixedByteArray<16,true> FixedByteArrayThrow16;
-typedef HATN_COMMON_EXPORT FixedByteArray<20,true> FixedByteArrayThrow20;
-typedef HATN_COMMON_EXPORT FixedByteArray<32,true> FixedByteArrayThrow32;
-typedef HATN_COMMON_EXPORT FixedByteArray<40,true> FixedByteArrayThrow40;
-typedef HATN_COMMON_EXPORT FixedByteArray<64,true> FixedByteArrayThrow64;
-typedef HATN_COMMON_EXPORT FixedByteArray<128,true> FixedByteArrayThrow128;
-typedef HATN_COMMON_EXPORT FixedByteArray<256,true> FixedByteArrayThrow256;
-typedef HATN_COMMON_EXPORT FixedByteArray<512,true> FixedByteArrayThrow512;
-typedef HATN_COMMON_EXPORT FixedByteArray<1024,true> FixedByteArrayThrow1024;
+typedef FixedByteArray<8,true> FixedByteArrayThrow8;
+typedef FixedByteArray<16,true> FixedByteArrayThrow16;
+typedef FixedByteArray<20,true> FixedByteArrayThrow20;
+typedef FixedByteArray<32,true> FixedByteArrayThrow32;
+typedef FixedByteArray<40,true> FixedByteArrayThrow40;
+typedef FixedByteArray<64,true> FixedByteArrayThrow64;
+typedef FixedByteArray<128,true> FixedByteArrayThrow128;
+typedef FixedByteArray<256,true> FixedByteArrayThrow256;
+typedef FixedByteArray<512,true> FixedByteArrayThrow512;
+typedef FixedByteArray<1024,true> FixedByteArrayThrow1024;
 
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<8>> FixedByteArrayShared8;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<16>> FixedByteArrayShared16;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<20>> FixedByteArrayShared20;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<32>> FixedByteArrayShared32;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<40>> FixedByteArrayShared40;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<64>> FixedByteArrayShared64;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<128>> FixedByteArrayShared128;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<256>> FixedByteArrayShared256;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<512>> FixedByteArrayShared512;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<1024>> FixedByteArrayShared1024;
+typedef SharedPtr<FixedByteArrayManaged<8>> FixedByteArrayShared8;
+typedef SharedPtr<FixedByteArrayManaged<16>> FixedByteArrayShared16;
+typedef SharedPtr<FixedByteArrayManaged<20>> FixedByteArrayShared20;
+typedef SharedPtr<FixedByteArrayManaged<32>> FixedByteArrayShared32;
+typedef SharedPtr<FixedByteArrayManaged<40>> FixedByteArrayShared40;
+typedef SharedPtr<FixedByteArrayManaged<64>> FixedByteArrayShared64;
+typedef SharedPtr<FixedByteArrayManaged<128>> FixedByteArrayShared128;
+typedef SharedPtr<FixedByteArrayManaged<256>> FixedByteArrayShared256;
+typedef SharedPtr<FixedByteArrayManaged<512>> FixedByteArrayShared512;
+typedef SharedPtr<FixedByteArrayManaged<1024>> FixedByteArrayShared1024;
 
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<8,true>> FixedByteArraySharedThrow8;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<16,true>> FixedByteArraySharedThrow16;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<20,true>> FixedByteArraySharedThrow20;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<32,true>> FixedByteArraySharedThrow32;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<40,true>> FixedByteArraySharedThrow40;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<64,true>> FixedByteArraySharedThrow64;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<128,true>> FixedByteArraySharedThrow128;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<256,true>> FixedByteArraySharedThrow256;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<512,true>> FixedByteArraySharedThrow512;
-typedef HATN_COMMON_EXPORT SharedPtr<FixedByteArrayManaged<1024,true>> FixedByteArraySharedThrow1024;
+typedef SharedPtr<FixedByteArrayManaged<8,true>> FixedByteArraySharedThrow8;
+typedef SharedPtr<FixedByteArrayManaged<16,true>> FixedByteArraySharedThrow16;
+typedef SharedPtr<FixedByteArrayManaged<20,true>> FixedByteArraySharedThrow20;
+typedef SharedPtr<FixedByteArrayManaged<32,true>> FixedByteArraySharedThrow32;
+typedef SharedPtr<FixedByteArrayManaged<40,true>> FixedByteArraySharedThrow40;
+typedef SharedPtr<FixedByteArrayManaged<64,true>> FixedByteArraySharedThrow64;
+typedef SharedPtr<FixedByteArrayManaged<128,true>> FixedByteArraySharedThrow128;
+typedef SharedPtr<FixedByteArrayManaged<256,true>> FixedByteArraySharedThrow256;
+typedef SharedPtr<FixedByteArrayManaged<512,true>> FixedByteArraySharedThrow512;
+typedef SharedPtr<FixedByteArrayManaged<1024,true>> FixedByteArraySharedThrow1024;
 
 namespace detail
 {
