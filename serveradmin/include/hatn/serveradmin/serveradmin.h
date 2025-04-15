@@ -21,17 +21,14 @@
 
 #include <hatn/app/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_SERVER_ADMIN_EXPORT
-#        ifdef BUILD_HATN_SERVER_ADMIN
-#            define HATN_SERVER_ADMIN_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_SERVER_ADMIN_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_SERVER_ADMIN_EXPORT __attribute__((visibility("default")))
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_SERVER_ADMIN_EXPORT
+#   ifdef BUILD_HATN_SERVER_ADMIN
+#       define HATN_SERVER_ADMIN_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_SERVER_ADMIN_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_SERVER_ADMIN_NAMESPACE_BEGIN namespace hatn { namespace serveradmin {
