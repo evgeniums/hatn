@@ -23,16 +23,14 @@
 #include <hatn/db/plugins/rocksdb/config.h>
 #endif
 
-#ifdef _WIN32
-#    ifndef HATN_ROCKSDB_EXPORT
-#        ifdef BUILD_HATN_ROCKSDB
-#            define HATN_ROCKSDB_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_ROCKSDB_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_ROCKSDB_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_ROCKSDB_EXPORT
+#   ifdef BUILD_HATN_ROCKSDB
+#       define HATN_ROCKSDB_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_ROCKSDB_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_ROCKSDB_NAMESPACE_BEGIN namespace hatn { namespace db { namespace rocksdbdriver {

@@ -29,17 +29,14 @@
 #include <hatn/crypt/plugins/openssl/config.h>
 #endif
 
-// define export symbols fo windows platform
-#ifdef _WIN32
-#    ifndef HATN_OPENSSL_EXPORT
-#        ifdef BUILD_HATN_OPENSSL
-#            define HATN_OPENSSL_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_OPENSSL_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_OPENSSL_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_OPENSSL_EXPORT
+#   ifdef BUILD_HATN_OPENSSL
+#       define HATN_OPENSSL_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_OPENSSL_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_OPENSSL_NAMESPACE_BEGIN namespace hatn { namespace crypt { namespace openssl {

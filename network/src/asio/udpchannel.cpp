@@ -578,8 +578,8 @@ UdpChannelSingle::UdpChannelSingle(Thread *thread)
 }
 
 #ifndef _WIN32
-template class UdpChannelTraits<UdpChannelMultiple>;
-template class UdpChannelTraits<UdpChannelSingle>;
+template class HATN_NETWORK_EXPORT UdpChannelTraits<UdpChannelMultiple>;
+template class HATN_NETWORK_EXPORT UdpChannelTraits<UdpChannelSingle>;
 #endif
 
 //---------------------------------------------------------------

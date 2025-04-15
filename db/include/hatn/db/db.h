@@ -21,21 +21,17 @@
 
 #include <hatn/db/config.h>
 
+#include <hatn/dataunit/dataunit.h>
 #include <hatn/validator/config.hpp>
 
-#include <hatn/dataunit/dataunit.h>
+#include <hatn/common/visibilitymacros.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_DB_EXPORT
-#        ifdef BUILD_HATN_DB
-#            define HATN_DB_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_DB_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_DB_EXPORT
+#ifndef HATN_DB_EXPORT
+#   ifdef BUILD_HATN_DB
+#       define HATN_DB_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_DB_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_DB_NAMESPACE_BEGIN namespace hatn { namespace db {

@@ -23,17 +23,14 @@
 
 #include <hatn/app/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_APP_EXPORT
-#        ifdef BUILD_HATN_APP
-#            define HATN_APP_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_APP_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_APP_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_APP_EXPORT
+#   ifdef BUILD_HATN_APP
+#       define HATN_APP_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_APP_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_APP_NAMESPACE_BEGIN namespace hatn { namespace app {

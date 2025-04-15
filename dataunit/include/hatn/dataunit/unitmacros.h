@@ -271,7 +271,7 @@ enum class EnumName : int {__VA_ARGS__};
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
 
-#ifdef _MSC_VER
+#ifndef __MINGW32__
 
     #define HDU_V2_EXPORT(UnitName,Export) \
         template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\

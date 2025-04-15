@@ -23,17 +23,14 @@
 
 #include <hatn/mq/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_MQ_EXPORT
-#        ifdef BUILD_HATN_MQ
-#            define HATN_MQ_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_MQ_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_MQ_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_MQ_EXPORT
+#   ifdef BUILD_HATN_MQ
+#       define HATN_MQ_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_MQ_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_MQ_NAMESPACE_BEGIN namespace hatn { namespace mq {

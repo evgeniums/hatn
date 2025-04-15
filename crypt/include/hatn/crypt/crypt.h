@@ -20,17 +20,14 @@
 
 #include <hatn/crypt/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_CRYPT_EXPORT
-#        ifdef BUILD_HATN_CRYPT
-#            define HATN_CRYPT_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_CRYPT_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_CRYPT_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_CRYPT_EXPORT
+#   ifdef BUILD_HATN_CRYPT
+#       define HATN_CRYPT_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_CRYPT_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_CRYPT_NAMESPACE_BEGIN namespace hatn { namespace crypt {

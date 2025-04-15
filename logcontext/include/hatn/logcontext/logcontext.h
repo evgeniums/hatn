@@ -23,17 +23,14 @@
 
 #include <hatn/logcontext/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_LOGCONTEXT_EXPORT
-#        ifdef BUILD_HATN_LOGCONTEXT
-#            define HATN_LOGCONTEXT_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_LOGCONTEXT_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_LOGCONTEXT_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_LOGCONTEXT_EXPORT
+#   ifdef BUILD_HATN_LOGCONTEXT
+#       define HATN_LOGCONTEXT_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_LOGCONTEXT_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_LOGCONTEXT_NAMESPACE_BEGIN namespace hatn { namespace logcontext {

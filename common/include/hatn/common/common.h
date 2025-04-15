@@ -30,25 +30,18 @@
 #define NOMINMAX
 #endif
 
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_COMMON_EXPORT
+#   ifdef BUILD_HATN_COMMON
+#       define HATN_COMMON_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_COMMON_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
+#endif
+
 #include <hatn/common/config.h>
 #include <hatn/common/ignorewarnings.h>
-
-// define export symbols for windows platform
-#ifndef HATN_COMMON_EXPORT
-#  if defined(WIN32)
-#        ifdef BUILD_HATN_COMMON
-#            define HATN_COMMON_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_COMMON_EXPORT __declspec(dllimport)
-#        endif
-#  else
-#        ifdef BUILD_HATN_COMMON
-#           define HATN_COMMON_EXPORT __attribute__((visibility("default")))
-#        else
-#           define HATN_COMMON_EXPORT
-#        endif
-#  endif
-#endif
 
 #define HATN_COMMON_NAMESPACE_BEGIN namespace hatn { namespace common {
 #define HATN_COMMON_NAMESPACE_END }}

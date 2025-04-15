@@ -24,17 +24,14 @@
 #include <hatn/common/logger.h>
 #include <hatn/dataunit/config.h>
 
-// define export symbols for windows platform
-#ifdef WIN32
-#    ifndef HATN_DATAUNIT_EXPORT
-#        ifdef BUILD_HATN_DATAUNIT
-#            define HATN_DATAUNIT_EXPORT __declspec(dllexport)
-#        else
-#            define HATN_DATAUNIT_EXPORT __declspec(dllimport)
-#        endif
-#    endif
-#else
-#    define HATN_DATAUNIT_EXPORT
+#include <hatn/common/visibilitymacros.h>
+
+#ifndef HATN_DATAUNIT_EXPORT
+#   ifdef BUILD_HATN_DATAUNIT
+#       define HATN_DATAUNIT_EXPORT HATN_VISIBILITY_EXPORT
+#   else
+#       define HATN_DATAUNIT_EXPORT HATN_VISIBILITY_IMPORT
+#   endif
 #endif
 
 #define HATN_DATAUNIT_NAMESPACE_BEGIN namespace hatn { namespace du {
