@@ -17,6 +17,8 @@
 
 #include "hatn_test_config.h"
 
+#include <hatn/test/multithreadfixture.h>
+
 #include <hatn/validator/validator.hpp>
 
 #include <hatn/dataunit/valuetypes.h>
@@ -30,6 +32,8 @@
 #include <hatn/base/baseerror.h>
 #include <hatn/base/configtree.h>
 #include <hatn/base/configobject.h>
+#include <hatn/base/configtreeloader.h>
+#include <hatn/base/configtreejson.h>
 
 HATN_USING
 HATN_COMMON_USING
@@ -67,6 +71,13 @@ HDU_UNIT(config6,
          HDU_FIELD(field6,TYPE_UINT32,6,true)
          )
 
+HDU_UNIT(config7,
+         HDU_FIELD(key1,TYPE_BOOL,1)
+         HDU_FIELD(key2,TYPE_BOOL,2)
+         HDU_FIELD(key3,TYPE_BOOL,3)
+         HDU_FIELD(key4,TYPE_BOOL,4)
+         )
+
 struct WithConfig1 : public ConfigObject<config1::type>
 {
 };
@@ -88,6 +99,10 @@ struct WithConfig5 : public ConfigObject<config5::type>
 };
 
 struct WithConfig6 : public ConfigObject<config6::type>
+{
+};
+
+struct WithConfig7 : public ConfigObject<config7::type>
 {
 };
 
@@ -452,6 +467,32 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK_EQUAL(records[0].value,"[\"********\",\"********\",\"********\",...]");
     BOOST_CHECK_EQUAL(records[1].name,"field4");
     BOOST_CHECK_EQUAL(records[1].value,"[]");
+}
+
+BOOST_AUTO_TEST_CASE(BoolValues)
+{
+    ConfigTreeLoader loader;
+    ConfigTree t;
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config_bool.jsonc");
+    auto ec=loader.loadFromFile(t,filename);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
+
+    WithConfig7 obj;
+    ec=obj.loadConfig(t,"obj1");
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    BOOST_TEST_MESSAGE(fmt::format("Config object: \n{} \n",obj.config().toString(true)));
+    BOOST_CHECK(obj.config().fieldValue(config7::key1));
+    BOOST_CHECK(!obj.config().fieldValue(config7::key2));
+    BOOST_CHECK(obj.config().fieldValue(config7::key3));
+    BOOST_CHECK(!obj.config().fieldValue(config7::key4));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

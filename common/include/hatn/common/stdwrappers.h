@@ -91,12 +91,12 @@ template <typename ...Types> using variant=boost::variant2::variant<Types...>;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
     template <typename T,typename ...Types>
-    constexpr T& variantGet(variant<Types...>& var) noexcept
+    constexpr T& variantGet(variant<Types...>& var)
     {
         return std::get<T>(var);
     }
     template <typename T,typename ...Types>
-    constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    constexpr const T& variantGet(const variant<Types...>& var)
     {
         return std::get<T>(var);
     }

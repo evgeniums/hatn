@@ -58,7 +58,13 @@ struct FieldValue
 };
 
 template <typename T>
-struct FieldValue<T,hana::when<decltype(dataunit::types::IsScalar<T::typeId>)::value>>
+struct FieldValue<T,hana::when<decltype(dataunit::types::IsBool<T::typeId>)::value>>
+{
+    using type=bool;
+};
+
+template <typename T>
+struct FieldValue<T,hana::when<decltype(dataunit::types::IsScalarNotBool<T::typeId>)::value>>
 {
     using type=typename T::type;
 };
