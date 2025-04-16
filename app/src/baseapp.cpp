@@ -321,6 +321,8 @@ Error BaseApp::init()
     }
     std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,appThread());
 
+    std::cout << " default thread =" << mappedThreads->defaultThread()->id().c_str() << std::endl;
+
     //! @todo configure/create allocator factory
 
     //! @todo create cipher suites
