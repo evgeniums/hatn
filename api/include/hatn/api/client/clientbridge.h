@@ -24,17 +24,16 @@
 #include <hatn/common/flatmap.h>
 #include <hatn/common/taskcontext.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/dataunit/unit.h>
 
 #include <hatn/app/appenv.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/apiliberror.h>
 
-#define HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN namespace hatn { namespace api { namespace client { namespace bridge {
-#define HATN_API_CLIEN_BRIDGE_NAMESPACE_END }}}}
-#define HATN_API_CLIEN_BRIDGE_NAMESPACE hatn::api::client::bridge
-
-HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN
+HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
 
 struct Request
 {
@@ -66,6 +65,7 @@ class HATN_API_EXPORT ContextBuilder
 {
     public:
 
+        ContextBuilder()=default;
         virtual ~ContextBuilder();
 
         ContextBuilder(const ContextBuilder&)=delete;
@@ -74,6 +74,16 @@ class HATN_API_EXPORT ContextBuilder
         ContextBuilder& operator=(ContextBuilder&&)=default;
 
         virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env)=0;
+};
+
+class DefaultContextBuilder : public ContextBuilder
+{
+    public:
+
+        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env) override
+        {
+            return HATN_APP_NAMESPACE::allocateAppEnvContext(std::move(env));
+        }
 };
 
 class HATN_API_EXPORT Method
@@ -121,7 +131,7 @@ class HATN_API_EXPORT Service
             Callback callback
         );
 
-        void resetContextBuilder(std::shared_ptr<ContextBuilder> builder={})
+        void setContextBuilder(std::shared_ptr<ContextBuilder> builder={})
         {
             m_ctxBuilder=std::move(builder);
         }
@@ -150,9 +160,14 @@ class HATN_API_EXPORT Service
         common::FlatMap<std::string,std::shared_ptr<Method>> m_methods;
 };
 
+using MessageBuilder=std::function<Result<common::SharedPtr<du::Unit>> (const std::string& messageJson)>;
+
 class HATN_API_EXPORT Dispatcher
 {
     public:
+
+        Dispatcher() : m_defaultCtxBuilder(std::make_shared<DefaultContextBuilder>())
+        {}
 
         void exec(
             const std::string& service,
@@ -161,7 +176,7 @@ class HATN_API_EXPORT Dispatcher
             Callback callback
         );
 
-        void resetDefaultContextBuilder(std::shared_ptr<ContextBuilder> builder={})
+        void setDefaultContextBuilder(std::shared_ptr<ContextBuilder> builder={})
         {
             m_defaultCtxBuilder=std::move(builder);
         }
@@ -175,7 +190,7 @@ class HATN_API_EXPORT Dispatcher
             std::shared_ptr<Service> service
         );
 
-        void resetDefaultEnv(common::SharedPtr<app::AppEnv> defaultEnv={})
+        void setDefaultEnv(common::SharedPtr<app::AppEnv> defaultEnv={})
         {
             m_defaultEnv=std::move(defaultEnv);
         }
@@ -200,15 +215,35 @@ class HATN_API_EXPORT Dispatcher
             return it->second;
         }
 
+        Result<common::SharedPtr<du::Unit>> makeMessage(const std::string& messageType, const std::string& messageJson) const
+        {
+            auto it=m_messageBuilders.find(messageType);
+            if (it==m_messageBuilders.end())
+            {
+                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_MESSASGE);
+            }
+            return it->second(messageJson);
+        }
+
+        void registerMessageBuilder(
+            std::string messageType,
+            MessageBuilder builder
+        )
+        {
+            m_messageBuilders[std::move(messageType)]=std::move(builder);
+        }
+
     private:
 
         common::FlatMap<std::string,std::shared_ptr<Service>> m_services;
         common::FlatMap<std::string,common::SharedPtr<app::AppEnv>> m_envs;
 
+        std::map<std::string,MessageBuilder> m_messageBuilders;
+
         std::shared_ptr<ContextBuilder>  m_defaultCtxBuilder;
         common::SharedPtr<app::AppEnv> m_defaultEnv;
 };
 
-HATN_API_CLIEN_BRIDGE_NAMESPACE_END
+HATN_API_CLIENT_BRIDGE_NAMESPACE_END
 
 #endif // HATNAPICLIENTBRIDGE_H

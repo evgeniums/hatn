@@ -17,7 +17,7 @@
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/client/clientbridge.h>
 
-HATN_API_CLIEN_BRIDGE_NAMESPACE_BEGIN
+HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
@@ -66,7 +66,7 @@ void Dispatcher::registerService(std::shared_ptr<Service> service)
 {
     if (!service->contextBuilder())
     {
-        service->resetContextBuilder(m_defaultCtxBuilder);
+        service->setContextBuilder(m_defaultCtxBuilder);
     }
     m_services[service->name()]=service;
 }
@@ -100,4 +100,4 @@ void Dispatcher::exec(
 
 //---------------------------------------------------------------
 
-HATN_API_CLIEN_BRIDGE_NAMESPACE_END
+HATN_API_CLIENT_BRIDGE_NAMESPACE_END
