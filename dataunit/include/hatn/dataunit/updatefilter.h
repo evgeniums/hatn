@@ -14,6 +14,7 @@
   *
   *  Filter of unit updating operations that connects data unit with validator and notifier
   *
+  *  @todo deprecated: Not used currently
   */
 
 /****************************************************************************/

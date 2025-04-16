@@ -14,6 +14,7 @@
   *
   *      Container of data unit
   *
+  *     @todo deprecated: not used currently.
   */
 
 /****************************************************************************/
@@ -86,7 +87,7 @@ class UnitContainer
     private:
 
         common::SharedPtr<ManagedUnitT> m_unit;
-        AllocatorFactory* m_factory;
+        const AllocatorFactory* m_factory;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

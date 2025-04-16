@@ -14,7 +14,7 @@
   *
   *      Base class for data unit handling.
   *
-  *      @todo Not used currently.
+  *      @todo deprecated: Not used currently
   *
   */
 
