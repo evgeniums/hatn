@@ -23,13 +23,13 @@
 
 HATN_ADMIN_SERVER_NAMESPACE_BEGIN
 
-template <typename RequestT=HATN_API_NAMESPACE::server::Request<>>
+template <typename RequestT=HATN_API_SERVER_NAMESPACE::Request<>>
 class ApiRequestTraits
 {
     public:
 
         using Request=RequestT;
-        using RequestContext=HATN_API_NAMESPACE::server::RequestContext<Request>;
+        using RequestContext=HATN_API_SERVER_NAMESPACE::RequestContext<Request>;
 
         ApiRequestTraits(std::string adminTopic="admin"):m_adminTopic(std::move(adminTopic))
         {}

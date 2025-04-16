@@ -7,11 +7,19 @@ SET (HEADERS
     include/hatn/adminserver/localadmincontroller.h
     include/hatn/adminserver/apiadmincontroller.h
     include/hatn/adminserver/appadmincontroller.h
+    include/hatn/adminserver/adminservice.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+    include/hatn/adminserver/methods/basemethod.h
+    include/hatn/adminserver/methods/addadmin.h
 )
 
 SET (HEADERS
     ${HEADERS}
     include/hatn/adminserver/ipp/localadmincontroller.ipp
+    include/hatn/adminserver/ipp/adminservice.ipp
 )
 
 SET (SOURCES

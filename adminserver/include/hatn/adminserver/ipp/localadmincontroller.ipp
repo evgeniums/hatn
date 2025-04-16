@@ -24,6 +24,8 @@
 
 HATN_ADMIN_SERVER_NAMESPACE_BEGIN
 
+//---------------------------------------------------------------
+
 template <typename Traits>
 template <typename ContextT, typename CallbackT>
 void LocalAdminControllerImpl<Traits>::addAdmin(
@@ -44,9 +46,11 @@ void LocalAdminControllerImpl<Traits>::addAdmin(
         std::move(cb),
         contextTopic(ctx),
         adminModel(),
-        *admin
+        admin.get()
     );
 }
+
+//---------------------------------------------------------------
 
 template <typename Traits>
 template <typename ContextT, typename CallbackT>
@@ -64,6 +68,8 @@ void LocalAdminControllerImpl<Traits>::removeAdmin(
         admin
     );
 }
+
+//---------------------------------------------------------------
 
 template <typename Traits>
 template <typename ContextT, typename CallbackT>
@@ -84,6 +90,8 @@ void LocalAdminControllerImpl<Traits>::updateAdmin(
     );
 }
 
+//---------------------------------------------------------------
+
 template <typename Traits>
 template <typename ContextT, typename CallbackT>
 void LocalAdminControllerImpl<Traits>::listAdmins(
@@ -98,6 +106,8 @@ void LocalAdminControllerImpl<Traits>::listAdmins(
         adminModel()
     );
 }
+
+//---------------------------------------------------------------
 
 HATN_ADMIN_SERVER_NAMESPACE_END
 
