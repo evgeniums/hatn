@@ -117,10 +117,7 @@ class HATN_APP_EXPORT BaseApp
 
         void setAppDataFolder(
             std::string appDataFolder
-        )
-        {
-            m_appDataFolder=std::move(appDataFolder);
-        }
+        );
 
         const std::string& appDataFolder() const noexcept
         {
@@ -128,11 +125,8 @@ class HATN_APP_EXPORT BaseApp
         }
 
         void setDefaultAppDataFolder(
-                std::string folder
-            )
-        {
-            m_appsDataFolder=std::move(folder);
-        }
+            std::string folder
+        );
 
         const std::string& appsDataFolder() const noexcept
         {

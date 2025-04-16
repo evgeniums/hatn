@@ -321,8 +321,6 @@ Error BaseApp::init()
     }
     std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,appThread());
 
-    std::cout << " default thread =" << mappedThreads->defaultThread()->id().c_str() << std::endl;
-
     //! @todo configure/create allocator factory
 
     //! @todo create cipher suites
@@ -395,6 +393,25 @@ void BaseApp::close()
 
 //---------------------------------------------------------------
 
+void BaseApp::setDefaultAppDataFolder(
+        std::string folder
+    )
+{
+    m_appsDataFolder=std::move(folder);
+}
+
+//---------------------------------------------------------------
+
+void BaseApp::setAppDataFolder(
+    std::string folder
+    )
+{
+    m_appDataFolder=std::move(folder);
+    m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
+}
+
+//---------------------------------------------------------------
+
 void BaseApp::initAppDataFolder()
 {
     // set app data folder
@@ -402,6 +419,7 @@ void BaseApp::initAppDataFolder()
     {
         m_appDataFolder=d->appConfig.config().fieldValue(app_config::data_folder);
     }
+    //! @todo Reload config with new data folder?
     if (m_appDataFolder.empty())
     {
         if (m_appsDataFolder.empty())
@@ -433,7 +451,7 @@ Error BaseApp::createAppDataFolder()
     {
         //! @todo Log error
         return Error{ec.value(),&ec.category()};
-    }
+    }    
     return OK;
 }
 
@@ -444,7 +462,7 @@ void BaseApp::registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilde
     d->loggerBuilders[std::move(name)]=std::move(builder);
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 void BaseApp_p::loadPlugins(const std::string& pluginFolder)
 {
@@ -460,7 +478,7 @@ void BaseApp_p::loadPlugins(const std::string& pluginFolder)
 #endif
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 void BaseApp_p::loadCryptPlugins()
 {
@@ -468,7 +486,7 @@ void BaseApp_p::loadCryptPlugins()
     loadPlugins(CryptPluginsFolder);
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 void BaseApp_p::loadDbPlugins()
 {
@@ -476,14 +494,14 @@ void BaseApp_p::loadDbPlugins()
     loadPlugins(DbPluginsFolder);
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 void BaseApp::addPluginFolders(std::vector<std::string> folders)
 {
     d->pluginFolders.insert(d->pluginFolders.end(),folders.begin(),folders.end());
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 Result<std::shared_ptr<db::DbPlugin>> BaseApp_p::loadDbPlugin(lib::string_view name)
 {
@@ -507,7 +525,7 @@ Result<std::shared_ptr<db::DbPlugin>> BaseApp_p::loadDbPlugin(lib::string_view n
     return dbPlugin;
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 db::ClientConfig BaseApp_p::dbClientConfig(lib::string_view name) const
 {
@@ -523,12 +541,16 @@ db::ClientConfig BaseApp_p::dbClientConfig(lib::string_view name) const
     return cfg;
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 Error BaseApp::openDb(bool create)
 {
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
+    if (name.empty())
+    {
+        return appError(AppError::UNKNOWN_DB_PROVIDER);
+    }
     auto plugin=d->loadDbPlugin(name);
     if (plugin)
     {
@@ -547,12 +569,20 @@ Error BaseApp::openDb(bool create)
     // open db
     Error ec;
     base::config_object::LogRecords logRecords;
-    std::ignore=thread->execSync(
-        [this,&ec,&logRecords,&name,create]()
-        {
-            ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
-        }
-    );
+    if (thread->id()==common::Thread::currentThread()->id())
+    {
+        ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+    }
+    else
+    {
+        std::ignore=thread->execSync(
+            [this,&ec,&logRecords,&name,create]()
+            {
+                ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+            }
+        );
+    }
+
     //! @todo log records
     if (ec)
     {
@@ -588,7 +618,7 @@ Error BaseApp::openDb(bool create)
     return OK;
 }
 
-//------------------------------------------------- --------------
+//---------------------------------------------------------------
 
 Error BaseApp::destroyDb()
 {

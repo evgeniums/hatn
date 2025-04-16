@@ -40,7 +40,7 @@ struct Request
     std::string envId;
     std::string topic;
     std::string messageTypeName;
-    common::SharedPtr<du::Unit> message;
+    du::UnitWrapper message;
     std::vector<common::ByteArrayShared> dataArrays;
 
     Request()
@@ -82,7 +82,11 @@ class DefaultContextBuilder : public ContextBuilder
 
         virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env) override
         {
-            return HATN_APP_NAMESPACE::allocateAppEnvContext(std::move(env));
+            auto ctx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
+            auto& logCtx=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+            auto& logger=env->get<app::Logger>();
+            logCtx.setLogger(logger.logger());
+            return ctx;
         }
 };
 
@@ -116,6 +120,8 @@ class HATN_API_EXPORT Method
 
         std::string m_name;
 };
+
+using MessageBuilder=std::function<Result<du::UnitWrapper> (const std::string& messageJson)>;
 
 class HATN_API_EXPORT Service
 {
@@ -153,14 +159,33 @@ class HATN_API_EXPORT Service
             return m_name;
         }
 
+        void registerMessageBuilder(
+                std::string messageType,
+                MessageBuilder builder
+            )
+        {
+            Assert(m_messageBuilders.find(messageType)==m_messageBuilders.end(),"Duplicate message builder");
+            m_messageBuilders[std::move(messageType)]=std::move(builder);
+        }
+
+        Result<du::UnitWrapper> makeMessage(const std::string& messageType, const std::string& messageJson) const
+        {
+            auto it=m_messageBuilders.find(messageType);
+            if (it==m_messageBuilders.end())
+            {
+                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_MESSASGE);
+            }
+            return it->second(messageJson);
+        }
+
     private:
 
         std::string m_name;
         std::shared_ptr<ContextBuilder>  m_ctxBuilder;
         common::FlatMap<std::string,std::shared_ptr<Method>> m_methods;
-};
 
-using MessageBuilder=std::function<Result<common::SharedPtr<du::Unit>> (const std::string& messageJson)>;
+        std::map<std::string,MessageBuilder> m_messageBuilders;
+};
 
 class HATN_API_EXPORT Dispatcher
 {
@@ -215,30 +240,20 @@ class HATN_API_EXPORT Dispatcher
             return it->second;
         }
 
-        Result<common::SharedPtr<du::Unit>> makeMessage(const std::string& messageType, const std::string& messageJson) const
+        Result<du::UnitWrapper> makeMessage(const std::string& service, const std::string& messageType, const std::string& messageJson) const
         {
-            auto it=m_messageBuilders.find(messageType);
-            if (it==m_messageBuilders.end())
+            auto it=m_services.find(service);
+            if (it==m_services.end())
             {
-                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_MESSASGE);
+                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_SERVICE);
             }
-            return it->second(messageJson);
-        }
-
-        void registerMessageBuilder(
-            std::string messageType,
-            MessageBuilder builder
-        )
-        {
-            m_messageBuilders[std::move(messageType)]=std::move(builder);
+            return it->second->makeMessage(messageType,messageJson);
         }
 
     private:
 
         common::FlatMap<std::string,std::shared_ptr<Service>> m_services;
         common::FlatMap<std::string,common::SharedPtr<app::AppEnv>> m_envs;
-
-        std::map<std::string,MessageBuilder> m_messageBuilders;
 
         std::shared_ptr<ContextBuilder>  m_defaultCtxBuilder;
         common::SharedPtr<app::AppEnv> m_defaultEnv;

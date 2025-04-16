@@ -54,6 +54,7 @@
     Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
     Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
+    Do(ApiLibError,FAILED_PARSE_BRIDGE_JSON,_TR("failed to parse JSON message of bridge request","api")) \
 
 
 HATN_API_NAMESPACE_BEGIN

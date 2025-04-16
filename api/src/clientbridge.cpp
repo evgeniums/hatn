@@ -55,7 +55,9 @@ void Service::exec(
     auto ctx=m_ctxBuilder->makeContext(env);
     auto handler=[ctx{std::move(ctx)},mthd{std::move(mthd)},env,request{std::move(request)},callback{std::move(callback)}]()
     {
+        ctx->onAsyncHandlerEnter();
         mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
+        ctx->onAsyncHandlerExit();
     };
     thread->execAsync(handler);
 }
@@ -64,6 +66,7 @@ void Service::exec(
 
 void Dispatcher::registerService(std::shared_ptr<Service> service)
 {
+    Assert(m_services.find(service->name())==m_services.end(),"Duplicate service");
     if (!service->contextBuilder())
     {
         service->setContextBuilder(m_defaultCtxBuilder);
