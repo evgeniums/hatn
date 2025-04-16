@@ -12,6 +12,7 @@ SET (HEADERS
 SET (SOURCES
     src/apperror.cpp
     src/baseapp.cpp
+    src/appenv.cpp
 )
 
 BUILD_HATN_MODULE()

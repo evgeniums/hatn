@@ -24,6 +24,7 @@
 #include <hatn/common/logger.h>
 
 #include <hatn/logcontext/withlogger.h>
+#include <hatn/logcontext/context.h>
 
 #include <hatn/crypt/ciphersuite.h>
 
@@ -43,6 +44,74 @@ using Threads=common::WithMappedThreads;
 
 using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,CipherSuites,Translator>;
 
+class WithAppEnv : public common::TaskSubcontext
+{
+    public:
+
+        WithAppEnv(common::SharedPtr<AppEnv> env={}) : m_env(std::move(env))
+        {}
+
+        void setEnv(common::SharedPtr<AppEnv> env)
+        {
+            m_env=std::move(env);
+        }
+
+        common::SharedPtr<AppEnv> envShared() const noexcept
+        {
+            return m_env;
+        }
+
+        const AppEnv* env() const noexcept
+        {
+            return m_env.get();
+        }
+
+        AppEnv* env() noexcept
+        {
+            return m_env.get();
+        }
+
+    private:
+
+        common::SharedPtr<AppEnv> m_env;
+};
+
+using AppEnvContext=common::TaskContextType<WithAppEnv,HATN_LOGCONTEXT_NAMESPACE::TaskLogContext>;
+
+struct makeAppEnvContextT
+{
+    template <typename ...BaseArgs>
+    auto operator()(common::SharedPtr<AppEnv> env, BaseArgs&&... args) const
+    {
+        return common::makeTaskContextType<AppEnvContext>(
+            common::subcontexts(
+                common::subcontext(WithAppEnv{std::move(env)})
+            ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+};
+constexpr makeAppEnvContextT makeAppEnvContext{};
+
+struct allocateAppEnvContextT
+{
+    template <typename ...BaseArgs>
+    auto operator()(common::SharedPtr<AppEnv> env, BaseArgs&&... args) const
+    {
+        auto allocator=env->template get<AllocatorFactory>().factory()->objectAllocator<AppEnvContext>();
+        return common::allocateTaskContextType<AppEnvContext>(
+            allocator,
+            common::subcontexts(
+                common::subcontext(WithAppEnv{std::move(env)})
+            ),
+            std::forward<BaseArgs>(args)...
+            );
+    }
+};
+constexpr allocateAppEnvContextT allocateAppEnvContext{};
+
 HATN_APP_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DECLARE_EXPORT(HATN_APP_NAMESPACE::WithAppEnv,HATN_APP_EXPORT)
 
 #endif // HATNAPPENV_H
