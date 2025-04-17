@@ -130,11 +130,14 @@ class HATN_COMMON_EXPORT NativeError
         }
 
         template <typename BufT>
-        void codeString(BufT& buf) const
+        void codeString(BufT& buf, bool prependCategoryCode=false) const
         {
             if (m_prevError)
             {
-                buf.append(lib::string_view(":"));
+                if (prependCategoryCode)
+                {
+                    buf.append(lib::string_view(":"));
+                }
                 m_prevError->codeString(buf);
             }
         }
@@ -271,6 +274,15 @@ class HATN_COMMON_EXPORT NativeError
         lib::optional<Error> m_prevError;
         lib::optional<ApiError> m_apiError;
 };
+
+inline Error chainError(Error&& next, std::string message)
+{
+    auto native=std::make_shared<NativeError>(message);
+    auto code=next.code();
+    native->setPrevError(std::move(next));
+    auto ec=Error{code,std::move(native)};
+    return ec;
+}
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
