@@ -274,15 +274,27 @@ Error App::loadConfigFile(
     const std::string& format
     )
 {
-    auto ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    // preload config to find out data dir
+    HATN_BASE_NAMESPACE::ConfigTree t1;
+    auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
     HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from file","app"))
+    initAppDataFolder();
+
+    // load app config tree
+    ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from file","app"))
+
+    // apply config
     return applyConfig();
 }
 
 //---------------------------------------------------------------
 
 Error App::applyConfig()
-{    
+{
+    // init data folder
+    initAppDataFolder();
+
     // make and init logger
 
     // load app logger config
@@ -331,7 +343,7 @@ Error App::applyConfig()
 
     base::config_object::LogRecords logRecords;
 
-    //! @todo validate app config
+    //! @todo validate app config    
     ec=d->appConfig.loadLogConfig(*m_configTree,m_appConfigRoot,logRecords);
     logConfig(_TR("application configuration","app"),logRecords);
     HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application","app"))
@@ -462,9 +474,6 @@ Error App::initThreads()
 
 Error App::init()
 {
-    // init data folder
-    initAppDataFolder();
-
     // load plugins
     //! @todo Do not load unused plugins
     d->loadCryptPlugins();
@@ -523,11 +532,6 @@ void App::close()
         if (ec)
         {
             std::ignore=stackError(std::move(ec),_TR("failed to close database","app"));
-            //! @todo Remove it
-#if 0
-
-            std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
-#endif
         }
         database().reset();        
     }
@@ -545,11 +549,6 @@ void App::close()
         if (ec)
         {
             std::ignore=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
-            //! @todo Remove it
-#if 0
-            std::cerr << "Failed to cleanup db plugin " << d->dbPlugin->info()->name << ": " << ec.value() << ": " << ec.message() << std::endl;
-#endif
-
         }
     }
 
@@ -562,10 +561,6 @@ void App::close()
         {
             auto ec1=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name),false);
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
-            //! @todo Remove it
-#if 0
-            std::cerr << "Failed to close logger: "<< ec.value() << ": " << ec.message() << std::endl;
-#endif
         }
     }
 
@@ -588,8 +583,7 @@ void App::setAppDataFolder(
     std::string folder
     )
 {
-    m_appDataFolder=std::move(folder);
-    m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
+    m_appDataFolder=std::move(folder);    
 }
 
 //---------------------------------------------------------------
@@ -599,9 +593,16 @@ void App::initAppDataFolder()
     // set app data folder
     if (m_appDataFolder.empty())
     {
-        m_appDataFolder=d->appConfig.config().fieldValue(app_config::data_folder);
+        auto r=m_configTree->get(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"));
+        if (!r)
+        {
+            auto s=r->as<std::string>();
+            if (!s)
+            {
+                m_appDataFolder=s.takeValue();
+            }
+        }
     }
-    //! @todo Reload config with new data folder?
     if (m_appDataFolder.empty())
     {
         if (m_appsDataFolder.empty())
@@ -619,6 +620,12 @@ void App::initAppDataFolder()
         p.append(fmt::format(".{}",m_appName.execName));
 #endif
         m_appDataFolder=p.string();
+    }
+
+    if (!m_appDataFolder.empty())
+    {
+        m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+        m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
     }
 }
 
