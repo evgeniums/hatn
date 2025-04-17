@@ -334,7 +334,7 @@ void fillLogRecords(ObjT obj, const config_object::LogSettings& logSettings, con
                     {
                         std::string v{_(field).value()};
                         _(logSettings).mask(_(field).name(),v);
-                        return fmt::format("\"{}\"",v);
+                        return fmt::format("{}",v);
                     },
                     [&](auto _)
                     {
