@@ -23,11 +23,13 @@
 
 #include <hatn/logcontext/contextlogger.h>
 
-HATN_LOGCONTEXT_NAMESPACE_BEGIN
+HATN_NAMESPACE_BEGIN
 
 struct logConfigRecordsT
 {
-    void operator() (const std::string& msg, HATN_BASE_NAMESPACE::config_object::LogRecords& records, bool autoClear=true) const
+    void operator() (const std::string& msg,
+                    HATN_BASE_NAMESPACE::config_object::LogRecords& records,
+                    bool autoClear=true) const
     {
         for (const auto& record : records)
         {
@@ -38,9 +40,92 @@ struct logConfigRecordsT
             records.clear();
         }
     }
+
+    void operator() (const std::string& msg,
+                    const std::string& logModule,
+                    HATN_BASE_NAMESPACE::config_object::LogRecords& records,
+                    bool autoClear=true) const
+    {
+        for (const auto& record : records)
+        {
+            HATN_CTX_INFO_RECORDS_M(msg.c_str(),logModule,{record.name,record.value});
+        }
+        if (autoClear)
+        {
+            records.clear();
+        }
+    }
 };
 constexpr logConfigRecordsT logConfigRecords{};
 
-HATN_LOGCONTEXT_NAMESPACE_END
+struct loadLogConfigT
+{
+    template <typename T>
+    Error operator() (
+                     const std::string& logMsg,
+                     T& obj,
+                     const HATN_BASE_NAMESPACE::ConfigTree& tree,
+                     const HATN_BASE_NAMESPACE::ConfigTreePath& path,
+                     const HATN_BASE_NAMESPACE::config_object::LogSettings& logSettings={}
+                     ) const
+    {
+        HATN_BASE_NAMESPACE::config_object::LogRecords records;
+        auto ec=obj.loadLogConfig(tree,path,records,logSettings);
+        logConfigRecords(logMsg,records,false);
+        return ec;
+    }
+
+    template <typename T>
+    Error operator() (
+        const std::string& logMsg,
+        const std::string& logModule,
+        T& obj,
+        const HATN_BASE_NAMESPACE::ConfigTree& tree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& path,
+        const HATN_BASE_NAMESPACE::config_object::LogSettings& logSettings={}
+        ) const
+    {
+        HATN_BASE_NAMESPACE::config_object::LogRecords records;
+        auto ec=obj.loadLogConfig(tree,path,records,logSettings);
+        logConfigRecords(logMsg,logModule,records,false);
+        return ec;
+    }
+
+    template <typename T, typename ValidatorT>
+    Error operator() (
+        const std::string& logMsg,
+        T& obj,
+        const HATN_BASE_NAMESPACE::ConfigTree& tree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& path,
+        const ValidatorT& validator,
+        const HATN_BASE_NAMESPACE::config_object::LogSettings& logSettings={}
+        ) const
+    {
+        HATN_BASE_NAMESPACE::config_object::LogRecords records;
+        auto ec=obj.loadLogConfig(tree,path,validator,records,logSettings);
+        logConfigRecords(logMsg,records,false);
+        return ec;
+    }
+
+    template <typename T, typename ValidatorT>
+    Error operator() (
+        const std::string& logMsg,
+        const std::string& logModule,
+        T& obj,
+        const HATN_BASE_NAMESPACE::ConfigTree& tree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& path,
+        const ValidatorT& validator,
+        const HATN_BASE_NAMESPACE::config_object::LogSettings& logSettings={}
+        ) const
+    {
+        HATN_BASE_NAMESPACE::config_object::LogRecords records;
+        auto ec=obj.loadLogConfig(tree,path,validator,records,logSettings);
+        logConfigRecords(logMsg,logModule,records,false);
+        return ec;
+    }
+};
+constexpr loadLogConfigT loadLogConfig{};
+
+HATN_NAMESPACE_END
 
 #endif // HATNCLOGCONFIGRECORDS_H

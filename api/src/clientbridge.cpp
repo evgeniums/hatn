@@ -53,9 +53,15 @@ void Service::exec(
 
     auto mthd=it->second;
     auto ctx=m_ctxBuilder->makeContext(env);
-    auto handler=[ctx{std::move(ctx)},mthd{std::move(mthd)},env,request{std::move(request)},callback{std::move(callback)}]()
+    auto handler=[this,ctx{std::move(ctx)},mthd{std::move(mthd)},env,request{std::move(request)},callback{std::move(callback)}]()
     {
         ctx->onAsyncHandlerEnter();
+
+        HATN_CTX_SCOPE("bridge.exec")
+
+        HATN_CTX_PUSH_FIXED_VAR("service",name())
+        HATN_CTX_PUSH_FIXED_VAR("method",mthd->name())
+
         mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
         ctx->onAsyncHandlerExit();
     };

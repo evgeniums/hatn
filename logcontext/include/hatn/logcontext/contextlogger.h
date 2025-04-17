@@ -339,4 +339,40 @@ HATN_LOGCONTEXT_NAMESPACE_END
 #define HATN_CTX_ERROR_RECORDS_M(Err,Msg,Module,...) HATN_CTX_LOG_RECORDS_ERR_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Error,Err,Msg,Module,__VA_ARGS__)
 #define HATN_CTX_FATAL_RECORDS_M(Err,Msg,Module,...) HATN_CTX_LOG_RECORDS_ERR_M(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,Err,Msg,Module,__VA_ARGS__)
 
+HATN_NAMESPACE_BEGIN
+
+inline Error chainAndLogError(Error&& prevEc, std::string message)
+{
+    auto ec=common::chainError(std::move(prevEc),std::move(message));
+    HATN_CTX_ERROR(ec,"");
+    return ec;
+}
+
+inline Error chainAndLogError(Error&& prevEc, std::string message, const char* module)
+{
+    auto ec=common::chainError(std::move(prevEc),std::move(message));
+    HATN_CTX_ERROR(ec,"",module);
+    return ec;
+}
+
+HATN_NAMESPACE_END
+
+#define HATN_CHECK_CHAIN_LOG_EC2(ec, msg) \
+    if (ec) \
+    { \
+            return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg); \
+    }
+
+#define HATN_CHECK_CHAIN_LOG_EC3(ec, msg, module) \
+    if (ec) \
+    { \
+            return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg,module); \
+    }
+
+#define HATN_CHECK_CHAIN_LOG_EC(...) \
+    HATN_CTX_EXPAND(HATN_CTX_GET_ARG4(__VA_ARGS__, \
+                                      HATN_CHECK_CHAIN_LOG_EC3, \
+                                      HATN_CHECK_CHAIN_LOG_EC2 \
+                                      )(__VA_ARGS__))
+
 #endif // HATNCONTEXTCONTEXTLOGGER_H

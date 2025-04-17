@@ -48,15 +48,12 @@
 
 INIT_LOG_MODULE(app,HATN_APP_EXPORT)
 
-
 HATN_APP_NAMESPACE_BEGIN
 
 namespace base=HATN_BASE_NAMESPACE;
 namespace log=HATN_LOGCONTEXT_NAMESPACE;
 namespace crypt=HATN_CRYPT_NAMESPACE;
 namespace db=HATN_DB_NAMESPACE;
-
-constexpr auto& logConfig=log::logConfigRecords;
 
 namespace {
 
@@ -93,29 +90,7 @@ class LogAppConfig : public HATN_LOGCONTEXT_NAMESPACE::AppConfig
         using HATN_LOGCONTEXT_NAMESPACE::AppConfig::AppConfig;
 };
 
-Error stackError(Error&& prevEc, std::string message, bool log=true)
-{
-    auto ec=common::chainError(std::move(prevEc),std::move(message));
-    if (log)
-    {
-        HATN_CTX_ERROR(ec,"");
-    }
-    return ec;
-}
-
 } // anonymous namespace
-
-#define HATN_STACK_AND_LOG_ERROR(ec, msg) \
-    if (ec) \
-    { \
-        return stackError(std::move(ec),msg,true); \
-    }
-
-#define HATN_STACK_ERROR(ec, msg) \
-    if (ec) \
-    { \
-        return stackError(std::move(ec),msg,false); \
-    }
 
 #ifdef HATN_APP_THREADS_NUMBER
 constexpr static const uint8_t DefaultThreadCountr=HATN_APP_THREADS_NUMBER;
@@ -263,7 +238,7 @@ Error App::loadConfigString(
     )
 {
     auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from string","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
     return applyConfig();
 }
 
@@ -277,12 +252,12 @@ Error App::loadConfigFile(
     // preload config to find out data dir
     HATN_BASE_NAMESPACE::ConfigTree t1;
     auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from file","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
     initAppDataFolder();
 
     // load app config tree
     ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from file","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
 
     // apply config
     return applyConfig();
@@ -302,8 +277,8 @@ Error App::applyConfig()
     auto ec=d->loggerConfig.loadLogConfig(*m_configTree,LoggerConfigRoot,appLoggerRecords);
     if (ec)
     {
-        logConfig(_TR("logger configuration","app"),appLoggerRecords);
-        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application logger","app"))
+        logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application logger","app"),HLOG_MODULE(app))
     }
 
     // init log handler
@@ -319,34 +294,34 @@ Error App::applyConfig()
     ec=logHandler->loadLogConfig(*m_configTree,loggerConfigPath,logHandlerRecords);
     if (ec)
     {
-        logConfig(_TR("","app"),appLoggerRecords);
-        logConfig(_TR("logger configuration","app"),logHandlerRecords);
-        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of logger handler","app"))
+        logConfigRecords(_TR("","app"),HLOG_MODULE(app),appLoggerRecords);
+        logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of logger handler","app"),HLOG_MODULE(app))
     }
 
     // make and init logger
     base::config_object::LogRecords loggerRecords;
     auto logger=log::makeLogger(logHandler);
     ec=logger->loadLogConfig(*m_configTree,LoggerConfigRoot,loggerRecords);
-    logConfig(_TR("logger configuration","app"),logHandlerRecords);
+    logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
     if (ec)
     {
-        logConfig(_TR("logger configuration","app"),appLoggerRecords);
-        logConfig(_TR("logger configuration","app"),logHandlerRecords);
-        logConfig(_TR("logger configuration","app"),loggerRecords);
-        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of logger","app"))
+        logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
+        logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
+        logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),loggerRecords);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of logger","app"),HLOG_MODULE(app))
     }
     d->setAppLogger(std::move(logger));
-    logConfig(_TR("logger configuration","app"),appLoggerRecords);
-    logConfig(_TR("logger configuration","app"),logHandlerRecords);
-    logConfig(_TR("logger configuration","app"),loggerRecords);
+    logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
+    logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
+    logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),loggerRecords);
 
     base::config_object::LogRecords logRecords;
 
     //! @todo validate app config    
     ec=d->appConfig.loadLogConfig(*m_configTree,m_appConfigRoot,logRecords);
-    logConfig(_TR("application configuration","app"),logRecords);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application","app"))
+    logConfigRecords(_TR("configuration of application","app"),HLOG_MODULE(app),logRecords);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application","app"),HLOG_MODULE(app))
     const auto& pluginsFolderField=d->appConfig.config().field(app_config::plugin_folders);
     for (size_t i=0;i<pluginsFolderField.count();i++)
     {
@@ -355,13 +330,13 @@ Error App::applyConfig()
 
     // load db config
     ec=d->dbConfig.loadLogConfig(*m_configTree,DbConfigRoot,logRecords);
-    logConfig(_TR("application database configuration","app"),logRecords);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application database","app"))
+    logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application database","app"),HLOG_MODULE(app))
 
     // load crypt config
     ec=d->cryptConfig.loadLogConfig(*m_configTree,CryptConfigRoot,logRecords);
-    logConfig(_TR("application cryptography configuration","app"),logRecords);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application cryptography","app"))
+    logConfigRecords(_TR("configuration of application cryptography","app"),HLOG_MODULE(app),logRecords);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application cryptography","app"),HLOG_MODULE(app))
 
     // done
     return OK;
@@ -515,7 +490,7 @@ Error App::init()
     LogAppConfig appConfig{factory.factory()};
     d->logger->setAppConfig(appConfig);
     ec=d->logger->start();
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to start logger","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to start logger","app"),HLOG_MODULE(app))
 
     // done
     return OK;
@@ -531,7 +506,7 @@ void App::close()
         auto ec=database().close();
         if (ec)
         {
-            std::ignore=stackError(std::move(ec),_TR("failed to close database","app"));
+            std::ignore=chainError(std::move(ec),_TR("failed to close database","app"));
         }
         database().reset();        
     }
@@ -548,7 +523,7 @@ void App::close()
         auto ec=d->dbPlugin->cleanup();        
         if (ec)
         {
-            std::ignore=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
+            std::ignore=chainAndLogError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
         }
     }
 
@@ -559,7 +534,7 @@ void App::close()
         auto ec=d->logger->close();
         if (ec)
         {
-            auto ec1=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name),false);
+            auto ec1=chainError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
         }
     }
@@ -637,7 +612,7 @@ Error App::createAppDataFolder()
     lib::fs_error_code ec;
     lib::filesystem::create_directories(m_appDataFolder,ec);
     auto ec1=lib::makeFilesystemError(ec);
-    HATN_STACK_AND_LOG_ERROR(ec1,_TR("failed to create application folder","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec1,_TR("failed to create application folder","app"),HLOG_MODULE(app))
     return OK;
 }
 
@@ -700,12 +675,12 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
     dbPlugin=common::PluginLoader::instance().loadPlugin<db::DbPlugin>(std::string{name});
     if (!dbPlugin)
     {
-        return stackError(db::dbError(db::DbError::DB_PLUGIN_FAILED),fmt::format(_TR("failed to load database plugin \"{}\"","app"),name));
+        return chainAndLogError(db::dbError(db::DbError::DB_PLUGIN_FAILED),fmt::format(_TR("failed to load database plugin \"{}\"","app"),name));
     }
 
     // init plugin
     auto ec=dbPlugin->init();
-    HATN_STACK_AND_LOG_ERROR(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),name))
+    HATN_CHECK_CHAIN_LOG_EC(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),name),HLOG_MODULE(app))
 
     // done
     return dbPlugin;
@@ -731,18 +706,18 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view name) const
 
 Error App::openDb(bool create)
 {
-    HATN_CTX_SCOPE("app:openDb")
+    HATN_CTX_SCOPE("appOpenDb")
 
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
     if (name.empty())
     {
-        return stackError(appError(AppError::UNKNOWN_DB_PROVIDER),_TR("name of database provider must not be empty","app"));
+        return chainAndLogError(appError(AppError::UNKNOWN_DB_PROVIDER),_TR("name of database provider must not be empty","app"));
     }
     auto plugin=d->loadDbPlugin(name);
     if (plugin)
     {
-        return stackError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
+        return chainAndLogError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
     }
     d->dbPlugin=plugin.takeValue();
 
@@ -770,9 +745,9 @@ Error App::openDb(bool create)
             }
         );
     }
-    logConfig(_TR("application database configuration","app"),logRecords);
+    logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
 
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to open application database","app"))
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to open application database","app"),HLOG_MODULE(app))
 
     // set db client in env
     //! @todo Use thread tags
@@ -807,7 +782,7 @@ Error App::openDb(bool create)
 
 Error App::destroyDb()
 {
-    HATN_CTX_SCOPE("app:destroyDb")
+    HATN_CTX_SCOPE("appDestroyDb")
 
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
@@ -825,8 +800,8 @@ Error App::destroyDb()
     // destroy db
     base::config_object::LogRecords logRecords;
     auto ec=dbClient->destroyDb(d->dbClientConfig(name),logRecords);
-    logConfig(_TR("application database configuration","app"),logRecords);
-    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to destroy application database","app"))
+    logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to destroy application database","app"),HLOG_MODULE(app))
 
     // done
     return OK;
