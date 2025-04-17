@@ -50,6 +50,11 @@ struct LogRecord
 
     LogRecord()
     {}
+
+    std::string string()
+    {
+        return fmt::format("\"{}\": {}", name, value);
+    }
 };
 using LogRecords=std::vector<LogRecord>;
 

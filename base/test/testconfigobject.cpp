@@ -524,11 +524,18 @@ BOOST_AUTO_TEST_CASE(RepeatedUnits)
     BOOST_CHECK(!jsonR);
     BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
     BOOST_TEST_MESSAGE(fmt::format("Nested object config:\n{}",o1.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
     BOOST_REQUIRE(o1.config().isSet(config8::obj1));
     const auto& obj1=o1.config().field(config8::obj1);
     BOOST_REQUIRE_EQUAL(obj1.count(),2);
     BOOST_CHECK_EQUAL(obj1.at(0).fieldValue(config1::field1),100);
     BOOST_CHECK_EQUAL(obj1.at(1).fieldValue(config1::field1),200);
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"obj1.0.field1\": 100");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"obj1.1.field1\": 200");
 
     ConfigTree t2;
     std::string json2="{\"level0\": {\"obj2\" : [{\"field1\":300},{\"field1\":400}], \"obj1\" : [{\"field1\":100},{\"field1\":200},{\"field1\":500}]}}";
@@ -546,6 +553,10 @@ BOOST_AUTO_TEST_CASE(RepeatedUnits)
     BOOST_CHECK(!jsonR);
     BOOST_TEST_MESSAGE(fmt::format("Config tree 2: \n{} \n",jsonR.value()));
     BOOST_TEST_MESSAGE(fmt::format("Nested object 2 config:\n{}",o2.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
 
     BOOST_REQUIRE(o2.config().isSet(config8::obj1));
     const auto& obj2=o2.config().field(config8::obj1);
@@ -553,6 +564,10 @@ BOOST_AUTO_TEST_CASE(RepeatedUnits)
     BOOST_CHECK_EQUAL(obj2.at(0).fieldValue(config1::field1),100);
     BOOST_CHECK_EQUAL(obj2.at(1).fieldValue(config1::field1),200);
     BOOST_CHECK_EQUAL(obj2.at(2).fieldValue(config1::field1),500);
+    BOOST_REQUIRE_EQUAL(records.size(),3);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"obj1.0.field1\": 100");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"obj1.1.field1\": 200");
+    BOOST_CHECK_EQUAL(records.at(2).string(),"\"obj1.2.field1\": 500");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
