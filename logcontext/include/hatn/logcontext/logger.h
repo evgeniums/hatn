@@ -29,6 +29,7 @@
 #include <hatn/common/pmr/pmrtypes.h>
 
 #include <hatn/base/base.h>
+#include <hatn/base/configobject.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/loggerhandler.h>
@@ -38,15 +39,40 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
 constexpr uint8_t DefaultDebugVerbosity=0;
 
+class AppConfig
+{
+    public:
+
+        AppConfig(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
+            : m_factory(factory)
+        {}
+
+        virtual ~AppConfig();
+        AppConfig(const AppConfig&)=delete;
+        AppConfig(AppConfig&&)=default;
+        AppConfig& operator=(const AppConfig&)=delete;
+        AppConfig& operator=(AppConfig&&)=default;
+
+        const common::pmr::AllocatorFactory* allocatorFactory() const noexcept
+        {
+            return m_factory;
+        }
+
+    private:
+
+        const common::pmr::AllocatorFactory* m_factory;
+};
+
 class HATN_LOGCONTEXT_EXPORT LoggerBase
 {
     public:
 
         using levelMapT=common::FlatMap<std::string,LogLevel,std::less<>>;
 
-        Error loadConfig(
+        Error loadLogConfig(
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-            const std::string& configPath
+            const std::string& configPath,
+            HATN_BASE_NAMESPACE::config_object::LogRecords& logRecords
         );
 
         template <typename ContextT>
@@ -399,6 +425,16 @@ class LoggerT : public LoggerBase,
         Error close()
         {
             return this->traits().close();
+        }
+
+        Error start()
+        {
+            return this->traits().start();
+        }
+
+        void setAppConfig(const AppConfig& cfg)
+        {
+            this->traits().setAppConfig(cfg);
         }
 };
 

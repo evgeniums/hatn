@@ -57,16 +57,22 @@ using LoggerConfig =  HATN_BASE_NAMESPACE::ConfigObject<logger_config::type>;
 
 //---------------------------------------------------------------
 
-Error LoggerBase::loadConfig(
+AppConfig::~AppConfig()
+{}
+
+//---------------------------------------------------------------
+
+Error LoggerBase::loadLogConfig(
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-        const std::string& configPath
+        const std::string& configPath,
+        HATN_BASE_NAMESPACE::config_object::LogRecords& logRecords
     )
 {
     lib::unique_lock<lib::shared_mutex> l{m_mutex};
 
     // load config
     LoggerConfig cfg;
-    auto ec=cfg.loadConfig(configTree,configPath);
+    auto ec=cfg.loadLogConfig(configTree,configPath,logRecords);
     HATN_CHECK_EC(ec)
 
     if (cfg.config().isSet(logger_config::level))

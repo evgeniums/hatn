@@ -8,7 +8,7 @@
 
 /****************************************************************************/
 
-/** @file logcontext/consolelogger.h
+/** @file logcontext/streamlogger.h
   *
   *  Defines context logger to char stream.
   *
@@ -68,6 +68,20 @@ class BufToStream
         )
         {
             sendTo(buf,m_cerrs);
+        }
+
+        void setCouts(
+            std::vector<std::ostream*> couts
+        )
+        {
+            m_couts=std::move(couts);
+        }
+
+        void setCerrs(
+            std::vector<std::ostream*> cerrs
+            )
+        {
+            m_cerrs=std::move(cerrs);
         }
 
     private:

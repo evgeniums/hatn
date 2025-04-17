@@ -12,6 +12,8 @@ SET (HEADERS
     include/hatn/logcontext/withlogger.h
     include/hatn/logcontext/loggererror.h
     include/hatn/logcontext/loggererrorcodes.h
+    include/hatn/logcontext/filelogger.h
+    include/hatn/logcontext/logconfigrecords.h
 )
 
 SET (HEADERS
