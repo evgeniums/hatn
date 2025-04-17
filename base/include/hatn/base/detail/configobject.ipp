@@ -144,19 +144,21 @@ struct FieldTraits<T,hana::when<T::isRepeatedType::value>>
 
 //---------------------------------------------------------------
 
-template <typename Traits>
-Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, bool checkRequired)
+namespace detail {
+
+template <typename T>
+Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& path, bool checkRequired)
 {
-    auto requiredHandler=[this,&checkRequired,&path]()
+    auto requiredHandler=[&obj,&checkRequired,&path]()
     {
         // check required fields
         if (checkRequired)
         {
-            auto reqResult=HATN_DATAUNIT_NAMESPACE::visitors::checkRequiredFields(_CFG);
+            auto reqResult=HATN_DATAUNIT_NAMESPACE::visitors::checkRequiredFields(obj);
             if (reqResult.first!=-1)
             {
                 auto errMsg=fmt::format(_TR("required parameter \"{}\" not set","base"),reqResult.second);
-                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}"), _CFG.name(), path.path(), errMsg));
+                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}"), obj.name(), path.path(), errMsg));
                 return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
             }
         }
@@ -175,26 +177,58 @@ Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const Confi
     {
         return !ec;
     };
-    auto handler=[&configTree,&path,&failedField](auto& field, auto&&)
+    auto handler=[&configTree,&path,&failedField,checkRequired](auto& field, auto&&)
     {
-        auto ec=config_object_detail::FieldTraits<std::decay_t<decltype(field)>>::set(configTree,path,field);
-        if (ec)
+        using fieldType=std::decay_t<decltype(field)>;
+
+        constexpr auto isDataunit=HATN_DATAUNIT_NAMESPACE::types::IsDataunit<fieldType::typeId>;
+        if constexpr (isDataunit.value)
         {
-            failedField=field.name();
+            auto p=path.copyAppend(field.name());
+            if (configTree.isSet(p,true))
+            {
+                auto arr=configTree.toArray<ConfigTree>(p);
+                if (arr)
+                {
+                    return arr.takeError();
+                }
+                for (size_t i=0; i<arr->size(); i++)
+                {
+                    auto& subfield=field.createAndAppendValue();
+                    auto ec=loadConfig(subfield,configTree,p.copyAppend(i),checkRequired);
+                    HATN_CHECK_EC(ec)
+                }
+            }
+            return Error{};
         }
-        return ec;
+        else
+        {
+            auto ec=config_object_detail::FieldTraits<fieldType>::set(configTree,path,field);
+            if (ec)
+            {
+                failedField=field.name();
+            }
+            return ec;
+        }
     };
-    auto ec=_CFG.each(predicate,handler);
+    auto ec=obj.each(predicate,handler);
     if (ec)
     {
-        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": parameter \"{}\"","base"), _CFG.name(),path.path(),failedField));
+        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": parameter \"{}\"","base"), obj.name(),path.path(),failedField));
         err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_OBJECT_LOAD_ERROR,std::move(err));
     }
 
-
     // done
     return requiredHandler();
+}
+
+} // namespace detail
+
+template <typename Traits>
+Error ConfigObject<Traits>::loadConfig(const ConfigTree& configTree, const ConfigTreePath& path, bool checkRequired)
+{
+    return detail::loadConfig(_CFG,configTree,path,checkRequired);
 }
 
 //---------------------------------------------------------------
@@ -331,24 +365,36 @@ void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logS
                     },
                     [&](auto _)
                     {
-                        const auto& vector=_(field).value();
-                        size_t endOffset{0};
-                        if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
-                        {
-                            endOffset=vector.size()-_(logSettings).MaxArrayElements;
-                        }
+                        return hana::eval_if(
+                            dataunit::types::IsDataunit<T::typeId>,
+                            [&](auto _s)
+                            {
+                                std::ignore=_s;
+                                return std::string{"{}"};
+                                //! @todo fill records for subunits
+                            },
+                            [&]( auto _s)
+                            {
+                                const auto& vector=_s(_(field)).value();
+                                size_t endOffset{0};
+                                if (_s(_(logSettings)).CompactArrays && vector.size()>_s(_(logSettings)).MaxArrayElements)
+                                {
+                                    endOffset=vector.size()-_s(_(logSettings)).MaxArrayElements;
+                                }
 
-                        auto out = fmt::memory_buffer();
-                        fmt::format_to(std::back_inserter(out),"[{}",fmt::join(std::begin(vector),std::end(vector)-endOffset,","));
-                        if (endOffset!=0)
-                        {
-                            fmt::format_to(std::back_inserter(out),",...]");
-                        }
-                        else
-                        {
-                            fmt::format_to(std::back_inserter(out),"]");
-                        }
-                        return fmt::to_string(out);
+                                auto out = fmt::memory_buffer();
+                                fmt::format_to(std::back_inserter(out),"[{}",fmt::join(std::begin(vector),std::end(vector)-endOffset,","));
+                                if (endOffset!=0)
+                                {
+                                    fmt::format_to(std::back_inserter(out),",...]");
+                                }
+                                else
+                                {
+                                    fmt::format_to(std::back_inserter(out),"]");
+                                }
+                                return fmt::to_string(out);
+                            }
+                        );
                     }
                 );
             },

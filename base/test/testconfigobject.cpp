@@ -78,6 +78,11 @@ HDU_UNIT(config7,
          HDU_FIELD(key4,TYPE_BOOL,4)
          )
 
+HDU_UNIT(config8,
+         HDU_REPEATED_FIELD(obj1,config1::TYPE,1)
+         )
+
+
 struct WithConfig1 : public ConfigObject<config1::type>
 {
 };
@@ -103,6 +108,10 @@ struct WithConfig6 : public ConfigObject<config6::type>
 };
 
 struct WithConfig7 : public ConfigObject<config7::type>
+{
+};
+
+struct WithConfig8 : public ConfigObject<config8::type>
 {
 };
 
@@ -204,7 +213,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigScalarArray)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<int64_t>("foo.config3.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack(100);
     a1->emplaceBack(200);
     a1->emplaceBack(300);
@@ -238,7 +247,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigStringArrays)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<std::string>("foo.config4.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack("one");
     a1->emplaceBack("two");
     a1->emplaceBack("three");
@@ -266,7 +275,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigStringArrays)
     BOOST_CHECK(arr2.empty());
 
     auto a2=t1.toArray<std::string>("foo.config4.field4");
-    BOOST_CHECK(!a2);
+    BOOST_REQUIRE(!a2);
     a2->emplaceBack("one-fixed");
     a2->emplaceBack("two-fixed");
     a2->emplaceBack("three-fixed");
@@ -353,7 +362,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
     ConfigTree t1;
 
     auto a1=t1.toArray<int64_t>("foo.config3.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack(100);
     a1->emplaceBack(200);
     a1->emplaceBack(300);
@@ -406,7 +415,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<std::string>("foo.config4.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack("one");
     a1->emplaceBack("two");
     a1->emplaceBack("three");
@@ -493,6 +502,57 @@ BOOST_AUTO_TEST_CASE(BoolValues)
     BOOST_CHECK(!obj.config().fieldValue(config7::key2));
     BOOST_CHECK(obj.config().fieldValue(config7::key3));
     BOOST_CHECK(!obj.config().fieldValue(config7::key4));
+}
+
+BOOST_AUTO_TEST_CASE(RepeatedUnits)
+{
+    ConfigTreeLoader loader;
+    ConfigTree t1;
+    std::string json1="{\"obj1\" : [{\"field1\":100},{\"field1\":200}]}";
+    auto ec=loader.loadFromString(t1,json1);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    WithConfig8 o1;
+    config_object::LogRecords records;
+    ec=o1.loadLogConfig(t1,"",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t1);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object config:\n{}",o1.config().toString(true)));
+    BOOST_REQUIRE(o1.config().isSet(config8::obj1));
+    const auto& obj1=o1.config().field(config8::obj1);
+    BOOST_REQUIRE_EQUAL(obj1.count(),2);
+    BOOST_CHECK_EQUAL(obj1.at(0).fieldValue(config1::field1),100);
+    BOOST_CHECK_EQUAL(obj1.at(1).fieldValue(config1::field1),200);
+
+    ConfigTree t2;
+    std::string json2="{\"level0\": {\"obj2\" : [{\"field1\":300},{\"field1\":400}], \"obj1\" : [{\"field1\":100},{\"field1\":200},{\"field1\":500}]}}";
+    ec=loader.loadFromString(t2,json2);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    WithConfig8 o2;
+    records.clear();
+    ec=o2.loadLogConfig(t2,"level0",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    jsonR=jsonIo.serialize(t2);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree 2: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object 2 config:\n{}",o2.config().toString(true)));
+
+    BOOST_REQUIRE(o2.config().isSet(config8::obj1));
+    const auto& obj2=o2.config().field(config8::obj1);
+    BOOST_REQUIRE_EQUAL(obj2.count(),3);
+    BOOST_CHECK_EQUAL(obj2.at(0).fieldValue(config1::field1),100);
+    BOOST_CHECK_EQUAL(obj2.at(1).fieldValue(config1::field1),200);
+    BOOST_CHECK_EQUAL(obj2.at(2).fieldValue(config1::field1),500);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
