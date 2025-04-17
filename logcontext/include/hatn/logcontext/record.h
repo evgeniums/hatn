@@ -267,7 +267,7 @@ void serializeValue(BufT &buf, const T& v)
 }
 
 template <size_t KeyLength=MaxKeyLength>
-using KeyT=common::FixedByteArray<KeyLength>;
+using KeyT=common::StringOnStackT<KeyLength>;
 
 using Key=KeyT<>;
 
