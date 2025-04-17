@@ -170,11 +170,7 @@ class HATN_APP_EXPORT App
 
         common::ThreadQWithTaskContext* appThread() const noexcept
         {
-            if (m_threads.empty())
-            {
-                return nullptr;
-            }
-            return m_threads.back().get();
+            return m_appThread;
         }
 
         const AppName& appName() const
@@ -221,6 +217,7 @@ class HATN_APP_EXPORT App
 
         Error applyConfig();
         void initAppDataFolder();
+        Error initThreads();
 
         AppName m_appName;
 
@@ -228,6 +225,7 @@ class HATN_APP_EXPORT App
         std::shared_ptr<HATN_BASE_NAMESPACE::ConfigTreeLoader> m_configTreeLoader;
 
         std::vector<std::shared_ptr<common::ThreadQWithTaskContext>> m_threads;
+        common::ThreadQWithTaskContext* m_appThread;
 
         common::SharedPtr<AppEnv> m_env;
 

@@ -21,6 +21,7 @@
 #include <hatn/base/configobject.h>
 
 #include <hatn/logcontext/streamlogger.h>
+#include <hatn/logcontext/logconfigrecords.h>
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -55,6 +56,8 @@ namespace log=HATN_LOGCONTEXT_NAMESPACE;
 namespace crypt=HATN_CRYPT_NAMESPACE;
 namespace db=HATN_DB_NAMESPACE;
 
+constexpr auto& logConfig=log::logConfigRecords;
+
 namespace {
 
 #ifdef NO_DYNAMIC_HATN_PLUGINS
@@ -83,6 +86,13 @@ void initRocksdbPlugin()
 
 #endif
 
+class LogAppConfig : public HATN_LOGCONTEXT_NAMESPACE::AppConfig
+{
+    public:
+
+        using HATN_LOGCONTEXT_NAMESPACE::AppConfig::AppConfig;
+};
+
 } // anonymous namespace
 
 
@@ -90,6 +100,12 @@ void initRocksdbPlugin()
 constexpr static const uint8_t DefaultThreadCountr=HATN_APP_THREADS_NUMBER;
 #else
 constexpr static const uint8_t DefaultThreadCount=1;
+#endif
+
+#if defined (BUILD_ANDROID) || defined (BUILD_IOS)
+constexpr static const uint8_t ReserveThreadCount=2;
+#else
+constexpr static const uint8_t ReserveThreadCount=1;
 #endif
 
 #ifdef HATN_APP_CONFIG_ROOT
@@ -119,12 +135,24 @@ constexpr static const char* CryptConfigRoot="crypt";
 constexpr static const char* CryptPluginsFolder="crypt";
 constexpr static const char* DbPluginsFolder="db";
 
+constexpr static const char* ThreadTagAppThread="app_default";
+constexpr static const char* ThreadTagNotMappedThread="not_mapped";
+
 //---------------------------------------------------------------
+
+HDU_UNIT(thread_config,
+    HDU_FIELD(count_percent,TYPE_UINT8,1)
+    HDU_FIELD(min_count,TYPE_UINT8,2,false,1)
+    HDU_FIELD(id_prefix,TYPE_STRING,3,false,"tg")
+    HDU_REPEATED_FIELD(tags,TYPE_STRING,4)
+)
 
 HDU_UNIT(app_config,
     HDU_FIELD(thread_count,TYPE_UINT8,1,false,DefaultThreadCount)
     HDU_FIELD(data_folder,TYPE_STRING,2)
-    HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)    
+    HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)
+    HDU_REPEATED_FIELD(threads,thread_config::TYPE,4)
+    HDU_FIELD(reserve_thread_count,TYPE_UINT8,5,false,ReserveThreadCount)
 )
 
 HDU_UNIT(logger_config,
@@ -173,6 +201,15 @@ class App_p
 
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
         db::ClientConfig dbClientConfig(lib::string_view name) const;
+
+        void setAppLogger(std::shared_ptr<log::Logger> newLogger)
+        {
+            logger=std::move(newLogger);
+            currentThreadLogCtx=log::makeLogCtx();
+            auto& currentLogCtx=currentThreadLogCtx->get<log::Context>();
+            currentLogCtx.setLogger(logger.get());
+            log::ThreadLocalFallbackContext::set(&currentLogCtx);
+        }
 };
 
 //---------------------------------------------------------------
@@ -185,12 +222,12 @@ App::App(AppName appName) :
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
 {
-    registerLoggerHandlerBuilder(log::StreamLoggerName,
-                                 []() -> std::shared_ptr<log::LoggerHandler>
-                                 {
-                                     return std::make_shared<log::StreamLogger>();
-                                 }
-    );
+    auto buildStreamLogger=[]() -> std::shared_ptr<log::LoggerHandler>
+    {
+        return std::make_shared<log::StreamLogger>();
+    };
+    registerLoggerHandlerBuilder(log::StreamLoggerName,buildStreamLogger);
+    d->setAppLogger(log::makeLogger(buildStreamLogger()));
 }
 
 //---------------------------------------------------------------
@@ -205,7 +242,11 @@ Error App::loadConfigString(
     )
 {
     auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_CHECK_EC(ec)
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
     return applyConfig();
 }
 
@@ -217,19 +258,32 @@ Error App::loadConfigFile(
     )
 {
     auto ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_CHECK_EC(ec)
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
     return applyConfig();
 }
 
 //---------------------------------------------------------------
 
 Error App::applyConfig()
-{
-    base::config_object::LogRecords logRecords;
+{    
+    // make and init logger
 
-    // make and init logger    
-    auto ec=d->loggerConfig.loadLogConfig(*m_configTree,LoggerConfigRoot,logRecords);
-    HATN_CHECK_EC(ec)
+    // load app logger config
+    base::config_object::LogRecords appLoggerRecords;
+    auto ec=d->loggerConfig.loadLogConfig(*m_configTree,LoggerConfigRoot,appLoggerRecords);
+    if (ec)
+    {
+        logConfig(_TR("logger configuration","app"),appLoggerRecords);
+        //! @todo Log and stack error
+        return ec;
+    }
+
+    // init log handler
+    base::config_object::LogRecords logHandlerRecords;
     std::string loggerName{d->loggerConfig.config().fieldValue(logger_config::name)};
     auto logHandlerIt=d->loggerBuilders.find(loggerName);
     if (logHandlerIt==d->loggerBuilders.end())
@@ -238,21 +292,43 @@ Error App::applyConfig()
     }
     auto logHandler=logHandlerIt->second();
     std::string loggerConfigPath=fmt::format("{}.{}",LoggerConfigRoot,loggerName);
-    ec=logHandler->loadConfig(*m_configTree,loggerConfigPath);
-    HATN_CHECK_EC(ec)
-    d->logger=log::makeLogger(logHandler);
-    ec=d->logger->loadConfig(*m_configTree,LoggerConfigRoot);
-    HATN_CHECK_EC(ec)
-    d->currentThreadLogCtx=log::makeLogCtx();
-    auto& currentLogCtx=d->currentThreadLogCtx->get<log::Context>();
-    currentLogCtx.setLogger(d->logger.get());
-    log::ThreadLocalFallbackContext::set(&currentLogCtx);
-    //! @todo Log logger config
+    ec=logHandler->loadLogConfig(*m_configTree,loggerConfigPath,logHandlerRecords);
+    if (ec)
+    {
+        logConfig(_TR("","app"),appLoggerRecords);
+        logConfig(_TR("logger configuration","app"),logHandlerRecords);
+        //! @todo Log and stack error
+        return ec;
+    }
 
-    //! @todo Log app config
+    // make and init logger
+    base::config_object::LogRecords loggerRecords;
+    auto logger=log::makeLogger(logHandler);
+    ec=logger->loadLogConfig(*m_configTree,LoggerConfigRoot,loggerRecords);
+    logConfig(_TR("logger configuration","app"),logHandlerRecords);
+    if (ec)
+    {
+        logConfig(_TR("logger configuration","app"),appLoggerRecords);
+        logConfig(_TR("logger configuration","app"),logHandlerRecords);
+        logConfig(_TR("logger configuration","app"),loggerRecords);
+        //! @todo Log and stack error
+        return ec;
+    }
+    d->setAppLogger(std::move(logger));
+    logConfig(_TR("logger configuration","app"),appLoggerRecords);
+    logConfig(_TR("logger configuration","app"),logHandlerRecords);
+    logConfig(_TR("logger configuration","app"),loggerRecords);
+
+    base::config_object::LogRecords logRecords;
+
     //! @todo validate app config
     ec=d->appConfig.loadLogConfig(*m_configTree,m_appConfigRoot,logRecords);
-    HATN_CHECK_EC(ec)
+    logConfig(_TR("application configuration","app"),logRecords);
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
     const auto& pluginsFolderField=d->appConfig.config().field(app_config::plugin_folders);
     for (size_t i=0;i<pluginsFolderField.count();i++)
     {
@@ -260,14 +336,125 @@ Error App::applyConfig()
     }
 
     // load db config
-    //! @todo Log db config
     ec=d->dbConfig.loadLogConfig(*m_configTree,DbConfigRoot,logRecords);
-    HATN_CHECK_EC(ec)
+    logConfig(_TR("application database configuration","app"),logRecords);
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
 
     // load crypt config
-    //! @todo Log crypt config
     ec=d->cryptConfig.loadLogConfig(*m_configTree,CryptConfigRoot,logRecords);
-    HATN_CHECK_EC(ec)
+    logConfig(_TR("application cryptography configuration","app"),logRecords);
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
+
+    // done
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error App::initThreads()
+{
+    // create and start threads
+    size_t count=m_defaultThreadCount;
+    size_t reserveThreadCount=ReserveThreadCount;
+    if (d->appConfig.config().field(app_config::reserve_thread_count).isSet())
+    {
+        reserveThreadCount=d->appConfig.config().field(app_config::reserve_thread_count).value();
+    }
+    if (d->appConfig.config().field(app_config::thread_count).isSet())
+    {
+        count=d->appConfig.config().field(app_config::thread_count).value();
+        if (count==0)
+        {
+            count=std::thread::hardware_concurrency();
+            if (count>reserveThreadCount)
+            {
+                // reserve one thread for system and one thread is the current thread
+                count-=reserveThreadCount;
+            }
+        }
+    }
+    std::vector<uint8_t> threadGroupCounts;
+    const auto& threadConfigs=d->appConfig.config().field(app_config::threads);
+    for (size_t i=0;i<threadConfigs.count();i++)
+    {
+        const auto& threadConfig=threadConfigs.at(i);
+        uint8_t groupCount=0;
+        if (threadConfig.isSet(thread_config::count_percent))
+        {
+            groupCount=count * threadConfig.fieldValue(thread_config::count_percent) / 100;
+        }
+        if (threadConfig.isSet(thread_config::min_count))
+        {
+            auto minCount=threadConfig.fieldValue(thread_config::min_count);
+            if (groupCount<minCount)
+            {
+                groupCount=minCount;
+            }
+        }
+        threadGroupCounts.push_back(groupCount);
+    }
+
+    std::string threadName;
+    auto createThreadLogFallback=[this,&threadName]()
+    {
+        auto taskCtx=log::makeLogCtx();
+        auto& currentLogCtx=taskCtx->get<log::Context>();
+        currentLogCtx.setLogger(d->logger.get());
+        log::ThreadLocalFallbackContext::set(&currentLogCtx);
+        d->threadLogCtxs[threadName]=taskCtx;
+    };
+
+    // create thread groups
+    for (size_t i=0;i<threadConfigs.count();i++)
+    {
+        const auto& threadConfig=threadConfigs.at(i);
+        uint8_t groupCount=threadGroupCounts[i];
+        for (size_t i=0;i<groupCount;i++)
+        {
+            threadName=fmt::format("{}{}",threadConfig.fieldValue(thread_config::id_prefix),i);
+            auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+            const auto& threadTags=threadConfig.field(thread_config::tags);
+            for (size_t j=0;j<threadTags.count();j++)
+            {
+                auto tag=std::string{threadTags.at(j)};
+                if (tag==ThreadTagAppThread)
+                {
+                    m_appThread=thread.get();
+                }
+                thread->setTag(std::move(tag));
+            }
+
+            m_threads.push_back(thread);
+            thread->start();
+
+            // create fallback log context for thread
+            std::ignore=thread->execSync(createThreadLogFallback);
+        }
+    }
+
+    // create threads out of thread groups
+    for (size_t i=0;i<count;i++)
+    {
+        threadName=fmt::format("t{}",i);
+        auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+        m_threads.push_back(thread);
+        thread->start();
+
+        // create fallback log context for thread
+        std::ignore=thread->execSync(createThreadLogFallback);
+    }
+    if (m_appThread==nullptr)
+    {
+        m_appThread=m_threads.back().get();
+    }
 
     // done
     return OK;
@@ -286,40 +473,17 @@ Error App::init()
     d->loadDbPlugins();
 
     // create and start threads
-    size_t count=m_defaultThreadCount;
-    if (d->appConfig.config().field(app_config::thread_count).isSet())
+    auto ec=initThreads();
+
+    // create mapped threads
+    std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,m_appThread);
+    for (auto&& thread: m_threads)
     {
-        count=d->appConfig.config().field(app_config::thread_count).value();
-        if (count==0)
+        if (!thread->hasTag(ThreadTagNotMappedThread))
         {
-            count=std::thread::hardware_concurrency();
-            if (count>2)
-            {
-                // reserve one thread for system and one thread is the current thread
-                count-=2;
-            }
+            mappedThreads->addMappedThread(thread.get());
         }
     }
-    for (size_t i=0;i<count;i++)
-    {
-        auto threadName=fmt::format("t{}",i);
-        auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
-        m_threads.push_back(thread);
-        thread->start();
-
-        // create fallback log context for thread
-        std::ignore=thread->execSync(
-            [this,&threadName]()
-            {
-                auto taskCtx=log::makeLogCtx();
-                auto& currentLogCtx=taskCtx->get<log::Context>();
-                currentLogCtx.setLogger(d->logger.get());
-                log::ThreadLocalFallbackContext::set(&currentLogCtx);
-                d->threadLogCtxs[threadName]=taskCtx;
-            }
-        );
-    }
-    std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,appThread());
 
     //! @todo configure/create allocator factory
 
@@ -337,7 +501,18 @@ Error App::init()
             common::subcontext(),
             common::subcontext()
         )
-    );
+    );    
+
+    // start logger
+    const auto& factory=m_env->get<AllocatorFactory>();
+    LogAppConfig appConfig{factory.factory()};
+    d->logger->setAppConfig(appConfig);
+    ec=d->logger->start();
+    if (ec)
+    {
+        //! @todo Log and stack error
+        return ec;
+    }
 
     // done
     return OK;
@@ -359,24 +534,11 @@ void App::close()
         database().reset();
     }
 
-    // close logger
-    if (d->logger)
-    {
-        auto ec=d->logger->close();
-        if (ec)
-        {
-            std::cerr << "Failed to close logger: "<< ec.value() << ": " << ec.message() << std::endl;
-        }
-    }
-
     // stop all threads
     for (auto&& it: m_threads)
     {
         it->stop();
     }
-
-    // destroy env
-    m_env.reset();
 
     // cleanup plugins
     if (d->dbPlugin)
@@ -388,7 +550,19 @@ void App::close()
         }
     }
 
-    //! @todo Log app close
+    // close logger
+    if (d->logger)
+    {
+        //! @todo Log app close
+        auto ec=d->logger->close();
+        if (ec)
+        {
+            std::cerr << "Failed to close logger: "<< ec.value() << ": " << ec.message() << std::endl;
+        }
+    }
+
+    // destroy env
+    m_env.reset();    
 }
 
 //---------------------------------------------------------------
@@ -519,6 +693,7 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 
     // init plugin
     auto ec=dbPlugin->init();
+    //! @todo log error
     HATN_CHECK_EC(ec)
 
     // done
@@ -582,8 +757,8 @@ Error App::openDb(bool create)
             }
         );
     }
+    logConfig(_TR("application database configuration","app"),logRecords);
 
-    //! @todo log records
     if (ec)
     {
         //! @todo log error
@@ -591,6 +766,7 @@ Error App::openDb(bool create)
     }
 
     // set db client in env
+    //! @todo Use thread tags
     auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
     uint8_t dbThreadCount=d->dbConfig.config().fieldValue(db_config::thread_count);
     if (dbThreadCount>m_threads.size()-1)
@@ -622,6 +798,8 @@ Error App::openDb(bool create)
 
 Error App::destroyDb()
 {
+    HATN_CTX_SCOPE("app:destroyDb")
+
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
     auto plugin=d->loadDbPlugin(name);
@@ -639,7 +817,7 @@ Error App::destroyDb()
     // destroy db
     base::config_object::LogRecords logRecords;
     auto ec=dbClient->destroyDb(d->dbClientConfig(name),logRecords);
-    //! @todo log records
+    logConfig(_TR("application database configuration","app"),logRecords);
     if (ec)
     {
         //! @todo log error
