@@ -195,6 +195,8 @@ class Thread_p
         std::map<uint32_t,std::shared_ptr<Timer>> timers;
         uint32_t timerIncId;
 
+        std::set<std::string,std::less<>> tags;
+
         Thread_p(
                 lib::string_view id,
                 bool newThread
@@ -521,6 +523,26 @@ void Thread::uninstallTimer(uint32_t id, bool wait)
         }
     }
 }
+
+//---------------------------------------------------------------
+void Thread::setTag(std::string tag)
+{
+    d->tags.insert(std::move(tag));
+}
+
+//---------------------------------------------------------------
+void Thread::unsetTag(const std::string& tag)
+{
+    d->tags.erase(tag);
+}
+
+//---------------------------------------------------------------
+bool Thread::hasTag(lib::string_view tag) const
+{
+    return d->tags.find(tag)!=d->tags.end();
+}
+
+//---------------------------------------------------------------
 
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<Thread>;
 

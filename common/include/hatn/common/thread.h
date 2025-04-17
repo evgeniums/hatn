@@ -215,6 +215,10 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
         //! Get ID of current thread
         static const char* currentThreadID() noexcept;
 
+        void setTag(std::string tag);
+        void unsetTag(const std::string& tag);
+        bool hasTag(lib::string_view tag) const;
+
     protected:
 
         //! Routine called in thread before running io service
