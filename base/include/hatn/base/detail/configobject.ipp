@@ -184,21 +184,31 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
         constexpr auto isDataunit=HATN_DATAUNIT_NAMESPACE::types::IsDataunit<fieldType::typeId>;
         if constexpr (isDataunit.value)
         {
-            auto p=path.copyAppend(field.name());
-            if (configTree.isSet(p,true))
+            if constexpr (fieldType::isRepeatedType::value)
             {
-                auto arr=configTree.toArray<ConfigTree>(p);
-                if (arr)
+                auto p=path.copyAppend(field.name());
+                if (configTree.isSet(p,true))
                 {
-                    return arr.takeError();
-                }
-                for (size_t i=0; i<arr->size(); i++)
-                {
-                    auto& subfield=field.createAndAppendValue();
-                    auto ec=loadConfig(subfield,configTree,p.copyAppend(i),checkRequired);
-                    HATN_CHECK_EC(ec)
+                    auto arr=configTree.toArray<ConfigTree>(p);
+                    if (arr)
+                    {
+                        return arr.takeError();
+                    }
+                    for (size_t i=0; i<arr->size(); i++)
+                    {
+                        auto& subfield=field.createAndAppendValue();
+                        auto ec=loadConfig(subfield,configTree,p.copyAppend(i),checkRequired);
+                        HATN_CHECK_EC(ec)
+                    }
                 }
             }
+            else
+            {
+                auto p=path.copyAppend(field.name());
+                auto ec=loadConfig(*field.mutableValue(),configTree,p,checkRequired);
+                HATN_CHECK_EC(ec)
+            }
+
             return Error{};
         }
         else
@@ -221,6 +231,137 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
 
     // done
     return requiredHandler();
+}
+
+template <typename ObjT>
+void fillLogRecords(ObjT obj, const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentPath="")
+{
+    auto handler=[&logSettings,&records,&parentPath](auto&& field, auto&&)
+    {
+        using T=typename std::decay_t<decltype(field)>;
+        std::string path;
+        if (parentPath.empty())
+        {
+            path=field.name();
+        }
+        else
+        {
+            path=fmt::format("{}.{}",parentPath,field.name());
+        }
+
+        auto value=hana::eval_if(
+            typename T::isRepeatedType{},
+            [&](auto)
+            {
+                return hana::eval_if(
+                    dataunit::types::IsString<T::typeId>,
+                    [&](auto _)
+                    {
+                        const auto& vector=_(field).value();
+                        auto count=vector.size();
+                        if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
+                        {
+                            count=_(logSettings).MaxArrayElements;
+                        }
+
+                        auto out = fmt::memory_buffer();
+                        fmt::format_to(std::back_inserter(out),"[");
+                        for (size_t i=0;i<count;i++)
+                        {
+                            if (i!=0)
+                            {
+                                fmt::format_to(std::back_inserter(out),",");
+                            }
+
+                            std::string v{_(field).at(i).c_str()};
+                            _(logSettings).mask(_(field).name(),v);
+                            fmt::format_to(std::back_inserter(out),"\"{}\"",v);
+                        }
+
+                        if (count!=vector.size())
+                        {
+                            fmt::format_to(std::back_inserter(out),",...]");
+                        }
+                        else
+                        {
+                            fmt::format_to(std::back_inserter(out),"]");
+                        }
+                        return fmt::to_string(out);
+                    },
+                    [&](auto _)
+                    {
+                        return hana::eval_if(
+                            dataunit::types::IsDataunit<T::typeId>,
+                            [&](auto _s)
+                            {
+                                for (size_t i=0;i<_s(_(field)).count();i++)
+                                {
+                                    auto nextPath=fmt::format("{}.{}",_s(_(path)),i);
+                                    fillLogRecords(_s(_(field)).at(i),_s(_(logSettings)),_s(_(records)),nextPath);
+                                }
+                                return std::string();
+                            },
+                            [&]( auto _s)
+                            {
+                                const auto& vector=_s(_(field)).value();
+                                size_t endOffset{0};
+                                if (_s(_(logSettings)).CompactArrays && vector.size()>_s(_(logSettings)).MaxArrayElements)
+                                {
+                                    endOffset=vector.size()-_s(_(logSettings)).MaxArrayElements;
+                                }
+
+                                auto out = fmt::memory_buffer();
+                                fmt::format_to(std::back_inserter(out),"[{}",fmt::join(std::begin(vector),std::end(vector)-endOffset,","));
+                                if (endOffset!=0)
+                                {
+                                    fmt::format_to(std::back_inserter(out),",...]");
+                                }
+                                else
+                                {
+                                    fmt::format_to(std::back_inserter(out),"]");
+                                }
+                                return fmt::to_string(out);
+                            }
+                        );
+                    }
+                );
+            },
+            [&](auto)
+            {
+                return hana::eval_if(
+                    dataunit::types::IsString<T::typeId>,
+                    [&](auto _)
+                    {
+                        std::string v{_(field).value()};
+                        _(logSettings).mask(_(field).name(),v);
+                        return fmt::format("\"{}\"",v);
+                    },
+                    [&](auto _)
+                    {
+                        return hana::eval_if(
+                            dataunit::types::IsDataunit<T::typeId>,
+                            [&](auto _s)
+                            {
+                                fillLogRecords(_s(_(field)).get(),_s(_(logSettings)),_s(_(records)),_s(_(path)));
+                                return std::string();
+                            },
+                            [&](auto _)
+                            {
+                                return fmt::format("{}",_(field).value());
+                            }
+                        );
+                    }
+                );
+            }
+        );
+
+        if (!value.empty())
+        {
+            records.emplace_back(path,std::move(value));
+        }
+        return true;
+    };
+    obj.each(HATN_DATAUNIT_NAMESPACE::meta::true_predicate,handler);
 }
 
 } // namespace detail
@@ -272,9 +413,9 @@ template <typename Traits>
 Error ConfigObject<Traits>::loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, config_object::LogRecords& records, const config_object::LogSettings& logSettings)
 {
     auto onExit=common::makeScopeGuard(
-        [this,&logSettings,&records]()
+        [this,&logSettings,&records,&path]()
         {
-            fillLogRecords(logSettings,records);
+            fillLogRecords(logSettings,records,path.string());
         }
     );
     std::ignore=onExit;
@@ -297,9 +438,9 @@ template <typename ValidatorT>
 Error ConfigObject<Traits>::loadLogConfig(const ConfigTree& configTree, const ConfigTreePath& path, config_object::LogRecords& records, const ValidatorT& validator, const config_object::LogSettings& logSettings)
 {
     auto onExit=common::makeScopeGuard(
-        [this,&logSettings,&records]()
+        [this,&logSettings,&records,&path]()
         {
-            fillLogRecords(logSettings,records);
+            fillLogRecords(logSettings,records,path.string());
         }
         );
     std::ignore=onExit;
@@ -318,109 +459,9 @@ Error ConfigObject<Traits>::loadLogConfig(const ConfigTree& configTree, const Co
 //---------------------------------------------------------------
 
 template <typename Traits>
-void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records)
+void ConfigObject<Traits>::fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentLogPath)
 {
-    auto handler=[&logSettings,&records](auto&& field, auto&&)
-    {
-        using T=typename std::decay_t<decltype(field)>;
-
-        auto value=hana::eval_if(
-            typename T::isRepeatedType{},
-            [&](auto)
-            {
-                return hana::eval_if(
-                    dataunit::types::IsString<T::typeId>,
-                    [&](auto _)
-                    {
-                        const auto& vector=_(field).value();
-                        auto count=vector.size();
-                        if (_(logSettings).CompactArrays && vector.size()>_(logSettings).MaxArrayElements)
-                        {
-                            count=_(logSettings).MaxArrayElements;
-                        }
-
-                        auto out = fmt::memory_buffer();
-                        fmt::format_to(std::back_inserter(out),"[");
-                        for (size_t i=0;i<count;i++)
-                        {
-                            if (i!=0)
-                            {
-                                fmt::format_to(std::back_inserter(out),",");
-                            }
-
-                            std::string v{_(field).at(i).c_str()};
-                            _(logSettings).mask(_(field).name(),v);
-                            fmt::format_to(std::back_inserter(out),"\"{}\"",v);
-                        }
-
-                        if (count!=vector.size())
-                        {
-                            fmt::format_to(std::back_inserter(out),",...]");
-                        }
-                        else
-                        {
-                            fmt::format_to(std::back_inserter(out),"]");
-                        }
-                        return fmt::to_string(out);
-                    },
-                    [&](auto _)
-                    {
-                        return hana::eval_if(
-                            dataunit::types::IsDataunit<T::typeId>,
-                            [&](auto _s)
-                            {
-                                std::ignore=_s;
-                                return std::string{"{}"};
-                                //! @todo fill records for subunits
-                            },
-                            [&]( auto _s)
-                            {
-                                const auto& vector=_s(_(field)).value();
-                                size_t endOffset{0};
-                                if (_s(_(logSettings)).CompactArrays && vector.size()>_s(_(logSettings)).MaxArrayElements)
-                                {
-                                    endOffset=vector.size()-_s(_(logSettings)).MaxArrayElements;
-                                }
-
-                                auto out = fmt::memory_buffer();
-                                fmt::format_to(std::back_inserter(out),"[{}",fmt::join(std::begin(vector),std::end(vector)-endOffset,","));
-                                if (endOffset!=0)
-                                {
-                                    fmt::format_to(std::back_inserter(out),",...]");
-                                }
-                                else
-                                {
-                                    fmt::format_to(std::back_inserter(out),"]");
-                                }
-                                return fmt::to_string(out);
-                            }
-                        );
-                    }
-                );
-            },
-            [&](auto)
-            {
-                return hana::eval_if(
-                    dataunit::types::IsString<T::typeId>,
-                    [&](auto _)
-                    {
-                        std::string v{_(field).value()};
-                        _(logSettings).mask(_(field).name(),v);
-                        return fmt::format("\"{}\"",v);
-                    },
-                    [&](auto _)
-                    {
-                        return fmt::format("{}",_(field).value());
-                    }
-                );
-            }
-        );
-
-        records.emplace_back(field.name(),std::move(value));
-
-        return true;
-    };
-    _CFG.each(HATN_DATAUNIT_NAMESPACE::meta::true_predicate,handler);
+    detail::fillLogRecords(_CFG,logSettings,records,parentLogPath);
 }
 
 //---------------------------------------------------------------
