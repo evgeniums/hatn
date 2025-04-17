@@ -104,6 +104,10 @@ constexpr auto IsString=hana::bool_c<
     TypeId==ValueType::String
     >;
 
+template <ValueType TypeId>
+constexpr auto IsDataunit=hana::bool_c<
+    TypeId==ValueType::Dataunit
+    >;
 }
 
 HATN_DATAUNIT_NAMESPACE_END
