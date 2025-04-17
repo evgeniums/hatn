@@ -46,7 +46,7 @@ HDU_UNIT(logger_config,
 )
 #else
 HDU_UNIT(logger_config,
-    HDU_FIELD(level,TYPE_STRING,1)
+    HDU_FIELD(level,TYPE_STRING,1,false,"INFO")
     HDU_FIELD(debug_verbosity,TYPE_UINT8,2)
 )
 #endif
