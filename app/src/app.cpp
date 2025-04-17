@@ -93,8 +93,29 @@ class LogAppConfig : public HATN_LOGCONTEXT_NAMESPACE::AppConfig
         using HATN_LOGCONTEXT_NAMESPACE::AppConfig::AppConfig;
 };
 
+Error stackError(Error&& prevEc, std::string message, bool log=true)
+{
+    auto ec=common::chainError(std::move(prevEc),std::move(message));
+    if (log)
+    {
+        HATN_CTX_ERROR(ec,"");
+    }
+    return ec;
+}
+
 } // anonymous namespace
 
+#define HATN_STACK_AND_LOG_ERROR(ec, msg) \
+    if (ec) \
+    { \
+        return stackError(std::move(ec),msg,true); \
+    }
+
+#define HATN_STACK_ERROR(ec, msg) \
+    if (ec) \
+    { \
+        return stackError(std::move(ec),msg,false); \
+    }
 
 #ifdef HATN_APP_THREADS_NUMBER
 constexpr static const uint8_t DefaultThreadCountr=HATN_APP_THREADS_NUMBER;
@@ -242,11 +263,7 @@ Error App::loadConfigString(
     )
 {
     auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from string","app"))
     return applyConfig();
 }
 
@@ -258,11 +275,7 @@ Error App::loadConfigFile(
     )
 {
     auto ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load app config from file","app"))
     return applyConfig();
 }
 
@@ -278,8 +291,7 @@ Error App::applyConfig()
     if (ec)
     {
         logConfig(_TR("logger configuration","app"),appLoggerRecords);
-        //! @todo Log and stack error
-        return ec;
+        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application logger","app"))
     }
 
     // init log handler
@@ -297,8 +309,7 @@ Error App::applyConfig()
     {
         logConfig(_TR("","app"),appLoggerRecords);
         logConfig(_TR("logger configuration","app"),logHandlerRecords);
-        //! @todo Log and stack error
-        return ec;
+        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of logger handler","app"))
     }
 
     // make and init logger
@@ -311,8 +322,7 @@ Error App::applyConfig()
         logConfig(_TR("logger configuration","app"),appLoggerRecords);
         logConfig(_TR("logger configuration","app"),logHandlerRecords);
         logConfig(_TR("logger configuration","app"),loggerRecords);
-        //! @todo Log and stack error
-        return ec;
+        HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of logger","app"))
     }
     d->setAppLogger(std::move(logger));
     logConfig(_TR("logger configuration","app"),appLoggerRecords);
@@ -324,11 +334,7 @@ Error App::applyConfig()
     //! @todo validate app config
     ec=d->appConfig.loadLogConfig(*m_configTree,m_appConfigRoot,logRecords);
     logConfig(_TR("application configuration","app"),logRecords);
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application","app"))
     const auto& pluginsFolderField=d->appConfig.config().field(app_config::plugin_folders);
     for (size_t i=0;i<pluginsFolderField.count();i++)
     {
@@ -338,20 +344,12 @@ Error App::applyConfig()
     // load db config
     ec=d->dbConfig.loadLogConfig(*m_configTree,DbConfigRoot,logRecords);
     logConfig(_TR("application database configuration","app"),logRecords);
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application database","app"))
 
     // load crypt config
     ec=d->cryptConfig.loadLogConfig(*m_configTree,CryptConfigRoot,logRecords);
     logConfig(_TR("application cryptography configuration","app"),logRecords);
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to load configuration of application cryptography","app"))
 
     // done
     return OK;
@@ -508,11 +506,7 @@ Error App::init()
     LogAppConfig appConfig{factory.factory()};
     d->logger->setAppConfig(appConfig);
     ec=d->logger->start();
-    if (ec)
-    {
-        //! @todo Log and stack error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to start logger","app"))
 
     // done
     return OK;
@@ -526,12 +520,16 @@ void App::close()
     {
         // close db client
         auto ec=database().close();
-        //! @todo log error
         if (ec)
         {
+            std::ignore=stackError(std::move(ec),_TR("failed to close database","app"));
+            //! @todo Remove it
+#if 0
+
             std::cerr << "Failed to close db: "<< ec.value() << ": " << ec.message() << std::endl;
+#endif
         }
-        database().reset();
+        database().reset();        
     }
 
     // stop all threads
@@ -543,10 +541,15 @@ void App::close()
     // cleanup plugins
     if (d->dbPlugin)
     {
-        auto ec=d->dbPlugin->cleanup();
+        auto ec=d->dbPlugin->cleanup();        
         if (ec)
         {
+            std::ignore=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
+            //! @todo Remove it
+#if 0
             std::cerr << "Failed to cleanup db plugin " << d->dbPlugin->info()->name << ": " << ec.value() << ": " << ec.message() << std::endl;
+#endif
+
         }
     }
 
@@ -557,7 +560,12 @@ void App::close()
         auto ec=d->logger->close();
         if (ec)
         {
+            auto ec1=stackError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name),false);
+            std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
+            //! @todo Remove it
+#if 0
             std::cerr << "Failed to close logger: "<< ec.value() << ": " << ec.message() << std::endl;
+#endif
         }
     }
 
@@ -621,11 +629,8 @@ Error App::createAppDataFolder()
     initAppDataFolder();
     lib::fs_error_code ec;
     lib::filesystem::create_directories(m_appDataFolder,ec);
-    if (ec)
-    {
-        //! @todo Log error
-        return Error{ec.value(),&ec.category()};
-    }    
+    auto ec1=lib::makeFilesystemError(ec);
+    HATN_STACK_AND_LOG_ERROR(ec1,_TR("failed to create application folder","app"))
     return OK;
 }
 
@@ -688,13 +693,12 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
     dbPlugin=common::PluginLoader::instance().loadPlugin<db::DbPlugin>(std::string{name});
     if (!dbPlugin)
     {
-        return db::dbError(db::DbError::DB_PLUGIN_FAILED);
+        return stackError(db::dbError(db::DbError::DB_PLUGIN_FAILED),fmt::format(_TR("failed to load database plugin \"{}\"","app"),name));
     }
 
     // init plugin
     auto ec=dbPlugin->init();
-    //! @todo log error
-    HATN_CHECK_EC(ec)
+    HATN_STACK_AND_LOG_ERROR(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),name))
 
     // done
     return dbPlugin;
@@ -720,17 +724,18 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view name) const
 
 Error App::openDb(bool create)
 {
+    HATN_CTX_SCOPE("app:openDb")
+
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
     if (name.empty())
     {
-        return appError(AppError::UNKNOWN_DB_PROVIDER);
+        return stackError(appError(AppError::UNKNOWN_DB_PROVIDER),_TR("name of database provider must not be empty","app"));
     }
     auto plugin=d->loadDbPlugin(name);
     if (plugin)
     {
-        //! @todo log error
-        return plugin.takeError();
+        return stackError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
     }
     d->dbPlugin=plugin.takeValue();
 
@@ -744,6 +749,7 @@ Error App::openDb(bool create)
     // open db
     Error ec;
     base::config_object::LogRecords logRecords;
+    //! @todo Use thread tags
     if (thread->id()==common::Thread::currentThread()->id())
     {
         ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
@@ -759,11 +765,7 @@ Error App::openDb(bool create)
     }
     logConfig(_TR("application database configuration","app"),logRecords);
 
-    if (ec)
-    {
-        //! @todo log error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to open application database","app"))
 
     // set db client in env
     //! @todo Use thread tags
@@ -805,7 +807,6 @@ Error App::destroyDb()
     auto plugin=d->loadDbPlugin(name);
     if (plugin)
     {
-        //! @todo log error
         return plugin.takeError();
     }
     d->dbPlugin=plugin.takeValue();
@@ -818,11 +819,7 @@ Error App::destroyDb()
     base::config_object::LogRecords logRecords;
     auto ec=dbClient->destroyDb(d->dbClientConfig(name),logRecords);
     logConfig(_TR("application database configuration","app"),logRecords);
-    if (ec)
-    {
-        //! @todo log error
-        return ec;
-    }
+    HATN_STACK_AND_LOG_ERROR(ec,_TR("failed to destroy application database","app"))
 
     // done
     return OK;
