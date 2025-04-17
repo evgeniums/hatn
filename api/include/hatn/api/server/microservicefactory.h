@@ -21,7 +21,7 @@
 
 #include <hatn/common/error.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/appdefs.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/apiliberror.h>
@@ -51,13 +51,13 @@ class HATN_API_EXPORT MicroServiceFactory
         }
 
         Result<std::shared_ptr<MicroService>> makeAndRun(
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath={}
         ) const;
 
         Result<std::map<std::string,std::shared_ptr<MicroService>>> makeAndRunAll(
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath={}
         ) const;

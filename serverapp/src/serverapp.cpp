@@ -19,7 +19,7 @@
 #include <hatn/common/translate.h>
 #include <hatn/common/thread.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/api/server/microservicefactory.h>
 
@@ -38,7 +38,7 @@ class ServerApp_p
 
         void close();
 
-        HATN_APP_NAMESPACE::BaseApp app;
+        HATN_APP_NAMESPACE::App app;
 
         std::map<std::string,std::shared_ptr<HATN_API_NAMESPACE::server::MicroService>> microservices;
 };
@@ -56,14 +56,14 @@ ServerApp::~ServerApp()
 
 //--------------------------------------------------------------------------
 
-HATN_APP_NAMESPACE::BaseApp& ServerApp::app() noexcept
+HATN_APP_NAMESPACE::App& ServerApp::app() noexcept
 {
     return pimpl->app;
 }
 
 //--------------------------------------------------------------------------
 
-const HATN_APP_NAMESPACE::BaseApp& ServerApp::app() const noexcept
+const HATN_APP_NAMESPACE::App& ServerApp::app() const noexcept
 {
     return pimpl->app;
 }

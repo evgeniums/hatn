@@ -35,7 +35,7 @@ template <typename MicroServiceT,
 Error NetworkMicroServiceTraits<MicroServiceT,EnvT,DispatcherT,AuthDispatcherT,NetworkMicroServiceConfigT>::start(
         lib::string_view name,
         common::SharedPtr<Env> env,
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )

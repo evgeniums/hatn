@@ -32,7 +32,7 @@ struct makeMicroserviceAndRunT
     Result<std::shared_ptr<MicroService>> operator () (
             const MicroServiceFactory* factory,
             MicroserviceConfig& cfg,
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
         ) const
@@ -93,7 +93,7 @@ constexpr makeMicroserviceAndRunT makeMicroserviceAndRun{};
 //---------------------------------------------------------------
 
 Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     ) const
@@ -119,7 +119,7 @@ Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
 //---------------------------------------------------------------
 
 Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory::makeAndRunAll(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     ) const

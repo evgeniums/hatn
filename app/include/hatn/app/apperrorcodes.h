@@ -22,7 +22,7 @@
 #define HATNAPPERRORCODES_H
 
 #include <hatn/common/error.h>
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 
 #define HATN_APP_ERRORS(Do) \
     Do(AppError,OK,_TR("OK")) \

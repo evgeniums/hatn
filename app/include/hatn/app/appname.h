@@ -21,7 +21,7 @@
 
 #include <string>
 
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 
 HATN_APP_NAMESPACE_BEGIN
 

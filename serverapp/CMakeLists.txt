@@ -2,7 +2,7 @@ PROJECT(hatnserverapp)
 
 SET (HEADERS
     include/hatn/serverapp/serverappdefs.h
-    include/hatn/serverapp/serverapp.h
+    include/hatn/serverapp/serverappdefs.h
 )
 
 SET (SOURCES

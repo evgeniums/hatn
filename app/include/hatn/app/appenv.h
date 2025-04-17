@@ -30,7 +30,7 @@
 
 #include <hatn/db/asyncclient.h>
 
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 
 HATN_APP_NAMESPACE_BEGIN
 

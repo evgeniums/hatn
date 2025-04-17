@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/baseapp.сpp
+/** @file api/app.сpp
   *
   */
 
@@ -41,7 +41,7 @@
 #endif
 
 #include <hatn/app/apperror.h>
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/common/loggermoduleimp.h>
 
@@ -142,13 +142,13 @@ HDU_UNIT(crypt_config,
 
 //---------------------------------------------------------------
 
-class BaseApp_p
+class App_p
 {
     public:
 
-        BaseApp* app;
+        App* app;
 
-        BaseApp_p(BaseApp* app) : app(app)
+        App_p(App* app) : app(app)
         {}
 
         base::ConfigObject<app_config::type> appConfig;
@@ -177,11 +177,11 @@ class BaseApp_p
 
 //---------------------------------------------------------------
 
-BaseApp::BaseApp(AppName appName) :
+App::App(AppName appName) :
         m_appName(std::move(appName)),
         m_configTree(std::make_shared<HATN_BASE_NAMESPACE::ConfigTree>()),
         m_configTreeLoader(std::make_shared<HATN_BASE_NAMESPACE::ConfigTreeLoader>()),
-        d(std::make_unique<BaseApp_p>(this)),
+        d(std::make_unique<App_p>(this)),
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
 {
@@ -194,12 +194,12 @@ BaseApp::BaseApp(AppName appName) :
 }
 
 //---------------------------------------------------------------
-BaseApp::~BaseApp()
+App::~App()
 {}
 
 //---------------------------------------------------------------
 
-Error BaseApp::loadConfigString(
+Error App::loadConfigString(
         common::lib::string_view source,
         const std::string& format
     )
@@ -211,7 +211,7 @@ Error BaseApp::loadConfigString(
 
 //---------------------------------------------------------------
 
-Error BaseApp::loadConfigFile(
+Error App::loadConfigFile(
     const std::string& fileName,
     const std::string& format
     )
@@ -223,7 +223,7 @@ Error BaseApp::loadConfigFile(
 
 //---------------------------------------------------------------
 
-Error BaseApp::applyConfig()
+Error App::applyConfig()
 {
     base::config_object::LogRecords logRecords;
 
@@ -275,7 +275,7 @@ Error BaseApp::applyConfig()
 
 //---------------------------------------------------------------
 
-Error BaseApp::init()
+Error App::init()
 {
     // init data folder
     initAppDataFolder();
@@ -345,7 +345,7 @@ Error BaseApp::init()
 
 //---------------------------------------------------------------
 
-void BaseApp::close()
+void App::close()
 {
     if (m_env)
     {
@@ -393,7 +393,7 @@ void BaseApp::close()
 
 //---------------------------------------------------------------
 
-void BaseApp::setDefaultAppDataFolder(
+void App::setDefaultAppDataFolder(
         std::string folder
     )
 {
@@ -402,7 +402,7 @@ void BaseApp::setDefaultAppDataFolder(
 
 //---------------------------------------------------------------
 
-void BaseApp::setAppDataFolder(
+void App::setAppDataFolder(
     std::string folder
     )
 {
@@ -412,7 +412,7 @@ void BaseApp::setAppDataFolder(
 
 //---------------------------------------------------------------
 
-void BaseApp::initAppDataFolder()
+void App::initAppDataFolder()
 {
     // set app data folder
     if (m_appDataFolder.empty())
@@ -442,7 +442,7 @@ void BaseApp::initAppDataFolder()
 
 //---------------------------------------------------------------
 
-Error BaseApp::createAppDataFolder()
+Error App::createAppDataFolder()
 {
     initAppDataFolder();
     lib::fs_error_code ec;
@@ -457,14 +457,14 @@ Error BaseApp::createAppDataFolder()
 
 //---------------------------------------------------------------
 
-void BaseApp::registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilder builder)
+void App::registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilder builder)
 {
     d->loggerBuilders[std::move(name)]=std::move(builder);
 }
 
 //---------------------------------------------------------------
 
-void BaseApp_p::loadPlugins(const std::string& pluginFolder)
+void App_p::loadPlugins(const std::string& pluginFolder)
 {
 #ifndef NO_DYNAMIC_HATN_PLUGINS
     for (auto&& folder: pluginFolders)
@@ -480,7 +480,7 @@ void BaseApp_p::loadPlugins(const std::string& pluginFolder)
 
 //---------------------------------------------------------------
 
-void BaseApp_p::loadCryptPlugins()
+void App_p::loadCryptPlugins()
 {
     initOpensslPlugin();
     loadPlugins(CryptPluginsFolder);
@@ -488,7 +488,7 @@ void BaseApp_p::loadCryptPlugins()
 
 //---------------------------------------------------------------
 
-void BaseApp_p::loadDbPlugins()
+void App_p::loadDbPlugins()
 {
     initRocksdbPlugin();
     loadPlugins(DbPluginsFolder);
@@ -496,14 +496,14 @@ void BaseApp_p::loadDbPlugins()
 
 //---------------------------------------------------------------
 
-void BaseApp::addPluginFolders(std::vector<std::string> folders)
+void App::addPluginFolders(std::vector<std::string> folders)
 {
     d->pluginFolders.insert(d->pluginFolders.end(),folders.begin(),folders.end());
 }
 
 //---------------------------------------------------------------
 
-Result<std::shared_ptr<db::DbPlugin>> BaseApp_p::loadDbPlugin(lib::string_view name)
+Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 {
     if (dbPlugin)
     {
@@ -527,7 +527,7 @@ Result<std::shared_ptr<db::DbPlugin>> BaseApp_p::loadDbPlugin(lib::string_view n
 
 //---------------------------------------------------------------
 
-db::ClientConfig BaseApp_p::dbClientConfig(lib::string_view name) const
+db::ClientConfig App_p::dbClientConfig(lib::string_view name) const
 {
     //! @todo Create/init encryption manager
 
@@ -543,7 +543,7 @@ db::ClientConfig BaseApp_p::dbClientConfig(lib::string_view name) const
 
 //---------------------------------------------------------------
 
-Error BaseApp::openDb(bool create)
+Error App::openDb(bool create)
 {
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
@@ -620,7 +620,7 @@ Error BaseApp::openDb(bool create)
 
 //---------------------------------------------------------------
 
-Error BaseApp::destroyDb()
+Error App::destroyDb()
 {
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);

@@ -21,7 +21,7 @@
 
 #include <hatn/common/sharedptr.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/appdefs.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/server/connectionsstore.h>
@@ -49,7 +49,7 @@ struct NetworkMicroServiceConfig
     static Result<common::SharedPtr<NetworkServerCtx>> makeAndInitNetworkServer(
         lib::string_view name,
         common::SharedPtr<EnvT> env,
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     );
@@ -83,7 +83,7 @@ class NetworkMicroServiceTraits
         Error start(
             lib::string_view name,
             common::SharedPtr<Env> env,
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
         );

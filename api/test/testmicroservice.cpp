@@ -28,6 +28,8 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
 
+#include <hatn/app/app.h>
+
 #include <hatn/api/api.h>
 
 #include <hatn/api/client/plaintcpconnection.h>
@@ -241,7 +243,7 @@ using Service2=server::ServerServiceV<server::ServiceMultipleMethods<>>;
 
 struct ServerApp
 {
-    std::shared_ptr<BaseApp> app;
+    std::shared_ptr<App> app;
     std::map<std::string,std::shared_ptr<server::MicroService>> microservices;
 };
 
@@ -255,7 +257,7 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
 
     // init server app
     AppName appName{"testmicroservice","Test Microservice"};
-    auto app=std::make_shared<BaseApp>(appName);
+    auto app=std::make_shared<App>(appName);
     auto configFile=MultiThreadFixture::assetsFilePath("api",configFileName);
     auto ec=app->loadConfigFile(configFile);
     if (ec)

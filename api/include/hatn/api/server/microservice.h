@@ -22,7 +22,7 @@
 #include <hatn/common/error.h>
 #include <hatn/common/objecttraits.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/appdefs.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/apiliberror.h>
@@ -47,7 +47,7 @@ class HATN_API_EXPORT MicroService
         MicroService& operator=(MicroService&&)=default;
 
         virtual Error start(
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
         )=0;
@@ -66,7 +66,7 @@ class MicroServiceV : public common::WithImpl<ImplT>,
         using common::WithImpl<ImplT>::WithImpl;
 
         virtual Error start(
-                const HATN_APP_NAMESPACE::BaseApp& app,
+                const HATN_APP_NAMESPACE::App& app,
                 const HATN_BASE_NAMESPACE::ConfigTree& configTree,
                 const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
             ) override
@@ -138,7 +138,7 @@ class MicroServiceT : public common::WithTraits<Traits>
         }
 
         Error start(
-                const HATN_APP_NAMESPACE::BaseApp& app,
+                const HATN_APP_NAMESPACE::App& app,
                 const HATN_BASE_NAMESPACE::ConfigTree& configTree,
                 const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
             )

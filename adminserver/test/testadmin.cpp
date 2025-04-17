@@ -21,7 +21,7 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/app/appname.h>
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/adminserver/apiadmincontroller.h>
 #include <hatn/adminserver/appadmincontroller.h>
@@ -29,6 +29,7 @@
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 #include <hatn/api/ipp/serverservice.ipp>
 #include <hatn/api/ipp/serverresponse.ipp>
 #include <hatn/adminserver/ipp/localadmincontroller.ipp>
@@ -65,7 +66,7 @@ BOOST_FIXTURE_TEST_CASE(CreateApiController,TestEnv)
 
 BOOST_FIXTURE_TEST_CASE(CreateAppController,TestEnv)
 {
-    HATN_APP_NAMESPACE::BaseApp app{HATN_APP_NAMESPACE::AppName{"testapp","Test App"}};
+    HATN_APP_NAMESPACE::App app{HATN_APP_NAMESPACE::AppName{"testapp","Test App"}};
 
     HATN_ADMIN_SERVER_NAMESPACE::AppAdminController ctrl{app.env(),"system"};
 
