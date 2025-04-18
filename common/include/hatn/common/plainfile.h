@@ -19,6 +19,7 @@
 #define HATNPLAINFILE_H
 
 #include <hatn/common/file.h>
+#include <hatn/common/meta/cstrlength.h>
 #if BOOST_BEAST_USE_WIN32_FILE
 #include <hatn/common/beastfilewinwrapper.h>
 #endif
@@ -122,6 +123,11 @@ class HATN_COMMON_EXPORT PlainFile : public File
          * @throws ErrorException if operation failed
          */
         virtual size_t write(const char* data, size_t size) override;
+
+        size_t write(const char* data)
+        {
+            return write(data,CStrLength(data));
+        }
 
         /**
          * @brief Read data from file
