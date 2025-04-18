@@ -119,6 +119,10 @@ class StreamLoggerTraits : public BufToStream
             return BufWrapper{};
         }
 
+        static void releaseBuf(BufWrapper&)
+        {
+        }
+
         void logBuf(const BufWrapper& bufWrapper)
         {
             this->log(bufWrapper.buf());

@@ -13,6 +13,7 @@ SET (HEADERS
     include/hatn/logcontext/loggererror.h
     include/hatn/logcontext/loggererrorcodes.h
     include/hatn/logcontext/filelogger.h
+    include/hatn/logcontext/fileloggertraits.h
     include/hatn/logcontext/logconfigrecords.h
 )
 
@@ -27,6 +28,7 @@ SET (SOURCES
     src/contextlogger.cpp
     src/streamlogger.cpp
     src/loggererror.cpp
+    src/filelogger.cpp
 )
 
 BUILD_HATN_MODULE()

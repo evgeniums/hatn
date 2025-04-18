@@ -251,6 +251,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 level,ctx,msg,records,module
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void log(
@@ -265,6 +266,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 level,ctx,msg,module
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logError(
@@ -282,6 +284,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 ec
                                                 );
             this->traits().logBufError(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logError(
@@ -298,6 +301,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 ec
                                                 );
             this->traits().logBufError(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logClose(
@@ -316,6 +320,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 hana::true_{}
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logClose(
@@ -333,6 +338,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 hana::true_{}
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logCloseApi(
@@ -352,6 +358,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 hana::true_{}
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 
         void logCloseApi(
@@ -370,6 +377,7 @@ class BufLoggerT : public LoggerHandlerT<ContextT>,
                                                 hana::true_{}
                                                 );
             this->traits().logBuf(bufWrapper);
+            this->traits().releaseBuf(bufWrapper);
         }
 };
 
