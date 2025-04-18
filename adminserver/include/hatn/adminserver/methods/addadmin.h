@@ -67,13 +67,13 @@ class AddAdminTraits : public BaseTraits
             );
         }
 
-        validator::error_report validate(
+        HATN_VALIDATOR_NAMESPACE::error_report validate(
                 const common::SharedPtr<HATN_API_SERVER_NAMESPACE::RequestContext<RequestT>>& /*request*/,
                 const Admin& /*msg*/
             ) const
         {
             //! @todo Implement message validation
-            return validator::error_report{};
+            return HATN_VALIDATOR_NAMESPACE::error_report{};
         }
 };
 

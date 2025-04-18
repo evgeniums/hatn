@@ -264,7 +264,7 @@ class StreamChainTraits
                         return true;
                     };
 
-                    validator::foreach_if(chainStreams,true_predicate,each);
+                    HATN_VALIDATOR_NAMESPACE::foreach_if(chainStreams,true_predicate,each);
                 }
                 );
         }
