@@ -233,8 +233,23 @@ App::App(AppName appName) :
 }
 
 //---------------------------------------------------------------
+
 App::~App()
 {}
+
+//---------------------------------------------------------------
+
+void App::logAppStart()
+{
+    HATN_CTX_INFO_RECORDS_M("****** STARTING APPLICATION ******",HLOG_MODULE(app),{"name",m_appName.displayName})
+}
+
+//---------------------------------------------------------------
+
+void App::logAppStop()
+{
+    HATN_CTX_INFO_RECORDS_M("****** STOPPING APPLICATION ******",HLOG_MODULE(app),{"name",m_appName.displayName})
+}
 
 //---------------------------------------------------------------
 
@@ -283,6 +298,7 @@ Error App::applyConfig()
     auto ec=d->loggerConfig.loadLogConfig(*m_configTree,LoggerConfigRoot,appLoggerRecords);
     if (ec)
     {
+        logAppStart();
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
         HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application logger","app"),HLOG_MODULE(app))
     }
@@ -300,6 +316,7 @@ Error App::applyConfig()
     ec=logHandler->loadLogConfig(*m_configTree,loggerConfigPath,logHandlerRecords);
     if (ec)
     {
+        logAppStart();
         logConfigRecords(_TR("","app"),HLOG_MODULE(app),appLoggerRecords);
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
         HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of logger handler","app"),HLOG_MODULE(app))
@@ -311,12 +328,14 @@ Error App::applyConfig()
     ec=logger->loadLogConfig(*m_configTree,LoggerConfigRoot,loggerRecords);
     if (ec)
     {
+        logAppStart();
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),loggerRecords);
         HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of logger","app"),HLOG_MODULE(app))
     }
     d->setAppLogger(std::move(logger));
+    logAppStart();
     logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);
     logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
     logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),loggerRecords);
@@ -505,6 +524,8 @@ Error App::init()
 
 void App::close()
 {
+    logAppStop();
+
     if (m_env)
     {
         // close db client
@@ -532,14 +553,14 @@ void App::close()
         }
     }
 
-    // close logger
+    // close logger    
     if (d->logger)
     {
         //! @todo Log app close
         auto ec=d->logger->close();
         if (ec)
         {
-            auto ec1=chainError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
+            auto ec1=chainError(std::move(ec),fmt::format(_TR("failed to close logger","app"),d->dbPlugin->info()->name));
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
         }
     }

@@ -46,7 +46,7 @@ constexpr uint32_t DefaultRotationPeriodHours=24*7;
 
 constexpr const char* ErrorLogModeMain="main_log";
 constexpr const char* ErrorLogModeError="error_log";
-constexpr const char* ErrorLogModeBoth="both_logs";
+constexpr const char* ErrorLogModeBoth="main_and_error";
 
 enum class ErrorLogMode : uint8_t
 {
@@ -74,7 +74,8 @@ HDU_UNIT(filelogger_config,
     HDU_FIELD(error_file,TYPE_STRING,2)
     HDU_FIELD(error_log_mode,TYPE_STRING,3,false,ErrorLogModeMain)
     HDU_FIELD(log_console,TYPE_BOOL,4)
-    HDU_FIELD(logrotate,logrotate_config::TYPE,5)
+    HDU_FIELD(logger_thread,TYPE_BOOL,5,false,true)
+    HDU_FIELD(logrotate,logrotate_config::TYPE,6)
 )
 
 namespace {
@@ -285,8 +286,14 @@ Error FileLoggerTraits::loadLogConfig(
                 HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for error log file {}","logcontext"),errorLogFileName))
             }
         }
-        ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
+        ec=d->errorLogFile->open(errorLogFileName,common::PlainFile::Mode::append);
         HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open error log file {}","logcontext"),errorLogFileName))
+    }
+
+    // init log thread
+    if (d->config().fieldValue(filelogger_config::logger_thread))
+    {
+        d->thread=std::make_shared<LoggerThread>("logger");
     }
 
     // done
@@ -348,12 +355,11 @@ void FileLoggerTraits::logBufError(const FileLoggerBufWrapper& bufWrapper)
             if (d->errorLogFile)
             {
                 d->errorLogFile->write(buf.data(),buf.size());
-                d->logFile->write(ret.data(),ret.size());
+                d->errorLogFile->write(ret.data(),ret.size());
             }
             if (d->errorLogMode!=ErrorLogMode::Error && d->logFile)
             {
                 d->logFile->write(buf.data(),buf.size());
-
                 d->logFile->write(ret.data(),ret.size());
             }
         }

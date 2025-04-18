@@ -218,6 +218,8 @@ class HATN_APP_EXPORT App
         Error applyConfig();
         void initAppDataFolder();
         Error initThreads();
+        void logAppStart();
+        void logAppStop();
 
         AppName m_appName;
 
