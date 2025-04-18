@@ -399,6 +399,7 @@ Error Thread::execSync(
         size_t timeoutMs
     )
 {
+    //! @todo check if caller in the same thread
     std::packaged_task<void ()> task(std::move(handler));
     auto future=task.get_future();
     auto taskPtr=&task;
