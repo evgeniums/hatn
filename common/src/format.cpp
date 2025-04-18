@@ -23,6 +23,7 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 template class HATN_COMMON_EXPORT ThreadQ<TaskInlineContext<FmtAllocatedBufferChar>,ThreadWithQueueTraits>;
 template class HATN_COMMON_EXPORT ThreadWithQueue<TaskInlineContext<FmtAllocatedBufferChar>>;
+template class HATN_COMMON_EXPORT ThreadWithQueueTraits<TaskInlineContext<FmtAllocatedBufferChar>>;
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
