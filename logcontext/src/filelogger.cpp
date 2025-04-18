@@ -16,6 +16,8 @@
   *
   */
 
+#include <boost/asio/signal_set.hpp>
+
 #include <hatn/validator/validator.hpp>
 #include <hatn/validator/operators/in.hpp>
 
@@ -55,18 +57,26 @@ enum class ErrorLogMode : uint8_t
     Both
 };
 
-constexpr const char* LogrotateModeNone="none";
-constexpr const char* LogrotateModeInapp="inapp";
-constexpr const char* LogrotateModeSighup="sighup";
+constexpr const char* LogRotateModeNone="none";
+constexpr const char* LogRotateModeInapp="inapp";
+constexpr const char* LogRotateModeSighup="sighup";
+
+enum class LogRotateMode : uint8_t
+{
+    None,
+    Inapp,
+    Sighup
+};
 
 }
 
-//! @todo Set inapp default logrotate mode
+//! @todo Implement inapp log rotation
+//! @todo Set inapp as default logrotate mode
 
 HDU_UNIT(logrotate_config,
     HDU_FIELD(max_file_count,TYPE_UINT8,1,false,DefaultMaxFileCount)
     HDU_FIELD(period_hours,TYPE_UINT32,2,false,DefaultRotationPeriodHours)
-    HDU_FIELD(mode,TYPE_STRING,3,false,LogrotateModeNone)
+    HDU_FIELD(mode,TYPE_STRING,3,false,LogRotateModeNone)
 )
 
 HDU_UNIT(filelogger_config,
@@ -87,7 +97,7 @@ auto makeValidator()
     return validator(
             _[filelogger_config::error_log_mode](in,range({ErrorLogModeMain,ErrorLogModeError,ErrorLogModeBoth})),
             _[filelogger_config::log_file](empty(flag,false)),
-            _[filelogger_config::logrotate][logrotate_config::mode](in,range({LogrotateModeNone,LogrotateModeInapp,LogrotateModeSighup})),
+            _[filelogger_config::logrotate][logrotate_config::mode](in,range({LogRotateModeNone,/*LogRotateModeInapp,*/LogRotateModeSighup})),
             _[filelogger_config::logrotate][logrotate_config::period_hours](gte,1),
             _[filelogger_config::logrotate][logrotate_config::max_file_count](gte,1)
         );
@@ -116,10 +126,43 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
         lib::optional<common::PlainFile> errorLogFile;
         bool logConsole=false;
         ErrorLogMode errorLogMode=ErrorLogMode::Both;
+        LogRotateMode logRotateMode=LogRotateMode::None;
 
         bool useLogThread() const noexcept
         {
             return thread && thread->isStarted();
+        }
+
+        void reopenFiles()
+        {
+            if (logFile)
+            {
+                std::ignore=logFile->flush();
+                logFile->close();
+                auto ec=logFile->open(common::PlainFile::Mode::append);
+                if (ec)
+                {
+                    std::cerr << fmt::format("Failed to reopen log file {} : ({}) - {}",logFile->filename(), ec.value(), ec.message()) << std::endl;
+                }
+                else
+                {
+                    std::cout << "Reopened log file " << logFile->filename() << " for log rotation" << std::endl;
+                }
+            }
+            if (errorLogFile)
+            {
+                std::ignore=errorLogFile->flush();
+                errorLogFile->close();
+                auto ec=errorLogFile->open(common::PlainFile::Mode::append);
+                if (ec)
+                {
+                    std::cerr << fmt::format("Failed to reopen log file {} : ({}) - {}",errorLogFile->filename(), ec.value(), ec.message()) << std::endl;
+                }
+                else
+                {
+                    std::cout << "Reopened error log file " << logFile->filename() << " for log rotation" << std::endl;
+                }
+            }
         }
 };
 
@@ -186,6 +229,23 @@ Error FileLoggerTraits::start()
     if (d->thread)
     {
         d->thread->start();
+        if (d->logRotateMode==LogRotateMode::Sighup)
+        {
+            boost::asio::signal_set signals(d->thread->asioContextRef(), SIGHUP);
+            signals.async_wait(
+                [this](const boost::system::error_code& ec,
+                                           int signal_number)
+                {
+                    std::ignore=signal_number;
+                    if (ec)
+                    {
+                        return;
+                    }
+
+                    d->reopenFiles();
+                }
+            );
+        }
     }
     return OK;
 }
@@ -231,7 +291,30 @@ Error FileLoggerTraits::loadLogConfig(
     HATN_CHECK_EC(ec)
     d->logConsole=d->config().fieldValue(filelogger_config::log_console);
 
-    //! @todo init logrotate
+    // check config
+    const auto& logRotate=d->config().field(filelogger_config::logrotate);
+    if (logRotate.isSet())
+    {
+        auto logRotateMode=logRotate.get().fieldValue(logrotate_config::mode);
+        if (logRotateMode==LogRotateModeInapp)
+        {
+            d->logRotateMode=LogRotateMode::Inapp;
+        }
+        else if (logRotateMode==LogRotateModeSighup)
+        {
+            d->logRotateMode=LogRotateMode::Sighup;
+        }
+        else
+        {
+            d->logRotateMode=LogRotateMode::None;
+        }
+    }
+    if (d->logRotateMode==LogRotateMode::Sighup && !d->config().fieldValue(filelogger_config::logger_thread))
+    {
+        return baseError(HATN_BASE_NAMESPACE::BaseError::CONFIG_OBJECT_VALIDATE_ERROR,
+                         _TR("log rotation mode sighup can be used only if logger_thread is enabled","logcontext")
+                         );
+    }
 
     // open log file
     d->logFile=common::PlainFile{};
@@ -295,6 +378,8 @@ Error FileLoggerTraits::loadLogConfig(
     {
         d->thread=std::make_shared<LoggerThread>("logger");
     }
+
+    // init logrotate
 
     // done
     return OK;
