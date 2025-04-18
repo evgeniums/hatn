@@ -46,7 +46,7 @@ constexpr const size_t MaxTsFileSize=8;
 #ifdef HATN_FILELOGGER_LOGROTATE_MAX_FILE_COUNT
 constexpr const uint8_t DefaultMaxFileCount=HATN_FILELOGGER_LOGROTATE_MAX_FILE_COUNT;
 #else
-constexpr const uint8_t DefaultMaxFileCount=8;
+constexpr const uint8_t DefaultMaxFileCount=4;
 #endif
 
 constexpr uint32_t DefaultRotationPeriodHours=24*7;
@@ -233,18 +233,18 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                         }
                         else
                         {
-                            auto dt=common::DateTime::parseIsoString(buf);
-                            if (dt)
+                            uint32_t epochTs;
+                            auto r = std::from_chars(buf.data(), buf.data() + buf.size(), epochTs, 16);
+                            if (r.ec != std::errc())
                             {
+                                std::cerr << "Failed to parse last rotation timestamp" << std::endl;
                                 doRotation=true;
                             }
-                            else
-                            {
-                                auto current=common::DateTime::currentUtc();
-                                auto nextTime=dt.value();
-                                nextTime.addHours(periodHours);
-                                doRotation=current.after(nextTime);
-                            }
+                            auto dt=common::DateTime::fromEpoch(epochTs);
+                            auto current=common::DateTime::currentUtc();
+                            auto nextTime=dt;
+                            nextTime.addHours(periodHours);
+                            doRotation=current.after(nextTime);
                         }
                     }
                 }
@@ -259,26 +259,30 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
 
                     // rename and reopen log file
                     Error ec;
-                    if (logFile && logFile->size(ec)!=0)
+                    if (logFile)
                     {
-                        lib::fs_error_code fsec1;
-                        lib::filesystem::path path{logFile->filename()};
-                        auto newExt=fmt::format("{}{}",path.extension().string(),ts);
-                        path.replace_extension(newExt);
-
-                        lib::filesystem::rename(logFile->filename(),path,fsec1);
+                        if (logFile->size(ec)!=0)
+                        {
+                            lib::fs_error_code fsec1;
+                            lib::filesystem::path path{logFile->filename()};
+                            auto newExt=fmt::format("{}.{}",path.extension().string(),ts);
+                            path.replace_extension(newExt);
+                            lib::filesystem::rename(logFile->filename(),path,fsec1);
+                        }
                         reopenLogFile(false);
                     }
 
                     // rename and reopen error log file
-                    if (errorLogFile && errorLogFile->size(ec)!=0)
+                    if (errorLogFile)
                     {
-                        lib::fs_error_code fsec1;
-                        lib::filesystem::path path{errorLogFile->filename()};
-                        auto newExt=fmt::format("{}{}",path.extension().string(),ts);
-                        path.replace_extension(newExt);
-
-                        lib::filesystem::rename(errorLogFile->filename(),path,fsec1);
+                        if (errorLogFile->size(ec)!=0)
+                        {
+                            lib::fs_error_code fsec1;
+                            lib::filesystem::path path{errorLogFile->filename()};
+                            auto newExt=fmt::format("{}.{}",path.extension().string(),ts);
+                            path.replace_extension(newExt);
+                            lib::filesystem::rename(errorLogFile->filename(),path,fsec1);
+                        }
                         reopenErrorLogFile(false);
                     }
 
@@ -302,7 +306,7 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
 
                     // delete outdated files
                     auto maxFileCount=config().field(filelogger_config::logrotate).get().fieldValue(logrotate_config::max_file_count);
-                    auto deleteOutdated=[maxFileCount](const std::string& baseFilename)
+                    auto deleteOutdated=[maxFileCount,&timestampFileName](const std::string& baseFilename)
                     {
                         // list log files
                         std::vector<std::string> files;
@@ -310,9 +314,13 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                         lib::filesystem::path path(baseFilename);
                         auto dir=path.parent_path();
                         for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
-                        {
+                        {                                                        
                             auto fileName=entry.path().string();
-                            if (fileName!=baseFilename && boost::algorithm::starts_with(fileName,baseFilename))
+                            if (fileName!=baseFilename
+                                &&
+                                fileName!=timestampFileName
+                                &&
+                                boost::algorithm::starts_with(fileName,baseFilename))
                             {
                                 files.push_back(fileName);
                             }
@@ -323,7 +331,7 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                         {
                             int removeCount=files.size()-maxFileCount;
                             std::sort(files.begin(),files.end());
-                            for (auto it=files.rbegin();it!=files.rend();++it)
+                            for (auto it=files.begin();it!=files.end();++it)
                             {
                                 lib::filesystem::remove(*it,fsec1);
                                 removeCount--;
@@ -452,6 +460,9 @@ Error FileLoggerTraits::close()
     Error ec;
     if (d->thread)
     {
+        // flush pending logs
+        std::ignore=d->thread->execSync([]{});
+
         d->thread->stop();
         d->thread.reset();
     }
