@@ -153,7 +153,7 @@ HDU_UNIT(app_config,
 )
 
 HDU_UNIT(logger_config,
-    HDU_FIELD(name,TYPE_STRING,1,false,log::StreamLoggerName)
+    HDU_FIELD(provider,TYPE_STRING,1,false,log::StreamLoggerName)
 )
 
 HDU_UNIT(db_config,
@@ -289,14 +289,14 @@ Error App::applyConfig()
 
     // init log handler
     base::config_object::LogRecords logHandlerRecords;
-    std::string loggerName{d->loggerConfig.config().fieldValue(logger_config::name)};
-    auto logHandlerIt=d->loggerBuilders.find(loggerName);
+    std::string loggerProvider{d->loggerConfig.config().fieldValue(logger_config::provider)};
+    auto logHandlerIt=d->loggerBuilders.find(loggerProvider);
     if (logHandlerIt==d->loggerBuilders.end())
     {
         return appError(AppError::UNKNOWN_LOGGER);
     }
     auto logHandler=logHandlerIt->second();
-    std::string loggerConfigPath=fmt::format("{}.{}",LoggerConfigRoot,loggerName);
+    std::string loggerConfigPath=fmt::format("{}.{}",LoggerConfigRoot,loggerProvider);
     ec=logHandler->loadLogConfig(*m_configTree,loggerConfigPath,logHandlerRecords);
     if (ec)
     {
@@ -309,7 +309,6 @@ Error App::applyConfig()
     base::config_object::LogRecords loggerRecords;
     auto logger=log::makeLogger(logHandler);
     ec=logger->loadLogConfig(*m_configTree,LoggerConfigRoot,loggerRecords);
-    logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),logHandlerRecords);
     if (ec)
     {
         logConfigRecords(_TR("configuration of logger","app"),HLOG_MODULE(app),appLoggerRecords);

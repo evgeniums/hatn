@@ -61,16 +61,18 @@ constexpr const char* LogrotateModeSighup="sighup";
 
 }
 
+//! @todo Set inapp default logrotate mode
+
 HDU_UNIT(logrotate_config,
     HDU_FIELD(max_file_count,TYPE_UINT8,1,false,DefaultMaxFileCount)
     HDU_FIELD(period_hours,TYPE_UINT32,2,false,DefaultRotationPeriodHours)
-    HDU_FIELD(mode,TYPE_STRING,3,false,LogrotateModeInapp)
+    HDU_FIELD(mode,TYPE_STRING,3,false,LogrotateModeNone)
 )
 
 HDU_UNIT(filelogger_config,
     HDU_FIELD(log_file,TYPE_STRING,1)
     HDU_FIELD(error_file,TYPE_STRING,2)
-    HDU_FIELD(error_log_mode,TYPE_STRING,3,false,ErrorLogModeBoth)
+    HDU_FIELD(error_log_mode,TYPE_STRING,3,false,ErrorLogModeMain)
     HDU_FIELD(log_console,TYPE_BOOL,4)
     HDU_FIELD(logrotate,logrotate_config::TYPE,5)
 )
@@ -160,6 +162,7 @@ void FileLoggerTraits::releaseBuf(FileLoggerBufWrapper&)
     if (d->locked)
     {
         d->locked=false;
+        d->sharedBuf.clear();
         d->mutex.unlock();
     }
     else
@@ -232,6 +235,17 @@ Error FileLoggerTraits::loadLogConfig(
     // open log file
     d->logFile=common::PlainFile{};
     std::string logFileName{d->config().fieldValue(filelogger_config::log_file)};
+    lib::filesystem::path logFilePath{logFileName};
+    if (!lib::filesystem::exists(logFilePath))
+    {
+        lib::fs_error_code fsec;
+        lib::filesystem::create_directories(logFilePath.parent_path(),fsec);
+        if (fsec)
+        {
+            ec=lib::makeFilesystemError(fsec);
+            HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for log file {}","logcontext"),logFileName))
+        }
+    }
     ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
     HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open log file {}","logcontext"),logFileName))
 
@@ -260,6 +274,17 @@ Error FileLoggerTraits::loadLogConfig(
             errorLogFileName=path.string();
         }
         d->errorLogFile=common::PlainFile{};
+        lib::filesystem::path errorLogFilePath{errorLogFileName};
+        if (!lib::filesystem::exists(errorLogFilePath))
+        {
+            lib::fs_error_code fsec;
+            lib::filesystem::create_directories(errorLogFilePath.parent_path(),fsec);
+            if (fsec)
+            {
+                ec=lib::makeFilesystemError(fsec);
+                HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for error log file {}","logcontext"),errorLogFileName))
+            }
+        }
         ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
         HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open error log file {}","logcontext"),errorLogFileName))
     }
@@ -280,7 +305,8 @@ void FileLoggerTraits::logBuf(const FileLoggerBufWrapper& bufWrapper)
             if (d->logFile)
             {
                 d->logFile->write(buf.data(),buf.size());
-                d->logFile->write("\n");
+                lib::string_view ret("\n");
+                d->logFile->write(ret.data(),ret.size());
             }
         }
         catch (...)
@@ -318,15 +344,17 @@ void FileLoggerTraits::logBufError(const FileLoggerBufWrapper& bufWrapper)
         bool fallbackLogConsole=false;
         try
         {
+            lib::string_view ret("\n");
             if (d->errorLogFile)
             {
                 d->errorLogFile->write(buf.data(),buf.size());
-                d->errorLogFile->write("\n");
+                d->logFile->write(ret.data(),ret.size());
             }
             if (d->errorLogMode!=ErrorLogMode::Error && d->logFile)
             {
                 d->logFile->write(buf.data(),buf.size());
-                d->logFile->write("\n");
+
+                d->logFile->write(ret.data(),ret.size());
             }
         }
         catch (...)
