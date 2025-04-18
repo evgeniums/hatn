@@ -24,6 +24,7 @@
 #include <hatn/common/locker.h>
 #include <hatn/common/plainfile.h>
 #include <hatn/common/filesystem.h>
+#include <hatn/common/datetime.h>
 
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -38,10 +39,14 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr const uint64_t UsPerHour=3600000000;
+
+constexpr const size_t MaxTsFileSize=8;
+
 #ifdef HATN_FILELOGGER_LOGROTATE_MAX_FILE_COUNT
-constexpr static uint8_t DefaultMaxFileCount=8;
+constexpr const uint8_t DefaultMaxFileCount=HATN_FILELOGGER_LOGROTATE_MAX_FILE_COUNT;
 #else
-constexpr uint8_t DefaultMaxFileCount=8;
+constexpr const uint8_t DefaultMaxFileCount=8;
 #endif
 
 constexpr uint32_t DefaultRotationPeriodHours=24*7;
@@ -70,13 +75,10 @@ enum class LogRotateMode : uint8_t
 
 }
 
-//! @todo Implement inapp log rotation
-//! @todo Set inapp as default logrotate mode
-
 HDU_UNIT(logrotate_config,
     HDU_FIELD(max_file_count,TYPE_UINT8,1,false,DefaultMaxFileCount)
     HDU_FIELD(period_hours,TYPE_UINT32,2,false,DefaultRotationPeriodHours)
-    HDU_FIELD(mode,TYPE_STRING,3,false,LogRotateModeNone)
+    HDU_FIELD(mode,TYPE_STRING,3,false,LogRotateModeInapp)
 )
 
 HDU_UNIT(filelogger_config,
@@ -97,7 +99,7 @@ auto makeValidator()
     return validator(
             _[filelogger_config::error_log_mode](in,range({ErrorLogModeMain,ErrorLogModeError,ErrorLogModeBoth})),
             _[filelogger_config::log_file](empty(flag,false)),
-            _[filelogger_config::logrotate][logrotate_config::mode](in,range({LogRotateModeNone,/*LogRotateModeInapp,*/LogRotateModeSighup})),
+            _[filelogger_config::logrotate][logrotate_config::mode](in,range({LogRotateModeNone,LogRotateModeInapp,LogRotateModeSighup})),
             _[filelogger_config::logrotate][logrotate_config::period_hours](gte,1),
             _[filelogger_config::logrotate][logrotate_config::max_file_count](gte,1)
         );
@@ -133,13 +135,32 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
             return thread && thread->isStarted();
         }
 
-        void reopenFiles()
+        void closeFiles()
         {
+            Error ec;
             if (logFile)
             {
                 std::ignore=logFile->flush();
-                logFile->close();
-                auto ec=logFile->open(common::PlainFile::Mode::append);
+                logFile->close(ec);
+            }
+            if (errorLogFile)
+            {
+                std::ignore=errorLogFile->flush();
+                errorLogFile->close(ec);
+            }
+        }
+
+        void reopenLogFile(bool closeBeforeOpen=true)
+        {
+            if (logFile)
+            {
+                Error ec;
+                if (closeBeforeOpen)
+                {
+                    std::ignore=logFile->flush();
+                    logFile->close(ec);
+                }
+                ec=logFile->open(common::PlainFile::Mode::append);
                 if (ec)
                 {
                     std::cerr << fmt::format("Failed to reopen log file {} : ({}) - {}",logFile->filename(), ec.value(), ec.message()) << std::endl;
@@ -149,11 +170,20 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                     std::cout << "Reopened log file " << logFile->filename() << " for log rotation" << std::endl;
                 }
             }
+        }
+
+
+        void reopenErrorLogFile(bool closeBeforeOpen=true)
+        {
             if (errorLogFile)
             {
-                std::ignore=errorLogFile->flush();
-                errorLogFile->close();
-                auto ec=errorLogFile->open(common::PlainFile::Mode::append);
+                Error ec;
+                if (closeBeforeOpen)
+                {
+                    std::ignore=errorLogFile->flush();
+                    errorLogFile->close(ec);
+                }
+                ec=errorLogFile->open(common::PlainFile::Mode::append);
                 if (ec)
                 {
                     std::cerr << fmt::format("Failed to reopen log file {} : ({}) - {}",errorLogFile->filename(), ec.value(), ec.message()) << std::endl;
@@ -162,6 +192,170 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                 {
                     std::cout << "Reopened error log file " << logFile->filename() << " for log rotation" << std::endl;
                 }
+            }
+        }
+
+        void reopenFiles(bool closeBeforeOpen=true)
+        {
+            reopenLogFile(closeBeforeOpen);
+            reopenErrorLogFile(closeBeforeOpen);
+        }
+
+        void logrotate()
+        {
+            if (logFile && thread)
+            {
+                auto periodHours=config().field(filelogger_config::logrotate).get().fieldValue(logrotate_config::period_hours);
+
+                lib::filesystem::path path{logFile->filename()};
+                auto newExt=fmt::format("{}.ts",path.extension().string());
+                path.replace_extension(newExt);
+                auto timestampFileName=path.string();
+
+                // find out if rotation needed
+                lib::fs_error_code fsec;
+                bool doRotation=!lib::filesystem::exists(timestampFileName,fsec);
+                if (!doRotation)
+                {
+                    common::PlainFile tsFile;
+                    auto ec=tsFile.open(timestampFileName,common::File::Mode::scan);
+                    if (ec || tsFile.size(ec)>MaxTsFileSize)
+                    {
+                        doRotation=true;
+                    }
+                    else
+                    {
+                        std::string buf;
+                        ec=tsFile.readAll(buf);
+                        if (ec)
+                        {
+                            doRotation=true;
+                        }
+                        else
+                        {
+                            auto dt=common::DateTime::parseIsoString(buf);
+                            if (dt)
+                            {
+                                doRotation=true;
+                            }
+                            else
+                            {
+                                auto current=common::DateTime::currentUtc();
+                                auto nextTime=dt.value();
+                                nextTime.addHours(periodHours);
+                                doRotation=current.after(nextTime);
+                            }
+                        }
+                    }
+                }
+
+                // do rotation
+                if (doRotation)
+                {
+                    // clse files
+                    closeFiles();
+                    auto current=common::DateTime::currentUtc();
+                    std::string ts=fmt::format("{:08x}",current.toEpoch());
+
+                    // rename and reopen log file
+                    Error ec;
+                    if (logFile && logFile->size(ec)!=0)
+                    {
+                        lib::fs_error_code fsec1;
+                        lib::filesystem::path path{logFile->filename()};
+                        auto newExt=fmt::format("{}{}",path.extension().string(),ts);
+                        path.replace_extension(newExt);
+
+                        lib::filesystem::rename(logFile->filename(),path,fsec1);
+                        reopenLogFile(false);
+                    }
+
+                    // rename and reopen error log file
+                    if (errorLogFile && errorLogFile->size(ec)!=0)
+                    {
+                        lib::fs_error_code fsec1;
+                        lib::filesystem::path path{errorLogFile->filename()};
+                        auto newExt=fmt::format("{}{}",path.extension().string(),ts);
+                        path.replace_extension(newExt);
+
+                        lib::filesystem::rename(errorLogFile->filename(),path,fsec1);
+                        reopenErrorLogFile(false);
+                    }
+
+                    // update timestamp file
+                    common::PlainFile tsFile;
+                    ec=tsFile.open(timestampFileName,common::File::Mode::write);
+                    if (ec)
+                    {
+                        std::cerr << fmt::format("Failed to open log timestamp file {} : ({}) - {}",timestampFileName, ec.value(), ec.message()) << std::endl;
+                    }
+                    else
+                    {
+                        tsFile.write(ts,ec);
+                        if (ec)
+                        {
+                            std::cerr << fmt::format("Failed to write log timestamp file {} : ({}) - {}",timestampFileName, ec.value(), ec.message()) << std::endl;
+                        }
+                        std::ignore=tsFile.flush();
+                        tsFile.close();
+                    }
+
+                    // delete outdated files
+                    auto maxFileCount=config().field(filelogger_config::logrotate).get().fieldValue(logrotate_config::max_file_count);
+                    auto deleteOutdated=[maxFileCount](const std::string& baseFilename)
+                    {
+                        // list log files
+                        std::vector<std::string> files;
+                        lib::fs_error_code fsec1;
+                        lib::filesystem::path path(baseFilename);
+                        auto dir=path.parent_path();
+                        for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
+                        {
+                            auto fileName=entry.path().string();
+                            if (fileName!=baseFilename && boost::algorithm::starts_with(fileName,baseFilename))
+                            {
+                                files.push_back(fileName);
+                            }
+                        }
+
+                        // remove oldest files
+                        if (files.size()>maxFileCount)
+                        {
+                            int removeCount=files.size()-maxFileCount;
+                            std::sort(files.begin(),files.end());
+                            for (auto it=files.rbegin();it!=files.rend();++it)
+                            {
+                                lib::filesystem::remove(*it,fsec1);
+                                removeCount--;
+                                if (removeCount<=0)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    };
+                    if (maxFileCount>0)
+                    {
+                        if (logFile)
+                        {
+                            deleteOutdated(logFile->filename());
+                        }
+                        if (errorLogFile)
+                        {
+                            deleteOutdated(errorLogFile->filename());
+                        }
+                    }
+                }
+
+                thread->installTimer(
+                    UsPerHour,
+                    [this]()
+                    {
+                        logrotate();
+                        return true;
+                    },
+                    true
+                );
             }
         }
 };
@@ -176,6 +370,7 @@ FileLoggerTraits::FileLoggerTraits() : d(std::make_unique<FileLoggerTraits_p>())
 
 FileLoggerTraits::~FileLoggerTraits()
 {
+    std::ignore=close();
 }
 
 //---------------------------------------------------------------
@@ -254,27 +449,29 @@ Error FileLoggerTraits::start()
 
 Error FileLoggerTraits::close()
 {
+    Error ec;
     if (d->thread)
     {
         d->thread->stop();
+        d->thread.reset();
     }
 
     // close open files
     if (d->errorLogFile)
     {
         std::ignore=d->errorLogFile->flush();
-        d->errorLogFile->close();
+        d->errorLogFile->close(ec);
         d->errorLogFile.reset();
     }
     if (d->logFile)
     {
         std::ignore=d->logFile->flush();
-        d->logFile->close();
+        d->logFile->close(ec);
         d->logFile.reset();
     }
 
     // done
-    return OK;
+    return ec;
 }
 
 //---------------------------------------------------------------
@@ -380,6 +577,10 @@ Error FileLoggerTraits::loadLogConfig(
     }
 
     // init logrotate
+    if (d->logRotateMode==LogRotateMode::Inapp)
+    {
+        d->logrotate();
+    }
 
     // done
     return OK;
