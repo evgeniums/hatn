@@ -28,10 +28,6 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 
 namespace {
 
-
-//! @todo Implement mapped fields
-#if 0
-
 HDU_UNIT(mapped_level,
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_FIELD(level,TYPE_STRING,2)
@@ -44,12 +40,6 @@ HDU_UNIT(logger_config,
     HDU_REPEATED_FIELD(modules,mapped_level::TYPE,4)
     HDU_REPEATED_FIELD(scopes,mapped_level::TYPE,5)
 )
-#else
-HDU_UNIT(logger_config,
-    HDU_FIELD(level,TYPE_STRING,1,false,"INFO")
-    HDU_FIELD(debug_verbosity,TYPE_UINT8,2)
-)
-#endif
 
 using LoggerConfig =  HATN_BASE_NAMESPACE::ConfigObject<logger_config::type>;
 
@@ -100,7 +90,7 @@ Error LoggerBase::loadLogConfig(
         return logLevel;
     };
 
-#if 0
+#if 1
     const auto& tags=cfg.config().field(logger_config::tags);
     if (tags.isSet())
     {
