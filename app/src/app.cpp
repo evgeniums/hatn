@@ -553,7 +553,7 @@ void App::close()
         }
     }
 
-    // close logger    
+    // close logger
     if (d->logger)
     {
         //! @todo Log app close
