@@ -21,6 +21,7 @@
 #include <hatn/base/configobject.h>
 
 #include <hatn/logcontext/streamlogger.h>
+#include <hatn/logcontext/filelogger.h>
 #include <hatn/logcontext/logconfigrecords.h>
 
 #include <hatn/dataunit/syntax.h>
@@ -218,6 +219,11 @@ App::App(AppName appName) :
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
 {
+    auto buildFileLogger=[]() -> std::shared_ptr<log::LoggerHandler>
+    {
+        return std::make_shared<log::FileLogger>();
+    };
+    registerLoggerHandlerBuilder(log::FileLoggerName,buildFileLogger);
     auto buildStreamLogger=[]() -> std::shared_ptr<log::LoggerHandler>
     {
         return std::make_shared<log::StreamLogger>();

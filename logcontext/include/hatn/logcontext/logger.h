@@ -39,7 +39,7 @@ HATN_LOGCONTEXT_NAMESPACE_BEGIN
 constexpr LogLevel DefaultLogLevel=LogLevel::Info;
 constexpr uint8_t DefaultDebugVerbosity=0;
 
-class AppConfig
+class HATN_LOGCONTEXT_EXPORT AppConfig
 {
     public:
 

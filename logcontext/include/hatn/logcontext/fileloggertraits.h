@@ -58,25 +58,25 @@ struct FileLoggerBufWrapper
 
 class FileLoggerTraits_p;
 
-class FileLoggerTraits : public BufToStream
+class HATN_LOGCONTEXT_EXPORT FileLoggerTraits
 {    
     public:
 
-        using BufToStream::BufToStream;
+        FileLoggerTraits();
+        ~FileLoggerTraits();
 
-        FileLoggerBufWrapper prepareBuf();
+        FileLoggerTraits(const FileLoggerTraits&)=delete;
+        FileLoggerTraits(FileLoggerTraits&&)=default;
+        FileLoggerTraits& operator=(const FileLoggerTraits&)=delete;
+        FileLoggerTraits& operator=(FileLoggerTraits&&)=default;
+
+        FileLoggerBufWrapper prepareBuf();        
 
         void releaseBuf(FileLoggerBufWrapper& bufWrapper);
 
-        void logBuf(const FileLoggerBufWrapper& bufWrapper)
-        {
-            this->log(bufWrapper.buf());
-        }
+        void logBuf(const FileLoggerBufWrapper& bufWrapper);
 
-        void logBufError(const FileLoggerBufWrapper& bufWrapper)
-        {
-            this->logError(bufWrapper.buf());
-        }
+        void logBufError(const FileLoggerBufWrapper& bufWrapper);
 
         Error loadLogConfig(
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
