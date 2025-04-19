@@ -4,9 +4,16 @@ SET (HEADERS
     include/hatn/acl/acl.h
     include/hatn/acl/aclerror.h
     include/hatn/acl/aclerrorcodes.h
+    include/hatn/acl/aclconstants.h
     include/hatn/acl/aclmodels.h
     include/hatn/acl/acldbmodels.h
     include/hatn/acl/acldbmodelsprovider.h
+    include/hatn/acl/aclcontroller.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+    include/hatn/acl/ipp/aclcontroller.ipp
 )
 
 SET (SOURCES

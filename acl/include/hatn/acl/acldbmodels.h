@@ -23,11 +23,11 @@
 
 HATN_ACL_NAMESPACE_BEGIN
 
-HATN_DB_UNIQUE_INDEX(aclRuleSubjObjIdx,acl_rule::subject,acl_rule::object,acl_rule::role)
-HATN_DB_INDEX(aclRuleObjRoleIdx,acl_rule::object,acl_rule::role)
-HATN_DB_INDEX(aclRuleSubjRoleIdx,acl_rule::subject,acl_rule::role)
-HATN_DB_INDEX(aclRuleRoleIdx,acl_rule::role)
-HATN_DB_MODEL_PROTOTYPE(aclRuleModel,acl_rule,aclRuleSubjObjIdx(),aclRuleObjRoleIdx(),aclRuleSubjRoleIdx(),aclRuleRoleIdx())
+HATN_DB_UNIQUE_INDEX(aclSubjRoleObjSubjIdx,acl_subject_role::object,acl_subject_role::subject,acl_subject_role::role)
+HATN_DB_INDEX(aclSubjRoleObjRoleIdx,acl_subject_role::object,acl_subject_role::role)
+HATN_DB_INDEX(aclSubjRoleSubjRoleIdx,acl_subject_role::subject,acl_subject_role::role)
+HATN_DB_INDEX(aclSubjRoleRoleIdx,acl_subject_role::role)
+HATN_DB_MODEL_PROTOTYPE(aclSubjRoleModel,acl_subject_role,aclSubjRoleObjSubjIdx(),aclSubjRoleObjRoleIdx(),aclSubjRoleSubjRoleIdx(),aclSubjRoleRoleIdx())
 
 HATN_DB_UNIQUE_INDEX(aclRoleNameIdx,acl_role::name)
 HATN_DB_MODEL_PROTOTYPE(aclRoleModel,acl_role,aclRoleNameIdx())
@@ -42,9 +42,9 @@ class AclDbModels : public db::ModelsWrapper
         AclDbModels(std::string prefix={}) : db::ModelsWrapper(std::move(prefix))
         {}
 
-        const auto& aclRuleModel() const
+        const auto& aclSubjRoleModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_ACL_NAMESPACE::aclRuleModel);
+            return db::makeModelFromProrotype(prefix(),HATN_ACL_NAMESPACE::aclSubjRoleModel);
         }
 
         const auto& aclRoleModel() const
@@ -60,7 +60,7 @@ class AclDbModels : public db::ModelsWrapper
         auto models()
         {
             return hana::make_tuple(
-                [this](){return aclRuleModel();},
+                [this](){return aclSubjRoleModel();},
                 [this](){return aclRoleModel();},
                 [this](){return aclRoleOperationModel();}
             );

@@ -26,6 +26,7 @@
 
 #define HATN_ACL_ERRORS(Do) \
     Do(AclError,OK,_TR("OK")) \
+    Do(AclError,FORBIDDEN,_TR("operation forbidden by rules of access control lists")) \
 
 
 HATN_ACL_NAMESPACE_BEGIN
