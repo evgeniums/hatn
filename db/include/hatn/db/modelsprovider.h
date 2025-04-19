@@ -24,13 +24,37 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
+class HATN_DB_EXPORT ModelsWrapper
+{
+    public:
+
+        ModelsWrapper(std::string prefix={}) : m_prefix(std::move(prefix))
+        {}
+
+        virtual ~ModelsWrapper();
+        ModelsWrapper(const ModelsWrapper&)=default;
+        ModelsWrapper(ModelsWrapper&&)=default;
+        ModelsWrapper& operator=(const ModelsWrapper&)=default;
+        ModelsWrapper& operator=(ModelsWrapper&&)=default;
+
+        std::string prefix() const
+        {
+            return m_prefix;
+        }
+
+    private:
+
+        std::string m_prefix;
+};
+
+
 class HATN_DB_EXPORT ModelsProvider
 {
     public:
 
-        virtual ~ModelsProvider();
-
         ModelsProvider()=default;
+
+        virtual ~ModelsProvider();
         ModelsProvider(const ModelsProvider&)=delete;
         ModelsProvider(ModelsProvider&&)=default;
         ModelsProvider& operator=(const ModelsProvider&)=delete;
