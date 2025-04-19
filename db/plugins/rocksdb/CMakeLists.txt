@@ -18,6 +18,15 @@ MACRO(LINK_ROCKSDB target)
     ENDIF()
 ENDMACRO(LINK_ROCKSDB)
 
+MACRO(HATN_LIB_LINK_ROCKSDB)
+    GET_PROPERTY(PLUGIN_LIST GLOBAL PROPERTY PLUGIN_LIST)
+    IF ("\"rocksdb\"" IN_LIST PLUGIN_LIST)
+        MESSAGE(STATUS "Linking ${PROJECT_NAME} with hatnrocksdbschema")
+        TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
+        LINK_ROCKSDB(${PROJECT_NAME})
+    ENDIF()
+ENDMACRO(HATN_LIB_LINK_ROCKSDB)
+
 # build library hatnrocksdbschema
 SET(SCHEMA_HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbschemadef.h
