@@ -500,7 +500,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void find(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -520,7 +520,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void findOne(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
