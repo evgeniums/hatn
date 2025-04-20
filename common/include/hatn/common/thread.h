@@ -113,6 +113,13 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
                 size_t timeoutMs=180000
             )
         {
+            auto currentThread=currentThreadOrMain();
+            Assert(currentThread,"Current thread or main must be initialized");
+            if (id()==currentThread->id())
+            {
+                return handler();
+            }
+
             std::packaged_task<T ()> task(std::move(handler));
             auto future=task.get_future();
             auto taskPtr=&task;

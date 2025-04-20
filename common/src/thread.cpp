@@ -399,6 +399,14 @@ Error Thread::execSync(
         size_t timeoutMs
     )
 {
+    auto currentThread=currentThreadOrMain();
+    Assert(currentThread,"Current thread or main must be initialized");
+    if (id()==currentThread->id())
+    {
+        handler();
+        return OK;
+    }
+
     //! @todo check if caller in the same thread
     std::packaged_task<void ()> task(std::move(handler));
     auto future=task.get_future();
