@@ -183,9 +183,28 @@ struct postAsyncTaskT
                     ) const
     {
         auto originThreadQ=TaskWithContextThread::current();
+        auto originThread=Thread::currentThreadOrMain();
 
-        auto cb=[originThreadQ,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args)
+        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args)
         {
+            if (originThreadQ==nullptr)
+            {
+                if (originThread==nullptr)
+                {
+                    callback(std::move(ctx),std::forward<decltype(args)>(args)...);
+                    return;
+                }
+
+                lib::move_only_function<void(const SharedPtr<TaskContext>&)> partial{hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...)};
+                originThread->execAsync(
+                    [ctx{std::move(ctx)},partial{std::move(partial)}]() mutable
+                    {
+                        partial(std::move(ctx));
+                    }
+                );
+                return;
+            }
+
             auto cbTask=originThreadQ->prepare();
             cbTask->setHandler(hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...));
             cbTask->setContext(std::move(ctx));

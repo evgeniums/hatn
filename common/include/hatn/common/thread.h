@@ -85,7 +85,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 
         //! Exec async function in thread
         void execAsync(
-            std::function<void()> handler
+            lib::move_only_function<void()> handler
         );
 
         /**

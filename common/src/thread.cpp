@@ -373,13 +373,13 @@ void Thread::run()
 
 //---------------------------------------------------------------
 void Thread::execAsync(
-        std::function<void ()> handler
+        lib::move_only_function<void()> handler
     )
 {
     d->handlersPending.fetch_add(1,std::memory_order_acquire);
     boost::asio::post(
         *d->asioContext,
-        [this,handler{std::move(handler)}]()
+        [this,handler{std::move(handler)}]() mutable
         {
             d->handlersPending.fetch_sub(1,std::memory_order_acquire);
             handler();

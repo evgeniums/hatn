@@ -18,9 +18,6 @@
 #ifndef HATNTHREADQUEUEINTERFACE_H
 #define HATNTHREADQUEUEINTERFACE_H
 
-#include <functional>
-#include <array>
-
 #include <hatn/common/common.h>
 #include <hatn/common/weakptr.h>
 #include <hatn/common/managedobject.h>
@@ -40,11 +37,11 @@ struct Task final
     constexpr static const bool CopyConstructible=true;
 
     //! Handler to invoke in thread
-    std::function<void()> handler;
+    lib::move_only_function<void()> handler;
 
     //! Ctor
     Task(
-        std::function<void()> handler=std::function<void()>() //!< Handler to invoke
+        lib::move_only_function<void()> handler=lib::move_only_function<void()>() //!< Handler to invoke
     ) noexcept : handler(std::move(handler)),queueItem(nullptr)
     {}
 
@@ -64,7 +61,7 @@ struct Task final
 struct TaskWithContext final
 {
     constexpr static const bool CopyConstructible=true;
-    using HandlerT=std::function<void(const SharedPtr<TaskContext>&)>;
+    using HandlerT=lib::move_only_function<void(const SharedPtr<TaskContext>&)>;
 
     //! Ctor
     TaskWithContext(
@@ -82,9 +79,10 @@ struct TaskWithContext final
         checkGuard=alwaysCheck;
     }
 
-    inline void setHandler(HandlerT h) noexcept
+    template <typename T>
+    inline void setHandler(T&& h) noexcept
     {
-        handler=std::move(h);
+        handler=std::forward<T>(h);
     }
 
     inline void setContext(SharedPtr<TaskContext> ctx) noexcept
@@ -149,7 +147,7 @@ template <typename T>
 struct TaskInlineContext final
 {
     constexpr static const bool CopyConstructible=false;
-    using HandlerT=std::function<void(const T&)>;
+    using HandlerT=lib::move_only_function<void(const T&)>;
 
     //! Handler to invoke
     HandlerT handler;
