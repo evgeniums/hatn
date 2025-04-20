@@ -22,6 +22,7 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/db/schema.h>
 
