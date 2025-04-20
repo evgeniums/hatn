@@ -42,6 +42,10 @@
 
 #endif
 
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
+#endif
+
 #include <hatn/app/apperror.h>
 #include <hatn/app/app.h>
 
@@ -230,6 +234,8 @@ App::App(AppName appName) :
     };
     registerLoggerHandlerBuilder(log::StreamLoggerName,buildStreamLogger);
     d->setAppLogger(log::makeLogger(buildStreamLogger()));
+
+    d->pluginFolders.push_back("plugins");
 }
 
 //---------------------------------------------------------------
@@ -507,7 +513,7 @@ Error App::init()
             common::subcontext(),
             common::subcontext()
         )
-    );    
+    );
 
     // start logger
     const auto& factory=m_env->get<AllocatorFactory>();
@@ -757,20 +763,12 @@ Error App::openDb(bool create)
     // open db
     Error ec;
     base::config_object::LogRecords logRecords;
-    //! @todo Use thread tags
-    if (thread->id()==common::Thread::currentThread()->id())
-    {
-        ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
-    }
-    else
-    {
-        std::ignore=thread->execSync(
-            [this,&ec,&logRecords,&name,create]()
-            {
-                ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
-            }
-        );
-    }
+    std::ignore=thread->execSync(
+        [this,&ec,&logRecords,&name,create]()
+        {
+            ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+        }
+    );
     logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
 
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to open application database","app"),HLOG_MODULE(app))
@@ -831,6 +829,15 @@ Error App::destroyDb()
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::instance().registerSchema(std::move(schema));
+#endif
 }
 
 //---------------------------------------------------------------

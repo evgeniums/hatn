@@ -24,9 +24,15 @@
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreeloader.h>
 
+#include <hatn/db/db.h>
+
 #include <hatn/app/appdefs.h>
 #include <hatn/app/appname.h>
 #include <hatn/app/appenv.h>
+
+HATN_DB_NAMESPACE_BEGIN
+class Schema;
+HATN_DB_NAMESPACE_END
 
 DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
 
@@ -212,6 +218,8 @@ class HATN_APP_EXPORT App
         {
             return m_env->get<Threads>();
         }
+
+        void registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema);
 
     private:
 
