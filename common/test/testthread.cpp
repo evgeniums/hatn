@@ -155,19 +155,19 @@ void testSimpleQueue(TaskQueue* queue, MultiThreadFixture* testFxt)
     BOOST_CHECK_EQUAL(counter,0);
     thread->start();
 
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
+    thread->postTask(Task(handler));
     Task task(handler);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
-    thread->postTask(task);
+    thread->postTask(std::move(task));
 
     testFxt->exec(1);
 
