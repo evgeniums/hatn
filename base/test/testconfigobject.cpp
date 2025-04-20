@@ -343,9 +343,9 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigPlain)
     BOOST_CHECK_EQUAL(records[0].name,"foo.config1.field1");
     BOOST_CHECK_EQUAL(records[0].value,"100");
     BOOST_CHECK_EQUAL(records[1].name,"foo.config1.field2");
-    BOOST_CHECK_EQUAL(records[1].value,"\"hello\"");
+    BOOST_CHECK_EQUAL(records[1].value,"hello");
     BOOST_CHECK_EQUAL(records[2].name,"foo.config1.field3");
-    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+    BOOST_CHECK_EQUAL(records[2].value,"hi");
 
     records.clear();
     config_object::LogSettings settings1;
@@ -361,9 +361,9 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigPlain)
     BOOST_CHECK_EQUAL(records[0].name,"foo.config1.field1");
     BOOST_CHECK_EQUAL(records[0].value,"100");
     BOOST_CHECK_EQUAL(records[1].name,"foo.config1.field2");
-    BOOST_CHECK_EQUAL(records[1].value,"\"$$$$$\"");
+    BOOST_CHECK_EQUAL(records[1].value,"$$$$$");
     BOOST_CHECK_EQUAL(records[2].name,"foo.config1.field3");
-    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+    BOOST_CHECK_EQUAL(records[2].value,"hi");
 }
 
 BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
