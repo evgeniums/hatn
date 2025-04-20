@@ -894,6 +894,11 @@ class WithAsyncClient
             m_db.reset();
         }
 
+        Error setSchema(std::shared_ptr<Schema> schema)
+        {
+            return m_db->client()->setSchema(std::move(schema));
+        }
+
     private:
 
         std::shared_ptr<AsyncClient> m_db;
@@ -923,6 +928,8 @@ class MultipleAsyncClients : public WithAsyncClient
         MultipleAsyncClients(std::shared_ptr<AsyncClient> db={})
             : WithAsyncClient(std::move(db))
         {}
+
+        using WithAsyncClient::dbClient;
 
         const std::shared_ptr<AsyncClient>& dbClient(const Topic& topic) const noexcept
         {
@@ -969,6 +976,17 @@ class MultipleAsyncClients : public WithAsyncClient
         {
             m_clients.clear();
             WithAsyncClient::reset();
+        }
+
+        Error setSchema(std::shared_ptr<Schema> schema)
+        {
+            for (auto&& it:m_clients)
+            {
+                auto ec=it.second->client()->setSchema(schema);
+                HATN_CHECK_EC(ec)
+            }
+
+            return WithAsyncClient::setSchema(std::move(schema));
         }
 
     private:
