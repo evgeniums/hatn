@@ -24,6 +24,7 @@ SET (HEADERS
     include/hatn/db/updateserialization.h
     include/hatn/db/asyncclient.h
     include/hatn/db/modelsprovider.h
+    include/hatn/db/asyncmodelcontroller.h
 )
 
 SET (HEADERS

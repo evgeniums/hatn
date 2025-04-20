@@ -460,6 +460,22 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> find(
+                const std::shared_ptr<ModelT>& model,
+                const ModelIndexQuery& query
+            )
+        {
+            HATN_CTX_SCOPE("dbfind")
+            if (m_open)
+            {
+                return doFind(*model->info,query);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAll(
                 Topic topic,
                 const std::shared_ptr<ModelT>& model,

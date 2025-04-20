@@ -285,6 +285,7 @@ struct ModelIndexQuery
 
     //! @todo Check and warn if query starts with partition field but partitions query is not set
 };
+using AsyncQueryBuilder=lib::move_only_function<ModelIndexQuery ()>;
 
 template <typename IndexT>
 class Query : public IndexQuery
