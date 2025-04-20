@@ -29,33 +29,51 @@ HATN_ACL_NAMESPACE_BEGIN
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-class AclController_p : std::enable_shared_from_this<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
+class AclController_p : public std::enable_shared_from_this<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
 {
-    using Context=typename ContextTraits::Context;
-    using Callback=std::function<void (common::SharedPtr<Context>, const Error&)>;
+    public:
 
-    AclController_p(
-            const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
-            std::shared_ptr<db::ModelsWrapper> wrp
-        ) : ctrl(ctrl)
-    {
-        dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(wrp));
-        Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
-    }
+        using Context=typename ContextTraits::Context;
+        using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
 
-    const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
-    std::shared_ptr<AclDbModels> dbModelsWrapper;
+        AclController_p(
+                const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
+                std::shared_ptr<db::ModelsWrapper> wrp
+            ) : ctrl(ctrl)
+        {
+            dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(wrp));
+            Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
+        }
 
-    mutable std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
-    std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
-    std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
+        const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
+        std::shared_ptr<AclDbModels> dbModelsWrapper;
 
-    void find(
-        common::SharedPtr<Context> ctx,
-        Callback cb,
-        common::SharedPtr<AclControllerArgs> args,
-        common::SharedPtr<AclControllerArgs> initialArgs
-    ) const;
+        mutable std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
+        std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
+        std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
+
+        void find(
+            common::SharedPtr<Context> ctx,
+            Callback cb,
+            common::SharedPtr<AclControllerArgs> args,
+            common::SharedPtr<AclControllerArgs> initialArgs
+        ) const;
+
+        void iterateSubjHierarchy(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            AclStatus prevStatus,
+            common::SharedPtr<AclControllerArgs> args,
+            common::SharedPtr<AclControllerArgs> initialArgs
+        ) const;
+
+        void iterateObjHierarchy(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            AclStatus prevStatus,
+            common::SharedPtr<AclControllerArgs> args,
+            common::SharedPtr<AclControllerArgs> initialArgs
+        ) const;
 };
 
 //--------------------------------------------------------------------------
@@ -65,7 +83,7 @@ AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclContr
         std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : d(std::move(dbModelsWrapper))
+    ) : d(std::make_shared<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>(this,std::move(dbModelsWrapper)))
 {
     d->subjHierarchy=std::move(subjHierarchy);
     d->objHierarchy=std::move(objHierarchy);
@@ -129,6 +147,19 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
     checkAccess(std::move(ctx),std::move(callback),args,args);
 }
 
+struct ArgsThreadTopicBuilder
+{
+    common::SharedPtr<AclControllerArgs> args;
+
+    ArgsThreadTopicBuilder(common::SharedPtr<AclControllerArgs> args) : args(std::move(args))
+    {}
+
+    lib::string_view operator() () const noexcept
+    {
+        return args->topic;
+    }
+};
+
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
@@ -142,7 +173,7 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
     // try to find in cache
     if (d->cache)
     {
-        auto cacheCb=[pimpl{common::toWeakPtr(d)},callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
+        auto cacheCb=[pimpl{std::weak_ptr<typename decltype(d)::element_type>(d)},callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
         {
             if (!ec && status!=AclStatus::Unknown)
             {
@@ -156,12 +187,12 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
                 d->find(std::move(ctx),std::move(callback),args,args,initialArgs);
             }
         };
-        d->cache->find(std::move(ctx),std::move(callback),std::move(args));
+        d->cache->find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
         return;
     }
 
     // invoke lookup
-    d->find(std::move(ctx),std::move(callback),args,args,initialArgs);
+    d->find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
 }
 
 //--------------------------------------------------------------------------
@@ -174,125 +205,8 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
         common::SharedPtr<AclControllerArgs> initialArgs
     ) const
 {
-    auto iterateObjHierarchy=[this,self{this->shared_from_this()},initialArgs,args,callback](auto ctx, AclStatus prevStatus)
-    {
-        // break object iteration if hierarchy not set or access was denied at previous steps
-        if (!objHierarchy || prevStatus==AclStatus::Deny)
-        {
-            //! @todo Keep in cache denied status
-
-            // nothing found, operation is forbidden
-            callback(std::move(ctx),AclStatus::Deny,Error{});
-            return;
-        }
-
-        auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback](auto ctx,
-                                                                                     lib::optional<lib::string_view> parent,
-                                                                                     const Error& ec,
-                                                                                     auto nextCb
-                                                                                     )
-        {
-            // break object iteration in case of error
-            if (ec)
-            {
-                HATN_CTX_SCOPE_ERROR("failed to find object parent for ACL")
-                callback(std::move(ctx),AclStatus::Deny,ec);
-                nextCb(false);
-                return;
-            }
-
-            if (!parent)
-            {
-                //! @todo Keep in cache denied status
-
-                // no more parents, operation forbidden
-                callback(std::move(ctx),AclStatus::Deny,Error{});
-                nextCb(false);
-                return;
-            }
-
-            auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
-                parent.value(),
-                args->subject,
-                args->operation,
-                args->topic
-            );
-            auto cb=[callback,nextCb](auto ctx, AclStatus status, const Error& ec)
-            {
-                // break object iteration if access is either granted or denied or in case of error
-                if (ec || status==AclStatus::Grant || status==AclStatus::Deny)
-                {
-                    callback(std::move(ctx),status,ec);
-                    nextCb(false);
-                    return;
-                }
-                nextCb(true);
-            };
-            ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
-        };
-        objHierarchy->eachParent(
-            ctx,
-            parentCb,
-            args->object
-        );
-    };
-
-    auto iterateSubjHierarchy=[this,self{this->shared_from_this()},initialArgs,args,callback,iterateObjHierarchy](auto ctx, AclStatus prevStatus)
-    {
-        if (!subjHierarchy)
-        {
-            iterateObjHierarchy(std::move(ctx),std::move(args),prevStatus);
-            return;
-        }
-
-        auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback,iterateObjHierarchy,prevStatus](auto ctx,
-                                                                                                        lib::optional<lib::string_view> parent,
-                                                                                                        const Error& ec,
-                                                                                                        auto nextCb
-                                                                                                        )
-        {
-            if (ec)
-            {
-                HATN_CTX_SCOPE_ERROR("failed to find subject parent for ACL")
-                callback(std::move(ctx),AclStatus::Deny,ec);
-                nextCb(false);
-                return;
-            }
-
-            if (!parent)
-            {
-                // no more parents, iterate objects
-                iterateObjHierarchy(std::move(ctx),prevStatus);
-                return;
-            }
-
-            auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
-                args->object,
-                parent.value(),
-                args->operation,
-                args->topic
-            );
-            auto cb=[nextCb,callback](auto ctx, AclStatus status, const Error& ec)
-            {
-                // break subject iteration if access is granted or in case of error
-                if (ec || status==AclStatus::Grant)
-                {
-                   nextCb(false);
-                   callback(std::move(ctx),status,ec);
-                   return;
-                }
-                nextCb(true);
-            };
-            ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
-        };
-        subjHierarchy->eachParent(
-            ctx,
-            parentCb,
-            args->subject
-        );
-    };
-
-    auto listRolesCb=[callback,iterateSubjHierarchy,self{this->shared_from_this()},args,initialArgs,this](auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+    auto self=this->shared_from_this();
+    auto listRolesCb=[callback,args,initialArgs,self,this](auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
     {
         if (roles)
         {
@@ -303,13 +217,13 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 
         if (roles->empty())
         {
-            iterateSubjHierarchy(std::move(ctx));
+            iterateSubjHierarchy(std::move(ctx),std::move(callback),AclStatus::Unknown,std::move(args),std::move(initialArgs));
             return;
         }
         auto list=roles.takeValue();
 
         // look if operation is defined for roles
-        auto findOperationCb=[callback,iterateSubjHierarchy,self,this,args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
+        auto findOperationCb=[callback,self,this,args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
         {
             // db error, break iteration
             if (dbObjResult)
@@ -341,7 +255,7 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             // if not granted then iterate next subject
             if (status==AclStatus::Unknown || status==AclStatus::Deny)
             {
-                iterateSubjHierarchy(std::move(ctx),status);
+                iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
                 return;
             }
 
@@ -378,10 +292,11 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                                      and_(acl_role_operation::operation,db::query::eq,args->operation),
                                      args->topic
                                      );
-            }
+            },
+            ArgsThreadTopicBuilder{args}
         );
         auto& db=ctrl->contextDb(ctx);
-        db.find(
+        db.dbClient(args->topic)->find(
             std::move(ctx),
             std::move(findOperationCb),
             dbModelsWrapper->aclRoleOperationModel(),
@@ -392,22 +307,155 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 
     // list roles defined for object-subject
     auto listRolesQuery=db::wrapQueryBuilder(
-        [args,self{this->shared_from_this()}]()
+        [args]()
         {
             return db::makeQuery(aclSubjRoleObjSubjIdx(),
                                  db::where(acl_subject_role::object,db::query::eq,args->object).
                                       and_(acl_subject_role::subject,db::query::eq,args->subject),
                                  args->topic
                                  );
-        }
+        },
+        ArgsThreadTopicBuilder{args}
     );
     auto& db=ctrl->contextDb(ctx);
-    db.find(
+    db.dbClient(args->topic)->find(
         std::move(ctx),
         std::move(listRolesCb),
-        dbModelsWrapper->aclRoleModel(),
+        dbModelsWrapper->aclSubjRoleModel(),
         listRolesQuery,
         args->topic
+    );
+}
+
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
+        common::SharedPtr<Context> ctx,
+        Callback callback,
+        AclStatus prevStatus,
+        common::SharedPtr<AclControllerArgs> args,
+        common::SharedPtr<AclControllerArgs> initialArgs
+    ) const
+{
+    if (!subjHierarchy)
+    {
+        iterateObjHierarchy(std::move(ctx),std::move(callback),prevStatus,std::move(args),std::move(initialArgs));
+        return;
+    }
+
+    auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback,prevStatus](auto ctx,
+                                                                                             lib::optional<lib::string_view> parent,
+                                                                                             const Error& ec,
+                                                                                             auto nextCb
+                                                                                             )
+    {
+        if (ec)
+        {
+            HATN_CTX_SCOPE_ERROR("failed to find subject parent for ACL")
+            callback(std::move(ctx),AclStatus::Deny,ec);
+            nextCb(false);
+            return;
+        }
+
+        if (!parent)
+        {
+            // no more parents, iterate objects
+            iterateObjHierarchy(std::move(ctx),std::move(callback),prevStatus,std::move(args),std::move(initialArgs));
+            return;
+        }
+
+        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
+            args->object,
+            parent.value(),
+            args->operation,
+            args->topic
+            );
+        auto cb=[nextCb,callback](auto ctx, AclStatus status, const Error& ec)
+        {
+            // break subject iteration if access is granted or in case of error
+            if (ec || status==AclStatus::Grant)
+            {
+                nextCb(false);
+                callback(std::move(ctx),status,ec);
+                return;
+            }
+            nextCb(true);
+        };
+        ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
+    };
+    subjHierarchy->eachParent(
+        std::move(ctx),
+        parentCb,
+        args->subject
+    );
+}
+
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateObjHierarchy(
+    common::SharedPtr<Context> ctx,
+    Callback callback,
+    AclStatus prevStatus,
+    common::SharedPtr<AclControllerArgs> args,
+    common::SharedPtr<AclControllerArgs> initialArgs
+    ) const
+{
+    // break object iteration if hierarchy not set or access was denied at previous steps
+    if (!objHierarchy || prevStatus==AclStatus::Deny)
+    {
+        //! @todo Keep in cache denied status
+
+        // nothing found, operation is forbidden
+        callback(std::move(ctx),AclStatus::Deny,Error{});
+        return;
+    }
+
+    auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback](auto ctx,
+                                                                                        lib::optional<lib::string_view> parent,
+                                                                                        const Error& ec,
+                                                                                        auto nextCb
+                                                                                        )
+    {
+        // break object iteration in case of error
+        if (ec)
+        {
+            HATN_CTX_SCOPE_ERROR("failed to find object parent for ACL")
+            callback(std::move(ctx),AclStatus::Deny,ec);
+            nextCb(false);
+            return;
+        }
+
+        if (!parent)
+        {
+            //! @todo Keep in cache denied status
+
+            // no more parents, operation forbidden
+            callback(std::move(ctx),AclStatus::Deny,Error{});
+            nextCb(false);
+            return;
+        }
+
+        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
+            parent.value(),
+            args->subject,
+            args->operation,
+            args->topic
+            );
+        auto cb=[callback,nextCb](auto ctx, AclStatus status, const Error& ec)
+        {
+            // break object iteration if access is either granted or denied or in case of error
+            if (ec || status==AclStatus::Grant || status==AclStatus::Deny)
+            {
+                callback(std::move(ctx),status,ec);
+                nextCb(false);
+                return;
+            }
+            nextCb(true);
+        };
+        ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
+    };
+    objHierarchy->eachParent(
+        ctx,
+        parentCb,
+        args->object
     );
 }
 

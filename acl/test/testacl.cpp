@@ -15,6 +15,7 @@
 
 /****************************************************************************/
 
+#include <boost/function.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "hatn_test_config.h"
@@ -26,13 +27,32 @@
 
 #include <hatn/acl/acldbmodelsprovider.h>
 #include <hatn/acl/acldbmodels.h>
+#include <hatn/acl/aclcontroller.h>
+#include <hatn/acl/ipp/aclcontroller.ipp>
 
 #include <hatn/app/app.h>
+#include <hatn/app/appenv.h>
 
 HATN_APP_USING
 HATN_ACL_USING
 HATN_DB_USING
+HATN_COMMON_USING
 HATN_TEST_USING
+
+struct ContextTraits
+{
+    using Context=AppEnvContext;
+
+    static auto& contextDb(const SharedPtr<Context>& ctx)
+    {
+        return ctx->get<WithAppEnv>().env()->get<Db>();
+    }
+
+    static const pmr::AllocatorFactory* contextFactory(const SharedPtr<Context>& ctx)
+    {
+        return ctx->get<WithAppEnv>().env()->get<AllocatorFactory>().factory();
+    }
+};
 
 struct TestEnv : public MultiThreadFixture
 {
@@ -72,7 +92,8 @@ auto createApp(std::string configFileName)
     HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
 
-    AclDbModelsProvider dbModelsProvider{std::make_shared<AclDbModels>()};
+    auto dbModels=std::make_shared<AclDbModels>();
+    AclDbModelsProvider dbModelsProvider{dbModels};
     dbModelsProvider.registerRocksdbModels();
 
     auto dbSchema=std::make_shared<Schema>();
@@ -86,15 +107,28 @@ auto createApp(std::string configFileName)
     }
     BOOST_REQUIRE(!ec);
 
-    return app;
+    auto ctrl=std::make_shared<AclController<ContextTraits>>(dbModels);
+
+    return std::make_pair(app,ctrl);
 }
 
 BOOST_AUTO_TEST_SUITE(TestAcl)
 
 BOOST_FIXTURE_TEST_CASE(Simple,TestEnv)
 {
-    auto app=createApp("config.jsonc");
+    auto res=createApp("config.jsonc");
+    auto app=res.first;
+    auto ctrl=res.second;
     BOOST_REQUIRE(app);
+    BOOST_REQUIRE(ctrl);
+
+    auto cb=[](auto ctx, AclStatus status, const HATN_NAMESPACE::Error& ec)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("Check access cb: status={}, ec={}",static_cast<int>(status),ec.message()));
+    };
+
+    auto ctx=makeAppEnvContext(app->env());
+    ctrl->checkAccess(ctx,cb,"obj1","subj1","op1","topic1");
 
     exec(1);
 

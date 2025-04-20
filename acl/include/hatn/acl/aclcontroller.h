@@ -122,10 +122,11 @@ class Cache : public common::WithTraits<Traits>
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs
+            common::SharedPtr<AclControllerArgs> initialArgs,
+            AclStatus status
             )
         {
-            this->traits().find(std::move(ctx),std::move(cb),std::move(args),std::move(initialArgs));
+            this->traits().find(std::move(ctx),std::move(cb),std::move(args),std::move(initialArgs),status);
         }
 };
 
@@ -149,7 +150,8 @@ class CacheNone
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             common::SharedPtr<AclControllerArgs> /*args*/,
-            common::SharedPtr<AclControllerArgs> /*initialArgs*/
+            common::SharedPtr<AclControllerArgs> /*initialArgs*/,
+            AclStatus /*status*/
             )
         {
             cb(std::move(ctx),Error{});
@@ -165,7 +167,7 @@ class AclController
     public:
 
         using Context=typename ContextTraits::Context;
-        using Callback=std::function<void (common::SharedPtr<Context>, const Error&)>;
+        using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
 
         using SubjectHierarchy=SubjectHierarchyT;
         using ObjectHierarchy=ObjectHierarchyT;
@@ -225,7 +227,11 @@ class AclController
             return ContextTraits::contextFactory(ctx);
         }
 
-        std::shared_ptr<AclController_p<ContextTraits>> d;
+        std::shared_ptr<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>> d;
+
+        template <typename ContextTraits1, typename SubjectHierarchyT1, typename ObjectHierarchyT1, typename CacheT1>
+        friend class AclController_p;
+
 };
 
 HATN_ACL_NAMESPACE_END
