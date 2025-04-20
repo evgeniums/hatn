@@ -1,0 +1,17 @@
+{
+    "app" : {
+        "thread_count" : 4
+    },
+
+    "logger" : {
+        "name" : "streamlogger"
+    },
+
+    "db" : {
+        "hatnrocksdb" : {
+            "main" : {
+                "dbpath" : "$data_dir/testdb"
+            }
+        }
+    }
+}
