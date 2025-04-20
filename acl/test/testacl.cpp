@@ -28,8 +28,8 @@
 
 #include <hatn/acl/acldbmodelsprovider.h>
 #include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/aclcontroller.h>
-#include <hatn/acl/ipp/aclcontroller.ipp>
+#include <hatn/acl/accesschecker.h>
+#include <hatn/acl/ipp/accesschecker.ipp>
 
 #include <hatn/app/app.h>
 #include <hatn/app/appenv.h>
@@ -108,7 +108,7 @@ auto createApp(std::string configFileName)
     }
     BOOST_REQUIRE(!ec);
 
-    auto ctrl=std::make_shared<AclController<ContextTraits>>(dbModels);
+    auto ctrl=std::make_shared<AccessChecker<ContextTraits>>(dbModels);
 
     return std::make_pair(app,ctrl);
 }

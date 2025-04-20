@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/ipp/aclcontroller.ipp
+/** @file acl/ipp/accesschecker.ipp
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLCONTROLLER_IPP
-#define HATNACLCONTROLLER_IPP
+#ifndef HATNACLACCESSCHECKER_IPP
+#define HATNACLACCESSCHECKER_IPP
 
 #include <hatn/logcontext/contextlogger.h>
 
@@ -22,22 +22,22 @@
 
 #include <hatn/acl/aclerror.h>
 #include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/aclcontroller.h>
+#include <hatn/acl/accesschecker.h>
 
 HATN_ACL_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-class AclController_p : public std::enable_shared_from_this<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
+class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
 {
     public:
 
         using Context=typename ContextTraits::Context;
         using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
 
-        AclController_p(
-                const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
+        AccessChecker_p(
+                const AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
                 std::shared_ptr<db::ModelsWrapper> wrp
             ) : ctrl(ctrl)
         {
@@ -45,45 +45,45 @@ class AclController_p : public std::enable_shared_from_this<AclController_p<Cont
             Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
         }
 
-        const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
+        const AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
         std::shared_ptr<AclDbModels> dbModelsWrapper;
 
-        mutable std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
-        std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
-        std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
+        mutable std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
+        std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
+        std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
 
         void find(
             common::SharedPtr<Context> ctx,
             Callback cb,
-            common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs
         ) const;
 
         void iterateSubjHierarchy(
             common::SharedPtr<Context> ctx,
             Callback callback,
             AclStatus prevStatus,
-            common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs
         ) const;
 
         void iterateObjHierarchy(
             common::SharedPtr<Context> ctx,
             Callback callback,
             AclStatus prevStatus,
-            common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs
         ) const;
 };
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
+AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
         std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : d(std::make_shared<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>(this,std::move(dbModelsWrapper)))
+    ) : d(std::make_shared<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>(this,std::move(dbModelsWrapper)))
 {
     d->subjHierarchy=std::move(subjHierarchy);
     d->objHierarchy=std::move(objHierarchy);
@@ -92,39 +92,39 @@ AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclContr
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
+AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
+AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
     std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
+AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::~AclController()
+AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::~AccessChecker()
 {}
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::setCache(std::shared_ptr<Cache> cache)
+void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::setCache(std::shared_ptr<Cache> cache)
 {
     d->cache=std::move(cache);
 }
@@ -132,7 +132,7 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::set
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
+void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
         common::SharedPtr<Context> ctx,
         Callback callback,
         lib::string_view object,
@@ -141,7 +141,7 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
         lib::string_view topic
     ) const
 {
-    auto args=contextFactory(ctx)->template createObject<AclControllerArgs>(
+    auto args=contextFactory(ctx)->template createObject<AccessCheckerArgs>(
         object,subject,operation,topic
     );
     checkAccess(std::move(ctx),std::move(callback),args,args);
@@ -149,9 +149,9 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
 
 struct ArgsThreadTopicBuilder
 {
-    common::SharedPtr<AclControllerArgs> args;
+    common::SharedPtr<AccessCheckerArgs> args;
 
-    ArgsThreadTopicBuilder(common::SharedPtr<AclControllerArgs> args) : args(std::move(args))
+    ArgsThreadTopicBuilder(common::SharedPtr<AccessCheckerArgs> args) : args(std::move(args))
     {}
 
     lib::string_view operator() () const noexcept
@@ -163,11 +163,11 @@ struct ArgsThreadTopicBuilder
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
+void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
     common::SharedPtr<Context> ctx,
     Callback callback,
-    common::SharedPtr<AclControllerArgs> args,
-    common::SharedPtr<AclControllerArgs> initialArgs
+    common::SharedPtr<AccessCheckerArgs> args,
+    common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     // try to find in cache
@@ -198,11 +198,11 @@ void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
+void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
         common::SharedPtr<Context> ctx,
         Callback callback,
-        common::SharedPtr<AclControllerArgs> args,
-        common::SharedPtr<AclControllerArgs> initialArgs
+        common::SharedPtr<AccessCheckerArgs> args,
+        common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     auto self=this->shared_from_this();
@@ -328,12 +328,12 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 }
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
+void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
         common::SharedPtr<Context> ctx,
         Callback callback,
         AclStatus prevStatus,
-        common::SharedPtr<AclControllerArgs> args,
-        common::SharedPtr<AclControllerArgs> initialArgs
+        common::SharedPtr<AccessCheckerArgs> args,
+        common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     if (!subjHierarchy)
@@ -363,7 +363,7 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
             return;
         }
 
-        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
+        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
             args->object,
             parent.value(),
             args->operation,
@@ -390,12 +390,12 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
 }
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateObjHierarchy(
+void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateObjHierarchy(
     common::SharedPtr<Context> ctx,
     Callback callback,
     AclStatus prevStatus,
-    common::SharedPtr<AclControllerArgs> args,
-    common::SharedPtr<AclControllerArgs> initialArgs
+    common::SharedPtr<AccessCheckerArgs> args,
+    common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     // break object iteration if hierarchy not set or access was denied at previous steps
@@ -433,7 +433,7 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
             return;
         }
 
-        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AclControllerArgs>(
+        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
             parent.value(),
             args->subject,
             args->operation,
@@ -463,4 +463,4 @@ void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
 
 HATN_ACL_NAMESPACE_END
 
-#endif // HATNACLCONTROLLER_IPP
+#endif // HATNACLACCESSCHECKER_IPP

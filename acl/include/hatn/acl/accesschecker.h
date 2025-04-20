@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/aclcontroller.h
+/** @file acl/accesschecker.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLCONTROLLER_H
-#define HATNACLCONTROLLER_H
+#ifndef HATNACLACCESSCHECKER_H
+#define HATNACLACCESSCHECKER_H
 
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/db/modelsprovider.h>
@@ -80,9 +80,9 @@ class ObjectHierarchy : public common::WithTraits<Traits>
         }
 };
 
-struct AclControllerArgs
+struct AccessCheckerArgs
 {
-    AclControllerArgs(
+    AccessCheckerArgs(
         lib::string_view object,
         lib::string_view subject,
         lib::string_view operation,
@@ -100,7 +100,7 @@ struct AclControllerArgs
 };
 
 template <typename Traits>
-class Cache : public common::WithTraits<Traits>
+class AccessCache : public common::WithTraits<Traits>
 {
     public:
 
@@ -110,7 +110,7 @@ class Cache : public common::WithTraits<Traits>
         void find(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            common::SharedPtr<AclControllerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> args,
             bool touch=true
         )
         {
@@ -121,8 +121,8 @@ class Cache : public common::WithTraits<Traits>
         void set(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs,
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs,
             AclStatus status
             )
         {
@@ -130,7 +130,7 @@ class Cache : public common::WithTraits<Traits>
         }
 };
 
-class CacheNone
+class AccessCacheNone
 {
     public:
 
@@ -138,7 +138,7 @@ class CacheNone
         void find(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            common::SharedPtr<AclControllerArgs> /*args*/,
+            common::SharedPtr<AccessCheckerArgs> /*args*/,
             bool /*touch*/
             )
         {
@@ -149,8 +149,8 @@ class CacheNone
         void set(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            common::SharedPtr<AclControllerArgs> /*args*/,
-            common::SharedPtr<AclControllerArgs> /*initialArgs*/,
+            common::SharedPtr<AccessCheckerArgs> /*args*/,
+            common::SharedPtr<AccessCheckerArgs> /*initialArgs*/,
             AclStatus /*status*/
             )
         {
@@ -158,11 +158,11 @@ class CacheNone
         }
 };
 
-template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=CacheNone>
-class AclController_p;
+template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=AccessCacheNone>
+class AccessChecker_p;
 
-template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=CacheNone>
-class AclController
+template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=AccessCacheNone>
+class AccessChecker
 {
     public:
 
@@ -173,29 +173,29 @@ class AclController
         using ObjectHierarchy=ObjectHierarchyT;
         using Cache=CacheT;
 
-        AclController(
+        AccessChecker(
                 std::shared_ptr<db::ModelsWrapper> wrapper,
                 std::shared_ptr<SubjectHierarchy> subjHierarchy={},
                 std::shared_ptr<ObjectHierarchy> objHierarchy={}
             );
-        AclController(
+        AccessChecker(
                 std::shared_ptr<db::ModelsWrapper> wrapper,
                 std::shared_ptr<ObjectHierarchy> objHierarchy
             );
 
-        AclController(
+        AccessChecker(
                 std::shared_ptr<SubjectHierarchy> subjHierarchy={},
                 std::shared_ptr<ObjectHierarchy> objHierarchy={}
             );
-        AclController(
+        AccessChecker(
             std::shared_ptr<ObjectHierarchy> objHierarchy
         );
 
-        ~AclController();
-        AclController(const AclController&)=delete;
-        AclController(AclController&&)=default;
-        AclController& operator=(const AclController&)=delete;
-        AclController& operator=(AclController&&)=default;
+        ~AccessChecker();
+        AccessChecker(const AccessChecker&)=delete;
+        AccessChecker(AccessChecker&&)=default;
+        AccessChecker& operator=(const AccessChecker&)=delete;
+        AccessChecker& operator=(AccessChecker&&)=default;
 
         void setCache(std::shared_ptr<Cache> cache);
 
@@ -211,8 +211,8 @@ class AclController
         void checkAccess(
             common::SharedPtr<Context> ctx,
             Callback callback,
-            common::SharedPtr<AclControllerArgs> args,
-            common::SharedPtr<AclControllerArgs> initialArgs={}
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs={}
         ) const;
 
     private:
@@ -227,13 +227,13 @@ class AclController
             return ContextTraits::contextFactory(ctx);
         }
 
-        std::shared_ptr<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>> d;
+        std::shared_ptr<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>> d;
 
         template <typename ContextTraits1, typename SubjectHierarchyT1, typename ObjectHierarchyT1, typename CacheT1>
-        friend class AclController_p;
+        friend class AccessChecker_p;
 
 };
 
 HATN_ACL_NAMESPACE_END
 
-#endif // HATNACLCONTROLLER_H
+#endif // HATNACLACCESSCHECKER_H
