@@ -16,6 +16,8 @@
 #ifndef HATNACLACCESSCHECKER_IPP
 #define HATNACLACCESSCHECKER_IPP
 
+#include <hatn/common/meta/chain.h>
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/db/indexquery.h>
@@ -198,138 +200,6 @@ void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
-        common::SharedPtr<Context> ctx,
-        Callback callback,
-        common::SharedPtr<AccessCheckerArgs> args,
-        common::SharedPtr<AccessCheckerArgs> initialArgs
-    ) const
-{
-    auto self=this->shared_from_this();
-    auto listRolesCb=[callback,args,initialArgs,self,this](auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
-    {
-        if (roles)
-        {
-            HATN_CTX_SCOPE_ERROR("failed to list ACL roles for object-subject pair")
-            callback(std::move(ctx),AclStatus::Deny,roles.error());
-            return;
-        }
-
-        if (roles->empty())
-        {
-            iterateSubjHierarchy(std::move(ctx),std::move(callback),AclStatus::Unknown,std::move(args),std::move(initialArgs));
-            return;
-        }
-        auto list=roles.takeValue();
-
-        // look if operation is defined for roles
-        auto findOperationCb=[callback,self,this,args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
-        {
-            // db error, break iteration
-            if (dbObjResult)
-            {
-                HATN_CTX_SCOPE_ERROR("failed to find role-operation in ACL")
-                callback(std::move(ctx),AclStatus::Deny,dbObjResult.error());
-                return;
-            }
-            AclStatus status=AclStatus::Unknown;
-
-            // evaluate access, access is granted if at least one role grants it
-            if (!dbObjResult->empty())
-            {
-                for (auto&& item: dbObjResult.value())
-                {
-                    const auto* roleOp=item.as<acl_role_operation::type>();
-                    if (roleOp->fieldValue(acl_role_operation::grant_ndeny))
-                    {
-                        status=AclStatus::Grant;
-                        break;
-                    }
-                    else
-                    {
-                        status=AclStatus::Deny;
-                    }
-                }
-            }
-
-            // if not granted then iterate next subject
-            if (status==AclStatus::Unknown || status==AclStatus::Deny)
-            {
-                iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
-                return;
-            }
-
-            // iteration complete
-            if (cache)
-            {
-                // keep in cache
-                auto cacheCb=[status,callback](auto ctx, const Error&)
-                {
-                    // done
-                    callback(std::move(ctx),status,Error{});
-                };
-                cache->set(std::move(ctx),std::move(cacheCb),std::move(args),std::move(initialArgs),status);
-            }
-            else
-            {
-                // done
-                callback(std::move(ctx),status,Error{});
-            }
-        };
-        auto roleOperationsQuery=db::wrapQueryBuilder(
-            [args,self,list{list}]()
-            {
-                std::vector<du::ObjectId> roles;
-                roles.reserve(list.size());
-                for (auto&& item: list)
-                {
-                    const auto* rule=item.as<acl_subject_role::type>();
-                    roles.push_back(rule->fieldValue(acl_subject_role::role));
-                }
-
-                return db::makeQuery(aclRoleOperationIdx(),
-                                     db::where(acl_role_operation::role,db::query::in,roles).
-                                     and_(acl_role_operation::operation,db::query::eq,args->operation),
-                                     args->topic
-                                     );
-            },
-            ArgsThreadTopicBuilder{args}
-        );
-        auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->topic)->find(
-            std::move(ctx),
-            std::move(findOperationCb),
-            dbModelsWrapper->aclRoleOperationModel(),
-            roleOperationsQuery,
-            args->topic
-        );
-    };
-
-    // list roles defined for object-subject
-    auto listRolesQuery=db::wrapQueryBuilder(
-        [args]()
-        {
-            return db::makeQuery(aclSubjRoleObjSubjIdx(),
-                                 db::where(acl_subject_role::object,db::query::eq,args->object).
-                                      and_(acl_subject_role::subject,db::query::eq,args->subject),
-                                 args->topic
-                                 );
-        },
-        ArgsThreadTopicBuilder{args}
-    );
-    auto& db=ctrl->contextDb(ctx);
-    db.dbClient(args->topic)->find(
-        std::move(ctx),
-        std::move(listRolesCb),
-        dbModelsWrapper->aclSubjRoleModel(),
-        listRolesQuery,
-        args->topic
-    );
-}
-
-//--------------------------------------------------------------------------
-
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
 void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
         common::SharedPtr<Context> ctx,
         Callback callback,
@@ -461,6 +331,165 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
         parentCb,
         args->object
     );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
+        common::SharedPtr<Context> ctx,
+        Callback callback,
+        common::SharedPtr<AccessCheckerArgs> args,
+        common::SharedPtr<AccessCheckerArgs> initialArgs
+    ) const
+{
+    auto self=this->shared_from_this();
+
+    // list subject roles for given object
+    auto listSubjObjRoles=[callback,args,initialArgs,self,this](auto* listRoleOperations, auto ctx)
+    {
+        auto listRolesQuery=db::wrapQueryBuilder(
+            [args]()
+            {
+                return db::makeQuery(aclSubjRoleObjSubjIdx(),
+                                     db::where(acl_subject_role::object,db::query::eq,args->object).
+                                     and_(acl_subject_role::subject,db::query::eq,args->subject),
+                                     args->topic
+                                     );
+            },
+            ArgsThreadTopicBuilder{args}
+        );
+
+        auto cb=[listRoleOperations,callback{std::move(callback)},args,initialArgs,self,this](auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+        {
+            if (roles)
+            {
+                HATN_CTX_SCOPE_ERROR("failed to list ACL roles for object-subject pair")
+                callback(std::move(ctx),AclStatus::Deny,roles.error());
+                return;
+            }
+            if (roles->empty())
+            {
+                iterateSubjHierarchy(std::move(ctx),std::move(callback),AclStatus::Unknown,std::move(args),std::move(initialArgs));
+                return;
+            }
+
+            (*listRoleOperations)(std::move(ctx),std::move(roles));
+        };
+
+        auto& db=ctrl->contextDb(ctx);
+        db.dbClient(args->topic)->find(
+            std::move(ctx),
+            std::move(cb),
+            dbModelsWrapper->aclSubjRoleModel(),
+            listRolesQuery,
+            args->topic
+        );
+    };
+
+    // list operation access rules defined for found roles
+    auto listRoleOperations=[callback,args,initialArgs,self,this](auto* checkRoleOperations, auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+    {
+        auto list=roles.takeValue();
+        auto roleOperationsQuery=db::wrapQueryBuilder(
+            [args,self,list{list}]()
+            {
+                std::vector<du::ObjectId> roles;
+                roles.reserve(list.size());
+                for (auto&& item: list)
+                {
+                    const auto* rule=item.as<acl_subject_role::type>();
+                    roles.push_back(rule->fieldValue(acl_subject_role::role));
+                }
+
+                return db::makeQuery(aclRoleOperationIdx(),
+                                     db::where(acl_role_operation::role,db::query::in,roles).
+                                     and_(acl_role_operation::operation,db::query::eq,args->operation),
+                                     args->topic
+                                     );
+            },
+            ArgsThreadTopicBuilder{args}
+            );
+
+        auto cb=[checkRoleOperations,callback{std::move(callback)},args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
+        {
+            // if db error then  break iteration
+            if (dbObjResult)
+            {
+                HATN_CTX_SCOPE_ERROR("failed to find role-operation in ACL")
+                callback(std::move(ctx),AclStatus::Deny,dbObjResult.error());
+                return;
+            }
+
+            (*checkRoleOperations)(std::move(ctx),std::move(dbObjResult));
+        };
+
+        auto& db=ctrl->contextDb(ctx);
+        db.dbClient(args->topic)->find(
+            std::move(ctx),
+            std::move(cb),
+            dbModelsWrapper->aclRoleOperationModel(),
+            roleOperationsQuery,
+            args->topic
+            );
+    };
+
+    // check access rules for found role operations
+    auto checkRoleOperations=[callback,self,this,args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
+    {
+        AclStatus status=AclStatus::Unknown;
+
+        // evaluate access, access is granted if at least one role grants it
+        if (!dbObjResult->empty())
+        {
+            for (auto&& item: dbObjResult.value())
+            {
+                const auto* roleOp=item.as<acl_role_operation::type>();
+                if (roleOp->fieldValue(acl_role_operation::grant_ndeny))
+                {
+                    status=AclStatus::Grant;
+                    break;
+                }
+                else
+                {
+                    status=AclStatus::Deny;
+                }
+            }
+        }
+
+        // if not granted then iterate next subject
+        if (status==AclStatus::Unknown || status==AclStatus::Deny)
+        {
+            iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
+            return;
+        }
+
+        // iteration complete
+        if (cache)
+        {
+            // keep in cache
+            auto cacheCb=[status,callback](auto ctx, const Error&)
+            {
+                // done
+                callback(std::move(ctx),status,Error{});
+            };
+            cache->set(std::move(ctx),std::move(cacheCb),std::move(args),std::move(initialArgs),status);
+        }
+        else
+        {
+            // done
+            callback(std::move(ctx),status,Error{});
+        }
+    };
+
+    // invoke
+    auto nodes=chain::nodes(
+            chain::node(std::move(listSubjObjRoles)),
+            chain::node(std::move(listRoleOperations)),
+            chain::node(std::move(checkRoleOperations))
+        );
+    auto start=chain::link(nodes);
+    start(std::move(ctx));
 }
 
 //--------------------------------------------------------------------------
