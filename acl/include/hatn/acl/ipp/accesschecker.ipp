@@ -327,6 +327,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     );
 }
 
+//--------------------------------------------------------------------------
+
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
 void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
         common::SharedPtr<Context> ctx,
@@ -388,6 +390,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
         args->subject
     );
 }
+
+//--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
 void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateObjHierarchy(
