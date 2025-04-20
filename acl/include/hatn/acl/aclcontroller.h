@@ -31,7 +31,20 @@ enum class AclStatus : uint8_t
     Deny=2
 };
 
-template <typename Traits>
+struct HierarchyNone
+{
+    template <typename ContextT, typename CallbackT>
+    void eachParent(
+        common::SharedPtr<ContextT> ctx,
+        CallbackT cb,
+        lib::string_view
+        )
+    {
+        cb(std::move(ctx),lib::optional<lib::string_view>{},Error{},[](bool){});
+    }
+};
+
+template <typename Traits=HierarchyNone>
 class SubjectHierarchy : public common::WithTraits<Traits>
 {
     public:
@@ -49,7 +62,7 @@ class SubjectHierarchy : public common::WithTraits<Traits>
         }
 };
 
-template <typename Traits>
+template <typename Traits=HierarchyNone>
 class ObjectHierarchy : public common::WithTraits<Traits>
 {
     public:
@@ -58,9 +71,9 @@ class ObjectHierarchy : public common::WithTraits<Traits>
 
         template <typename ContextT, typename CallbackT>
         void eachParent(
-            common::SharedPtr<ContextT> ctx,
-            CallbackT cb,
-            lib::string_view object
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb,
+                lib::string_view object
             )
         {
             this->traits().eachParent(std::move(ctx),std::move(cb),object);
@@ -103,22 +116,60 @@ class Cache : public common::WithTraits<Traits>
         {
             this->traits().find(std::move(ctx),std::move(cb),std::move(args),touch);
         }
+
+        template <typename ContextT, typename CallbackT>
+        void set(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            common::SharedPtr<AclControllerArgs> args,
+            common::SharedPtr<AclControllerArgs> initialArgs
+            )
+        {
+            this->traits().find(std::move(ctx),std::move(cb),std::move(args),std::move(initialArgs));
+        }
 };
 
-template <typename Traits>
+class CacheNone
+{
+    public:
+
+        template <typename ContextT, typename CallbackT>
+        void find(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            common::SharedPtr<AclControllerArgs> /*args*/,
+            bool /*touch*/
+            )
+        {
+            cb(std::move(ctx),AclStatus::Unknown,Error{});
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void set(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            common::SharedPtr<AclControllerArgs> /*args*/,
+            common::SharedPtr<AclControllerArgs> /*initialArgs*/
+            )
+        {
+            cb(std::move(ctx),Error{});
+        }
+};
+
+template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=CacheNone>
 class AclController_p;
 
-template <typename Traits>
+template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=CacheNone>
 class AclController
 {
     public:
 
-        using Context=typename Traits::Context;
+        using Context=typename ContextTraits::Context;
         using Callback=std::function<void (common::SharedPtr<Context>, const Error&)>;
 
-        using SubjectHierarchy=HATN_ACL_NAMESPACE::SubjectHierarchy<Traits>;
-        using ObjectHierarchy=HATN_ACL_NAMESPACE::ObjectHierarchy<Traits>;
-        using Cache=HATN_ACL_NAMESPACE::Cache<Traits>;
+        using SubjectHierarchy=SubjectHierarchyT;
+        using ObjectHierarchy=ObjectHierarchyT;
+        using Cache=CacheT;
 
         AclController(
                 std::shared_ptr<db::ModelsWrapper> wrapper,
@@ -166,15 +217,15 @@ class AclController
 
         auto& contextDb(const common::SharedPtr<Context>& ctx) const
         {
-            return Traits::contextDb(ctx);
+            return ContextTraits::contextDb(ctx);
         }
 
         const common::pmr::AllocatorFactory* contextFactory(const common::SharedPtr<Context>& ctx) const
         {
-            return Traits::contextFactory(ctx);
+            return ContextTraits::contextFactory(ctx);
         }
 
-        std::shared_ptr<AclController_p<Traits>> d;
+        std::shared_ptr<AclController_p<ContextTraits>> d;
 };
 
 HATN_ACL_NAMESPACE_END

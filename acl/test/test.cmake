@@ -17,6 +17,8 @@ FUNCTION(TestAcl)
     COPY_LIBRARY_HERE(hatnacl${LIB_POSTFIX} ../acl/)
     COPY_LIBRARY_HERE(hatnlogcontext${LIB_POSTFIX} ../logcontext/)
     COPY_LIBRARY_HERE(hatndb${LIB_POSTFIX} ../db/)
+    COPY_LIBRARY_HERE(hatnapp${LIB_POSTFIX} ../app/)
+    COPY_LIBRARY_HERE(hatnapi${LIB_POSTFIX} ../api/)
 ENDFUNCTION(TestAcl)
 
 ADD_CUSTOM_TARGET(acltest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})

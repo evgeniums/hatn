@@ -28,14 +28,14 @@ HATN_ACL_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-class AclController_p : std::enable_shared_from_this<AclController_p<Traits>>
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+class AclController_p : std::enable_shared_from_this<AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
 {
-    using Context=typename Traits::Context;
+    using Context=typename ContextTraits::Context;
     using Callback=std::function<void (common::SharedPtr<Context>, const Error&)>;
 
     AclController_p(
-            const AclController<Traits>* ctrl,
+            const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
             std::shared_ptr<db::ModelsWrapper> wrp
         ) : ctrl(ctrl)
     {
@@ -43,12 +43,12 @@ class AclController_p : std::enable_shared_from_this<AclController_p<Traits>>
         Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
     }
 
-    const AclController<Traits>* ctrl;
+    const AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
     std::shared_ptr<AclDbModels> dbModelsWrapper;
 
-    mutable std::shared_ptr<typename AclController<Traits>::Cache> cache;
-    std::shared_ptr<typename AclController<Traits>::SubjectHierarchy> subjHierarchy;
-    std::shared_ptr<typename AclController<Traits>::ObjectHierarchy> objHierarchy;
+    mutable std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
+    std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
+    std::shared_ptr<typename AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
 
     void find(
         common::SharedPtr<Context> ctx,
@@ -60,8 +60,8 @@ class AclController_p : std::enable_shared_from_this<AclController_p<Traits>>
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-AclController<Traits>::AclController(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
         std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
@@ -73,48 +73,48 @@ AclController<Traits>::AclController(
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-AclController<Traits>::AclController(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<Traits>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
+    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-AclController<Traits>::AclController(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
     std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<Traits>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
+    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-AclController<Traits>::AclController(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AclController(
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AclController<Traits>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
+    ) : AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-AclController<Traits>::~AclController()
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::~AclController()
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void AclController<Traits>::setCache(std::shared_ptr<Cache> cache)
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::setCache(std::shared_ptr<Cache> cache)
 {
     d->cache=std::move(cache);
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void AclController<Traits>::checkAccess(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
         common::SharedPtr<Context> ctx,
         Callback callback,
         lib::string_view object,
@@ -131,8 +131,8 @@ void AclController<Traits>::checkAccess(
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void AclController<Traits>::checkAccess(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
     common::SharedPtr<Context> ctx,
     Callback callback,
     common::SharedPtr<AclControllerArgs> args,
@@ -142,11 +142,11 @@ void AclController<Traits>::checkAccess(
     // try to find in cache
     if (d->cache)
     {
-        auto cacheCb=[pimpl{common::toWeakPtr(d)},callback,args,initialArgs](auto ctx, const Error& ec)
+        auto cacheCb=[pimpl{common::toWeakPtr(d)},callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
         {
-            if (!ec)
+            if (!ec && status!=AclStatus::Unknown)
             {
-                callback(std::move(ctx),ec);
+                callback(std::move(ctx),status,ec);
                 return;
             }
 
@@ -166,8 +166,8 @@ void AclController<Traits>::checkAccess(
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void AclController_p<Traits>::find(
+template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
+void AclController_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
         common::SharedPtr<Context> ctx,
         Callback callback,
         common::SharedPtr<AclControllerArgs> args,
@@ -179,7 +179,7 @@ void AclController_p<Traits>::find(
         // break object iteration if hierarchy not set or access was denied at previous steps
         if (!objHierarchy || prevStatus==AclStatus::Deny)
         {
-            //! @todo Keep in cache denoed status
+            //! @todo Keep in cache denied status
 
             // nothing found, operation is forbidden
             callback(std::move(ctx),AclStatus::Deny,Error{});
