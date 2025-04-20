@@ -347,7 +347,7 @@ class QueryBuilderWrapperT
 
     private:
 
-        QueryBuilderWrapperT m_builder;
+        QueryBuilderT m_builder;
         TopicBuilderT m_threadTopicBuilder;
 };
 
