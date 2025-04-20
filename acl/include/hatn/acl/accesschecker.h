@@ -231,7 +231,6 @@ class AccessChecker
 
         template <typename ContextTraits1, typename SubjectHierarchyT1, typename ObjectHierarchyT1, typename CacheT1>
         friend class AccessChecker_p;
-
 };
 
 HATN_ACL_NAMESPACE_END
