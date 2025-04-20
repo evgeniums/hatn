@@ -9,11 +9,14 @@ SET (HEADERS
     include/hatn/acl/acldbmodels.h
     include/hatn/acl/acldbmodelsprovider.h
     include/hatn/acl/accesschecker.h
+    include/hatn/acl/aclcontroller.h
+    include/hatn/acl/localaclcontroller.h
 )
 
 SET (HEADERS
     ${HEADERS}
     include/hatn/acl/ipp/accesschecker.ipp
+    include/hatn/acl/ipp/localaclcontroller.ipp
 )
 
 SET (SOURCES

@@ -30,6 +30,8 @@
 #include <hatn/acl/acldbmodels.h>
 #include <hatn/acl/accesschecker.h>
 #include <hatn/acl/ipp/accesschecker.ipp>
+#include <hatn/acl/localaclcontroller.h>
+#include <hatn/acl/ipp/localaclcontroller.ipp>
 
 #include <hatn/app/app.h>
 #include <hatn/app/appenv.h>
@@ -71,6 +73,12 @@ struct TestEnv : public MultiThreadFixture
     TestEnv& operator=(TestEnv&&) =delete;
 };
 
+struct AppCtx
+{
+    std::shared_ptr<App> app;
+    std::shared_ptr<AccessChecker<ContextTraits>> checker;
+    std::shared_ptr<LocalAclController<ContextTraits>> ctrl;
+};
 
 auto createApp(std::string configFileName)
 {
@@ -108,32 +116,73 @@ auto createApp(std::string configFileName)
     }
     BOOST_REQUIRE(!ec);
 
-    auto ctrl=std::make_shared<AccessChecker<ContextTraits>>(dbModels);
+    auto checker=std::make_shared<AccessChecker<ContextTraits>>(dbModels);
 
-    return std::make_pair(app,ctrl);
+    auto ctrl=std::make_shared<LocalAclController<ContextTraits>>(dbModels);
+
+    return AppCtx{app,checker,ctrl};
 }
 
 BOOST_AUTO_TEST_SUITE(TestAcl)
 
-BOOST_FIXTURE_TEST_CASE(Simple,TestEnv)
+BOOST_FIXTURE_TEST_CASE(CheckEmptyAcl,TestEnv)
 {
     auto res=createApp("config.jsonc");
-    auto app=res.first;
-    auto ctrl=res.second;
-    BOOST_REQUIRE(app);
-    BOOST_REQUIRE(ctrl);
+    BOOST_REQUIRE(res.app);
+    BOOST_REQUIRE(res.checker);
 
     auto cb=[](auto ctx, AclStatus status, const HATN_NAMESPACE::Error& ec)
     {
         BOOST_TEST_MESSAGE(fmt::format("Check access cb: status={}, ec={}",static_cast<int>(status),ec.message()));
     };
-
-    auto ctx=makeAppEnvContext(app->env());
-    ctrl->checkAccess(ctx,cb,"obj1","subj1","op1","topic1");
+    auto ctx=makeAppEnvContext(res.app->env());
+    res.checker->checkAccess(ctx,cb,"obj1","subj1","op1","topic1");
 
     exec(1);
 
-    app->close();
+    res.app->close();
+}
+
+BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
+{
+    auto res=createApp("config.jsonc");
+    BOOST_REQUIRE(res.app);
+    BOOST_REQUIRE(res.checker);
+
+    auto addRoleCb=[&res](auto ctx, const HATN_NAMESPACE::Error& ec)
+    {
+        HATN_TEST_EC(ec)
+        BOOST_REQUIRE(!ec);
+        BOOST_TEST_MESSAGE("Adding role OK");
+
+        // auto listRolesCb=[](auto ctx, HATN_NAMESPACE::Result<pmr::vector<HATN_DB_NAMESPACE::DbObject>> roles)
+        // {
+
+        // };
+
+        // auto ctx2=makeAppEnvContext(res.app->env());
+        // res.ctrl->listRoles(
+        //     ctx2,
+        //     listRolesCb,
+        //     []()
+        //     {
+        //         return HATN_DB_NAMESPACE::ModelIndexQuery{};
+        //     }
+        // );
+    };
+    auto role=makeShared<acl_role::managed>();
+    role->setFieldValue(acl_role::name,"role1");
+    role->setFieldValue(acl_role::description,"description of role1");
+    auto ctx1=makeAppEnvContext(res.app->env());
+    res.ctrl->addRole(
+        ctx1,
+        addRoleCb,
+        role
+    );
+
+    exec(1);
+
+    res.app->close();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
