@@ -107,10 +107,11 @@ void LocalAclControllerImpl<ContextTraits>::removeRole(
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
+template <typename QueryBuilderWrapperT>
 void LocalAclControllerImpl<ContextTraits>::listRoles(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
-        db::AsyncQueryBuilder query,
+        QueryBuilderWrapperT query,
         db::Topic topic
     )
 {
@@ -185,10 +186,11 @@ void LocalAclControllerImpl<ContextTraits>::removeRoleOperation(
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
+template <typename QueryBuilderWrapperT>
 void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
-        db::AsyncQueryBuilder query,
+        QueryBuilderWrapperT query,
         db::Topic topic
     )
 {
@@ -242,10 +244,11 @@ void LocalAclControllerImpl<ContextTraits>::removeSubjectObjectRole(
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
+template <typename QueryBuilderWrapperT>
 void LocalAclControllerImpl<ContextTraits>::listSubjectObjectRoles(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
-        db::AsyncQueryBuilder query,
+        QueryBuilderWrapperT query,
         db::Topic topic
     )
 {

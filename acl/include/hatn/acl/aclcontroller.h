@@ -60,10 +60,11 @@ class AclController : public common::WithTraits<Traits>
             this->traits().removeRole(std::move(ctx),std::move(callback),id,topic);
         }
 
+        template <typename QueryBuilderWrapperT>
         void listRoles(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         )
         {
@@ -101,10 +102,11 @@ class AclController : public common::WithTraits<Traits>
             this->traits().removeRoleOperation(std::move(ctx),std::move(callback),id,topic);
         }
 
+        template <typename QueryBuilderWrapperT>
         void listRoleOperations(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         )
         {
@@ -131,10 +133,11 @@ class AclController : public common::WithTraits<Traits>
             this->traits().removeSubjectObjectRole(std::move(ctx),std::move(callback),id,topic);
         }
 
+        template <typename QueryBuilderWrapperT>
         void listSubjectObjectRoles(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         )
         {

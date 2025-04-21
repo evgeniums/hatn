@@ -62,10 +62,11 @@ class LocalAclControllerImpl
             db::Topic topic={}
         );
 
+        template <typename QueryBuilderWrapperT>
         void listRoles(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         );
 
@@ -91,10 +92,11 @@ class LocalAclControllerImpl
             db::Topic topic={}
         );
 
+        template <typename QueryBuilderWrapperT>
         void listRoleOperations(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         );
 
@@ -112,10 +114,11 @@ class LocalAclControllerImpl
             db::Topic topic={}
         );
 
+        template <typename QueryBuilderWrapperT>
         void listSubjectObjectRoles(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             db::Topic topic={}
         );
 

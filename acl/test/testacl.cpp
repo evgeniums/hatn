@@ -161,15 +161,15 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
     std::string topic{"topic1"};
     std::string role1{"role1"};
 
-    auto addRole=[&res,&topic,role1](auto&& listRoles)
+    auto addRole=[&res,&topic,&role1](auto&& listRoles)
     {
         BOOST_TEST_MESSAGE("Adding role");
 
-        auto addRoleCb=[listRoles](auto ctx, const HATN_NAMESPACE::Error& ec) mutable
+        auto cb=[listRoles,&role1](auto ctx, const Error& ec, const HATN_DATAUNIT_NAMESPACE::ObjectId& oid) mutable
         {
             HATN_TEST_EC(ec)
             BOOST_REQUIRE(!ec);
-            BOOST_TEST_MESSAGE("Role added");
+            BOOST_TEST_MESSAGE(fmt::format("Role added name={}, id={}",role1,oid.string()));
             listRoles(std::move(ctx));
         };
 
@@ -179,15 +179,36 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
         auto ctx1=makeAppEnvContext(res.app->env());
         res.ctrl->addRole(
             ctx1,
-            addRoleCb,
+            cb,
             role,
             topic
         );
     };
 
-    auto listRoles=[&res](auto ctx)
+    auto listRoles=[&res,&topic,&role1](auto ctx)
     {
         BOOST_TEST_MESSAGE("Listing roles");
+
+        auto cb=[&role1](auto ctx, common::Result<common::pmr::vector<DbObject>> result) mutable
+        {
+            HATN_TEST_RESULT(result)
+            BOOST_REQUIRE(!result);
+            BOOST_TEST_MESSAGE(fmt::format("Roles listed, found {}",result->size()));
+            BOOST_REQUIRE_EQUAL(1,result->size());
+            const auto* role=result->at(0).as<acl::acl_role::type>();
+            BOOST_TEST_MESSAGE(fmt::format("Found role name {}, id {}",role->fieldValue(acl::acl_role::name),role->fieldValue(db::object::_id).string()));
+        };
+
+        auto queryBuilder=[&topic]()
+        {
+            return db::makeQuery(aclRoleNameIdx(),db::query::where(acl::acl_role::name,db::query::gte,db::query::First),topic);
+        };
+        res.ctrl->listRoles(
+            ctx,
+            cb,
+            wrapQueryBuilder(queryBuilder,topic),
+            topic
+        );
     };
 
     auto chain=hatn::chain(
@@ -196,7 +217,7 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
         );
     chain();
 
-    exec(1);
+    exec(3);
 
     res.app->close();
 }
