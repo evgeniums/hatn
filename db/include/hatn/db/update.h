@@ -322,6 +322,25 @@ struct allocateRequestT
 };
 constexpr allocateRequestT allocateRequest{};
 
+struct sharedRequestT
+{
+    template <typename ...Fields>
+    auto operator()(Fields&&... fields) const
+    {
+        auto r=common::makeShared<Request>();
+        r->reserve(sizeof...(fields));
+        hana::for_each(
+            hana::make_tuple(std::forward<Fields>(fields)...),
+            [&r](auto&& field)
+            {
+                r->emplace_back(std::forward<decltype(field)>(field));
+            }
+            );
+        return r;
+    }
+};
+constexpr sharedRequestT sharedRequest{};
+
 enum class ModifyReturn : int
 {
     None=0,
