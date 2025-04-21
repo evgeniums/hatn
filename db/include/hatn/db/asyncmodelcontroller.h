@@ -45,6 +45,7 @@ class AsyncModelController
         )
         {
             auto unit=object.get();
+            db::initObject(*unit);
             auto cb=[object{std::move(object)},callback{std::move(callback)}](auto ctx, const Error& ec)
             {
                 callback(std::move(ctx),ec);
