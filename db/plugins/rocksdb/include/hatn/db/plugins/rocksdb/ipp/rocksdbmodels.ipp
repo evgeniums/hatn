@@ -43,6 +43,12 @@
 HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename ModelT>
+void RocksdbModels::unregisterModel(std::shared_ptr<ModelWithInfo<ModelT>> model)
+{
+    m_models.erase(model->info->modelId());
+}
+
+template <typename ModelT>
 void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
                                   const AllocatorFactory* allocatorFactory)
 {

@@ -86,8 +86,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbSchemas : public common::Singleton
         static void free() noexcept;
 
         void registerSchema(std::shared_ptr<Schema> schema);
+        void unregisterSchema(const std::string& name);
 
-        std::shared_ptr<RocksdbSchema> schema(const common::lib::string_view& name) const;
+        std::shared_ptr<RocksdbSchema> schema(lib::string_view name) const;
 
     private:
 

@@ -58,7 +58,7 @@ RocksdbSchemas::RocksdbSchemas()
 
 //---------------------------------------------------------------
 
-std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &name) const
+std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(lib::string_view name) const
 {
     auto it=m_schemas.find(name);
     if (it==m_schemas.end())
@@ -67,17 +67,6 @@ std::shared_ptr<RocksdbSchema> RocksdbSchemas::schema(const lib::string_view &na
     }
 
     return it->second;
-}
-
-/********************** RocksdbSchema **************************/
-
-//---------------------------------------------------------------
-
-void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
-{
-    auto it=m_models.find(model->info()->modelId());
-    Assert(it==m_models.end(),"Model with such ID already registered in RocksDB schema");
-    m_models[model->info()->modelId()]=std::move(model);
 }
 
 //---------------------------------------------------------------
@@ -95,6 +84,24 @@ void RocksdbSchemas::registerSchema(std::shared_ptr<Schema> schema)
         rdbSchema->addModel(rdbModel);
     }
     m_schemas[schema->name()]=std::move(rdbSchema);
+}
+
+//---------------------------------------------------------------
+
+void RocksdbSchemas::unregisterSchema(const std::string &name)
+{
+    m_schemas.erase(name);
+}
+
+/********************** RocksdbSchema **************************/
+
+//---------------------------------------------------------------
+
+void RocksdbSchema::addModel(std::shared_ptr<RocksdbModel> model)
+{
+    auto it=m_models.find(model->info()->modelId());
+    Assert(it==m_models.end(),"Model with such ID already registered in RocksDB schema");
+    m_models[model->info()->modelId()]=std::move(model);
 }
 
 //---------------------------------------------------------------

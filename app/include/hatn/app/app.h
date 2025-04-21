@@ -219,7 +219,9 @@ class HATN_APP_EXPORT App
             return m_env->get<Threads>();
         }
 
-        void registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema);
+        static void registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema);
+        static void unregisterDbSchema(const std::string& name);
+        static void freeDbSchemas();
 
     private:
 

@@ -61,6 +61,7 @@ class HATN_DB_EXPORT ModelsProvider
         ModelsProvider& operator=(ModelsProvider&&)=default;
 
         virtual void registerRocksdbModels()=0;
+        virtual void unregisterRocksdbModels()=0;
 
         virtual std::vector<std::shared_ptr<ModelInfo>> models() const=0;
 

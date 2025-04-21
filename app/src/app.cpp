@@ -842,4 +842,22 @@ void App::registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
 
 //---------------------------------------------------------------
 
+void App::unregisterDbSchema(const std::string& name)
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::instance().unregisterSchema(name);
+#endif
+}
+
+//---------------------------------------------------------------
+
+void App::freeDbSchemas()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::free();
+#endif
+}
+
+//---------------------------------------------------------------
+
 HATN_APP_NAMESPACE_END
