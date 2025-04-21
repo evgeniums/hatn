@@ -571,6 +571,12 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
     exec(1);
 
     res.app->close();
+
+/**
+ * 1. @todo Implement and test removing role with bound operations and relations.
+ * 2. @todo Add notifier to modifying operations in controller.
+ *
+ * *
 }
 
 BOOST_AUTO_TEST_SUITE_END()

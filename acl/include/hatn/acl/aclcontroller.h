@@ -28,6 +28,16 @@
 
 HATN_ACL_NAMESPACE_BEGIN
 
+/**
+
+@todo Add notifier.
+
+Notifier should be used for
+1. operations jounral
+2. invalidation of acl caches
+
+ */
+
 template <typename ContextT, typename Traits>
 class AclController : public common::WithTraits<Traits>
 {
