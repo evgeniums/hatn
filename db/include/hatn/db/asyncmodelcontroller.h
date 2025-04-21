@@ -69,21 +69,26 @@ class AsyncModelController
             );
         }
 
-        template <typename ModelT>
+        template <typename ModelT, typename QueryBuilderWrapperT>
         static void list(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             const ModelT& model,
-            db::AsyncQueryBuilder query,
+            QueryBuilderWrapperT query,
             Topic topic
         )
         {
-            contextDb(ctx).dbClient(topic)->find(
+            auto cb=[callback{std::move(callback)}](auto ctx, Result<common::pmr::vector<DbObject>> r)
+            {
+                std::cout << "r size " << r->size() << std::endl;
+                callback(std::move(ctx),std::move(r));
+            };
+            contextDb(ctx).dbClient(query.threadTopic())->find(
                 std::move(ctx),
-                callback,
-                topic,
+                std::move(cb),
                 model,
-                query
+                std::move(query),
+                topic
             );
         }
 

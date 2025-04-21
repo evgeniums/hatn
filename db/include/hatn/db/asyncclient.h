@@ -514,7 +514,9 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
                 ctx,
                 [ctx,this,self{shared_from_this()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->find(model,query()));
+                    auto r=m_client->find(model,query());
+                    std::cout << "Found count " << r->size() << std::endl;
+                    cb(std::move(ctx),std::move(r));
                 },
                 std::move(cb)
             );
