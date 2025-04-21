@@ -187,6 +187,17 @@ struct postAsyncTaskT
 
         auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args) mutable
         {
+            auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
+            auto returnCb=[ts{std::move(ts)},callback{std::move(callback)}](auto ctx) mutable
+            {
+                hana::unpack(std::move(ts),
+                                 [ctx{std::move(ctx)},callback{std::move(callback)}](auto&& ...args) mutable
+                                 {
+                                     callback(std::move(ctx),std::forward<decltype(args)>(args)...);
+                                 }
+                             );
+            };
+
             if (originThreadQ==nullptr)
             {
                 if (originThread==nullptr)
@@ -195,28 +206,22 @@ struct postAsyncTaskT
                     return;
                 }
 
-                auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
                 originThread->execAsync(
-                    [ts{std::move(ts)},ctx{std::move(ctx)},callback{std::move(callback)}]() mutable
+                    [returnCb=std::move(returnCb),ctx=std::move(ctx)]() mutable
                     {
-                        hana::unpack(std::move(ts),
-                            [ctx{std::move(ctx)},callback{std::move(callback)}](auto&& ...args) mutable
-                            {
-                                callback(std::move(ctx),std::forward<decltype(args)>(args)...);
-                            }
-                        );
+                        returnCb(std::move(ctx));
                     }
                 );
                 return;
             }
 
             auto cbTask=originThreadQ->prepare();
-            cbTask->setHandler(hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...));
+            cbTask->setHandler(std::move(returnCb));
             cbTask->setContext(std::move(ctx));
             originThreadQ->post(cbTask);
         };
 
-        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx)
+        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx) mutable
         {
             handler(ctx,cb);
         };
