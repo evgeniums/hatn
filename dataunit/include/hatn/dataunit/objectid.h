@@ -21,9 +21,6 @@
 #ifndef HATNDUOBJECTID_H
 #define HATNDUOBJECTID_H
 
-#include <atomic>
-#include <chrono>
-
 #include <hatn/common/error.h>
 #include <hatn/common/databuf.h>
 #include <hatn/common/datetime.h>
