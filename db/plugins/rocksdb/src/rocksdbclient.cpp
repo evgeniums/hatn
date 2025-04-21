@@ -161,15 +161,27 @@ Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object
 
     // destroy database
     rocksdb::Options options;
-    auto status = rocksdb::DestroyDB(d->cfg.config().field(rocksdb_config::dbpath).c_str(),options);
+    std::string path{d->cfg.config().field(rocksdb_config::dbpath).value()};
+    auto status = rocksdb::DestroyDB(path,options);
     if (!status.ok())
     {
         copyRocksdbError(ec,DbError::DB_DESTROY_FAILED,status);
     }
-    HATN_CTX_INFO("db destroyed")
+    lib::fs_error_code fsec;
+    lib::filesystem::remove_all(path,fsec);
+    if (fsec)
+    {
+        auto ec1=common::lib::makeFilesystemError(fsec);
+        HATN_CTX_ERROR(ec1,"failed to delete database folder");
+    }
+
+    if (!ec && !fsec)
+    {
+        HATN_CTX_INFO("db destroyed")
+    }
 
     // done
-    return OK;
+    return ec;
 }
 
 //---------------------------------------------------------------
