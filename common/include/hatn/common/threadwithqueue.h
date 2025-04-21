@@ -195,11 +195,16 @@ struct postAsyncTaskT
                     return;
                 }
 
-                lib::move_only_function<void(const SharedPtr<TaskContext>&)> partial{hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...)};
+                auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
                 originThread->execAsync(
-                    [ctx{std::move(ctx)},partial{std::move(partial)}]() mutable
+                    [ts{std::move(ts)},ctx{std::move(ctx)},callback{std::move(callback)}]() mutable
                     {
-                        partial(std::move(ctx));
+                        hana::unpack(std::move(ts),
+                            [ctx{std::move(ctx)},callback{std::move(callback)}](auto&& ...args) mutable
+                            {
+                                callback(std::move(ctx),std::forward<decltype(args)>(args)...);
+                            }
+                        );
                     }
                 );
                 return;
