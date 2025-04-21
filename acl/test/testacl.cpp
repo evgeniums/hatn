@@ -89,10 +89,15 @@ auto createApp(std::string configFileName)
     auto app=std::make_shared<App>(appName);
     auto configFile=MultiThreadFixture::assetsFilePath("acl",configFileName);
     app->setAppDataFolder(MultiThreadFixture::tmpPath());
+    BOOST_TEST_MESSAGE(fmt::format("Data dir {}",MultiThreadFixture::tmpPath()));
     auto ec=app->loadConfigFile(configFile);
     HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
     ec=app->init();
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    ec=app->destroyDb();
     HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
 
@@ -153,37 +158,43 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
     auto res=createApp("config.jsonc");
     BOOST_REQUIRE(res.app);
     BOOST_REQUIRE(res.checker);
+    std::string topic{"topic1"};
+    std::string role1{"role1"};
 
-    auto addRoleCb=[](auto ctx, const HATN_NAMESPACE::Error& ec)
+    auto addRole=[&res,&topic,role1](auto&& listRoles)
     {
-        HATN_TEST_EC(ec)
-        BOOST_REQUIRE(!ec);
-        BOOST_TEST_MESSAGE("Adding role OK");
+        BOOST_TEST_MESSAGE("Adding role");
 
-        // auto listRolesCb=[](auto ctx, HATN_NAMESPACE::Result<pmr::vector<HATN_DB_NAMESPACE::DbObject>> roles)
-        // {
+        auto addRoleCb=[listRoles](auto ctx, const HATN_NAMESPACE::Error& ec) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_TEST_MESSAGE("Role added");
+            listRoles(std::move(ctx));
+        };
 
-        // };
-
-        // auto ctx2=makeAppEnvContext(res.app->env());
-        // res.ctrl->listRoles(
-        //     ctx2,
-        //     listRolesCb,
-        //     []()
-        //     {
-        //         return HATN_DB_NAMESPACE::ModelIndexQuery{};
-        //     }
-        // );
+        auto role=makeShared<acl_role::managed>();
+        role->setFieldValue(acl_role::name,role1);
+        role->setFieldValue(acl_role::description,"description of role1");
+        auto ctx1=makeAppEnvContext(res.app->env());
+        res.ctrl->addRole(
+            ctx1,
+            addRoleCb,
+            role,
+            topic
+        );
     };
-    auto role=makeShared<acl_role::managed>();
-    role->setFieldValue(acl_role::name,"role1");
-    role->setFieldValue(acl_role::description,"description of role1");
-    auto ctx1=makeAppEnvContext(res.app->env());
-    res.ctrl->addRole(
-        ctx1,
-        addRoleCb,
-        role
-    );
+
+    auto listRoles=[&res](auto ctx)
+    {
+        BOOST_TEST_MESSAGE("Listing roles");
+    };
+
+    auto chain=hatn::chain(
+            addRole,
+            listRoles
+        );
+    chain();
 
     exec(1);
 
