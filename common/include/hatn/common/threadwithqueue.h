@@ -185,7 +185,7 @@ struct postAsyncTaskT
         auto originThreadQ=TaskWithContextThread::current();
         auto originThread=Thread::currentThreadOrMain();
 
-        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args)
+        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args) mutable
         {
             if (originThreadQ==nullptr)
             {
