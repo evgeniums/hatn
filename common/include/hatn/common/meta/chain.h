@@ -75,16 +75,15 @@ struct chainT
     {
         auto ts=boost::hana::make_tuple(std::forward<HandlersT>(handlers)...);
         auto last=boost::hana::back(ts);
-        auto ts1=boost::hana::drop_back(std::move(ts));
-        auto nodes=boost::hana::reverse_fold(
-            std::move(ts1),
-            makeNode(std::move(last)),
-            [](auto&& state, auto&& handler)
-            {
-                return makeNode(std::move(handler),std::move(state));
-            }
+        auto frontHandlers=boost::hana::drop_back(std::move(ts));
+        return boost::hana::reverse_fold(
+                std::move(frontHandlers),
+                makeNode(std::move(last)),
+                [](auto&& state, auto&& handler)
+                {
+                    return makeNode(std::move(handler),std::move(state));
+                }
             );
-        return nodes;
     }
 };
 
