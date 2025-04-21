@@ -20,33 +20,34 @@
 
 #include <hatn/common/common.h>
 
-#define HATN_CHAIN_NAMESPACE_BEGIN namespace hatn { namespace chain {
-#define HATN_CHAIN_NAMESPACE_END }}
+HATN_NAMESPACE_BEGIN
 
-#define HATN_CHAIN_NAMESPACE hatn::common
-#define HATN_CHAIN_USING using namespace hatn::chain;
-#define HATN_CHAIN_NS chain
-
-HATN_CHAIN_NAMESPACE_BEGIN
+namespace detail
+{
 
 template <typename HandlerT, typename NextHandlerT=void>
 struct Node
 {
     template <typename ...Args>
-    void operator()(Args&& ...args) const
+    void operator()(Args&& ...args)
     {
-        if constexpr (std::is_same_v<NextHandlerT,void>)
-        {
-            handler(std::forward<Args>(args)...);
-        }
-        else
-        {
-            handler(next,std::forward<Args>(args)...);
-        }
+        handler(std::move(next),std::forward<Args>(args)...);
     }
 
     HandlerT handler;
-    NextHandlerT* next=nullptr;
+    NextHandlerT next;
+};
+
+template <typename HandlerT>
+struct Node<HandlerT>
+{
+    template <typename ...Args>
+    void operator()(Args&& ...args)
+    {
+        handler(std::forward<Args>(args)...);
+    }
+
+    HandlerT handler;
 };
 
 struct makeNodeT
@@ -54,94 +55,43 @@ struct makeNodeT
     template <typename HandlerT>
     auto operator() (HandlerT&& handler) const
     {
-        return Node<std::decay_t<HandlerT>>{std::forward<HandlerT>(handler),nullptr};
+        return Node<std::decay_t<HandlerT>>{std::forward<HandlerT>(handler)};
     }
 
     template <typename HandlerT, typename NextHandlerT>
-    auto operator() (HandlerT&& handler, NextHandlerT) const
+    auto operator() (HandlerT&& handler, NextHandlerT&& next) const
     {
-        return Node<std::decay_t<HandlerT>,typename NextHandlerT::type>{std::forward<HandlerT>(handler),nullptr};
+        using first=std::decay_t<HandlerT>;
+        using second=std::decay_t<NextHandlerT>;
+        return Node<first,second>{std::forward<HandlerT>(handler),std::forward<NextHandlerT>(next)};
     }
 };
 constexpr makeNodeT makeNode{};
 
-template <typename HandlerT>
-struct nodeBuilderT
+struct chainT
 {
-    auto operator() () const
+    template <typename ...HandlersT>
+    auto operator() (HandlersT&& ...handlers) const
     {
-        return makeNode(handler);
-    }
-
-    template <typename NextHandlerT>
-    auto operator() (NextHandlerT&&) const
-    {
-        using NextHandler=std::decay_t<NextHandlerT>;
-        return makeNode(handler,boost::hana::type_c<NextHandler>);
-    }
-
-    HandlerT handler;
-};
-
-struct makeNodeBuilderT
-{
-    template <typename HandlerT>
-    auto operator() (HandlerT&& handler) const
-    {
-        return nodeBuilderT<std::decay_t<HandlerT>>{std::forward<HandlerT>(handler)};
-    }
-};
-constexpr makeNodeBuilderT node{};
-
-struct nodesT
-{
-    template <typename ...NodeBuildersT>
-    auto operator() (NodeBuildersT&& ...nodeBuilders) const
-    {
-        auto builders=boost::hana::make_tuple(std::forward<NodeBuildersT>(nodeBuilders)...);
+        auto ts=boost::hana::make_tuple(std::forward<HandlersT>(handlers)...);
+        auto last=boost::hana::back(ts);
+        auto ts1=boost::hana::drop_back(std::move(ts));
         auto nodes=boost::hana::reverse_fold(
-            std::move(builders),
-            boost::hana::make_tuple(),
-            [](auto&& state, auto&& builder)
+            std::move(ts1),
+            makeNode(std::move(last)),
+            [](auto&& state, auto&& handler)
             {
-                return boost::hana::eval_if(
-                    boost::hana::equal(boost::hana::size(state),boost::hana::size_c<0>),
-                    [&](auto _)
-                    {
-                        return boost::hana::make_tuple(_(builder)());
-                    },
-                    [&](auto _)
-                    {
-                        return boost::hana::prepend(_(state),_(builder(boost::hana::front(_(state)))));
-                    }
-                );
+                return makeNode(std::move(handler),std::move(state));
             }
-        );
+            );
         return nodes;
     }
 };
-constexpr nodesT nodes{};
 
-struct linkT
-{
-    template <typename Ts>
-    auto& operator() (Ts& nodes) const
-    {
-        void* last=nullptr;
-        boost::hana::reverse_fold(
-            nodes,
-            last,
-            [](auto&& state, auto& node)
-            {
-                node.next=state;
-                return &node;
-            }
-            );
-        return boost::hana::front(nodes);
-    }
-};
-constexpr linkT link{};
+} // namespace detail
 
-HATN_CHAIN_NAMESPACE_END
+constexpr detail::chainT chain{};
+
+HATN_NAMESPACE_END
 
 #endif // HATNNODES_H

@@ -116,47 +116,99 @@ BOOST_AUTO_TEST_CASE(Chain)
 {
     size_t totalCount=0;
 
-    auto node1=chain::node(
-        [&totalCount](auto* next, const Error& ec, size_t count)
+    auto node1=
+        [&totalCount](auto&& next, const Error& ec, size_t count)
         {
             totalCount+=count;
             BOOST_CHECK_EQUAL(count,1);
-            BOOST_TEST_MESSAGE(fmt::format("In node 1, count {}, next {}",count,fmt::ptr(next)));
-            if (next!=nullptr)
-            {
-                (*next)(ec,count+1,100);
-            }
-        }
-        );
+            BOOST_TEST_MESSAGE(fmt::format("In node 1, count {}, next {}",count,fmt::ptr(&next)));
+            next(ec,count+1,100);
+        };
 
-    auto node2=chain::node(
-        [&totalCount](auto* next, const Error& ec, size_t count, int val)
+    auto node2=
+        [&totalCount](auto&& next, const Error& ec, size_t count, int val)
         {
             totalCount+=count;
             BOOST_CHECK_EQUAL(count,2);
             BOOST_CHECK_EQUAL(val,100);
-            BOOST_TEST_MESSAGE(fmt::format("In node 2, count {}, val {}, next {}",count,val,fmt::ptr(next)));
-            if (next!=nullptr)
-            {
-                (*next)(ec,count+1);
-            }
-        }
-        );
+            BOOST_TEST_MESSAGE(fmt::format("In node 2, count {}, val {}, next {}",count,val,fmt::ptr(&next)));
+            next(ec,count+1);
+        };
 
-    auto lastNode=chain::node(
+    auto lastNode=
         [&totalCount](const Error& ec, size_t count)
         {
             totalCount+=count;
             BOOST_CHECK_EQUAL(count,3);
             BOOST_TEST_MESSAGE(fmt::format("In last node, count {}",count));
-        }
-        );
+        };
 
-    auto nodes=chain::nodes(node1,node2,lastNode);
-    auto chain=chain::link(nodes);
+    auto chain=hatn::chain(node1,node2,lastNode);
     chain(Error{1},1);
 
     BOOST_CHECK_EQUAL(totalCount,6);
+}
+
+struct ChainNode
+{
+    ChainNode()=default;
+
+    ChainNode(const ChainNode& other)
+    {
+        copyCount++;
+    }
+
+    ChainNode(ChainNode&& other)
+    {
+        moveCount++;
+    }
+
+    template <typename NextT>
+    void operator()(NextT&& next, const Error& ec, size_t count, int val) const
+    {
+        BOOST_CHECK_EQUAL(count,2);
+        BOOST_TEST_MESSAGE(fmt::format("In node 2, count {}, val {}, next {}",count,val,fmt::ptr(&next)));
+        BOOST_TEST_MESSAGE(fmt::format("In node 2 copy count {}, move count {}",ChainNode::copyCount,ChainNode::moveCount));
+        next(ec,count+1);
+    };
+
+    static int copyCount;
+    static int moveCount;
+};
+int ChainNode::copyCount=0;
+int ChainNode::moveCount=0;
+
+BOOST_AUTO_TEST_CASE(ChainCtors)
+{
+    size_t totalCount=0;
+
+    auto node1=
+        [&totalCount](auto&& next, const Error& ec, size_t count)
+    {
+        totalCount+=count;
+        BOOST_CHECK_EQUAL(count,1);
+        BOOST_TEST_MESSAGE(fmt::format("In node 1, count {}, next {}",count,fmt::ptr(&next)));
+        BOOST_TEST_MESSAGE(fmt::format("In node 1 copy count {}, move count {}",ChainNode::copyCount,ChainNode::moveCount));
+        next(ec,count+1,100);
+    };
+
+    ChainNode node2;
+
+    auto lastNode=
+        [&totalCount](const Error& ec, size_t count)
+    {
+        totalCount+=count;
+        BOOST_CHECK_EQUAL(count,3);
+        BOOST_TEST_MESSAGE(fmt::format("In last node, count {}",count));
+        BOOST_TEST_MESSAGE(fmt::format("In last node copy count {}, move count {}",ChainNode::copyCount,ChainNode::moveCount));
+    };
+
+    auto chain=hatn::chain(std::move(node1),std::move(node2),std::move(lastNode));
+    chain(Error{1},1);
+
+    BOOST_CHECK_EQUAL(totalCount,4);
+
+    BOOST_TEST_MESSAGE(fmt::format("Finally copy count {}, move count {}",ChainNode::copyCount,ChainNode::moveCount));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
