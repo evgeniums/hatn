@@ -225,11 +225,12 @@ class HATN_APP_EXPORT App
 
     private:
 
-        Error applyConfig();
-        void initAppDataFolder();
+        Error applyConfig();        
         Error initThreads();
         void logAppStart();
         void logAppStop();
+
+        std::string evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const;
 
         AppName m_appName;
 

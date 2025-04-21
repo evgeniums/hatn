@@ -264,6 +264,18 @@ Error App::loadConfigString(
         const std::string& format
     )
 {
+    // preload config to find out data dir
+    if (m_appDataFolder.empty())
+    {
+        HATN_BASE_NAMESPACE::ConfigTree t1;
+        auto ec=m_configTreeLoader->loadFromString(t1,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
+
+        m_appDataFolder=evalAppDataFolder(t1);
+    }
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
+
     auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
     return applyConfig();
@@ -277,13 +289,19 @@ Error App::loadConfigFile(
     )
 {
     // preload config to find out data dir
-    HATN_BASE_NAMESPACE::ConfigTree t1;
-    auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
-    initAppDataFolder();
+    if (m_appDataFolder.empty())
+    {
+        HATN_BASE_NAMESPACE::ConfigTree t1;
+        auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
+
+        m_appDataFolder=evalAppDataFolder(t1);
+    }
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
 
     // load app config tree
-    ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    auto ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
 
     // apply config
@@ -294,9 +312,6 @@ Error App::loadConfigFile(
 
 Error App::applyConfig()
 {
-    // init data folder
-    initAppDataFolder();
-
     // make and init logger
 
     // load app logger config
@@ -590,57 +605,56 @@ void App::setAppDataFolder(
     std::string folder
     )
 {
-    m_appDataFolder=std::move(folder);    
+    m_appDataFolder=std::move(folder);
 }
 
 //---------------------------------------------------------------
 
-void App::initAppDataFolder()
+std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
 {
+    auto folder=m_appDataFolder;
+
     // set app data folder
-    if (m_appDataFolder.empty())
+    if (folder.empty())
     {
-        auto r=m_configTree->get(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"));
+        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"));
         if (!r)
         {
             auto s=r->as<std::string>();
             if (!s)
             {
-                m_appDataFolder=s.takeValue();
+                folder=s.takeValue();
             }
         }
     }
-    if (m_appDataFolder.empty())
+    if (folder.empty())
     {
-        if (m_appsDataFolder.empty())
+        if (folder.empty())
         {
 #ifdef _WIN32
-            m_appsDataFolder=getenv("APPDATA");
+            folder=getenv("APPDATA");
 #else
-            m_appsDataFolder=getenv("HOME");
+            folder=getenv("HOME");
 #endif
         }
-        lib::filesystem::path p{m_appsDataFolder};
+        lib::filesystem::path p{folder};
 #ifdef _WIN32
         p.append(m_appName.execName);
 #else
         p.append(fmt::format(".{}",m_appName.execName));
 #endif
-        m_appDataFolder=p.string();
+        folder=p.string();
     }
 
-    if (!m_appDataFolder.empty())
-    {
-        m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
-        m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
-    }
+    return folder;
 }
 
 //---------------------------------------------------------------
 
 Error App::createAppDataFolder()
 {
-    initAppDataFolder();
+    Assert(!m_appDataFolder.empty(),"App data folder must not be empty");
+
     lib::fs_error_code ec;
     lib::filesystem::create_directories(m_appDataFolder,ec);
     auto ec1=lib::makeFilesystemError(ec);
@@ -730,7 +744,6 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view name) const
                          cfgPath.copyAppend("main"),
                          cfgPath.copyAppend("options")
                          };
-    cfg.dbPathPrefix=app->m_appDataFolder;
     return cfg;
 }
 
