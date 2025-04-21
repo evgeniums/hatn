@@ -39,6 +39,8 @@ class AclController : public common::WithTraits<Traits>
         using CallbackEc=db::AsyncCallbackEc<Context>;
         using CallbackList=db::AsyncCallbackList<Context>;
         using CallbackOid=db::AsyncCallbackOid<Context>;
+        template <typename ModelT>
+        using CallbackObj=db::AsyncCallbackObj<Context,ModelT>;
 
         void addRole(
             common::SharedPtr<Context> ctx,
@@ -48,6 +50,16 @@ class AclController : public common::WithTraits<Traits>
         )
         {
             this->traits().addRole(std::move(ctx),std::move(callback),std::move(role),topic);
+        }
+
+        void readRole(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<acl_role::managed> callback,
+            const du::ObjectId& id,
+            db::Topic topic={}
+        )
+        {
+            this->traits().readRole(std::move(ctx),std::move(callback),id,topic);
         }
 
         void removeRole(
@@ -92,6 +104,16 @@ class AclController : public common::WithTraits<Traits>
             this->traits().addRoleOperation(std::move(ctx),std::move(callback),std::move(role),topic);
         }
 
+        void readRoleOperation(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<acl_role_operation::managed> callback,
+            const du::ObjectId& id,
+            db::Topic topic={}
+            )
+        {
+            this->traits().readRoleOperation(std::move(ctx),std::move(callback),id,topic);
+        }
+
         void removeRoleOperation(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
@@ -113,35 +135,45 @@ class AclController : public common::WithTraits<Traits>
             this->traits().listRoleOperations(std::move(ctx),std::move(callback),std::move(query),topic);
         }
 
-        void addSubjectObjectRole(
+        void addRelation(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
-            common::SharedPtr<acl_role_operation::managed> role,
+            common::SharedPtr<acl_relation::managed> role,
             db::Topic topic={}
         )
         {
-            this->traits().addSubjectObjectRole(std::move(ctx),std::move(callback),std::move(role),topic);
+            this->traits().addRelation(std::move(ctx),std::move(callback),std::move(role),topic);
         }
 
-        void removeSubjectObjectRole(
+        void readRelation(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<acl_relation::managed> callback,
+            const du::ObjectId& id,
+            db::Topic topic={}
+            )
+        {
+            this->traits().readRelation(std::move(ctx),std::move(callback),id,topic);
+        }
+
+        void removeRelation(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
             const du::ObjectId& id,
             db::Topic topic={}
         )
         {
-            this->traits().removeSubjectObjectRole(std::move(ctx),std::move(callback),id,topic);
+            this->traits().removeRelation(std::move(ctx),std::move(callback),id,topic);
         }
 
         template <typename QueryBuilderWrapperT>
-        void listSubjectObjectRoles(
+        void listRelations(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             QueryBuilderWrapperT query,
             db::Topic topic={}
         )
         {
-            this->traits().listSubjectObjectRoles(std::move(ctx),std::move(callback),std::move(query),topic);
+            this->traits().listRelations(std::move(ctx),std::move(callback),std::move(query),topic);
         }
 };
 

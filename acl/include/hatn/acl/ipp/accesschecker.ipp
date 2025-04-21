@@ -351,9 +351,9 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
         auto listRolesQuery=db::wrapQueryBuilder(
             [args]()
             {
-                return db::makeQuery(aclSubjRoleObjSubjIdx(),
-                                     db::where(acl_subject_role::object,db::query::eq,args->object).
-                                     and_(acl_subject_role::subject,db::query::eq,args->subject),
+                return db::makeQuery(aclRelationObjSubjIdx(),
+                                     db::where(acl_relation::object,db::query::eq,args->object).
+                                     and_(acl_relation::subject,db::query::eq,args->subject),
                                      args->topic
                                      );
             },
@@ -382,7 +382,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
         db.dbClient(args->topic)->find(
             std::move(ctx),
             std::move(cb),
-            dbModelsWrapper->aclSubjRoleModel(),
+            dbModelsWrapper->aclRelationModel(),
             listRolesQuery,
             args->topic
         );
@@ -399,8 +399,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 roles.reserve(list.size());
                 for (auto&& item: list)
                 {
-                    const auto* rule=item.as<acl_subject_role::type>();
-                    roles.push_back(rule->fieldValue(acl_subject_role::role));
+                    const auto* rule=item.as<acl_relation::type>();
+                    roles.push_back(rule->fieldValue(acl_relation::role));
                 }
 
                 return db::makeQuery(aclRoleOperationIdx(),
@@ -448,7 +448,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             for (auto&& item: dbObjResult.value())
             {
                 const auto* roleOp=item.as<acl_role_operation::type>();
-                if (roleOp->fieldValue(acl_role_operation::grant_ndeny))
+                if (roleOp->fieldValue(acl_role_operation::access))
                 {
                     status=AclStatus::Grant;
                     break;

@@ -35,6 +35,8 @@ class LocalAclControllerImpl
         using CallbackEc=db::AsyncCallbackEc<Context>;
         using CallbackList=db::AsyncCallbackList<Context>;
         using CallbackOid=db::AsyncCallbackOid<Context>;
+        template <typename ModelT>
+        using CallbackObj=db::AsyncCallbackObj<Context,ModelT>;
 
         LocalAclControllerImpl(
             std::shared_ptr<db::ModelsWrapper> modelsWrapper
@@ -52,6 +54,13 @@ class LocalAclControllerImpl
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<acl_role::managed> role,
+            db::Topic topic={}
+        );
+
+        void readRole(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<acl_role::managed> callback,
+            const du::ObjectId& id,
             db::Topic topic={}
         );
 
@@ -100,14 +109,14 @@ class LocalAclControllerImpl
             db::Topic topic={}
         );
 
-        void addSubjectObjectRole(
+        void addRelation(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
-            common::SharedPtr<acl_subject_role::managed> role,
+            common::SharedPtr<acl_relation::managed> role,
             db::Topic topic={}
         );
 
-        void removeSubjectObjectRole(
+        void removeRelation(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
             const du::ObjectId& id,
@@ -115,7 +124,7 @@ class LocalAclControllerImpl
         );
 
         template <typename QueryBuilderWrapperT>
-        void listSubjectObjectRoles(
+        void listRelations(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             QueryBuilderWrapperT query,

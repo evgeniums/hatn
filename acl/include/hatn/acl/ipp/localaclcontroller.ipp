@@ -16,6 +16,10 @@
 #ifndef HATNLOCALACLCONTROLLER_IPP
 #define HATNLOCALACLCONTROLLER_IPP
 
+#include <hatn/common/meta/chain.h>
+
+#include <hatn/db/dberror.h>
+
 #include <hatn/acl/aclerror.h>
 #include <hatn/acl/acldbmodels.h>
 #include <hatn/acl/localaclcontroller.h>
@@ -88,6 +92,25 @@ void LocalAclControllerImpl<ContextTraits>::addRole(
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::readRole(
+        common::SharedPtr<Context> ctx,
+        CallbackObj<acl_role::managed> callback,
+        const du::ObjectId& id,
+        db::Topic topic
+    )
+{
+    db::AsyncModelController<ContextTraits>::read(
+        std::move(ctx),
+        std::move(callback),
+        d->dbModelsWrapper->aclRoleModel(),
+        id,
+        topic
+    );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::removeRole(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
@@ -95,6 +118,8 @@ void LocalAclControllerImpl<ContextTraits>::removeRole(
         db::Topic topic
     )
 {
+    //! @todo Remove all role operations and relations
+
     db::AsyncModelController<ContextTraits>::remove(
         std::move(ctx),
         std::move(callback),
@@ -151,17 +176,51 @@ template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
-        common::SharedPtr<acl_role_operation::managed> role,
+        common::SharedPtr<acl_role_operation::managed> roleOperation,
         db::Topic topic
     )
 {
-    db::AsyncModelController<ContextTraits>::create(
-        std::move(ctx),
-        std::move(callback),
-        d->dbModelsWrapper->aclRoleOperationModel(),
-        std::move(role),
-        topic
+    auto checkRole=[this,topic](auto&& createRoleOperation,common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_role_operation::managed> roleOperation) mutable
+    {
+        auto cb=[callback=std::move(callback),roleOperation,createRoleOperation=std::move(createRoleOperation),d=d]
+                (common::SharedPtr<Context> ctx, Result<db::DbObjectT<acl_role::managed>> role) mutable
+        {
+            // check error
+            if (role)
+            {
+                if (role.error().is(db::DbError::NOT_FOUND,db::DbErrorCategory::getCategory()))
+                {
+                    callback(std::move(ctx),aclError(AclError::UNKNOWN_ROLE),db::ObjectId{});
+                }
+                else
+                {
+                    callback(std::move(ctx),std::move(role),db::ObjectId{});
+                }
+                return;
+            }
+
+            // role found, go to role-operation creation
+            createRoleOperation(std::move(ctx),std::move(callback),std::move(roleOperation));
+        };
+        readRole(std::move(ctx),std::move(cb),roleOperation->fieldValue(acl_role_operation::role),topic);
+    };
+
+    auto createRoleOperation=[d=d,topic](common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_role_operation::managed> roleOperation) mutable
+    {
+        db::AsyncModelController<ContextTraits>::create(
+            std::move(ctx),
+            std::move(callback),
+            d->dbModelsWrapper->aclRoleOperationModel(),
+            std::move(roleOperation),
+            topic
         );
+    };
+
+    auto chain=hatn::chain(
+            std::move(checkRole),
+            std::move(createRoleOperation)
+        );
+    chain(std::move(ctx),std::move(callback),std::move(roleOperation));
 }
 
 //--------------------------------------------------------------------------
@@ -206,26 +265,60 @@ void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::addSubjectObjectRole(
+void LocalAclControllerImpl<ContextTraits>::addRelation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
-        common::SharedPtr<acl_subject_role::managed> role,
+        common::SharedPtr<acl_relation::managed> subjObjRole,
         db::Topic topic
     )
 {
-    db::AsyncModelController<ContextTraits>::create(
-        std::move(ctx),
-        std::move(callback),
-        d->dbModelsWrapper->aclSubjRoleModel(),
-        std::move(role),
-        topic
+    auto checkRole=[this,topic](auto&& createSubjObjRole,common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_relation::managed> subjObjRole) mutable
+    {
+        auto cb=[callback=std::move(callback),subjObjRole,createSubjObjRole=std::move(createSubjObjRole),d=d]
+            (common::SharedPtr<Context> ctx, Result<db::DbObjectT<acl_role::managed>> role) mutable
+        {
+            // check error
+            if (role)
+            {
+                if (role.error().is(db::DbError::NOT_FOUND,db::DbErrorCategory::getCategory()))
+                {
+                    callback(std::move(ctx),aclError(AclError::UNKNOWN_ROLE),db::ObjectId{});
+                }
+                else
+                {
+                    callback(std::move(ctx),std::move(role),db::ObjectId{});
+                }
+                return;
+            }
+
+            // role found, go to subj-obj-role creation
+            createSubjObjRole(std::move(ctx),std::move(callback),std::move(subjObjRole));
+        };
+        readRole(std::move(ctx),std::move(cb),subjObjRole->fieldValue(acl_relation::role),topic);
+    };
+
+    auto createSubjObjRole=[d=d,topic](common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_relation::managed> subjObjRole) mutable
+    {
+        db::AsyncModelController<ContextTraits>::create(
+            std::move(ctx),
+            std::move(callback),
+            d->dbModelsWrapper->aclRelationModel(),
+            std::move(subjObjRole),
+            topic
+            );
+    };
+
+    auto chain=hatn::chain(
+        std::move(checkRole),
+        std::move(createSubjObjRole)
     );
+    chain(std::move(ctx),std::move(callback),std::move(subjObjRole));
 }
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::removeSubjectObjectRole(
+void LocalAclControllerImpl<ContextTraits>::removeRelation(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -235,7 +328,7 @@ void LocalAclControllerImpl<ContextTraits>::removeSubjectObjectRole(
     db::AsyncModelController<ContextTraits>::remove(
         std::move(ctx),
         std::move(callback),
-        d->dbModelsWrapper->aclSubjRoleModel(),
+        d->dbModelsWrapper->aclRelationModel(),
         id,
         topic
     );
@@ -245,7 +338,7 @@ void LocalAclControllerImpl<ContextTraits>::removeSubjectObjectRole(
 
 template <typename ContextTraits>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits>::listSubjectObjectRoles(
+void LocalAclControllerImpl<ContextTraits>::listRelations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
@@ -255,7 +348,7 @@ void LocalAclControllerImpl<ContextTraits>::listSubjectObjectRoles(
     db::AsyncModelController<ContextTraits>::list(
         std::move(ctx),
         std::move(callback),
-        d->dbModelsWrapper->aclSubjRoleModel(),
+        d->dbModelsWrapper->aclRelationModel(),
         std::move(query),
         topic
     );

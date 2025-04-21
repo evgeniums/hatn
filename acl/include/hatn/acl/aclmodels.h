@@ -31,10 +31,10 @@ HDU_UNIT_WITH(acl_role,(HDU_BASE(db::object)),
 HDU_UNIT_WITH(acl_role_operation,(HDU_BASE(db::object)),
     HDU_FIELD(role,TYPE_OBJECT_ID,1)
     HDU_FIELD(operation,HDU_TYPE_FIXED_STRING(OperationNameLength),2)
-    HDU_FIELD(grant_ndeny,TYPE_BOOL,3)
+    HDU_FIELD(access,TYPE_BOOL,3)
 )
 
-HDU_UNIT_WITH(acl_subject_role,(HDU_BASE(db::object)),
+HDU_UNIT_WITH(acl_relation,(HDU_BASE(db::object)),
     HDU_FIELD(object,TYPE_STRING,1)
     HDU_FIELD(subject,TYPE_STRING,2)
     HDU_FIELD(role,TYPE_OBJECT_ID,3)
