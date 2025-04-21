@@ -27,6 +27,8 @@ template <typename ContextT>
 using AsyncCallbackList=std::function<void (common::SharedPtr<ContextT>, Result<common::pmr::vector<DbObject>>)>;
 template <typename ContextT>
 using AsyncCallbackOid=std::function<void (common::SharedPtr<ContextT>, const Error&, const du::ObjectId&)>;
+template <typename ContextT, typename ManagedT>
+using AsyncCallbackObj=std::function<void (common::SharedPtr<ContextT>, Result<db::DbObjectT<ManagedT>>)>;
 
 template <typename ContextTraits>
 class AsyncModelController
@@ -37,6 +39,8 @@ class AsyncModelController
         using CallbackEc=AsyncCallbackEc<Context>;
         using CallbackList=AsyncCallbackList<Context>;
         using CallbackOid=AsyncCallbackOid<Context>;
+        template <typename ModelT>
+        using CallbackObj=AsyncCallbackObj<Context,ModelT>;
 
         template <typename ModelT, typename UnitT>
         static void create(
@@ -69,18 +73,35 @@ class AsyncModelController
             );
         }
 
+        template <typename ModelT>
+        static void read(
+                common::SharedPtr<Context> ctx,
+                CallbackObj<typename ModelT::ManagedType> callback,
+                const std::shared_ptr<ModelT>& model,
+                const du::ObjectId& id,
+                Topic topic
+            )
+        {
+            contextDb(ctx).dbClient(topic)->read(
+                std::move(ctx),
+                std::move(callback),
+                topic,
+                model,
+                id
+            );
+        }
+
         template <typename ModelT, typename QueryBuilderWrapperT>
         static void list(
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             const ModelT& model,
             QueryBuilderWrapperT query,
-            Topic topic
+            Topic topic={}
         )
         {
             auto cb=[callback{std::move(callback)}](auto ctx, Result<common::pmr::vector<DbObject>> r)
             {
-                std::cout << "r size " << r->size() << std::endl;
                 callback(std::move(ctx),std::move(r));
             };
             contextDb(ctx).dbClient(query.threadTopic())->find(
@@ -102,7 +123,7 @@ class AsyncModelController
             Topic topic
         )
         {
-            contextDb(ctx).dbClient(topic)->find(
+            contextDb(ctx).dbClient(topic)->update(
                 std::move(ctx),
                 callback,
                 topic,
