@@ -100,6 +100,7 @@ Error CreateObjectT::operator ()(
     auto transactionFn=[&](Transaction* tx)
     {
         auto rdbTx=RocksdbTransaction::native(tx);
+        Assert(obj->isSet(object::_id),"Object ID must be set before saving object in rocksdb");
         auto objectId=obj->field(object::_id).value().toArray();
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
         HATN_CTX_SCOPE_PUSH("oid",lib::string_view(objectId.data(),objectId.size()))
