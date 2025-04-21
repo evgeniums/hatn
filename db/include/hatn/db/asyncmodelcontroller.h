@@ -24,7 +24,9 @@ HATN_DB_NAMESPACE_BEGIN
 template <typename ContextT>
 using AsyncCallbackEc=std::function<void (common::SharedPtr<ContextT>, const Error&)>;
 template <typename ContextT>
-using AsyncCallbackList=std::function<void (common::SharedPtr<ContextT>, Result<common::pmr::vector<db::DbObject>>)>;
+using AsyncCallbackList=std::function<void (common::SharedPtr<ContextT>, Result<common::pmr::vector<DbObject>>)>;
+template <typename ContextT>
+using AsyncCallbackOid=std::function<void (common::SharedPtr<ContextT>, const Error&, const du::ObjectId&)>;
 
 template <typename ContextTraits>
 class AsyncModelController
@@ -34,21 +36,29 @@ class AsyncModelController
         using Context=typename ContextTraits::Context;
         using CallbackEc=AsyncCallbackEc<Context>;
         using CallbackList=AsyncCallbackList<Context>;
+        using CallbackOid=AsyncCallbackOid<Context>;
 
         template <typename ModelT, typename UnitT>
         static void create(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             const ModelT& model,
-            common::SharedPtr<UnitT> object,
+            common::SharedPtr<UnitT> obj,
             Topic topic
         )
         {
-            auto unit=object.get();
+            auto unit=obj.get();
             db::initObject(*unit);
-            auto cb=[object{std::move(object)},callback{std::move(callback)}](auto ctx, const Error& ec)
+            auto cb=[obj{std::move(obj)},callback{std::move(callback)}](auto ctx, const Error& ec)
             {
-                callback(std::move(ctx),ec);
+                if (ec)
+                {
+                    callback(std::move(ctx),ec,du::ObjectId{});
+                }
+                else
+                {
+                    callback(std::move(ctx),Error{},obj->field(object::_id).value());
+                }
             };
             contextDb(ctx).dbClient(topic)->create(
                 std::move(ctx),

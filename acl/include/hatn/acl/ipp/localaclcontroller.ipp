@@ -71,7 +71,7 @@ LocalAclControllerImpl<ContextTraits>::~LocalAclControllerImpl()
 template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::addRole(
         common::SharedPtr<Context> ctx,
-        CallbackEc callback,
+        CallbackOid callback,
         common::SharedPtr<acl_role::managed> role,
         db::Topic topic
     )
@@ -149,7 +149,7 @@ void LocalAclControllerImpl<ContextTraits>::updateRole(
 template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
         common::SharedPtr<Context> ctx,
-        CallbackEc callback,
+        CallbackOid callback,
         common::SharedPtr<acl_role_operation::managed> role,
         db::Topic topic
     )
@@ -206,7 +206,7 @@ void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
 template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::addSubjectObjectRole(
         common::SharedPtr<Context> ctx,
-        CallbackEc callback,
+        CallbackOid callback,
         common::SharedPtr<acl_subject_role::managed> role,
         db::Topic topic
     )

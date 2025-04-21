@@ -32,8 +32,9 @@ class LocalAclControllerImpl
     public:
 
         using Context=typename ContextTraits::Context;
-        using CallbackEc=std::function<void (common::SharedPtr<Context>, const Error&)>;
-        using CallbackList=std::function<void (common::SharedPtr<Context>, Result<common::pmr::vector<db::DbObject>>)>;
+        using CallbackEc=db::AsyncCallbackEc<Context>;
+        using CallbackList=db::AsyncCallbackList<Context>;
+        using CallbackOid=db::AsyncCallbackOid<Context>;
 
         LocalAclControllerImpl(
             std::shared_ptr<db::ModelsWrapper> modelsWrapper
@@ -49,7 +50,7 @@ class LocalAclControllerImpl
 
         void addRole(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_role::managed> role,
             db::Topic topic={}
         );
@@ -78,7 +79,7 @@ class LocalAclControllerImpl
 
         void addRoleOperation(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_role_operation::managed> role,
             db::Topic topic={}
         );
@@ -99,7 +100,7 @@ class LocalAclControllerImpl
 
         void addSubjectObjectRole(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_subject_role::managed> role,
             db::Topic topic={}
         );

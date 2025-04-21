@@ -38,10 +38,11 @@ class AclController : public common::WithTraits<Traits>
         using Context=ContextT;
         using CallbackEc=db::AsyncCallbackEc<Context>;
         using CallbackList=db::AsyncCallbackList<Context>;
+        using CallbackOid=db::AsyncCallbackOid<Context>;
 
         void addRole(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_role::managed> role,
             db::Topic topic={}
         )
@@ -82,7 +83,7 @@ class AclController : public common::WithTraits<Traits>
 
         void addRoleOperation(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_role_operation::type> role,
             db::Topic topic={}
         )
@@ -112,7 +113,7 @@ class AclController : public common::WithTraits<Traits>
 
         void addSubjectObjectRole(
             common::SharedPtr<Context> ctx,
-            CallbackEc callback,
+            CallbackOid callback,
             common::SharedPtr<acl_role_operation::managed> role,
             db::Topic topic={}
         )
