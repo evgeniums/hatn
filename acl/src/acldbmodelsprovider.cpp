@@ -86,4 +86,19 @@ void AclDbModelsProvider::registerRocksdbModels()
 
 //--------------------------------------------------------------------------
 
+void AclDbModelsProvider::unregisterRocksdbModels()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+    hana::for_each(
+        d->wrapper->models(),
+        [](const auto& model)
+        {
+            HATN_ROCKSDB_NAMESPACE::RocksdbModels::instance().unregisterModel(model());
+        }
+        );
+#endif
+}
+
+//--------------------------------------------------------------------------
+
 HATN_ACL_NAMESPACE_END

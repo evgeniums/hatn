@@ -346,7 +346,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     auto self=this->shared_from_this();
 
     // list subject roles for given object
-    auto listSubjObjRoles=[callback,args,initialArgs,self,this](auto* listRoleOperations, auto ctx)
+    auto listSubjObjRoles=[callback,args,initialArgs,self,this](auto&& listRoleOperations, auto ctx)
     {
         auto listRolesQuery=db::wrapQueryBuilder(
             [args]()
@@ -360,7 +360,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             ArgsThreadTopicBuilder{args}
         );
 
-        auto cb=[listRoleOperations,callback{std::move(callback)},args,initialArgs,self,this](auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+        auto cb=[listRoleOperations{std::move(listRoleOperations)},callback{std::move(callback)},args,initialArgs,self,this]
+            (auto ctx, Result<common::pmr::vector<db::DbObject>> roles) mutable
         {
             if (roles)
             {
@@ -374,7 +375,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 return;
             }
 
-            (*listRoleOperations)(std::move(ctx),std::move(roles));
+            listRoleOperations(std::move(ctx),std::move(roles));
         };
 
         auto& db=ctrl->contextDb(ctx);
@@ -388,7 +389,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     };
 
     // list operation access rules defined for found roles
-    auto listRoleOperations=[callback,args,initialArgs,self,this](auto* checkRoleOperations, auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+    auto listRoleOperations=[callback,args,initialArgs,self,this](auto&& checkRoleOperations, auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
     {
         auto list=roles.takeValue();
         auto roleOperationsQuery=db::wrapQueryBuilder(
@@ -411,7 +412,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             ArgsThreadTopicBuilder{args}
             );
 
-        auto cb=[checkRoleOperations,callback{std::move(callback)},args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
+        auto cb=[checkRoleOperations{std::move(checkRoleOperations)},callback{std::move(callback)},args,initialArgs]
+                        (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
         {
             // if db error then  break iteration
             if (dbObjResult)
@@ -421,7 +423,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 return;
             }
 
-            (*checkRoleOperations)(std::move(ctx),std::move(dbObjResult));
+            checkRoleOperations(std::move(ctx),std::move(dbObjResult));
         };
 
         auto& db=ctrl->contextDb(ctx);
@@ -431,11 +433,12 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             dbModelsWrapper->aclRoleOperationModel(),
             roleOperationsQuery,
             args->topic
-            );
+        );
     };
 
     // check access rules for found role operations
-    auto checkRoleOperations=[callback,self,this,args,initialArgs](auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult)
+    auto checkRoleOperations=[callback,self,this,args,initialArgs]
+        (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
     {
         AclStatus status=AclStatus::Unknown;
 
@@ -483,13 +486,12 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     };
 
     // invoke
-    auto nodes=chain::nodes(
-            chain::node(std::move(listSubjObjRoles)),
-            chain::node(std::move(listRoleOperations)),
-            chain::node(std::move(checkRoleOperations))
+    auto chain=hatn::chain(
+            std::move(listSubjObjRoles),
+            std::move(listRoleOperations),
+            std::move(checkRoleOperations)
         );
-    auto start=chain::link(nodes);
-    start(std::move(ctx));
+    chain(std::move(ctx));
 }
 
 //--------------------------------------------------------------------------

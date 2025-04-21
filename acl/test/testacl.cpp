@@ -21,6 +21,8 @@
 #include "hatn_test_config.h"
 #include <hatn/test/multithreadfixture.h>
 
+#include <hatn/common/meta/chain.h>
+
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
 
@@ -41,6 +43,7 @@ HATN_ACL_USING
 HATN_DB_USING
 HATN_COMMON_USING
 HATN_TEST_USING
+HATN_USING
 
 struct ContextTraits
 {
@@ -103,10 +106,12 @@ auto createApp(std::string configFileName)
 
     auto dbModels=std::make_shared<AclDbModels>();
     AclDbModelsProvider dbModelsProvider{dbModels};
+    dbModelsProvider.unregisterRocksdbModels();
     dbModelsProvider.registerRocksdbModels();
 
     auto dbSchema=std::make_shared<Schema>();
     dbSchema->addModels(&dbModelsProvider);
+    app->unregisterDbSchema(dbSchema->name());
     app->registerDbSchema(dbSchema);
     ec=app->database().setSchema(dbSchema);
     HATN_TEST_EC(ec)
@@ -149,7 +154,7 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
     BOOST_REQUIRE(res.app);
     BOOST_REQUIRE(res.checker);
 
-    auto addRoleCb=[&res](auto ctx, const HATN_NAMESPACE::Error& ec)
+    auto addRoleCb=[](auto ctx, const HATN_NAMESPACE::Error& ec)
     {
         HATN_TEST_EC(ec)
         BOOST_REQUIRE(!ec);

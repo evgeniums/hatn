@@ -38,6 +38,7 @@ class HATN_ACL_EXPORT AclDbModelsProvider : public db::ModelsProvider
         AclDbModelsProvider& operator=(AclDbModelsProvider&&)=default;
 
         virtual void registerRocksdbModels() override;
+        virtual void unregisterRocksdbModels() override;
 
         virtual std::vector<std::shared_ptr<db::ModelInfo>> models() const override;
 
