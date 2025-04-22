@@ -252,7 +252,7 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                 // do rotation
                 if (doRotation)
                 {
-                    // clse files
+                    // close files
                     closeFiles();
                     auto current=common::DateTime::currentUtc();
                     std::string ts=fmt::format("{:08x}",current.toEpoch());
@@ -683,6 +683,48 @@ void FileLoggerTraits::logBufError(const FileLoggerBufWrapper& bufWrapper)
     {
         log(bufWrapper.buf());
     }
+}
+
+//---------------------------------------------------------------
+
+std::vector<std::string> FileLoggerTraits::listFiles() const
+{
+    std::vector<std::string> files;
+    if (!d->logFile)
+    {
+        return files;
+    }
+
+    //! @todo Handle timestampFileName in one place
+    lib::filesystem::path path{d->logFile->filename()};
+    auto newExt=fmt::format("{}.ts",path.extension().string());
+    path.replace_extension(newExt);
+    auto timestampFileName=path.string();
+
+    auto list=[&timestampFileName,&files](const std::string& baseFilename)
+    {
+        lib::fs_error_code fsec1;
+        lib::filesystem::path path(baseFilename);
+        auto dir=path.parent_path();
+        for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
+        {
+            auto fileName=entry.path().string();
+            if (
+                fileName!=timestampFileName
+                &&
+                boost::algorithm::starts_with(fileName,baseFilename))
+            {
+                files.push_back(fileName);
+            }
+        }
+    };
+    list(d->logFile->filename());
+    if (d->errorLogFile)
+    {
+        list(d->errorLogFile->filename());
+    }
+
+    return files;
 }
 
 //---------------------------------------------------------------
