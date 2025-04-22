@@ -205,7 +205,7 @@ struct partitionFieldVisitor
                 {
                     size_t count=it.index()+1;
                     partitions.beginRawInsert(count);
-                    for (auto i=0;i<=it.index();i++)
+                    for (size_t i=0;i<=it.index();i++)
                     {
                         partitions.rawInsert(handler.p()->partitions.at(i));
                     }
