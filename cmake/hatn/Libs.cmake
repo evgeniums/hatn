@@ -13,4 +13,5 @@ SET (HATN_MODULES
 	mq
 	adminclient
 	section
+	journal
 )
