@@ -61,6 +61,11 @@ class FileLoggerT : public BufLoggerT<FileLoggerTraits,ContextT>
         {
             this->traits().setAllocatorFactory(cfg.allocatorFactory());
         }
+
+        std::vector<std::string> listFiles() const
+        {
+            return this->traits().listFiles();
+        }
 };
 
 using FileLogger=FileLoggerT<>;

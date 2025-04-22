@@ -141,6 +141,8 @@ class HATN_APP_EXPORT App
 
         Error createAppDataFolder();
 
+        std::vector<std::string> listLogFiles() const;
+
         void registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilder builder);
 
         void setAppConfigRoot(std::string val)

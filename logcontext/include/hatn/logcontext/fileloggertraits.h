@@ -90,6 +90,8 @@ class HATN_LOGCONTEXT_EXPORT FileLoggerTraits
 
         void setAllocatorFactory(const common::pmr::AllocatorFactory* factory) noexcept;
 
+        std::vector<std::string> listFiles() const;
+
     private:
 
         std::unique_ptr<FileLoggerTraits_p> d;
