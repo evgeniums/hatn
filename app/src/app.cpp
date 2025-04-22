@@ -177,7 +177,8 @@ class App_p
 
         App* app;
 
-        App_p(App* app) : app(app)
+        App_p(App* app) : app(app),
+                          fileLogger(std::make_shared<log::FileLogger>())
         {}
 
         base::ConfigObject<app_config::type> appConfig;
@@ -203,6 +204,8 @@ class App_p
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
         db::ClientConfig dbClientConfig(lib::string_view name) const;
 
+        std::shared_ptr<log::FileLogger> fileLogger;
+
         void setAppLogger(std::shared_ptr<log::Logger> newLogger)
         {
             logger=std::move(newLogger);
@@ -223,9 +226,9 @@ App::App(AppName appName) :
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
 {
-    auto buildFileLogger=[]() -> std::shared_ptr<log::LoggerHandler>
+    auto buildFileLogger=[this]() -> std::shared_ptr<log::LoggerHandler>
     {
-        return std::make_shared<log::FileLogger>();
+        return d->fileLogger;
     };
     registerLoggerHandlerBuilder(log::FileLoggerName,buildFileLogger);
     auto buildStreamLogger=[]() -> std::shared_ptr<log::LoggerHandler>
@@ -869,6 +872,13 @@ void App::freeDbSchemas()
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::free();
 #endif
+}
+
+//---------------------------------------------------------------
+
+std::vector<std::string> App::listLogFiles() const
+{
+    return d->fileLogger->listFiles();
 }
 
 //---------------------------------------------------------------
