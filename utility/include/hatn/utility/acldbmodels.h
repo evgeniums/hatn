@@ -17,11 +17,11 @@
 #define HATNACLDBMODELS_H
 
 #include <hatn/db/model.h>
-#include <hatn/db/modelsprovider.h>
+#include <hatn/db/modelswrapper.h>
 
-#include <hatn/acl/aclmodels.h>
+#include <hatn/utility/aclmodels.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 HATN_DB_UNIQUE_INDEX(aclRelationObjSubjIdx,acl_relation::object,acl_relation::subject,acl_relation::role)
 HATN_DB_INDEX(aclRelationObjRoleIdx,acl_relation::object,acl_relation::role)
@@ -44,17 +44,17 @@ class AclDbModels : public db::ModelsWrapper
 
         const auto& aclRelationModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_ACL_NAMESPACE::aclRelationModel);
+            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRelationModel);
         }
 
         const auto& aclRoleModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_ACL_NAMESPACE::aclRoleModel);
+            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleModel);
         }
 
         const auto& aclRoleOperationModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_ACL_NAMESPACE::aclRoleOperationModel);
+            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleOperationModel);
         }
 
         auto models()
@@ -72,6 +72,6 @@ class AclDbModels : public db::ModelsWrapper
 };
 
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLDBMODELS_H

@@ -20,11 +20,11 @@
 
 #include <hatn/db/dberror.h>
 
-#include <hatn/acl/aclerror.h>
-#include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/localaclcontroller.h>
+#include <hatn/utility/utilityerror.h>
+#include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/localaclcontroller.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
             {
                 if (role.error().is(db::DbError::NOT_FOUND,db::DbErrorCategory::getCategory()))
                 {
-                    callback(std::move(ctx),aclError(AclError::UNKNOWN_ROLE),db::ObjectId{});
+                    callback(std::move(ctx),utilityError(UtilityError::UNKNOWN_ROLE),db::ObjectId{});
                 }
                 else
                 {
@@ -282,7 +282,7 @@ void LocalAclControllerImpl<ContextTraits>::addRelation(
             {
                 if (role.error().is(db::DbError::NOT_FOUND,db::DbErrorCategory::getCategory()))
                 {
-                    callback(std::move(ctx),aclError(AclError::UNKNOWN_ROLE),db::ObjectId{});
+                    callback(std::move(ctx),utilityError(UtilityError::UNKNOWN_ROLE),db::ObjectId{});
                 }
                 else
                 {
@@ -356,6 +356,6 @@ void LocalAclControllerImpl<ContextTraits>::listRelations(
 
 //--------------------------------------------------------------------------
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNLOCALACLCONTROLLER_IPP

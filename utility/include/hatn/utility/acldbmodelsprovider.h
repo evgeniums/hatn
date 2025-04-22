@@ -18,13 +18,13 @@
 
 #include <hatn/db/modelsprovider.h>
 
-#include <hatn/acl/acl.h>
+#include <hatn/utility/utility.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 class AclDbModelsProvider_p;
 
-class HATN_ACL_EXPORT AclDbModelsProvider : public db::ModelsProvider
+class HATN_UTILITY_EXPORT AclDbModelsProvider : public db::ModelsProvider
 {
     public:
 
@@ -47,6 +47,6 @@ class HATN_ACL_EXPORT AclDbModelsProvider : public db::ModelsProvider
         std::unique_ptr<AclDbModelsProvider_p> d;
 };
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLDBMODELSPROVIDER_H

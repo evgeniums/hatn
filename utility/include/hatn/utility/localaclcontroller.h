@@ -18,10 +18,10 @@
 
 #include <hatn/db/modelsprovider.h>
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/aclcontroller.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/aclcontroller.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 template <typename ContextTraits>
 class LocalAclController_p;
@@ -142,6 +142,6 @@ class LocalAclControllerImpl
 template <typename ContextTraits>
 using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits>>;
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNLOCALACLCONTROLLER_H

@@ -22,11 +22,11 @@
 
 #include <hatn/db/indexquery.h>
 
-#include <hatn/acl/aclerror.h>
-#include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/accesschecker.h>
+#include <hatn/utility/utilityerror.h>
+#include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/accesschecker.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
@@ -496,6 +496,6 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 
 //--------------------------------------------------------------------------
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLACCESSCHECKER_IPP

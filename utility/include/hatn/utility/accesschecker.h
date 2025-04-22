@@ -19,10 +19,10 @@
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/db/modelsprovider.h>
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/aclconstants.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/aclconstants.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 enum class AclStatus : uint8_t
 {
@@ -233,6 +233,6 @@ class AccessChecker
         friend class AccessChecker_p;
 };
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLACCESSCHECKER_H

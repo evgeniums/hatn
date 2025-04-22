@@ -18,9 +18,9 @@
 
 #include <hatn/dataunit/objectid.h>
 
-#include <hatn/acl/acl.h>
+#include <hatn/utility/utility.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 constexpr const size_t OperationNameLength=64;
 constexpr const size_t ObjectNameLength=du::ObjectId::Length;
@@ -32,6 +32,6 @@ using SubjectType=common::StringOnStackT<SubjectNameLength>;
 using OperationType=common::StringOnStackT<OperationNameLength>;
 using TopicType=common::StringOnStackT<TopicLength>;
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLCONSTANTS_H

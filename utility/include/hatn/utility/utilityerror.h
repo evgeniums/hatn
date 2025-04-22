@@ -10,35 +10,35 @@
 /*
 
 */
-/** @file acl/aclerror.h
+/** @file utility/utilityerror.h
   *
-  * Contains declarations of error helpers for hatnacl lib.
+  * Contains declarations of error helpers for hatnutility lib.
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLERROR_H
-#define HATNACLERROR_H
+#ifndef HATNUTILITYERROR_H
+#define HATNUTILITYERROR_H
 
 #include <hatn/common/error.h>
 #include <hatn/common/nativeerror.h>
 #include <hatn/common/result.h>
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/aclerrorcodes.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/utilityerrorcodes.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
-//! Error category for hatnacl.
-class HATN_ACL_EXPORT AclErrorCategory : public common::ErrorCategory
+//! Error category for hatnutility.
+class HATN_UTILITY_EXPORT UtilityErrorCategory : public common::ErrorCategory
 {
 public:
 
     //! Name of the category
     virtual const char *name() const noexcept override
     {
-        return "hatn.acl";
+        return "hatn.utility";
     }
 
     //! Get description for the code
@@ -48,31 +48,31 @@ public:
     virtual const char* codeString(int code) const override;
 
     //! Get category
-    static const AclErrorCategory& getCategory() noexcept;
+    static const UtilityErrorCategory& getCategory() noexcept;
 };
 
 /**
  * @brief Make error object from code.
- * @param code AclError code.
+ * @param code UtilityError code.
  * @return Error object.
  */
-inline Error aclError(AclError code) noexcept
+inline Error utilityError(UtilityError code) noexcept
 {
-    return Error(static_cast<int>(code),&AclErrorCategory::getCategory());
+    return Error(static_cast<int>(code),&UtilityErrorCategory::getCategory());
 }
 
 /**
  * @brief Make error object from code and native error.
- * @param code AclError code.
+ * @param code UtilityError code.
  * @param native Native error.
  * @return Error object.
  */
-inline Error aclError(AclError code, std::shared_ptr<common::NativeError> err) noexcept
+inline Error utilityError(UtilityError code, std::shared_ptr<common::NativeError> err) noexcept
 {
-    err->setCategory(&AclErrorCategory::getCategory());
+    err->setCategory(&UtilityErrorCategory::getCategory());
     return Error(static_cast<int>(code),std::move(err));
 }
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLERROR_H
+#endif // HATNUTILITYERROR_H

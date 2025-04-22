@@ -18,26 +18,26 @@
 
 #include <hatn/common/translate.h>
 
-#include <hatn/acl/aclerror.h>
+#include <hatn/utility/utilityerror.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
-/********************** AclErrorCategory **************************/
+/********************** UtilityErrorCategory **************************/
 
 //---------------------------------------------------------------
-const AclErrorCategory& AclErrorCategory::getCategory() noexcept
+const UtilityErrorCategory& UtilityErrorCategory::getCategory() noexcept
 {
-    static AclErrorCategory AclErrorCategoryInstance;
-    return AclErrorCategoryInstance;
+    static UtilityErrorCategory UtilityErrorCategoryInstance;
+    return UtilityErrorCategoryInstance;
 }
 
 //---------------------------------------------------------------
-std::string AclErrorCategory::message(int code) const
+std::string UtilityErrorCategory::message(int code) const
 {
     std::string result;
     switch (code)
     {
-        HATN_ACL_ERRORS(HATN_ERROR_MESSAGE)
+        HATN_UTILITY_ERRORS(HATN_ERROR_MESSAGE)
 
         default:
             result=_TR("unknown error");
@@ -47,11 +47,11 @@ std::string AclErrorCategory::message(int code) const
 }
 
 //---------------------------------------------------------------
-const char* AclErrorCategory::codeString(int code) const
+const char* UtilityErrorCategory::codeString(int code) const
 {
-    return errorString(code,AclErrorStrings);
+    return errorString(code,UtilityErrorStrings);
 }
 
 //---------------------------------------------------------------
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END

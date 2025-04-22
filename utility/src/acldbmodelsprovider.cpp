@@ -25,11 +25,11 @@
 
 #endif
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/acldbmodelsprovider.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/acldbmodelsprovider.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 class AclDbModelsProvider_p
 {
@@ -101,4 +101,4 @@ void AclDbModelsProvider::unregisterRocksdbModels()
 
 //--------------------------------------------------------------------------
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END

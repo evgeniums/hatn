@@ -18,10 +18,10 @@
 
 #include <hatn/db/object.h>
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/aclconstants.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/aclconstants.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 HDU_UNIT_WITH(acl_role,(HDU_BASE(db::object)),
     HDU_FIELD(name,TYPE_STRING,1)
@@ -40,6 +40,6 @@ HDU_UNIT_WITH(acl_relation,(HDU_BASE(db::object)),
     HDU_FIELD(role,TYPE_OBJECT_ID,3)
 )
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLMODELS_H

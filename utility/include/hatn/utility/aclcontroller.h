@@ -22,11 +22,11 @@
 #include <hatn/db/indexquery.h>
 #include <hatn/db/asyncmodelcontroller.h>
 
-#include <hatn/acl/acl.h>
-#include <hatn/acl/aclconstants.h>
-#include <hatn/acl/aclmodels.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/aclconstants.h>
+#include <hatn/utility/aclmodels.h>
 
-HATN_ACL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 /**
 
@@ -187,6 +187,6 @@ class AclController : public common::WithTraits<Traits>
         }
 };
 
-HATN_ACL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNACLCONTROLLER_H

@@ -1,1 +1,0 @@
-SET(HATN_MODULE_TEST_DEPS app api section PARENT_SCOPE)

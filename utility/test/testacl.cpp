@@ -28,18 +28,18 @@
 
 #include <hatn/db/schema.h>
 
-#include <hatn/acl/acldbmodelsprovider.h>
-#include <hatn/acl/acldbmodels.h>
-#include <hatn/acl/accesschecker.h>
-#include <hatn/acl/ipp/accesschecker.ipp>
-#include <hatn/acl/localaclcontroller.h>
-#include <hatn/acl/ipp/localaclcontroller.ipp>
+#include <hatn/utility/acldbmodelsprovider.h>
+#include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/accesschecker.h>
+#include <hatn/utility/ipp/accesschecker.ipp>
+#include <hatn/utility/localaclcontroller.h>
+#include <hatn/utility/ipp/localaclcontroller.ipp>
 
 #include <hatn/app/app.h>
 #include <hatn/app/appenv.h>
 
 HATN_APP_USING
-HATN_ACL_USING
+HATN_UTILITY_USING
 HATN_DB_USING
 HATN_COMMON_USING
 HATN_TEST_USING
@@ -87,7 +87,7 @@ auto createApp(std::string configFileName)
 {
     AppName appName{"testacl","Test Acl"};
     auto app=std::make_shared<App>(appName);
-    auto configFile=MultiThreadFixture::assetsFilePath("acl",configFileName);
+    auto configFile=MultiThreadFixture::assetsFilePath("utility",configFileName);
     app->setAppDataFolder(MultiThreadFixture::tmpPath());
     BOOST_TEST_MESSAGE(fmt::format("Data dir {}",MultiThreadFixture::tmpPath()));
     auto ec=app->loadConfigFile(configFile);
@@ -205,20 +205,20 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
             BOOST_REQUIRE(!result);
             BOOST_TEST_MESSAGE(fmt::format("Roles listed, found {}",result->size()));
             BOOST_REQUIRE_EQUAL(1,result->size());
-            const auto* role=result->at(0).as<acl::acl_role::type>();
+            const auto* role=result->at(0).as<HATN_UTILITY_NAMESPACE::acl_role::type>();
             BOOST_TEST_MESSAGE(fmt::format("Found role name {}, description {}, id {}",
-                                           role->fieldValue(acl::acl_role::name),
-                                           role->fieldValue(acl::acl_role::description),
+                                           role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::name),
+                                           role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::description),
                                            role->fieldValue(db::object::_id).string()));
-            BOOST_CHECK_EQUAL(role1,std::string(role->fieldValue(acl::acl_role::name)));
-            BOOST_CHECK_EQUAL(description1,std::string(role->fieldValue(acl::acl_role::description)));
+            BOOST_CHECK_EQUAL(role1,std::string(role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::name)));
+            BOOST_CHECK_EQUAL(description1,std::string(role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::description)));
 
             addRoleOperation(std::move(ctx),role->fieldValue(db::object::_id));
         };
 
         auto queryBuilder=[&topic]()
         {
-            return db::makeQuery(aclRoleNameIdx(),db::query::where(acl::acl_role::name,db::query::gte,db::query::First),topic);
+            return db::makeQuery(aclRoleNameIdx(),db::query::where(HATN_UTILITY_NAMESPACE::acl_role::name,db::query::gte,db::query::First),topic);
         };
         res.ctrl->listRoles(
             std::move(ctx),
@@ -264,15 +264,15 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
             BOOST_REQUIRE(!result);
             BOOST_TEST_MESSAGE(fmt::format("Role operations listed, found {}",result->size()));
             BOOST_REQUIRE_EQUAL(1,result->size());
-            const auto* roleOp=result->at(0).as<acl::acl_role_operation::type>();
+            const auto* roleOp=result->at(0).as<HATN_UTILITY_NAMESPACE::acl_role_operation::type>();
             BOOST_TEST_MESSAGE(fmt::format("Found role operation role_id {}, operation {}, access {}, id {}",
-                                           roleOp->fieldValue(acl::acl_role_operation::role).string(),
-                                           roleOp->fieldValue(acl::acl_role_operation::operation),
-                                           roleOp->fieldValue(acl::acl_role_operation::access),
+                                           roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::role).string(),
+                                           roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::operation),
+                                           roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::access),
                                            roleOp->fieldValue(db::object::_id).string()));
-            BOOST_CHECK_EQUAL(roleOid.string(),roleOp->fieldValue(acl::acl_role_operation::role).string());
-            BOOST_CHECK_EQUAL(opGrant,roleOp->fieldValue(acl::acl_role_operation::operation));
-            BOOST_CHECK(roleOp->fieldValue(acl::acl_role_operation::access));
+            BOOST_CHECK_EQUAL(roleOid.string(),roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::role).string());
+            BOOST_CHECK_EQUAL(opGrant,roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::operation));
+            BOOST_CHECK(roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::access));
 
             addRelation(std::move(ctx),roleOid);
         };
@@ -325,15 +325,15 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
             BOOST_REQUIRE(!result);
             BOOST_TEST_MESSAGE(fmt::format("Subject-object-role relations listed, found {}",result->size()));
             BOOST_REQUIRE_EQUAL(1,result->size());
-            const auto* rel=result->at(0).as<acl::acl_relation::type>();
+            const auto* rel=result->at(0).as<HATN_UTILITY_NAMESPACE::acl_relation::type>();
             BOOST_TEST_MESSAGE(fmt::format("Found relation {}-{}-{}, id {}",
-                                           rel->fieldValue(acl::acl_relation::subject),
-                                           rel->fieldValue(acl::acl_relation::object),
-                                           rel->fieldValue(acl::acl_relation::role).string(),
+                                           rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::subject),
+                                           rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::object),
+                                           rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::role).string(),
                                            rel->fieldValue(db::object::_id).string()));
-            BOOST_CHECK_EQUAL(roleOid.string(),rel->fieldValue(acl::acl_relation::role).string());
-            BOOST_CHECK_EQUAL(subj1,rel->fieldValue(acl::acl_relation::subject));
-            BOOST_CHECK_EQUAL(obj1,rel->fieldValue(acl::acl_relation::object));
+            BOOST_CHECK_EQUAL(roleOid.string(),rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::role).string());
+            BOOST_CHECK_EQUAL(subj1,rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::subject));
+            BOOST_CHECK_EQUAL(obj1,rel->fieldValue(HATN_UTILITY_NAMESPACE::acl_relation::object));
 
             updateRole(std::move(ctx),roleOid);
         };
@@ -366,8 +366,8 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
         role1="new_role";
         description1="new description";
         auto request=update::sharedRequest(
-            update::field(acl::acl_role::name,update::set,role1),
-            update::field(acl::acl_role::description,update::set,description1)
+            update::field(HATN_UTILITY_NAMESPACE::acl_role::name,update::set,role1),
+            update::field(HATN_UTILITY_NAMESPACE::acl_role::description,update::set,description1)
         );
         res.ctrl->updateRole(
             std::move(ctx),
@@ -388,13 +388,13 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
             BOOST_REQUIRE(!result);
             BOOST_TEST_MESSAGE(fmt::format("Roles listed, found {}",result->size()));
             BOOST_REQUIRE_EQUAL(1,result->size());
-            const auto* role=result->at(0).as<acl::acl_role::type>();
+            const auto* role=result->at(0).as<HATN_UTILITY_NAMESPACE::acl_role::type>();
             BOOST_TEST_MESSAGE(fmt::format("Found role name {}, description {}, id {}",
-                                           role->fieldValue(acl::acl_role::name),
-                                           role->fieldValue(acl::acl_role::description),
+                                           role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::name),
+                                           role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::description),
                                            role->fieldValue(db::object::_id).string()));
-            BOOST_CHECK_EQUAL(role1,std::string(role->fieldValue(acl::acl_role::name)));
-            BOOST_CHECK_EQUAL(description1,std::string(role->fieldValue(acl::acl_role::description)));
+            BOOST_CHECK_EQUAL(role1,std::string(role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::name)));
+            BOOST_CHECK_EQUAL(description1,std::string(role->fieldValue(HATN_UTILITY_NAMESPACE::acl_role::description)));
 
             removeRoleOperation(std::move(ctx));
         };
@@ -571,12 +571,6 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
     exec(1);
 
     res.app->close();
-
-/**
- * 1. @todo Implement and test removing role with bound operations and relations.
- * 2. @todo Add notifier to modifying operations in controller.
- *
- * *
 }
 
 BOOST_AUTO_TEST_SUITE_END()

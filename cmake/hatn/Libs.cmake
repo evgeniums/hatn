@@ -12,6 +12,5 @@ SET (HATN_MODULES
 	app
 	mq
 	adminclient
-	section
-	journal
+	utility
 )
