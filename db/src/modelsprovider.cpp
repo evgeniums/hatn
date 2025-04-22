@@ -12,6 +12,7 @@
 
 /****************************************************************************/
 
+#include <hatn/db/modelswrapper.h>
 #include <hatn/db/modelsprovider.h>
 
 HATN_DB_NAMESPACE_BEGIN

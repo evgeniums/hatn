@@ -660,4 +660,20 @@ struct _model_##m { \
     }; \
     constexpr _model_##m m{};
 
+#define HATN_DB_OID_PARTITION_MODEL_PROTOTYPE(m,type,...) \
+    struct _model_##m { \
+        template <typename ConfigT> \
+        const auto& operator()(ConfigT&& cfg) const \
+        { \
+                static auto mm=HATN_DB_NAMESPACE::makeOidPartitionModel< type ::TYPE>(std::forward<ConfigT>(cfg),__VA_ARGS__); \
+                return mm; \
+        } \
+            const char* baseName() const noexcept \
+        { \
+                return #m; \
+        } \
+    }; \
+    constexpr _model_##m m{};
+
+
 #endif // HATNDBMODEL_H

@@ -23,6 +23,7 @@ SET (HEADERS
     include/hatn/db/encryptionmanager.h
     include/hatn/db/updateserialization.h
     include/hatn/db/asyncclient.h
+    include/hatn/db/modelswrapper.h
     include/hatn/db/modelsprovider.h
     include/hatn/db/asyncmodelcontroller.h
 )
@@ -31,6 +32,7 @@ SET (HEADERS
     ${HEADERS}
     include/hatn/db/ipp/updateunit.ipp
     include/hatn/db/ipp/updateserialization.ipp
+    include/hatn/db/ipp/modelsprovider.ipp
 )
 
 SET (SOURCES
