@@ -24,28 +24,7 @@ HATN_UTILITY_NAMESPACE_BEGIN
 
 class AclDbModelsProvider_p;
 
-class HATN_UTILITY_EXPORT AclDbModelsProvider : public db::ModelsProvider
-{
-    public:
-
-        AclDbModelsProvider();
-        AclDbModelsProvider(std::shared_ptr<db::ModelsWrapper> wrapper);
-
-        ~AclDbModelsProvider();
-        AclDbModelsProvider(const AclDbModelsProvider&)=delete;
-        AclDbModelsProvider(AclDbModelsProvider&&)=default;
-        AclDbModelsProvider& operator=(const AclDbModelsProvider&)=delete;
-        AclDbModelsProvider& operator=(AclDbModelsProvider&&)=default;
-
-        virtual void registerRocksdbModels() override;
-        virtual void unregisterRocksdbModels() override;
-
-        virtual std::vector<std::shared_ptr<db::ModelInfo>> models() const override;
-
-    private:
-
-        std::unique_ptr<AclDbModelsProvider_p> d;
-};
+using AclDbModelsProvider = db::DbModelsProviderT<AclDbModelsProvider_p>;
 
 HATN_UTILITY_NAMESPACE_END
 
