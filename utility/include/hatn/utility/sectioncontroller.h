@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file section/sectioncontroller.h
+/** @file utility/sectioncontroller.h
   */
 
 /****************************************************************************/
@@ -22,10 +22,10 @@
 #include <hatn/db/indexquery.h>
 #include <hatn/db/asyncmodelcontroller.h>
 
-#include <hatn/section/section.h>
-#include <hatn/section/sectionmodels.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/sectionmodels.h>
 
-HATN_SECTION_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 constexpr const char* SystemTopic="system";
 
@@ -97,6 +97,6 @@ class SectionController : public common::WithTraits<Traits>
         }
 };
 
-HATN_SECTION_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNSECTIONCONTROLLER_H

@@ -25,12 +25,9 @@ HATN_UTILITY_NAMESPACE_BEGIN
 constexpr const size_t OperationNameLength=64;
 constexpr const size_t ObjectNameLength=du::ObjectId::Length;
 constexpr const size_t SubjectNameLength=du::ObjectId::Length;
-constexpr const size_t TopicLength=du::ObjectId::Length;
 
 using ObjectType=common::StringOnStackT<ObjectNameLength>;
 using SubjectType=common::StringOnStackT<SubjectNameLength>;
-using OperationType=common::StringOnStackT<OperationNameLength>;
-using TopicType=common::StringOnStackT<TopicLength>;
 
 HATN_UTILITY_NAMESPACE_END
 
