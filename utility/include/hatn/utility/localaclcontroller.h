@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file acl/localaclcontroller.h
+/** @file utility/localaclcontroller.h
   */
 
 /****************************************************************************/

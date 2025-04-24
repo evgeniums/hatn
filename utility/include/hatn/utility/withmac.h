@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file section/withmac.h
+/** @file utility/withmac.h
   */
 
 /****************************************************************************/
@@ -18,23 +18,14 @@
 
 #include <hatn/db/object.h>
 
-//! @todo Implement Manadatory Access Control
+#include <hatn/utility/utility.h>
 
-#ifdef HATN_MANDATORY_CONTROL
-#include <hatn/mac/withmac.h>
-
-#else
-
-#include <hatn/section/mac.h>
-
-HATN_MAC_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 HDU_UNIT(with_mac_policy,
     HDU_FIELD(mac_policy,TYPE_OBJECT_ID,10000)
 )
 
-HATN_MAC_NAMESPACE_END
-
-#endif
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNWITHMAC_H

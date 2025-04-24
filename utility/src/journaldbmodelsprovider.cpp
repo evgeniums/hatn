@@ -8,7 +8,7 @@
 /*
 
 */
-/** @file journal/journaldbmodelsprovider.сpp
+/** @file utility/journaldbmodelsprovider.сpp
   *
   */
 
@@ -25,29 +25,29 @@
 
 #endif
 
-#include <hatn/journal/journal.h>
-#include <hatn/journal/journaldbmodels.h>
-#include <hatn/journal/journaldbmodelsprovider.h>
+#include <hatn/utility/utility.h>
+#include <hatn/utility/journaldbmodels.h>
+#include <hatn/utility/journaldbmodelsprovider.h>
 
 #include <hatn/db/ipp/modelsprovider.ipp>
 
-HATN_JOURNAL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-class JournalDbModelsProvider_p : public DbModelsProviderT_p<JournalDbModels>
+class JournalDbModelsProvider_p : public db::DbModelsProviderT_p<JournalDbModels>
 {
     public:
 
-        using DbModelsProviderT_p<JournalDbModels>::DbModelsProviderT_p;
+        using db::DbModelsProviderT_p<JournalDbModels>::DbModelsProviderT_p;
 };
 
 //--------------------------------------------------------------------------
 
-HATN_JOURNAL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 HATN_DB_NAMESPACE_BEGIN
 
-template class HATN_JOURNAL_EXPORT DbModelsProviderT<HATN_JOURNAL_NAMESPACE::JournalDbModelsProvider_p>;
+template class HATN_UTILITY_EXPORT DbModelsProviderT<HATN_UTILITY_NAMESPACE::JournalDbModelsProvider_p>;
 
 HATN_DB_NAMESPACE_END

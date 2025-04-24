@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file journal/journaldbmodelsprovider.h
+/** @file utility/journaldbmodelsprovider.h
   */
 
 /****************************************************************************/
@@ -18,14 +18,14 @@
 
 #include <hatn/db/modelsprovider.h>
 
-#include <hatn/journal/journal.h>
+#include <hatn/utility/journal.h>
 
-HATN_JOURNAL_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 class JournalDbModelsProvider_p;
 
 using JournalDbModelsProvider = db::DbModelsProviderT<JournalDbModelsProvider_p>;
 
-HATN_JOURNAL_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNJOURNALDBMODELSPROVIDER_H

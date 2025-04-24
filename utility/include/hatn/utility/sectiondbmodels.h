@@ -17,17 +17,17 @@
 #define HATNSECTIONDBMODELS_H
 
 #include <hatn/db/model.h>
-#include <hatn/db/modelsprovider.h>
+#include <hatn/db/modelswrapper.h>
 
-#include <hatn/section/sectionmodels.h>
-#include <hatn/section/withmacdb.h>
+#include <hatn/utility/sectionmodels.h>
+#include <hatn/utility/withmacdb.h>
 
-HATN_SECTION_NAMESPACE_BEGIN
+HATN_UTILITY_NAMESPACE_BEGIN
 
 HATN_DB_INDEX(topicParentIdx,topic_descriptor::parent)
 HATN_DB_INDEX(topicNameIdx,topic_descriptor::name)
 HATN_DB_INDEX(topicSectionIdx,topic_descriptor::section)
-HATN_DB_MODEL_PROTOTYPE(topicModel,topic_descriptor,topicParentIdx(),topicNameIdx(),mac::macPolicyIdx())
+HATN_DB_MODEL_PROTOTYPE(topicModel,topic_descriptor,topicParentIdx(),topicNameIdx(),macPolicyIdx())
 
 class SectionDbModels : public db::ModelsWrapper
 {
@@ -38,7 +38,7 @@ class SectionDbModels : public db::ModelsWrapper
 
         const auto& topicModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SECTION_NAMESPACE::topicModel);
+            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::topicModel);
         }
 
         auto models()
@@ -53,6 +53,6 @@ class SectionDbModels : public db::ModelsWrapper
         std::string m_prefix;
 };
 
-HATN_SECTION_NAMESPACE_END
+HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNSECTIONDBMODELS_H
