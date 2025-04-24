@@ -71,6 +71,16 @@ class HATN_DATAUNIT_EXPORT ObjectId
             fmt::format_to_n(buf.data()+offset,Length,"{:011x}{:06x}{:08x}",m_timepoint,m_seq&0xFFFFFF,m_rand);
         }
 
+        static Result<ObjectId> fromString(const common::ConstDataBuf& buf)
+        {
+            ObjectId oid;
+            if (oid.parse(buf))
+            {
+                return oid;
+            }
+            return commonError(CommonError::INVALID_FORMAT);
+        }
+
         bool parse(const common::ConstDataBuf& buf) noexcept;
 
         void set(const common::ConstDataBuf& buf)
