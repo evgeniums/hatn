@@ -26,6 +26,7 @@ SET (HEADERS
     include/hatn/utility/mac.h
     include/hatn/utility/withmac.h
     include/hatn/utility/withmacdb.h
+    include/hatn/utility/notifier.h
 )
 
 SET (HEADERS
