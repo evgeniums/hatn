@@ -30,16 +30,18 @@ HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>
+template <typename ContextTraits, typename Config>
+class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<ContextTraits,Config>>
 {
     public:
 
         using Context=typename ContextTraits::Context;
         using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
 
+        using MacPolicyChecker=typename AccessChecker<ContextTraits,Config>::MacPolicyChecker;
+
         AccessChecker_p(
-                const AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl,
+                const AccessChecker<ContextTraits,Config>* ctrl,
                 std::shared_ptr<db::ModelsWrapper> wrp
             ) : ctrl(ctrl)
         {
@@ -47,12 +49,14 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
             Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
         }
 
-        const AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>* ctrl;
+        const AccessChecker<ContextTraits,Config>* ctrl;
         std::shared_ptr<AclDbModels> dbModelsWrapper;
 
-        mutable std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::Cache> cache;
-        std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::SubjectHierarchy> subjHierarchy;
-        std::shared_ptr<typename AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::ObjectHierarchy> objHierarchy;
+        mutable std::shared_ptr<typename AccessChecker<ContextTraits,Config>::Cache> cache;
+        std::shared_ptr<typename AccessChecker<ContextTraits,Config>::SubjectHierarchy> subjHierarchy;
+        std::shared_ptr<typename AccessChecker<ContextTraits,Config>::ObjectHierarchy> objHierarchy;
+
+        std::shared_ptr<MacPolicyChecker> macPolicyChecker;
 
         void find(
             common::SharedPtr<Context> ctx,
@@ -80,61 +84,63 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
+template <typename ContextTraits, typename Config>
+AccessChecker<ContextTraits,Config>::AccessChecker(
         std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
-        std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : d(std::make_shared<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>>(this,std::move(dbModelsWrapper)))
+        std::shared_ptr<ObjectHierarchy> objHierarchy,
+        std::shared_ptr<MacPolicyChecker> macPolicyChecker
+    ) : d(std::make_shared<AccessChecker_p<ContextTraits,Config>>(this,std::move(dbModelsWrapper)))
 {
     d->subjHierarchy=std::move(subjHierarchy);
     d->objHierarchy=std::move(objHierarchy);
+    d->macPolicyChecker=std::move(macPolicyChecker);
 }
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
+template <typename ContextTraits, typename Config>
+AccessChecker<ContextTraits,Config>::AccessChecker(
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,Config>(std::make_shared<AclDbModels>(),std::move(subjHierarchy),std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
+template <typename ContextTraits, typename Config>
+AccessChecker<ContextTraits,Config>::AccessChecker(
     std::shared_ptr<db::ModelsWrapper> dbModelsWrapper,
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,Config>(std::move(dbModelsWrapper),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::AccessChecker(
+template <typename ContextTraits, typename Config>
+AccessChecker<ContextTraits,Config>::AccessChecker(
     std::shared_ptr<ObjectHierarchy> objHierarchy
-    ) : AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
+    ) : AccessChecker<ContextTraits,Config>(std::make_shared<AclDbModels>(),{},std::move(objHierarchy))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::~AccessChecker()
+template <typename ContextTraits, typename Config>
+AccessChecker<ContextTraits,Config>::~AccessChecker()
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::setCache(std::shared_ptr<Cache> cache)
+template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::setCache(std::shared_ptr<Cache> cache)
 {
     d->cache=std::move(cache);
 }
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
+template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::checkAccess(
         common::SharedPtr<Context> ctx,
         Callback callback,
         lib::string_view object,
@@ -165,8 +171,8 @@ struct ArgsThreadTopicBuilder
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::checkAccess(
+template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::checkAccess(
     common::SharedPtr<Context> ctx,
     Callback callback,
     common::SharedPtr<AccessCheckerArgs> args,
@@ -200,8 +206,8 @@ void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateSubjHierarchy(
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
         common::SharedPtr<Context> ctx,
         Callback callback,
         AclStatus prevStatus,
@@ -266,8 +272,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::iterateObjHierarchy(
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
     common::SharedPtr<Context> ctx,
     Callback callback,
     AclStatus prevStatus,
@@ -340,8 +346,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename SubjectHierarchyT, typename ObjectHierarchyT, typename CacheT>
-void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::find(
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::find(
         common::SharedPtr<Context> ctx,
         Callback callback,
         common::SharedPtr<AccessCheckerArgs> args,
@@ -349,6 +355,43 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     ) const
 {
     auto self=this->shared_from_this();
+
+    auto checkMacPolicy=[callback,args,self,this](auto&& listRelations, auto ctx)
+    {
+        if constexpr (std::is_same_v<MacPolicyChecker,MacPolicyNone>)
+        {
+            std::ignore=this;
+            listRelations(std::move(ctx));
+        }
+        else
+        {
+            if (macPolicyChecker)
+            {
+                auto cb=[self=std::move(self), this, callback=std::move(callback), listRelations=std::move(listRelations)](auto ctx, const Error& ec)
+                {
+                    if (ec)
+                    {
+                        if (ec.is(UtilityError::MAC_FORBIDDEN,UtilityErrorCategory::getCategory()))
+                        {
+                            callback(std::move(ctx),AclStatus::Deny,ec);
+                        }
+                        else
+                        {
+                            callback(std::move(ctx),AclStatus::Unknown,ec);
+                        }
+                        return;
+                    }
+
+                    listRelations(std::move(ctx));
+                };
+                macPolicyChecker->checkMacPolicy(std::move(ctx),std::move(cb),args);
+            }
+            else
+            {
+                listRelations(std::move(ctx));
+            }
+        }
+    };
 
     // list subject roles for given object
     auto listRelations=[callback,args,initialArgs,self,this](auto&& listOperations, auto ctx)
@@ -575,6 +618,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 
     // invoke
     auto chain=hatn::chain(
+            std::move(checkMacPolicy),
             std::move(listRelations),
             std::move(listOperations),
             std::move(checkOperations),

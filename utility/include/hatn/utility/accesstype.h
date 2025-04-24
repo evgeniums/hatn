@@ -39,6 +39,26 @@ enum class AccessType : uint32_t
     END
 };
 
+constexpr bool isCreateAccess(AccessType accessType)
+{
+    return accessType==AccessType::Create;
+}
+
+constexpr bool isReadAccess(AccessType accessType)
+{
+    return accessType==AccessType::Read || accessType==AccessType::ReadOwn;
+}
+
+constexpr bool isUpdateAccess(AccessType accessType)
+{
+    return accessType==AccessType::Update || accessType==AccessType::UpdateOwn;
+}
+
+constexpr bool isDeleteAccess(AccessType accessType)
+{
+    return accessType==AccessType::Delete || accessType==AccessType::DeleteOwn;
+}
+
 namespace detail {
 
 struct AccessTypeTraits

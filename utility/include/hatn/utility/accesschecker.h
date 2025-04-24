@@ -112,7 +112,42 @@ struct AccessCheckerArgs
     const Operation* operation;
     TopicType objectTopic;
     TopicType subjectTopic;
+
+    lib::optional<uint32_t> objectMac;
+    lib::optional<uint32_t> subjectMac;
 };
+
+struct MacPolicyNone
+{
+    template <typename ContextT, typename CallbackT>
+    void checkMacPolicy(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT cb,
+            common::SharedPtr<AccessCheckerArgs> /*args*/
+        )
+    {
+        cb(std::move(ctx),Error{});
+    }
+};
+
+template <typename Traits=MacPolicyNone>
+class MacPolicyChecker : public common::WithTraits<Traits>
+{
+public:
+
+    using common::WithTraits<Traits>::WithTraits;
+
+    template <typename ContextT, typename CallbackT>
+    void checkMacPolicy(
+        common::SharedPtr<ContextT> ctx,
+        CallbackT cb,
+        common::SharedPtr<AccessCheckerArgs> args
+    )
+    {
+        this->traits().checkMacPolicy(std::move(ctx),std::move(cb),std::move(args));
+    }
+};
+
 
 template <typename Traits>
 class AccessCache : public common::WithTraits<Traits>
@@ -173,10 +208,19 @@ class AccessCacheNone
         }
 };
 
-template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=AccessCacheNone>
+template <typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=AccessCacheNone, typename MacPolicyCheckerT=MacPolicyNone>
+struct AccessCheckerConfig
+{
+    using SubjectHierarchy=SubjectHierarchyT;
+    using ObjectHierarchy=ObjectHierarchyT;
+    using Cache=CacheT;
+    using MacPolicyChecker=MacPolicyCheckerT;
+};
+
+template <typename ContextTraits, typename Config=AccessCheckerConfig<>>
 class AccessChecker_p;
 
-template <typename ContextTraits, typename SubjectHierarchyT=HierarchyNone, typename ObjectHierarchyT=HierarchyNone, typename CacheT=AccessCacheNone>
+template <typename ContextTraits, typename Config=AccessCheckerConfig<>>
 class AccessChecker
 {
     public:
@@ -184,15 +228,18 @@ class AccessChecker
         using Context=typename ContextTraits::Context;
         using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
 
-        using SubjectHierarchy=SubjectHierarchyT;
-        using ObjectHierarchy=ObjectHierarchyT;
-        using Cache=CacheT;
+        using SubjectHierarchy=typename Config::SubjectHierarchy;
+        using ObjectHierarchy=typename Config::ObjectHierarchy;
+        using Cache=typename Config::Cache;
+        using MacPolicyChecker=typename Config::MacPolicyChecker;
 
         AccessChecker(
                 std::shared_ptr<db::ModelsWrapper> wrapper,
                 std::shared_ptr<SubjectHierarchy> subjHierarchy={},
-                std::shared_ptr<ObjectHierarchy> objHierarchy={}
+                std::shared_ptr<ObjectHierarchy> objHierarchy={},
+                std::shared_ptr<MacPolicyChecker> macPolicyChecker={}
             );
+
         AccessChecker(
                 std::shared_ptr<db::ModelsWrapper> wrapper,
                 std::shared_ptr<ObjectHierarchy> objHierarchy
@@ -243,9 +290,9 @@ class AccessChecker
             return ContextTraits::contextFactory(ctx);
         }
 
-        std::shared_ptr<AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>> d;
+        std::shared_ptr<AccessChecker_p<ContextTraits,Config>> d;
 
-        template <typename ContextTraits1, typename SubjectHierarchyT1, typename ObjectHierarchyT1, typename CacheT1>
+        template <typename ContextTraits1, typename Config1>
         friend class AccessChecker_p;
 };
 
