@@ -23,7 +23,7 @@
 
 #define HATN_ERROR_CODE(Enum,Code,Msg) Code,
 
-#define HATN_ERROR_STR(Enum,Code,Msg) #Code,
+#define HATN_ERROR_STR(Enum,Code,Msg) #Enum"-"#Code,
 
 #define HATN_ERROR_MESSAGE(Enum,Code,Msg) \
     case (static_cast<int>(Enum::Code)): \
