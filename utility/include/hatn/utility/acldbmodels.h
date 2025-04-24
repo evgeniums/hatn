@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/acldbmodels.h
+/** @file utility/acldbmodels.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLDBMODELS_H
-#define HATNACLDBMODELS_H
+#ifndef HATNUTILITYACLDBMODELS_H
+#define HATNUTILITYACLDBMODELS_H
 
 #include <hatn/db/model.h>
 #include <hatn/db/modelswrapper.h>
@@ -32,8 +32,12 @@ HATN_DB_MODEL_PROTOTYPE(aclRelationModel,acl_relation,aclRelationObjSubjIdx(),ac
 HATN_DB_UNIQUE_INDEX(aclRoleNameIdx,acl_role::name)
 HATN_DB_MODEL_PROTOTYPE(aclRoleModel,acl_role,aclRoleNameIdx())
 
+HATN_DB_UNIQUE_INDEX(aclOpFamilyAccessIdx,acl_op_family_access::role,acl_op_family_access::op_family)
+HATN_DB_MODEL_PROTOTYPE(aclOpFamilyAccessModel,acl_op_family_access,aclOpFamilyAccessIdx())
+
 HATN_DB_UNIQUE_INDEX(aclRoleOperationIdx,acl_role_operation::role,acl_role_operation::operation)
 HATN_DB_MODEL_PROTOTYPE(aclRoleOperationModel,acl_role_operation,aclRoleOperationIdx())
+
 
 class AclDbModels : public db::ModelsWrapper
 {
@@ -57,12 +61,18 @@ class AclDbModels : public db::ModelsWrapper
             return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleOperationModel);
         }
 
+        const auto& aclOpFamilyAccessModel() const
+        {
+            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclOpFamilyAccessModel);
+        }
+
         auto models()
         {
             return hana::make_tuple(
                 [this](){return aclRelationModel();},
                 [this](){return aclRoleModel();},
-                [this](){return aclRoleOperationModel();}
+                [this](){return aclRoleOperationModel();},
+                [this](){return aclOpFamilyAccessModel();}
             );
         }
 
@@ -74,4 +84,4 @@ class AclDbModels : public db::ModelsWrapper
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLDBMODELS_H
+#endif // HATNUTILITYACLDBMODELS_H

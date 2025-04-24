@@ -146,7 +146,7 @@ BOOST_FIXTURE_TEST_CASE(CheckEmptyAcl,TestEnv)
         BOOST_TEST_MESSAGE(fmt::format("Check access cb: status={}, ec={}",static_cast<int>(status),ec.message()));
     };
     auto ctx=makeAppEnvContext(res.app->env());
-    res.checker->checkAccess(ctx,cb,"obj1","subj1","op1","topic1");
+    res.checker->checkAccess(ctx,cb,"obj1","subj1",&AclOperations::addRole(),"topic1");
 
     exec(1);
 
@@ -245,7 +245,7 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
         auto roleOp=makeShared<acl_role_operation::managed>();
         roleOp->setFieldValue(acl_role_operation::role,roleOid);
         roleOp->setFieldValue(acl_role_operation::operation,opGrant);
-        roleOp->setFieldValue(acl_role_operation::access,true);
+        roleOp->setFieldValue(acl_role_operation::grant,true);
         res.ctrl->addRoleOperation(
             std::move(ctx),
             std::move(cb),
@@ -268,11 +268,11 @@ BOOST_FIXTURE_TEST_CASE(AclControllerOps,TestEnv)
             BOOST_TEST_MESSAGE(fmt::format("Found role operation role_id {}, operation {}, access {}, id {}",
                                            roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::role).string(),
                                            roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::operation),
-                                           roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::access),
+                                           roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::grant),
                                            roleOp->fieldValue(db::object::_id).string()));
             BOOST_CHECK_EQUAL(roleOid.string(),roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::role).string());
             BOOST_CHECK_EQUAL(opGrant,roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::operation));
-            BOOST_CHECK(roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::access));
+            BOOST_CHECK(roleOp->fieldValue(HATN_UTILITY_NAMESPACE::acl_role_operation::grant));
 
             addRelation(std::move(ctx),roleOid);
         };

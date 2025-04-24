@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file acl/ipp/localaclcontroller.ipp
+/** @file utility/ipp/localaclcontroller.ipp
   */
 
 /****************************************************************************/

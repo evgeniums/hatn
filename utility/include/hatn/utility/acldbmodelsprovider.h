@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/acldbmodelsprovider.h
+/** @file utility/acldbmodelsprovider.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLDBMODELSPROVIDER_H
-#define HATNACLDBMODELSPROVIDER_H
+#ifndef HATNUTILITYACLDBMODELSPROVIDER_H
+#define HATNUTILITYACLDBMODELSPROVIDER_H
 
 #include <hatn/db/modelsprovider.h>
 
@@ -49,4 +49,4 @@ class HATN_UTILITY_EXPORT AclDbModelsProvider : public db::ModelsProvider
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLDBMODELSPROVIDER_H
+#endif // HATNUTILITYACLDBMODELSPROVIDER_H

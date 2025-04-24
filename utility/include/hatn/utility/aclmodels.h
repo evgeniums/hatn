@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/aclmodels.h
+/** @file utility/aclmodels.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLMODELS_H
-#define HATNACLMODELS_H
+#ifndef HATNUTILITYACLMODELS_H
+#define HATNUTILITYACLMODELS_H
 
 #include <hatn/db/object.h>
 
@@ -31,7 +31,13 @@ HDU_UNIT_WITH(acl_role,(HDU_BASE(db::object)),
 HDU_UNIT_WITH(acl_role_operation,(HDU_BASE(db::object)),
     HDU_FIELD(role,TYPE_OBJECT_ID,1)
     HDU_FIELD(operation,HDU_TYPE_FIXED_STRING(OperationNameLength),2)
-    HDU_FIELD(access,TYPE_BOOL,3)
+    HDU_FIELD(grant,TYPE_BOOL,3)
+)
+
+HDU_UNIT_WITH(acl_op_family_access,(HDU_BASE(db::object)),
+    HDU_FIELD(role,TYPE_OBJECT_ID,1)
+    HDU_FIELD(op_family,HDU_TYPE_FIXED_STRING(OperationNameLength),2)
+    HDU_FIELD(access,TYPE_UINT32,3)
 )
 
 HDU_UNIT_WITH(acl_relation,(HDU_BASE(db::object)),
@@ -42,4 +48,4 @@ HDU_UNIT_WITH(acl_relation,(HDU_BASE(db::object)),
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLMODELS_H
+#endif // HATNUTILITYACLMODELS_H

@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file acl/aclerror.сpp
+/** @file utility/aclerror.сpp
   *
   *      Contains definition of error category;
   *

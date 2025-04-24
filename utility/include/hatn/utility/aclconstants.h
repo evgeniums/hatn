@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/aclconstants.h
+/** @file utility/aclconstants.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLCONSTANTS_H
-#define HATNACLCONSTANTS_H
+#ifndef HATNUTILITYACLCONSTANTS_H
+#define HATNUTILITYACLCONSTANTS_H
 
 #include <hatn/dataunit/objectid.h>
 
@@ -34,4 +34,4 @@ using TopicType=common::StringOnStackT<TopicLength>;
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLCONSTANTS_H
+#endif // HATNUTILITYACLCONSTANTS_H

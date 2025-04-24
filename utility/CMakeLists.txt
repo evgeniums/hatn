@@ -11,6 +11,9 @@ SET (HEADERS
     include/hatn/utility/accesschecker.h
     include/hatn/utility/aclcontroller.h
     include/hatn/utility/localaclcontroller.h
+    include/hatn/utility/systemsection.h
+    include/hatn/utility/accesstype.h
+    include/hatn/utility/operation.h
 )
 
 SET (HEADERS
@@ -22,6 +25,8 @@ SET (HEADERS
 SET (SOURCES
     src/utilityerror.cpp
     src/acldbmodelsprovider.cpp
+    src/operation.cpp
+    src/acloperations.cpp
 )
 
 BUILD_HATN_MODULE()

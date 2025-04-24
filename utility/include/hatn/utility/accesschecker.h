@@ -8,19 +8,22 @@
 /*
     
 */
-/** @file acl/accesschecker.h
+/** @file utility/accesschecker.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLACCESSCHECKER_H
-#define HATNACLACCESSCHECKER_H
+#ifndef HATNUTILITYACLACCESSCHECKER_H
+#define HATNUTILITYACLACCESSCHECKER_H
 
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/db/modelsprovider.h>
+#include <hatn/db/topic.h>
 
 #include <hatn/utility/utility.h>
 #include <hatn/utility/aclconstants.h>
+#include <hatn/utility/systemsection.h>
+#include <hatn/utility/operation.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
@@ -31,16 +34,23 @@ enum class AclStatus : uint8_t
     Deny=2
 };
 
+struct HierarchyItem
+{
+    lib::string_view id;
+    db::Topic topic;
+};
+
 struct HierarchyNone
 {
     template <typename ContextT, typename CallbackT>
     void eachParent(
         common::SharedPtr<ContextT> ctx,
         CallbackT cb,
-        lib::string_view
+        lib::string_view,
+        db::Topic
         )
     {
-        cb(std::move(ctx),lib::optional<lib::string_view>{},Error{},[](bool){});
+        cb(std::move(ctx),lib::optional<HierarchyItem>{},Error{},[](bool){});
     }
 };
 
@@ -55,10 +65,11 @@ class SubjectHierarchy : public common::WithTraits<Traits>
         void eachParent(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            lib::string_view subject
+            lib::string_view subject,
+            db::Topic topic
         )
         {
-            this->traits().eachParent(std::move(ctx),std::move(cb),subject);
+            this->traits().eachParent(std::move(ctx),std::move(cb),subject,topic);
         }
 };
 
@@ -73,10 +84,11 @@ class ObjectHierarchy : public common::WithTraits<Traits>
         void eachParent(
                 common::SharedPtr<ContextT> ctx,
                 CallbackT cb,
-                lib::string_view object
+                lib::string_view object,
+                db::Topic topic
             )
         {
-            this->traits().eachParent(std::move(ctx),std::move(cb),object);
+            this->traits().eachParent(std::move(ctx),std::move(cb),object,topic);
         }
 };
 
@@ -84,19 +96,22 @@ struct AccessCheckerArgs
 {
     AccessCheckerArgs(
         lib::string_view object,
+        lib::string_view objectTopic,
         lib::string_view subject,
-        lib::string_view operation,
-        lib::string_view topic
-    ) : object(object),
-        subject(subject),
-        operation(operation),
-        topic(topic)
+        lib::string_view subjectTopic,
+        const Operation* operation
+        ) : object(object),
+            subject(subject),
+            operation(operation),
+            objectTopic(objectTopic),
+            subjectTopic(subjectTopic)
     {}
 
     ObjectType object;
     SubjectType subject;
-    OperationType operation;
-    TopicType topic;
+    const Operation* operation;
+    TopicType objectTopic;
+    TopicType subjectTopic;
 };
 
 template <typename Traits>
@@ -204,8 +219,9 @@ class AccessChecker
             Callback callback,
             lib::string_view object,
             lib::string_view subject,
-            lib::string_view operation,
-            lib::string_view topic={}
+            const Operation* operation,
+            lib::string_view objectTopic=SystemTopic,
+            lib::string_view subjectTopic=SystemTopic
         ) const;
 
         void checkAccess(
@@ -235,4 +251,4 @@ class AccessChecker
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLACCESSCHECKER_H
+#endif // HATNUTILITYACLACCESSCHECKER_H

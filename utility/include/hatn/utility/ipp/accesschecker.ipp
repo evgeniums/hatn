@@ -8,13 +8,13 @@
 /*
     
 */
-/** @file acl/ipp/accesschecker.ipp
+/** @file utility/ipp/accesschecker.ipp
   */
 
 /****************************************************************************/
 
-#ifndef HATNACLACCESSCHECKER_IPP
-#define HATNACLACCESSCHECKER_IPP
+#ifndef HATNUTILITYACLACCESSCHECKER_IPP
+#define HATNUTILITYACLACCESSCHECKER_IPP
 
 #include <hatn/common/meta/chain.h>
 
@@ -139,12 +139,13 @@ void AccessChecker<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::che
         Callback callback,
         lib::string_view object,
         lib::string_view subject,
-        lib::string_view operation,
-        lib::string_view topic
+        const Operation* operation,
+        lib::string_view objectTopic,
+        lib::string_view subjectTopic
     ) const
 {
     auto args=contextFactory(ctx)->template createObject<AccessCheckerArgs>(
-        object,subject,operation,topic
+        object,objectTopic,subject,subjectTopic,operation
     );
     checkAccess(std::move(ctx),std::move(callback),args,args);
 }
@@ -158,7 +159,7 @@ struct ArgsThreadTopicBuilder
 
     lib::string_view operator() () const noexcept
     {
-        return args->topic;
+        return args->objectTopic;
     }
 };
 
@@ -215,7 +216,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
     }
 
     auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback,prevStatus](auto ctx,
-                                                                                             lib::optional<lib::string_view> parent,
+                                                                                             lib::optional<HierarchyItem> parent,
                                                                                              const Error& ec,
                                                                                              auto nextCb
                                                                                              )
@@ -237,10 +238,11 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
 
         auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
             args->object,
-            parent.value(),
-            args->operation,
-            args->topic
-            );
+            args->objectTopic,
+            parent.value().id,
+            parent.value().topic,
+            args->operation
+        );
         auto cb=[nextCb,callback](auto ctx, AclStatus status, const Error& ec)
         {
             // break subject iteration if access is granted or in case of error
@@ -257,7 +259,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
     subjHierarchy->eachParent(
         std::move(ctx),
         parentCb,
-        args->subject
+        args->subject,
+        args->subjectTopic
     );
 }
 
@@ -283,7 +286,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
     }
 
     auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback](auto ctx,
-                                                                                        lib::optional<lib::string_view> parent,
+                                                                                        lib::optional<HierarchyItem> parent,
                                                                                         const Error& ec,
                                                                                         auto nextCb
                                                                                         )
@@ -308,11 +311,12 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
         }
 
         auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
-            parent.value(),
+            parent.value().id,
+            parent.value().topic,
             args->subject,
-            args->operation,
-            args->topic
-            );
+            args->subjectTopic,
+            args->operation
+        );
         auto cb=[callback,nextCb](auto ctx, AclStatus status, const Error& ec)
         {
             // break object iteration if access is either granted or denied or in case of error
@@ -329,7 +333,8 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::i
     objHierarchy->eachParent(
         ctx,
         parentCb,
-        args->object
+        args->object,
+        args->objectTopic
     );
 }
 
@@ -346,7 +351,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
     auto self=this->shared_from_this();
 
     // list subject roles for given object
-    auto listSubjObjRoles=[callback,args,initialArgs,self,this](auto&& listRoleOperations, auto ctx)
+    auto listRelations=[callback,args,initialArgs,self,this](auto&& listOperations, auto ctx)
     {
         auto listRolesQuery=db::wrapQueryBuilder(
             [args]()
@@ -354,13 +359,13 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 return db::makeQuery(aclRelationObjSubjIdx(),
                                      db::where(acl_relation::object,db::query::eq,args->object).
                                      and_(acl_relation::subject,db::query::eq,args->subject),
-                                     args->topic
+                                     args->objectTopic
                                      );
             },
             ArgsThreadTopicBuilder{args}
         );
 
-        auto cb=[listRoleOperations{std::move(listRoleOperations)},callback{std::move(callback)},args,initialArgs,self,this]
+        auto cb=[listOperations{std::move(listOperations)},callback{std::move(callback)},args,initialArgs,self,this]
             (auto ctx, Result<common::pmr::vector<db::DbObject>> roles) mutable
         {
             if (roles)
@@ -375,44 +380,45 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 return;
             }
 
-            listRoleOperations(std::move(ctx),std::move(roles));
+            const auto* factory=ctrl->contextFactory(ctx);
+            auto roleIds=factory->template allocateObjectVector<du::ObjectId>();
+            roleIds->reserve(roles->size());
+            for (auto&& item: roles.value())
+            {
+                const auto* rule=item.as<acl_relation::type>();
+                roleIds->push_back(rule->fieldValue(acl_relation::role));
+            }
+
+            listOperations(std::move(ctx),std::move(roleIds));
         };
 
         auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->topic)->find(
+        db.dbClient(args->objectTopic)->find(
             std::move(ctx),
             std::move(cb),
             dbModelsWrapper->aclRelationModel(),
             listRolesQuery,
-            args->topic
+            args->objectTopic
         );
     };
 
-    // list operation access rules defined for found roles
-    auto listRoleOperations=[callback,args,initialArgs,self,this](auto&& checkRoleOperations, auto ctx, Result<common::pmr::vector<db::DbObject>> roles)
+    // list rules at operation level
+    auto listOperations=[callback,args,initialArgs,self,this]
+        (auto&& checkOperations, auto ctx, auto roles)
     {
-        auto list=roles.takeValue();
         auto roleOperationsQuery=db::wrapQueryBuilder(
-            [args,self,list{list}]()
+            [args,self,roles,ctx]()
             {
-                std::vector<du::ObjectId> roles;
-                roles.reserve(list.size());
-                for (auto&& item: list)
-                {
-                    const auto* rule=item.as<acl_relation::type>();
-                    roles.push_back(rule->fieldValue(acl_relation::role));
-                }
-
                 return db::makeQuery(aclRoleOperationIdx(),
-                                     db::where(acl_role_operation::role,db::query::in,roles).
-                                     and_(acl_role_operation::operation,db::query::eq,args->operation),
-                                     args->topic
+                                     db::where(acl_role_operation::role,db::query::in,*roles).
+                                     and_(acl_role_operation::operation,db::query::eq,args->operation->name()),
+                                     args->objectTopic
                                      );
             },
             ArgsThreadTopicBuilder{args}
-            );
+        );
 
-        auto cb=[checkRoleOperations{std::move(checkRoleOperations)},callback{std::move(callback)},args,initialArgs]
+        auto cb=[checkOperations{std::move(checkOperations)},callback{std::move(callback)},args,initialArgs=std::move(initialArgs),roles=std::move(roles)]
                         (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
         {
             // if db error then  break iteration
@@ -423,22 +429,22 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
                 return;
             }
 
-            checkRoleOperations(std::move(ctx),std::move(dbObjResult));
+            checkOperations(std::move(ctx),std::move(roles),std::move(dbObjResult));
         };
 
         auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->topic)->find(
+        db.dbClient(args->objectTopic)->find(
             std::move(ctx),
             std::move(cb),
             dbModelsWrapper->aclRoleOperationModel(),
             roleOperationsQuery,
-            args->topic
+            args->objectTopic
         );
     };
 
-    // check access rules for found role operations
-    auto checkRoleOperations=[callback,self,this,args,initialArgs]
-        (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
+    // check rules at operation level
+    auto checkOperations=[callback,self,this,args,initialArgs]
+        (auto&& listOpFamilyAccess, auto ctx, auto roles, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
     {
         AclStatus status=AclStatus::Unknown;
 
@@ -448,7 +454,7 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             for (auto&& item: dbObjResult.value())
             {
                 const auto* roleOp=item.as<acl_role_operation::type>();
-                if (roleOp->fieldValue(acl_role_operation::access))
+                if (roleOp->fieldValue(acl_role_operation::grant))
                 {
                     status=AclStatus::Grant;
                     break;
@@ -460,36 +466,120 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
             }
         }
 
-        // if not granted then iterate next subject
+        // if access is unknown then check access to operation family
+        if (status==AclStatus::Unknown)
+        {
+            listOpFamilyAccess(std::move(ctx),std::move(roles));
+            return;
+        }
+        else if (status==AclStatus::Deny)
+        {
+            // if denied then iterate next subject
+            iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
+            return;
+        }
+    };
+
+    // list rules at operation family level
+    auto listOpFamilyAccess=[callback,args,initialArgs,self,this](auto&& opFamilyAccess, auto ctx, auto roles)
+    {
+        auto query=db::wrapQueryBuilder(
+            [args,self,roles=std::move(roles)]()
+            {
+                //! @todo look for in_or_null with familyName where null is for all operation families
+                //! order desc
+                return db::makeQuery(aclOpFamilyAccessIdx(),
+                                     db::where(acl_op_family_access::role,db::query::in,*roles).
+                                     and_(acl_op_family_access::op_family,db::query::eq,args->operation->opFamily()->familyName()),
+                                     args->objectTopic
+                                     );
+            },
+            ArgsThreadTopicBuilder{args}
+        );
+
+        auto cb=[callback{std::move(callback)},args,initialArgs, opFamilyAccess=std::move(opFamilyAccess)]
+            (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
+        {
+            // if db error then  break iteration
+            if (dbObjResult)
+            {
+                HATN_CTX_SCOPE_ERROR("failed to find role-operation in ACL")
+                callback(std::move(ctx),AclStatus::Deny,dbObjResult.error());
+                return;
+            }
+
+            opFamilyAccess(std::move(ctx),dbObjResult.takeValue());
+        };
+
+        auto& db=ctrl->contextDb(ctx);
+        db.dbClient(args->objectTopic)->find(
+            std::move(ctx),
+            std::move(cb),
+            dbModelsWrapper->aclOpFamilyAccessModel(),
+            query,
+            args->objectTopic
+        );
+    };
+
+    // check rules at operation family level
+    auto checkOpFamilyAccess=[callback,self,this,args,initialArgs]
+        (auto ctx, common::pmr::vector<db::DbObject> objVector) mutable
+    {
+        AclStatus status=AclStatus::Unknown;
+
+        // evaluate access, access is granted if at least one role grants it
+        if (!objVector.empty())
+        {
+            for (auto&& item: objVector)
+            {
+                const auto* obj=item.as<acl_op_family_access::type>();
+                if (obj->fieldValue(acl_op_family_access::access) & args->operation->accessMask())
+                {
+                    status=AclStatus::Grant;
+                    break;
+                }
+                else
+                {
+                    status=AclStatus::Deny;
+                }
+            }
+        }
+
+        // if access is unknown or denied iterate next subject
         if (status==AclStatus::Unknown || status==AclStatus::Deny)
         {
+            // if denied then iterate next subject
             iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
             return;
         }
 
-        // iteration complete
+        // complete iteration
+
+        // check if cache is used
         if (cache)
         {
             // keep in cache
             auto cacheCb=[status,callback](auto ctx, const Error&)
             {
-                // done
+                // done after keeping in cache
                 callback(std::move(ctx),status,Error{});
             };
             cache->set(std::move(ctx),std::move(cacheCb),std::move(args),std::move(initialArgs),status);
         }
         else
         {
-            // done
+            // done without keeping in cache
             callback(std::move(ctx),status,Error{});
         }
     };
 
     // invoke
     auto chain=hatn::chain(
-            std::move(listSubjObjRoles),
-            std::move(listRoleOperations),
-            std::move(checkRoleOperations)
+            std::move(listRelations),
+            std::move(listOperations),
+            std::move(checkOperations),
+            std::move(listOpFamilyAccess),
+            std::move(checkOpFamilyAccess)
         );
     chain(std::move(ctx));
 }
@@ -498,4 +588,4 @@ void AccessChecker_p<ContextTraits,SubjectHierarchyT,ObjectHierarchyT,CacheT>::f
 
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNACLACCESSCHECKER_IPP
+#endif // HATNUTILITYACLACCESSCHECKER_IPP
