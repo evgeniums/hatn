@@ -19,14 +19,16 @@
 #include <hatn/db/modelsprovider.h>
 
 #include <hatn/utility/utility.h>
+#include <hatn/utility/journal.h>
+#include <hatn/utility/notifier.h>
 #include <hatn/utility/aclcontroller.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT, typename NotifierT>
 class LocalAclController_p;
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT=JournalNone, typename NotifierT=NotifierNone>
 class LocalAclControllerImpl
 {
     public:
@@ -39,7 +41,9 @@ class LocalAclControllerImpl
         using CallbackObj=db::AsyncCallbackObj<Context,ModelT>;
 
         LocalAclControllerImpl(
-            std::shared_ptr<db::ModelsWrapper> modelsWrapper
+            std::shared_ptr<db::ModelsWrapper> modelsWrapper,
+            std::shared_ptr<JournalT> journal={},
+            std::shared_ptr<NotifierT> notifier={}
         );
 
         LocalAclControllerImpl();
@@ -133,14 +137,14 @@ class LocalAclControllerImpl
 
     private:
 
-        std::shared_ptr<LocalAclController_p<ContextTraits>> d;
+        std::shared_ptr<LocalAclController_p<ContextTraits,JournalT,NotifierT>> d;
 
-        template <typename ContextTraits1>
+        template <typename ContextTraits1, typename JournalT1, typename NotifierT1>
         friend class LocalAclController_p;
 };
 
-template <typename ContextTraits>
-using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits>>;
+template <typename ContextTraits, typename JournalT=JournalNone, typename NotifierT=NotifierNone>
+using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>>;
 
 HATN_UTILITY_NAMESPACE_END
 

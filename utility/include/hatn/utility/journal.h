@@ -13,8 +13,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNUTILITJOURNAL_H
-#define HATNUTILITJOURNAL_H
+#ifndef HATNUTILITYJOURNAL_H
+#define HATNUTILITYJOURNAL_H
 
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/sharedptr.h>
@@ -62,6 +62,26 @@ class Journal : public common::WithTraits<Traits>
         }
 };
 
+class JournalNone
+{
+    public:
+
+        template <typename ContextT, typename CallbackT>
+        void log(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            const char* /*status*/,
+            const Operation* /*op*/,
+            const du::ObjectId& /*objectId*/,
+            const db::Topic& /*objectTopic*/,
+            const char* /*objectModel*/,
+            const common::PreallocatedVectorT<Parameter,PreallocatedParametersSize>& /*params*/={}
+            )
+        {
+            callback(std::move(ctx));
+        }
+};
+
 HATN_UTILITY_NAMESPACE_END
 
-#endif // HATNUTILITJOURNAL_H
+#endif // HATNUTILITYJOURNAL_H

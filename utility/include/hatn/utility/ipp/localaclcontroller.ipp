@@ -28,7 +28,7 @@ HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT, typename NotifierT>
 class LocalAclController_p
 {
     public:
@@ -36,44 +36,52 @@ class LocalAclController_p
         using Context=typename ContextTraits::Context;
 
         LocalAclController_p(
-                LocalAclControllerImpl<ContextTraits>* ctrl,
-                std::shared_ptr<db::ModelsWrapper> wrp
-            ) : ctrl(ctrl)
+                LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>* ctrl,
+                std::shared_ptr<db::ModelsWrapper> wrp,
+                std::shared_ptr<JournalT> journal,
+                std::shared_ptr<NotifierT> notifier
+            ) : ctrl(ctrl),
+                journal(std::move(journal)),
+                notifier(std::move(notifier))
+
         {
             dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(wrp));
             Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
         }
 
-        LocalAclControllerImpl<ContextTraits>* ctrl;
+        LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>* ctrl;
         std::shared_ptr<AclDbModels> dbModelsWrapper;
-
+        std::shared_ptr<JournalT> journal;
+        std::shared_ptr<NotifierT> notifier;
 };
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-LocalAclControllerImpl<ContextTraits>::LocalAclControllerImpl(
-        std::shared_ptr<db::ModelsWrapper> modelsWrapper
-    ) : d(std::make_shared<LocalAclController_p<ContextTraits>>(this,std::move(modelsWrapper)))
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::LocalAclControllerImpl(
+        std::shared_ptr<db::ModelsWrapper> modelsWrapper,
+        std::shared_ptr<JournalT> journal,
+        std::shared_ptr<NotifierT> notifier
+    ) : d(std::make_shared<LocalAclController_p<ContextTraits,JournalT,NotifierT>>(this,std::move(modelsWrapper),std::move(journal),std::move(notifier)))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-LocalAclControllerImpl<ContextTraits>::LocalAclControllerImpl()
-    : d(std::make_shared<LocalAclController_p<ContextTraits>>(std::make_shared<AclDbModels>()))
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::LocalAclControllerImpl()
+    : d(std::make_shared<LocalAclController_p<ContextTraits,JournalT,NotifierT>>(std::make_shared<AclDbModels>()))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-LocalAclControllerImpl<ContextTraits>::~LocalAclControllerImpl()
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::~LocalAclControllerImpl()
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::addRole(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::addRole(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_role::managed> role,
@@ -91,8 +99,8 @@ void LocalAclControllerImpl<ContextTraits>::addRole(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::readRole(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::readRole(
         common::SharedPtr<Context> ctx,
         CallbackObj<acl_role::managed> callback,
         const du::ObjectId& id,
@@ -110,8 +118,8 @@ void LocalAclControllerImpl<ContextTraits>::readRole(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::removeRole(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::removeRole(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -131,9 +139,9 @@ void LocalAclControllerImpl<ContextTraits>::removeRole(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT, typename NotifierT>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits>::listRoles(
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::listRoles(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
@@ -151,8 +159,8 @@ void LocalAclControllerImpl<ContextTraits>::listRoles(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::updateRole(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::updateRole(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -172,8 +180,8 @@ void LocalAclControllerImpl<ContextTraits>::updateRole(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::addRoleOperation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_role_operation::managed> roleOperation,
@@ -225,8 +233,8 @@ void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::removeRoleOperation(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::removeRoleOperation(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -244,9 +252,9 @@ void LocalAclControllerImpl<ContextTraits>::removeRoleOperation(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT, typename NotifierT>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::listRoleOperations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
@@ -264,8 +272,8 @@ void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::addRelation(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::addRelation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_relation::managed> subjObjRole,
@@ -317,8 +325,8 @@ void LocalAclControllerImpl<ContextTraits>::addRelation(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
-void LocalAclControllerImpl<ContextTraits>::removeRelation(
+template <typename ContextTraits, typename JournalT, typename NotifierT>
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::removeRelation(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -336,9 +344,9 @@ void LocalAclControllerImpl<ContextTraits>::removeRelation(
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits>
+template <typename ContextTraits, typename JournalT, typename NotifierT>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits>::listRelations(
+void LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>::listRelations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,

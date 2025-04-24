@@ -30,17 +30,6 @@
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
-/**
-
-@todo Add notifier.
-
-Notifier should be used for
-1. operations jounral
-2. invalidation of acl caches
-
- */
-
-
 constexpr const char* AclOperationsFamily="acl";
 
 struct HATN_UTILITY_EXPORT AclOperations : public OperarionFamily
