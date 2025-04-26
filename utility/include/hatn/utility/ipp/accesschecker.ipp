@@ -183,7 +183,8 @@ void AccessChecker<ContextTraits,Config>::checkAccess(
         lib::string_view objectTopic
     ) const
 {
-    auto cb=[d=d,callback=std::move(callback),operation,objectTopic=TopicType{objectTopic}](auto ctx, const Error& ec, common::SharedPtr<topic_descriptor::managed> topicDescriptor)
+    auto cb=[d=d,callback=std::move(callback),operation,objectTopic=TopicType{objectTopic}]
+        (auto ctx, const Error& ec, auto topicDescriptor)
     {
         if (ec)
         {

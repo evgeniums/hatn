@@ -143,17 +143,17 @@ struct topicDescriptorT
                 if (result)
                 {
                     //! @todo Log error?
-                    callback(std::move(ctx),result.takeError(),{});
+                    callback(std::move(ctx),result.takeError(),common::SharedPtr<topic_descriptor::managed>{});
                     return;
                 }
 
                 const auto* descr=result->get();
-                // if (!findSectionTopic || descr->fieldValue(topic_descriptor::section))
-                // {
-                //     // done
-                //     callback(std::move(ctx),Error{},result.takeValue());
-                //     return;
-                // }
+                if (!findSectionTopic || descr->fieldValue(topic_descriptor::section))
+                {
+                    // done
+                    callback(std::move(ctx),Error{},result.takeValue());
+                    return;
+                }
 
                 // iterate next
                 find(std::move(ctx),std::move(callback),dbModelsWrapper,descr->fieldValue(db::Oid),descr->fieldValue(topic_descriptor::parent).string(),findSectionTopic);
