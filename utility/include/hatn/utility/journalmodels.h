@@ -38,13 +38,31 @@ HDU_UNIT_WITH(event,(HDU_BASE(db::object)),
     HDU_FIELD(object_topic,TYPE_STRING,10)
     HDU_FIELD(object_model,TYPE_STRING,11)
     HDU_FIELD(object_name,TYPE_STRING,12)
-    HDU_FIELD(origin_type,TYPE_STRING,13)
-    HDU_FIELD(origin,TYPE_STRING,14)
-    HDU_FIELD(access_type,HDU_TYPE_ENUM(AccessType),15)
-    HDU_FIELD(service,TYPE_STRING,16)
-    HDU_FIELD(service_method,TYPE_STRING,17)
-    HDU_MAP_FIELD(parameters,parameter,18)
+    HDU_FIELD(access_type,HDU_TYPE_ENUM(AccessType),13)
+    HDU_FIELD(service,TYPE_STRING,14)
+    HDU_FIELD(service_method,TYPE_STRING,15)
+    HDU_MAP_FIELD(origin,parameter,16)
+    HDU_MAP_FIELD(parameters,parameter,17)
 )
+
+/**
+ * possible origin fields, not limited to:
+ *
+ * [
+ *  {
+ *      "type" : "ip_addr"
+ *      "value" : "127.0.0.1"
+ *  },
+ *  {
+ *      "type" : "ip_port"
+ *      "value" : "11223"
+ *  },
+ *  {
+ *      "type" : "session"
+ *      "value" : "11aabbccddeeff"
+ *  }
+ * ]
+ * */
 
 HATN_UTILITY_NAMESPACE_END
 

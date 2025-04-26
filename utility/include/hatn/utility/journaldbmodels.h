@@ -34,11 +34,15 @@ HATN_DB_INDEX(subjectObjIdx,event::subject,event::object_topic,event::object,eve
 HATN_DB_INDEX(subjectAccessIdx,event::subject,event::access_type,event::status)
 HATN_DB_INDEX(subjectObjAccessIdx,event::subject,event::object_topic,event::object,event::access_type,event::status)
 
+//! @todo critical: Enable origin indexes when map indexes are implemented in db
+//! origin index must be twice replicated
+#if 0
 HATN_DB_INDEX(originIdx,event::origin,event::op_family,event::op,event::status)
 HATN_DB_INDEX(originObjIdx,event::origin,event::object_topic,event::object,event::op_family,event::op,event::status)
 HATN_DB_INDEX(originAccessIdx,event::origin,event::access_type,event::status)
 HATN_DB_INDEX(originObjAccessIdx,event::origin,event::object_topic,event::object,event::access_type,event::status)
 HATN_DB_INDEX(originSubjIdx,event::origin,event::subject,event::object,event::op_family,event::op,event::status)
+#endif
 
 HATN_DB_INDEX(serviceIdx,event::service,event::service_method,event::object_topic,event::object,event::status)
 HATN_DB_INDEX(serviceSubjIdx,event::service,event::service_method,event::subject,event::status)
@@ -46,7 +50,8 @@ HATN_DB_INDEX(serviceSubjObjIdx,event::service,event::service_method,event::subj
 
 HATN_DB_INDEX(ctxIdx,event::ctx)
 
-//! @todo critical: Enable parameter index when map indexes are implemented in db
+//! @todo critical: Enable parameter indexes when map indexes are implemented in db
+//! parameter indexes index must be triple replicated
 #if 0
 HATN_DB_INDEX(paramIdx,db::nested(event::parameters,parameter::name),db::nested(event::parameters,parameter::value))
 #endif
@@ -61,11 +66,13 @@ HATN_DB_OID_PARTITION_MODEL_PROTOTYPE(eventModel,event,
                             subjectObjIdx(),
                             subjectAccessIdx(),
                             subjectObjAccessIdx(),
+#if 0
                             originIdx(),
                             originObjIdx(),
                             originAccessIdx(),
                             originObjAccessIdx(),
                             originSubjIdx(),
+#endif
                             serviceIdx(),
                             serviceSubjIdx(),
                             serviceSubjObjIdx(),

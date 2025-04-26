@@ -43,7 +43,7 @@ class Notifier : public common::WithTraits<Traits>
             const Operation* op,
             const du::ObjectId& objectId,
             const db::Topic& objectTopic,
-            const char* objectModel
+            const std::string& objectModel
         )
         {
             this->traits(std::move(ctx),std::move(callback),op,objectId,objectTopic,objectModel);
@@ -61,7 +61,7 @@ class NotifierNone
             const Operation* /*op*/,
             const du::ObjectId& /*objectId*/,
             const db::Topic& /*objectTopic*/,
-            const char* /*objectModel*/
+            const std::string& /*objectModel*/
         )
         {
             callback(std::move(ctx));

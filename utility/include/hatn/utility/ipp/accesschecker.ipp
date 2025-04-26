@@ -24,6 +24,7 @@
 
 #include <hatn/utility/utilityerror.h>
 #include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/topicdescriptor.h>
 #include <hatn/utility/accesschecker.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
@@ -41,22 +42,49 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
         using MacPolicyChecker=typename AccessChecker<ContextTraits,Config>::MacPolicyChecker;
 
         AccessChecker_p(
-                const AccessChecker<ContextTraits,Config>* ctrl,
-                std::shared_ptr<db::ModelsWrapper> wrp
-            ) : ctrl(ctrl)
+                std::shared_ptr<db::ModelsWrapper> dbModelsWrp
+            ) : sectionDbModelsWrapper(std::make_shared<SectionDbModels>())
         {
-            dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(wrp));
-            Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
+            dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(dbModelsWrp));
+            Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be utility::AclDbModels");
         }
 
-        const AccessChecker<ContextTraits,Config>* ctrl;
+        void setSectionDbModelsWrapper(std::shared_ptr<db::ModelsWrapper> wrapper)
+        {
+            sectionDbModelsWrapper=std::dynamic_pointer_cast<SectionDbModels>(std::move(wrapper));
+            Assert(sectionDbModelsWrapper,"Invalid section database models dbModelsWrapper, must be utility::SectionDbModels");
+        }
+
         std::shared_ptr<AclDbModels> dbModelsWrapper;
+        std::shared_ptr<SectionDbModels> sectionDbModelsWrapper;
 
         mutable std::shared_ptr<typename AccessChecker<ContextTraits,Config>::Cache> cache;
         std::shared_ptr<typename AccessChecker<ContextTraits,Config>::SubjectHierarchy> subjHierarchy;
         std::shared_ptr<typename AccessChecker<ContextTraits,Config>::ObjectHierarchy> objHierarchy;
 
         std::shared_ptr<MacPolicyChecker> macPolicyChecker;
+
+        void checkAccess(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            common::SharedPtr<AccessCheckerArgs> args,
+            common::SharedPtr<AccessCheckerArgs> initialArgs
+        ) const;
+
+        void checkAccess(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            ObjectWrapperRef object,
+            const Operation* operation
+        ) const;
+
+        void checkAccess(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            ObjectWrapperRef object,
+            ObjectWrapperRef subject,
+            const Operation* operation
+        ) const;
 
         void find(
             common::SharedPtr<Context> ctx,
@@ -90,7 +118,7 @@ AccessChecker<ContextTraits,Config>::AccessChecker(
         std::shared_ptr<SubjectHierarchy> subjHierarchy,
         std::shared_ptr<ObjectHierarchy> objHierarchy,
         std::shared_ptr<MacPolicyChecker> macPolicyChecker
-    ) : d(std::make_shared<AccessChecker_p<ContextTraits,Config>>(this,std::move(dbModelsWrapper)))
+    ) : d(std::make_shared<AccessChecker_p<ContextTraits,Config>>(std::move(dbModelsWrapper)))
 {
     d->subjHierarchy=std::move(subjHierarchy);
     d->objHierarchy=std::move(objHierarchy);
@@ -140,49 +168,144 @@ void AccessChecker<ContextTraits,Config>::setCache(std::shared_ptr<Cache> cache)
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::setSectionDbModelsWrapper(std::shared_ptr<db::ModelsWrapper> wrapper)
+{
+    d->setSectionDbModelsWrapper(std::move(wrapper));
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
 void AccessChecker<ContextTraits,Config>::checkAccess(
         common::SharedPtr<Context> ctx,
         Callback callback,
-        lib::string_view object,
-        lib::string_view subject,
         const Operation* operation,
-        lib::string_view objectTopic,
-        lib::string_view subjectTopic
+        lib::string_view objectTopic
     ) const
 {
-    auto args=contextFactory(ctx)->template createObject<AccessCheckerArgs>(
-        object,objectTopic,subject,subjectTopic,operation
-    );
-    checkAccess(std::move(ctx),std::move(callback),args,args);
-}
-
-struct ArgsThreadTopicBuilder
-{
-    common::SharedPtr<AccessCheckerArgs> args;
-
-    ArgsThreadTopicBuilder(common::SharedPtr<AccessCheckerArgs> args) : args(std::move(args))
-    {}
-
-    lib::string_view operator() () const noexcept
+    auto cb=[d=d,callback=std::move(callback),operation,objectTopic=TopicType{objectTopic}](auto ctx, const Error& ec, common::SharedPtr<topic_descriptor::managed> topicDescriptor)
     {
-        return args->objectTopic;
-    }
-};
+        if (ec)
+        {
+            //! @todo Log error?
+
+            callback(std::move(ctx),AclStatus::Deny,ec);
+            return;
+        }
+
+        if (topicDescriptor->isSet(topic_descriptor::parent))
+        {
+            ObjectWrapperRef object{topicDescriptor->fieldValue(db::Oid).string(),
+                                 topicDescriptor->fieldValue(topic_descriptor::parent).string(),
+                                 d->sectionDbModelsWrapper->topicModel()->info->modelIdStr()};
+
+            d->checkAccess(
+                std::move(ctx),
+                std::move(callback),
+                object,
+                operation
+            );
+            return;
+        }
+
+        ObjectWrapperRef object{topicDescriptor->fieldValue(db::Oid).string(),
+                             topicDescriptor->fieldValue(db::Oid).string(),
+                             d->sectionDbModelsWrapper->topicModel()->info->modelIdStr()};
+        d->checkAccess(
+            std::move(ctx),
+            std::move(callback),
+            object,
+            operation
+        );
+    };
+    topicDescriptor<ContextTraits>(std::move(ctx),std::move(cb),*d->sectionDbModelsWrapper,objectTopic,objectTopic);
+}
 
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits, typename Config>
 void AccessChecker<ContextTraits,Config>::checkAccess(
     common::SharedPtr<Context> ctx,
+        Callback callback,
+        ObjectWrapperRef object,
+        const Operation* operation
+    ) const
+{
+    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::subject(ctx),operation);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::checkAccess(
+    common::SharedPtr<Context> ctx,
     Callback callback,
-    common::SharedPtr<AccessCheckerArgs> args,
-    common::SharedPtr<AccessCheckerArgs> initialArgs
+    ObjectWrapperRef object,
+    const Operation* operation
+    ) const
+{
+    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::subject(ctx),operation);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::checkAccess(
+        common::SharedPtr<Context> ctx,
+        Callback callback,
+        ObjectWrapperRef object,
+        ObjectWrapperRef subject,
+        const Operation* operation
+    ) const
+{
+    d->checkAccess(std::move(ctx),std::move(callback),object,subject,operation);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::checkAccess(
+    common::SharedPtr<Context> ctx,
+    Callback callback,
+    ObjectWrapperRef object,
+    ObjectWrapperRef subject,
+    const Operation* operation
+    ) const
+{
+    auto args=ContextTraits::contextFactory(ctx)->template createObject<AccessCheckerArgs>(
+            object,subject,operation
+        );
+    checkAccess(std::move(ctx),std::move(callback),args,args);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
+void AccessChecker<ContextTraits,Config>::checkAccess(
+        common::SharedPtr<Context> ctx,
+        Callback callback,
+        common::SharedPtr<AccessCheckerArgs> args,
+        common::SharedPtr<AccessCheckerArgs> initialArgs
+    ) const
+{
+    d->checkAccess(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits, typename Config>
+void AccessChecker_p<ContextTraits,Config>::checkAccess(
+        common::SharedPtr<Context> ctx,
+        Callback callback,
+        common::SharedPtr<AccessCheckerArgs> args,
+        common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     // try to find in cache
-    if (d->cache)
+    if (cache)
     {
-        auto cacheCb=[pimpl{std::weak_ptr<typename decltype(d)::element_type>(d)},callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
+        auto self=this->shared_from_this();
+        auto cacheCb=[self=std::move(self),callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
         {
             if (!ec && status!=AclStatus::Unknown)
             {
@@ -190,18 +313,14 @@ void AccessChecker<ContextTraits,Config>::checkAccess(
                 return;
             }
 
-            auto d=pimpl.lock();
-            if (d)
-            {
-                d->find(std::move(ctx),std::move(callback),args,args,initialArgs);
-            }
+            self->find(std::move(ctx),std::move(callback),args,args,initialArgs);
         };
-        d->cache->find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
+        cache->find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
         return;
     }
 
     // invoke lookup
-    d->find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
+    find(std::move(ctx),std::move(callback),std::move(args),std::move(initialArgs));
 }
 
 //--------------------------------------------------------------------------
@@ -221,7 +340,7 @@ void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
         return;
     }
 
-    auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback,prevStatus](auto ctx,
+    auto parentCb=[self{this->shared_from_this()},initialArgs,args,callback,prevStatus](auto ctx,
                                                                                              lib::optional<HierarchyItem> parent,
                                                                                              const Error& ec,
                                                                                              auto nextCb
@@ -238,17 +357,16 @@ void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
         if (!parent)
         {
             // no more parents, iterate objects
-            iterateObjHierarchy(std::move(ctx),std::move(callback),prevStatus,std::move(args),std::move(initialArgs));
+            self->iterateObjHierarchy(std::move(ctx),std::move(callback),prevStatus,std::move(args),std::move(initialArgs));
             return;
         }
 
-        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
+        auto nextArgs=ContextTraits::contextFactory(ctx)->template createObject<AccessCheckerArgs>(
             args->object,
-            args->objectTopic,
-            parent.value().id,
-            parent.value().topic,
+            parent.value(),
             args->operation
         );
+
         auto cb=[nextCb,callback](auto ctx, AclStatus status, const Error& ec)
         {
             // break subject iteration if access is granted or in case of error
@@ -260,13 +378,12 @@ void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
             }
             nextCb(true);
         };
-        ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
+        self->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
     };
     subjHierarchy->eachParent(
         std::move(ctx),
         parentCb,
-        args->subject,
-        args->subjectTopic
+        args->subject
     );
 }
 
@@ -291,7 +408,7 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
         return;
     }
 
-    auto parentCb=[this,self{this->shared_from_this()},initialArgs,args,callback](auto ctx,
+    auto parentCb=[self{this->shared_from_this()},initialArgs,args,callback](auto ctx,
                                                                                         lib::optional<HierarchyItem> parent,
                                                                                         const Error& ec,
                                                                                         auto nextCb
@@ -316,11 +433,9 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
             return;
         }
 
-        auto nextArgs=ctrl->contextFactory(ctx)->template createObject<AccessCheckerArgs>(
-            parent.value().id,
-            parent.value().topic,
+        auto nextArgs=ContextTraits::contextFactory(ctx)->template createObject<AccessCheckerArgs>(
+            parent.value(),
             args->subject,
-            args->subjectTopic,
             args->operation
         );
         auto cb=[callback,nextCb](auto ctx, AclStatus status, const Error& ec)
@@ -334,17 +449,29 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
             }
             nextCb(true);
         };
-        ctrl->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
+        self->checkAccess(std::move(ctx),std::move(cb),std::move(nextArgs),std::move(initialArgs));
     };
     objHierarchy->eachParent(
         ctx,
         parentCb,
-        args->object,
-        args->objectTopic
+        args->object
     );
 }
 
 //--------------------------------------------------------------------------
+
+struct ArgsThreadTopicBuilder
+{
+    common::SharedPtr<AccessCheckerArgs> args;
+
+    ArgsThreadTopicBuilder(common::SharedPtr<AccessCheckerArgs> args) : args(std::move(args))
+    {}
+
+    lib::string_view operator() () const noexcept
+    {
+        return args->object.topic;
+    }
+};
 
 template <typename ContextTraits, typename Config>
 void AccessChecker_p<ContextTraits,Config>::find(
@@ -356,12 +483,14 @@ void AccessChecker_p<ContextTraits,Config>::find(
 {
     auto self=this->shared_from_this();
 
-    auto checkMacPolicy=[callback,args,self,this](auto&& listRelations, auto ctx)
+    //! @todo Ensure that topics are topic IDs
+
+    auto checkMacPolicy=[args,self,this](auto&& listRelations, auto ctx, auto callback)
     {
         if constexpr (std::is_same_v<MacPolicyChecker,MacPolicyNone>)
         {
             std::ignore=this;
-            listRelations(std::move(ctx));
+            listRelations(std::move(ctx),std::move(callback));
         }
         else
         {
@@ -382,27 +511,28 @@ void AccessChecker_p<ContextTraits,Config>::find(
                         return;
                     }
 
-                    listRelations(std::move(ctx));
+                    listRelations(std::move(ctx),std::move(callback));
                 };
                 macPolicyChecker->checkMacPolicy(std::move(ctx),std::move(cb),args);
             }
             else
             {
-                listRelations(std::move(ctx));
+                listRelations(std::move(ctx),std::move(callback));
             }
         }
     };
 
     // list subject roles for given object
-    auto listRelations=[callback,args,initialArgs,self,this](auto&& listOperations, auto ctx)
+    auto listRelations=[args,initialArgs,self,this](auto&& listOperations, auto ctx, auto callback)
     {
-        auto listRolesQuery=db::wrapQueryBuilder(
+        auto listRelationsQuery=db::wrapQueryBuilder(
             [args]()
             {
+                //! @todo use in_or_null for model id in relation
                 return db::makeQuery(aclRelationObjSubjIdx(),
-                                     db::where(acl_relation::object,db::query::eq,args->object).
-                                     and_(acl_relation::subject,db::query::eq,args->subject),
-                                     args->objectTopic
+                                     db::where(acl_relation::object,db::query::eq,args->object.id).
+                                     and_(acl_relation::subject,db::query::eq,args->subject.id),
+                                     args->object.topic
                                      );
             },
             ArgsThreadTopicBuilder{args}
@@ -423,7 +553,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 return;
             }
 
-            const auto* factory=ctrl->contextFactory(ctx);
+            const auto* factory=ContextTraits::contextFactory(ctx);
             auto roleIds=factory->template allocateObjectVector<du::ObjectId>();
             roleIds->reserve(roles->size());
             for (auto&& item: roles.value())
@@ -432,30 +562,30 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 roleIds->push_back(rule->fieldValue(acl_relation::role));
             }
 
-            listOperations(std::move(ctx),std::move(roleIds));
+            listOperations(std::move(ctx),std::move(callback),std::move(roleIds));
         };
 
-        auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->objectTopic)->find(
+        auto& db=ContextTraits::contextDb(ctx);
+        db.dbClient(args->object.topic)->find(
             std::move(ctx),
             std::move(cb),
             dbModelsWrapper->aclRelationModel(),
-            listRolesQuery,
-            args->objectTopic
+            listRelationsQuery,
+            args->object.topic
         );
     };
 
     // list rules at operation level
-    auto listOperations=[callback,args,initialArgs,self,this]
-        (auto&& checkOperations, auto ctx, auto roles)
+    auto listOperations=[args,initialArgs,self,this]
+        (auto&& checkOperations, auto ctx, auto callback, auto roles)
     {
         auto roleOperationsQuery=db::wrapQueryBuilder(
             [args,self,roles,ctx]()
-            {
+            {                
                 return db::makeQuery(aclRoleOperationIdx(),
                                      db::where(acl_role_operation::role,db::query::in,*roles).
                                      and_(acl_role_operation::operation,db::query::eq,args->operation->name()),
-                                     args->objectTopic
+                                     args->object.topic
                                      );
             },
             ArgsThreadTopicBuilder{args}
@@ -472,22 +602,22 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 return;
             }
 
-            checkOperations(std::move(ctx),std::move(roles),std::move(dbObjResult));
+            checkOperations(std::move(ctx),std::move(callback),std::move(roles),std::move(dbObjResult));
         };
 
-        auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->objectTopic)->find(
+        auto& db=ContextTraits::contextDb(ctx);
+        db.dbClient(args->object.topic)->find(
             std::move(ctx),
             std::move(cb),
             dbModelsWrapper->aclRoleOperationModel(),
             roleOperationsQuery,
-            args->objectTopic
+            args->object.topic
         );
     };
 
     // check rules at operation level
-    auto checkOperations=[callback,self,this,args,initialArgs]
-        (auto&& listOpFamilyAccess, auto ctx, auto roles, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
+    auto checkOperations=[self,this,args,initialArgs]
+        (auto&& listOpFamilyAccess, auto ctx, auto callback, auto roles, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
     {
         AclStatus status=AclStatus::Unknown;
 
@@ -512,7 +642,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
         // if access is unknown then check access to operation family
         if (status==AclStatus::Unknown)
         {
-            listOpFamilyAccess(std::move(ctx),std::move(roles));
+            listOpFamilyAccess(std::move(ctx),std::move(callback),std::move(roles));
             return;
         }
         else if (status==AclStatus::Deny)
@@ -524,23 +654,24 @@ void AccessChecker_p<ContextTraits,Config>::find(
     };
 
     // list rules at operation family level
-    auto listOpFamilyAccess=[callback,args,initialArgs,self,this](auto&& opFamilyAccess, auto ctx, auto roles)
+    auto listOpFamilyAccess=[args,initialArgs,self,this](auto&& checkOpFamilyAccess, auto ctx, auto callback, auto roles)
     {
         auto query=db::wrapQueryBuilder(
             [args,self,roles=std::move(roles)]()
             {
                 //! @todo look for in_or_null with familyName where null is for all operation families
+                //! @todo use in_or_null model id for op damily access
                 //! order desc
                 return db::makeQuery(aclOpFamilyAccessIdx(),
                                      db::where(acl_op_family_access::role,db::query::in,*roles).
                                      and_(acl_op_family_access::op_family,db::query::eq,args->operation->opFamily()->familyName()),
-                                     args->objectTopic
+                                     args->object.topic
                                      );
             },
             ArgsThreadTopicBuilder{args}
         );
 
-        auto cb=[callback{std::move(callback)},args,initialArgs, opFamilyAccess=std::move(opFamilyAccess)]
+        auto cb=[callback{std::move(callback)},args,initialArgs, checkOpFamilyAccess=std::move(checkOpFamilyAccess)]
             (auto ctx, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
         {
             // if db error then  break iteration
@@ -551,22 +682,22 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 return;
             }
 
-            opFamilyAccess(std::move(ctx),dbObjResult.takeValue());
+            checkOpFamilyAccess(std::move(ctx),std::move(callback),dbObjResult.takeValue());
         };
 
-        auto& db=ctrl->contextDb(ctx);
-        db.dbClient(args->objectTopic)->find(
+        auto& db=ContextTraits::contextDb(ctx);
+        db.dbClient(args->object.topic)->find(
             std::move(ctx),
             std::move(cb),
             dbModelsWrapper->aclOpFamilyAccessModel(),
             query,
-            args->objectTopic
+            args->object.topic
         );
     };
 
     // check rules at operation family level
-    auto checkOpFamilyAccess=[callback,self,this,args,initialArgs]
-        (auto ctx, common::pmr::vector<db::DbObject> objVector) mutable
+    auto checkOpFamilyAccess=[self,this,args,initialArgs]
+        (auto ctx, auto callback, common::pmr::vector<db::DbObject> objVector) mutable
     {
         AclStatus status=AclStatus::Unknown;
 
@@ -625,7 +756,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
             std::move(listOpFamilyAccess),
             std::move(checkOpFamilyAccess)
         );
-    chain(std::move(ctx));
+    chain(std::move(ctx),std::move(callback));
 }
 
 //--------------------------------------------------------------------------

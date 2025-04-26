@@ -34,11 +34,59 @@ enum class AclStatus : uint8_t
     Deny=2
 };
 
-struct HierarchyItem
+struct ObjectWrapper;
+
+struct ObjectWrapperRef
 {
+    ObjectWrapperRef()=default;
+
+    ObjectWrapperRef(
+            lib::string_view id,
+            lib::string_view topic,
+            lib::string_view model={}
+        ) : id(id),
+            topic(topic),
+            model(model)
+    {}
+
+    ObjectWrapperRef( const ObjectWrapper& ref);
+
     lib::string_view id;
     db::Topic topic;
+    lib::string_view model;
 };
+
+struct ObjectWrapper
+{
+    ObjectWrapper()=default;
+
+    ObjectWrapper(
+        lib::string_view id,
+        lib::string_view topic,
+        lib::string_view model={}
+        ) : id(id),
+            topic(topic),
+            model(model)
+    {}
+
+    ObjectWrapper( const ObjectWrapperRef& ref)
+        : id(ref.id),
+          topic(ref.topic),
+          model(ref.model)
+    {}
+
+    ObjectType id;
+    TopicType topic;
+    lib::string_view model;
+};
+
+ObjectWrapperRef::ObjectWrapperRef( const ObjectWrapper& ref)
+    : id(ref.id),
+      topic(ref.topic),
+      model(ref.model)
+{}
+
+using HierarchyItem = ObjectWrapperRef;
 
 struct HierarchyNone
 {
@@ -46,8 +94,7 @@ struct HierarchyNone
     void eachParent(
         common::SharedPtr<ContextT> ctx,
         CallbackT cb,
-        lib::string_view,
-        db::Topic
+        ObjectWrapperRef
         )
     {
         cb(std::move(ctx),lib::optional<HierarchyItem>{},Error{},[](bool){});
@@ -65,11 +112,10 @@ class SubjectHierarchy : public common::WithTraits<Traits>
         void eachParent(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
-            lib::string_view subject,
-            db::Topic topic
+            ObjectWrapperRef subject
         )
         {
-            this->traits().eachParent(std::move(ctx),std::move(cb),subject,topic);
+            this->traits().eachParent(std::move(ctx),std::move(cb),subject);
         }
 };
 
@@ -84,34 +130,28 @@ class ObjectHierarchy : public common::WithTraits<Traits>
         void eachParent(
                 common::SharedPtr<ContextT> ctx,
                 CallbackT cb,
-                lib::string_view object,
-                db::Topic topic
+                ObjectWrapperRef object
             )
         {
-            this->traits().eachParent(std::move(ctx),std::move(cb),object,topic);
+            this->traits().eachParent(std::move(ctx),std::move(cb),object);
         }
 };
 
 struct AccessCheckerArgs
 {
     AccessCheckerArgs(
-        lib::string_view object,
-        lib::string_view objectTopic,
-        lib::string_view subject,
-        lib::string_view subjectTopic,
-        const Operation* operation
+            ObjectWrapperRef object,
+            ObjectWrapperRef subject,
+            const Operation* operation
         ) : object(object),
             subject(subject),
-            operation(operation),
-            objectTopic(objectTopic),
-            subjectTopic(subjectTopic)
+            operation(operation)
     {}
 
-    ObjectType object;
-    SubjectType subject;
+    ObjectWrapper object;
+    ObjectWrapper subject;
+
     const Operation* operation;
-    TopicType objectTopic;
-    TopicType subjectTopic;
 
     lib::optional<uint32_t> objectMac;
     lib::optional<uint32_t> subjectMac;
@@ -169,11 +209,11 @@ class AccessCache : public common::WithTraits<Traits>
 
         template <typename ContextT, typename CallbackT>
         void set(
-            common::SharedPtr<ContextT> ctx,
-            CallbackT cb,
-            common::SharedPtr<AccessCheckerArgs> args,
-            common::SharedPtr<AccessCheckerArgs> initialArgs,
-            AclStatus status
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb,
+                common::SharedPtr<AccessCheckerArgs> args,
+                common::SharedPtr<AccessCheckerArgs> initialArgs,
+                AclStatus status
             )
         {
             this->traits().find(std::move(ctx),std::move(cb),std::move(args),std::move(initialArgs),status);
@@ -253,6 +293,8 @@ class AccessChecker
             std::shared_ptr<ObjectHierarchy> objHierarchy
         );
 
+        void setSectionDbModelsWrapper(std::shared_ptr<db::ModelsWrapper> sectionDbModelsWrapper);
+
         ~AccessChecker();
         AccessChecker(const AccessChecker&)=delete;
         AccessChecker(AccessChecker&&)=default;
@@ -264,11 +306,23 @@ class AccessChecker
         void checkAccess(
             common::SharedPtr<Context> ctx,
             Callback callback,
-            lib::string_view object,
-            lib::string_view subject,
             const Operation* operation,
-            lib::string_view objectTopic=SystemTopic,
-            lib::string_view subjectTopic=SystemTopic
+            lib::string_view objectTopic=SystemTopic
+        ) const;
+
+        void checkAccess(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            ObjectWrapperRef object,
+            const Operation* operation
+        ) const;
+
+        void checkAccess(
+            common::SharedPtr<Context> ctx,
+            Callback callback,
+            ObjectWrapperRef object,
+            ObjectWrapperRef subject,
+            const Operation* operation
         ) const;
 
         void checkAccess(
@@ -279,16 +333,6 @@ class AccessChecker
         ) const;
 
     private:
-
-        auto& contextDb(const common::SharedPtr<Context>& ctx) const
-        {
-            return ContextTraits::contextDb(ctx);
-        }
-
-        const common::pmr::AllocatorFactory* contextFactory(const common::SharedPtr<Context>& ctx) const
-        {
-            return ContextTraits::contextFactory(ctx);
-        }
 
         std::shared_ptr<AccessChecker_p<ContextTraits,Config>> d;
 

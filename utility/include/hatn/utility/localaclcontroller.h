@@ -22,13 +22,15 @@
 #include <hatn/utility/journal.h>
 #include <hatn/utility/notifier.h>
 #include <hatn/utility/aclcontroller.h>
+#include <hatn/utility/journalnotify.h>
+#include <hatn/utility/accesschecker.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
-template <typename ContextTraits, typename JournalT, typename NotifierT>
+template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
 class LocalAclController_p;
 
-template <typename ContextTraits, typename JournalT=JournalNone, typename NotifierT=NotifierNone>
+template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
 class LocalAclControllerImpl
 {
     public:
@@ -42,8 +44,8 @@ class LocalAclControllerImpl
 
         LocalAclControllerImpl(
             std::shared_ptr<db::ModelsWrapper> modelsWrapper,
-            std::shared_ptr<JournalT> journal={},
-            std::shared_ptr<NotifierT> notifier={}
+            std::shared_ptr<AccessCheckerT> accessChecker={},
+            std::shared_ptr<JournalNotifyT> journalNotify={}
         );
 
         LocalAclControllerImpl();
@@ -137,14 +139,14 @@ class LocalAclControllerImpl
 
     private:
 
-        std::shared_ptr<LocalAclController_p<ContextTraits,JournalT,NotifierT>> d;
+        std::shared_ptr<LocalAclController_p<ContextTraits,AccessCheckerT,JournalNotifyT>> d;
 
-        template <typename ContextTraits1, typename JournalT1, typename NotifierT1>
+        template <typename ContextTraits1, typename AccessCheckerT1, typename JournalNotifyT1>
         friend class LocalAclController_p;
 };
 
-template <typename ContextTraits, typename JournalT=JournalNone, typename NotifierT=NotifierNone>
-using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits,JournalT,NotifierT>>;
+template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
+using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>>;
 
 HATN_UTILITY_NAMESPACE_END
 

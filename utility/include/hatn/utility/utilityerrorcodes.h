@@ -26,7 +26,7 @@
 
 #define HATN_UTILITY_ERRORS(Do) \
     Do(UtilityError,OK,_TR("OK")) \
-    Do(UtilityError,FORBIDDEN,_TR("operation forbidden by rules of access control lists")) \
+    Do(UtilityError,OPERATION_FORBIDDEN,_TR("operation forbidden by rules of access control")) \
     Do(UtilityError,MAC_FORBIDDEN,_TR("operation forbidden by mandatory access policy")) \
     Do(UtilityError,UNKNOWN_ROLE,_TR("unknown role")) \
 

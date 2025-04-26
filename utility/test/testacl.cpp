@@ -58,6 +58,11 @@ struct ContextTraits
     {
         return ctx->get<WithAppEnv>().env()->get<AllocatorFactory>().factory();
     }
+
+    static auto subject(const SharedPtr<Context>& ctx)
+    {
+        return ObjectWrapperRef{};
+    }
 };
 
 struct TestEnv : public MultiThreadFixture
@@ -146,7 +151,8 @@ BOOST_FIXTURE_TEST_CASE(CheckEmptyAcl,TestEnv)
         BOOST_TEST_MESSAGE(fmt::format("Check access cb: status={}, ec={}",static_cast<int>(status),ec.message()));
     };
     auto ctx=makeAppEnvContext(res.app->env());
-    res.checker->checkAccess(ctx,cb,"obj1","subj1",&AclOperations::addRole(),"topic1");
+    // res.checker->checkAccess(ctx,cb,"obj1","subj1",&AclOperations::addRole(),"topic1");
+    res.checker->checkAccess(ctx,cb,&AclOperations::addRole(),"topic1");
 
     exec(1);
 

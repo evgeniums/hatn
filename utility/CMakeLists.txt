@@ -22,11 +22,12 @@ SET (HEADERS
     include/hatn/utility/sectiondbmodels.h
     include/hatn/utility/sectiondbmodelsprovider.h
     include/hatn/utility/sectioncontroller.h
-    include/hatn/utility/topicsection.h
+    include/hatn/utility/topicdescriptor.h
     include/hatn/utility/mac.h
     include/hatn/utility/withmac.h
     include/hatn/utility/withmacdb.h
     include/hatn/utility/notifier.h
+    include/hatn/utility/journalnotify.h
 )
 
 SET (HEADERS

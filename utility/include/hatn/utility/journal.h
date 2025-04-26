@@ -19,7 +19,7 @@
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/sharedptr.h>
 #include <hatn/common/allocatoronstack.h>
-\
+
 #include <hatn/dataunit/objectid.h>
 
 #include <hatn/db/topic.h>
@@ -50,15 +50,15 @@ class Journal : public common::WithTraits<Traits>
         void log(
             common::SharedPtr<Context> ctx,
             CallbackT callback,
-            const char* status,
+            const Error& status,
             const Operation* op,
             const du::ObjectId& objectId,
             const db::Topic& objectTopic,
-            const char* objectModel,
-            const common::PreallocatedVectorT<Parameter,PreallocatedParametersSize>& params={}
+            const std::string& objectModel,
+            common::pmr::vector<Parameter> params={}
         )
         {
-            this->traits(std::move(ctx),std::move(callback),status,op,objectId,objectTopic,objectModel,params);
+            this->traits(std::move(ctx),std::move(callback),status,op,objectId,objectTopic,objectModel,std::move(params));
         }
 };
 
@@ -70,12 +70,12 @@ class JournalNone
         void log(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            const char* /*status*/,
+            const Error& /*status*/,
             const Operation* /*op*/,
             const du::ObjectId& /*objectId*/,
             const db::Topic& /*objectTopic*/,
-            const char* /*objectModel*/,
-            const common::PreallocatedVectorT<Parameter,PreallocatedParametersSize>& /*params*/={}
+            const std::string& /*objectModel*/,
+            common::pmr::vector<Parameter> /*params*/={}
             )
         {
             callback(std::move(ctx));
