@@ -22,6 +22,7 @@
 
 #include <hatn/utility/utilityerror.h>
 #include <hatn/utility/acldbmodels.h>
+#include <hatn/utility/operationchain.h>
 #include <hatn/utility/localaclcontroller.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
@@ -70,103 +71,6 @@ LocalAclControllerImpl<ContextTraits>::~LocalAclControllerImpl()
 {}
 
 //--------------------------------------------------------------------------
-
-template <typename ImplT, typename ContextTraits>
-struct checkTopicAccessT
-{
-    template <typename OpHandlerT, typename ContextT, typename CallbackT>
-    void operator () (OpHandlerT&& doOp, common::SharedPtr<ContextT> ctx, CallbackT callback)
-    {
-        auto cb=[d=d,doOp=std::move(doOp),callback=std::move(callback),this](auto ctx,AclStatus status, Error ec) mutable
-        {
-            if (ec || status!=AclStatus::Grant)
-            {
-                if (!ec)
-                {
-                    ec=utilityError(UtilityError::OPERATION_FORBIDDEN);
-                }
-                auto cb1=[callback=std::move(callback),ec,topic=TopicType{topic}](auto ctx)
-                {
-                    callback(std::move(ctx),ec,du::ObjectId{});
-                };
-                ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
-                                         cb1,
-                                         ec,
-                                         operation,
-                                         du::ObjectId{},
-                                         topic,
-                                         model
-                                         );
-                return;
-            }
-            doOp(std::move(ctx),std::move(callback));
-        };
-        ContextTraits::contextAccessChecker(ctx).checkAccess(std::move(ctx),std::move(cb),operation,topic);
-    };
-
-    std::shared_ptr<ImplT> d;
-    const std::string& model;
-    const Operation* operation;
-    TopicType topic;
-};
-
-template <typename ImplT>
-auto checkTopicAccess(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
-{
-    return checkTopicAccessT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
-}
-
-template <typename ImplT, typename ContextTraits>
-struct journalNotifyT
-{
-    template <typename ContextT, typename CallbackT>
-    void operator () (
-                    common::SharedPtr<ContextT> ctx,
-                    CallbackT callback,
-                    const du::ObjectId& oid,
-                    common::pmr::vector<Parameter> params={}
-                    )
-    {
-        auto cb1=[callback=std::move(callback),oid](auto ctx)
-        {
-            callback(std::move(ctx),Error{},oid);
-        };
-        ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
-                                 cb1,
-                                 Error{},
-                                 operation,
-                                 oid,
-                                 topic,
-                                 model,
-                                 std::move(params)
-                                 );
-    };
-
-    std::shared_ptr<ImplT> d;
-    const std::string& model;
-    const Operation* operation;
-    TopicType topic;
-};
-template <typename ImplT>
-auto journalNotify(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
-{
-    return journalNotifyT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
-}
-
-struct operationChainT
-{
-    template <typename ImplT, typename ...Handlers>
-    auto operator() (std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation, db::Topic topic, Handlers&& ...handlers) const
-    {
-        auto chain=hatn::chain(
-            checkTopicAccess(d,model,operation,topic),
-            std::forward<Handlers>(handlers)...,
-            journalNotify(d,model,operation,topic)
-            );
-        return chain;
-    }
-};
-constexpr operationChainT operationChain{};
 
 template <typename ContextTraits>
 void LocalAclControllerImpl<ContextTraits>::addRole(

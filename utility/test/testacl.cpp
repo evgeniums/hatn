@@ -158,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE(CheckEmptyAcl,TestEnv)
     BOOST_REQUIRE(res.app);
     BOOST_REQUIRE(res.checker);
 
-    auto cb=[](auto ctx, AclStatus status, const HATN_NAMESPACE::Error& ec)
+    auto cb=[](auto ctx, AccessStatus status, const HATN_NAMESPACE::Error& ec)
     {
         BOOST_TEST_MESSAGE(fmt::format("Check access cb: status={}, ec={}",static_cast<int>(status),ec.message()));
     };

@@ -19,7 +19,7 @@
 #include <hatn/db/object.h>
 
 #include <hatn/utility/utility.h>
-#include <hatn/utility/aclconstants.h>
+#include <hatn/utility/operation.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 

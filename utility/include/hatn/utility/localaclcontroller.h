@@ -19,11 +19,7 @@
 #include <hatn/db/modelsprovider.h>
 
 #include <hatn/utility/utility.h>
-#include <hatn/utility/journal.h>
-#include <hatn/utility/notifier.h>
 #include <hatn/utility/aclcontroller.h>
-#include <hatn/utility/journalnotify.h>
-#include <hatn/utility/accesschecker.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 

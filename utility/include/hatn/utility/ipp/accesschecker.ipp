@@ -37,7 +37,7 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
     public:
 
         using Context=typename ContextTraits::Context;
-        using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
+        using Callback=std::function<void (common::SharedPtr<Context>, AccessStatus, const Error&)>;
 
         using MacPolicyChecker=typename AccessChecker<ContextTraits,Config>::MacPolicyChecker;
 
@@ -96,7 +96,7 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
         void iterateSubjHierarchy(
             common::SharedPtr<Context> ctx,
             Callback callback,
-            AclStatus prevStatus,
+            AccessStatus prevStatus,
             common::SharedPtr<AccessCheckerArgs> args,
             common::SharedPtr<AccessCheckerArgs> initialArgs
         ) const;
@@ -104,7 +104,7 @@ class AccessChecker_p : public std::enable_shared_from_this<AccessChecker_p<Cont
         void iterateObjHierarchy(
             common::SharedPtr<Context> ctx,
             Callback callback,
-            AclStatus prevStatus,
+            AccessStatus prevStatus,
             common::SharedPtr<AccessCheckerArgs> args,
             common::SharedPtr<AccessCheckerArgs> initialArgs
         ) const;
@@ -190,7 +190,7 @@ void AccessChecker<ContextTraits,Config>::checkAccess(
         {
             //! @todo Log error?
 
-            callback(std::move(ctx),AclStatus::Deny,ec);
+            callback(std::move(ctx),AccessStatus::Deny,ec);
             return;
         }
 
@@ -306,9 +306,9 @@ void AccessChecker_p<ContextTraits,Config>::checkAccess(
     if (cache)
     {
         auto self=this->shared_from_this();
-        auto cacheCb=[self=std::move(self),callback,args,initialArgs](auto ctx, AclStatus status, const Error& ec)
+        auto cacheCb=[self=std::move(self),callback,args,initialArgs](auto ctx, AccessStatus status, const Error& ec)
         {
-            if (!ec && status!=AclStatus::Unknown)
+            if (!ec && status!=AccessStatus::Unknown)
             {
                 callback(std::move(ctx),status,ec);
                 return;
@@ -330,7 +330,7 @@ template <typename ContextTraits, typename Config>
 void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
         common::SharedPtr<Context> ctx,
         Callback callback,
-        AclStatus prevStatus,
+        AccessStatus prevStatus,
         common::SharedPtr<AccessCheckerArgs> args,
         common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
@@ -350,7 +350,7 @@ void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
         if (ec)
         {
             HATN_CTX_SCOPE_ERROR("failed to find subject parent for ACL")
-            callback(std::move(ctx),AclStatus::Deny,ec);
+            callback(std::move(ctx),AccessStatus::Deny,ec);
             nextCb(false);
             return;
         }
@@ -368,10 +368,10 @@ void AccessChecker_p<ContextTraits,Config>::iterateSubjHierarchy(
             args->operation
         );
 
-        auto cb=[nextCb,callback](auto ctx, AclStatus status, const Error& ec)
+        auto cb=[nextCb,callback](auto ctx, AccessStatus status, const Error& ec)
         {
             // break subject iteration if access is granted or in case of error
-            if (ec || status==AclStatus::Grant)
+            if (ec || status==AccessStatus::Grant)
             {
                 nextCb(false);
                 callback(std::move(ctx),status,ec);
@@ -394,18 +394,18 @@ template <typename ContextTraits, typename Config>
 void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
     common::SharedPtr<Context> ctx,
     Callback callback,
-    AclStatus prevStatus,
+    AccessStatus prevStatus,
     common::SharedPtr<AccessCheckerArgs> args,
     common::SharedPtr<AccessCheckerArgs> initialArgs
     ) const
 {
     // break object iteration if hierarchy not set or access was denied at previous steps
-    if (!objHierarchy || prevStatus==AclStatus::Deny)
+    if (!objHierarchy || prevStatus==AccessStatus::Deny)
     {
         //! @todo Keep in cache denied status
 
         // nothing found, operation is forbidden
-        callback(std::move(ctx),AclStatus::Deny,Error{});
+        callback(std::move(ctx),AccessStatus::Deny,Error{});
         return;
     }
 
@@ -419,7 +419,7 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
         if (ec)
         {
             HATN_CTX_SCOPE_ERROR("failed to find object parent for ACL")
-            callback(std::move(ctx),AclStatus::Deny,ec);
+            callback(std::move(ctx),AccessStatus::Deny,ec);
             nextCb(false);
             return;
         }
@@ -429,7 +429,7 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
             //! @todo Keep in cache denied status
 
             // no more parents, operation forbidden
-            callback(std::move(ctx),AclStatus::Deny,Error{});
+            callback(std::move(ctx),AccessStatus::Deny,Error{});
             nextCb(false);
             return;
         }
@@ -439,10 +439,10 @@ void AccessChecker_p<ContextTraits,Config>::iterateObjHierarchy(
             args->subject,
             args->operation
         );
-        auto cb=[callback,nextCb](auto ctx, AclStatus status, const Error& ec)
+        auto cb=[callback,nextCb](auto ctx, AccessStatus status, const Error& ec)
         {
             // break object iteration if access is either granted or denied or in case of error
-            if (ec || status==AclStatus::Grant || status==AclStatus::Deny)
+            if (ec || status==AccessStatus::Grant || status==AccessStatus::Deny)
             {
                 callback(std::move(ctx),status,ec);
                 nextCb(false);
@@ -503,11 +503,11 @@ void AccessChecker_p<ContextTraits,Config>::find(
                     {
                         if (ec.is(UtilityError::MAC_FORBIDDEN,UtilityErrorCategory::getCategory()))
                         {
-                            callback(std::move(ctx),AclStatus::Deny,ec);
+                            callback(std::move(ctx),AccessStatus::Deny,ec);
                         }
                         else
                         {
-                            callback(std::move(ctx),AclStatus::Unknown,ec);
+                            callback(std::move(ctx),AccessStatus::Unknown,ec);
                         }
                         return;
                     }
@@ -545,12 +545,12 @@ void AccessChecker_p<ContextTraits,Config>::find(
             if (roles)
             {
                 HATN_CTX_SCOPE_ERROR("failed to list ACL roles for object-subject pair")
-                callback(std::move(ctx),AclStatus::Deny,roles.error());
+                callback(std::move(ctx),AccessStatus::Deny,roles.error());
                 return;
             }
             if (roles->empty())
             {
-                iterateSubjHierarchy(std::move(ctx),std::move(callback),AclStatus::Unknown,std::move(args),std::move(initialArgs));
+                iterateSubjHierarchy(std::move(ctx),std::move(callback),AccessStatus::Unknown,std::move(args),std::move(initialArgs));
                 return;
             }
 
@@ -599,7 +599,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
             if (dbObjResult)
             {
                 HATN_CTX_SCOPE_ERROR("failed to find role-operation in ACL")
-                callback(std::move(ctx),AclStatus::Deny,dbObjResult.error());
+                callback(std::move(ctx),AccessStatus::Deny,dbObjResult.error());
                 return;
             }
 
@@ -620,7 +620,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
     auto checkOperations=[self,this,args,initialArgs]
         (auto&& listOpFamilyAccess, auto ctx, auto callback, auto roles, Result<common::pmr::vector<db::DbObject>> dbObjResult) mutable
     {
-        AclStatus status=AclStatus::Unknown;
+        AccessStatus status=AccessStatus::Unknown;
 
         // evaluate access, access is granted if at least one role grants it
         if (!dbObjResult->empty())
@@ -630,23 +630,23 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 const auto* roleOp=item.as<acl_role_operation::type>();
                 if (roleOp->fieldValue(acl_role_operation::grant))
                 {
-                    status=AclStatus::Grant;
+                    status=AccessStatus::Grant;
                     break;
                 }
                 else
                 {
-                    status=AclStatus::Deny;
+                    status=AccessStatus::Deny;
                 }
             }
         }
 
         // if access is unknown then check access to operation family
-        if (status==AclStatus::Unknown)
+        if (status==AccessStatus::Unknown)
         {
             listOpFamilyAccess(std::move(ctx),std::move(callback),std::move(roles));
             return;
         }
-        else if (status==AclStatus::Deny)
+        else if (status==AccessStatus::Deny)
         {
             // if denied then iterate next subject
             iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));
@@ -679,7 +679,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
             if (dbObjResult)
             {
                 HATN_CTX_SCOPE_ERROR("failed to find role-operation in ACL")
-                callback(std::move(ctx),AclStatus::Deny,dbObjResult.error());
+                callback(std::move(ctx),AccessStatus::Deny,dbObjResult.error());
                 return;
             }
 
@@ -700,7 +700,7 @@ void AccessChecker_p<ContextTraits,Config>::find(
     auto checkOpFamilyAccess=[self,this,args,initialArgs]
         (auto ctx, auto callback, common::pmr::vector<db::DbObject> objVector) mutable
     {
-        AclStatus status=AclStatus::Unknown;
+        AccessStatus status=AccessStatus::Unknown;
 
         // evaluate access, access is granted if at least one role grants it
         if (!objVector.empty())
@@ -710,18 +710,18 @@ void AccessChecker_p<ContextTraits,Config>::find(
                 const auto* obj=item.as<acl_op_family_access::type>();
                 if (obj->fieldValue(acl_op_family_access::access) & args->operation->accessMask())
                 {
-                    status=AclStatus::Grant;
+                    status=AccessStatus::Grant;
                     break;
                 }
                 else
                 {
-                    status=AclStatus::Deny;
+                    status=AccessStatus::Deny;
                 }
             }
         }
 
         // if access is unknown or denied iterate next subject
-        if (status==AclStatus::Unknown || status==AclStatus::Deny)
+        if (status==AccessStatus::Unknown || status==AccessStatus::Deny)
         {
             // if denied then iterate next subject
             iterateSubjHierarchy(std::move(ctx),std::move(callback),status,std::move(args),std::move(initialArgs));

@@ -168,6 +168,43 @@ class JournalNotifyNone
         }
 };
 
+template <typename ImplT, typename ContextTraits>
+struct journalNotifyT
+{
+    template <typename ContextT, typename CallbackT>
+    void operator () (
+        common::SharedPtr<ContextT> ctx,
+        CallbackT callback,
+        const du::ObjectId& oid,
+        common::pmr::vector<Parameter> params={}
+        )
+    {
+        auto cb1=[callback=std::move(callback),oid](auto ctx)
+        {
+            callback(std::move(ctx),Error{},oid);
+        };
+        ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
+                                                        cb1,
+                                                        Error{},
+                                                        operation,
+                                                        oid,
+                                                        topic,
+                                                        model,
+                                                        std::move(params)
+                                                        );
+    };
+
+    std::shared_ptr<ImplT> d;
+    const std::string& model;
+    const Operation* operation;
+    TopicType topic;
+};
+template <typename ImplT>
+auto journalNotify(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
+{
+    return journalNotifyT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
+}
+
 HATN_UTILITY_NAMESPACE_END
 
 #endif // HATNUTILITYJOURNALNOTIFY_H

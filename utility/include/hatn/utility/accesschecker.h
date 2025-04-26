@@ -21,72 +21,11 @@
 #include <hatn/db/topic.h>
 
 #include <hatn/utility/utility.h>
-#include <hatn/utility/aclconstants.h>
-#include <hatn/utility/systemsection.h>
+#include <hatn/utility/accessstatus.h>
 #include <hatn/utility/operation.h>
+#include <hatn/utility/objectwrapper.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
-
-enum class AclStatus : uint8_t
-{
-    Unknown=0,
-    Grant=1,
-    Deny=2
-};
-
-struct ObjectWrapper;
-
-struct ObjectWrapperRef
-{
-    ObjectWrapperRef()=default;
-
-    ObjectWrapperRef(
-            lib::string_view id,
-            lib::string_view topic,
-            lib::string_view model={}
-        ) : id(id),
-            topic(topic),
-            model(model)
-    {}
-
-    ObjectWrapperRef( const ObjectWrapper& ref);
-
-    lib::string_view id;
-    db::Topic topic;
-    lib::string_view model;
-};
-
-struct ObjectWrapper
-{
-    ObjectWrapper()=default;
-
-    ObjectWrapper(
-        lib::string_view id,
-        lib::string_view topic,
-        lib::string_view model={}
-        ) : id(id),
-            topic(topic),
-            model(model)
-    {}
-
-    ObjectWrapper( const ObjectWrapperRef& ref)
-        : id(ref.id),
-          topic(ref.topic),
-          model(ref.model)
-    {}
-
-    ObjectType id;
-    TopicType topic;
-    lib::string_view model;
-};
-
-ObjectWrapperRef::ObjectWrapperRef( const ObjectWrapper& ref)
-    : id(ref.id),
-      topic(ref.topic),
-      model(ref.model)
-{}
-
-using HierarchyItem = ObjectWrapperRef;
 
 struct HierarchyNone
 {
@@ -213,7 +152,7 @@ class AccessCache : public common::WithTraits<Traits>
                 CallbackT cb,
                 common::SharedPtr<AccessCheckerArgs> args,
                 common::SharedPtr<AccessCheckerArgs> initialArgs,
-                AclStatus status
+                AccessStatus status
             )
         {
             this->traits().find(std::move(ctx),std::move(cb),std::move(args),std::move(initialArgs),status);
@@ -232,7 +171,7 @@ class AccessCacheNone
             bool /*touch*/
             )
         {
-            cb(std::move(ctx),AclStatus::Unknown,Error{});
+            cb(std::move(ctx),AccessStatus::Unknown,Error{});
         }
 
         template <typename ContextT, typename CallbackT>
@@ -241,7 +180,7 @@ class AccessCacheNone
             CallbackT cb,
             common::SharedPtr<AccessCheckerArgs> /*args*/,
             common::SharedPtr<AccessCheckerArgs> /*initialArgs*/,
-            AclStatus /*status*/
+            AccessStatus /*status*/
             )
         {
             cb(std::move(ctx),Error{});
@@ -266,7 +205,7 @@ class AccessChecker
     public:
 
         using Context=typename ContextTraits::Context;
-        using Callback=std::function<void (common::SharedPtr<Context>, AclStatus, const Error&)>;
+        using Callback=std::function<void (common::SharedPtr<Context>, AccessStatus, const Error&)>;
 
         using SubjectHierarchy=typename Config::SubjectHierarchy;
         using ObjectHierarchy=typename Config::ObjectHierarchy;

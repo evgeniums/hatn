@@ -4,10 +4,10 @@ SET (HEADERS
     include/hatn/utility/utility.h
     include/hatn/utility/utilityerror.h
     include/hatn/utility/utilityerrorcodes.h
-    include/hatn/utility/aclconstants.h
     include/hatn/utility/aclmodels.h
     include/hatn/utility/acldbmodels.h
     include/hatn/utility/acldbmodelsprovider.h
+    include/hatn/utility/accessstatus.h
     include/hatn/utility/accesschecker.h
     include/hatn/utility/aclcontroller.h
     include/hatn/utility/localaclcontroller.h
@@ -28,6 +28,9 @@ SET (HEADERS
     include/hatn/utility/withmacdb.h
     include/hatn/utility/notifier.h
     include/hatn/utility/journalnotify.h
+    include/hatn/utility/checkaccess.h
+    include/hatn/utility/operationchain.h
+    include/hatn/utility/objectwrapper.h
 )
 
 SET (HEADERS

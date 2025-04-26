@@ -23,6 +23,8 @@
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
+constexpr const size_t OperationNameLength=64;
+
 class OperarionFamily
 {
     public:

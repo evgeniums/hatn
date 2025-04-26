@@ -23,7 +23,6 @@
 #include <hatn/db/asyncmodelcontroller.h>
 
 #include <hatn/utility/utility.h>
-#include <hatn/utility/aclconstants.h>
 #include <hatn/utility/aclmodels.h>
 #include <hatn/utility/systemsection.h>
 #include <hatn/utility/operation.h>
