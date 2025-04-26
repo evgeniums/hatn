@@ -27,13 +27,15 @@
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
-template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
+template <typename ContextTraits>
 class LocalAclController_p;
 
-template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
+template <typename ContextTraitsT>
 class LocalAclControllerImpl
 {
     public:
+
+        using ContextTraits=ContextTraitsT;
 
         using Context=typename ContextTraits::Context;
         using CallbackEc=db::AsyncCallbackEc<Context>;
@@ -43,9 +45,7 @@ class LocalAclControllerImpl
         using CallbackObj=db::AsyncCallbackObj<Context,ModelT>;
 
         LocalAclControllerImpl(
-            std::shared_ptr<db::ModelsWrapper> modelsWrapper,
-            std::shared_ptr<AccessCheckerT> accessChecker={},
-            std::shared_ptr<JournalNotifyT> journalNotify={}
+            std::shared_ptr<db::ModelsWrapper> modelsWrapper
         );
 
         LocalAclControllerImpl();
@@ -139,14 +139,14 @@ class LocalAclControllerImpl
 
     private:
 
-        std::shared_ptr<LocalAclController_p<ContextTraits,AccessCheckerT,JournalNotifyT>> d;
+        std::shared_ptr<LocalAclController_p<ContextTraits>> d;
 
-        template <typename ContextTraits1, typename AccessCheckerT1, typename JournalNotifyT1>
+        template <typename ContextTraits1>
         friend class LocalAclController_p;
 };
 
-template <typename ContextTraits, typename AccessCheckerT=AccessChecker<ContextTraits>, typename JournalNotifyT=JournalNotifyNone>
-using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>>;
+template <typename ContextTraits>
+using LocalAclController=AclController<typename ContextTraits::Context,LocalAclControllerImpl<ContextTraits>>;
 
 HATN_UTILITY_NAMESPACE_END
 

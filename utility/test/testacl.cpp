@@ -59,9 +59,21 @@ struct ContextTraits
         return ctx->get<WithAppEnv>().env()->get<AllocatorFactory>().factory();
     }
 
-    static auto subject(const SharedPtr<Context>& ctx)
+    static auto contextSubject(const SharedPtr<Context>& ctx)
     {
         return ObjectWrapperRef{};
+    }
+
+    static const auto& contextAccessChecker(const SharedPtr<Context>& ctx)
+    {
+        static AccessChecker<ContextTraits> checker;
+        return checker;
+    }
+
+    static auto& contextJournalNotify(const SharedPtr<Context>& ctx)
+    {
+        static JournalNotifyNone journalNotify;
+        return journalNotify;
     }
 };
 

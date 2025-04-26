@@ -232,7 +232,7 @@ void AccessChecker<ContextTraits,Config>::checkAccess(
         const Operation* operation
     ) const
 {
-    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::subject(ctx),operation);
+    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::contextSubject(ctx),operation);
 }
 
 //--------------------------------------------------------------------------
@@ -245,7 +245,7 @@ void AccessChecker_p<ContextTraits,Config>::checkAccess(
     const Operation* operation
     ) const
 {
-    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::subject(ctx),operation);
+    checkAccess(std::move(ctx),std::move(callback),object,ContextTraits::contextSubject(ctx),operation);
 }
 
 //--------------------------------------------------------------------------

@@ -28,62 +28,50 @@ HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
+template <typename ContextTraitsT>
 class LocalAclController_p
 {
     public:
 
+        using ContextTraits=ContextTraitsT;
         using Context=typename ContextTraits::Context;
 
         LocalAclController_p(
-                LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>* ctrl,
-                std::shared_ptr<db::ModelsWrapper> wrp,
-                std::shared_ptr<AccessCheckerT> accessChecker,
-                std::shared_ptr<JournalNotifyT> journalNotify
-            ) : ctrl(ctrl),
-                accessChecker(std::move(accessChecker)),
-                journalNotify(std::move(journalNotify))
+                std::shared_ptr<db::ModelsWrapper> wrp
+            )
 
         {
             dbModelsWrapper=std::dynamic_pointer_cast<AclDbModels>(std::move(wrp));
-            Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be acl::AclDbModels");
+            Assert(dbModelsWrapper,"Invalid ACL database models dbModelsWrapper, must be utility::AclDbModels");
         }
 
-        LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>* ctrl;
         std::shared_ptr<AclDbModels> dbModelsWrapper;
-        std::shared_ptr<AccessCheckerT> accessChecker;
-        std::shared_ptr<JournalNotifyT> journalNotify;
 };
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::LocalAclControllerImpl(
-        std::shared_ptr<db::ModelsWrapper> modelsWrapper,
-        std::shared_ptr<AccessCheckerT> accessChecker,
-        std::shared_ptr<JournalNotifyT> journalNotify
-    ) : d(std::make_shared<LocalAclController_p<ContextTraits,AccessCheckerT,JournalNotifyT>>(this,
-                                                                                              std::move(modelsWrapper),
-                                                                                              std::move(accessChecker),
-                                                                                              std::move(journalNotify)))
+template <typename ContextTraits>
+LocalAclControllerImpl<ContextTraits>::LocalAclControllerImpl(
+        std::shared_ptr<db::ModelsWrapper> modelsWrapper
+    ) : d(std::make_shared<LocalAclController_p<ContextTraits>>(std::move(modelsWrapper)))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::LocalAclControllerImpl()
-    : d(std::make_shared<LocalAclController_p<ContextTraits,AccessCheckerT,JournalNotifyT>>(std::make_shared<AclDbModels>()))
+template <typename ContextTraits>
+LocalAclControllerImpl<ContextTraits>::LocalAclControllerImpl()
+    : d(std::make_shared<LocalAclController_p<ContextTraits>>(std::make_shared<AclDbModels>()))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::~LocalAclControllerImpl()
+template <typename ContextTraits>
+LocalAclControllerImpl<ContextTraits>::~LocalAclControllerImpl()
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename ImplT>
+template <typename ImplT, typename ContextTraits>
 struct checkTopicAccessT
 {
     template <typename OpHandlerT, typename ContextT, typename CallbackT>
@@ -101,7 +89,7 @@ struct checkTopicAccessT
                 {
                     callback(std::move(ctx),ec,du::ObjectId{});
                 };
-                d->journalNotify->invoke(std::move(ctx),
+                ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
                                          cb1,
                                          ec,
                                          operation,
@@ -113,7 +101,7 @@ struct checkTopicAccessT
             }
             doOp(std::move(ctx),std::move(callback));
         };
-        d->accessChecker->checkAccess(std::move(ctx),std::move(cb),operation,topic);
+        ContextTraits::contextAccessChecker(ctx).checkAccess(std::move(ctx),std::move(cb),operation,topic);
     };
 
     std::shared_ptr<ImplT> d;
@@ -125,10 +113,10 @@ struct checkTopicAccessT
 template <typename ImplT>
 auto checkTopicAccess(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
 {
-    return checkTopicAccessT<ImplT>{std::move(d),model,operation,topic};
+    return checkTopicAccessT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
 }
 
-template <typename ImplT>
+template <typename ImplT, typename ContextTraits>
 struct journalNotifyT
 {
     template <typename ContextT, typename CallbackT>
@@ -139,24 +127,19 @@ struct journalNotifyT
                     common::pmr::vector<Parameter> params={}
                     )
     {
-        if (d->journalNotify)
+        auto cb1=[callback=std::move(callback),oid](auto ctx)
         {
-            auto cb1=[callback=std::move(callback),oid](auto ctx)
-            {
-                callback(std::move(ctx),Error{},oid);
-            };
-            d->journalNotify->invoke(std::move(ctx),
-                                     cb1,
-                                     Error{},
-                                     operation,
-                                     oid,
-                                     topic,
-                                     model,
-                                     std::move(params)
-                                     );
-            return;
-        }
-        callback(std::move(ctx),Error{},oid);
+            callback(std::move(ctx),Error{},oid);
+        };
+        ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
+                                 cb1,
+                                 Error{},
+                                 operation,
+                                 oid,
+                                 topic,
+                                 model,
+                                 std::move(params)
+                                 );
     };
 
     std::shared_ptr<ImplT> d;
@@ -167,7 +150,7 @@ struct journalNotifyT
 template <typename ImplT>
 auto journalNotify(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
 {
-    return journalNotifyT<ImplT>{std::move(d),model,operation,topic};
+    return journalNotifyT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
 }
 
 struct operationChainT
@@ -185,8 +168,8 @@ struct operationChainT
 };
 constexpr operationChainT operationChain{};
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRole(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::addRole(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_role::managed> role,
@@ -226,8 +209,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRol
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::readRole(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::readRole(
         common::SharedPtr<Context> ctx,
         CallbackObj<acl_role::managed> callback,
         const du::ObjectId& id,
@@ -245,8 +228,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::readRo
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::removeRole(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::removeRole(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -266,9 +249,9 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::remove
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
+template <typename ContextTraits>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::listRoles(
+void LocalAclControllerImpl<ContextTraits>::listRoles(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
@@ -286,8 +269,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::listRo
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::updateRole(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::updateRole(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -307,8 +290,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::update
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRoleOperation(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_role_operation::managed> roleOperation,
@@ -360,8 +343,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRol
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::removeRoleOperation(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::removeRoleOperation(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -379,9 +362,9 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::remove
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
+template <typename ContextTraits>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::listRoleOperations(
+void LocalAclControllerImpl<ContextTraits>::listRoleOperations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
@@ -399,8 +382,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::listRo
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRelation(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::addRelation(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<acl_relation::managed> subjObjRole,
@@ -452,8 +435,8 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::addRel
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::removeRelation(
+template <typename ContextTraits>
+void LocalAclControllerImpl<ContextTraits>::removeRelation(
         common::SharedPtr<Context> ctx,
         CallbackEc callback,
         const du::ObjectId& id,
@@ -471,9 +454,9 @@ void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::remove
 
 //--------------------------------------------------------------------------
 
-template <typename ContextTraits, typename AccessCheckerT, typename JournalNotifyT>
+template <typename ContextTraits>
 template <typename QueryBuilderWrapperT>
-void LocalAclControllerImpl<ContextTraits,AccessCheckerT,JournalNotifyT>::listRelations(
+void LocalAclControllerImpl<ContextTraits>::listRelations(
         common::SharedPtr<Context> ctx,
         CallbackList callback,
         QueryBuilderWrapperT query,
