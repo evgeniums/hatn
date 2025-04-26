@@ -63,6 +63,21 @@ struct chainAclOpJournalT
             );
         return chain;
     }
+
+    template <typename ImplT, typename ...Handlers>
+    auto operator() (std::shared_ptr<ImplT> d,
+                    const Operation* operation,
+                    lib::string_view topic,
+                    const std::string& model,
+                    Handlers&& ...handlers) const
+    {
+        auto chain=hatn::chain(
+            checkTopicAccess(d,operation,topic,model),
+            std::forward<Handlers>(handlers)...,
+            journalOnly(d,operation,topic,model)
+            );
+        return chain;
+    }
 };
 constexpr chainAclOpJournalT chainAclOpJournal{};
 

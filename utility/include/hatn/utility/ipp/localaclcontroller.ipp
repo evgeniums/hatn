@@ -90,7 +90,11 @@ void LocalAclControllerImpl<ContextTraits>::addRole(
                 callback(std::move(ctx),ec,du::ObjectId{});
                 return;
             }
-            journalNotify(std::move(ctx),std::move(callback),oid);
+            auto cb1=[callback=std::move(callback),oid](auto ctx)
+            {
+                callback(std::move(ctx),common::Error{},oid);
+            };
+            journalNotify(std::move(ctx),std::move(cb1),oid);
         };
         db::AsyncModelController<ContextTraits>::create(
             std::move(ctx),
@@ -126,17 +130,23 @@ void LocalAclControllerImpl<ContextTraits>::readRole(
         db::Topic topic
     )
 {
-    auto read=[d=d,topic=TopicType{topic},id](auto&& journalNotify, auto ctx, auto callback)
+    auto read=[d=d,topic=TopicType{topic},id](auto&& journalNotify, auto ctx, auto callback) mutable
     {
         auto cb=[journalNotify=std::move(journalNotify),callback=std::move(callback)]
-            (auto ctx, auto result)
+            (auto ctx, auto result) mutable
         {
             if (result)
             {
-                callback(std::move(ctx),result);
+                callback(std::move(ctx),std::move(result));
                 return;
             }
-            journalNotify(std::move(ctx),std::move(callback),result.takeValue());
+
+            auto oid=result.value()->fieldValue(db::Oid);
+            auto cb1=[callback=std::move(callback),result=std::move(result)](auto ctx) mutable
+            {
+                callback(std::move(ctx),std::move(result));
+            };
+            journalNotify(std::move(ctx),std::move(cb1),oid);
         };
 
         db::AsyncModelController<ContextTraits>::read(
@@ -174,6 +184,7 @@ void LocalAclControllerImpl<ContextTraits>::removeRole(
         db::Topic topic
     )
 {
+    //! @todo critical: pack into chain
     //! @todo critical: Remove all role operations and relations
 
     db::AsyncModelController<ContextTraits>::remove(
@@ -196,13 +207,53 @@ void LocalAclControllerImpl<ContextTraits>::listRoles(
         db::Topic topic
     )
 {
-    db::AsyncModelController<ContextTraits>::list(
-        std::move(ctx),
-        std::move(callback),
-        d->dbModelsWrapper->aclRoleModel(),
-        std::move(query),
-        topic
+    auto list=[d=d,query=std::move(query),topic=TopicType{topic}](auto&& journalOnlyList, auto ctx, auto callback) mutable
+    {
+        auto cb=[d=d,journalOnlyList=std::move(journalOnlyList),callback=std::move(callback)]
+            (auto ctx, auto result) mutable
+        {
+            if (result)
+            {
+                callback(std::move(ctx),std::move(result));
+                return;
+            }
+
+            auto oids=ContextTraits::contextFactory(ctx)->template createObjectVector<std::reference_wrapper<const du::ObjectId>>();
+            oids.reserve(result->size());
+            for (size_t i=0; i<result->size(); i++)
+            {
+                const auto& obj=result->at(i);
+                oids.emplace_back(std::cref(obj.template as<acl_role::type>()->fieldValue(db::Oid)));
+            }
+            auto cb1=[callback=std::move(callback),result=std::move(result)](auto ctx) mutable
+            {
+                callback(std::move(ctx),std::move(result));
+            };
+            journalOnlyList(std::move(ctx),std::move(cb1),oids);
+        };
+
+        db::AsyncModelController<ContextTraits>::list(
+            std::move(ctx),
+            std::move(cb),
+            d->dbModelsWrapper->aclRoleModel(),
+            std::move(query),
+            topic
+        );
+    };
+
+    auto cbEc=[callback](auto ctx, const Error& ec)
+    {
+        callback(std::move(ctx),Result<common::pmr::vector<db::DbObject>>{ec});
+    };
+
+    auto chain=chainAclOpJournal(
+        d,
+        &AclOperations::listRoles(),
+        topic,
+        d->dbModelsWrapper->aclRoleModel()->info->modelIdStr(),
+        std::move(list)
     );
+    chain(std::move(ctx),std::move(cbEc),std::move(callback));
 }
 
 //--------------------------------------------------------------------------

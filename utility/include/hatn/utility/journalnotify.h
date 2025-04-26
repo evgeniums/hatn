@@ -27,6 +27,8 @@
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
+//! @todo Check journal if logging of some acess types is enabled/disabled
+
 template <typename ContextTraits, typename JournalT, typename NotifierT>
 class JournalNotify
 {
@@ -129,6 +131,33 @@ class JournalNotify
             );
         }
 
+        template <typename CallbackT>
+        void journalOnlyList(
+            common::SharedPtr<Context> ctx,
+            CallbackT callback,
+            Error status,
+            const Operation* op,
+            const common::pmr::vector<std::reference_wrapper<const du::ObjectId>> objectIds,
+            const db::Topic& objectTopic,
+            lib::string_view objectModel,
+            common::pmr::vector<Parameter> params={}
+            )
+        {
+            for (auto&& oid: objectIds)
+            {
+                m_journal->log(
+                    std::move(ctx),
+                    std::move(callback),
+                    status,
+                    op,
+                    oid.get(),
+                    objectTopic,
+                    objectModel,
+                    params
+                );
+            }
+        }
+
         void setJournal(std::shared_ptr<JournalT> journal) noexcept
         {
             m_journal=std::move(journal);
@@ -178,6 +207,21 @@ class JournalNotifyNone
         {
             callback(std::move(ctx));
         }
+
+        template <typename ContextT, typename CallbackT>
+        void journalOnlyList(
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            Error /*status*/,
+            const Operation* /*op*/,
+            const common::pmr::vector<std::reference_wrapper<const du::ObjectId>> /*objectIds*/,
+            const db::Topic& /*objectTopic*/,
+            lib::string_view /*objectModel*/,
+            common::pmr::vector<Parameter> /*params*/={}
+            )
+        {
+            callback(std::move(ctx));
+        }
 };
 
 template <typename ImplT, typename ContextTraits>
@@ -191,36 +235,8 @@ struct journalNotifyT
         common::pmr::vector<Parameter> params={}
         )
     {
-        auto cb1=[callback=std::move(callback),oid](auto ctx)
-        {
-            callback(std::move(ctx),Error{},oid);
-        };
         ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
-                                                        cb1,
-                                                        Error{},
-                                                        operation,
-                                                        oid,
-                                                        topic,
-                                                        model,
-                                                        std::move(params)
-                                                        );
-    };
-
-    template <typename ContextT, typename CallbackT, typename DbObjectT>
-    void operator () (
-            common::SharedPtr<ContextT> ctx,
-            CallbackT callback,
-            DbObjectT obj,
-            common::pmr::vector<Parameter> params={}
-        )
-    {
-        const auto& oid=obj->fieldValue(db::Oid);
-        auto cb1=[callback=std::move(callback),obj=std::move(obj)](auto ctx)
-        {
-            callback(std::move(ctx),Error{},std::move(obj));
-        };
-        ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
-                                                        cb1,
+                                                        std::move(callback),
                                                         Error{},
                                                         operation,
                                                         oid,
@@ -253,12 +269,8 @@ struct journalOnlyT
         common::pmr::vector<Parameter> params={}
         )
     {
-        auto cb1=[callback=std::move(callback),oid](auto ctx)
-        {
-            callback(std::move(ctx),Error{},oid);
-        };
         ContextTraits::contextJournalNotify(ctx).journalOnly(std::move(ctx),
-                                                        cb1,
+                                                        std::move(callback),
                                                         Error{},
                                                         operation,
                                                         oid,
@@ -268,28 +280,23 @@ struct journalOnlyT
                                                         );
     };
 
-    template <typename ContextT, typename CallbackT, typename DbObjectT>
+    template <typename ContextT, typename CallbackT>
     void operator () (
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
-        DbObjectT obj,
+        const common::pmr::vector<std::reference_wrapper<const du::ObjectId>> objectIds,
         common::pmr::vector<Parameter> params={}
         )
     {
-        const auto& oid=obj->fieldValue(db::Oid);
-        auto cb1=[callback=std::move(callback),obj=std::move(obj)](auto ctx)
-        {
-            callback(std::move(ctx),Error{},std::move(obj));
-        };
-        ContextTraits::contextJournalNotify(ctx).journalOnly(std::move(ctx),
-                                                        cb1,
-                                                        Error{},
-                                                        operation,
-                                                        oid,
-                                                        topic,
-                                                        model,
-                                                        std::move(params)
-                                                        );
+        ContextTraits::contextJournalNotify(ctx).journalOnlyList(std::move(ctx),
+                                                             std::move(callback),
+                                                             Error{},
+                                                             operation,
+                                                             objectIds,
+                                                             topic,
+                                                             model,
+                                                             std::move(params)
+                                                             );
     };
 
     std::shared_ptr<ImplT> d;
@@ -299,7 +306,7 @@ struct journalOnlyT
 };
 
 template <typename ImplT>
-auto journalOnly(std::shared_ptr<ImplT> d, const Operation* operation,lib::string_view topic, lib::string_view model)
+auto journalOnly(std::shared_ptr<ImplT> d, const Operation* operation, lib::string_view topic, lib::string_view model)
 {
     return journalOnlyT<ImplT,typename ImplT::ContextTraits>{std::move(d),operation,topic,model};
 }
