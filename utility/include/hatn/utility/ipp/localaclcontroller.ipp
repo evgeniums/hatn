@@ -82,7 +82,7 @@ void LocalAclControllerImpl<ContextTraits>::addRole(
 {
     auto create=[topic=TopicType{topic},role=std::move(role),d=d](auto&& journalNotify, auto ctx, auto callback)
     {
-        auto cb=[journalNotify=std::move(journalNotify),callback=std::move(callback),topic]
+        auto cb=[journalNotify=std::move(journalNotify),callback=std::move(callback)]
             (auto ctx, const Error& ec, const du::ObjectId& oid) mutable
         {
             if (ec)
@@ -101,14 +101,19 @@ void LocalAclControllerImpl<ContextTraits>::addRole(
         );
     };
 
-    auto chain=operationChain(
-        d,
-        d->dbModelsWrapper->aclRoleModel()->info->modelIdStr(),
+    auto cbEc=[callback](auto ctx, const Error& ec)
+    {
+        callback(std::move(ctx),ec,du::ObjectId{});
+    };
+
+    auto chain=chainAclOpJournalNotify(
+        d,        
         &AclOperations::addRole(),
         topic,
+        d->dbModelsWrapper->aclRoleModel()->info->modelIdStr(),
         std::move(create)
     );
-    chain(std::move(ctx),std::move(callback));
+    chain(std::move(ctx),std::move(cbEc),std::move(callback));
 }
 
 //--------------------------------------------------------------------------
@@ -121,13 +126,42 @@ void LocalAclControllerImpl<ContextTraits>::readRole(
         db::Topic topic
     )
 {
-    db::AsyncModelController<ContextTraits>::read(
-        std::move(ctx),
-        std::move(callback),
-        d->dbModelsWrapper->aclRoleModel(),
+    auto read=[d=d,topic=TopicType{topic},id](auto&& journalNotify, auto ctx, auto callback)
+    {
+        auto cb=[journalNotify=std::move(journalNotify),callback=std::move(callback)]
+            (auto ctx, auto result)
+        {
+            if (result)
+            {
+                callback(std::move(ctx),result);
+                return;
+            }
+            journalNotify(std::move(ctx),std::move(callback),result.takeValue());
+        };
+
+        db::AsyncModelController<ContextTraits>::read(
+            std::move(ctx),
+            std::move(callback),
+            d->dbModelsWrapper->aclRoleModel(),
+            id,
+            topic
+        );
+    };
+
+    auto cbEc=[callback](auto ctx, const Error& ec)
+    {
+        callback(std::move(ctx),Result<db::DbObjectT<acl_role::managed>>{ec});
+    };
+
+    auto chain=chainAclOpJournal(
+        d,
+        &AclOperations::readRole(),
         id,
-        topic
+        topic,
+        d->dbModelsWrapper->aclRoleModel()->info->modelIdStr(),
+        std::move(read)
     );
+    chain(std::move(ctx),std::move(cbEc),std::move(callback));
 }
 
 //--------------------------------------------------------------------------

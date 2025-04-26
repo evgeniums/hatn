@@ -25,20 +25,46 @@ HATN_UTILITY_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-struct operationChainT
+struct chainAclOpJournalNotifyT
 {
     template <typename ImplT, typename ...Handlers>
-    auto operator() (std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation, db::Topic topic, Handlers&& ...handlers) const
+    auto operator() (std::shared_ptr<ImplT> d,
+                    const Operation* operation,
+                    lib::string_view topic,
+                    const std::string& model,
+                    Handlers&& ...handlers) const
     {
         auto chain=hatn::chain(
-            checkTopicAccess(d,model,operation,topic),
+            checkTopicAccess(d,operation,topic,model),
             std::forward<Handlers>(handlers)...,
-            journalNotify(d,model,operation,topic)
+            journalNotify(d,operation,topic,model)
             );
         return chain;
     }
 };
-constexpr operationChainT operationChain{};
+constexpr chainAclOpJournalNotifyT chainAclOpJournalNotify{};
+
+//--------------------------------------------------------------------------
+
+struct chainAclOpJournalT
+{
+    template <typename ImplT, typename ...Handlers>
+    auto operator() (std::shared_ptr<ImplT> d,
+                    const Operation* operation,
+                    const db::ObjectId& oid,
+                    lib::string_view topic,
+                    const std::string& model,
+                    Handlers&& ...handlers) const
+    {
+        auto chain=hatn::chain(
+            checkObjectAccess(d,operation,oid,topic,model),
+            std::forward<Handlers>(handlers)...,
+            journalOnly(d,operation,topic,model)
+            );
+        return chain;
+    }
+};
+constexpr chainAclOpJournalT chainAclOpJournal{};
 
 //--------------------------------------------------------------------------
 

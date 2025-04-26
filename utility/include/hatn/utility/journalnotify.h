@@ -18,6 +18,8 @@
 
 #include <hatn/common/meta/chain.h>
 
+#include <hatn/db/object.h>
+
 #include <hatn/utility/utility.h>
 #include <hatn/utility/systemsection.h>
 #include <hatn/utility/journal.h>
@@ -47,32 +49,23 @@ class JournalNotify
             const Operation* op,
             const du::ObjectId& objectId,
             const db::Topic& objectTopic,
-            const std::string& objectModel,
-            bool journalOnly=false,
+            lib::string_view objectModel,
             common::pmr::vector<Parameter> params={}
         )
         {
             auto logJournal=[journal=m_journal,
-                             journalOnly,
                              callback=std::move(callback),
                              status=std::move(status),
                              op,
                              objectId,
                              objectTopic=TopicType{objectTopic},
-                             &objectModel,
+                             objectModel,
                              params=std::move(params)
                             ] (auto&& notify, auto&& ctx) mutable
             {
-                auto cb=[journalOnly,notify=std::move(notify),callback=std::move(callback),status=std::move(status)](auto&& ctx)
+                auto cb=[notify=std::move(notify),callback=std::move(callback),status=std::move(status)](auto&& ctx)
                 {
-                    if (journalOnly)
-                    {
-                        callback(std::move(ctx));
-                    }
-                    else
-                    {
-                        notify(std::move(ctx),std::move(callback),std::move(status));
-                    }
+                    notify(std::move(ctx),std::move(callback),std::move(status));
                 };
 
                 journal->log(
@@ -91,17 +84,12 @@ class JournalNotify
                          op,
                          objectId,
                          objectTopic=TopicType{objectTopic},
-                         &objectModel
+                         objectModel
                         ] (auto&& ctx, CallbackT callback, Error status) mutable
             {
-                auto cb=[callback=std::move(callback)](auto&& ctx)
-                {
-                    callback(std::move(ctx));
-                };
-
                 notifier->notify(
                     std::move(ctx),
-                    std::move(cb),
+                    std::move(callback),
                     status,
                     op,
                     objectId,
@@ -115,6 +103,30 @@ class JournalNotify
                 std::move(notify)
             );
             chain(std::move(ctx));
+        }
+
+        template <typename CallbackT>
+        void journalOnly(
+            common::SharedPtr<Context> ctx,
+            CallbackT callback,
+            Error status,
+            const Operation* op,
+            const du::ObjectId& objectId,
+            const db::Topic& objectTopic,
+            lib::string_view objectModel,
+            common::pmr::vector<Parameter> params={}
+            )
+        {
+            m_journal->log(
+                std::move(ctx),
+                std::move(callback),
+                status,
+                op,
+                objectId,
+                objectTopic,
+                objectModel,
+                params
+            );
         }
 
         void setJournal(std::shared_ptr<JournalT> journal) noexcept
@@ -145,7 +157,7 @@ class JournalNotifyNone
             const Operation* /*op*/,
             const du::ObjectId& /*objectId*/,
             const db::Topic& /*objectTopic*/,
-            const std::string& /*objectModel*/,
+            lib::string_view /*objectModel*/,
             common::pmr::vector<Parameter> /*params*/={}
             )
         {
@@ -160,7 +172,7 @@ class JournalNotifyNone
             const Operation* /*op*/,
             const du::ObjectId& /*objectId*/,
             const db::Topic& /*objectTopic*/,
-            const std::string& /*objectModel*/,
+            lib::string_view /*objectModel*/,
             common::pmr::vector<Parameter> /*params*/={}
             )
         {
@@ -194,15 +206,102 @@ struct journalNotifyT
                                                         );
     };
 
+    template <typename ContextT, typename CallbackT, typename DbObjectT>
+    void operator () (
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback,
+            DbObjectT obj,
+            common::pmr::vector<Parameter> params={}
+        )
+    {
+        const auto& oid=obj->fieldValue(db::Oid);
+        auto cb1=[callback=std::move(callback),obj=std::move(obj)](auto ctx)
+        {
+            callback(std::move(ctx),Error{},std::move(obj));
+        };
+        ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
+                                                        cb1,
+                                                        Error{},
+                                                        operation,
+                                                        oid,
+                                                        topic,
+                                                        model,
+                                                        std::move(params)
+                                                        );
+    };
+
     std::shared_ptr<ImplT> d;
-    const std::string& model;
     const Operation* operation;
     TopicType topic;
+    lib::string_view model;
 };
+
 template <typename ImplT>
-auto journalNotify(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
+auto journalNotify(std::shared_ptr<ImplT> d, const Operation* operation,lib::string_view topic, const std::string& model)
 {
-    return journalNotifyT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
+    return journalNotifyT<ImplT,typename ImplT::ContextTraits>{std::move(d),operation,topic,model};
+}
+
+template <typename ImplT, typename ContextTraits>
+struct journalOnlyT
+{
+    template <typename ContextT, typename CallbackT>
+    void operator () (
+        common::SharedPtr<ContextT> ctx,
+        CallbackT callback,
+        const du::ObjectId& oid,
+        common::pmr::vector<Parameter> params={}
+        )
+    {
+        auto cb1=[callback=std::move(callback),oid](auto ctx)
+        {
+            callback(std::move(ctx),Error{},oid);
+        };
+        ContextTraits::contextJournalNotify(ctx).journalOnly(std::move(ctx),
+                                                        cb1,
+                                                        Error{},
+                                                        operation,
+                                                        oid,
+                                                        topic,
+                                                        model,
+                                                        std::move(params)
+                                                        );
+    };
+
+    template <typename ContextT, typename CallbackT, typename DbObjectT>
+    void operator () (
+        common::SharedPtr<ContextT> ctx,
+        CallbackT callback,
+        DbObjectT obj,
+        common::pmr::vector<Parameter> params={}
+        )
+    {
+        const auto& oid=obj->fieldValue(db::Oid);
+        auto cb1=[callback=std::move(callback),obj=std::move(obj)](auto ctx)
+        {
+            callback(std::move(ctx),Error{},std::move(obj));
+        };
+        ContextTraits::contextJournalNotify(ctx).journalOnly(std::move(ctx),
+                                                        cb1,
+                                                        Error{},
+                                                        operation,
+                                                        oid,
+                                                        topic,
+                                                        model,
+                                                        std::move(params)
+                                                        );
+    };
+
+    std::shared_ptr<ImplT> d;
+    const Operation* operation;
+    TopicType topic;
+    lib::string_view model;
+};
+
+template <typename ImplT>
+auto journalOnly(std::shared_ptr<ImplT> d, const Operation* operation,lib::string_view topic, lib::string_view model)
+{
+    return journalOnlyT<ImplT,typename ImplT::ContextTraits>{std::move(d),operation,topic,model};
 }
 
 HATN_UTILITY_NAMESPACE_END

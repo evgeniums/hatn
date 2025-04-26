@@ -54,7 +54,7 @@ class Journal : public common::WithTraits<Traits>
             const Operation* op,
             const du::ObjectId& objectId,
             const db::Topic& objectTopic,
-            const std::string& objectModel,
+            lib::string_view objectModel,
             common::pmr::vector<Parameter> params={}
         )
         {
@@ -74,7 +74,7 @@ class JournalNone
             const Operation* /*op*/,
             const du::ObjectId& /*objectId*/,
             const db::Topic& /*objectTopic*/,
-            const std::string& /*objectModel*/,
+            lib::string_view /*objectModel*/,
             common::pmr::vector<Parameter> /*params*/={}
             )
         {

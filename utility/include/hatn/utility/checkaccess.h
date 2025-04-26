@@ -22,18 +22,19 @@
 #include <hatn/utility/accessstatus.h>
 #include <hatn/utility/operation.h>
 #include <hatn/utility/systemsection.h>
+#include <hatn/utility/objectwrapper.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
-    //--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
 
 template <typename ImplT, typename ContextTraits>
 struct checkTopicAccessT
 {
-    template <typename OpHandlerT, typename ContextT, typename CallbackT>
-    void operator () (OpHandlerT&& doOp, common::SharedPtr<ContextT> ctx, CallbackT callback)
+    template <typename OpHandlerT, typename ContextT, typename CallbackEcT, typename CallbackT>
+    void operator () (OpHandlerT&& doOp, common::SharedPtr<ContextT> ctx, CallbackEcT callbackEc, CallbackT callback)
     {
-        auto cb=[d=d,doOp=std::move(doOp),callback=std::move(callback),this](auto ctx,AccessStatus status, Error ec) mutable
+        auto cb=[d=d,doOp=std::move(doOp),callbackEc=std::move(callbackEc),callback=std::move(callback),this](auto ctx,AccessStatus status, Error ec) mutable
         {
             if (ec || status!=AccessStatus::Grant)
             {
@@ -41,9 +42,9 @@ struct checkTopicAccessT
                 {
                     ec=utilityError(UtilityError::OPERATION_FORBIDDEN);
                 }
-                auto cb1=[callback=std::move(callback),ec,topic=TopicType{topic}](auto ctx)
+                auto cb1=[callbackEc=std::move(callbackEc),ec](auto ctx)
                 {
-                    callback(std::move(ctx),ec,du::ObjectId{});
+                    callbackEc(std::move(ctx),ec);
                 };
                 ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
                                                                 cb1,
@@ -61,16 +62,76 @@ struct checkTopicAccessT
     };
 
     std::shared_ptr<ImplT> d;
-    const std::string& model;
     const Operation* operation;
     TopicType topic;
+    lib::string_view model;
 };
 
 template <typename ImplT>
-auto checkTopicAccess(std::shared_ptr<ImplT> d, const std::string& model, const Operation* operation,lib::string_view topic)
+auto checkTopicAccess(std::shared_ptr<ImplT> d, const Operation* operation, lib::string_view topic, const std::string& model)
 {
-    return checkTopicAccessT<ImplT,typename ImplT::ContextTraits>{std::move(d),model,operation,topic};
+    return checkTopicAccessT<ImplT,typename ImplT::ContextTraits>{std::move(d),operation,topic,model};
 }
+
+template <typename ImplT, typename ContextTraits>
+struct checkObjectAccessT
+{
+    template <typename OpHandlerT, typename ContextT,  typename CallbackEcT, typename CallbackT>
+    void operator () (OpHandlerT&& doOp, common::SharedPtr<ContextT> ctx, CallbackEcT callbackEc, CallbackT callback)
+    {
+        auto cb=[d=d,doOp=std::move(doOp),callbackEc=std::move(callbackEc),callback=std::move(callback),this](auto ctx,AccessStatus status, Error ec) mutable
+        {
+            if (ec || status!=AccessStatus::Grant)
+            {
+                if (!ec)
+                {
+                    ec=utilityError(UtilityError::OPERATION_FORBIDDEN);
+                }
+                auto cb1=[callbackEc=std::move(callbackEc),ec](auto ctx)
+                {
+                    callbackEc(std::move(ctx),ec);
+                };
+                ContextTraits::contextJournalNotify(ctx).invoke(std::move(ctx),
+                                                                cb1,
+                                                                ec,
+                                                                operation,
+                                                                oid,
+                                                                topic,
+                                                                model
+                                                                );
+                return;
+            }
+            doOp(std::move(ctx),std::move(callback));
+        };
+        ContextTraits::contextAccessChecker(ctx).checkAccess(std::move(ctx),std::move(cb),ObjectWrapperRef{oid.string(),topic,model},operation);
+    };
+
+    checkObjectAccessT(
+            std::shared_ptr<ImplT> d,
+            const Operation* operation,
+            const db::ObjectId& oid,
+            lib::string_view topic,
+            const std::string& model
+        ) : d(std::move(d)),
+            operation(operation),
+            oid(oid),
+            topic(topic),
+            model(model)
+    {}
+
+    std::shared_ptr<ImplT> d;
+    const Operation* operation;
+    db::ObjectId oid;
+    TopicType topic;
+    lib::string_view model;
+};
+
+template <typename ImplT>
+auto checkObjectAccess(std::shared_ptr<ImplT> d, const Operation* operation, const db::ObjectId& oid, lib::string_view topic, const std::string& model)
+{
+    return checkObjectAccessT<ImplT,typename ImplT::ContextTraits>{std::move(d),operation,oid,topic,model};
+}
+
 
 //--------------------------------------------------------------------------
 
