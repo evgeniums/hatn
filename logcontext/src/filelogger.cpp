@@ -717,6 +717,7 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
                 files.push_back(fileName);
             }
         }
+        std::sort(files.begin(),files.end());
     };
     list(d->logFile->filename());
     if (d->errorLogFile)
