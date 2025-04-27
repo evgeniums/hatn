@@ -41,7 +41,7 @@ struct Request
     std::string topic;
     std::string messageTypeName;
     du::UnitWrapper message;
-    std::vector<common::ByteArrayShared> dataArrays;
+    std::vector<common::ByteArrayShared> buffers;
 
     Request()
     {}
