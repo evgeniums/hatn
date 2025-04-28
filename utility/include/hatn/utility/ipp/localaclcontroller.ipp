@@ -127,15 +127,16 @@ void LocalAclControllerImpl<ContextTraits>::readRole(
         common::SharedPtr<Context> ctx,
         CallbackObj<acl_role::managed> callback,
         const du::ObjectId& id,
-        db::Topic topic
+        db::Topic topic,
+        bool noJournal
     )
 {
-    auto read=[d=d,topic=TopicType{topic},id](auto&& journalNotify, auto ctx, auto callback) mutable
+    auto read=[d=d,noJournal,topic=TopicType{topic},id](auto&& journal, auto ctx, auto callback) mutable
     {
-        auto cb=[journalNotify=std::move(journalNotify),callback=std::move(callback)]
+        auto cb=[noJournal,journal=std::move(journal),callback=std::move(callback)]
             (auto ctx, auto result) mutable
         {
-            if (result)
+            if (result || noJournal)
             {
                 callback(std::move(ctx),std::move(result));
                 return;
@@ -146,7 +147,7 @@ void LocalAclControllerImpl<ContextTraits>::readRole(
             {
                 callback(std::move(ctx),std::move(result));
             };
-            journalNotify(std::move(ctx),std::move(cb1),oid);
+            journal(std::move(ctx),std::move(cb1),oid);
         };
 
         db::AsyncModelController<ContextTraits>::read(
@@ -309,7 +310,7 @@ void LocalAclControllerImpl<ContextTraits>::addRoleOperation(
             // role found, go to role-operation creation
             createRoleOperation(std::move(ctx),std::move(callback),std::move(roleOperation));
         };
-        readRole(std::move(ctx),std::move(cb),roleOperation->fieldValue(acl_role_operation::role),topic);
+        readRole(std::move(ctx),std::move(cb),roleOperation->fieldValue(acl_role_operation::role),topic,true);
     };
 
     auto createRoleOperation=[d=d,topic](common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_role_operation::managed> roleOperation) mutable
@@ -401,9 +402,10 @@ void LocalAclControllerImpl<ContextTraits>::addRelation(
             // role found, go to subj-obj-role creation
             createSubjObjRole(std::move(ctx),std::move(callback),std::move(subjObjRole));
         };
-        readRole(std::move(ctx),std::move(cb),subjObjRole->fieldValue(acl_relation::role),topic);
+        readRole(std::move(ctx),std::move(cb),subjObjRole->fieldValue(acl_relation::role),subjObjRole->fieldValue(acl_relation::role_topic),true);
     };
 
+    //! @todo If subj and obj topic mismatch then create relation in both topics
     auto createSubjObjRole=[d=d,topic](common::SharedPtr<Context> ctx, CallbackOid callback, common::SharedPtr<acl_relation::managed> subjObjRole) mutable
     {
         db::AsyncModelController<ContextTraits>::create(
@@ -432,6 +434,8 @@ void LocalAclControllerImpl<ContextTraits>::removeRelation(
         db::Topic topic
     )
 {
+    //! @todo remove relation in subj topic as well
+
     db::AsyncModelController<ContextTraits>::remove(
         std::move(ctx),
         std::move(callback),

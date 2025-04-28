@@ -19,6 +19,7 @@
 #include <hatn/db/modelsprovider.h>
 
 #include <hatn/utility/utility.h>
+#include <hatn/utility/systemsection.h>
 #include <hatn/utility/aclcontroller.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
@@ -56,21 +57,22 @@ class LocalAclControllerImpl
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<acl_role::managed> role,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void readRole(
             common::SharedPtr<Context> ctx,
             CallbackObj<acl_role::managed> callback,
             const du::ObjectId& id,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic,
+            bool noJournal=false
         );
 
         void removeRole(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
             const du::ObjectId& id,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         template <typename QueryBuilderWrapperT>
@@ -78,7 +80,7 @@ class LocalAclControllerImpl
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             QueryBuilderWrapperT query,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void updateRole(
@@ -86,21 +88,21 @@ class LocalAclControllerImpl
             CallbackEc callback,
             const du::ObjectId& id,
             common::SharedPtr<db::update::Request> request,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void addRoleOperation(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<acl_role_operation::managed> role,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void removeRoleOperation(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
             const du::ObjectId& id,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         template <typename QueryBuilderWrapperT>
@@ -108,21 +110,21 @@ class LocalAclControllerImpl
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             QueryBuilderWrapperT query,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void addRelation(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<acl_relation::managed> role,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         void removeRelation(
             common::SharedPtr<Context> ctx,
             CallbackEc callback,
             const du::ObjectId& id,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
         template <typename QueryBuilderWrapperT>
@@ -130,7 +132,7 @@ class LocalAclControllerImpl
             common::SharedPtr<Context> ctx,
             CallbackList callback,
             QueryBuilderWrapperT query,
-            db::Topic topic={}
+            db::Topic topic=SystemTopic
         );
 
     private:

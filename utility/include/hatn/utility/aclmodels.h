@@ -20,6 +20,7 @@
 
 #include <hatn/utility/utility.h>
 #include <hatn/utility/operation.h>
+#include <hatn/utility/systemsection.h>
 
 HATN_UTILITY_NAMESPACE_BEGIN
 
@@ -43,7 +44,9 @@ HDU_UNIT_WITH(acl_op_family_access,(HDU_BASE(db::object)),
 HDU_UNIT_WITH(acl_relation,(HDU_BASE(db::object)),
     HDU_FIELD(object,TYPE_STRING,1)
     HDU_FIELD(subject,TYPE_STRING,2)
-    HDU_FIELD(role,TYPE_OBJECT_ID,3)
+    HDU_FIELD(subject_topic,TYPE_STRING,3,false,SystemTopic)
+    HDU_FIELD(role,TYPE_OBJECT_ID,4)
+    HDU_FIELD(role_topic,TYPE_STRING,5,false,SystemTopic)
 )
 
 HATN_UTILITY_NAMESPACE_END
