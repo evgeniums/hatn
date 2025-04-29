@@ -680,10 +680,16 @@ struct subunit : public types::TYPE_DATAUNIT
 
 struct concat_fields_t
 {
-    template <typename ...Args>
-    constexpr auto operator() (Args&& ...args) const
+    template <typename Arg0, typename Arg1, typename ...Args>
+    constexpr auto operator() (Arg0&& arg0, Arg1&& arg1, Args&& ...args) const
     {
-        return hana::concat(std::forward<Args>(args)...);
+        return concat_fields_t{}(hana::concat(std::forward<Arg0>(arg0),std::forward<Arg1>(arg1)),std::forward<Args>(args)...);
+    }
+
+    template <typename Arg0, typename Arg1>
+    constexpr auto operator() (Arg0&& arg0, Arg1&& arg1) const
+    {
+        return concat_fields_t{}(hana::concat(std::forward<Arg0>(arg0),std::forward<Arg1>(arg1)));
     }
 
     template <typename Arg>
