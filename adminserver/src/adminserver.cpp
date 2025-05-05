@@ -8,11 +8,11 @@
 /*
 
 */
-/** @file adminserver/admindb.сpp
+/** @file adminserver/adminserver.сpp
   *
   */
 
-#include <hatn/adminserver/admindb.h>
+#include <hatn/adminserver/adminserver.h>
 
 HATN_ADMIN_SERVER_NAMESPACE_BEGIN
 

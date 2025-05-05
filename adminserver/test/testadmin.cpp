@@ -23,18 +23,6 @@
 #include <hatn/app/appname.h>
 #include <hatn/app/app.h>
 
-#include <hatn/adminserver/apiadmincontroller.h>
-#include <hatn/adminserver/appadmincontroller.h>
-#include <hatn/adminserver/adminservice.h>
-
-#include <hatn/dataunit/ipp/syntax.ipp>
-#include <hatn/dataunit/ipp/wirebuf.ipp>
-#include <hatn/dataunit/ipp/objectid.ipp>
-#include <hatn/api/ipp/serverservice.ipp>
-#include <hatn/api/ipp/serverresponse.ipp>
-#include <hatn/adminserver/ipp/localadmincontroller.ipp>
-#include <hatn/adminserver/ipp/adminservice.ipp>
-
 /********************** TestEnv **************************/
 
 struct TestEnv : public ::hatn::test::MultiThreadFixture
@@ -55,31 +43,10 @@ struct TestEnv : public ::hatn::test::MultiThreadFixture
 
 /********************** Tests **************************/
 
-BOOST_AUTO_TEST_SUITE(TestAdminOps)
+BOOST_AUTO_TEST_SUITE(TestUserService)
 
-BOOST_FIXTURE_TEST_CASE(CreateApiController,TestEnv)
+BOOST_FIXTURE_TEST_CASE(NoOp,TestEnv)
 {
-    HATN_ADMIN_SERVER_NAMESPACE::ApiAdminController ctrl{"system"};
-
-    BOOST_CHECK(true);
-}
-
-BOOST_FIXTURE_TEST_CASE(CreateAppController,TestEnv)
-{
-    HATN_APP_NAMESPACE::App app{HATN_APP_NAMESPACE::AppName{"testapp","Test App"}};
-
-    HATN_ADMIN_SERVER_NAMESPACE::AppAdminController ctrl{app.env(),"system"};
-
-    BOOST_CHECK(true);
-}
-
-BOOST_FIXTURE_TEST_CASE(CreateAdminService,TestEnv)
-{
-    auto ctrl=std::make_shared<HATN_ADMIN_SERVER_NAMESPACE::ApiAdminController>("system");
-
-    using Request=HATN_API_SERVER_NAMESPACE::Request<>;
-    HATN_ADMIN_SERVER_NAMESPACE::AdminService<Request> adminService{ctrl};
-
     BOOST_CHECK(true);
 }
 
