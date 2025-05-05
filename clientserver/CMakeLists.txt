@@ -2,6 +2,7 @@ PROJECT(hatnclientserver)
 
 SET (HEADERS
     include/hatn/clientserver/clientserver.h
+    include/hatn/clientserver/usercontroller.h
 
     include/hatn/clientserver/models/oid.h
     include/hatn/clientserver/models/user.h

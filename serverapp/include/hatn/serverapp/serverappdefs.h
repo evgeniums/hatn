@@ -23,6 +23,8 @@
 
 #include <hatn/common/visibilitymacros.h>
 
+#include <hatn/clientserver/clientserver.h>
+
 #ifndef HATN_SERVERAPP_EXPORT
 #   ifdef BUILD_HATN_SERVERAPP
 #       define HATN_SERVERAPP_EXPORT HATN_VISIBILITY_EXPORT
@@ -37,5 +39,9 @@
 #define HATN_SERVERAPP_NAMESPACE hatn::serverapp
 #define HATN_SERVERAPP_NS serverapp
 #define HATN_SERVERAPP_USING using namespace hatn::serverapp;
+
+HATN_SERVERAPP_NAMESPACE_BEGIN
+HATN_CLIENT_SERVER_USING
+HATN_SERVERAPP_NAMESPACE_END
 
 #endif // HATNSERVERAPPDEFS_H

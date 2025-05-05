@@ -5,6 +5,8 @@ SET (HEADERS
     include/hatn/adminclient/admin.h
     include/hatn/adminclient/admincontroller.h
     include/hatn/adminclient/adminserviceconfig.h
+
+    include/hatn/adminclient/userserviceconstants.h
 )
 
 SET (SOURCES

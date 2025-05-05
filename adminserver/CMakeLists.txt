@@ -2,6 +2,8 @@ PROJECT(hatnadminserver)
 
 SET (HEADERS
     include/hatn/adminserver/adminserver.h
+    include/hatn/adminserver/requesttraits.h
+
     include/hatn/adminserver/admindb.h
     include/hatn/adminserver/dbmodels.h
     include/hatn/adminserver/localadmincontroller.h
@@ -18,8 +20,18 @@ SET (HEADERS
 
 SET (HEADERS
     ${HEADERS}
+    include/hatn/adminserver/userservice/userservicecontroller.h
+    include/hatn/adminserver/userservice/userservice.h
+    include/hatn/adminserver/userservice/userservicemethod.h
+    include/hatn/adminserver/userservice/adduser.h
+)
+
+SET (HEADERS
+    ${HEADERS}
     include/hatn/adminserver/ipp/localadmincontroller.ipp
     include/hatn/adminserver/ipp/adminservice.ipp
+
+    include/hatn/adminserver/ipp/userservice.ipp
 )
 
 SET (SOURCES

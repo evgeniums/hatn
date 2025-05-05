@@ -37,6 +37,8 @@ HDU_UNIT_WITH(user,(HDU_BASE(user_profile)),
     HDU_FIELD(comments,TYPE_STRING,203)
 )
 
+using User=user::managed;
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELSUSER_H

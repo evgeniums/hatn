@@ -21,6 +21,8 @@
 
 #include <hatn/app/config.h>
 
+#include <hatn/clientserver/clientserver.h>
+#include <hatn/serverapp/serverappdefs.h>
 #include <hatn/adminclient/adminclient.h>
 
 #include <hatn/common/visibilitymacros.h>
@@ -39,6 +41,12 @@
 #define HATN_ADMIN_SERVER_NAMESPACE hatn::adminserver
 #define HATN_ADMIN_SERVER_NS serverapp
 #define HATN_ADMIN_SERVER_USING using namespace hatn::adminserver;
+
+HATN_ADMIN_SERVER_NAMESPACE_BEGIN
+HATN_CLIENT_SERVER_USING
+HATN_SERVERAPP_USING
+HATN_ADMIN_CLIENT_USING
+HATN_ADMIN_SERVER_NAMESPACE_END
 
 HATN_ADMIN_CLIENT_USING
 
