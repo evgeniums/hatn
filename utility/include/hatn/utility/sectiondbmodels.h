@@ -47,10 +47,6 @@ class SectionDbModels : public db::ModelsWrapper
                 [this](){return topicModel();}
             );
         }
-
-    private:
-
-        std::string m_prefix;
 };
 
 HATN_UTILITY_NAMESPACE_END
