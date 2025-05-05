@@ -13,8 +13,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNCLIENTSERVERMODELSLOGINPROFILE_H
-#define HATNCLIENTSERVERMODELSLOGINPROFILE_H
+#ifndef HATNCLIENTSERVERLOGINPROFILE_H
+#define HATNCLIENTSERVERLOGINPROFILE_H
 
 #include <hatn/db/object.h>
 
@@ -37,4 +37,4 @@ HDU_UNIT_WITH(login_profile,(HDU_BASE(db::object),HDU_BASE(with_user)),
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
-#endif // HATNCLIENTSERVERMODELSLOGINPROFILE_H
+#endif // HATNCLIENTSERVERLOGINPROFILE_H
