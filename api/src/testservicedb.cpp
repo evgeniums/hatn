@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file whitemclient/testservicedb.сpp
+/** @file api/testservicedb.сpp
   *
   */
 
@@ -21,8 +21,6 @@
 
 #include <hatn/api/client/clientbridge.h>
 #include <hatn/api/client/testservicedb.h>
-
-HATN_TASK_CONTEXT_DEFINE(HATN_API_CLIENT_BRIDGE_NAMESPACE::WithBaseApp,WithBaseApp)
 
 HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
 
@@ -36,12 +34,12 @@ HDU_UNIT(open_db,
 
 void TestMethodOpenDb::exec(
         HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
-        HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_CLIENT_BRIDGE_NAMESPACE::Context> ctx,
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::Request request,
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::Callback callback
+        HATN_COMMON_NAMESPACE::SharedPtr<Context> ctx,
+        Request request,
+        Callback callback
     )
 {
-    auto baseAppCtx=ctx.dynamicCast<BaseAppContext>();
+    auto baseAppCtx=ctx.dynamicCast<BridgeAppContext>();
     Assert(baseAppCtx,"invalid context");
 
     bool autoCreate=false;
@@ -50,7 +48,7 @@ void TestMethodOpenDb::exec(
         autoCreate=request.message.managedUnit<open_db::managed>()->fieldValue(open_db::autocreate);
     }
 
-    auto& withApp=baseAppCtx->get<WithBaseApp>();
+    auto& withApp=baseAppCtx->get<WithApp>();
     auto ec=withApp.app()->openDb(autoCreate);
 
     callback(std::move(ec),std::move(request));
@@ -60,15 +58,15 @@ void TestMethodOpenDb::exec(
 
 void TestMethodDestroyDb::exec(
         HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
-        HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_CLIENT_BRIDGE_NAMESPACE::Context> ctx,
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::Request request,
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::Callback callback
+        HATN_COMMON_NAMESPACE::SharedPtr<Context> ctx,
+        Request request,
+        Callback callback
     )
 {
-    auto baseAppCtx=ctx.dynamicCast<BaseAppContext>();
+    auto baseAppCtx=ctx.dynamicCast<BridgeAppContext>();
     Assert(baseAppCtx,"invalid context");
 
-    auto& withApp=baseAppCtx->get<WithBaseApp>();
+    auto& withApp=baseAppCtx->get<WithApp>();
     auto ec=withApp.app()->destroyDb();
     callback(std::move(ec),std::move(request));
 }
@@ -80,7 +78,7 @@ TestServiceDb::TestServiceDb(HATN_APP_NAMESPACE::App* app) : Service("test_db")
     registerMethod(std::make_shared<TestMethodOpenDb>());
     registerMethod(std::make_shared<TestMethodDestroyDb>());
 
-    setContextBuilder(std::make_shared<BaseAppContextBuilder>(app));
+    setContextBuilder(std::make_shared<BridgeAppContextBuilder>(app));
 
     registerMessageBuilder(
         "open_db",
@@ -90,7 +88,7 @@ TestServiceDb::TestServiceDb(HATN_APP_NAMESPACE::App* app) : Service("test_db")
             auto ok=obj->loadFromJSON(messageJson);
             if (!ok)
             {
-                return HATN_API_NAMESPACE::apiLibError(HATN_API_NAMESPACE::ApiLibError::FAILED_PARSE_BRIDGE_JSON);
+                return HATN_API_NAMESPACE::apiLibError(ApiLibError::FAILED_PARSE_BRIDGE_JSON);
             }
             return obj;
         }

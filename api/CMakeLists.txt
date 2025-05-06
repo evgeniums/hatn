@@ -44,6 +44,7 @@ SET (HEADERS
     include/hatn/api/client/clientapp.h
     include/hatn/api/client/mobileapp.h
     include/hatn/api/client/mobileplatformcontext.h
+    include/hatn/api/client/bridgeappcontext.h
     include/hatn/api/client/testservicedb.h
 )
 
@@ -104,6 +105,7 @@ SET (SOURCES
     src/clientapp.cpp
     src/mobileapp.cpp
     src/mobileplatformcontext.cpp
+    src/bridgeappcontext.cpp
     src/testservicedb.cpp
 )
 
