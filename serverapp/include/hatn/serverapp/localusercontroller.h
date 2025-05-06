@@ -51,7 +51,7 @@ class LocalUserControllerImpl
         LocalUserControllerImpl& operator=(const LocalUserControllerImpl&)=delete;
         LocalUserControllerImpl& operator=(LocalUserControllerImpl&&)=default;
 
-        void addUninitializedUser(
+        void addUser(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<user::managed> usr,

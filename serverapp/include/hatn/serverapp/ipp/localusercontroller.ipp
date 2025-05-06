@@ -35,17 +35,14 @@ class LocalUserController_p
         using Context=typename ContextTraits::Context;
 
         LocalUserController_p(
-                LocalUserControllerImpl<ContextTraits>* ctrl,
                 std::shared_ptr<db::ModelsWrapper> wrp
-            ) : ctrl(ctrl)
+            )
         {
             dbModelsWrapper=std::dynamic_pointer_cast<UserDbModels>(std::move(wrp));
             Assert(dbModelsWrapper,"Invalid USER database models dbModelsWrapper, must be serverapp::UserDbModels");
         }
 
-        LocalUserControllerImpl<ContextTraits>* ctrl;
         std::shared_ptr<UserDbModels> dbModelsWrapper;
-
 };
 
 //--------------------------------------------------------------------------
@@ -53,7 +50,7 @@ class LocalUserController_p
 template <typename ContextTraits>
 LocalUserControllerImpl<ContextTraits>::LocalUserControllerImpl(
         std::shared_ptr<db::ModelsWrapper> modelsWrapper
-    ) : d(std::make_shared<LocalUserController_p<ContextTraits>>(this,std::move(modelsWrapper)))
+    ) : d(std::make_shared<LocalUserController_p<ContextTraits>>(std::move(modelsWrapper)))
 {}
 
 //--------------------------------------------------------------------------
@@ -72,7 +69,7 @@ LocalUserControllerImpl<ContextTraits>::~LocalUserControllerImpl()
 //--------------------------------------------------------------------------
 
 template <typename ContextTraits>
-void LocalUserControllerImpl<ContextTraits>::addUninitializedUser(
+void LocalUserControllerImpl<ContextTraits>::addUser(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
         common::SharedPtr<user::managed> usr,
@@ -84,7 +81,7 @@ void LocalUserControllerImpl<ContextTraits>::addUninitializedUser(
     db::AsyncModelController<ContextTraits>::create(
         std::move(ctx),
         std::move(callback),
-        d->dbModelsWrapper->topicModel(),
+        d->dbModelsWrapper->userModel(),
         std::move(usr),
         topic
     );

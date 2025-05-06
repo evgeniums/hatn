@@ -43,7 +43,7 @@ class AddUserTraits : public BaseMethod<RequestT>
                 common::SharedPtr<User> msg
             ) const
         {
-            auto cb=[requestCtx,callback{std::move(callback)}](auto, common::SharedPtr<User> user, const Error& ec)
+            auto cb=[requestCtx,callback{std::move(callback)}](auto, const Error& ec, const auto& oid)
             {                
                 auto& req=requestCtx->template get<RequestT>();
                 if (ec)
@@ -54,17 +54,18 @@ class AddUserTraits : public BaseMethod<RequestT>
                 }
                 else
                 {
-                    // fill response
-                    req.response.unit.field(HATN_API_NAMESPACE::protocol::response::message).set(std::move(user));
+                    //! @todo: critical fill response
+                    // req.response.unit.field(HATN_API_NAMESPACE::protocol::response::message).set(std::move(user));
                 }
                 callback(std::move(requestCtx));
             };
 
-            //! @todo Use topic from request
-            this->controller()->addUninitializedUser(
+            //! @todo critical: Use topic from request
+            this->controller()->addUser(
                 requestCtx,
                 std::move(cb),
-                msg
+                msg,
+                "system"
             );
         }
 

@@ -41,14 +41,14 @@ class UserController : public common::WithTraits<Traits>
         template <typename ModelT>
         using CallbackObj=db::AsyncCallbackObj<Context,ModelT>;
 
-        void addUninitializedUser(
+        void addUser(
             common::SharedPtr<Context> ctx,
             CallbackOid callback,
             common::SharedPtr<user::managed> usr,
             db::Topic topic
         )
         {
-            this->traits().addUninitializedUser(std::move(ctx),std::move(callback),std::move(usr),topic);
+            this->traits().addUser(std::move(ctx),std::move(callback),std::move(usr),topic);
         }
 
         //! @todo Implement the rest user operations
