@@ -29,6 +29,12 @@ class RequestTraits
 
         using Request=RequestT;
         using Context=HATN_API_SERVER_NAMESPACE::RequestContext<Request>;
+
+        static auto& contextDb(common::SharedPtr<Context>& ctx)
+        {
+            auto& req=ctx->template get<Request>();
+            return req.db();
+        }
 };
 
 HATN_ADMIN_SERVER_NAMESPACE_END
