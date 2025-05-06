@@ -99,6 +99,11 @@ struct Request : public common::TaskSubcontext
         return field.value();
     }
 
+    auto& db()
+    {
+        return env->template get<Db>();
+    }
+
     auto topic() const
     {
         const auto& field=unit.field(protocol::request::topic);
