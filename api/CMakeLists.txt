@@ -40,6 +40,11 @@ SET (HEADERS
     include/hatn/api/client/sessionclient.h
     include/hatn/api/client/serviceclient.h
     include/hatn/api/client/clientbridge.h
+
+    include/hatn/api/client/clientapp.h
+    include/hatn/api/client/mobileapp.h
+    include/hatn/api/client/mobileplatformcontext.h
+    include/hatn/api/client/testservicedb.h
 )
 
 SET (HEADERS
@@ -95,6 +100,11 @@ SET (SOURCES
     src/microservicefactory.cpp
     src/microservice.cpp
     src/serverenv.cpp
+
+    src/clientapp.cpp
+    src/mobileapp.cpp
+    src/mobileplatformcontext.cpp
+    src/testservicedb.cpp
 )
 
 BUILD_HATN_MODULE()
