@@ -127,6 +127,9 @@ Error ServerApp::initApp(
     auto mainThread=std::make_shared<HATN_COMMON_NAMESPACE::Thread>("main",false);
     HATN_COMMON_NAMESPACE::Thread::setMainThread(mainThread);
 
+    // init pool of weak pinters
+    common::pointers_mempool::WeakPool::init();
+
     // init application
     ec=pimpl->app.init();
     if (ec)
