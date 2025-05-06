@@ -10,18 +10,18 @@
 /*
 
 */
-/** @file api/client/bridgeappcontext.сpp
+/** @file clientapp/bridgeappcontext.сpp
   *
   */
 
-#include <hatn/api/client/bridgeappcontext.h>
+#include <hatn/clientapp/bridgeappcontext.h>
 
-HATN_TASK_CONTEXT_DEFINE(HATN_API_CLIENT_BRIDGE_NAMESPACE::WithApp,WithApp)
+HATN_TASK_CONTEXT_DEFINE(HATN_CLIENTAPP_NAMESPACE::WithApp,WithApp)
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
-
-//--------------------------------------------------------------------------
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+//--------------------------------------------------------------------------
+
+HATN_CLIENTAPP_NAMESPACE_END

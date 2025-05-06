@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file app/clientapp.h
+/** @file clientapp/clientapp.h
   */
 
 /****************************************************************************/
@@ -23,18 +23,18 @@
 #include <hatn/app/app.h>
 #include <hatn/app/appname.h>
 
-#include <hatn/api/api.h>
+#include <hatn/clientapp/clientappdefs.h>
 
 HATN_APP_NAMESPACE_BEGIN
 class App;
 HATN_APP_NAMESPACE_END
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 class Dispatcher;
 class ClientApp_p;
 
-class HATN_API_EXPORT ClientApp
+class HATN_CLIENTAPP_EXPORT ClientApp
 {
     public:
 
@@ -48,13 +48,13 @@ class HATN_API_EXPORT ClientApp
 
         HATN_APP_NAMESPACE::App& app();
 
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::Dispatcher& bridge();
+        Dispatcher& bridge();
 
     private:
 
         std::unique_ptr<ClientApp_p> pimpl;
 };
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END
 
 #endif // HATNCLIENTAPP_H

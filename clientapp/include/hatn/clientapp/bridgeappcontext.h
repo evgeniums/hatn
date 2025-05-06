@@ -10,13 +10,13 @@
 /*
     
 */
-/** @file api/client/bridgeappcontextappcontext.h
+/** @file clientapp/bridgeappcontextappcontext.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPPCONTEXT_H
-#define HATNAPPCONTEXT_H
+#ifndef HATNBRIDGEAPPCONTEXT_H
+#define HATNBRIDGEAPPCONTEXT_H
 
 #include <hatn/common/taskcontext.h>
 
@@ -24,14 +24,14 @@
 
 #include <hatn/app/appenv.h>
 
-#include <hatn/api/api.h>
-#include <hatn/api/client/clientbridge.h>
+#include <hatn/clientapp/clientapp.h>
+#include <hatn/clientapp/clientbridge.h>
 
 HATN_APP_NAMESPACE_BEGIN
 class App;
 HATN_APP_NAMESPACE_END
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 class WithApp
 {
@@ -80,8 +80,8 @@ class BridgeAppContextBuilder : public ContextBuilder,
         }
 };
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE_EXPORT(HATN_API_CLIENT_BRIDGE_NAMESPACE::WithApp,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE_EXPORT(HATN_CLIENTAPP_NAMESPACE::WithApp,HATN_CLIENTAPP_EXPORT)
 
-#endif // HATNAPPCONTEXT_H
+#endif // HATNBRIDGEAPPCONTEXT_H

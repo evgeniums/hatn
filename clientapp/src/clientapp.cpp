@@ -10,15 +10,15 @@
 /*
 
 */
-/** @file whitemclient/clientapp.сpp
+/** @file clientapp/clientapp.сpp
   *
   */
 
 #include <hatn/app/app.h>
-#include <hatn/api/client/clientbridge.h>
-#include <hatn/api/client/clientapp.h>
+#include <hatn/clientapp/clientbridge.h>
+#include <hatn/clientapp/clientapp.h>
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
@@ -60,4 +60,4 @@ Dispatcher& ClientApp::bridge()
 
 //--------------------------------------------------------------------------
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END

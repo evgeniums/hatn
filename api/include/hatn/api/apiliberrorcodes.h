@@ -38,9 +38,6 @@
     Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request","api")) \
     Do(ApiLibError,CONNECTION_CLOSED,_TR("connection was closed during request","api")) \
     Do(ApiLibError,FORCE_CONNECTION_CLOSE,_TR("connection was forced to close","api")) \
-    Do(ApiLibError,UNKNOWN_BRIDGE_SERVICE,_TR("unknown bridge service","api")) \
-    Do(ApiLibError,UNKNOWN_BRIDGE_METHOD,_TR("unknown bridge method","api")) \
-    Do(ApiLibError,UNKNOWN_BRIDGE_MESSASGE,_TR("unknown bridge message type","api")) \
     Do(ApiLibError,UNKNOWN_MICROSERVICE_TYPE,_TR("unknown microservice type","api")) \
     Do(ApiLibError,MICROSERVICES_CONFIG_SECTION_MISSING,_TR("microservices section missing in configuration tree","api")) \
     Do(ApiLibError,MICROSERVICES_CONFIG_SECTION_INVALID,_TR("invalid type of microservices section in configuration tree","api")) \
@@ -54,7 +51,6 @@
     Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
     Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
-    Do(ApiLibError,FAILED_PARSE_BRIDGE_JSON,_TR("failed to parse JSON message of bridge request","api")) \
 
 
 HATN_API_NAMESPACE_BEGIN

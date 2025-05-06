@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file api/clientbridge.сpp
+/** @file clientapp/clientbridge.сpp
   *
   */
 
-#include <hatn/api/apiliberror.h>
-#include <hatn/api/client/clientbridge.h>
+#include <hatn/clientapp/clientapperror.h>
+#include <hatn/clientapp/clientbridge.h>
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
@@ -45,7 +45,7 @@ void Service::exec(
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(apiLibError(ApiLibError::UNKNOWN_BRIDGE_METHOD),Response{});
+                callback(clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD),Response{});
             }
         );
         return;
@@ -97,7 +97,7 @@ void Dispatcher::exec(
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(apiLibError(ApiLibError::UNKNOWN_BRIDGE_SERVICE),Response{});
+                callback(clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE),Response{});
             }
         );
         return;
@@ -109,4 +109,4 @@ void Dispatcher::exec(
 
 //---------------------------------------------------------------
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END

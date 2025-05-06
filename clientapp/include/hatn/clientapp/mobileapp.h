@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file api/mobileapp.h
+/** @file clientapp/mobileapp.h
 */
 
 /****************************************************************************/
@@ -25,9 +25,9 @@
 
 #include <hatn/app/appname.h>
 
-#include <hatn/api/api.h>
+#include <hatn/clientapp/clientappdefs.h>
 
-HATN_API_MOBILECLIENT_NAMESPACE_BEGIN
+HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 class MobilePlatformContext;
 class MobileApp_p;
@@ -114,6 +114,6 @@ class MobileApp
         std::unique_ptr<MobileApp_p> pimpl;
 };
 
-HATN_API_MOBILECLIENT_NAMESPACE_END
+HATN_CLIENTAPP_MOBILE_NAMESPACE_END
 
 #endif // HATNMMOBILEAPP_H

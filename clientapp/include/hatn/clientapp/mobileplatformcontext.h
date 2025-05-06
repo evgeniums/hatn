@@ -10,23 +10,23 @@
 /*
     
 */
-/** @file whitemclient/mobileplatfromcontext.h
+/** @file clientapp/mobileplatfromcontext.h
 */
 
 /****************************************************************************/
 
-#ifndef WHITEMMOBILEPLATFORMCTX_H
-#define WHITEMMOBILEPLATFORMCTX_H
+#ifndef HATNMOBILEPLATFORMCTX_H
+#define HATNMOBILEPLATFORMCTX_H
 
 #include <hatn/common/error.h>
 
-#include <hatn/api/api.h>
+#include <hatn/clientapp/clientappdefs.h>
 
-HATN_API_MOBILECLIENT_NAMESPACE_BEGIN
+HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 class MobileApp;
 
-class MobilePlatformContext
+class HATN_CLIENTAPP_EXPORT MobilePlatformContext
 {
     public:
 
@@ -55,6 +55,6 @@ class MobilePlatformContext
         MobileApp* m_app;
 };
 
-HATN_API_MOBILECLIENT_NAMESPACE_END
+HATN_CLIENTAPP_MOBILE_NAMESPACE_END
 
-#endif // WHITEMMOBILEPLATFORMCTX_H
+#endif // HATNMOBILEPLATFORMCTX_H

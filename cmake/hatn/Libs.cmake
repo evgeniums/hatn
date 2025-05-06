@@ -14,4 +14,5 @@ SET (HATN_MODULES
 	clientserver
 	adminclient
 	utility
+	clientapp
 )

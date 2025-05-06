@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file api/client/testservicedb.h
+/** @file clientapp/testservicedb.h
   */
 
 /****************************************************************************/
@@ -20,12 +20,12 @@
 
 #include <hatn/api/api.h>
 
-#include <hatn/api/client/clientbridge.h>
-#include <hatn/api/client/bridgeappcontext.h>
+#include <hatn/clientapp/clientbridge.h>
+#include <hatn/clientapp/bridgeappcontext.h>
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
-class HATN_API_EXPORT TestMethodOpenDb : public Method
+class HATN_CLIENTAPP_EXPORT TestMethodOpenDb : public Method
 {
     public:
 
@@ -40,7 +40,7 @@ class HATN_API_EXPORT TestMethodOpenDb : public Method
         ) override;
 };
 
-class HATN_API_EXPORT TestMethodDestroyDb : public Method
+class HATN_CLIENTAPP_EXPORT TestMethodDestroyDb : public Method
 {
     public:
 
@@ -55,13 +55,13 @@ class HATN_API_EXPORT TestMethodDestroyDb : public Method
         ) override;
 };
 
-class HATN_API_EXPORT TestServiceDb : public Service
+class HATN_CLIENTAPP_EXPORT TestServiceDb : public Service
 {
     public:
 
         TestServiceDb(HATN_APP_NAMESPACE::App* app);
 };
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END
 
 #endif // HATNCLIENTTESSERVICEDB_H

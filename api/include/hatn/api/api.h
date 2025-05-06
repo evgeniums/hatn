@@ -42,12 +42,4 @@
 
 #define HATN_API_SERVER_NAMESPACE hatn::api::server
 
-#define HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN namespace hatn { namespace api { namespace client { namespace bridge {
-#define HATN_API_CLIENT_BRIDGE_NAMESPACE_END }}}}
-#define HATN_API_CLIENT_BRIDGE_NAMESPACE hatn::api::client::bridge
-
-#define HATN_API_MOBILECLIENT_NAMESPACE_BEGIN namespace hatn { namespace api { namespace mobileclient {
-#define HATN_API_MOBILECLIENT_NAMESPACE_END }}}
-#define HATN_API_MOBILECLIENT_NAMESPACE hatn::api::mobileclient
-
 #endif // HATNAPI_H

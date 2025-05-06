@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file whitemclient/mobileapp.cpp
+/** @file clientapp/mobileapp.cpp
   *
   */
 
@@ -27,19 +27,19 @@
 
 #include <hatn/app/app.h>
 
-#include <hatn/api/client/clientbridge.h>
-#include <hatn/api/client/clientapp.h>
-#include <hatn/api/client/mobileplatformcontext.h>
-#include <hatn/api/client/testservicedb.h>
-#include <hatn/api/client/mobileapp.h>
+#include <hatn/clientapp/clientbridge.h>
+#include <hatn/clientapp/clientapp.h>
+#include <hatn/clientapp/mobileplatformcontext.h>
+#include <hatn/clientapp/testservicedb.h>
+#include <hatn/clientapp/mobileapp.h>
 
 #include <hatn/common/logger.h>
 #include <hatn/common/loggermoduleimp.h>
 
-HATN_LOG_MODULE_DECLARE_EXP(mobileapp,HATN_API_EXPORT)
-HATN_LOG_MODULE_INIT(mobileapp,HATN_API_EXPORT)
+HATN_LOG_MODULE_DECLARE_EXP(mobileapp,HATN_CLIENTAPP_EXPORT)
+HATN_LOG_MODULE_INIT(mobileapp,HATN_CLIENTAPP_EXPORT)
 
-HATN_API_MOBILECLIENT_NAMESPACE_BEGIN
+HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 constexpr const char* TestingSection="testing";
 
@@ -58,7 +58,7 @@ class MobileApp_p
         MobileApp_p(HATN_APP_NAMESPACE::AppName appName) : app(std::move(appName))
         {}
 
-        HATN_API_CLIENT_BRIDGE_NAMESPACE::ClientApp app;
+        HATN_CLIENTAPP_NAMESPACE::ClientApp app;
         MobilePlatformContext* platformCtx=nullptr;
 };
 
@@ -155,7 +155,7 @@ void MobileApp::exec(
         Callback callback
     )
 {
-    HATN_API_CLIENT_BRIDGE_NAMESPACE::Request req{
+    HATN_CLIENTAPP_NAMESPACE::Request req{
         std::move(request.envId),
         std::move(request.topic),
         std::move(request.messageTypeName)
@@ -172,7 +172,7 @@ void MobileApp::exec(
         req.message=msgR.takeValue();
     }
 
-    auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_API_CLIENT_BRIDGE_NAMESPACE::Response resp)
+    auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_CLIENTAPP_NAMESPACE::Response resp)
     {
         HATN_CTX_SCOPE("execcb")
         if (ec)
@@ -232,7 +232,7 @@ int MobileApp::initTests()
     }
 
     pimpl->app.bridge().registerService(
-        std::make_shared<HATN_API_CLIENT_BRIDGE_NAMESPACE::TestServiceDb>(&pimpl->app.app())
+        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(&pimpl->app.app())
     );
 
     return 0;
@@ -247,4 +247,4 @@ std::vector<std::string> MobileApp::listLogFiles() const
 
 //-----------------------------------------------------------------------------
 
-HATN_API_MOBILECLIENT_NAMESPACE_END
+HATN_CLIENTAPP_MOBILE_NAMESPACE_END

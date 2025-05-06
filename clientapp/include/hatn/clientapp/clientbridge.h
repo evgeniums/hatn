@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file api/clientbridge.h
+/** @file clientapp/clientbridge.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNAPICLIENTBRIDGE_H
-#define HATNAPICLIENTBRIDGE_H
+#ifndef HATNCLIENTBRIDGE_H
+#define HATNCLIENTBRIDGE_H
 
 #include <functional>
 
@@ -30,10 +30,10 @@
 
 #include <hatn/app/appenv.h>
 
-#include <hatn/api/api.h>
-#include <hatn/api/apiliberror.h>
+#include <hatn/clientapp/clientapperror.h>
+#include <hatn/clientapp/clientapp.h>
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
+HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 struct Request
 {
@@ -61,7 +61,7 @@ using Response=Request;
 using Context=common::TaskContext;
 using Callback=std::function<void (const Error& ec, Response response)>;
 
-class HATN_API_EXPORT ContextBuilder
+class HATN_CLIENTAPP_EXPORT ContextBuilder
 {
     public:
 
@@ -90,7 +90,7 @@ class DefaultContextBuilder : public ContextBuilder
         }
 };
 
-class HATN_API_EXPORT Method
+class HATN_CLIENTAPP_EXPORT Method
 {
     public:
 
@@ -123,7 +123,7 @@ class HATN_API_EXPORT Method
 
 using MessageBuilder=std::function<Result<du::UnitWrapper> (const std::string& messageJson)>;
 
-class HATN_API_EXPORT Service
+class HATN_CLIENTAPP_EXPORT Service
 {
     public:
 
@@ -173,7 +173,7 @@ class HATN_API_EXPORT Service
             auto it=m_messageBuilders.find(messageType);
             if (it==m_messageBuilders.end())
             {
-                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_MESSASGE);
+                return clientAppError(ClientAppError::UNKNOWN_BRIDGE_MESSASGE);
             }
             return it->second(messageJson);
         }
@@ -187,7 +187,7 @@ class HATN_API_EXPORT Service
         std::map<std::string,MessageBuilder> m_messageBuilders;
 };
 
-class HATN_API_EXPORT Dispatcher
+class HATN_CLIENTAPP_EXPORT Dispatcher
 {
     public:
 
@@ -245,7 +245,7 @@ class HATN_API_EXPORT Dispatcher
             auto it=m_services.find(service);
             if (it==m_services.end())
             {
-                return apiLibError(ApiLibError::UNKNOWN_BRIDGE_SERVICE);
+                return clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
             }
             return it->second->makeMessage(messageType,messageJson);
         }
@@ -259,6 +259,6 @@ class HATN_API_EXPORT Dispatcher
         common::SharedPtr<app::AppEnv> m_defaultEnv;
 };
 
-HATN_API_CLIENT_BRIDGE_NAMESPACE_END
+HATN_CLIENTAPP_NAMESPACE_END
 
-#endif // HATNAPICLIENTBRIDGE_H
+#endif // HATNCLIENTBRIDGE_H

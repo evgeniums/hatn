@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file whitemclient/mobileplatformcontext.cpp
+/** @file clientapp/mobileplatformcontext.cpp
   *
   */
 
-#include <hatn/api/client/mobileapp.h>
-#include <hatn/api/client/mobileplatformcontext.h>
+#include <hatn/clientapp/mobileapp.h>
+#include <hatn/clientapp/mobileplatformcontext.h>
 
-HATN_API_MOBILECLIENT_NAMESPACE_BEGIN
+HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 //-----------------------------------------------------------------------------
 
@@ -54,4 +54,4 @@ HATN_NAMESPACE::Error MobilePlatformContext::close()
 
 //-----------------------------------------------------------------------------
 
-HATN_API_MOBILECLIENT_NAMESPACE_END
+HATN_CLIENTAPP_MOBILE_NAMESPACE_END

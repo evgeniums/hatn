@@ -39,13 +39,6 @@ SET (HEADERS
     include/hatn/api/client/methodauth.h
     include/hatn/api/client/sessionclient.h
     include/hatn/api/client/serviceclient.h
-    include/hatn/api/client/clientbridge.h
-
-    include/hatn/api/client/clientapp.h
-    include/hatn/api/client/mobileapp.h
-    include/hatn/api/client/mobileplatformcontext.h
-    include/hatn/api/client/bridgeappcontext.h
-    include/hatn/api/client/testservicedb.h
 )
 
 SET (HEADERS
@@ -97,16 +90,9 @@ SET (SOURCES
     src/plaintcpclient.cpp
     src/plaintcpserver.cpp
     src/genericerror.cpp
-    src/clientbridge.cpp
     src/microservicefactory.cpp
     src/microservice.cpp
     src/serverenv.cpp
-
-    src/clientapp.cpp
-    src/mobileapp.cpp
-    src/mobileplatformcontext.cpp
-    src/bridgeappcontext.cpp
-    src/testservicedb.cpp
 )
 
 BUILD_HATN_MODULE()
