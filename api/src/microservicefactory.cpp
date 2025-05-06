@@ -60,10 +60,6 @@ struct makeMicroserviceAndRunT
             dispatcherName=microserviceName;
         }
         std::string authDispatcherName{cfg.config().fieldValue(microservice_config::auth_dispatcher)};
-        if (authDispatcherName.empty())
-        {
-            authDispatcherName=microserviceName;
-        }
         auto microservice=it->second(
             microserviceName,
             dispatcherName,
