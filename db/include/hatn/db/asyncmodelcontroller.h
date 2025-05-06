@@ -195,7 +195,7 @@ class AsyncModelController
 
     private:
 
-        static auto& contextDb(const common::SharedPtr<Context>& ctx)
+        static auto& contextDb(common::SharedPtr<Context>& ctx)
         {
             return ContextTraits::contextDb(ctx);
         }
