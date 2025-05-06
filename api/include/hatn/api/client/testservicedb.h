@@ -18,18 +18,14 @@
 #ifndef HATNCLIENTTESSERVICEDB_H
 #define HATNCLIENTTESSERVICEDB_H
 
-#include <hatn/common/taskcontext.h>
-
-#include <hatn/logcontext/context.h>
-
-#include <hatn/app/appdefs.h>
+#include <hatn/api/api.h>
 
 #include <hatn/api/client/clientbridge.h>
 #include <hatn/api/client/bridgeappcontext.h>
 
 HATN_API_CLIENT_BRIDGE_NAMESPACE_BEGIN
 
-class TestMethodOpenDb : public HATN_API_CLIENT_BRIDGE_NAMESPACE::Method
+class HATN_API_EXPORT TestMethodOpenDb : public Method
 {
     public:
 
@@ -37,14 +33,14 @@ class TestMethodOpenDb : public HATN_API_CLIENT_BRIDGE_NAMESPACE::Method
         {}
 
         virtual void exec(
-            HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
-            HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_CLIENT_BRIDGE_NAMESPACE::Context> ctx,
-            HATN_API_CLIENT_BRIDGE_NAMESPACE::Request request,
-            HATN_API_CLIENT_BRIDGE_NAMESPACE::Callback callback
+            common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
+            common::SharedPtr<Context> ctx,
+            Request request,
+            Callback callback
         ) override;
 };
 
-class TestMethodDestroyDb : public HATN_API_CLIENT_BRIDGE_NAMESPACE::Method
+class HATN_API_EXPORT TestMethodDestroyDb : public Method
 {
     public:
 
@@ -52,14 +48,14 @@ class TestMethodDestroyDb : public HATN_API_CLIENT_BRIDGE_NAMESPACE::Method
         {}
 
         virtual void exec(
-            HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
-            HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_CLIENT_BRIDGE_NAMESPACE::Context> ctx,
-            HATN_API_CLIENT_BRIDGE_NAMESPACE::Request request,
-            HATN_API_CLIENT_BRIDGE_NAMESPACE::Callback callback
+            common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
+            common::SharedPtr<Context> ctx,
+            Request request,
+            Callback callback
         ) override;
 };
 
-class TestServiceDb : public HATN_API_CLIENT_BRIDGE_NAMESPACE::Service
+class HATN_API_EXPORT TestServiceDb : public Service
 {
     public:
 

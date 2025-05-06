@@ -33,8 +33,8 @@ HDU_UNIT(open_db,
 //--------------------------------------------------------------------------
 
 void TestMethodOpenDb::exec(
-        HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
-        HATN_COMMON_NAMESPACE::SharedPtr<Context> ctx,
+        common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
+        common::SharedPtr<Context> ctx,
         Request request,
         Callback callback
     )
@@ -57,8 +57,8 @@ void TestMethodOpenDb::exec(
 //--------------------------------------------------------------------------
 
 void TestMethodDestroyDb::exec(
-        HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
-        HATN_COMMON_NAMESPACE::SharedPtr<Context> ctx,
+        common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> /*env*/,
+        common::SharedPtr<Context> ctx,
         Request request,
         Callback callback
     )
@@ -82,9 +82,9 @@ TestServiceDb::TestServiceDb(HATN_APP_NAMESPACE::App* app) : Service("test_db")
 
     registerMessageBuilder(
         "open_db",
-        [](const std::string& messageJson) -> HATN_COMMON_NAMESPACE::Result<HATN_DATAUNIT_NAMESPACE::UnitWrapper>
+        [](const std::string& messageJson) -> common::Result<HATN_DATAUNIT_NAMESPACE::UnitWrapper>
         {
-            auto obj=HATN_COMMON_NAMESPACE::makeShared<open_db::managed>();
+            auto obj=common::makeShared<open_db::managed>();
             auto ok=obj->loadFromJSON(messageJson);
             if (!ok)
             {
