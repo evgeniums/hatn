@@ -89,7 +89,7 @@ struct Error
 
 using Callback=std::function<void (Error, Response response)>;
 
-class MobileApp
+class HATN_CLIENTAPP_EXPORT MobileApp
 {
     public:
 
