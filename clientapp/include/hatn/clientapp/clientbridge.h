@@ -90,6 +90,8 @@ class DefaultContextBuilder : public ContextBuilder
         }
 };
 
+using MessageBuilderFn=std::function<Result<du::UnitWrapper> (const std::string& messageJson)>;
+
 class HATN_CLIENTAPP_EXPORT Method
 {
     public:
@@ -116,12 +118,35 @@ class HATN_CLIENTAPP_EXPORT Method
             return m_name;
         }
 
+        virtual std::string messageType() const
+        {
+            return std::string{};
+        }
+
+        virtual MessageBuilderFn messageBuilder() const
+        {
+            return MessageBuilderFn{};
+        }
+
     private:
 
         std::string m_name;
 };
 
-using MessageBuilder=std::function<Result<du::UnitWrapper> (const std::string& messageJson)>;
+template <typename MessageT>
+struct MessageBuilder
+{
+    common::Result<HATN_DATAUNIT_NAMESPACE::UnitWrapper> operator() (const std::string& messageJson) const
+    {
+        auto obj=common::makeShared<MessageT>();
+        auto ok=obj->loadFromJSON(messageJson);
+        if (!ok)
+        {
+            return clientAppError(ClientAppError::FAILED_PARSE_BRIDGE_JSON);
+        }
+        return obj;
+    }
+};
 
 class HATN_CLIENTAPP_EXPORT Service
 {
@@ -152,6 +177,12 @@ class HATN_CLIENTAPP_EXPORT Service
         )
         {
             m_methods[method->name()]=method;
+            auto messageType=method->messageType();
+            auto messageBuilder=method->messageBuilder();
+            if (messageBuilder && !messageType.empty())
+            {
+                registerMessageBuilder(std::move(messageType),std::move(messageBuilder));
+            }
         }
 
         const std::string& name() const noexcept
@@ -161,11 +192,20 @@ class HATN_CLIENTAPP_EXPORT Service
 
         void registerMessageBuilder(
                 std::string messageType,
-                MessageBuilder builder
+                MessageBuilderFn builder
             )
         {
             Assert(m_messageBuilders.find(messageType)==m_messageBuilders.end(),"Duplicate message builder");
             m_messageBuilders[std::move(messageType)]=std::move(builder);
+        }
+
+        template <typename MessageT>
+        void registerMessageBuilder(
+                std::string messageType,
+                MessageBuilder<MessageT> builder
+            )
+        {
+            registerMessageBuilder(std::move(messageType),builder);
         }
 
         Result<du::UnitWrapper> makeMessage(const std::string& messageType, const std::string& messageJson) const
@@ -184,7 +224,7 @@ class HATN_CLIENTAPP_EXPORT Service
         std::shared_ptr<ContextBuilder>  m_ctxBuilder;
         common::FlatMap<std::string,std::shared_ptr<Method>> m_methods;
 
-        std::map<std::string,MessageBuilder> m_messageBuilders;
+        std::map<std::string,MessageBuilderFn> m_messageBuilders;
 };
 
 class HATN_CLIENTAPP_EXPORT Dispatcher

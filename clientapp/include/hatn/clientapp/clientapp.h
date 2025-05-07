@@ -55,6 +55,11 @@ class HATN_CLIENTAPP_EXPORT ClientApp
             return OK;
         }
 
+        virtual Error initDb()
+        {
+            return OK;
+        }
+
     private:
 
         std::unique_ptr<ClientApp_p> pimpl;

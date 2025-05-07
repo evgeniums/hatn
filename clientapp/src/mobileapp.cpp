@@ -114,12 +114,20 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     // set default env of client bridge
     pimpl->app->bridge().setDefaultEnv(pimpl->app->app().env());
 
+    // init database
+    ec=pimpl->app->initDb();
+    if (ec)
+    {
+        close();
+        return -4;
+    }
+
     // init bridge services
     ec=pimpl->app->initBridgeServices();
     if (ec)
     {
         close();
-        return -4;
+        return -5;
     }
 
     // log info
@@ -231,7 +239,7 @@ int MobileApp::initTests()
     if (ec)
     {
         HATN_CTX_ERROR(ec,"failed to load configuration of testing",HLOG_MODULE(mobileapp))
-        return 4;
+        return -10;
     }
 
     if (!testingConfig.config().fieldValue(testing_config::enable))
