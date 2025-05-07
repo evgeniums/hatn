@@ -46,6 +46,9 @@
 #define HATN_COMMON_NAMESPACE_BEGIN namespace hatn { namespace common {
 #define HATN_COMMON_NAMESPACE_END }}
 
+HATN_COMMON_NAMESPACE_BEGIN
+HATN_COMMON_NAMESPACE_END
+
 #define HATN_COMMON_NAMESPACE hatn::common
 #define HATN_COMMON_USING using namespace hatn::common;
 #define HATN_COMMON_NS common
