@@ -39,7 +39,7 @@ class HATN_CLIENTAPP_EXPORT ClientApp
     public:
 
         ClientApp(HATN_APP_NAMESPACE::AppName appName);
-        ~ClientApp();
+        virtual ~ClientApp();
 
         ClientApp(const ClientApp&)=delete;
         ClientApp(ClientApp&&)=default;
@@ -49,6 +49,11 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         HATN_APP_NAMESPACE::App& app();
 
         Dispatcher& bridge();
+
+        virtual Error initBridgeServices()
+        {
+            return OK;
+        }
 
     private:
 

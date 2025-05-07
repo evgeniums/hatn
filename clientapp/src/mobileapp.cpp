@@ -55,16 +55,16 @@ class MobileApp_p
 {
     public:
 
-        MobileApp_p(HATN_APP_NAMESPACE::AppName appName) : app(std::move(appName))
+        MobileApp_p(std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app) : app(std::move(app))
         {}
 
-        HATN_CLIENTAPP_NAMESPACE::ClientApp app;
+        std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app;
         MobilePlatformContext* platformCtx=nullptr;
 };
 
 //-----------------------------------------------------------------------------
 
-MobileApp::MobileApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<MobileApp_p>(std::move(appName)))
+MobileApp::MobileApp(std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app) : pimpl(std::make_unique<MobileApp_p>(std::move(app)))
 {
     HATN_COMMON_NAMESPACE::Thread::setMainThread(std::make_shared<HATN_COMMON_NAMESPACE::Thread>("main",false));
 }
@@ -86,10 +86,10 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     }
 
     // set application folder
-    pimpl->app.app().setAppDataFolder(std::move(dataDir));
+    pimpl->app->app().setAppDataFolder(std::move(dataDir));
 
     // load configuration file
-    auto ec=pimpl->app.app().loadConfigFile(configFile);
+    auto ec=pimpl->app->app().loadConfigFile(configFile);
     if (ec)
     {
         return -1;
@@ -104,7 +104,7 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     pimpl->platformCtx=platformCtx;
 
     // init app
-    ec=pimpl->app.app().init();
+    ec=pimpl->app->app().init();
     if (ec)
     {
         close();
@@ -112,10 +112,18 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     }
 
     // set default env of client bridge
-    pimpl->app.bridge().setDefaultEnv(pimpl->app.app().env());
+    pimpl->app->bridge().setDefaultEnv(pimpl->app->app().env());
+
+    // init bridge services
+    ec=pimpl->app->initBridgeServices();
+    if (ec)
+    {
+        close();
+        return -4;
+    }
 
     // log info
-    HATN_CTX_INFO_RECORDS_M("RUNNING MOBILE APP",HLOG_MODULE(mobileapp),{"name",pimpl->app.app().appName().displayName})
+    HATN_CTX_INFO_RECORDS_M("***** RUNNING MOBILE APP ******",HLOG_MODULE(mobileapp),{"name",pimpl->app->app().appName().displayName})
 
     // init tests if applicable
     auto testsRet=initTests();
@@ -133,7 +141,7 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
 
 int MobileApp::close()
 {
-    pimpl->app.app().close();
+    pimpl->app->app().close();
 
     if (pimpl->platformCtx)
     {
@@ -162,7 +170,7 @@ void MobileApp::exec(
     };
     if (req.messageTypeName!="")
     {
-        auto msgR=pimpl->app.bridge().makeMessage(service,req.messageTypeName,request.messageJson);
+        auto msgR=pimpl->app->bridge().makeMessage(service,req.messageTypeName,request.messageJson);
         if (msgR)
         {
             HATN_CTX_ERROR_RECORDS_M(msgR.error(),HLOG_MODULE(mobileapp),"failed to make message",{"service",service},{"method",method})
@@ -208,7 +216,7 @@ void MobileApp::exec(
 
         callback(Error{ec.value(),ec.codeString(),ec.message()},std::move(response));
     };
-    pimpl->app.bridge().exec(service,method,std::move(req),std::move(cb));
+    pimpl->app->bridge().exec(service,method,std::move(req),std::move(cb));
 }
 
 //-----------------------------------------------------------------------------
@@ -219,7 +227,7 @@ int MobileApp::initTests()
 
     TestingConfig testingConfig;
 
-    auto ec=HATN_NAMESPACE::loadLogConfig("configuration of tests",HLOG_MODULE(mobileapp),testingConfig,pimpl->app.app().configTree(),TestingSection);
+    auto ec=HATN_NAMESPACE::loadLogConfig("configuration of tests",HLOG_MODULE(mobileapp),testingConfig,pimpl->app->app().configTree(),TestingSection);
     if (ec)
     {
         HATN_CTX_ERROR(ec,"failed to load configuration of testing",HLOG_MODULE(mobileapp))
@@ -231,8 +239,8 @@ int MobileApp::initTests()
         return 0;
     }
 
-    pimpl->app.bridge().registerService(
-        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(&pimpl->app.app())
+    pimpl->app->bridge().registerService(
+        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(&pimpl->app->app())
     );
 
     return 0;
@@ -242,7 +250,7 @@ int MobileApp::initTests()
 
 std::vector<std::string> MobileApp::listLogFiles() const
 {
-    return pimpl->app.app().listLogFiles();
+    return pimpl->app->app().listLogFiles();
 }
 
 //-----------------------------------------------------------------------------

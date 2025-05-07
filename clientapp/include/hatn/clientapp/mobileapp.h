@@ -27,6 +27,12 @@
 
 #include <hatn/clientapp/clientappdefs.h>
 
+HATN_CLIENTAPP_NAMESPACE_BEGIN
+
+class ClientApp;
+
+HATN_CLIENTAPP_NAMESPACE_END
+
 HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 class MobilePlatformContext;
@@ -87,7 +93,7 @@ class MobileApp
 {
     public:
 
-        MobileApp(HATN_APP_NAMESPACE::AppName appName);
+        MobileApp(std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app);
         ~MobileApp();
 
         MobileApp(const MobileApp&)=delete;
