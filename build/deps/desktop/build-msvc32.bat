@@ -6,7 +6,7 @@ SET _current_path=%CD%
 IF NOT EXIST deps mkdir deps
 cd deps
 
-SET ADDRESS_MODEL=32
+SET HATN_ARCH="x86"
 
 SET SCRIPTS_ROOT=%~dp0
 

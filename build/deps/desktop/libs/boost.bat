@@ -24,6 +24,15 @@ IF %errorlevel% NEQ 0 (
     EXIT /b %errorlevel%
 )    
 
+IF "%HATN_ARCH%"=="x86" (
+	SET ADDR_MODEL=32
+) ELSE (
+	SET ADDR_MODEL=64
+)
+
+IF "%HATN_ARCH%"=="x86_64" SET BOOST_ARCH=x86
+IF "%HATN_ARCH%"=="arm64" SET BOOST_ARCH=arm
+
 .\b2 ^
    --with-date_time ^
     --with-exception ^
@@ -39,8 +48,8 @@ IF %errorlevel% NEQ 0 (
     --with-timer ^
     --with-container ^
     toolset=%COMPILER%%TOOLCHAIN_LINE%%COMPILER_VERSION% ^
-    address-model=%ADDRESS_MODEL% ^
-    architecture=x86 ^
+    address-model=%ADDR_MODEL% ^
+    architecture=%BOOST_ARCH% ^
     link=shared ^
     install ^
     --prefix=%DEPS_PREFIX% ^

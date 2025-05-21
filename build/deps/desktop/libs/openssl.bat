@@ -11,10 +11,12 @@ SET folder=%SRC%\openssl-%lib_name%
 
 CALL %SCRIPTS_ROOT%/scripts/downloadandunpack.bat
 
-IF %ADDRESS_MODEL%==64 SET openssl_postfix=A
+IF "%HATN_ARCH%"=="x86" SET openssl_target=VC-WIN
+IF "%HATN_ARCH%"=="x86_64" SET openssl_target=VC-WIN64A
+IF "%HATN_ARCH%"=="arm64" SET openssl_target=VC-WIN64-ARM
 
 cd %build_dir%
-perl %folder%\Configure no-asm --prefix=%DEPS_PREFIX% --openssldir=%DEPS_PREFIX%\var\lib\openssl VC-WIN%ADDRESS_MODEL%%openssl_postfix%
+perl %folder%\Configure no-asm --prefix=%DEPS_PREFIX% --openssldir=%DEPS_PREFIX%\var\lib\openssl %openssl_target%
 nmake install
 
 cd %WORKING_DIR%
