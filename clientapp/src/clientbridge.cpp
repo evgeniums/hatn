@@ -15,6 +15,7 @@
   */
 
 #include <hatn/clientapp/clientapperror.h>
+#include <hatn/clientapp/bridgeappcontext.h>
 #include <hatn/clientapp/clientbridge.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -110,3 +111,5 @@ void Dispatcher::exec(
 //---------------------------------------------------------------
 
 HATN_CLIENTAPP_NAMESPACE_END
+
+HATN_TASK_CONTEXT_DEFINE(HATN_CLIENTAPP_NAMESPACE::WithApp,WithApp)

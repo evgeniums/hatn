@@ -97,9 +97,9 @@ class HATN_CLIENTAPP_EXPORT MobileApp
         ~MobileApp();
 
         MobileApp(const MobileApp&)=delete;
-        MobileApp(MobileApp&&)=default;
+        MobileApp(MobileApp&&)=delete;
         MobileApp& operator=(const MobileApp&)=delete;
-        MobileApp& operator=(MobileApp&&)=default;
+        MobileApp& operator=(MobileApp&&)=delete;
 
         int init(MobilePlatformContext* platformCtx, std::string configFile, std::string dataDir);
         int close();

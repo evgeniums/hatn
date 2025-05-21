@@ -42,9 +42,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         virtual ~ClientApp();
 
         ClientApp(const ClientApp&)=delete;
-        ClientApp(ClientApp&&)=default;
+        ClientApp(ClientApp&&)=delete;
         ClientApp& operator =(const ClientApp&)=delete;
-        ClientApp& operator =(ClientApp&&)=default;
+        ClientApp& operator =(ClientApp&&)=delete;
 
         HATN_APP_NAMESPACE::App& app();
 

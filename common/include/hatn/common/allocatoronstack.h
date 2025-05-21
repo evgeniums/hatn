@@ -100,7 +100,7 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             std::cout<<"Copy constructor StringOnStackT"<<std::endl;
 #endif
             this->reserve(PreallocatedSize);
-            this->append(other);
+            this->append(lib::string_view{other.data(),other.size()});
         }
 
         StringOnStackT(StringOnStackT&& other) : ArenaHolderT(),
@@ -157,6 +157,17 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
         void append(lib::string_view str)
         {
             BaseT::append(str);
+        }
+
+        void append(const std::string& str)
+        {
+            BaseT::append(str);
+        }
+
+        template <size_t S, typename T>
+        void append(const StringOnStackT<S,T>& str)
+        {
+            BaseT::append(lib::string_view{str.data(),str.size()});
         }
 
         template <typename ContiguousRange>

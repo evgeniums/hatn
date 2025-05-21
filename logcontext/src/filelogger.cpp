@@ -329,7 +329,7 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                         // remove oldest files
                         if (files.size()>maxFileCount)
                         {
-                            int removeCount=files.size()-maxFileCount;
+                            int removeCount=static_cast<int>(files.size())-static_cast<int>(maxFileCount);
                             std::sort(files.begin(),files.end());
                             for (auto it=files.begin();it!=files.end();++it)
                             {
@@ -429,6 +429,7 @@ void FileLoggerTraits::setAllocatorFactory(const common::pmr::AllocatorFactory* 
 
 Error FileLoggerTraits::start()
 {
+#ifndef WIN32
     if (d->thread)
     {
         d->thread->start();
@@ -450,6 +451,7 @@ Error FileLoggerTraits::start()
             );
         }
     }
+#endif
     return OK;
 }
 

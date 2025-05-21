@@ -66,20 +66,10 @@ HATN_DB_OID_PARTITION_MODEL_PROTOTYPE(eventModel,event,
                             subjectObjIdx(),
                             subjectAccessIdx(),
                             subjectObjAccessIdx(),
-#if 0
-                            originIdx(),
-                            originObjIdx(),
-                            originAccessIdx(),
-                            originObjAccessIdx(),
-                            originSubjIdx(),
-#endif
                             serviceIdx(),
                             serviceSubjIdx(),
                             serviceSubjObjIdx(),
                             ctxIdx()
-#if 0
-                            ,paramIdx()
-#endif
                         )
 
 class JournalDbModels : public db::ModelsWrapper

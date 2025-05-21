@@ -414,15 +414,15 @@ Error App::initThreads()
             }
         }
     }
-    std::vector<uint8_t> threadGroupCounts;
+    std::vector<uint32_t> threadGroupCounts;
     const auto& threadConfigs=d->appConfig.config().field(app_config::threads);
     for (size_t i=0;i<threadConfigs.count();i++)
     {
         const auto& threadConfig=threadConfigs.at(i);
-        uint8_t groupCount=0;
+        uint32_t groupCount=0;
         if (threadConfig.isSet(thread_config::count_percent))
         {
-            groupCount=count * threadConfig.fieldValue(thread_config::count_percent) / 100;
+            groupCount=static_cast<uint32_t>(count * threadConfig.fieldValue(thread_config::count_percent) / 100);
         }
         if (threadConfig.isSet(thread_config::min_count))
         {
