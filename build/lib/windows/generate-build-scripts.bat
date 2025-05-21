@@ -16,26 +16,40 @@ SET TARGETS=scripts\%TARGET%
 IF NOT EXIST %TARGETS% mkdir %TARGETS%
 
 SET PLATFORM=%2
+
 IF "%PLATFORM%"=="" (
     SET PLATFORM=mingw
     SET mingw_and_msvc=yes
 )
 
-SET ADDRESS_SPACE=x86
-IF "%PLATFORM%"=="mingw" SET ADDRESS_SPACE=x86_64
+IF "%HATN_ARCH%"=="arm64" (
+	SET ADDRESS_SPACE=arm64
+) ELSE (
+	SET ADDRESS_SPACE=x86
+	IF "%PLATFORM%"=="mingw" SET ADDRESS_SPACE=x86_64
+)
+
+ECHO "HATN_ARCH=%HATN_ARCH% ADDRESS_SPACE=%ADDRESS_SPACE% PLATFORM=%PLATFORM%"
 
 :copy_files
 
 SET TARGET_PATH=%TARGETS%\%PLATFORM%-%ADDRESS_SPACE%
 IF NOT EXIST %TARGET_PATH% mkdir %TARGET_PATH%
 
-IF NOT EXIST "%PLATFORM%-env.bat" (
-    IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\env.bat" "%WORKING_DIR%\%PLATFORM%-env.bat"
+IF "%HATN_ARCH%"=="arm64" (
+	IF NOT EXIST "%PLATFORM%-env.bat" (
+		copy "%SCRIPTS_ROOT%%PLATFORM%\%HATN_ARCH%-env.bat" "%WORKING_DIR%\%PLATFORM%-%HATN_ARCH%-env.bat"
+	)
+) ELSE (
+	IF NOT EXIST "%PLATFORM%-env.bat" (
+		IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\env.bat" "%WORKING_DIR%\%PLATFORM%-env.bat"
+	)
+	IF NOT EXIST "%PLATFORM%-x86-env.bat" (
+		IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\x86-env.bat" "%WORKING_DIR%\%PLATFORM%-x86-env.bat"
+	)
+	IF NOT EXIST "%PLATFORM%-x86_64-env.bat" copy "%SCRIPTS_ROOT%%PLATFORM%\x86_64-env.bat" "%WORKING_DIR%\%PLATFORM%-x86_64-env.bat"
 )
-IF NOT EXIST "%PLATFORM%-x86-env.bat" (
-    IF NOT "%PLATFORM%"=="mingw" copy "%SCRIPTS_ROOT%%PLATFORM%\x86-env.bat" "%WORKING_DIR%\%PLATFORM%-x86-env.bat"
-)
-IF NOT EXIST "%PLATFORM%-x86_64-env.bat" copy "%SCRIPTS_ROOT%%PLATFORM%\x86_64-env.bat" "%WORKING_DIR%\%PLATFORM%-x86_64-env.bat"
+
 IF NOT EXIST "clean.bat" copy "%SCRIPTS_ROOT%\clean.bat" "clean.bat"
  
 (
@@ -54,21 +68,23 @@ FOR /f %%i IN ('dir /b %SCRIPTS_ROOT%configurations') DO (
 )
 ECHO IF "%%1"=="exit" exit >> %TARGET_PATH%\all_%ADDRESS_SPACE%.bat
 
-IF "%PLATFORM%"=="mingw" (
-    IF "%ADDRESS_SPACE%"=="x86" (
-    SET ADDRESS_SPACE=x86_64
-    GOTO :copy_files  
-  )
-  IF "%mingw_and_msvc%"=="yes" (  
-    SET PLATFORM=msvc
-    SET ADDRESS_SPACE=x86
-    GOTO :copy_files
-  )
-) ELSE (    
-    IF "%ADDRESS_SPACE%"=="x86" (
-    SET ADDRESS_SPACE=x86_64
-    GOTO :copy_files  
-  )
+IF NOT "%HATN_ARCH%"=="arm64" (
+	IF "%PLATFORM%"=="mingw" (
+		IF "%ADDRESS_SPACE%"=="x86" (
+		SET ADDRESS_SPACE=x86_64
+		GOTO :copy_files  
+	  )
+	  IF "%mingw_and_msvc%"=="yes" (  
+		SET PLATFORM=msvc
+		SET ADDRESS_SPACE=x86
+		GOTO :copy_files
+	  )
+	) ELSE (    
+		IF "%ADDRESS_SPACE%"=="x86" (
+		SET ADDRESS_SPACE=x86_64
+		GOTO :copy_files  
+	  )
+	)
 )
 
 (
@@ -106,7 +122,7 @@ GOTO:EOF
     ECHO SET BUILD_MODULE=%TARGET%
     ECHO SET ADDRESS_SPACE=%ADDRESS_SPACE%
     ECHO SET TARGET=%~n1
-    IF "%ADDRESS_SPACE%"=="x86_64" (ECHO SET BUILD_64=1) ELSE (ECHO SET BUILD_64=0) 
+    IF "%ADDRESS_SPACE%"=="x86" (ECHO SET BUILD_64=0) ELSE (ECHO SET BUILD_64=1) 
     ECHO ECHO ***************************************
     ECHO ECHO Building %TARGET_NAME%
     ECHO ECHO *************************************** 
@@ -115,4 +131,4 @@ GOTO:EOF
 GOTO:EOF
 
 :error
-echo "Usage: %0 <lib> [msvc|mingw]"
+echo "Usage: %0 <lib> [msvc|mingw] [x86|x86_64|arm64]"
