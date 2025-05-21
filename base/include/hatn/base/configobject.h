@@ -50,6 +50,11 @@ struct LogRecord
 
     LogRecord()
     {}
+
+    std::string string()
+    {
+        return fmt::format("\"{}\": {}", name, value);
+    }
 };
 using LogRecords=std::vector<LogRecord>;
 
@@ -119,7 +124,7 @@ class ConfigObject
 
     private:
 
-        void fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records);
+        void fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentLogPath="");
 
         template <typename ValidatorT>
         Error validate(const ConfigTreePath& path, const ValidatorT& validator);

@@ -49,19 +49,23 @@ void Error::nativeMessage(const std::shared_ptr<NativeError>& nativeError, BufT&
 template <typename BufT>
 void Error::nativeCodeString(const std::shared_ptr<NativeError>& nativeError, BufT& buf) const
 {
+    bool prependCategoryCode=false;
     if (nativeError->category()!=nullptr)
     {
         defaultCatCodeString(nativeError->category(),buf);
+        prependCategoryCode=true;
     }
     else if (nativeError->systemCategory()!=nullptr)
     {
         systemCatCodeString(nativeError->systemCategory(),buf);
+        prependCategoryCode=true;
     }
     else if (nativeError->boostCategory()!=nullptr)
     {
         boostCatCodeString(nativeError->boostCategory(),buf);
+        prependCategoryCode=true;
     }
-    nativeError->codeString(buf);
+    nativeError->codeString(buf,prependCategoryCode);
 }
 
 //---------------------------------------------------------------

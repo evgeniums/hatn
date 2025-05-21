@@ -22,6 +22,7 @@
 #include <hatn/common/error.h>
 
 #include <hatn/base/base.h>
+#include <hatn/base/configobject.h>
 
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
@@ -33,6 +34,8 @@ class ConfigTree;
 HATN_BASE_NAMESPACE_END
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
+
+class AppConfig;
 
 template <typename ContextT>
 class LoggerHandlerT
@@ -55,84 +58,94 @@ class LoggerHandlerT
         LoggerHandlerT& operator=(const LoggerHandlerT&)=default;
         LoggerHandlerT& operator=(LoggerHandlerT&&)=default;
 
-        virtual Error loadConfig(
+        virtual void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            const ImmediateRecords& records,
+            lib::string_view module=lib::string_view{}
+        )=0;
+
+        virtual void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            const ImmediateRecords& records,
+            lib::string_view module=lib::string_view{}
+        )=0;
+
+        virtual void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            const ImmediateRecords& records,
+            lib::string_view module=lib::string_view{}
+        )=0;
+
+        virtual void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            const ImmediateRecords& records,
+            lib::string_view module=lib::string_view{}
+        )=0;
+
+        virtual void log(
+            LogLevel level,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logError(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logClose(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual void logCloseApi(
+            LogLevel level,
+            const Error& ec,
+            const ContextT* ctx,
+            const char* msg,
+            lib::string_view module=lib::string_view{}
+            )=0;
+
+        virtual Error start()
+        {
+            return OK;
+        }
+
+        virtual Error close()
+        {
+            return OK;
+        }
+
+        virtual void setAppConfig(const AppConfig&)
+        {}
+
+        virtual Error loadLogConfig(
                 const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-                const std::string& configPath
+                const std::string& configPath,
+                HATN_BASE_NAMESPACE::config_object::LogRecords& logRecords
             )
         {
             std::ignore=configTree;
             std::ignore=configPath;
-            return OK;
-        }
-
-        virtual void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            const ImmediateRecords& records,
-            lib::string_view module=lib::string_view{}
-        )=0;
-
-        virtual void log(
-            LogLevel level,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logError(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logClose(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual void logCloseApi(
-            LogLevel level,
-            const Error& ec,
-            const ContextT* ctx,
-            const char* msg,
-            lib::string_view module=lib::string_view{}
-            )=0;
-
-        virtual Error close()
-        {
+            std::ignore=logRecords;
             return OK;
         }
 
@@ -243,6 +256,25 @@ class LoggerHandlerTraits
         Error close()
         {
             return m_handler->close();
+        }
+
+        Error start()
+        {
+            return m_handler->start();
+        }
+
+        void setAppConfig(const AppConfig& cfg)
+        {
+            return m_handler->setAppConfig(cfg);
+        }
+
+        Error loadLogConfig(
+            const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+            const std::string& configPath,
+            HATN_BASE_NAMESPACE::config_object::LogRecords& logRecords
+            )
+        {
+            return m_handler->loadLogConfig(configTree,configPath,logRecords);
         }
 
     private:

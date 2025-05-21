@@ -85,7 +85,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 
         //! Exec async function in thread
         void execAsync(
-            std::function<void()> handler
+            lib::move_only_function<void()> handler
         );
 
         /**
@@ -113,6 +113,13 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
                 size_t timeoutMs=180000
             )
         {
+            auto currentThread=currentThreadOrMain();
+            Assert(currentThread,"Current thread or main must be initialized");
+            if (id()==currentThread->id())
+            {
+                return handler();
+            }
+
             std::packaged_task<T ()> task(std::move(handler));
             auto future=task.get_future();
             auto taskPtr=&task;
@@ -214,6 +221,10 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
 
         //! Get ID of current thread
         static const char* currentThreadID() noexcept;
+
+        void setTag(std::string tag);
+        void unsetTag(const std::string& tag);
+        bool hasTag(lib::string_view tag) const;
 
     protected:
 

@@ -10,3 +10,6 @@
 [submodule "thirdparty/args"]
 	path = thirdparty/args
 	url = https://github.com/Taywee/args
+[submodule "thirdparty/function2"]
+	path = thirdparty/function2
+	url = https://github.com/Naios/function2

@@ -14,6 +14,7 @@
   *
   *  Notifier of data unit updates
   *
+  *  @todo deprecated: Not used currently
   */
 
 /****************************************************************************/

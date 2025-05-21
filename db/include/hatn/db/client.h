@@ -131,7 +131,8 @@ class HATN_DB_EXPORT Client : public common::WithID
             auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));\
             std::ignore=scopeGuard;
             doOpenDb(config,ec,records,creatIfNotExists);
-            return ec;
+            HATN_CHECK_CHAIN_ERRORS(ec,dbError(DbError::DB_OPEN_FAILED))
+            return OK;
         }
 
         /**
@@ -269,10 +270,25 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        /**
+         * @brief isTopicEmpty
+         * @param topic
+         * @return
+         *
+         * @note Currently not thread safe per topic. Make sure that other threads do not have access to the topic.
+         */
+        Error isTopicEmpty(Topic /*topic*/)
+        {
+            //! @todo Implement checking if topic is empty.
+            HATN_CTX_SCOPE("dbistopicempty")
+            HATN_CTX_SCOPE_LOCK()
+            return commonError(CommonError::NOT_IMPLEMENTED);
+        }
+
         template <typename ModelT>
         Error create(Topic topic,
                      const std::shared_ptr<ModelT>& model,
-                     dataunit::Unit* object,
+                     const dataunit::Unit* object,
                      Transaction* tx=nullptr
                      )
         {
@@ -452,6 +468,22 @@ class HATN_DB_EXPORT Client : public common::WithID
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
                 return doFind(*model->info,q);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        template <typename ModelT>
+        Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> find(
+                const std::shared_ptr<ModelT>& model,
+                const ModelIndexQuery& query
+            )
+        {
+            HATN_CTX_SCOPE("dbfind")
+            if (m_open)
+            {
+                return doFind(*model->info,query);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -792,7 +824,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Error doDeleteTopic(Topic topic)=0;
 
-        virtual Error doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx)=0;
+        virtual Error doCreate(Topic topic, const ModelInfo& model, const dataunit::Unit* object, Transaction* tx)=0;
 
         virtual Result<DbObject> doRead(Topic topic,
                                                                  const ModelInfo& model,

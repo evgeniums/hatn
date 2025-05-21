@@ -60,7 +60,7 @@
 #include <hatn/mq/scheduler.h>
 #include <hatn/mq/notifier.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/mq/ipp/producerclient.ipp>
 
@@ -221,7 +221,7 @@ auto createClient(Thread* thread)
 auto createClientApp()
 {
     HATN_APP_NAMESPACE::AppName appName{"mqproducerclient","mq producer test client"};
-    auto app=std::make_shared<HATN_APP_NAMESPACE::BaseApp>(appName);
+    auto app=std::make_shared<HATN_APP_NAMESPACE::App>(appName);
 
     auto clientDataPath=fmt::format("{}/data/client",HATN_TEST_NAMESPACE::MultiThreadFixture::tmpPath());
     app->configTreeLoader()->setPrefixSubstitution("$data_root",clientDataPath);

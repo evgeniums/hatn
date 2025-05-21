@@ -36,7 +36,7 @@ namespace server {
 //---------------------------------------------------------------
 
 template <typename RequestT, typename ObjectHandlerT, typename NotifierT, typename MessageT>
-validator::error_report ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::validate(
+HATN_VALIDATOR_NAMESPACE::error_report ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,MessageT>::validate(
         const common::SharedPtr<api::server::RequestContext<RequestT>>& request,
         const MessageT& msg
     ) const
@@ -53,7 +53,7 @@ validator::error_report ProducerMethodTraits<RequestT,ObjectHandlerT,NotifierT,M
  * datetime of producer_pos must be not too far in the past or in the future, check it with
  * cfg.config().fieldValue(mq_config::tolerated_time_offset)
  */
-    return validator::error_report{};
+    return HATN_VALIDATOR_NAMESPACE::error_report{};
 }
 
 //---------------------------------------------------------------

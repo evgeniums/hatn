@@ -583,6 +583,26 @@ struct _model_objectModel {
 };
 constexpr _model_objectModel objectModel{};
 
+struct makeModelFromProrotypeT
+{
+    template <typename ModelPrototypeT, typename ModelConfigT=ModelConfig>
+    const auto& operator () (std::string modelPrefix, ModelPrototypeT&& modelPrototype, const ModelConfigT& baseCfg=ModelConfigT{}) const
+    {
+        auto cfg=baseCfg;
+        if (modelPrefix.empty())
+        {
+            cfg.setCollection(modelPrototype.baseName());
+        }
+        else
+        {
+            cfg.setCollection(fmt::format("{}_{}",modelPrefix,modelPrototype.baseName()));
+        }
+        static auto m=modelPrototype(cfg);
+        return m;
+    }
+};
+constexpr makeModelFromProrotypeT makeModelFromProrotype{};
+
 HATN_DB_NAMESPACE_END
 
 #define HATN_DB_MODEL(m,type,...) \
@@ -624,5 +644,36 @@ struct _model_##m { \
         } \
     }; \
     constexpr _model_##m m{};
+
+#define HATN_DB_MODEL_PROTOTYPE(m,type,...) \
+    struct _model_##m { \
+        template <typename ConfigT> \
+        const auto& operator()(ConfigT&& cfg) const \
+        { \
+                static auto mm=HATN_DB_NAMESPACE::makeModel< type ::TYPE>(std::forward<ConfigT>(cfg),__VA_ARGS__); \
+                return mm; \
+        } \
+        const char* baseName() const noexcept \
+        { \
+            return #m; \
+        } \
+    }; \
+    constexpr _model_##m m{};
+
+#define HATN_DB_OID_PARTITION_MODEL_PROTOTYPE(m,type,...) \
+    struct _model_##m { \
+        template <typename ConfigT> \
+        const auto& operator()(ConfigT&& cfg) const \
+        { \
+                static auto mm=HATN_DB_NAMESPACE::makeOidPartitionModel< type ::TYPE>(std::forward<ConfigT>(cfg),__VA_ARGS__); \
+                return mm; \
+        } \
+            const char* baseName() const noexcept \
+        { \
+                return #m; \
+        } \
+    }; \
+    constexpr _model_##m m{};
+
 
 #endif // HATNDBMODEL_H

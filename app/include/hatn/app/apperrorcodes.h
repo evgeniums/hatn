@@ -22,11 +22,12 @@
 #define HATNAPPERRORCODES_H
 
 #include <hatn/common/error.h>
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 
 #define HATN_APP_ERRORS(Do) \
     Do(AppError,OK,_TR("OK")) \
     Do(AppError,UNKNOWN_LOGGER,_TR("unknown logger type","app")) \
+    Do(AppError,UNKNOWN_DB_PROVIDER,_TR("unknown database provider","app")) \
 
 
 HATN_APP_NAMESPACE_BEGIN

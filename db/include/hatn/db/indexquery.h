@@ -347,24 +347,53 @@ class QueryBuilderWrapperT
 
     private:
 
-        QueryBuilderWrapperT m_builder;
+        QueryBuilderT m_builder;
         TopicBuilderT m_threadTopicBuilder;
 };
 
-struct defaultThreadTopicBuilderT
+class DefaultThreadTopicBuilder
 {
-    const std::string& operator() () const noexcept
-    {
-        static std::string str;
-        return str;
-    }
-};
-constexpr defaultThreadTopicBuilderT defaultThreadTopicBuilder{};
+    public:
 
-template <typename QueryBuilderT, typename TopicBuilderT=defaultThreadTopicBuilderT>
-auto wrapQueryBuilder(QueryBuilderT&& builder, TopicBuilderT threadTopicBuilder=defaultThreadTopicBuilder)
+        DefaultThreadTopicBuilder(std::string topic) : m_topic(std::move(topic))
+        {}
+
+        const std::string& operator() () const noexcept
+        {
+            return m_topic;
+        }
+
+        void setTopic(std::string topic)
+        {
+            m_topic=std::move(topic);
+        }
+
+        const std::string& topic() const noexcept
+        {
+            return m_topic;
+        }
+
+    private:
+
+        std::string m_topic;
+};
+
+template <typename QueryBuilderT, typename TopicBuilderT=DefaultThreadTopicBuilder>
+auto wrapQueryBuilder(QueryBuilderT&& builder, TopicBuilderT threadTopicBuilder={})
 {
     return QueryBuilderWrapperT<std::decay_t<QueryBuilderT>,std::decay_t<TopicBuilderT>>{std::forward<QueryBuilderT>(builder),std::move(threadTopicBuilder)};
+}
+
+template <typename QueryBuilderT>
+auto wrapQueryBuilder(QueryBuilderT&& builder, lib::string_view topic)
+{
+    return wrapQueryBuilder(std::forward<QueryBuilderT>(builder),DefaultThreadTopicBuilder{std::string{topic}});
+}
+
+template <typename QueryBuilderT>
+auto wrapQueryBuilder(QueryBuilderT&& builder, std::string topic)
+{
+    return wrapQueryBuilder(std::forward<QueryBuilderT>(builder),DefaultThreadTopicBuilder{std::move(topic)});
 }
 
 template <typename IndexT>
@@ -391,7 +420,6 @@ auto wrapQuery(const common::pmr::AllocatorFactory* factory, const IndexT& index
 {
     return SharedQueryWrapperT<IndexT>{factory,index,where,std::forward<TopicsT>(topics)...};
 }
-
 
 HATN_DB_NAMESPACE_END
 

@@ -97,10 +97,17 @@ template <ValueType TypeId>
 constexpr auto IsScalar=hana::or_(IsInt<TypeId>,IsDouble<TypeId>,IsBool<TypeId>);
 
 template <ValueType TypeId>
+constexpr auto IsScalarNotBool=hana::or_(IsInt<TypeId>,IsDouble<TypeId>);
+
+template <ValueType TypeId>
 constexpr auto IsString=hana::bool_c<
     TypeId==ValueType::String
     >;
 
+template <ValueType TypeId>
+constexpr auto IsDataunit=hana::bool_c<
+    TypeId==ValueType::Dataunit
+    >;
 }
 
 HATN_DATAUNIT_NAMESPACE_END

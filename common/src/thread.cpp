@@ -195,6 +195,8 @@ class Thread_p
         std::map<uint32_t,std::shared_ptr<Timer>> timers;
         uint32_t timerIncId;
 
+        std::set<std::string,std::less<>> tags;
+
         Thread_p(
                 lib::string_view id,
                 bool newThread
@@ -371,13 +373,13 @@ void Thread::run()
 
 //---------------------------------------------------------------
 void Thread::execAsync(
-        std::function<void ()> handler
+        lib::move_only_function<void()> handler
     )
 {
     d->handlersPending.fetch_add(1,std::memory_order_acquire);
     boost::asio::post(
         *d->asioContext,
-        [this,handler{std::move(handler)}]()
+        [this,handler{std::move(handler)}]() mutable
         {
             d->handlersPending.fetch_sub(1,std::memory_order_acquire);
             handler();
@@ -397,6 +399,15 @@ Error Thread::execSync(
         size_t timeoutMs
     )
 {
+    auto currentThread=currentThreadOrMain();
+    Assert(currentThread,"Current thread or main must be initialized");
+    if (id()==currentThread->id())
+    {
+        handler();
+        return OK;
+    }
+
+    //! @todo check if caller in the same thread
     std::packaged_task<void ()> task(std::move(handler));
     auto future=task.get_future();
     auto taskPtr=&task;
@@ -521,6 +532,26 @@ void Thread::uninstallTimer(uint32_t id, bool wait)
         }
     }
 }
+
+//---------------------------------------------------------------
+void Thread::setTag(std::string tag)
+{
+    d->tags.insert(std::move(tag));
+}
+
+//---------------------------------------------------------------
+void Thread::unsetTag(const std::string& tag)
+{
+    d->tags.erase(tag);
+}
+
+//---------------------------------------------------------------
+bool Thread::hasTag(lib::string_view tag) const
+{
+    return d->tags.find(tag)!=d->tags.end();
+}
+
+//---------------------------------------------------------------
 
 template class HATN_COMMON_EXPORT ThreadCategoriesPool<Thread>;
 

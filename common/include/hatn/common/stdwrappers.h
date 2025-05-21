@@ -40,6 +40,13 @@
     #include <mutex>
 #endif
 
+#if __cplusplus < 202302L
+#include <function2/function2.hpp>
+#else
+#include <functional>
+#endif
+
+
 #include <fmt/core.h>
 
 #include <hatn/common/common.h>
@@ -91,12 +98,12 @@ template <typename ...Types> using variant=boost::variant2::variant<Types...>;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
     template <typename T,typename ...Types>
-    constexpr T& variantGet(variant<Types...>& var) noexcept
+    constexpr T& variantGet(variant<Types...>& var)
     {
         return std::get<T>(var);
     }
     template <typename T,typename ...Types>
-    constexpr const T& variantGet(const variant<Types...>& var) noexcept
+    constexpr const T& variantGet(const variant<Types...>& var)
     {
         return std::get<T>(var);
     }
@@ -122,6 +129,18 @@ template <typename T> inline void destroyAt(T* obj) noexcept
     std::destroy_at(obj);
 #endif
 }
+
+#if __cplusplus < 202302L
+
+template <typename T>
+using move_only_function=fu2::unique_function<T>;
+
+#else
+
+template <typename T>
+using move_only_function=std::move_only_function<T>;
+
+#endif
 
 }
 

@@ -38,8 +38,6 @@
     Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request","api")) \
     Do(ApiLibError,CONNECTION_CLOSED,_TR("connection was closed during request","api")) \
     Do(ApiLibError,FORCE_CONNECTION_CLOSE,_TR("connection was forced to close","api")) \
-    Do(ApiLibError,UNKNOWN_BRIDGE_SERVICE,_TR("unknown bridge service","api")) \
-    Do(ApiLibError,UNKNOWN_BRIDGE_METHOD,_TR("unknown bridge method","api")) \
     Do(ApiLibError,UNKNOWN_MICROSERVICE_TYPE,_TR("unknown microservice type","api")) \
     Do(ApiLibError,MICROSERVICES_CONFIG_SECTION_MISSING,_TR("microservices section missing in configuration tree","api")) \
     Do(ApiLibError,MICROSERVICES_CONFIG_SECTION_INVALID,_TR("invalid type of microservices section in configuration tree","api")) \

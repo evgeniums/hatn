@@ -118,7 +118,7 @@ using PlainTcpServer=PlainTcpServerT<>;
 
 template <typename Env=BasicEnv>
 using PlainTcpServerContextT=HATN_COMMON_NAMESPACE::TaskContextType<
-    HATN_API_NAMESPACE::server::PlainTcpServerT<Env>,
+    HATN_API_SERVER_NAMESPACE::PlainTcpServerT<Env>,
     HATN_LOGCONTEXT_NAMESPACE::Context,
     HATN_NETWORK_NAMESPACE::asio::TcpServerConfig
     >;
@@ -179,7 +179,7 @@ inline auto allocatePlainTcpServerContext(const common::pmr::polymorphic_allocat
 
 HATN_API_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::PlainTcpConnection,HATN_API_EXPORT)
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::PlainTcpServer,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_SERVER_NAMESPACE::PlainTcpConnection,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_SERVER_NAMESPACE::PlainTcpServer,HATN_API_EXPORT)
 
 #endif // HATNAPIPLAINTCPSERVER_H

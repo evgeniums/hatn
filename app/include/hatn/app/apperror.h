@@ -25,7 +25,7 @@
 #include <hatn/common/nativeerror.h>
 #include <hatn/common/result.h>
 
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 #include <hatn/app/apperrorcodes.h>
 
 HATN_APP_NAMESPACE_BEGIN

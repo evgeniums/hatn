@@ -40,4 +40,6 @@
 #define HATN_API_NS api
 #define HATN_API_USING using namespace hatn::api;
 
+#define HATN_API_SERVER_NAMESPACE hatn::api::server
+
 #endif // HATNAPI_H

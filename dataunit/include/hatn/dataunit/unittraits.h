@@ -55,7 +55,7 @@ namespace hana=boost::hana;
 template <typename ...Ts>
 auto path(Ts&& ...keys)
 {
-    return validator::path(std::forward<Ts>(keys)...);
+    return HATN_VALIDATOR_NAMESPACE::path(std::forward<Ts>(keys)...);
 }
 
 /**  @brief Base template for unit types. */

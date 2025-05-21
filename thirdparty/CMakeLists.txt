@@ -25,3 +25,4 @@ SET(ARGS_BUILD_EXAMPLE OFF CACHE BOOL "Do not build args examples")
 SET(ARGS_BUILD_UNITTESTS OFF CACHE BOOL "Do not build args tests")
 
 ADD_SUBDIRECTORY(args)
+ADD_SUBDIRECTORY(function2)

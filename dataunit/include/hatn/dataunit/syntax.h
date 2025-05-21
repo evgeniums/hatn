@@ -234,6 +234,16 @@ HDU_DATAUNIT_EMPTY(empty_unit)
  ***************************************************************************************
 **/
 
+#define HDU_MAP(Name,Key,Value) \
+    HDU_UNIT(Name, \
+        HDU_FIELD(name,Key,1) \
+        HDU_FIELD(value,Value,2) \
+    )
+
+#define HDU_MAP_FIELD(Name,Type,...) \
+    HDU_REPEATED_FIELD(Name,Type::TYPE,__VA_ARGS__)
+
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNDATAUNITSYNTAX_H

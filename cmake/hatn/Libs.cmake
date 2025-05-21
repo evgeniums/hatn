@@ -11,4 +11,8 @@ SET (HATN_MODULES
 	api
 	app
 	mq
+	clientserver
+	adminclient
+	utility
+	clientapp
 )

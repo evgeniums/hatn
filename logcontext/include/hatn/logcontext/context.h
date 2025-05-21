@@ -590,11 +590,15 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_SET_VAR(Name,Value) \
     HATN_CTX_IF() \
-    ScopeCtx->setGlobalVar(Name,Value);
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setGlobalVar(Name,Value);
 
 #define HATN_CTX_PUSH_VAR(Name,Value) \
     HATN_CTX_IF() \
-    ScopeCtx->setGlobalVar(Name,Value);
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setGlobalVar(Name,Value);
+
+#define HATN_CTX_PUSH_FIXED_VAR(Name,Value) \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->pushFixedVar(Name,Value);
 
 #define HATN_CTX_UNSET_VAR(Name) \
     HATN_CTX_IF() \

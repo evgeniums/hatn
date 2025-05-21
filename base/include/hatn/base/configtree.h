@@ -145,6 +145,14 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
             return r->toArray<T>();
         }
 
+        template <typename T>
+        Result<ConstArrayView<T>> toArray(const ConfigTreePath& path) const
+        {
+            auto r=get(path);
+            HATN_CHECK_RESULT(r)
+            return r->asArray<T>();
+        }
+
         Result<config_tree::MapT&> toMap(const ConfigTreePath& path)
         {
             auto r=get(path,true);

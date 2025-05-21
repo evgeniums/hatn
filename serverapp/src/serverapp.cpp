@@ -19,7 +19,7 @@
 #include <hatn/common/translate.h>
 #include <hatn/common/thread.h>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/api/server/microservicefactory.h>
 
@@ -38,7 +38,7 @@ class ServerApp_p
 
         void close();
 
-        HATN_APP_NAMESPACE::BaseApp app;
+        HATN_APP_NAMESPACE::App app;
 
         std::map<std::string,std::shared_ptr<HATN_API_NAMESPACE::server::MicroService>> microservices;
 };
@@ -56,14 +56,14 @@ ServerApp::~ServerApp()
 
 //--------------------------------------------------------------------------
 
-HATN_APP_NAMESPACE::BaseApp& ServerApp::app() noexcept
+HATN_APP_NAMESPACE::App& ServerApp::app() noexcept
 {
     return pimpl->app;
 }
 
 //--------------------------------------------------------------------------
 
-const HATN_APP_NAMESPACE::BaseApp& ServerApp::app() const noexcept
+const HATN_APP_NAMESPACE::App& ServerApp::app() const noexcept
 {
     return pimpl->app;
 }
@@ -123,6 +123,13 @@ Error ServerApp::initApp(
         return ec;
     }
 
+    // create main thread
+    auto mainThread=std::make_shared<HATN_COMMON_NAMESPACE::Thread>("main",false);
+    HATN_COMMON_NAMESPACE::Thread::setMainThread(mainThread);
+
+    // init pool of weak pinters
+    common::pointers_mempool::WeakPool::init();
+
     // init application
     ec=pimpl->app.init();
     if (ec)
@@ -157,7 +164,7 @@ Error ServerApp::initMicroServices(std::shared_ptr<HATN_API_NAMESPACE::server::M
 
 int ServerApp::exec()
 {
-    auto mainThread=std::make_shared<HATN_COMMON_NAMESPACE::Thread>("main",false);
+    auto mainThread=HATN_COMMON_NAMESPACE::Thread::mainThread();
 
     boost::asio::signal_set signals(mainThread->asioContextRef(), SIGINT, SIGTERM);
     signals.async_wait(
@@ -175,7 +182,6 @@ int ServerApp::exec()
         }
     );
 
-    HATN_COMMON_NAMESPACE::Thread::setMainThread(mainThread);
     HATN_COMMON_NAMESPACE::Thread::mainThread()->start();
 
     auto description=fmt::format(HATN_NAMESPACE::_TR("Finished \"{}\"","whitemserver"),pimpl->app.appName().displayName);

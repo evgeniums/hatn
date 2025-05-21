@@ -179,6 +179,7 @@ SET (HEADERS
     include/hatn/common/meta/errorpredicate.h
     include/hatn/common/meta/foreachif.h
     include/hatn/common/meta/hasmethod.h
+    include/hatn/common/meta/chain.h
 
     include/hatn/common/allocatoronstack.h
 
@@ -297,6 +298,8 @@ IF (NOT SYSTEM_FMTLIB)
             $<BUILD_INTERFACE:${HATN_SOURCE_DIR}/thirdparty/fmt/include>
     )
 ENDIF()
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC function2)
 
 IF (INSTALL_DEV)
     INCLUDE(hatn/Install)

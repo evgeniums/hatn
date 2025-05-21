@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file serverapp/serverapp.h
+/** @file serverapp/serverappdefs.h
   */
 
 /****************************************************************************/
@@ -20,13 +20,13 @@
 
 #include <hatn/common/error.h>
 
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 #include <hatn/api/api.h>
 
 #include <hatn/serverapp/serverappdefs.h>
 
 HATN_APP_NAMESPACE_BEGIN
-class BaseApp;
+class App;
 struct AppName;
 HATN_APP_NAMESPACE_END
 
@@ -52,8 +52,8 @@ class HATN_SERVERAPP_EXPORT ServerApp
         ServerApp& operator =(const ServerApp&)=delete;
         ServerApp& operator =(ServerApp&&)=default;
 
-        HATN_APP_NAMESPACE::BaseApp& app() noexcept;
-        const HATN_APP_NAMESPACE::BaseApp& app() const noexcept;
+        HATN_APP_NAMESPACE::App& app() noexcept;
+        const HATN_APP_NAMESPACE::App& app() const noexcept;
 
         Error initApp(
             int argc,

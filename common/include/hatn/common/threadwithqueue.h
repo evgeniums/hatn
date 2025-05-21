@@ -183,16 +183,45 @@ struct postAsyncTaskT
                     ) const
     {
         auto originThreadQ=TaskWithContextThread::current();
+        auto originThread=Thread::currentThreadOrMain();
 
-        auto cb=[originThreadQ,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args)
+        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args) mutable
         {
+            auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
+            auto returnCb=[ts{std::move(ts)},callback{std::move(callback)}](auto ctx) mutable
+            {
+                hana::unpack(std::move(ts),
+                                 [ctx{std::move(ctx)},callback{std::move(callback)}](auto&& ...args) mutable
+                                 {
+                                     callback(std::move(ctx),std::forward<decltype(args)>(args)...);
+                                 }
+                             );
+            };
+
+            if (originThreadQ==nullptr)
+            {
+                if (originThread==nullptr)
+                {
+                    callback(std::move(ctx),std::forward<decltype(args)>(args)...);
+                    return;
+                }
+
+                originThread->execAsync(
+                    [returnCb=std::move(returnCb),ctx=std::move(ctx)]() mutable
+                    {
+                        returnCb(std::move(ctx));
+                    }
+                );
+                return;
+            }
+
             auto cbTask=originThreadQ->prepare();
-            cbTask->setHandler(hana::reverse_partial(std::move(callback),std::forward<decltype(args)>(args)...));
+            cbTask->setHandler(std::move(returnCb));
             cbTask->setContext(std::move(ctx));
             originThreadQ->post(cbTask);
         };
 
-        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx)
+        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx) mutable
         {
             handler(ctx,cb);
         };
@@ -264,7 +293,9 @@ class MappedThreadQWithTaskContext
             )
             :   m_threadMode(mode),
                 m_defaultThread(defaultThread)
-        {}
+        {
+            m_namedThreads[m_defaultThread->id().c_str()]=m_defaultThread;
+        }
 
         MappedThreadQWithTaskContext(
                 ThreadQWithTaskContext* defaultThread
@@ -285,11 +316,16 @@ class MappedThreadQWithTaskContext
 
         void setMappedThreads(std::vector<ThreadQWithTaskContext*> threads)
         {
-            m_threads=std::move(threads);
+            for (auto&& thread : threads)
+            {
+                m_namedThreads[thread->id().c_str()]=thread;
+            }
+            m_threads=std::move(threads);            
         }
 
         void addMappedThread(ThreadQWithTaskContext* thread)
         {
+            m_namedThreads[thread->id().c_str()]=thread;
             m_threads.push_back(thread);
         }
 
@@ -301,6 +337,7 @@ class MappedThreadQWithTaskContext
         void setDefaultThread(ThreadQWithTaskContext* defaultThread) noexcept
         {
             m_defaultThread=defaultThread;
+            m_namedThreads[m_defaultThread->id().c_str()]=m_defaultThread;
         }
 
         ThreadQWithTaskContext* defaultThread() const noexcept
@@ -387,11 +424,26 @@ class MappedThreadQWithTaskContext
             return thread(key);
         }
 
+        ThreadQWithTaskContext* namedThread(const std::string& name, bool orDefault=true) const noexcept
+        {
+            auto it=m_namedThreads.find(name);
+            if (it==m_namedThreads.end())
+            {
+                if (orDefault)
+                {
+                    return m_defaultThread;
+                }
+                return nullptr;
+            }
+            return it->second;
+        }
+
     private:
 
         MappedThreadMode m_threadMode;
         ThreadQWithTaskContext* m_defaultThread;
         std::vector<ThreadQWithTaskContext*> m_threads;
+        std::map<std::string,ThreadQWithTaskContext*> m_namedThreads;
 };
 
 class WithMappedThreads

@@ -548,17 +548,17 @@ class HATN_BASE_EXPORT ConfigTreeValue
         template <typename T> void set(T value);
         template <typename T> void setDefault(T value);
 
-        template <typename T> auto as() const noexcept -> decltype(auto);
-        template <typename T> auto as(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> auto as() const -> decltype(auto);
+        template <typename T> auto as(common::Error& ec) const -> decltype(auto);
         template <typename T> auto asEx() const -> decltype(auto);
 
-        template <typename T> auto getDefault() const noexcept -> decltype(auto);
-        template <typename T> auto getDefault(common::Error& ec) const noexcept -> decltype(auto);
+        template <typename T> auto getDefault() const -> decltype(auto);
+        template <typename T> auto getDefault(common::Error& ec) const -> decltype(auto);
         template <typename T> auto getDefaultEx() const -> decltype(auto);
 
-        auto asString() const noexcept -> decltype(auto);
-        auto asBool() const noexcept -> decltype(auto);
-        auto asDouble() const noexcept -> decltype(auto);
+        auto asString() const -> decltype(auto);
+        auto asBool() const -> decltype(auto);
+        auto asDouble() const -> decltype(auto);
 
         template <typename T>
         auto toArray() -> decltype(auto)
@@ -577,8 +577,8 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return asArray<T>();
         }
 
-        template <typename T> Result<ConstArrayView<T>> asArray() const noexcept;
-        template <typename T> ConstArrayView<T> asArray(common::Error& ec) const noexcept
+        template <typename T> Result<ConstArrayView<T>> asArray() const;
+        template <typename T> ConstArrayView<T> asArray(common::Error& ec) const
         {
             auto r=asArray<T>();
             HATN_RESULT_EC(r,ec)
@@ -591,8 +591,8 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return r.takeValue();
         }
 
-        template <typename T> Result<ArrayView<T>> asArray() noexcept;
-        template <typename T> ArrayView<T> asArray(common::Error& ec) noexcept
+        template <typename T> Result<ArrayView<T>> asArray();
+        template <typename T> ArrayView<T> asArray(common::Error& ec)
         {
             auto r=asArray<T>();
             HATN_RESULT_EC(r,ec)
@@ -617,7 +617,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return asMap();
         }
 
-        Result<const config_tree::MapT&> asMap() const noexcept
+        Result<const config_tree::MapT&> asMap() const
         {
             if (!static_cast<bool>(m_value))
             {
@@ -631,7 +631,7 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return common::lib::variantGet<config_tree::MapT>(m_value.value());
         }
 
-        Result<config_tree::MapT&> asMap() noexcept
+        Result<config_tree::MapT&> asMap()
         {
             if (!static_cast<bool>(m_value))
             {
@@ -645,14 +645,14 @@ class HATN_BASE_EXPORT ConfigTreeValue
             return common::lib::variantGet<config_tree::MapT>(m_value.value());
         }
 
-        const config_tree::MapT& asMap(common::Error& ec) const noexcept
+        const config_tree::MapT& asMap(common::Error& ec) const
         {
             auto&& r = asMap();
             HATN_RESULT_EC(r,ec)
             return r.takeValue();
         }
 
-        config_tree::MapT& asMap(common::Error& ec) noexcept
+        config_tree::MapT& asMap(common::Error& ec)
         {
             auto&& r = asMap();
             HATN_RESULT_EC(r,ec)

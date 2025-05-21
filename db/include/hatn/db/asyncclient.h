@@ -332,7 +332,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,tx,forUpdate,&tpFilter](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->read(topic,model,id,tx,forUpdate,tpFilter));
                 },
@@ -346,6 +346,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             CallbackT cb,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
+            const ObjectId& id,
             common::Date date,
             Transaction* tx=nullptr,
             bool forUpdate=false,
@@ -355,9 +356,9 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,date,tx,forUpdate,&tpFilter](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,date,tx,forUpdate,&tpFilter](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->read(topic,model,date,tx,forUpdate,tpFilter));
+                    cb(std::move(ctx),m_client->read(topic,model,id,date,tx,forUpdate,tpFilter));
                 },
                 std::move(cb)
             );
@@ -378,7 +379,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,request{std::move(request)},date,tx](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,request{std::move(request)},date,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->update(topic,model,id,*request,date,tx));
                 },
@@ -400,7 +401,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,request{std::move(request)},tx](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,request{std::move(request)},tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->update(topic,model,id,*request,tx));
                 },
@@ -425,7 +426,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,request{std::move(request)},date,returnMode,tx,&tpFilter](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,request{std::move(request)},date,returnMode,tx,&tpFilter](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->readUpdate(topic,model,id,*request,date,returnMode,tx,tpFilter));
                 },
@@ -449,7 +450,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,request{std::move(request)},returnMode,tx,&tpFilter](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,request{std::move(request)},returnMode,tx,&tpFilter](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->readUpdate(topic,model,id,*request,returnMode,tx,tpFilter));
                 },
@@ -471,7 +472,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,date,tx](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,date,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteObject(topic,model,id,date,tx));
                 },
@@ -492,7 +493,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,&id,tx](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,id,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->deleteObject(topic,model,id,tx));
                 },
@@ -500,7 +501,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void find(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -514,13 +515,14 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
                 ctx,
                 [ctx,this,self{shared_from_this()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->find(model,query()));
+                    auto r=m_client->find(model,query());
+                    cb(std::move(ctx),std::move(r));
                 },
                 std::move(cb)
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void findOne(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -894,6 +896,11 @@ class WithAsyncClient
             m_db.reset();
         }
 
+        Error setSchema(std::shared_ptr<Schema> schema)
+        {
+            return m_db->client()->setSchema(std::move(schema));
+        }
+
     private:
 
         std::shared_ptr<AsyncClient> m_db;
@@ -923,6 +930,8 @@ class MultipleAsyncClients : public WithAsyncClient
         MultipleAsyncClients(std::shared_ptr<AsyncClient> db={})
             : WithAsyncClient(std::move(db))
         {}
+
+        using WithAsyncClient::dbClient;
 
         const std::shared_ptr<AsyncClient>& dbClient(const Topic& topic) const noexcept
         {
@@ -969,6 +978,17 @@ class MultipleAsyncClients : public WithAsyncClient
         {
             m_clients.clear();
             WithAsyncClient::reset();
+        }
+
+        Error setSchema(std::shared_ptr<Schema> schema)
+        {
+            for (auto&& it:m_clients)
+            {
+                auto ec=it.second->client()->setSchema(schema);
+                HATN_CHECK_EC(ec)
+            }
+
+            return WithAsyncClient::setSchema(std::move(schema));
         }
 
     private:

@@ -134,12 +134,11 @@ template HATN_COMMON_EXPORT void Error::nativeCodeString<FmtAllocatedBufferChar>
 
 /********************** CommonErrorCategory **************************/
 
-static CommonErrorCategory CommonErrorCategoryInstance;
-
 //---------------------------------------------------------------
 const CommonErrorCategory& CommonErrorCategory::getCategory() noexcept
 {
-    return CommonErrorCategoryInstance;
+    static CommonErrorCategory inst;
+    return inst;
 }
 
 //---------------------------------------------------------------

@@ -51,7 +51,7 @@ struct ValueExtractor
 {
     using storageType=typename Storage<TypeId>::type;
 
-    static T f(const config_tree::HolderT& holder) noexcept
+    static T f(const config_tree::HolderT& holder)
     {
         return static_cast<T>(common::lib::variantGet<storageType>(holder.value()));
     }
@@ -71,7 +71,7 @@ template <typename T> struct valuesAs
 template <> struct valuesAs<int64_t>
 {
     using type=int64_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -80,7 +80,7 @@ template <> struct valuesAs<int64_t>
 template <> struct valuesAs<uint64_t>
 {
     using type=uint64_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -89,7 +89,7 @@ template <> struct valuesAs<uint64_t>
 template <> struct valuesAs<int32_t>
 {
     using type=int32_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -98,7 +98,7 @@ template <> struct valuesAs<int32_t>
 template <> struct valuesAs<uint32_t>
 {
     using type=uint32_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -107,7 +107,7 @@ template <> struct valuesAs<uint32_t>
 template <> struct valuesAs<int16_t>
 {
     using type=int16_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -116,7 +116,7 @@ template <> struct valuesAs<int16_t>
 template <> struct valuesAs<uint16_t>
 {
     using type=uint16_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -125,7 +125,7 @@ template <> struct valuesAs<uint16_t>
 template <> struct valuesAs<int8_t>
 {
     using type=int8_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -134,7 +134,7 @@ template <> struct valuesAs<int8_t>
 template <> struct valuesAs<uint8_t>
 {
     using type=uint8_t;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Int>::f(holder);
     }
@@ -143,7 +143,7 @@ template <> struct valuesAs<uint8_t>
 template <> struct valuesAs<double>
 {
     using type=double;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Double>::f(holder);
     }
@@ -152,7 +152,7 @@ template <> struct valuesAs<double>
 template <> struct valuesAs<float>
 {
     using type=float;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
         return ValueExtractor<type,Type::Double>::f(holder);
     }
@@ -161,9 +161,15 @@ template <> struct valuesAs<float>
 template <> struct valuesAs<bool>
 {
     using type=bool;
-    static type f(const config_tree::HolderT& holder) noexcept
+    static type f(const config_tree::HolderT& holder)
     {
-        return ValueExtractor<type,Type::Bool>::f(holder);
+        try
+        {
+            return ValueExtractor<type,Type::Bool>::f(holder);
+        }
+        catch(...)
+        {}
+        return ValueExtractor<type,Type::Int>::f(holder);
     }
 };
 
@@ -172,7 +178,7 @@ template <> struct valuesAs<std::string>
     using type=std::string;
     using storageType=typename Storage<Type::String>::type;
 
-    static const type& f(const config_tree::HolderT& holder) noexcept
+    static const type& f(const config_tree::HolderT& holder)
     {
         return common::lib::variantGet<storageType>(holder.value());
     }
@@ -186,7 +192,7 @@ template <Type TypeId> struct ValueSetterMove
     using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
-    static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
+    static void set(HolderT& holder, Type& typeId, ValueT value)
     {
         holder.emplace(std::move(value));
         typeId=id;
@@ -199,7 +205,7 @@ template <Type TypeId> struct ValueSetterCast
     using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
-    static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
+    static void set(HolderT& holder, Type& typeId, ValueT value)
     {
         auto val=static_cast<storageType>(value);
         ValueSetterMove<id>::set(holder,typeId,std::move(val));
@@ -212,7 +218,7 @@ template <typename T, typename T1=void> struct ValueSetter
     using storageType=typename config_tree::Storage<id>::type;
 
     template <typename ValueT>
-    static void set(HolderT&, Type&, ValueT) noexcept {}
+    static void set(HolderT&, Type&, ValueT) {}
 };
 
 template <> struct ValueSetter<bool> : public ValueSetterCast<Type::Bool>{};
@@ -222,7 +228,7 @@ template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_floating_poi
 template <typename T> struct ValueSetter<T,std::enable_if_t<std::is_constructible<std::string,T>::value>> : public ValueSetterMove<Type::String>
 {
     template <typename ValueT>
-    static void set(HolderT& holder, Type& typeId, ValueT value) noexcept
+    static void set(HolderT& holder, Type& typeId, ValueT value)
     {
         holder.emplace(std::string{std::move(value)});
         typeId=id;
@@ -333,7 +339,7 @@ Error ArrayViewT<T,Constant>::merge(ArrayViewT<T,Constant>&& other, config_tree:
 //---------------------------------------------------------------
 
 template <typename T>
-auto ConfigTreeValue::as() const noexcept -> decltype(auto)
+auto ConfigTreeValue::as() const -> decltype(auto)
 {
     using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_value));
     auto expectedTypeId=config_tree_detail::ValueSetter<std::decay_t<T>>::id;
@@ -342,7 +348,10 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_type)
         {
-            return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
+            if (expectedTypeId!=config_tree::Type::Bool || m_type!=config_tree::Type::Int)
+            {
+                return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
+            }
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_value));
     }
@@ -351,7 +360,10 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
     {
         if (expectedTypeId!=m_defaultType)
         {
-            return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
+            if (expectedTypeId!=config_tree::Type::Bool || m_defaultType!=config_tree::Type::Int)
+            {
+                return Result<valueT>{baseError(BaseError::INVALID_TYPE)};
+            }
         }
         return makeResult(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     }
@@ -360,7 +372,7 @@ auto ConfigTreeValue::as() const noexcept -> decltype(auto)
 }
 
 template <typename T>
-auto ConfigTreeValue::as(common::Error& ec) const noexcept -> decltype(auto)
+auto ConfigTreeValue::as(common::Error& ec) const -> decltype(auto)
 {
     auto&& r = as<T>();
     HATN_RESULT_EC(r,ec)
@@ -376,7 +388,7 @@ auto ConfigTreeValue::asEx() const  -> decltype(auto)
 }
 
 template <typename T>
-auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
+auto ConfigTreeValue::getDefault() const -> decltype(auto)
 {
     using valueT=decltype(config_tree_detail::valuesAs<T>::f(m_defaultValue));
     auto expectedTypeId=config_tree_detail::ValueSetter<std::decay_t<T>>::id;
@@ -392,7 +404,7 @@ auto ConfigTreeValue::getDefault() const noexcept -> decltype(auto)
 }
 
 template <typename T>
-auto ConfigTreeValue::getDefault(common::Error& ec) const noexcept -> decltype(auto)
+auto ConfigTreeValue::getDefault(common::Error& ec) const -> decltype(auto)
 {
     auto&& r = getDefault<T>();
     HATN_RESULT_EC(r,ec)
@@ -407,15 +419,15 @@ auto ConfigTreeValue::getDefaultEx() const -> decltype(auto)
     return r.takeValue();
 }
 
-inline auto ConfigTreeValue::asString() const noexcept -> decltype(auto)
+inline auto ConfigTreeValue::asString() const -> decltype(auto)
 {
     return as<std::string>();
 }
-inline auto ConfigTreeValue::asBool() const noexcept -> decltype(auto)
+inline auto ConfigTreeValue::asBool() const -> decltype(auto)
 {
     return as<bool>();
 }
-inline auto ConfigTreeValue::asDouble() const noexcept -> decltype(auto)
+inline auto ConfigTreeValue::asDouble() const -> decltype(auto)
 {
     return as<double>();
 }
@@ -441,7 +453,7 @@ void ConfigTreeValue::setDefault(T value)
 //---------------------------------------------------------------
 
 template <typename T>
-Result<ConstArrayView<T>> ConfigTreeValue::asArray() const noexcept
+Result<ConstArrayView<T>> ConfigTreeValue::asArray() const
 {
     using valueType=typename config_tree::ValueType<T>::arrayType;
     auto expectedTypeId=config_tree::ValueType<T>::arrayId;
@@ -461,7 +473,7 @@ Result<ConstArrayView<T>> ConfigTreeValue::asArray() const noexcept
 }
 
 template <typename T>
-Result<ArrayView<T>> ConfigTreeValue::asArray() noexcept
+Result<ArrayView<T>> ConfigTreeValue::asArray()
 {
     using valueType=typename config_tree::ValueType<T>::arrayType;
     auto expectedTypeId=config_tree::ValueType<T>::arrayId;

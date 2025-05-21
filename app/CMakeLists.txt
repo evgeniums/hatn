@@ -1,17 +1,22 @@
 PROJECT(hatnapp)
 
 SET (HEADERS
-    include/hatn/app/app.h
+    include/hatn/app/appdefs.h
     include/hatn/app/apperror.h
     include/hatn/app/apperrorcodes.h
     include/hatn/app/appenv.h
+    include/hatn/app/app.h
     include/hatn/app/appname.h
-    include/hatn/app/baseapp.h
 )
 
 SET (SOURCES
     src/apperror.cpp
-    src/baseapp.cpp
+    src/app.cpp
+    src/appenv.cpp
 )
 
 BUILD_HATN_MODULE()
+
+IF (HATN_PLUGIN_rocksdb)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE hatnrocksdbschema)
+ENDIF()

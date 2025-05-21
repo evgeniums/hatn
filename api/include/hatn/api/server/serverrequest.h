@@ -99,6 +99,11 @@ struct Request : public common::TaskSubcontext
         return field.value();
     }
 
+    auto& db()
+    {
+        return env->template get<Db>();
+    }
+
     auto topic() const
     {
         const auto& field=unit.field(protocol::request::topic);
@@ -181,6 +186,6 @@ using RouteFh=std::function<void (common::SharedPtr<RequestContext<RequestT>> re
 
 HATN_API_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::Request<HATN_API_NAMESPACE::server::BasicEnv>,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_SERVER_NAMESPACE::Request<HATN_API_SERVER_NAMESPACE::BasicEnv>,HATN_API_EXPORT)
 
 #endif // HATNAPISERVERREQUEST_H

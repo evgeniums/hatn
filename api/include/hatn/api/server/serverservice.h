@@ -37,9 +37,9 @@ using ServiceMethodStatus = protocol::ResponseStatus;
 struct NoValidatorT
 {
     template <typename RequestT, typename MessageT>
-    validator::error_report operator () (const common::SharedPtr<RequestContext<RequestT>>&) const noexcept
+    HATN_VALIDATOR_NAMESPACE::error_report operator () (const common::SharedPtr<RequestContext<RequestT>>&) const noexcept
     {
-        return validator::error_report{};
+        return HATN_VALIDATOR_NAMESPACE::error_report{};
     }
 };
 constexpr NoValidatorT NoValidator{};
@@ -240,7 +240,7 @@ class ServiceMethodBase
  * void exec(common::SharedPtr<RequestContext<Request>> request,RouteCb<Request> callback, common::SharedPtr<Message> msg)
  *
  * template <typename RequestT, typename MessageT>
- * validator::error_report validate(const common::SharedPtr<RequestContext<RequestT>>& request,const MessageT& msg)
+ * HATN_VALIDATOR_NAMESPACE::error_report validate(const common::SharedPtr<RequestContext<RequestT>>& request,const MessageT& msg)
 )
  */
 template <typename Traits, typename MessageT=NoMessage, typename RequestT=Request<>>
@@ -347,9 +347,9 @@ class NoValidatorTraits
     public:
 
         template <typename RequestT, typename MessageT>
-        validator::error_report validate(const common::SharedPtr<RequestT>, const MessageT&) const
+        HATN_VALIDATOR_NAMESPACE::error_report validate(const common::SharedPtr<RequestT>, const MessageT&) const
         {
-            return validator::error_report{};
+            return HATN_VALIDATOR_NAMESPACE::error_report{};
         }
 };
 

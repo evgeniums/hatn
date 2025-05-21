@@ -21,10 +21,14 @@
 
 #include <hatn/base/configobject.h>
 
+#include <hatn/logcontext/logconfigrecords.h>
+
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/api/server/plaintcpmicroservice.h>
+
+#include <hatn/app/app.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -46,15 +50,15 @@ Result<common::SharedPtr<typename PlainTcpMicroServiceConfig<EnvT>::NetworkServe
     PlainTcpMicroServiceConfig<EnvT>::makeAndInitNetworkServer(
         lib::string_view name,
         common::SharedPtr<Env> env,
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
 {
     TcpServerConfig config;
 
-    //! @todo log config
-    auto ec=config.loadConfig(configTree,configTreePath);
+    // load config
+    auto ec=loadLogConfig(fmt::format(_TR("configuration of plain TCP microservice {}","api"),name),config,configTree,configTreePath);
     if (ec)
     {
         auto ec1=apiLibError(ApiLibError::TCP_SERVER_CONFIG_FAILED);

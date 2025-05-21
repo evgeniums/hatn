@@ -94,6 +94,11 @@ class HATN_BASE_EXPORT ConfigTreePath
             return m_path;
         }
 
+        const std::string& string() const noexcept
+        {
+            return m_path;
+        }
+
         operator common::lib::string_view() const noexcept
         {
             return m_path;

@@ -30,13 +30,13 @@
 
 #include <hatn/db/asyncclient.h>
 
-#include <hatn/app/app.h>
+#include <hatn/app/appdefs.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
 
 HATN_APP_NAMESPACE_BEGIN
-class BaseApp;
+class App;
 HATN_APP_NAMESPACE_END
 
 HATN_API_NAMESPACE_BEGIN
@@ -103,7 +103,7 @@ struct HATN_API_EXPORT BasicEnvConfig
     using Env=BasicEnv;
 
     static Result<common::SharedPtr<Env>> makeEnv(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     );
@@ -115,7 +115,7 @@ struct EnvConfigT
     using Env=typename Traits::Env;
 
     static Result<common::SharedPtr<Env>> makeEnv(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
@@ -129,7 +129,7 @@ using EnvConfig=EnvConfigT<>;
 
 HATN_API_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE(HATN_API_NAMESPACE::server::WithEnv<HATN_API_NAMESPACE::server::BasicEnv>,HATN_API_EXPORT)
+HATN_TASK_CONTEXT_DECLARE(HATN_API_SERVER_NAMESPACE::WithEnv<HATN_API_SERVER_NAMESPACE::BasicEnv>,HATN_API_EXPORT)
 
 #endif // HATNAPISERVERCONTEXT_H
 

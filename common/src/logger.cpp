@@ -502,7 +502,7 @@ std::string Logger::configureModules(
         }
         else
         {
-            return _TR("Configuration of logger module is mailformed: no module name is set!");
+            return _TR("configuration of logger module is mailformed: no module name is set!");
         }
     }
 

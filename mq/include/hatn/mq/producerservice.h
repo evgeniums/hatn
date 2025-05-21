@@ -160,7 +160,7 @@ struct ProducerMethodTraits
         common::SharedPtr<Message> msg
     ) const;
 
-    validator::error_report validate(
+    HATN_VALIDATOR_NAMESPACE::error_report validate(
         const common::SharedPtr<api::server::RequestContext<Request>>& request,
         const MessageT& msg
     ) const;

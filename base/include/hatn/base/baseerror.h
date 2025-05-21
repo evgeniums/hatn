@@ -73,6 +73,11 @@ inline Error baseError(BaseError code, std::shared_ptr<common::NativeError> err)
     return Error(static_cast<int>(code),std::move(err));
 }
 
+inline Error baseError(BaseError code, std::string msg) noexcept
+{
+    return baseError(code,std::make_shared<common::NativeError>(msg));
+}
+
 HATN_BASE_NAMESPACE_END
 
 #endif // HATNBASEERROR_H

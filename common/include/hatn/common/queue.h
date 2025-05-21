@@ -101,7 +101,7 @@ class Queue
             auto item=popItem();
             if (item)
             {
-                val=item->m_val;
+                val=std::move(item->m_val);
                 item->drop();
                 ok=true;
             }
@@ -122,7 +122,7 @@ class Queue
                 Assert(false,"The queue is empty");
                 throw std::runtime_error("The queue is empty!");
             }
-            auto val=item->m_val;
+            auto val=std::move(item->m_val);
             item->drop();
             return val;
         }

@@ -16,7 +16,7 @@
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 
-#include <hatn/app/baseapp.h>
+#include <hatn/app/app.h>
 
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/server/env.h>
@@ -26,7 +26,7 @@ HATN_API_NAMESPACE_BEGIN
 namespace server {
 
 Result<common::SharedPtr<BasicEnv>> BasicEnvConfig::makeEnv(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )

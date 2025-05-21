@@ -73,7 +73,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Error doDeleteTopic(Topic topic) override;
 
-        Error doCreate(Topic topic, const ModelInfo& model, dataunit::Unit* object, Transaction* tx) override;
+        Error doCreate(Topic topic, const ModelInfo& model, const dataunit::Unit* object, Transaction* tx) override;
 
         Result<DbObject> doRead(Topic topic,
                                                          const ModelInfo& model,

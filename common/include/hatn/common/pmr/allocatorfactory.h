@@ -185,8 +185,19 @@ class HATN_COMMON_EXPORT AllocatorFactory final
 
         template <typename T>
         auto createObjectVector() const
-        {
+        {            
             return vector<T>(objectAllocator<T>());
+        }
+
+        template <typename T>
+        auto allocateObjectVector() const
+        {
+            using type=ManagedWrapper<pmr::vector<T>>;
+            auto alloca=objectAllocator<T>();
+            auto sharedPtrAlloca=objectAllocator<type>();
+            auto buf=sharedPtrAlloca.allocate(1);
+            auto ptr=new (buf) type(alloca);
+            return SharedPtr<type>{ptr};
         }
 
         auto createString() const

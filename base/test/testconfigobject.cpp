@@ -17,6 +17,8 @@
 
 #include "hatn_test_config.h"
 
+#include <hatn/test/multithreadfixture.h>
+
 #include <hatn/validator/validator.hpp>
 
 #include <hatn/dataunit/valuetypes.h>
@@ -30,6 +32,8 @@
 #include <hatn/base/baseerror.h>
 #include <hatn/base/configtree.h>
 #include <hatn/base/configobject.h>
+#include <hatn/base/configtreeloader.h>
+#include <hatn/base/configtreejson.h>
 
 HATN_USING
 HATN_COMMON_USING
@@ -67,6 +71,23 @@ HDU_UNIT(config6,
          HDU_FIELD(field6,TYPE_UINT32,6,true)
          )
 
+HDU_UNIT(config7,
+         HDU_FIELD(key1,TYPE_BOOL,1)
+         HDU_FIELD(key2,TYPE_BOOL,2)
+         HDU_FIELD(key3,TYPE_BOOL,3)
+         HDU_FIELD(key4,TYPE_BOOL,4)
+         )
+
+HDU_UNIT(config8,
+         HDU_REPEATED_FIELD(obj1,config1::TYPE,1)
+         )
+
+
+HDU_UNIT(config9,
+    HDU_FIELD(obj1,config1::TYPE,1)
+    HDU_FIELD(f2,TYPE_UINT32,2)
+)
+
 struct WithConfig1 : public ConfigObject<config1::type>
 {
 };
@@ -88,6 +109,18 @@ struct WithConfig5 : public ConfigObject<config5::type>
 };
 
 struct WithConfig6 : public ConfigObject<config6::type>
+{
+};
+
+struct WithConfig7 : public ConfigObject<config7::type>
+{
+};
+
+struct WithConfig8 : public ConfigObject<config8::type>
+{
+};
+
+struct WithConfig9 : public ConfigObject<config9::type>
 {
 };
 
@@ -189,7 +222,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigScalarArray)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<int64_t>("foo.config3.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack(100);
     a1->emplaceBack(200);
     a1->emplaceBack(300);
@@ -223,7 +256,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigStringArrays)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<std::string>("foo.config4.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack("one");
     a1->emplaceBack("two");
     a1->emplaceBack("three");
@@ -251,7 +284,7 @@ BOOST_AUTO_TEST_CASE(LoadConfigStringArrays)
     BOOST_CHECK(arr2.empty());
 
     auto a2=t1.toArray<std::string>("foo.config4.field4");
-    BOOST_CHECK(!a2);
+    BOOST_REQUIRE(!a2);
     a2->emplaceBack("one-fixed");
     a2->emplaceBack("two-fixed");
     a2->emplaceBack("three-fixed");
@@ -307,12 +340,12 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigPlain)
     BOOST_CHECK_EQUAL("hi",o1.config().field(config5::field3).c_str());
 
     BOOST_REQUIRE_EQUAL(records.size(),3);
-    BOOST_CHECK_EQUAL(records[0].name,"field1");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config1.field1");
     BOOST_CHECK_EQUAL(records[0].value,"100");
-    BOOST_CHECK_EQUAL(records[1].name,"field2");
-    BOOST_CHECK_EQUAL(records[1].value,"\"hello\"");
-    BOOST_CHECK_EQUAL(records[2].name,"field3");
-    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+    BOOST_CHECK_EQUAL(records[1].name,"foo.config1.field2");
+    BOOST_CHECK_EQUAL(records[1].value,"hello");
+    BOOST_CHECK_EQUAL(records[2].name,"foo.config1.field3");
+    BOOST_CHECK_EQUAL(records[2].value,"hi");
 
     records.clear();
     config_object::LogSettings settings1;
@@ -325,12 +358,12 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigPlain)
     BOOST_CHECK_EQUAL("hi",o1.config().field(config5::field3).c_str());
 
     BOOST_REQUIRE_EQUAL(records.size(),3);
-    BOOST_CHECK_EQUAL(records[0].name,"field1");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config1.field1");
     BOOST_CHECK_EQUAL(records[0].value,"100");
-    BOOST_CHECK_EQUAL(records[1].name,"field2");
-    BOOST_CHECK_EQUAL(records[1].value,"\"$$$$$\"");
-    BOOST_CHECK_EQUAL(records[2].name,"field3");
-    BOOST_CHECK_EQUAL(records[2].value,"\"hi\"");
+    BOOST_CHECK_EQUAL(records[1].name,"foo.config1.field2");
+    BOOST_CHECK_EQUAL(records[1].value,"$$$$$");
+    BOOST_CHECK_EQUAL(records[2].name,"foo.config1.field3");
+    BOOST_CHECK_EQUAL(records[2].value,"hi");
 }
 
 BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
@@ -338,7 +371,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
     ConfigTree t1;
 
     auto a1=t1.toArray<int64_t>("foo.config3.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack(100);
     a1->emplaceBack(200);
     a1->emplaceBack(300);
@@ -359,7 +392,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
     BOOST_CHECK_EQUAL(arr.at(4),500);
 
     BOOST_REQUIRE_EQUAL(records.size(),1);
-    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config3.field3");
     BOOST_CHECK_EQUAL(records[0].value,"[100,200,300,400,500]");
 
     records.clear();
@@ -376,7 +409,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigScalarArray)
     BOOST_CHECK_EQUAL(arr.at(4),500);
 
     BOOST_REQUIRE_EQUAL(records.size(),1);
-    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config3.field3");
     BOOST_CHECK_EQUAL(records[0].value,"[100,200,300,...]");
 }
 
@@ -391,7 +424,7 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK(arr.empty());
 
     auto a1=t1.toArray<std::string>("foo.config4.field3");
-    BOOST_CHECK(!a1);
+    BOOST_REQUIRE(!a1);
     a1->emplaceBack("one");
     a1->emplaceBack("two");
     a1->emplaceBack("three");
@@ -410,9 +443,9 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
 
     BOOST_REQUIRE_EQUAL(records.size(),2);
-    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config4.field3");
     BOOST_CHECK_EQUAL(records[0].value,"[\"one\",\"two\",\"three\",\"four\",\"five\"]");
-    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].name,"foo.config4.field4");
     BOOST_CHECK_EQUAL(records[1].value,"[]");
 
     records.clear();
@@ -429,9 +462,9 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
 
     BOOST_REQUIRE_EQUAL(records.size(),2);
-    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config4.field3");
     BOOST_CHECK_EQUAL(records[0].value,"[\"one\",\"two\",\"three\",...]");
-    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].name,"foo.config4.field4");
     BOOST_CHECK_EQUAL(records[1].value,"[]");
 
     settings1.MaskNames.insert("field3");
@@ -448,10 +481,167 @@ BOOST_AUTO_TEST_CASE(LoadLogConfigStringArrays)
     BOOST_CHECK_EQUAL(arr.at(4).c_str(),"five");
 
     BOOST_REQUIRE_EQUAL(records.size(),2);
-    BOOST_CHECK_EQUAL(records[0].name,"field3");
+    BOOST_CHECK_EQUAL(records[0].name,"foo.config4.field3");
     BOOST_CHECK_EQUAL(records[0].value,"[\"********\",\"********\",\"********\",...]");
-    BOOST_CHECK_EQUAL(records[1].name,"field4");
+    BOOST_CHECK_EQUAL(records[1].name,"foo.config4.field4");
     BOOST_CHECK_EQUAL(records[1].value,"[]");
+}
+
+BOOST_AUTO_TEST_CASE(BoolValues)
+{
+    ConfigTreeLoader loader;
+    ConfigTree t;
+
+    auto filename=MultiThreadFixture::assetsFilePath("base/assets/config_bool.jsonc");
+    auto ec=loader.loadFromFile(t,filename);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
+
+    WithConfig7 obj;
+    ec=obj.loadConfig(t,"obj1");
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    BOOST_TEST_MESSAGE(fmt::format("Config object: \n{} \n",obj.config().toString(true)));
+    BOOST_CHECK(obj.config().fieldValue(config7::key1));
+    BOOST_CHECK(!obj.config().fieldValue(config7::key2));
+    BOOST_CHECK(obj.config().fieldValue(config7::key3));
+    BOOST_CHECK(!obj.config().fieldValue(config7::key4));
+}
+
+BOOST_AUTO_TEST_CASE(RepeatedUnits)
+{
+    ConfigTreeLoader loader;
+    ConfigTree t1;
+    std::string json1="{\"obj1\" : [{\"field1\":100},{\"field1\":200}]}";
+    auto ec=loader.loadFromString(t1,json1);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    WithConfig8 o1;
+    config_object::LogRecords records;
+    ec=o1.loadLogConfig(t1,"",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t1);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object config:\n{}",o1.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
+    BOOST_REQUIRE(o1.config().isSet(config8::obj1));
+    const auto& obj1=o1.config().field(config8::obj1);
+    BOOST_REQUIRE_EQUAL(obj1.count(),2);
+    BOOST_CHECK_EQUAL(obj1.at(0).fieldValue(config1::field1),100);
+    BOOST_CHECK_EQUAL(obj1.at(1).fieldValue(config1::field1),200);
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"obj1.0.field1\": 100");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"obj1.1.field1\": 200");
+
+    ConfigTree t2;
+    std::string json2="{\"level0\": {\"obj2\" : [{\"field1\":300},{\"field1\":400}], \"obj1\" : [{\"field1\":100},{\"field1\":200},{\"field1\":500}]}}";
+    ec=loader.loadFromString(t2,json2);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    WithConfig8 o2;
+    records.clear();
+    ec=o2.loadLogConfig(t2,"level0",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    jsonR=jsonIo.serialize(t2);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree 2: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object 2 config:\n{}",o2.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
+
+    BOOST_REQUIRE(o2.config().isSet(config8::obj1));
+    const auto& obj2=o2.config().field(config8::obj1);
+    BOOST_REQUIRE_EQUAL(obj2.count(),3);
+    BOOST_CHECK_EQUAL(obj2.at(0).fieldValue(config1::field1),100);
+    BOOST_CHECK_EQUAL(obj2.at(1).fieldValue(config1::field1),200);
+    BOOST_CHECK_EQUAL(obj2.at(2).fieldValue(config1::field1),500);
+    BOOST_REQUIRE_EQUAL(records.size(),3);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"level0.obj1.0.field1\": 100");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"level0.obj1.1.field1\": 200");
+    BOOST_CHECK_EQUAL(records.at(2).string(),"\"level0.obj1.2.field1\": 500");
+}
+
+BOOST_AUTO_TEST_CASE(Subunit)
+{
+    ConfigTreeLoader loader;
+    ConfigTree t1;
+    std::string json1="{\"obj1\" : {\"field1\":100},\"f2\":300}";
+    auto ec=loader.loadFromString(t1,json1);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    WithConfig9 o1;
+    config_object::LogRecords records;
+    ec=o1.loadLogConfig(t1,"",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    ConfigTreeJson jsonIo;
+    auto jsonR=jsonIo.serialize(t1);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("Config tree: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object config:\n{}",o1.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
+
+    BOOST_REQUIRE(o1.config().isSet(config9::obj1));
+    BOOST_REQUIRE(o1.config().isSet(config9::f2));
+    const auto& obj1=o1.config().field(config9::obj1);
+    BOOST_CHECK_EQUAL(obj1.get().fieldValue(config1::field1),100);
+    BOOST_CHECK_EQUAL(o1.config().fieldValue(config9::f2),300);
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"obj1.field1\": 100");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"f2\": 300");
+
+    json1=std::string{"{\"level0\":{\"obj1\" : {\"field1\":500},\"f2\":700}}"};
+    t1.reset();
+    ec=loader.loadFromString(t1,json1);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    o1.config().reset();
+    records.clear();
+    ec=o1.loadLogConfig(t1,"level0",records);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
+    jsonR=jsonIo.serialize(t1);
+    BOOST_CHECK(!jsonR);
+    BOOST_TEST_MESSAGE(fmt::format("\n\nConfig tree 2: \n{} \n",jsonR.value()));
+    BOOST_TEST_MESSAGE(fmt::format("Nested object 2 config:\n{}",o1.config().toString(true)));
+    for (auto&& record:records)
+    {
+        BOOST_TEST_MESSAGE(record.string());
+    }
+
+    BOOST_REQUIRE(o1.config().isSet(config9::obj1));
+    BOOST_REQUIRE(o1.config().isSet(config9::f2));
+    const auto& obj2=o1.config().field(config9::obj1);
+    BOOST_CHECK_EQUAL(obj2.get().fieldValue(config1::field1),500);
+    BOOST_CHECK_EQUAL(o1.config().fieldValue(config9::f2),700);
+    BOOST_REQUIRE_EQUAL(records.size(),2);
+    BOOST_CHECK_EQUAL(records.at(0).string(),"\"level0.obj1.field1\": 500");
+    BOOST_CHECK_EQUAL(records.at(1).string(),"\"level0.f2\": 700");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

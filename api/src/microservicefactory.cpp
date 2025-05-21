@@ -16,6 +16,8 @@
 
 #include <hatn/base/configobject.h>
 
+#include <hatn/logcontext/logconfigrecords.h>
+
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/api/server/microserviceconfig.h>
@@ -32,7 +34,7 @@ struct makeMicroserviceAndRunT
     Result<std::shared_ptr<MicroService>> operator () (
             const MicroServiceFactory* factory,
             MicroserviceConfig& cfg,
-            const HATN_APP_NAMESPACE::BaseApp& app,
+            const HATN_APP_NAMESPACE::App& app,
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
         ) const
@@ -46,18 +48,23 @@ struct makeMicroserviceAndRunT
         {
             // failed to find microservice
             auto ec1=apiLibError(ApiLibError::UNKNOWN_MICROSERVICE_TYPE,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
+                                   std::make_shared<common::NativeError>(fmt::format("\"{}\"",microserviceName))
                                    );
-            ec.stackWith(std::move(ec1));
-            return ec;
+            return ec1;
         }
 
         // create microservice
+        std::string dispatcherName{cfg.config().fieldValue(microservice_config::dispatcher)};
+        if (dispatcherName.empty())
+        {
+            dispatcherName=microserviceName;
+        }
+        std::string authDispatcherName{cfg.config().fieldValue(microservice_config::auth_dispatcher)};
         auto microservice=it->second(
             microserviceName,
-            std::string(cfg.config().fieldValue(microservice_config::dispatcher)),
-            std::string(cfg.config().fieldValue(microservice_config::auth_dispatcher))
-            );
+            dispatcherName,
+            authDispatcherName
+        );
         if (microservice)
         {
             // failed to load microservice config
@@ -93,7 +100,7 @@ constexpr makeMicroserviceAndRunT makeMicroserviceAndRun{};
 //---------------------------------------------------------------
 
 Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     ) const
@@ -101,8 +108,7 @@ Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
     MicroserviceConfig cfg;
 
     // load config
-    //! @todo log config
-    auto ec=cfg.loadConfig(configTree,configTreePath);
+    auto ec=loadLogConfig(_TR("configuration of microservice"),cfg,configTree,configTreePath);
     if (ec)
     {
         // failed to load microservice config
@@ -113,13 +119,14 @@ Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
         return ec;
     }
 
+    // make and tun microservice
     return makeMicroserviceAndRun(this,cfg,app,configTree,configTreePath);
 }
 
 //---------------------------------------------------------------
 
 Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory::makeAndRunAll(
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     ) const
@@ -148,12 +155,10 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
     // process each microservice config
     for (size_t i=0;i<configs->size();i++)
     {
-        const auto& config=configs->at(i);
-
+        auto microservicePath=path.copyAppend(i);
         MicroserviceConfig cfg;
 
-        //! @todo Log config
-        auto ec=cfg.loadConfig(*config,HATN_BASE_NAMESPACE::ConfigTreePath{});
+        auto ec=loadLogConfig(_TR("configuration of microservice"),cfg,configTree,microservicePath);
         if (ec)
         {
             // failed to load microservice config
@@ -178,7 +183,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
             // create and run microservice for config
             if (!ec)
             {
-                auto microservice=makeMicroserviceAndRun(this,cfg,app,*config,HATN_BASE_NAMESPACE::ConfigTreePath{});
+                auto microservice=makeMicroserviceAndRun(this,cfg,app,configTree,microservicePath);
                 if (microservice)
                 {
                     ec=microservice.takeError();

@@ -41,7 +41,7 @@ struct PlainTcpMicroServiceConfig
     static Result<common::SharedPtr<NetworkServerCtx>> makeAndInitNetworkServer(
         lib::string_view name,
         common::SharedPtr<Env> env,
-        const HATN_APP_NAMESPACE::BaseApp& app,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     );

@@ -84,6 +84,13 @@ struct FeatureSet
         return mask;
     }
 
+    constexpr static Features fullMask() noexcept
+    {
+        Features mask;
+        mask=~mask;
+        return mask;
+    }
+
     FeatureSet()=delete;
     ~FeatureSet()=delete;
     FeatureSet(const FeatureSet&)=delete;

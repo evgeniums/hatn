@@ -6,7 +6,7 @@ export Boost_DIR=$deps_arch
 
 ios_sdk_version_x10=$(echo "($ios_deployment_target * 10)/1" | bc)
 
-cmake -G "Unix Makefiles"  \
+cmake -G Ninja  \
     -DCMAKE_TOOLCHAIN_FILE=$IOS_CMAKE \
     -DBoost_INCLUDE_DIR=$deps_arch/include \
     -DBoost_LIBRARY_DIR_RELEASE=$deps_arch/lib \
@@ -32,4 +32,4 @@ cmake -G "Unix Makefiles"  \
     -DBUILD_IOS=1 \
     $src_dir
     
-make -j$build_workers install
+cmake --build . -- -j$build_workers install
