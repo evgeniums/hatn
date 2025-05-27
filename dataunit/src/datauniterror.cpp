@@ -34,7 +34,7 @@ RawError& RawError::threadLocal() noexcept
 
 bool& RawError::enablingTL() noexcept
 {
-    static thread_local bool enabled;
+    static thread_local bool enabled=true;
     return enabled;
 }
 
