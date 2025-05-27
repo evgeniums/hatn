@@ -25,8 +25,10 @@
 #include <hatn/logcontext/logconfigrecords.h>
 
 #include <hatn/dataunit/syntax.h>
+#include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
+#include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/db/dbplugin.h>
 
@@ -166,7 +168,9 @@ HDU_UNIT(db_config,
 )
 
 HDU_UNIT(crypt_config,
-    HDU_FIELD(provider,TYPE_STRING,1,false,"hatnopenssl")
+    HDU_FIELD(provider,TYPE_STRING,1)
+    HDU_REPEATED_FIELD(cipher_suites,crypt::cipher_suite::TYPE,2,false,Auto,Auto,External)
+    HDU_FIELD(default_cipher_suite,TYPE_STRING,3)
 )
 
 //---------------------------------------------------------------
@@ -178,7 +182,8 @@ class App_p
         App* app;
 
         App_p(App* app) : app(app),
-                          fileLogger(std::make_shared<log::FileLogger>())
+                          fileLogger(std::make_shared<log::FileLogger>()),
+                          defaultCryptProviderId(App::DefaultCryptProvider)
         {}
 
         base::ConfigObject<app_config::type> appConfig;
@@ -197,15 +202,21 @@ class App_p
         common::SharedPtr<log::TaskLogContext> currentThreadLogCtx;
         std::map<std::string,common::SharedPtr<log::TaskLogContext>> threadLogCtxs;
 
+        Result<std::shared_ptr<crypt::CipherSuites>> initCipherSuites();
+
+        std::shared_ptr<log::FileLogger> fileLogger;
+
+        std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
+        std::vector<std::shared_ptr<HATN_CRYPT_NAMESPACE::CipherSuite>> preloadedCipherSuites;
+        std::string defaultCipherSuiteId;
+        std::string defaultCryptProviderId;
+
         void loadCryptPlugins();
         void loadDbPlugins();
         void loadPlugins(const std::string& pluginFolder);
 
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
         db::ClientConfig dbClientConfig(lib::string_view name) const;
-
-        std::shared_ptr<log::FileLogger> fileLogger;
-
         void setAppLogger(std::shared_ptr<log::Logger> newLogger)
         {
             logger=std::move(newLogger);
@@ -214,6 +225,8 @@ class App_p
             currentLogCtx.setLogger(logger.get());
             log::ThreadLocalFallbackContext::set(&currentLogCtx);
         }
+
+        Error loadCryptPlugin(lib::string_view name);
 };
 
 //---------------------------------------------------------------
@@ -383,6 +396,33 @@ Error App::applyConfig()
 
     // load crypt config
     ec=d->cryptConfig.loadLogConfig(*m_configTree,CryptConfigRoot,logRecords);
+    if (!ec)
+    {
+        bool reloadLogRecords=false;
+        if (!d->cryptConfig.config().field(crypt_config::provider).fieldIsSet())
+        {
+            d->cryptConfig.config().setFieldValue(crypt_config::provider,d->defaultCryptProviderId);
+            reloadLogRecords=true;
+        }
+        if (!d->cryptConfig.config().field(crypt_config::default_cipher_suite).fieldIsSet())
+        {
+            d->cryptConfig.config().setFieldValue(crypt_config::default_cipher_suite,d->defaultCipherSuiteId);
+            reloadLogRecords=true;
+        }
+        if (!d->preloadedCipherSuites.empty())
+        {
+            for (const auto& suite : d->preloadedCipherSuites)
+            {
+                d->cryptConfig.config().field(crypt_config::cipher_suites).append(suite->suite());
+            }
+            reloadLogRecords=true;
+        }
+        if (reloadLogRecords)
+        {
+            logRecords.clear();
+            d->cryptConfig.fillLogRecords({},logRecords,CryptConfigRoot);
+        }
+    }
     logConfigRecords(_TR("configuration of application cryptography","app"),HLOG_MODULE(app),logRecords);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application cryptography","app"),HLOG_MODULE(app))
 
@@ -504,6 +544,7 @@ Error App::init()
 
     // create and start threads
     auto ec=initThreads();
+    HATN_CHECK_EC(ec)
 
     // create mapped threads
     std::shared_ptr<common::MappedThreadQWithTaskContext> mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,m_appThread);
@@ -517,7 +558,13 @@ Error App::init()
 
     //! @todo configure/create allocator factory
 
-    //! @todo create cipher suites
+    // create cipher suites
+    auto cipherSuites=d->initCipherSuites();
+    if (cipherSuites)
+    {
+        ec=cipherSuites.takeError();
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to init cypher suites","app"),HLOG_MODULE(app))
+    }
 
     //! @todo create translator
 
@@ -528,7 +575,7 @@ Error App::init()
             common::subcontext(std::move(mappedThreads)),
             common::subcontext(d->logger),
             common::subcontext(),
-            common::subcontext(),
+            common::subcontext(cipherSuites.takeValue()),
             common::subcontext()
         )
     );
@@ -879,6 +926,128 @@ void App::freeDbSchemas()
 std::vector<std::string> App::listLogFiles() const
 {
     return d->fileLogger->listFiles();
+}
+
+//---------------------------------------------------------------
+
+Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
+{
+    auto suites=std::make_shared<crypt::CipherSuites>();
+
+    // load crypt plugin
+    auto cryptProvider=cryptConfig.config().fieldValue(crypt_config::provider);
+    auto ec=loadCryptPlugin(cryptProvider);
+    HATN_CHECK_EC(ec)
+
+    // set crypt engine
+    auto cryptEngine=std::make_shared<crypt::CryptEngine>(cryptPlugin.get());
+    suites->setDefaultEngine(std::move(cryptEngine));
+
+    // fill cipher suites
+    const auto& cipherSuites=cryptConfig.config().field(crypt_config::cipher_suites);
+    for (size_t i=0;i<cipherSuites.count();i++)
+    {
+        auto suiteConfig=cipherSuites.at(i);
+        auto suite=std::make_shared<crypt::CipherSuite>(std::move(suiteConfig));
+        suites->addSuite(std::move(suite));
+    }
+
+    // set default cipher suite
+    auto defaultSuiteId=cryptConfig.config().fieldValue(crypt_config::default_cipher_suite);
+    ec=suites->setDefaultSuite(defaultSuiteId);
+    HATN_CHECK_EC(ec)
+
+    // done
+    return suites;
+}
+
+//---------------------------------------------------------------
+
+Error App::setPreloadedCipherSuites(const std::vector<std::string>& suitesJson)
+{
+    HATN_CTX_SCOPE("setPreloadedCipherSuites")
+
+    d->preloadedCipherSuites.clear();
+    for (const auto& json : suitesJson)
+    {
+        try
+        {
+            auto suite=HATN_CRYPT_NAMESPACE::CipherSuite::fromJSON(json);
+            d->preloadedCipherSuites.emplace_back(std::move(suite));
+        }
+        catch (const common::ErrorException& ex)
+        {
+            auto ec=ex.error();
+            auto msg=fmt::format(_TR("failed to preload cipher suite\n{}\n{}"),json,du::RawError::threadLocal().message);
+            HATN_CTX_ERROR(ec,msg.c_str())
+            return ec;
+        }
+    }
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+std::vector<std::shared_ptr<HATN_CRYPT_NAMESPACE::CipherSuite>> App::preloadedCipherSuites() const
+{
+    return d->preloadedCipherSuites;
+}
+
+//---------------------------------------------------------------
+
+void App::setDefaultCipherSuiteId(std::string id)
+{
+    d->defaultCipherSuiteId=std::move(id);
+}
+//---------------------------------------------------------------
+
+std::string App::defaultCipherSuiteId() const
+{
+    return d->defaultCipherSuiteId;
+}
+
+//---------------------------------------------------------------
+
+void App::setDefaultCryptProviderId(std::string id)
+{
+    d->defaultCryptProviderId=std::move(id);
+}
+
+//---------------------------------------------------------------
+
+std::string App::defaultCryptProviderId() const
+{
+    return d->defaultCryptProviderId;
+}
+
+//---------------------------------------------------------------
+
+Error App_p::loadCryptPlugin(lib::string_view nameView)
+{
+    // only ine cryptplugin can be loaded
+    if (cryptPlugin)
+    {
+        return OK;
+    }
+
+    // load plugin
+    std::string name{nameView};
+    cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(name);
+    if (!cryptPlugin)
+    {
+        return common::chainError(crypt::cryptError(crypt::CryptError::CRYPT_PLUGIN_FAILED),fmt::format(_TR("plugin name \"{}\"","app"),name));
+    }
+
+    // init plugin
+    auto ec=cryptPlugin->init();
+    if (ec)
+    {
+        return common::chainError(std::move(ec),fmt::format(_TR("failed to initialize cryptographic plugin \"{}\"","app"),name));
+    }
+
+    // done
+    return OK;
 }
 
 //---------------------------------------------------------------

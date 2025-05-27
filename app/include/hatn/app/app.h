@@ -44,6 +44,8 @@ class HATN_APP_EXPORT App
 {
     public:
 
+        constexpr static const char* DefaultCryptProvider="hatnopenssl";
+
         App(AppName appName);
         ~App();
 
@@ -220,6 +222,15 @@ class HATN_APP_EXPORT App
         {
             return m_env->get<Threads>();
         }
+
+        void setDefaultCipherSuiteId(std::string id);
+        std::string defaultCipherSuiteId() const;
+
+        void setDefaultCryptProviderId(std::string id);
+        std::string defaultCryptProviderId() const;
+
+        Error setPreloadedCipherSuites(const std::vector<std::string>& suitesJson);
+        std::vector<std::shared_ptr<HATN_CRYPT_NAMESPACE::CipherSuite>> preloadedCipherSuites() const;
 
         static void registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema);
         static void unregisterDbSchema(const std::string& name);
