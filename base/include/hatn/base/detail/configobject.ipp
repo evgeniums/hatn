@@ -197,7 +197,8 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
                     for (size_t i=0; i<arr->size(); i++)
                     {
                         auto& subfield=field.createAndAppendValue();
-                        auto ec=loadConfig(subfield,configTree,p.copyAppend(i),checkRequired);
+                        auto* mutableSubfield=subfield.mutableValue();
+                        auto ec=loadConfig(*mutableSubfield,configTree,p.copyAppend(i),checkRequired);
                         HATN_CHECK_EC(ec)
                     }
                 }
@@ -234,7 +235,7 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
 }
 
 template <typename ObjT>
-void fillLogRecords(ObjT obj, const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentPath="")
+void fillLogRecords(const ObjT& obj, const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentPath="")
 {
     auto handler=[&logSettings,&records,&parentPath](auto&& field, auto&&)
     {
@@ -297,7 +298,7 @@ void fillLogRecords(ObjT obj, const config_object::LogSettings& logSettings, con
                                 for (size_t i=0;i<_s(_(field)).count();i++)
                                 {
                                     auto nextPath=fmt::format("{}.{}",_s(_(path)),i);
-                                    fillLogRecords(_s(_(field)).at(i),_s(_(logSettings)),_s(_(records)),nextPath);
+                                    fillLogRecords(_s(_(field)).at(i).value(),_s(_(logSettings)),_s(_(records)),nextPath);
                                 }
                                 return std::string();
                             },

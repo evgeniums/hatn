@@ -118,16 +118,14 @@ class ConfigObject
             return _CFG;
         }
 
-    protected:
-
-        Traits _CFG;
-
-    private:
-
         void fillLogRecords(const config_object::LogSettings& logSettings, config_object::LogRecords& records, const std::string& parentLogPath="");
 
         template <typename ValidatorT>
         Error validate(const ConfigTreePath& path, const ValidatorT& validator);
+
+    protected:
+
+        Traits _CFG;
 };
 
 HATN_BASE_NAMESPACE_END
