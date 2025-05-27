@@ -93,6 +93,7 @@
     Do(CryptError,INVALID_IV_SIZE,_TR("Invalid size of initialization vector","crypt")) \
     Do(CryptError,SNI_NOT_SUPPORTED,_TR("SNI extension not supported by TLS plugin","crypt")) \
     Do(CryptError,ECH_NOT_SUPPORTED,_TR("ECH extension not supported by TLS plugin","crypt")) \
+    Do(CryptError,CRYPT_PLUGIN_FAILED,_TR("failed to load cryptogtaphic plugin","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
