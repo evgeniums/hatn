@@ -20,6 +20,8 @@
 #ifndef HATNCRYPTCIPHERSUITE_H
 #define HATNCRYPTCIPHERSUITE_H
 
+#include <memory>
+
 #include <hatn/crypt/crypt.h>
 
 #include <hatn/common/objectid.h>
@@ -82,10 +84,17 @@ class HATN_CRYPT_EXPORT CipherSuite
         common::Error loadFromJSON(const ContainerT& json)
         {
             clearRawStorage();
-            if (!m_suite->loadFromJSON(json))
+            auto wasEnabledTl=du::RawError::isEnabledTL();
+            du::RawError::setEnabledTL(true);
+            //! @todo Implement in data uint
+            auto ok=m_suite->loadFromJSON(json);
+            if (!ok)
             {
-                return cryptError(CryptError::CIPHER_SUITE_JSON_FAILED);
+                auto ec=common::chainError(cryptError(CryptError::CIPHER_SUITE_JSON_FAILED),du::RawError::threadLocal().message);
+                du::RawError::setEnabledTL(wasEnabledTl);
+                return ec;
             }
+            du::RawError::setEnabledTL(wasEnabledTl);
             return common::Error();
         }
 
@@ -100,9 +109,10 @@ class HATN_CRYPT_EXPORT CipherSuite
         static std::shared_ptr<CipherSuite> fromJSON(const ContainerT& json)
         {
             auto suite=std::make_shared<CipherSuite>();
-            if (!suite->loadFromJSON(json))
+            auto ec=suite->loadFromJSON(json);
+            if (ec)
             {
-                throw common::ErrorException(cryptError(CryptError::CIPHER_SUITE_JSON_FAILED));
+                throw common::ErrorException(ec);
             }
             return suite;
         }
@@ -376,6 +386,8 @@ class HATN_CRYPT_EXPORT CipherSuites
         //! Get default suite
         const CipherSuite* defaultSuite() const noexcept;
 
+        Error setDefaultSuite(lib::string_view suiteId);
+
         /**
          * @brief Add suite to set
          * @param suite Suite
@@ -388,11 +400,17 @@ class HATN_CRYPT_EXPORT CipherSuites
          * @return Found suite or nullptr
          */
         const CipherSuite* suite(const CipherSuite::IdType& id) const noexcept;
+        const CipherSuite* suite(lib::string_view id) const noexcept
+        {
+            return suite(id.data(),id.size());
+        }
         const CipherSuite* suite(const char* id,size_t idLength) const noexcept
         {
             CipherSuite::IdType key(id,idLength,true);
             return suite(key);
         }
+
+        std::shared_ptr<CipherSuite> suiteShared(lib::string_view id) const noexcept;
 
         /**
          * @brief Overloaded method to find suite

@@ -601,6 +601,17 @@ const CipherSuite* CipherSuites::suite(const CipherSuite::IdType &key) const noe
 }
 
 //---------------------------------------------------------------
+std::shared_ptr<CipherSuite> CipherSuites::suiteShared(lib::string_view id) const noexcept
+{
+    auto it=m_suites.find(id);
+    if (it!=m_suites.end())
+    {
+        return it->second;
+    }
+    return std::shared_ptr<CipherSuite>{};
+}
+
+//---------------------------------------------------------------
 void CipherSuites::addSuite(std::shared_ptr<CipherSuite> suite)
 {
     suite->setSuites(this);
@@ -616,6 +627,19 @@ void CipherSuites::addSuite(std::shared_ptr<CipherSuite> suite)
 void CipherSuites::setDefaultSuite(std::shared_ptr<CipherSuite> suite) noexcept
 {
     m_defaultSuite=std::move(suite);
+}
+
+//---------------------------------------------------------------
+Error CipherSuites::setDefaultSuite(lib::string_view suiteId)
+{
+    auto s=suiteShared(suiteId);
+    if (!s)
+    {
+        return cryptError((CryptError::INVALID_CIPHER_SUITE));
+    }
+
+    m_defaultSuite=std::move(s);
+    return OK;
 }
 
 //---------------------------------------------------------------
