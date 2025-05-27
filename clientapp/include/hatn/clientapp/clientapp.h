@@ -50,6 +50,13 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         Dispatcher& bridge();
 
+        virtual Error init();
+
+        virtual HATN_NAMESPACE::Error preloadConfig()
+        {
+            return OK;
+        }
+
         virtual Error initBridgeServices()
         {
             return OK;

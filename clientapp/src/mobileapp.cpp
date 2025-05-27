@@ -88,27 +88,34 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     // set application folder
     pimpl->app->app().setAppDataFolder(std::move(dataDir));
 
-    // load configuration file
-    auto ec=pimpl->app->app().loadConfigFile(configFile);
+    // [reloaf app config
+    auto ec=pimpl->app->preloadConfig();
     if (ec)
     {
         return -1;
+    }
+
+    // load configuration file
+    ec=pimpl->app->app().loadConfigFile(configFile);
+    if (ec)
+    {
+        return -2;
     }
 
     // init platform context
     ec=platformCtx->init(this);
     if (ec)
     {
-        return -2;
+        return -3;
     }
     pimpl->platformCtx=platformCtx;
 
     // init app
-    ec=pimpl->app->app().init();
+    ec=pimpl->app->init();
     if (ec)
     {
         close();
-        return -3;
+        return -4;
     }
 
     // set default env of client bridge
@@ -119,7 +126,7 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     if (ec)
     {
         close();
-        return -4;
+        return -5;
     }
 
     // init bridge services
@@ -127,7 +134,7 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     if (ec)
     {
         close();
-        return -5;
+        return -6;
     }
 
     // log info

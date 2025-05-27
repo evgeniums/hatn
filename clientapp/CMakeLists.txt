@@ -18,14 +18,17 @@ SET (SOURCES
 IF(BUILD_ANDROID OR BUILD_IOS)
 
     SET (HEADERS
+        ${HEADERS}
         include/hatn/clientapp/mobileapp.h
         include/hatn/clientapp/mobileplatformcontext.h        
         include/hatn/clientapp/testservicedb.h
     )
 
     SET (SOURCES
+        ${SOURCES}
         src/mobileapp.cpp
         src/mobileplatformcontext.cpp
+        src/testservicedb.cpp
     )
 
 ENDIF()
