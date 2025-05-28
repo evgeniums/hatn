@@ -190,6 +190,14 @@ class HATN_COMMON_EXPORT MemoryLockedArray
             load(data,size);
         }
 
+        //! Ctor from string view
+        MemoryLockedArray(
+                lib::string_view data
+            )
+        {
+            load(data.data(),data.size());
+        }
+
         /**
          * @brief Copy ctor
          */
