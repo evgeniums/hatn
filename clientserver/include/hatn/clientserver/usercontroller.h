@@ -54,14 +54,6 @@ class UserController : public common::WithTraits<Traits>
         //! @todo Implement the rest user operations
 };
 
-//! @todo Remove placeholder
-class HATN_CLIENT_SERVER_EXPORT LibPlaceHolder
-{
-    public:
-
-        LibPlaceHolder();
-};
-
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNUSERCONTROLLER_H
