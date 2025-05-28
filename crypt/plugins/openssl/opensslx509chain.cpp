@@ -120,6 +120,8 @@ Error OpenSslX509Chain::addCertificate(const X509Certificate &crt)
     }
 
     auto nativeCrt=cert->nativeHandler().handler;
+
+    //! @todo critical: Check errors
     ::X509_up_ref(nativeCrt);
     ::sk_X509_push(nativeHandler().handler,nativeCrt);
 
