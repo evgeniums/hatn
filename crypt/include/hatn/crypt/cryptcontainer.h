@@ -93,6 +93,15 @@ class HATN_CRYPT_EXPORT CryptContainer
         inline const SymmetricKey* masterKey() const noexcept;
 
         /**
+         * @brief Set passphrase for master key construction.
+         * @param passphrase Passphrase the master key will be constructed with.
+         */
+        inline void setPassphrase(common::MemoryLockedArray passphrase);
+
+        //! Get passphrase
+        inline const common::MemoryLockedArray& passphrase() const noexcept;
+
+        /**
          * @brief Set type of key derivation function
          * @param type KDF type
          */
@@ -306,9 +315,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         );
 
         /**
-         * @brief Unpack header from container
-         * @param container Source container
-         * @param unpackInline Unpack header inline without copying the unerlying contents of string and byte fields
+         * @brief Unpack descriptor from container
          * @return Operation status
          *
          * After unpacking container's descriptor the cipher suite will be looked for by ID or constructed directly if the suite's descriptor
@@ -526,6 +533,9 @@ class HATN_CRYPT_EXPORT CryptContainer
         bool m_streamingMode;
 
         const CipherSuites* m_suites;
+
+        common::MemoryLockedArray m_passphrase;
+        common::SharedPtr<PassphraseKey> m_passphraseMasterKey;
 };
 
 HATN_CRYPT_NAMESPACE_END

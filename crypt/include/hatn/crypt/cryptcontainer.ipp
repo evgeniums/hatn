@@ -42,6 +42,17 @@ inline const SymmetricKey* CryptContainer::masterKey() const noexcept
     return m_masterKey;
 }
 
+inline void CryptContainer::setPassphrase(common::MemoryLockedArray passphrase)
+{
+    m_passphrase=std::move(passphrase);
+}
+
+//---------------------------------------------------------------
+inline const common::MemoryLockedArray& CryptContainer::passphrase() const noexcept
+{
+    return m_passphrase;
+}
+
 //---------------------------------------------------------------
 inline void CryptContainer::setKdfType(container_descriptor::KdfType type) noexcept
 {
@@ -414,6 +425,7 @@ common::Error CryptContainer::unpackDescriptor(
         const ContainerT& container
     )
 {
+    // deserialize descriptor
     if (!du::io::deserializeInline(m_descriptor,container))
     {
         return cryptError(CryptError::PARSE_CONTAINER_FAILED);
@@ -423,6 +435,7 @@ common::Error CryptContainer::unpackDescriptor(
     std::cout << "Unpacked descriptor " << m_descriptor.toString(true) << std::endl;
 #endif
 
+    // find suite
     const auto& suiteField=m_descriptor.field(container_descriptor::cipher_suite);
     if (suiteField.isSet())
     {
@@ -445,6 +458,17 @@ common::Error CryptContainer::unpackDescriptor(
             return cryptError(CryptError::INVALID_CIPHER_SUITE);
         }
     }
+
+    // create master key from passphrase if not set yet
+    if (m_masterKey==nullptr)
+    {
+        Error ec;
+        m_passphraseMasterKey=m_cipherSuite->createPassphraseKey(ec);
+        HATN_CHECK_EC(ec)
+        m_passphraseMasterKey->set(std::move(m_passphrase));
+    }
+
+    // done
     return OK;
 }
 
