@@ -8,7 +8,7 @@
 /*
 
 */
-/** @file clientserver/admindb.сpp
+/** @file clientserver/clientserver.сpp
   *
   */
 
