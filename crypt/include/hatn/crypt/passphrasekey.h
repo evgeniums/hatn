@@ -53,6 +53,26 @@ class PassphraseKey : public SymmetricKey
             setFormat(ContainerFormat::RAW_PLAIN);
         }
 
+        //! Ctor from ByteArray
+        void set(common::MemoryLockedArray data) noexcept
+        {
+            setFormat(ContainerFormat::RAW_PLAIN);
+            setContent(std::move(data));
+        }
+
+        //! Ctor from data container
+        template <typename ContainerT>
+        void set(const ContainerT& container)
+        {
+            loadContent(container,ContainerFormat::RAW_PLAIN);
+        }
+
+        //! Ctor from data
+        void set(const char* buf, size_t size)
+        {
+            loadContent(buf,size,ContainerFormat::RAW_PLAIN);
+        }
+
         virtual uint32_t role() const noexcept override
         {
             return roleInt(Role::PASSPHRASE);
