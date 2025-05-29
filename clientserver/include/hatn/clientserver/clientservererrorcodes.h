@@ -27,7 +27,7 @@
 #define HATN_CLIENTSERVER_ERRORS(Do) \
     Do(ClientServerError,OK,_TR("OK")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DESERIALIZATION,_TR("failed to deserialize account configuration","clientserver")) \
-    Do(ClientServerError,ACCOUNT_CONFIG_ENCRYPTED,_TR("passphrase required to decrypt account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_PASSPHRASE_REQUIRED,_TR("passphrase required to decrypt account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DATA_DESERIALIZATION,_TR("failed to deserialize data of account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("failed to decrypt data of account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_EXPIRED,_TR("account configuration expired","clientserver")) \

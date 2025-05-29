@@ -52,7 +52,7 @@ Result<common::SharedPtr<account_config::managed>> parseAccountConfigT::operator
     {
         if (password.empty())
         {
-            return common::chainErrors(std::move(ec),clientServerError(ClientServerError::ACCOUNT_CONFIG_ENCRYPTED));
+            return clientServerError(ClientServerError::ACCOUNT_CONFIG_PASSPHRASE_REQUIRED);
         }
 
         crypt::CryptContainer decryptor;
