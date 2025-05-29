@@ -502,7 +502,7 @@ class HATN_CRYPT_EXPORT CryptContainer
 
         inline common::Error checkOrCreateDecryptor();
 
-        const SymmetricKey* m_masterKey;
+        mutable const SymmetricKey* m_masterKey;
         const SymmetricKey* m_encryptionKey;
         common::SharedPtr<SymmetricKey> m_encryptionKeyHolder;
         const CryptAlgorithm* m_aeadAlg;
@@ -535,7 +535,7 @@ class HATN_CRYPT_EXPORT CryptContainer
         const CipherSuites* m_suites;
 
         common::MemoryLockedArray m_passphrase;
-        common::SharedPtr<PassphraseKey> m_passphraseMasterKey;
+        mutable common::SharedPtr<PassphraseKey> m_passphraseMasterKey;
 };
 
 HATN_CRYPT_NAMESPACE_END

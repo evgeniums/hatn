@@ -465,7 +465,7 @@ common::Error CryptContainer::unpackDescriptor(
         Error ec;
         m_passphraseMasterKey=m_cipherSuite->createPassphraseKey(ec);
         HATN_CHECK_EC(ec)
-        m_passphraseMasterKey->set(std::move(m_passphrase));
+        m_passphraseMasterKey->set(m_passphrase);
     }
 
     // done
@@ -885,7 +885,17 @@ inline common::Error CryptContainer::checkState() const noexcept
     }
     if (m_masterKey==nullptr)
     {
-        return cryptError(CryptError::INVALID_KEY);
+        if (m_passphrase.empty())
+        {
+            return cryptError(CryptError::INVALID_KEY);
+        }
+
+        // create master key from passphrase if not set yet
+        Error ec;
+        m_passphraseMasterKey=m_cipherSuite->createPassphraseKey(ec);
+        HATN_CHECK_EC(ec)
+        m_passphraseMasterKey->set(m_passphrase);
+        m_masterKey=m_passphraseMasterKey.get();
     }
     return OK;
 }
