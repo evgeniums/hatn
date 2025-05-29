@@ -271,7 +271,7 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
         template <typename T>
         bool is(T code, const ErrorCategory& cat) const noexcept
         {
-            if (!isType(Type::Default))
+            if (!isType(Type::Default) && !isType(Type::Native))
             {
                 return false;
             }
