@@ -192,8 +192,16 @@ class HATN_COMMON_EXPORT MemoryLockedArray
 
         //! Ctor from string view
         MemoryLockedArray(
-                lib::string_view data
-            )
+            lib::string_view data
+        )
+        {
+            load(data.data(),data.size());
+        }
+
+        //! Ctor from string
+        MemoryLockedArray(
+            const std::string& data
+        )
         {
             load(data.data(),data.size());
         }
