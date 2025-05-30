@@ -41,6 +41,13 @@ class UnitWrapper
         {}
 
         template <typename T>
+        UnitWrapper& operator =(HATN_COMMON_NAMESPACE::SharedPtr<T> sharedUnit)
+        {
+            m_shared=sharedUnit.template staticCast<Unit>();
+            return *this;
+        }
+
+        template <typename T>
         T* unit()
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>,"T must be of Unit type");
