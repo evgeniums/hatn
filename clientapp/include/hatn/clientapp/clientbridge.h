@@ -128,6 +128,27 @@ class HATN_CLIENTAPP_EXPORT Method
             return MessageBuilderFn{};
         }
 
+        template <typename T>
+        auto messageTypeT() const
+        {
+            return T::name;
+        }
+
+        template <typename T>
+        auto messageBuilderT() const
+        {
+            return [](const std::string& messageJson) -> Result<du::UnitWrapper>
+            {
+                auto msg=common::makeShared<T>();
+
+                Error ec;
+                msg->loadFromJSON(messageJson,ec);
+                HATN_CHECK_EC(ec)
+
+                return msg;
+            };
+        }
+
     private:
 
         std::string m_name;
