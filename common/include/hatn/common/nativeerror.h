@@ -26,6 +26,7 @@
 #include <hatn/common/errorcategory.h>
 #include <hatn/common/apierror.h>
 #include <hatn/common/error.h>
+#include <hatn/common/commonerrorcodes.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -288,6 +289,13 @@ inline Error chainErrors(Error&& prev,Error&& ec)
 {
     ec.setPrevError(std::move(prev));
     return std::move(ec);
+}
+
+inline Error genericError(std::string message, CommonError code=CommonError::GENERIC_ERROR)
+{
+    auto native=std::make_shared<NativeError>(message);
+    auto ec=Error{code,std::move(native)};
+    return ec;
 }
 
 //---------------------------------------------------------------

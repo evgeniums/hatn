@@ -50,6 +50,7 @@
     Do(CommonError,INVALID_COMMAND_LINE_ARGUMENTS,_TR("invalid command line arguments","common")) \
     Do(CommonError,VALIDATION_ERROR,_TR("validation error","common")) \
     Do(CommonError,INVALID_FORMAT,_TR("invalid data format","common")) \
+    Do(CommonError,GENERIC_ERROR,_TR("generic error","common")) \
 
 HATN_COMMON_NAMESPACE_BEGIN
 
