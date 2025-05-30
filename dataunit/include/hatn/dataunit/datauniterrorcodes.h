@@ -27,7 +27,8 @@
 #define HATN_DATAUNIT_ERRORS(Do) \
     Do(UnitError,OK,_TR("OK")) \
     Do(UnitError,PARSE_ERROR,_TR("failed to parse object","dataunit")) \
-    Do(UnitError,SERIALIZE_ERROR,_TR("failed to serialize object","dataunit"))
+    Do(UnitError,SERIALIZE_ERROR,_TR("failed to serialize object","dataunit")) \
+    Do(UnitError,JSON_PARSE_ERROR,_TR("failed to parse JSON","dataunit")) \
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
