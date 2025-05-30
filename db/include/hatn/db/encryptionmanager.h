@@ -186,7 +186,7 @@ class HATN_DB_EXPORT EncryptionManager
 #endif
             // split file name to db path and file subpath
             auto nameParts=splitPath(fname);
-            auto key=dbKey(nameParts.first);            
+            auto key=dbKey(nameParts.first);
 
             // create file
             auto file=std::make_unique<T>(key.get(),m_suite.get(),m_factory);
