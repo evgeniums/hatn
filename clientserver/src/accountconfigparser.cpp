@@ -74,6 +74,19 @@ Result<common::SharedPtr<account_config::managed>> parseAccountConfigT::operator
         return common::chainErrors(std::move(ec),clientServerError(ClientServerError::ACCOUNT_CONFIG_DATA_DESERIALIZATION));
     }
 
+    // done
+    return accountConfig;
+}
+
+//--------------------------------------------------------------------------
+
+Error checkAccountConfigT::operator () (
+        const crypt::CipherSuites* cipherSuites,
+        const account_config::managed* accountConfig
+    ) const
+{
+    std::ignore=cipherSuites;
+
     if (accountConfig->field(account_config::valid_till).fieldIsSet())
     {
         auto now=common::DateTime::currentUtc();
@@ -88,7 +101,7 @@ Result<common::SharedPtr<account_config::managed>> parseAccountConfigT::operator
     //! @todo check signature
 
     // done
-    return accountConfig;
+    return OK;
 }
 
 //--------------------------------------------------------------------------

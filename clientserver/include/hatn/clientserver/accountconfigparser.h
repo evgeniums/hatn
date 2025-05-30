@@ -41,6 +41,17 @@ class parseAccountConfigT
 };
 constexpr parseAccountConfigT parseAccountConfig{};
 
+class checkAccountConfigT
+{
+    public:
+
+        Error operator () (
+            const crypt::CipherSuites* cipherSuites,
+            const account_config::managed* accountConfig
+        ) const;
+};
+constexpr checkAccountConfigT checkAccountConfig{};
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNACCOUNTCONFIGPARSER_H
