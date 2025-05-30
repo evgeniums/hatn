@@ -127,6 +127,7 @@ template <typename T>
 void setSchemaToClient(std::shared_ptr<Client> client, const T& schema)
 {
     auto ec=client->setSchema(schema);
+    HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
     auto s=client->schema();
     BOOST_REQUIRE(!s);
