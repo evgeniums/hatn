@@ -340,19 +340,33 @@ class HATN_DATAUNIT_EXPORT Unit
             return loadFromJSON(common::lib::string_view(container.data(),container.size()));
         }
 
+        template <typename ContainerT>
+        bool loadFromJSON(const ContainerT& container, Error& ec)
+        {
+            return loadFromJSON(common::lib::string_view(container.data(),container.size()),ec);
+        }
+
         /**
          * @brief Load DataUnit from JSON
          * @param str JSON formatted string
          * @return Status of parsing
          */
         bool loadFromJSON(const common::lib::string_view& str);
+
         bool loadFromJSON(const char* buf, size_t size)
         {
             common::lib::string_view view(buf,size);
             return loadFromJSON(view);
         }
 
-        //! @todo Load from JSON with ec.
+        bool loadFromJSON(const char* buf, size_t size, Error& ec)
+        {
+            common::lib::string_view view(buf,size);
+            return loadFromJSON(view,ec);
+        }
+
+        // Load from JSON with eerror code
+        bool loadFromJSON(const common::lib::string_view& str, Error& ec);
 
         void pushJsonParseHandler(const JsonParseHandler& handler);
 

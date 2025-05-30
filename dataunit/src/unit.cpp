@@ -396,6 +396,24 @@ bool Unit::loadFromJSON(const common::lib::string_view &str)
 }
 
 //---------------------------------------------------------------
+bool Unit::loadFromJSON(const common::lib::string_view &str, Error& ec)
+{
+    auto prevEcEnabled=RawError::isEnabledTL();
+    RawError::setEnabledTL(true);
+
+    auto ok=loadFromJSON(str);
+    if (!ok)
+    {
+        fillError(UnitError::JSON_PARSE_ERROR,ec);
+        RawError::setEnabledTL(prevEcEnabled);
+        return ec;
+    }
+
+    RawError::setEnabledTL(prevEcEnabled);
+    return ok;
+}
+
+//---------------------------------------------------------------
 void Unit::pushJsonParseHandler(const JsonParseHandler &handler)
 {
     m_jsonParseHandlers.push_back(handler);
