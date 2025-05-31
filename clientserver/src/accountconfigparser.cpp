@@ -16,6 +16,7 @@
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptcontainer.h>
