@@ -29,7 +29,7 @@ HATN_CRYPT_NAMESPACE_END
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-class parseAccountConfigT
+class HATN_CLIENT_SERVER_EXPORT parseAccountConfigT
 {
     public:
 
@@ -41,7 +41,7 @@ class parseAccountConfigT
 };
 constexpr parseAccountConfigT parseAccountConfig{};
 
-class checkAccountConfigT
+class HATN_CLIENT_SERVER_EXPORT checkAccountConfigT
 {
     public:
 

@@ -24,7 +24,7 @@
 #include <hatn/common/visibilitymacros.h>
 
 #ifndef HATN_CLIENT_SERVER_EXPORT
-#   ifdef BUILD_HATN_CLIENT_SERVER
+#   ifdef BUILD_HATN_CLIENTSERVER
 #       define HATN_CLIENT_SERVER_EXPORT HATN_VISIBILITY_EXPORT
 #   else
 #       define HATN_CLIENT_SERVER_EXPORT HATN_VISIBILITY_IMPORT

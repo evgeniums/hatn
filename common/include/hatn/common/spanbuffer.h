@@ -42,16 +42,16 @@ class SpanBuffer
         SpanBuffer(const ByteArray& container, size_t spanOffset=0, size_t spanSize=0) noexcept
             : SpanBuffer(container.data(),container.size(),spanOffset,spanSize)
         {}
-        SpanBuffer(const MemoryLockedArray& container, size_t spanOffset=0, size_t spanSize=0) noexcept
-            : SpanBuffer(container.data(),container.size(),spanOffset,spanSize)
-        {}
+
         SpanBuffer(const ConstDataBuf& container, size_t spanOffset=0, size_t spanSize=0) noexcept
             : SpanBuffer(container.data(),container.size(),spanOffset,spanSize)
         {}
+
         template <size_t Capacity, bool ThrowOnOverflow>
         SpanBuffer(const FixedByteArray<Capacity,ThrowOnOverflow>& container, size_t spanOffset=0, size_t spanSize=0) noexcept
             : SpanBuffer(container.data(),container.size(),spanOffset,spanSize)
         {}
+
         template <template <typename ...> class T>
         SpanBuffer(const T<char>& container, size_t spanOffset=0, size_t spanSize=0) noexcept
             : SpanBuffer(container.data(),container.size(),spanOffset,spanSize)
