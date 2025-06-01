@@ -356,7 +356,7 @@ struct EnvTraits
             boost::hana::is_a<EnvTag,lastT>,
             [&](auto _)
             {
-                // if last type is base env then frop it from tuple and set as second member of pair
+                // if last type is base env then drop it from tuple and set as second member of pair
                 return boost::hana::make_pair(boost::hana::drop_back(_(xs)),_(last));
             },
             [&](auto _)
