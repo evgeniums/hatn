@@ -355,18 +355,32 @@ inline Error chainAndLogError(Error&& prevEc, std::string message, const char* m
     return ec;
 }
 
+inline Error chainAndLogError(Error&& prevEc, Error&& error)
+{
+    auto ec=common::chainErrors(std::move(prevEc),std::move(error));
+    HATN_CTX_ERROR(ec,"");
+    return ec;
+}
+
+inline Error chainAndLogError(Error&& prevEc, Error&& error, const char* module)
+{
+    auto ec=common::chainErrors(std::move(prevEc),std::move(error));
+    HATN_CTX_ERROR(ec,"",module);
+    return ec;
+}
+
 HATN_NAMESPACE_END
 
 #define HATN_CHECK_CHAIN_LOG_EC2(ec, msg) \
     if (ec) \
     { \
-            return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg); \
+        return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg); \
     }
 
 #define HATN_CHECK_CHAIN_LOG_EC3(ec, msg, module) \
     if (ec) \
     { \
-            return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg,module); \
+        return HATN_NAMESPACE::chainAndLogError(std::move(ec),msg,module); \
     }
 
 #define HATN_CHECK_CHAIN_LOG_EC(...) \
