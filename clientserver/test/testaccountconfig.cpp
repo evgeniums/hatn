@@ -14,6 +14,7 @@
 #include <hatn_test_config.h>
 
 #include <hatn/common/format.h>
+#include <hatn/thirdparty/sha1/sha1.h>
 
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/ciphersuite.h>
@@ -68,7 +69,8 @@ struct TestConfig
 
 BOOST_FIXTURE_TEST_SUITE(TestAccountConfig,CryptTestFixture)
 
-static void checkAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::string& path, const TestConfig& cfg)
+static void testAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::string& path, const TestConfig& cfg,
+                               std::string userName="user1", std::string serverName="server1")
 {
     auto suites=prepareCipherSuite(plugin,path);
 
@@ -79,13 +81,15 @@ static void checkAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::
     }
     else
     {
-        validTill1.addDays(1);
+        validTill1.addYears(1);
     }
 
     account_config::type cfg1;
     cfg1.setFieldValue(account_config::valid_till,validTill1);
-    cfg1.setFieldValue(account_config::user_name,"user1");
-    cfg1.setFieldValue(account_config::server_name,"server1");
+    cfg1.setFieldValue(account_config::config_id,du::ObjectId::generateId());
+    cfg1.setFieldValue(account_config::user_name,userName);
+    cfg1.setFieldValue(account_config::server_name,serverName);
+    cfg1.setFieldValue(account_config::server_id,common::SHA1::containerHash(serverName));
     cfg1.setFieldValue(account_config::user_token,"AAAA2222444");
     BOOST_TEST_MESSAGE("cfg1 before parsing");
     auto cfg1Str=cfg1.toString(true);
@@ -131,22 +135,22 @@ static void checkAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::
         {
             if (cfg.expired)
             {
-                fileName=fmt::format("{}/account-config-encrypted-expired.dat",path);
+                fileName=fmt::format("{}/accfg-encrypted-expired-{}-{}.accfg",path,userName,serverName);
             }
             else
             {
-                fileName=fmt::format("{}/account-config-encrypted.dat",path);
+                fileName=fmt::format("{}/accfg-encrypted-{}-{}.accfg",path,userName,serverName);
             }
         }
         else
         {
             if (cfg.expired)
             {
-                fileName=fmt::format("{}/account-config-expired.dat",path);
+                fileName=fmt::format("{}/accfg-expired-{}-{}.accfg",path,userName,serverName);
             }
             else
             {
-                fileName=fmt::format("{}/account-config.dat",path);
+                fileName=fmt::format("{}/accfg-{}-{}.accfg",path,userName,serverName);
             }
         }
 
@@ -183,12 +187,6 @@ static void checkAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::
             return;
         }
     }
-    if (cfg.expired)
-    {
-        BOOST_REQUIRE(r);
-        BOOST_CHECK(r.error().is(ClientServerError::ACCOUNT_CONFIG_EXPIRED,ClientServerErrorCategory::getCategory()));
-        return;
-    }
     if (cfg.mailformed)
     {
         BOOST_REQUIRE(r);
@@ -197,6 +195,14 @@ static void checkAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::
                 ||
                 r.error().is(ClientServerError::ACCOUNT_CONFIG_DATA_DESERIALIZATION,ClientServerErrorCategory::getCategory())
             );
+        return;
+    }
+    BOOST_REQUIRE(!r);
+    auto ec=checkAccountConfig(suites.get(),r.value().get());
+    if (cfg.expired)
+    {
+        BOOST_REQUIRE(ec);
+        BOOST_CHECK(ec.is(ClientServerError::ACCOUNT_CONFIG_EXPIRED,ClientServerErrorCategory::getCategory()));
         return;
     }
 
@@ -216,7 +222,7 @@ BOOST_AUTO_TEST_CASE(CheckNotEncrypted)
         [](std::shared_ptr<CryptPlugin>& plugin)
         {
             TestConfig cfg;
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user1","server1");
         }
     );
 }
@@ -228,7 +234,7 @@ BOOST_AUTO_TEST_CASE(CheckNotEncryptedExpired)
         {
             TestConfig cfg;
             cfg.expired=true;
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user2","server1");
         }
     );
 }
@@ -240,8 +246,8 @@ BOOST_AUTO_TEST_CASE(CheckEncrypted)
         {
             TestConfig cfg;
             cfg.encrypted=true;
-            cfg.passphrase="blablablabla";
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            cfg.passphrase="samplepassphrase";
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user1","server2");
         }
     );
 }
@@ -253,9 +259,9 @@ BOOST_AUTO_TEST_CASE(CheckEncryptedMissingPassphrase)
         {
             TestConfig cfg;
             cfg.encrypted=true;
-            cfg.passphrase="blablablabla";
+            cfg.passphrase="samplepassphrase";
             cfg.missingPassphrase=true;
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user2","server2");
         }
     );
 }
@@ -267,9 +273,9 @@ BOOST_AUTO_TEST_CASE(CheckEncryptedInvalidPassphrase)
         {
             TestConfig cfg;
             cfg.encrypted=true;
-            cfg.passphrase="blablablabla";
+            cfg.passphrase="samplepassphrase";
             cfg.invalidPassphrase=true;
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user1","server3");
         }
     );
 }
@@ -282,8 +288,8 @@ BOOST_AUTO_TEST_CASE(CheckEncryptedExpired)
             TestConfig cfg;
             cfg.encrypted=true;
             cfg.expired=true;
-            cfg.passphrase="blablablabla";
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            cfg.passphrase="samplepassphrase";
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user2","server3");
         }
     );
 }
@@ -295,7 +301,31 @@ BOOST_AUTO_TEST_CASE(CheckMailformed)
         {
             TestConfig cfg;
             cfg.mailformed=true;
-            checkAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg);
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user1","server4");
+        }
+    );
+}
+
+BOOST_AUTO_TEST_CASE(CheckNotEncryptedOtherUser)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            TestConfig cfg;
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user2","server4");
+        }
+    );
+}
+
+BOOST_AUTO_TEST_CASE(CheckEncryptedOtherUser)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            TestConfig cfg;
+            cfg.encrypted=true;
+            cfg.passphrase="samplepassphrase3";
+            testAccountConfig(plugin,PluginList::assetsPath("clientserver"),cfg,"user1","server5");
         }
     );
 }
