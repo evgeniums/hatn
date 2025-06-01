@@ -249,9 +249,16 @@ template <typename T>
 bool Unit::toJSONImpl(
         T &buf,
         bool prettyFormat,
-        int maxDecimalPlaces
+        int maxDecimalPlaces,
+        Error* ec
     ) const
 {
+    auto prevEcEnabled=RawError::isEnabledTL();
+    if (ec!=nullptr)
+    {
+        RawError::setEnabledTL(true);
+    }
+
     bool ok=true;
     auto initialSize=buf.size();
 
@@ -277,6 +284,16 @@ bool Unit::toJSONImpl(
     {
         buf.resize(initialSize);
     }
+
+    if (ec!=nullptr)
+    {
+        if (!ok)
+        {
+            fillError(UnitError::JSON_SERIALIZE_ERROR,*ec);
+        }
+        RawError::setEnabledTL(prevEcEnabled);
+    }
+
     return ok;
 }
 
@@ -411,6 +428,14 @@ bool Unit::loadFromJSON(const common::lib::string_view &str, Error& ec)
 
     RawError::setEnabledTL(prevEcEnabled);
     return ok;
+}
+
+//---------------------------------------------------------------
+Error Unit::toJSONWithEc(common::ByteArray& buf,bool prettyFormat,int maxDecimalPlaces) const
+{
+    Error ec;
+    toJSONImpl(buf,prettyFormat,maxDecimalPlaces,&ec);
+    return ec;
 }
 
 //---------------------------------------------------------------

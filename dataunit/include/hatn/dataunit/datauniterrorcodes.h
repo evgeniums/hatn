@@ -29,6 +29,7 @@
     Do(UnitError,PARSE_ERROR,_TR("failed to parse object","dataunit")) \
     Do(UnitError,SERIALIZE_ERROR,_TR("failed to serialize object","dataunit")) \
     Do(UnitError,JSON_PARSE_ERROR,_TR("failed to parse JSON","dataunit")) \
+    Do(UnitError,JSON_SERIALIZE_ERROR,_TR("failed to serialize to JSON","dataunit")) \
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 

@@ -326,6 +326,11 @@ class HATN_DATAUNIT_EXPORT Unit
 
         bool toJSON(json::Writer* writer) const;
 
+        Error toJSONWithEc(common::ByteArray& buf,
+            bool prettyFormat=false,
+            int maxDecimalPlaces=0
+        ) const;
+
         /**
          * @brief Serialize DataUnit to string in JSON format
          * @param prettyFormat Add line endings and identations
@@ -427,7 +432,8 @@ class HATN_DATAUNIT_EXPORT Unit
         template <typename T>
         bool toJSONImpl(T& buf,
           bool prettyFormat=false,
-          int maxDecimalPlaces=0
+          int maxDecimalPlaces=0,
+          Error* ec=nullptr
         ) const;
 
         common::SharedPtr<WireData> m_wireDataKeeper;
