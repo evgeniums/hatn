@@ -255,7 +255,7 @@ int MobileApp::initTests()
     }
 
     pimpl->app->bridge().registerService(
-        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(&pimpl->app->app())
+        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(pimpl->app.get())
     );
 
     return 0;

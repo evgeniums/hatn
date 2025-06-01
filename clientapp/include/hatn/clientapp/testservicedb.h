@@ -59,7 +59,7 @@ class HATN_CLIENTAPP_EXPORT TestServiceDb : public Service
 {
     public:
 
-        TestServiceDb(HATN_APP_NAMESPACE::App* app);
+        TestServiceDb(ClientApp* app);
 };
 
 HATN_CLIENTAPP_NAMESPACE_END

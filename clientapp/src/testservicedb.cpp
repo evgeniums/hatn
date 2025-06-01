@@ -48,8 +48,8 @@ void TestMethodOpenDb::exec(
         autoCreate=request.message.managedUnit<open_db::managed>()->fieldValue(open_db::autocreate);
     }
 
-    auto& withApp=baseAppCtx->get<WithApp>();
-    auto ec=withApp.app()->openDb(autoCreate);
+    auto& withApp=baseAppCtx->get<WithClientApp>();
+    auto ec=withApp.clientApp()->app().openDb(autoCreate);
 
     callback(std::move(ec),std::move(request));
 }
@@ -66,14 +66,14 @@ void TestMethodDestroyDb::exec(
     auto baseAppCtx=ctx.dynamicCast<BridgeAppContext>();
     Assert(baseAppCtx,"invalid context");
 
-    auto& withApp=baseAppCtx->get<WithApp>();
-    auto ec=withApp.app()->destroyDb();
+    auto& withApp=baseAppCtx->get<WithClientApp>();
+    auto ec=withApp.clientApp()->app().destroyDb();
     callback(std::move(ec),std::move(request));
 }
 
 //--------------------------------------------------------------------------
 
-TestServiceDb::TestServiceDb(HATN_APP_NAMESPACE::App* app) : Service("test_db")
+TestServiceDb::TestServiceDb(ClientApp* app) : Service("test_db")
 {
     registerMethod(std::make_shared<TestMethodOpenDb>());
     registerMethod(std::make_shared<TestMethodDestroyDb>());
