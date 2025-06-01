@@ -53,6 +53,13 @@ HATN_APP_NAMESPACE::App& ClientApp::app()
 
 //--------------------------------------------------------------------------
 
+const HATN_APP_NAMESPACE::App& ClientApp::app() const
+{
+    return pimpl->app;
+}
+
+//--------------------------------------------------------------------------
+
 Dispatcher& ClientApp::bridge()
 {
     return pimpl->bridge;

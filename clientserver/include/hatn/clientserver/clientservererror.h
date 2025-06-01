@@ -10,9 +10,9 @@
 /*
 
 */
-/** @file clientServer/clientServererror.h
+/** @file clientserver/clientservererror.h
   *
-  * Contains declarations of error helpers for hatnclientServer lib.
+  * Contains declarations of error helpers for hatnclientserver lib.
   *
   */
 

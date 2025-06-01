@@ -47,6 +47,7 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         ClientApp& operator =(ClientApp&&)=delete;
 
         HATN_APP_NAMESPACE::App& app();
+        const HATN_APP_NAMESPACE::App& app() const;
 
         Dispatcher& bridge();
 

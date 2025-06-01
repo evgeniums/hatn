@@ -45,6 +45,7 @@ HDU_UNIT(account_config,
     HDU_REPEATED_FIELD(server_certificate_chain,TYPE_STRING,7)
     HDU_FIELD(user_token,TYPE_BYTES,8)
     HDU_REPEATED_FIELD(server_route,server_route_hop::TYPE,9)
+    HDU_FIELD(description,TYPE_STRING,10)
 )
 
 HDU_UNIT(account_config_token,

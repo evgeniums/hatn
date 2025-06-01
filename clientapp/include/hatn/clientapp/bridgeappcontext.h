@@ -27,48 +27,44 @@
 #include <hatn/clientapp/clientapp.h>
 #include <hatn/clientapp/clientbridge.h>
 
-HATN_APP_NAMESPACE_BEGIN
-class App;
-HATN_APP_NAMESPACE_END
-
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
-class WithApp
+class WithClientApp
 {
     public:
 
-        WithApp(HATN_APP_NAMESPACE::App* app=nullptr) : m_app(app)
+        WithClientApp(ClientApp* app=nullptr) : m_clientApp(app)
         {}
 
-        void setApp(HATN_APP_NAMESPACE::App* app=nullptr)
+        void setClientApp(ClientApp* app=nullptr) noexcept
         {
-            m_app=app;
+            m_clientApp=app;
         }
 
-        HATN_APP_NAMESPACE::App* app() noexcept
+        ClientApp* clientApp() const noexcept
         {
-            return m_app;
+            return m_clientApp;
         }
 
     private:
 
-        HATN_APP_NAMESPACE::App* m_app;
+        ClientApp* m_clientApp;
 };
 
-using BridgeAppContext=HATN_COMMON_NAMESPACE::TaskContextType<WithApp,HATN_LOGCONTEXT_NAMESPACE::TaskLogContext>;
+using BridgeAppContext=HATN_COMMON_NAMESPACE::TaskContextType<WithClientApp,HATN_LOGCONTEXT_NAMESPACE::TaskLogContext>;
 
 class BridgeAppContextBuilder : public ContextBuilder,
-                              public WithApp
+                                public WithClientApp
 {
     public:
 
-        using WithApp::WithApp;
+        using WithClientApp::WithClientApp;
 
         virtual HATN_COMMON_NAMESPACE::SharedPtr<Context> makeContext(HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env) override
         {
             auto ctx=HATN_COMMON_NAMESPACE::makeTaskContextType<BridgeAppContext>(
                 HATN_COMMON_NAMESPACE::subcontexts(
-                    HATN_COMMON_NAMESPACE::subcontext(app())
+                    HATN_COMMON_NAMESPACE::subcontext(clientApp())
                 )
             );
 
@@ -82,6 +78,6 @@ class BridgeAppContextBuilder : public ContextBuilder,
 
 HATN_CLIENTAPP_NAMESPACE_END
 
-HATN_TASK_CONTEXT_DECLARE_EXPORT(HATN_CLIENTAPP_NAMESPACE::WithApp,HATN_CLIENTAPP_EXPORT)
+HATN_TASK_CONTEXT_DECLARE_EXPORT(HATN_CLIENTAPP_NAMESPACE::WithClientApp,HATN_CLIENTAPP_EXPORT)
 
 #endif // HATNBRIDGEAPPCONTEXT_H
