@@ -14,9 +14,6 @@
 
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
-#include <hatn/dataunit/ipp/syntax.ipp>
-#include <hatn/dataunit/ipp/wirebuf.ipp>
-#include <hatn/dataunit/ipp/objectid.ipp>
 
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptcontainer.h>
@@ -24,6 +21,10 @@
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/clientservererror.h>
 #include <hatn/clientserver/accountconfigparser.h>
+
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
