@@ -30,9 +30,9 @@ HDU_UNIT(
     HDU_FIELD(protocol,TYPE_STRING,4)
     HDU_REPEATED_FIELD(certificate_chain,TYPE_STRING,5)
     HDU_FIELD(auth_protocol,TYPE_STRING,6)
-    HDU_FIELD(auth_token1,TYPE_BYTES,7)
-    HDU_FIELD(auth_token2,TYPE_BYTES,8)
-    HDU_FIELD(auth_token3,TYPE_BYTES,9)
+    HDU_FIELD(auth_token1,TYPE_STRING,7)
+    HDU_FIELD(auth_token2,TYPE_STRING,8)
+    HDU_FIELD(auth_token3,TYPE_STRING,9)
 )
 
 HDU_UNIT(account_config,
