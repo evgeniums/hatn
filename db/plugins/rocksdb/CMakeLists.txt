@@ -95,6 +95,7 @@ ENDIF ()
 TARGET_LINK_LIBRARIES(hatnrocksdbschema PUBLIC hatndb)
 TARGET_INCLUDE_DIRECTORIES(hatnrocksdbschema PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 LINK_ROCKSDB(hatnrocksdbschema)
+HATN_STRIP_RELEASE(hatnrocksdbschema)
 
 # build plugin hatnrocksdb
 SET (HEADERS

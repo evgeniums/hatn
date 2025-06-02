@@ -126,3 +126,15 @@ ENDFUNCTION(COPY_HATN_DYNAMIC)
 FUNCTION(COPY_PREBUILD_THIRDPARTY_HEADERS SRC)
     FILE(COPY ${SRC} DESTINATION "${HATN_BINARY_DIR}/include/hatn/thirdparty" FILES_MATCHING PATTERN "*.h*")
 ENDFUNCTION(COPY_PREBUILD_THIRDPARTY_HEADERS)
+
+MACRO(HATN_STRIP_RELEASE Target)
+    IF (NOT MSVC)
+        IF(BUILD_RELEASE)
+            ADD_CUSTOM_COMMAND(
+                  TARGET ${Target} POST_BUILD
+                  COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${Target}>
+                  COMMENT "Stripping symbols from ${Target}"
+              )
+        ENDIF()
+    ENDIF()
+ENDMACRO()
