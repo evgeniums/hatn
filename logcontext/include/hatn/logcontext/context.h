@@ -575,19 +575,6 @@ HATN_COMMON_NAMESPACE_END
 #define HATN_CTX_IF() \
     if (HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)!=nullptr)
 
-#define HATN_CTX_SCOPE_DEFER() \
-    auto _ctxOnExit=[ScopeCtx]{ \
-        ScopeCtx->leaveScope();\
-    }; \
-    auto _ctxScopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_ctxOnExit),ScopeCtx!=nullptr);\
-    std::ignore=_ctxScopeGuard;
-
-#define HATN_CTX_SCOPE(Name) \
-    auto ScopeCtx=HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context); \
-    HATN_CTX_IF() \
-    { ScopeCtx->enterScope(Name); } \
-    HATN_CTX_SCOPE_DEFER()
-
 #define HATN_CTX_SET_VAR(Name,Value) \
     HATN_CTX_IF() \
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setGlobalVar(Name,Value);
