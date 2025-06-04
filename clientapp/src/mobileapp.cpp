@@ -178,6 +178,8 @@ void MobileApp::exec(
         Callback callback
     )
 {
+    HATN_CTX_SCOPE("mobileapp:exec")
+
     HATN_CLIENTAPP_NAMESPACE::Request req{
         std::move(request.envId),
         std::move(request.topic),
@@ -197,7 +199,7 @@ void MobileApp::exec(
 
     auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_CLIENTAPP_NAMESPACE::Response resp)
     {
-        HATN_CTX_SCOPE("execcb")
+        HATN_CTX_SCOPE("mobileapp:exec:cb")
         if (ec)
         {
             HATN_CTX_PUSH_VAR("err",ec.codeString())
@@ -231,6 +233,7 @@ void MobileApp::exec(
 
         callback(Error{ec.value(),ec.codeString(),ec.message()},std::move(response));
     };
+
     pimpl->app->bridge().exec(service,method,std::move(req),std::move(cb));
 }
 

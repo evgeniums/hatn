@@ -39,6 +39,8 @@ void Service::exec(
         Callback callback
     )
 {
+    HATN_CTX_SCOPE("service:exec")
+
     auto thread=env->get<app::Threads>().threads()->defaultThread();
     auto it=m_methods.find(method);
     if (it==m_methods.end())
@@ -46,7 +48,11 @@ void Service::exec(
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD),Response{});
+                HATN_CTX_SCOPE("service:exec:cb")
+
+                auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD);
+                HATN_CTX_ERROR(ec,"failed to exec service method")
+                callback(ec,Response{});
             }
         );
         return;
@@ -58,7 +64,7 @@ void Service::exec(
     {
         ctx->onAsyncHandlerEnter();
 
-        HATN_CTX_SCOPE("bridge.exec")
+        HATN_CTX_SCOPE("service:exec:cb")
 
         HATN_CTX_PUSH_FIXED_VAR("service",name())
         HATN_CTX_PUSH_FIXED_VAR("method",mthd->name())
@@ -90,6 +96,8 @@ void Dispatcher::exec(
         Callback callback
     )
 {
+    HATN_CTX_SCOPE("dispatcher:exec")
+
     Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
     auto it=m_services.find(service);
     if (it==m_services.end())
@@ -98,7 +106,12 @@ void Dispatcher::exec(
         thread->execAsync(
             [callback{std::move(callback)}]()
             {
-                callback(clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE),Response{});
+                HATN_CTX_SCOPE("dispatcher:exec:cb")
+
+                auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
+                HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
+
+                callback(ec,Response{});
             }
         );
         return;
