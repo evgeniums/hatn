@@ -30,6 +30,8 @@ export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
 export PATH=$toolchain_bin_path:$PATH
 echo PATH=$PATH
 
+export CFLAGS=-fPIC
+
 cd $lib_build_dir
 
 #$folder/Configure $target -D__ANDROID_API__=$android_api_level --prefix=$toolchain_install_path -static no-shared no-tests enable-engine

@@ -70,6 +70,8 @@ EOF
     -sICONV_PATH=$toolchain_install_path \
     --build-dir=$lib_build_dir \
     --prefix=$toolchain_install_path \
+    cxxflags=-fPIC \
+    -d2 \
     install
 
 cd $keep_pwd

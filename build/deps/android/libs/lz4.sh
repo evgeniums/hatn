@@ -8,6 +8,8 @@ source $scripts_root/../desktop/scripts/clonegit.sh
 cd $lib_build_dir
 echo "Build dir=$build_dir"
 
+export CXXFLAGS=-fPIC
+
 cmake -G "Unix Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
