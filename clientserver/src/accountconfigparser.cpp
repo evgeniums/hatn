@@ -63,7 +63,7 @@ Result<common::SharedPtr<account_config::managed>> parseAccountConfigT::operator
         ec=decryptor.unpack(configData,decrypted);
         if (ec)
         {
-            return common::chainErrors(std::move(ec),clientServerError(ClientServerError::ACCOUNT_CONFIG_DECRYPTION));
+            return clientServerError(ClientServerError::ACCOUNT_CONFIG_DECRYPTION);
         }
 
         configData=decrypted;
