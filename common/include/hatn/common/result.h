@@ -215,10 +215,7 @@ class Result
          */
         T takeValue()
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return takeWrappedValue();
         }
 
@@ -229,10 +226,7 @@ class Result
          */
         auto operator->() const -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return &m_value;
         }
 
@@ -243,10 +237,7 @@ class Result
          */
         const T& operator*() const
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -257,10 +248,7 @@ class Result
          */
         auto operator->() -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return &m_value;
         }
 
@@ -271,10 +259,7 @@ class Result
          */
         T& operator*()
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -285,10 +270,7 @@ class Result
          */
         const T& value() const
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -299,10 +281,7 @@ class Result
          */
         T& value()
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -337,6 +316,14 @@ class Result
         }
 
     private:
+
+        void checkThrowInvalid() const
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+        }
 
         T m_value;
         Error m_error;
@@ -447,10 +434,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         T takeValue()
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return takeWrappedValue();
         }
 
@@ -461,10 +445,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto operator->() const -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return &m_value;
         }
 
@@ -475,10 +456,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto operator*() const -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -489,10 +467,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto operator->() -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return &m_value;
         }
 
@@ -503,10 +478,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto operator*() -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -517,10 +489,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto value() const -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -531,10 +500,7 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
          */
         auto value() -> decltype(auto)
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return m_value;
         }
 
@@ -569,6 +535,14 @@ class Result<T,std::enable_if_t<std::is_lvalue_reference<T>::value>>
         }
 
     private:
+
+        void checkThrowInvalid() const
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+        }
 
         T m_value;
         Error m_error;
@@ -665,10 +639,7 @@ class Result<Error>
          */
         Error& takeValue()
         {
-            if (!isValid())
-            {
-                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
-            }
+            checkThrowInvalid();
             return takeWrappedValue();
         }
 
@@ -703,6 +674,14 @@ class Result<Error>
         }
 
     private:
+
+        void checkThrowInvalid() const
+        {
+            if (!isValid())
+            {
+                throw ErrorException{commonError(CommonError::RESULT_ERROR)};
+            }
+        }
 
         Error m_error;
 
