@@ -29,7 +29,7 @@
     Do(ClientServerError,ACCOUNT_CONFIG_DESERIALIZATION,_TR("invalid format of account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_PASSPHRASE_REQUIRED,_TR("passphrase is required to decrypt account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DATA_DESERIALIZATION,_TR("invalid format of account configuration data","clientserver")) \
-    Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("failed to decrypt data of account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("invalid passphrase","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_EXPIRED,_TR("account configuration expired","clientserver")) \
 
 
