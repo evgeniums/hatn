@@ -54,6 +54,20 @@ HDU_UNIT(account_config_token,
     HDU_FIELD(encrypted,TYPE_BOOL,3)
 )
 
+struct AccountConfig
+{
+    using type=account_config::managed;
+    using shared_type=HATN_COMMON_NAMESPACE::SharedPtr<type>;
+
+    AccountConfig() : message(common::makeShared<type>())
+    {}
+
+    AccountConfig(shared_type msg) : message(std::move(msg))
+    {}
+
+    shared_type message;
+};
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELSACCOUNTCONFIG_H
