@@ -45,7 +45,11 @@ class CustomField : public Field
         using isEnum=typename Type::isEnum;
         using Enum=typename Type::Enum;
         constexpr static auto typeId=Type::typeId;
+
+//! @todo Fix isArray
+#if 0
         constexpr static auto isArray=isRepeatedType{};
+#endif
 
         using maxSize=typename TraitsT::maxSize;
 

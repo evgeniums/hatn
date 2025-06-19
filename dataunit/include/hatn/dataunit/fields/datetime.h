@@ -117,7 +117,10 @@ class DateTime : public Field
         using Enum=typename Type::Enum;
         using selfType=DateTime;
         constexpr static auto typeId=Type::typeId;
+//! @todo Fix isArray
+#if 0
         constexpr static auto isArray=isRepeatedType{};
+#endif
 
         using maxSize=std::integral_constant<int,sizeof(uint64_t)>;
 

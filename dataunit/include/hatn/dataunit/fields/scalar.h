@@ -195,7 +195,10 @@ class Scalar : public Field
         using Enum=typename Type::Enum;
         using selfType=Scalar<Type>;
         constexpr static auto typeId=Type::typeId;
+//! @todo Fix isArray
+#if 0
         constexpr static auto isArray=isRepeatedType{};
+#endif
 
         //! Ctor with default value
         Scalar(Unit* unit,const type& defaultValue)
