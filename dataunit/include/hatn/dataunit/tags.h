@@ -84,6 +84,8 @@ constexpr field_tags_t field_tags{};
 
 #define HDU_EXTRACT_FIELD_TAG(FieldTags,Key) hana::at_key(FieldTags,HDU_TAG_ID(Key))
 
+#define HDU_CONTAINS_FIELD_TAG(FieldTags,Key) hana::contains(FieldTags,HDU_TAG_ID(Key))
+
 struct unit_field_tags_t
 {
     template <typename ...FieldTags>
