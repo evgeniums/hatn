@@ -167,6 +167,11 @@ struct field_traits
     {
         return !(*this==other);
     }
+
+    constexpr static auto valueTypeId()
+    {
+        return TypeId::typeId;
+    }
 };
 
 //---------------------------------------------------------------
