@@ -25,10 +25,12 @@
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/logcontext/logconfigrecords.h>
 
+#include <hatn/app/appenv.h>
 #include <hatn/app/app.h>
 
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/clientapp.h>
+#include <hatn/clientapp/notificationdispatcher.h>
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
@@ -238,6 +240,64 @@ void MobileApp::exec(
 
     // invoke
     pimpl->app->bridge().exec(service,method,std::move(req),std::move(cb));
+}
+
+//-----------------------------------------------------------------------------
+
+size_t MobileApp::subscribeNotification(
+    NotificationHandler handler,
+    std::string service,
+    std::string method,
+    std::string envId,
+    std::string topic
+)
+{
+    HATN_CLIENTAPP_NAMESPACE::NotificationKey key{
+        std::move(service),
+        std::move(method),
+        std::move(envId),
+        std::move(topic)
+    };
+    auto hndlr=[handler=std::move(handler)](common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
+                                            common::SharedPtr<Context>,
+                                            const std::string& service,
+                                            const std::string& method,
+                                            std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::Notification> notification)
+    {
+        Notification ntfcn;
+        ntfcn.topic=notification->topic;
+        ntfcn.messageTypeName=notification->messageTypeName;
+        if (notification->message)
+        {
+            ntfcn.messageJson=notification->message.get()->toString();
+        }
+        if (env)
+        {
+            ntfcn.envId=env->name();
+        }
+        if (!notification->buffers.empty())
+        {
+            ntfcn.buffers.reserve(notification->buffers.size());
+            for (auto&& buffer : notification->buffers)
+            {
+                if (buffer)
+                {
+                    ntfcn.buffers.emplace_back(buffer->data(),buffer->size());
+                }
+            }
+        }
+
+        handler(service,method,ntfcn);
+    };
+    return pimpl->app->notifier().subscribe(std::move(hndlr),std::move(key));
+}
+
+//-----------------------------------------------------------------------------
+
+void MobileApp::unsubscribeNotification(size_t id)
+{
+
+    return pimpl->app->notifier().unsubscribe(id);
 }
 
 //-----------------------------------------------------------------------------

@@ -39,7 +39,7 @@ void Service::exec(
         Callback callback
     )
 {
-    HATN_CTX_SCOPE("service:exec")
+    HATN_CTX_SCOPE("service::exec")
 
     auto thread=env->get<app::Threads>().threads()->defaultThread();
     auto it=m_methods.find(method);
@@ -96,7 +96,7 @@ void Dispatcher::exec(
         Callback callback
     )
 {
-    HATN_CTX_SCOPE("dispatcher:exec")
+    HATN_CTX_SCOPE("dispatcher::exec")
 
     Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
     auto it=m_services.find(service);

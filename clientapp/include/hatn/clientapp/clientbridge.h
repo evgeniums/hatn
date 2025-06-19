@@ -58,7 +58,6 @@ struct Request
 
 using Response=Request;
 
-using Context=common::TaskContext;
 using Callback=std::function<void (const Error& ec, Response response)>;
 
 class HATN_CLIENTAPP_EXPORT ContextBuilder

@@ -80,6 +80,15 @@ struct Response
     {}
 };
 
+struct Notification
+{
+    std::string envId;
+    std::string topic;
+    std::string messageTypeName;
+    std::string messageJson;
+    std::vector<std::pair<const char*,size_t>> buffers;
+};
+
 struct Error
 {
     int code;
@@ -88,6 +97,8 @@ struct Error
 };
 
 using Callback=std::function<void (Error, Response response)>;
+
+using NotificationHandler=std::function<void (const std::string& service, const std::string& method, const Notification& notification)>;
 
 class HATN_CLIENTAPP_EXPORT MobileApp
 {
@@ -109,6 +120,18 @@ class HATN_CLIENTAPP_EXPORT MobileApp
             const std::string& method,
             Request request,
             Callback callback
+        );
+
+        size_t subscribeNotification(
+            NotificationHandler handler,
+            std::string service={},
+            std::string method={},
+            std::string envId={},
+            std::string topic={}
+        );
+
+        void unsubscribeNotification(
+            size_t id
         );
 
         int initTests();
