@@ -57,6 +57,7 @@ enum class ValueType : int
     Date,
     Time,
     DateRange,
+    ObjectId,
 
     Custom=256
 };
@@ -69,19 +70,37 @@ constexpr auto IsInt=hana::bool_c<
                                 TypeId==ValueType::Int16 ||
                                 TypeId==ValueType::Int32 ||
                                 TypeId==ValueType::Int64 ||
-                                TypeId==ValueType::Int8 ||
-                                TypeId==ValueType::Int16 ||
-                                TypeId==ValueType::Int32 ||
-                                TypeId==ValueType::Int64 ||
-                                TypeId==ValueType::UInt8 ||
-                                TypeId==ValueType::UInt16 ||
-                                TypeId==ValueType::UInt32 ||
-                                TypeId==ValueType::UInt64 ||
                                 TypeId==ValueType::UInt8 ||
                                 TypeId==ValueType::UInt16 ||
                                 TypeId==ValueType::UInt32 ||
                                 TypeId==ValueType::UInt64
                                  >;
+
+template <ValueType TypeId>
+constexpr auto IsSignedInt=hana::bool_c<
+    TypeId==ValueType::Int8 ||
+    TypeId==ValueType::Int16 ||
+    TypeId==ValueType::Int32 ||
+    TypeId==ValueType::Int64
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsInt64=hana::bool_c<
+    TypeId==ValueType::Int64
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsUnsignedInt=hana::bool_c<
+    TypeId==ValueType::UInt8 ||
+    TypeId==ValueType::UInt16 ||
+    TypeId==ValueType::UInt32 ||
+    TypeId==ValueType::UInt64
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsUInt64=hana::bool_c<
+    TypeId==ValueType::UInt64
+    >;
 
 template <ValueType TypeId>
 constexpr auto IsBool=hana::bool_c<

@@ -231,7 +231,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
 };
 
 //! Definition of DateTime type
-struct HATN_DATAUNIT_EXPORT OidType : public BaseType<ObjectId,std::true_type,ValueType::Custom>
+struct HATN_DATAUNIT_EXPORT OidType : public BaseType<ObjectId,std::true_type,ValueType::ObjectId>
 {
     using CustomType=std::true_type;
 };
