@@ -24,6 +24,7 @@ cmake -G "Unix Makefiles" \
 	-DDEV_MODULE=$module \
 	-DBUILD_PLUGINS="$hatn_plugins" \
 	$with_boost_dir \
+    $hatn_cmake_extra_options \
 	$project_path
 
 if [ -z "$codechecker" ];
