@@ -23,6 +23,8 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+//! @todo critical: Fix timezone, it can be minute offsets, not only hours
+
 /**
  * @brief The DateTime class.
  */
@@ -118,6 +120,11 @@ class HATN_COMMON_EXPORT DateTime
         int8_t tz() const noexcept
         {
             return m_tz;
+        }
+
+        int16_t tzSecs() const noexcept
+        {
+            return m_tz*3600;
         }
 
         /**
