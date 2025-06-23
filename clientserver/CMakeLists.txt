@@ -6,6 +6,8 @@ SET (HEADERS
     include/hatn/clientserver/clientservererrorcodes.h
     include/hatn/clientserver/usercontroller.h
     include/hatn/clientserver/accountconfigparser.h
+
+    include/hatn/clientserver/auth/authprotocol.h
 )
 
 SET (HEADERS

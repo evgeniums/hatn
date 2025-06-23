@@ -47,8 +47,8 @@ Error Auth::serializeAuthHeader(lib::string_view protocol, uint32_t protocolVers
     du::RawError::setEnabledTL(true);
 
     AuthManaged obj;
-    obj.setFieldValue(auth::protocol,protocol);
-    obj.setFieldValue(auth::version,protocolVersion);
+    obj.setFieldValue(auth_protocol::protocol,protocol);
+    obj.setFieldValue(auth_protocol::version,protocolVersion);
     obj.setFieldValue(auth::content,std::move(content));
 
     du::WireBufSolidShared buf{factory};
