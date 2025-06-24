@@ -240,7 +240,7 @@ class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArra
         }
 
         /**
-         * @brief Import raw data from key deriiation functions
+         * @brief Import raw data from key deriviation functions
          * @param buf Buffer to import from
          * @param bufSize Size of the buffer
          * @return Operation status
