@@ -329,6 +329,8 @@ class HATN_CRYPT_EXPORT CipherSuite
             m_suites=suites;
         }
 
+        const CipherSuites* suites() const noexcept;
+
     private:
 
         //! Clear container with preserialized suite
@@ -343,8 +345,6 @@ class HATN_CRYPT_EXPORT CipherSuite
             CryptAlgorithmConstP& algCache,
             CryptAlgorithm::Type type
         ) const;
-
-        const CipherSuites* suites() const noexcept;
 
         common::SharedPtr<cipher_suite::shared_traits::managed> m_suite;
 
@@ -443,6 +443,11 @@ class HATN_CRYPT_EXPORT CipherSuites
         RandomGenerator* defaultRandomGenerator() const noexcept
         {
             return m_randomGenerator.get();
+        }
+
+        RandomGenerator* randomGenerator() const noexcept
+        {
+            return defaultRandomGenerator();
         }
 
         /**
