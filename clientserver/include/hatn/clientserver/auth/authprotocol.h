@@ -23,8 +23,9 @@
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 HDU_UNIT(auth_negotiate_request,
-    HDU_REPEATED_FIELD(subject_path,TYPE_STRING,1)
-    HDU_REPEATED_FIELD(protocols,HATN_API_NAMESPACE::auth_protocol::TYPE,2)
+    HDU_FIELD(login,TYPE_STRING,1,true)
+    HDU_FIELD(topic,TYPE_STRING,2)
+    HDU_REPEATED_FIELD(protocols,HATN_API_NAMESPACE::auth_protocol::TYPE,3,true)
 )
 
 HDU_UNIT(auth_protocol_response,
@@ -41,12 +42,12 @@ constexpr static const uint32_t AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION=1;
 
 HDU_UNIT(auth_hss_challenge,
     HDU_FIELD(challenge,TYPE_BYTES,1)
+    HDU_FIELD(expire,TYPE_DATETIME,2)
 )
 
 HDU_UNIT(auth_hss_check,
-    HDU_FIELD(token,TYPE_BYTES,1)
-    HDU_FIELD(login,TYPE_OBJECT_ID,2)
-    HDU_FIELD(hash,TYPE_BYTES,3)
+    HDU_FIELD(token,TYPE_BYTES,1,true)
+    HDU_FIELD(mac,TYPE_BYTES,2,true)
 )
 
 HDU_UNIT(auth_token,
