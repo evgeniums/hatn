@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file user/userdbmodelsprovider.h
+/** @file serverapp/userdbmodelsprovider.h
   */
 
 /****************************************************************************/
