@@ -8,9 +8,12 @@ SET (HEADERS
 
     include/hatn/serverapp/auth/authtokens.h
     include/hatn/serverapp/auth/authprotocol.h
-    include/hatn/serverapp/auth/authprotocols.h
-    include/hatn/serverapp/auth/sessioncontroller.h
+    include/hatn/serverapp/auth/authprotocols.h    
     include/hatn/serverapp/auth/sharedsecretprotocol.h
+
+    include/hatn/serverapp/sessiondbmodels.h
+    include/hatn/serverapp/sessiondbmodelsprovider.h
+    include/hatn/serverapp/sessioncontroller.h
 )
 
 SET (HEADERS
@@ -23,6 +26,8 @@ SET (HEADERS
 SET (SOURCES
     src/serverapp.cpp
     src/userdbmodelsprovider.cpp
+    src/sharedsecretprotocol.cpp
+    src/sessiondbmodelsprovider.cpp
 )
 
 BUILD_HATN_MODULE()
