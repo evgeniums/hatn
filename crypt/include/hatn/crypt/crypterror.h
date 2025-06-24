@@ -94,6 +94,7 @@
     Do(CryptError,SNI_NOT_SUPPORTED,_TR("SNI extension not supported by TLS plugin","crypt")) \
     Do(CryptError,ECH_NOT_SUPPORTED,_TR("ECH extension not supported by TLS plugin","crypt")) \
     Do(CryptError,CRYPT_PLUGIN_FAILED,_TR("failed to load cryptogtaphic plugin","crypt")) \
+    Do(CryptError,RANDOM_GENERATOR_NOT_DEFINED,_TR("undefined random generator","crypt")) \
 
 HATN_CRYPT_NAMESPACE_BEGIN
 
