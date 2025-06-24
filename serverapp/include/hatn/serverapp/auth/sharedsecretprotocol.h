@@ -20,6 +20,8 @@
 
 #include <hatn/crypt/ciphersuite.h>
 
+#include <hatn/db/topic.h>
+
 #include <hatn/clientserver/auth/authprotocol.h>
 
 #include <hatn/serverapp/serverappdefs.h>
@@ -30,6 +32,8 @@ HATN_SERVERAPP_NAMESPACE_BEGIN
 HDU_UNIT(auth_protocol_shared_secret_config,
     HDU_FIELD(secret,TYPE_STRING,1)
     HDU_FIELD(token_ttl_secs,TYPE_UINT32,2,false,300)
+    HDU_FIELD(min_challenge_size,TYPE_UINT32,3,false,8)
+    HDU_FIELD(max_challenge_size,TYPE_UINT32,4,false,20)
 )
 
 class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
@@ -40,7 +44,7 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
         SharedSecretAuthBase() : AuthProtocol(
                 HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET,
                 HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
-            )
+            ), m_suite(nullptr)
         {}
 
         Error init(
@@ -48,33 +52,35 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
         );
 
         Result<common::SharedPtr<auth_negotiate_response::managed>> prepareChallengeToken(
-            const common::SharedPtr<auth_negotiate_request::managed>& authRequest
+            const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
-    private:
+    protected:
 
+        const crypt::CipherSuite* m_suite;
         common::SharedPtr<crypt::SymmetricKey> m_tokenEncryptionKey;
 };
 
-template <typename ContextTraits>
 class SharedSecretAuth : public SharedSecretAuthBase
 {
     public:
 
-        using Context=typename ContextTraits::Context;
-
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void prepare(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<auth_negotiate_response::managed> message)
-            const common::SharedPtr<auth_negotiate_request::managed>& authRequest
+            const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT, typename LoginControllerT>
         void check(
-            common::SharedPtr<Context> ctx,
-            CallbackT callback,
-            const HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed* message
+            common::SharedPtr<ContextT> ctx,
+            CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, Login login)
+            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed> message,
+            const LoginControllerT* loginController,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 };
 
