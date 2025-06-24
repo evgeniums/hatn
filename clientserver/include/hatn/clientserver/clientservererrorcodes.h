@@ -32,6 +32,8 @@
     Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("invalid passphrase","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_EXPIRED,_TR("account configuration expired","clientserver")) \
     Do(ClientServerError,AUTH_NEGOTIATION_FAILED,_TR("failed to negotiate authentication protocol","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
+    Do(ClientServerError,AUTH_FAILED,_TR("authentication failed","clientserver")) \
 
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
