@@ -34,6 +34,8 @@
     Do(ClientServerError,AUTH_NEGOTIATION_FAILED,_TR("failed to negotiate authentication protocol","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
     Do(ClientServerError,AUTH_FAILED,_TR("authentication failed","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_INVALID_TYPE,_TR("invalid authentication token type","clientserver")) \
 
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN

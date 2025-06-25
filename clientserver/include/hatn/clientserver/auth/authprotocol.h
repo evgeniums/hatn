@@ -40,9 +40,12 @@ HDU_UNIT_WITH(auth_negotiate_response,(HDU_BASE(auth_protocol_response)),
 constexpr const char* AUTH_PROTOCOL_HATN_SHARED_SECRET="hss";
 constexpr static const uint32_t AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION=1;
 
+//! @todo Negotiate cipher suites
+
 HDU_UNIT(auth_hss_challenge,
     HDU_FIELD(challenge,TYPE_BYTES,1)
     HDU_FIELD(expire,TYPE_DATETIME,2)
+    HDU_FIELD(cipher_suite,TYPE_STRING,3)
 )
 
 HDU_UNIT(auth_hss_check,
@@ -50,10 +53,13 @@ HDU_UNIT(auth_hss_check,
     HDU_FIELD(mac,TYPE_BYTES,2,true)
 )
 
-HDU_UNIT(auth_token,
-    HDU_FIELD(content,TYPE_BYTES,1)
-    HDU_FIELD(expire,TYPE_DATETIME,2)
-    HDU_FIELD(tag,TYPE_STRING,3)
+HDU_UNIT(auth_with_token,
+    HDU_FIELD(token,TYPE_BYTES,1)
+    HDU_FIELD(tag,TYPE_STRING,2)
+)
+
+HDU_UNIT_WITH(auth_token,(HDU_BASE(auth_with_token)),
+    HDU_FIELD(expire,TYPE_DATETIME,3)
 )
 
 HDU_UNIT(auth_complete,
@@ -62,12 +68,7 @@ HDU_UNIT(auth_complete,
 )
 
 HDU_UNIT(auth_refresh,
-    HDU_FIELD(token,TYPE_BYTES,1)
-)
-
-HDU_UNIT(auth_with_token,
-    HDU_FIELD(token,TYPE_BYTES,1)
-    HDU_FIELD(tag,TYPE_STRING,2)
+    HDU_FIELD(token,auth_with_token::TYPE,1)
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END

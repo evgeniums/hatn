@@ -33,6 +33,8 @@
 #include <hatn/dataunit/ipp/objectid.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
+#include <hatn/serverapp/ipp/encryptedtoken.ipp>
+
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
@@ -67,36 +69,23 @@ void SharedSecretAuth::check(
         const common::pmr::AllocatorFactory* factory
     )
 {
-    // decrypt token
-    crypt::CryptContainer decryptor{factory};
-    decryptor.setCipherSuites(m_suite->suites());
-    decryptor.setMasterKey(m_tokenEncryptionKey.get());
-    du::WireBufSolid buf{factory};
+    // deserialize token
     const auto& tokenField=message->field(auth_hss_check::token);
     const auto* tokenBuf=tokenField.buf();
-    auto ec=decryptor.unpack(*tokenBuf,*buf.mainContainer());
-    if (ec)
+    auto tokenR=parseToken<auth_challenge_token::managed>(*tokenBuf,factory);
+    if (tokenR)
     {
         //! @todo critical: chain and log error
+        auto ec=tokenR.takeError();
         callback(std::move(ctx),ec,{});
-        return;
     }
-
-    // deserialize token
-    auto token=factory->createObject<auth_challenge_token::managed>();
-    du::io::deserialize(*token,buf,ec);
-    if (ec)
-    {
-        //! @todo critical: chain and log error
-        callback(std::move(ctx),ec,{});
-        return;
-    }
+    auto token=tokenR.takeValue();
 
     // check if token expired
     auto now=common::DateTime::currentUtc();
     if (now.after(token->fieldValue(auth_challenge_token::expire)))
     {
-        callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_EXPIRED),{},{});
+        callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_EXPIRED),{});
         return;
     }
 

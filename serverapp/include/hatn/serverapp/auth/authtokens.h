@@ -25,15 +25,14 @@ HATN_SERVERAPP_NAMESPACE_BEGIN
 HDU_UNIT(auth_token,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
     HDU_FIELD(session,TYPE_OBJECT_ID,2,true)
-    HDU_FIELD(token_created_at,TYPE_DATETIME,3,true)
+    HDU_FIELD(created_at,TYPE_DATETIME,3,true)
     HDU_FIELD(session_created_at,TYPE_DATETIME,4,true)
     HDU_FIELD(expire,TYPE_DATETIME,5,true)
     HDU_FIELD(login,TYPE_OBJECT_ID,6,true)
-    HDU_FIELD(section,TYPE_OBJECT_ID,7)
-    HDU_FIELD(username,TYPE_STRING,8)
-    HDU_FIELD(topic,TYPE_STRING,9)
+    HDU_FIELD(username,TYPE_STRING,7)
+    HDU_FIELD(topic,TYPE_STRING,8)
     HDU_ENUM(TokenType,Session,Refresh)
-    HDU_FIELD(token_type,HDU_TYPE_ENUM(TokenType),10,false,TokenType::Session)
+    HDU_FIELD(token_type,HDU_TYPE_ENUM(TokenType),9,false,TokenType::Session)
 )
 
 HDU_UNIT(auth_challenge_token,

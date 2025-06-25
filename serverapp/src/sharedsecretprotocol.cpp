@@ -24,6 +24,8 @@
 #include <hatn/dataunit/ipp/objectid.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
+#include <hatn/serverapp/ipp/encryptedtoken.ipp>
+
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
@@ -36,12 +38,7 @@ Error SharedSecretAuthBase::init(const crypt::CipherSuite* suite)
         return common::genericError(_TR("Encryption secret for shared secret authentication must be not empty"));
     }
 
-    m_suite=suite;
-    Error ec;
-    auto passphraseKey=suite->createPassphraseKey(ec);
-    HATN_CHECK_EC(ec)
-    passphraseKey->set(config().fieldValue(auth_protocol_shared_secret_config::secret));
-    return OK;
+    return EncryptedToken::init(suite,config().fieldValue(auth_protocol_shared_secret_config::secret));
 }
 
 //--------------------------------------------------------------------------
@@ -75,6 +72,7 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
         //! @todo critical: chain errors
         return ec;
     }
+    challenge->setFieldValue(auth_hss_challenge::cipher_suite,m_suite->id());
 
     // fill token
     auth_challenge_token::type token;
@@ -91,19 +89,9 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     challenge->setFieldValue(auth_hss_challenge::expire,token.fieldValue(auth_challenge_token::expire));
 
     // serialize token
-    du::WireBufSolid buf{factory};
-    du::io::serialize(token,buf,ec);
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
-
-    // encrypt token
     auto& tokenField=response->field(auth_protocol_response::token);
     auto* tokenBuf=tokenField.buf(true);
-    crypt::CryptContainer cipher{m_tokenEncryptionKey.get(),m_suite,factory};
-    ec=cipher.pack(*buf.mainContainer(),*tokenBuf);
+    ec=serializeToken(token,*tokenBuf,factory);
     if (ec)
     {
         //! @todo critical: chain errors

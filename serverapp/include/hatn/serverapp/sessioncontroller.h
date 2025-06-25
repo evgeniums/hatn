@@ -8,7 +8,7 @@
 /*
     
 */
-/** @file serverapp/session/sessioncontroller.h
+/** @file serverapp/sessioncontroller.h
   */
 
 /****************************************************************************/
@@ -16,7 +16,7 @@
 #ifndef HATNSESSIONCONTROLLER_H
 #define HATNSESSIONCONTROLLER_H
 
-#include <hatn/dataunit/objectid.h>
+#include <hatn/common/objecttraits.h>
 
 #include <hatn/db/topic.h>
 
@@ -26,57 +26,66 @@
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
-template <typename ContextTraits>
-class SessionController
+template <typename Traits>
+class SessionController : public common::WithTraits<Traits>
 {
     public:
 
-        using Context=typename ContextTraits::Context;
-
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void createSession(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            const du::ObjectId& loginId,
+            const du::ObjectId& login,
             db::Topic topic
-        );
+        )
+        {
+            this->traits().createSession(std::move(ctx),std::move(callback),login,topic);
+        }
 
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void checkSession(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            const HATN_CLIENT_SERVER_NAMESPACE::auth_token::managed* sessionContent
-        );
+            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed> sessionContent
+        )
+        {
+            this->traits().checkSession(std::move(ctx),std::move(callback),std::move(sessionContent));
+        }
 
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void refreshSession(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            const HATN_CLIENT_SERVER_NAMESPACE::auth_refresh::managed* message
-        );
+            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_refresh::managed> message
+        )
+        {
+            this->traits().refreshSession(std::move(ctx),std::move(callback),std::move(message));
+        }
 
-        template <typename CallbackT>
+#if 0
+        template <typename ContextT, typename CallbackT>
         void dropSession(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             const du::ObjectId& sessionId,
             db::Topic topic
         );
 
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void dropLoginSessions(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             const du::ObjectId& loginId,
             db::Topic topic
         );
 
-        template <typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void dropSessions(
-            common::SharedPtr<Context> ctx,
+            common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             db::Topic topic
         );
+#endif
 };
 
 HATN_SERVERAPP_NAMESPACE_END

@@ -26,6 +26,7 @@
 
 #include <hatn/serverapp/serverappdefs.h>
 #include <hatn/serverapp/auth/authprotocol.h>
+#include <hatn/serverapp/encryptedtoken.h>
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
@@ -37,6 +38,7 @@ HDU_UNIT(auth_protocol_shared_secret_config,
 )
 
 class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
+                                                   public EncryptedToken,
                                                    public HATN_BASE_NAMESPACE::ConfigObject<auth_protocol_shared_secret_config::type>
 {
     public:
@@ -44,7 +46,7 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
         SharedSecretAuthBase() : AuthProtocol(
                 HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET,
                 HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
-            ), m_suite(nullptr)
+            )
         {}
 
         Error init(
@@ -55,11 +57,6 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
             const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
-
-    protected:
-
-        const crypt::CipherSuite* m_suite;
-        common::SharedPtr<crypt::SymmetricKey> m_tokenEncryptionKey;
 };
 
 class SharedSecretAuth : public SharedSecretAuthBase
