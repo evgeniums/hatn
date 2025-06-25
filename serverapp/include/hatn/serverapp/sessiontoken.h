@@ -55,7 +55,7 @@ class HATN_SERVERAPP_EXPORT SessionToken
         ) const;
 
         Result<common::SharedPtr<auth_token::managed>> parseToken(
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_token::managed> clientToken,
+            const HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed* clientToken,
             auth_token::TokenType tokenType,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         ) const;

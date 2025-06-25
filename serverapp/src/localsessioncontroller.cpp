@@ -13,11 +13,23 @@
 
 /****************************************************************************/
 
+#include <hatn/serverapp/sessiondbmodels.h>
 #include <hatn/serverapp/localsessioncontroller.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
+
+//--------------------------------------------------------------------------
+
+LocalSessionControllerBase::LocalSessionControllerBase(std::shared_ptr<SessionDbModels> sessionDbModels)
+    : m_sessionDbModels(std::move(sessionDbModels))
+{}
+
+//--------------------------------------------------------------------------
+
+LocalSessionControllerBase::~LocalSessionControllerBase()
+{}
 
 //--------------------------------------------------------------------------
 
@@ -52,7 +64,7 @@ Error LocalSessionControllerBase::init(const crypt::CipherSuites* suites)
         handlers.emplace(tokenConfig.fieldValue(session_token::tag),std::move(handler));
     }
 
-    auto ec=m_tokenHandler.init(std::string{config().fieldValue(session_config::current_tag)},std::move(handlers));
+    auto ec=m_tokenHandler->init(std::string{config().fieldValue(session_config::current_tag)},std::move(handlers));
     HATN_CHECK_CHAIN_EC(ec,_TR("failed to initialize session tokens handler"))
 
     return OK;

@@ -23,8 +23,21 @@
 #include <hatn/clientserver/auth/authprotocol.h>
 
 #include <hatn/serverapp/serverappdefs.h>
+#include <hatn/serverapp/sessiondbmodels.h>
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
+
+struct SessionResponse
+{
+    common::SharedPtr<auth_complete::managed> response;
+    common::SharedPtr<session::managed> session;
+};
+
+struct SessionCheckResult
+{
+    common::SharedPtr<auth_token::managed> token;
+    common::SharedPtr<session::managed> session;
+};
 
 template <typename Traits>
 class SessionController : public common::WithTraits<Traits>
@@ -46,10 +59,11 @@ class SessionController : public common::WithTraits<Traits>
         void checkSession(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed> sessionContent
+            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed> sessionContent,
+            bool update=true
         )
         {
-            this->traits().checkSession(std::move(ctx),std::move(callback),std::move(sessionContent));
+            this->traits().checkSession(std::move(ctx),std::move(callback),std::move(sessionContent),update);
         }
 
         template <typename ContextT, typename CallbackT>
