@@ -188,6 +188,8 @@ SET (HEADERS
     include/hatn/common/env.h
 
     include/hatn/common/beastfilewinwrapper.h
+
+    include/hatn/common/withsharedvalue.h
 )
 
 SET (HEADERS
