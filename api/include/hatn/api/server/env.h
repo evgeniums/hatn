@@ -107,6 +107,17 @@ struct HATN_API_EXPORT BasicEnvConfig
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     );
+
+    template <typename EnvT>
+    static Error initEnv(
+        EnvT& env,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+    );
+
+    static auto prepareCtorArgs(
+        const HATN_APP_NAMESPACE::App& app
+    );
 };
 
 template <typename Traits=BasicEnvConfig>

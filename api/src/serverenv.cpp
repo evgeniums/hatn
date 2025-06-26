@@ -21,6 +21,8 @@
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/server/env.h>
 
+#include <hatn/api/ipp/serverenv.ipp>
+
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
@@ -31,35 +33,16 @@ Result<common::SharedPtr<BasicEnv>> BasicEnvConfig::makeEnv(
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
 {
-    std::ignore=configTree;
-    std::ignore=configTreePath;
-
+    // allocate
     auto allocator=app.allocatorFactory().factory()->objectAllocator<BasicEnv>();
-
-    //! @todo Setup server threads
-    //! @todo Copy db clients
     auto env=common::allocateEnvType<BasicEnv>(
         allocator,
-        HATN_COMMON_NAMESPACE::contexts(
-                HATN_COMMON_NAMESPACE::context(app.allocatorFactory().factory()),
-                HATN_COMMON_NAMESPACE::context(app.appThread()),
-                HATN_COMMON_NAMESPACE::context(app.logger().loggerShared()),
-                HATN_COMMON_NAMESPACE::context(),
-                HATN_COMMON_NAMESPACE::context()
-            )
-        );
+        prepareCtorArgs(app)
+    );
 
-    // load protocol configuration
-    auto path=configTreePath.copyAppend("protocol");
-    auto& protocolConfig=env->get<ProtocolConfig>();
-    //! @todo Log protocol configuration?
-    auto ec=protocolConfig.loadConfig(configTree,path);
-    if (ec)
-    {
-        auto ec1=apiLibError(ApiLibError::PROTOCOL_CONFIGURATION_FAILED);
-        ec.stackWith(std::move(ec1));
-        return ec;
-    }
+    // init
+    auto ec=initEnv(*env,configTree,configTreePath);
+    HATN_CHECK_EC(ec)
 
     // done
     return env;

@@ -78,6 +78,7 @@ SET (IPP_HEADERS
     include/hatn/api/ipp/makeapierror.ipp
     include/hatn/api/ipp/networkmicroservice.ipp
     include/hatn/api/ipp/plaintcpmicroservice.ipp
+    include/hatn/api/ipp/serverenv.ipp
 )
 
 SET (HEADERS
