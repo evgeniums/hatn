@@ -23,6 +23,8 @@
 
 #include <hatn/common/visibilitymacros.h>
 
+#include <hatn/base/base.h>
+#include <hatn/api/api.h>
 #include <hatn/clientserver/clientserver.h>
 
 #ifndef HATN_SERVERAPP_EXPORT
@@ -42,6 +44,9 @@
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 HATN_CLIENT_SERVER_USING
+namespace api=HATN_API_NAMESPACE;
+namespace serverapi=HATN_API_SERVER_NAMESPACE;
+namespace base=HATN_BASE_NAMESPACE;
 HATN_SERVERAPP_NAMESPACE_END
 
 #endif // HATNSERVERAPPDEFS_H

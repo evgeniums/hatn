@@ -39,13 +39,13 @@ HDU_UNIT(auth_protocol_shared_secret_config,
 
 class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
                                                    public EncryptedToken,
-                                                   public HATN_BASE_NAMESPACE::ConfigObject<auth_protocol_shared_secret_config::type>
+                                                   public base::ConfigObject<auth_protocol_shared_secret_config::type>
 {
     public:
 
         SharedSecretAuthBase() : AuthProtocol(
-                HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET,
-                HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
+                AUTH_PROTOCOL_HATN_SHARED_SECRET,
+                AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
             )
         {}
 
@@ -54,12 +54,12 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
         );
 
         Result<common::SharedPtr<auth_negotiate_response::managed>> prepareChallengeToken(
-            const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+            common::SharedPtr<auth_negotiate_request::managed> message,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 };
 
-class SharedSecretAuth : public SharedSecretAuthBase
+class SharedSecretAuthProtocol : public SharedSecretAuthBase
 {
     public:
 
@@ -67,7 +67,7 @@ class SharedSecretAuth : public SharedSecretAuthBase
         void prepare(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<auth_negotiate_response::managed> message)
-            const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+            common::SharedPtr<auth_negotiate_request::managed> message,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
@@ -75,7 +75,7 @@ class SharedSecretAuth : public SharedSecretAuthBase
         void check(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, Login login)
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed> message,
+            common::SharedPtr<auth_hss_check::managed> message,
             const LoginControllerT* loginController,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );

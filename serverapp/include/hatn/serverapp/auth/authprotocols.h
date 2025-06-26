@@ -45,13 +45,13 @@ class AuthProtocols
     public:
 
         AuthProtocols() : m_defaultProtocol(
-              HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET,
-              HATN_CLIENT_SERVER_NAMESPACE::AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
+              AUTH_PROTOCOL_HATN_SHARED_SECRET,
+              AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
           )
         {}
 
         Result<AuthProtocol> negotiate(
-                const HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_request::managed* message
+                const auth_negotiate_request::managed* message
             )
         {
             uint32_t priority=0;
@@ -59,14 +59,14 @@ class AuthProtocols
             AuthProtocol* proto=nullptr;
 
             // find matching protocol with highest priority
-            const auto& protocols=message->field(HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_request::protocols);
+            const auto& protocols=message->field(auth_negotiate_request::protocols);
             for (size_t i=0;i<protocols.count();i++)
             {
                 const auto& protocol=protocols.at(i);
-                auto it=m_protocols.find(protocol.fieldValue(HATN_API_NAMESPACE::auth_protocol::protocol));
+                auto it=m_protocols.find(protocol.fieldValue(api::auth_protocol::protocol));
                 if (it!=m_protocols.end())
                 {
-                    auto it1=it->second.versions.find(protocol.fieldValue(HATN_API_NAMESPACE::auth_protocol::version));
+                    auto it1=it->second.versions.find(protocol.fieldValue(api::auth_protocol::version));
                     if (it1!=it->second.versions.end())
                     {
                         if (it->second.priority>priority || priority==0)
@@ -85,9 +85,9 @@ class AuthProtocols
                 // if protocol not found then check default protocol
                 if (proto==nullptr)
                 {
-                    if (protocol.fieldValue(HATN_API_NAMESPACE::auth_protocol::protocol)==m_defaultProtocol.name()
+                    if (protocol.fieldValue(api::auth_protocol::protocol)==m_defaultProtocol.name()
                         &&
-                        protocol.fieldValue(HATN_API_NAMESPACE::auth_protocol::version)==m_defaultProtocol.version()
+                        protocol.fieldValue(api::auth_protocol::version)==m_defaultProtocol.version()
                         )
                     {
                         proto=&m_defaultProtocol;
@@ -98,7 +98,7 @@ class AuthProtocols
             // failed to negotiate protocol
             if (proto==nullptr)
             {
-                return HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_NEGOTIATION_FAILED);
+                return clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
             }
 
             // protocol negotiated

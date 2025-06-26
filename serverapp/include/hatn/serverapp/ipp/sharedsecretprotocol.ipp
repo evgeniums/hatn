@@ -40,14 +40,14 @@ HATN_SERVERAPP_NAMESPACE_BEGIN
 //--------------------------------------------------------------------------
 
 template <typename ContextT, typename CallbackT>
-void SharedSecretAuth::prepare(
+void SharedSecretAuthProtocol::prepare(
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
-        const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+        common::SharedPtr<auth_negotiate_request::managed> message,
         const common::pmr::AllocatorFactory* factory
     )
 {
-    auto msg=prepareChallengeToken(authRequest,factory);
+    auto msg=prepareChallengeToken(std::move(message),factory);
     if (msg)
     {
         //! @todo critical: Log error
@@ -61,7 +61,7 @@ void SharedSecretAuth::prepare(
 //--------------------------------------------------------------------------
 
 template <typename ContextT, typename CallbackT, typename LoginControllerT>
-void SharedSecretAuth::check(
+void SharedSecretAuthProtocol::check(
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
         common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed> message,

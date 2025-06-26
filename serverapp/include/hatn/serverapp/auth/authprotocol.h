@@ -55,6 +55,11 @@ class AuthProtocol
             m_version=version;
         }
 
+        bool is(const AuthProtocol& other) const noexcept
+        {
+            return name()==other.name() && version()==other.version();
+        }
+
     private:
 
         std::string m_name;

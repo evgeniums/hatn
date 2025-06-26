@@ -10,6 +10,7 @@ SET (HEADERS
     include/hatn/serverapp/auth/authprotocol.h
     include/hatn/serverapp/auth/authprotocols.h    
     include/hatn/serverapp/auth/sharedsecretprotocol.h
+    include/hatn/serverapp/auth/authservice.h
 
     include/hatn/serverapp/encryptedtoken.h
 
@@ -26,6 +27,7 @@ SET (HEADERS
     include/hatn/serverapp/ipp/localsessioncontroller.ipp
     include/hatn/serverapp/ipp/encryptedtoken.ipp
     include/hatn/serverapp/ipp/sharedsecretprotocol.ipp
+    include/hatn/serverapp/ipp/authservice.ipp
 )
 
 SET (SOURCES

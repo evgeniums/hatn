@@ -44,7 +44,7 @@ Error SharedSecretAuthBase::init(const crypt::CipherSuite* suite)
 //--------------------------------------------------------------------------
 
 Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase::prepareChallengeToken(
-        const common::SharedPtr<auth_negotiate_request::managed>& authRequest,
+        common::SharedPtr<auth_negotiate_request::managed> message,
         const common::pmr::AllocatorFactory* factory
     )
 {
@@ -81,10 +81,10 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     token.field(auth_challenge_token::expire).set(token.field(auth_challenge_token::token_created_at).value());
     token.field(auth_challenge_token::expire).mutableValue()->addSeconds(config().fieldValue(auth_protocol_shared_secret_config::token_ttl_secs));
     token.setFieldValue(auth_challenge_token::challenge,challenge->fieldValue(auth_hss_challenge::challenge));
-    token.setFieldValue(auth_challenge_token::login,authRequest->fieldValue(auth_negotiate_request::login));
-    if (!authRequest->fieldValue(auth_negotiate_request::topic).empty())
+    token.setFieldValue(auth_challenge_token::login,message->fieldValue(auth_negotiate_request::login));
+    if (!message->fieldValue(auth_negotiate_request::topic).empty())
     {
-        token.setFieldValue(auth_challenge_token::topic,authRequest->fieldValue(auth_negotiate_request::topic));
+        token.setFieldValue(auth_challenge_token::topic,message->fieldValue(auth_negotiate_request::topic));
     }
     challenge->setFieldValue(auth_hss_challenge::expire,token.fieldValue(auth_challenge_token::expire));
 
