@@ -26,35 +26,21 @@
 
 HATN_API_NAMESPACE_BEGIN
 
-template <size_t NameLength>
-class WithNameAndVersion
+class WithVersion
 {
     public:
 
-        using NameType=common::StringOnStackT<NameLength>;
+        using VersionType=uint32_t;
 
-        WithNameAndVersion() : m_version(1)
+        WithVersion(VersionType version=1) : m_version(version)
         {}
 
-        WithNameAndVersion(lib::string_view name, uint8_t version=1) : m_name(name),m_version(version)
-        {}
-
-        void setName(lib::string_view name)
-        {
-            m_name=name;
-        }
-
-        lib::string_view name() const noexcept
-        {
-            return m_name;
-        }
-
-        void setVersion(uint8_t version) noexcept
+        void setVersion(VersionType version) noexcept
         {
             m_version=version;
         }
 
-        uint8_t version() const noexcept
+        VersionType version() const noexcept
         {
             return m_version;
         }
@@ -62,14 +48,6 @@ class WithNameAndVersion
         template <typename T>
         bool operator < (const T& other) const noexcept
         {
-            if (lib::string_view(m_name)<other.name())
-            {
-                return true;
-            }
-            if (lib::string_view(m_name)>other.name())
-            {
-                return false;
-            }
             if (m_version<other.version())
             {
                 return true;
@@ -83,8 +61,58 @@ class WithNameAndVersion
 
     private:
 
+        VersionType m_version;
+};
+
+
+template <size_t NameLength>
+class WithNameAndVersion : public WithVersion
+{
+    public:
+
+        using NameType=common::StringOnStackT<NameLength>;
+
+        WithNameAndVersion()
+        {}
+
+        WithNameAndVersion(lib::string_view name, VersionType version=1) : WithVersion(version), m_name(name)
+        {}
+
+        void setName(lib::string_view name)
+        {
+            m_name=name;
+        }
+
+        lib::string_view name() const noexcept
+        {
+            return m_name;
+        }
+
+        template <typename T>
+        bool operator < (const T& other) const noexcept
+        {
+            if (lib::string_view(m_name)<other.name())
+            {
+                return true;
+            }
+            if (lib::string_view(m_name)>other.name())
+            {
+                return false;
+            }
+            if (version()<other.version())
+            {
+                return true;
+            }
+            if (version()>other.version())
+            {
+                return false;
+            }
+            return false;
+        }
+
+    private:
+
         NameType m_name;
-        uint8_t m_version;
 };
 
 HATN_API_NAMESPACE_END
