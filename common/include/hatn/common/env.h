@@ -99,7 +99,7 @@ class EnvT : public BaseT
 {
     public:
 
-        using selfT=EnvT<Contexts,BaseEnv>;
+        using selfT=EnvT<Contexts,BaseT>;
         using Base=BaseT;
 
         constexpr static auto isNested=boost::hana::not_(std::is_same<BaseT,BaseEnv>{});
