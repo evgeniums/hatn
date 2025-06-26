@@ -42,4 +42,8 @@
 
 #define HATN_API_SERVER_NAMESPACE hatn::api::server
 
+HATN_API_NAMESPACE_BEGIN
+namespace server{}
+HATN_API_NAMESPACE_END
+
 #endif // HATNAPI_H
