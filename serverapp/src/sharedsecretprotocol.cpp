@@ -46,7 +46,7 @@ Error SharedSecretAuthBase::init(const crypt::CipherSuite* suite)
 Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase::prepareChallengeToken(
         common::SharedPtr<auth_negotiate_request::managed> message,
         const common::pmr::AllocatorFactory* factory
-    )
+    ) const
 {
     // prepare response
     auto response=factory->createObject<auth_negotiate_response::managed>();

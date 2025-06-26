@@ -36,8 +36,8 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
     auto& req=serverapi::request<Request>(request).request();
 
     // negotiate auth protocol
-    const auto& protocols=req.template envContext<AuthProtocols>();
-    auto proto=protocols.negotiate(msg.get());
+    const auto& protocols=req.template envContext<WithAuthProtocols>();
+    auto proto=protocols->negotiate(msg.get());
     if (proto)
     {
         //! @todo critical: log error
@@ -49,8 +49,8 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
     // invoke first stage of negotiated protocol if applicable
 
     //! @todo Use registry of auth protocols, currently only HSS protocol supported
-    const auto& hssProtocol=req.template envContext<SharedSecretAuthProtocol>();
-    if (proto->is(hssProtocol))
+    const auto& hssProtocol=req.template envContext<WithSharedSecretAuthProtocol>();
+    if (proto->is(*hssProtocol))
     {
         auto cb=[callback=std::move(callback)](auto request, const Error& ec, common::SharedPtr<auth_negotiate_response::managed> message)
         {
@@ -70,7 +70,7 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
             callback(std::move(request));
         };
 
-        hssProtocol.prepare(
+        hssProtocol->prepare(
             std::move(request),
             std::move(cb),
             std::move(msg),
@@ -89,7 +89,7 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
 
 template <typename RequestT>
 HATN_VALIDATOR_NAMESPACE::error_report AuthNegotiateMethodImpl<RequestT>::validate(
-        const common::SharedPtr<Request> /*request*/,
+        const common::SharedPtr<serverapi::RequestContext<Request>> /*request*/,
         const Message& /*msg*/
     ) const
 {

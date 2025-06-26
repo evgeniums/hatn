@@ -17,6 +17,7 @@
 #define HATNAUTHPROTOCOLS_H
 
 #include <hatn/common/flatmap.h>
+#include <hatn/common/withsharedvalue.h>
 
 #include <hatn/clientserver/clientservererror.h>
 
@@ -52,11 +53,11 @@ class AuthProtocols
 
         Result<AuthProtocol> negotiate(
                 const auth_negotiate_request::managed* message
-            )
+            ) const
         {
             uint32_t priority=0;
             AuthProtocol p;
-            AuthProtocol* proto=nullptr;
+            const AuthProtocol* proto=nullptr;
 
             // find matching protocol with highest priority
             const auto& protocols=message->field(auth_negotiate_request::protocols);
@@ -102,6 +103,7 @@ class AuthProtocols
             }
 
             // protocol negotiated
+            //! @todo optimization: keep protocol and return shared ptr
             return *proto;
         }
 
@@ -146,9 +148,11 @@ class AuthProtocols
 
     private:
 
-        common::FlatMap<std::string,Protocol> m_protocols;
+        common::FlatMap<std::string,Protocol,std::less<>> m_protocols;
         AuthProtocol m_defaultProtocol;
 };
+
+using WithAuthProtocols=common::WithSharedValue<AuthProtocols>;
 
 HATN_SERVERAPP_NAMESPACE_END
 

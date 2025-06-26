@@ -16,6 +16,8 @@
 #ifndef HATNAUTHSHAREDSECRETPROTOCOL_H
 #define HATNAUTHSHAREDSECRETPROTOCOL_H
 
+#include <hatn/common/withsharedvalue.h>
+
 #include <hatn/base/configobject.h>
 
 #include <hatn/crypt/ciphersuite.h>
@@ -56,7 +58,7 @@ class HATN_SERVERAPP_EXPORT SharedSecretAuthBase : public AuthProtocol,
         Result<common::SharedPtr<auth_negotiate_response::managed>> prepareChallengeToken(
             common::SharedPtr<auth_negotiate_request::managed> message,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        );
+        ) const;
 };
 
 class SharedSecretAuthProtocol : public SharedSecretAuthBase
@@ -69,7 +71,7 @@ class SharedSecretAuthProtocol : public SharedSecretAuthBase
             CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<auth_negotiate_response::managed> message)
             common::SharedPtr<auth_negotiate_request::managed> message,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        );
+        ) const;
 
         template <typename ContextT, typename CallbackT, typename LoginControllerT>
         void check(
@@ -78,8 +80,10 @@ class SharedSecretAuthProtocol : public SharedSecretAuthBase
             common::SharedPtr<auth_hss_check::managed> message,
             const LoginControllerT* loginController,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        );
+        ) const;
 };
+
+using WithSharedSecretAuthProtocol=common::WithSharedValue<SharedSecretAuthProtocol>;
 
 HATN_SERVERAPP_NAMESPACE_END
 

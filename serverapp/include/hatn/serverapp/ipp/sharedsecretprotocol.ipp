@@ -45,7 +45,7 @@ void SharedSecretAuthProtocol::prepare(
         CallbackT callback,
         common::SharedPtr<auth_negotiate_request::managed> message,
         const common::pmr::AllocatorFactory* factory
-    )
+    ) const
 {
     auto msg=prepareChallengeToken(std::move(message),factory);
     if (msg)
@@ -67,7 +67,7 @@ void SharedSecretAuthProtocol::check(
         common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed> message,
         const LoginControllerT* loginController,
         const common::pmr::AllocatorFactory* factory
-    )
+    ) const
 {
     // deserialize token
     const auto& tokenField=message->field(auth_hss_check::token);

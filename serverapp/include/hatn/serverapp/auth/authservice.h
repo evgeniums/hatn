@@ -41,17 +41,17 @@ class AuthNegotiateMethodImpl
         ) const;
 
         HATN_VALIDATOR_NAMESPACE::error_report validate(
-            const common::SharedPtr<Request> request,
+            const common::SharedPtr<serverapi::RequestContext<Request>> request,
             const Message& msg
         ) const;
 };
 
 template <typename RequestT>
-class AuthNegotiateMethod : public serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthNegotiateMethodImpl<RequestT>>>
+class AuthNegotiateMethod : public serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthNegotiateMethodImpl<RequestT>>,RequestT>
 {
     public:
 
-        using Base=serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthNegotiateMethodImpl<RequestT>>>;
+        using Base=serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthNegotiateMethodImpl<RequestT>>,RequestT>;
 
         AuthNegotiateMethod() : Base(AuthNegotiateMethodName)
         {}
