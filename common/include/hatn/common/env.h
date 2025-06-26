@@ -61,34 +61,34 @@ struct EnvContextTag{};
 template <typename T>
 class EnvContext : public T
 {
-public:
+    public:
 
-    using hana_tag=EnvContextTag;
-    using Base=T;
+        using hana_tag=EnvContextTag;
+        using Base=T;
 
-    template <typename ...Args>
-    EnvContext(
-            Args&& ...args
-        ) : T(std::forward<Args>(args)...)
-    {}
+        template <typename ...Args>
+        EnvContext(
+                Args&& ...args
+            ) : T(std::forward<Args>(args)...)
+        {}
 
-    template <typename ...Types>
-    EnvContext(
-            std::tuple<Types...>&& ts
-        ) : EnvContext(
-              std::forward<std::tuple<Types...>>(ts),
-              std::make_index_sequence<std::tuple_size<std::remove_reference_t<std::tuple<Types...>>>::value>{}
-              )
-    {}
+        template <typename ...Types>
+        EnvContext(
+                std::tuple<Types...>&& ts
+            ) : EnvContext(
+                  std::forward<std::tuple<Types...>>(ts),
+                  std::make_index_sequence<std::tuple_size<std::remove_reference_t<std::tuple<Types...>>>::value>{}
+                  )
+        {}
 
-private:
+    private:
 
-    template <typename Ts, std::size_t... I>
-    EnvContext(
-        Ts&& ts,
-        std::index_sequence<I...>
-        ) : EnvContext(std::get<I>(std::forward<Ts>(ts))...)
-    {}
+        template <typename Ts, std::size_t... I>
+        EnvContext(
+            Ts&& ts,
+            std::index_sequence<I...>
+            ) : EnvContext(std::get<I>(std::forward<Ts>(ts))...)
+        {}
 };
 
 /**
