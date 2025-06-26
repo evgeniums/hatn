@@ -143,7 +143,7 @@ public:
     template <typename ...ImplArgs>
     ServerServiceV(
         lib::string_view name,
-        uint8_t version,
+        Service::VersionType version,
         ImplArgs&&... implArgs
         ) : ServerService<Request>(name,version),
         common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
@@ -243,7 +243,7 @@ class ServiceMethodBase
  * HATN_VALIDATOR_NAMESPACE::error_report validate(const common::SharedPtr<RequestContext<RequestT>>& request,const MessageT& msg)
 )
  */
-template <typename Traits, typename MessageT=NoMessage, typename RequestT=Request<>>
+template <typename Traits, typename MessageT=typename Traits::Message, typename RequestT=typename Traits::Request>
 class ServiceMethodT : public common::WithTraits<Traits>
 {
     public:

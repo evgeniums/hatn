@@ -51,7 +51,7 @@ class ServiceNameAndVersion
             return field.value();
         }
 
-        uint8_t version() const noexcept
+        auto version() const noexcept
         {
             return req.fieldValue(protocol::request::service_version);
         }
