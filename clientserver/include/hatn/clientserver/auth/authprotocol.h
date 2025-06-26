@@ -22,6 +22,12 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+constexpr const uint32_t AuthServiceVersion=1;
+constexpr const char* AuthServiceName="auth";
+constexpr const char* AuthNegotiateMethodName="negotiate";
+constexpr const char* AuthRefreshMethodName="refresh";
+constexpr const char* AuthHssCheckMethodName="hss_check";
+
 HDU_UNIT(auth_negotiate_request,
     HDU_FIELD(login,TYPE_STRING,1,true)
     HDU_FIELD(topic,TYPE_STRING,2)
