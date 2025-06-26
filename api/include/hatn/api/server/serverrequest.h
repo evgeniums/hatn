@@ -156,6 +156,33 @@ struct Request : public common::TaskSubcontext
         // flush request's logs
         HATN_CTX_CLOSE_API(ec,"API EXEC")
     }
+
+    Request& request()
+    {
+        return *this;
+    }
+
+    const Request& request() const
+    {
+        return *this;
+    }
+
+    template <typename T>
+    T& envContext() noexcept
+    {
+        return env->template get<T>();
+    }
+
+    template <typename T>
+    const T& envContext() const noexcept
+    {
+        return env->template get<T>();
+    }
+
+    const common::pmr::AllocatorFactory* factory() const noexcept
+    {
+        return envContext<AllocatorFactory>().factory();
+    }
 };
 
 template <typename RequestT=Request<>>
@@ -175,6 +202,18 @@ inline auto allocateRequestContext(
             )
         );
 }
+
+template <typename Request>
+struct requestT
+{
+    template <typename T>
+    auto& operator() (const T& context) const
+    {
+        return context->template get<Request>();
+    }
+};
+template <typename Request>
+constexpr requestT<Request> request{};
 
 template <typename RequestT=Request<>>
 using RouteCb=std::function<void (common::SharedPtr<RequestContext<RequestT>> request)>;
