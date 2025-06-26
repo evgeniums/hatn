@@ -41,4 +41,7 @@
 #define HATN_BASE_NS base
 #define HATN_BASE_USING using namespace hatn::base;
 
+HATN_BASE_NAMESPACE_BEGIN
+HATN_BASE_NAMESPACE_END
+
 #endif // HATNBASE_H
