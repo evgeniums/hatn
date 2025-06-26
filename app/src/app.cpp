@@ -932,6 +932,8 @@ std::vector<std::string> App::listLogFiles() const
 
 Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 {
+    HATN_CTX_SCOPE("initCipherSuites")
+
     auto suites=std::make_shared<crypt::CipherSuites>();
 
     // load crypt plugin
@@ -954,8 +956,12 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 
     // set default cipher suite
     auto defaultSuiteId=cryptConfig.config().fieldValue(crypt_config::default_cipher_suite);
+
+    //! @todo Check that var is poped when scope is left
+    // HATN_CTX_PUSH_VAR("default_cipher_suite",defaultSuiteId)
+
     ec=suites->setDefaultSuite(defaultSuiteId);
-    HATN_CHECK_EC(ec)
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to set default cipher suite","app"),HLOG_MODULE(app))
 
     // done
     return suites;
