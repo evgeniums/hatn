@@ -163,13 +163,13 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         }
 
         /**
-         * @brief Non-virtual vertion of beforeThreadProcessing
+         * @brief Non-virtual version of beforeThreadProcessing
          */
         void beforeThreadProcessingNV()
         {}
 
         /**
-         * @brief Non-virtual vertion of afterThreadProcessing
+         * @brief Non-virtual version of afterThreadProcessing
          */
         void afterThreadProcessingNV()
         {}
