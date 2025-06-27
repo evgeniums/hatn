@@ -46,9 +46,11 @@ void Service::exec(
     if (it==m_methods.end())
     {
         thread->execAsync(
-            [callback{std::move(callback)}]()
+            [callback=std::move(callback),this,method]()
             {
                 HATN_CTX_SCOPE("service:exec:cb")
+                HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
+                HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",method)
 
                 auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD);
                 HATN_CTX_ERROR(ec,"failed to exec service method")
@@ -66,8 +68,8 @@ void Service::exec(
 
         HATN_CTX_SCOPE("service:exec:cb")
 
-        HATN_CTX_PUSH_FIXED_VAR("service",name())
-        HATN_CTX_PUSH_FIXED_VAR("method",mthd->name())
+        HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
+        HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
 
         mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
         ctx->onAsyncHandlerExit();
@@ -96,9 +98,7 @@ void Dispatcher::exec(
         Callback callback
     )
 {
-#if 0
-
-    HATN_CTX_SCOPE("dispatcher::exec")
+#if 1
 
     Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
     auto it=m_services.find(service);
@@ -106,9 +106,11 @@ void Dispatcher::exec(
     {
         auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
         thread->execAsync(
-            [callback{std::move(callback)}]()
+            [callback{std::move(callback)},service,method]()
             {
                 HATN_CTX_SCOPE("dispatcher:exec:cb")
+                HATN_CTX_SCOPE_PUSH("bridge_srv",service)
+                HATN_CTX_SCOPE_PUSH("bridge_mthd",method)
 
                 auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
                 HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
@@ -130,8 +132,8 @@ void Dispatcher::exec(
         [callback=std::move(callback),request=std::move(request),service,method,this]()
         {
             HATN_CTX_SCOPE("dispatcher:exec:cb")
-            HATN_CTX_SCOPE_PUSH("bridge_service",service)
-            HATN_CTX_SCOPE_PUSH("bridge_method",method)
+            HATN_CTX_SCOPE_PUSH("bridge_srv",service)
+            HATN_CTX_SCOPE_PUSH("bridge_mthd",method)
 
             auto it=m_services.find(service);
             if (it==m_services.end())
