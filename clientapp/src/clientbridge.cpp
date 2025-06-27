@@ -96,6 +96,8 @@ void Dispatcher::exec(
         Callback callback
     )
 {
+#if 0
+
     HATN_CTX_SCOPE("dispatcher::exec")
 
     Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
@@ -119,6 +121,33 @@ void Dispatcher::exec(
 
     auto envr=env(request.envId);
     it->second->exec(std::move(envr),method,std::move(request),std::move(callback));
+#else
+
+    Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
+
+    auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
+    thread->execAsync(
+        [callback=std::move(callback),request=std::move(request),service,method,this]()
+        {
+            HATN_CTX_SCOPE("dispatcher:exec:cb")
+            HATN_CTX_SCOPE_PUSH("bridge_service",service)
+            HATN_CTX_SCOPE_PUSH("bridge_method",method)
+
+            auto it=m_services.find(service);
+            if (it==m_services.end())
+            {
+                auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
+                HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
+                callback(ec,Response{});
+                return;
+            }
+
+            auto envr=env(request.envId);
+            it->second->exec(std::move(envr),method,std::move(request),std::move(callback));
+        }
+    );
+
+#endif
 }
 
 //---------------------------------------------------------------
