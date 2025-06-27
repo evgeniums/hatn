@@ -7,14 +7,14 @@ SET (HEADERS
     include/hatn/clientapp/clientbridge.h
     include/hatn/clientapp/clientapp.h
     include/hatn/clientapp/bridgeappcontext.h
-    include/hatn/clientapp/notificationdispatcher.h
+    include/hatn/clientapp/eventdispatcher.h
 )
 
 SET (SOURCES
     src/clientapperror.cpp
     src/clientbridge.cpp
     src/clientapp.cpp
-    src/notificationdispatcher.cpp
+    src/eventdispatcher.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)

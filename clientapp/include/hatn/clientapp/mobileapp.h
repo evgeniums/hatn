@@ -80,10 +80,16 @@ struct Response
     {}
 };
 
-struct Notification
+struct EventKey
 {
+    std::string category;
+    std::string event;
     std::string envId;
     std::string topic;
+};
+
+struct Event : public EventKey
+{
     std::string messageTypeName;
     std::string messageJson;
     std::vector<std::pair<const char*,size_t>> buffers;
@@ -98,7 +104,7 @@ struct Error
 
 using Callback=std::function<void (Error, Response response)>;
 
-using NotificationHandler=std::function<void (const std::string& service, const std::string& method, const Notification& notification)>;
+using EventHandler=std::function<void (const Event& event)>;
 
 class HATN_CLIENTAPP_EXPORT MobileApp
 {
@@ -122,15 +128,12 @@ class HATN_CLIENTAPP_EXPORT MobileApp
             Callback callback
         );
 
-        size_t subscribeNotification(
-            NotificationHandler handler,
-            std::string service={},
-            std::string method={},
-            std::string envId={},
-            std::string topic={}
+        size_t subscribeEvent(
+            EventHandler handler,
+            EventKey key={}
         );
 
-        void unsubscribeNotification(
+        void unsubscribeEvent(
             size_t id
         );
 

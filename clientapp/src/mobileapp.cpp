@@ -30,7 +30,7 @@
 
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/clientapp.h>
-#include <hatn/clientapp/notificationdispatcher.h>
+#include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
@@ -244,41 +244,39 @@ void MobileApp::exec(
 
 //-----------------------------------------------------------------------------
 
-size_t MobileApp::subscribeNotification(
-    NotificationHandler handler,
-    std::string service,
-    std::string method,
-    std::string envId,
-    std::string topic
+size_t MobileApp::subscribeEvent(
+    EventHandler handler,
+    EventKey key_
 )
 {
-    HATN_CLIENTAPP_NAMESPACE::NotificationKey key{
-        std::move(service),
-        std::move(method),
-        std::move(envId),
-        std::move(topic)
+    HATN_CLIENTAPP_NAMESPACE::EventKey key{
+        std::move(key_.category),
+        std::move(key_.event),
+        std::move(key_.envId),
+        std::move(key_.topic)
     };
     auto hndlr=[handler=std::move(handler)](common::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env,
                                             common::SharedPtr<Context>,
-                                            const std::string& service,
-                                            const std::string& method,
-                                            std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::Notification> notification)
+                                            std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::Event> event)
     {
-        Notification ntfcn;
-        ntfcn.topic=notification->topic;
-        ntfcn.messageTypeName=notification->messageTypeName;
-        if (notification->message)
-        {
-            ntfcn.messageJson=notification->message.get()->toString();
-        }
+        Event ntfcn;
+        //! @todo omptimization: use referenses for similar fields instead of copying
+        ntfcn.category=event->category;
+        ntfcn.event=event->event;
+        ntfcn.topic=event->topic;
         if (env)
         {
             ntfcn.envId=env->name();
         }
-        if (!notification->buffers.empty())
+        ntfcn.messageTypeName=event->messageTypeName;
+        if (event->message)
         {
-            ntfcn.buffers.reserve(notification->buffers.size());
-            for (auto&& buffer : notification->buffers)
+            ntfcn.messageJson=event->message.get()->toString();
+        }
+        if (!event->buffers.empty())
+        {
+            ntfcn.buffers.reserve(event->buffers.size());
+            for (auto&& buffer : event->buffers)
             {
                 if (buffer)
                 {
@@ -287,17 +285,17 @@ size_t MobileApp::subscribeNotification(
             }
         }
 
-        handler(service,method,ntfcn);
+        handler(ntfcn);
     };
-    return pimpl->app->notifier().subscribe(std::move(hndlr),std::move(key));
+    return pimpl->app->eventDispatcher().subscribe(std::move(hndlr),std::move(key));
 }
 
 //-----------------------------------------------------------------------------
 
-void MobileApp::unsubscribeNotification(size_t id)
+void MobileApp::unsubscribeEvent(size_t id)
 {
 
-    return pimpl->app->notifier().unsubscribe(id);
+    return pimpl->app->eventDispatcher().unsubscribe(id);
 }
 
 //-----------------------------------------------------------------------------

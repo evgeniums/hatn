@@ -34,7 +34,7 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 using Context=common::TaskContext;
 
 class Dispatcher;
-class NotificationDispatcher;
+class EventDispatcher;
 class ClientApp_p;
 
 class HATN_CLIENTAPP_EXPORT ClientApp
@@ -54,7 +54,7 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         Dispatcher& bridge();
 
-        NotificationDispatcher& notifier();
+        EventDispatcher& eventDispatcher();
 
         virtual Error init();
 

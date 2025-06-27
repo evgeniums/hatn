@@ -16,7 +16,7 @@
 
 #include <hatn/app/app.h>
 #include <hatn/clientapp/clientbridge.h>
-#include <hatn/clientapp/notificationdispatcher.h>
+#include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/clientapp.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -32,7 +32,7 @@ class ClientApp_p
 
         HATN_APP_NAMESPACE::App app;
         Dispatcher bridge;
-        NotificationDispatcher notifier;
+        EventDispatcher eventDispatcher;
 };
 
 //--------------------------------------------------------------------------
@@ -69,9 +69,9 @@ Dispatcher& ClientApp::bridge()
 
 //--------------------------------------------------------------------------
 
-NotificationDispatcher& ClientApp::notifier()
+EventDispatcher& ClientApp::eventDispatcher()
 {
-    return pimpl->notifier;
+    return pimpl->eventDispatcher;
 }
 
 //--------------------------------------------------------------------------
