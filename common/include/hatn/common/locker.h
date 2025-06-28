@@ -38,6 +38,8 @@ class Locker<true>
 {
     public:
 
+        constexpr static const bool Atomic=true;
+
         //! Ctor
         Locker()
 #ifndef _MSC_VER
@@ -71,6 +73,8 @@ template <>
 class Locker<false>
 {
     public:
+
+        constexpr static const bool Atomic=false;
 
         //! Ctor
         Locker():m_lockThread(this){}
