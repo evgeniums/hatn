@@ -900,6 +900,8 @@ void App::registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::instance().registerSchema(std::move(schema));
+#else
+    std::ignore=schema;
 #endif
 }
 
@@ -909,6 +911,8 @@ void App::unregisterDbSchema(const std::string& name)
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::instance().unregisterSchema(name);
+#else
+    std::ignore=name;
 #endif
 }
 
@@ -938,11 +942,15 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 
     // load crypt plugin
     auto cryptProvider=cryptConfig.config().fieldValue(crypt_config::provider);
+    if (cryptProvider.empty())
+    {
+        return suites;
+    }
     auto ec=loadCryptPlugin(cryptProvider);
     HATN_CHECK_EC(ec)
 
     // set crypt engine
-    auto cryptEngine=std::make_shared<crypt::CryptEngine>(cryptPlugin.get());
+    auto cryptEngine=std::make_shared<crypt::CryptEngine>(cryptPlugin.get());    
     suites->setDefaultEngine(std::move(cryptEngine));
 
     // fill cipher suites
@@ -956,9 +964,7 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 
     // set default cipher suite
     auto defaultSuiteId=cryptConfig.config().fieldValue(crypt_config::default_cipher_suite);
-
-    //! @todo Check that var is poped when scope is left
-    // HATN_CTX_PUSH_VAR("default_cipher_suite",defaultSuiteId)
+    HATN_CTX_SCOPE_PUSH("default_cipher_suite",defaultSuiteId)
 
     ec=suites->setDefaultSuite(defaultSuiteId);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to set default cipher suite","app"),HLOG_MODULE(app))
