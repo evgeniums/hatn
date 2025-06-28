@@ -173,13 +173,20 @@ using TaskThread=ThreadWithQueue<Task>;
 using TaskWithContextThread=ThreadWithQueue<TaskWithContext>;
 using ThreadQWithTaskContext=std::pointer_traits<decltype(TaskWithContextThread::current())>::element_type;
 
+struct NoOpCallback
+{
+    template <typename ...Args>
+    void operator() (Args&& ...) const
+    {}
+};
+
 struct postAsyncTaskT
 {
-    template <typename HandlerT, typename CallbackT>
+    template <typename HandlerT, typename CallbackT=NoOpCallback>
     void operator ()(ThreadQWithTaskContext* thread,
                     SharedPtr<TaskContext> ctx,
                     HandlerT handler,
-                    CallbackT callback
+                    CallbackT callback={}
                     ) const
     {
         auto originThreadQ=TaskWithContextThread::current();
