@@ -10,14 +10,14 @@
 /*
 
 */
-/** @file clientapp/notificationdispatcher.h
+/** @file clientapp/eventdispatcher.h
   *
   */
 
 /****************************************************************************/
 
-#ifndef HATNCLIENTNOTIFICATIONDISPATCHER_H
-#define HATNCLIENTNOTIFICATIONDISPATCHER_H
+#ifndef HATNCLIENTEVENTDISPATCHER_H
+#define HATNCLIENTEVENTDISPATCHER_H
 
 #include <memory>
 #include <map>
@@ -32,22 +32,22 @@
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
-class NotificationKey
+class EventKey
 {
     public:
 
-        NotificationKey(
-                std::string service={},
-                std::string method={},
+        EventKey(
+                std::string category={},
+                std::string event={},
                 std::string envId={},
                 std::string topic={}
-            ) : m_service(std::move(service)),
-                m_method(std::move(method)),
+            ) : m_category(std::move(category)),
+                m_event(std::move(event)),
                 m_envId(std::move(envId)),
                 m_topic(std::move(topic))
         {
-            m_selectors[0]=&m_service;
-            m_selectors[1]=&m_method;
+            m_selectors[0]=&m_category;
+            m_selectors[1]=&m_event;
             m_selectors[2]=&m_envId;
             m_selectors[3]=&m_topic;
         }
@@ -76,14 +76,14 @@ class NotificationKey
             return true;
         }
 
-        const std::string& service() const noexcept
+        const std::string& category() const noexcept
         {
-            return m_service;
+            return m_category;
         }
 
-        const std::string& method() const noexcept
+        const std::string& event() const noexcept
         {
-            return m_method;
+            return m_event;
         }
 
         const std::string& envId() const noexcept
@@ -96,14 +96,14 @@ class NotificationKey
             return m_topic;
         }
 
-        void setService(std::string service)
+        void setcategory(std::string category)
         {
-            m_service=std::move(service);
+            m_category=std::move(category);
         }
 
-        void setMethod(std::string method)
+        void setevent(std::string event)
         {
-            m_method=std::move(method);
+            m_event=std::move(event);
         }
 
         void setEnvId(std::string envId)
@@ -124,40 +124,41 @@ class NotificationKey
 
     private:
 
-        std::string m_service;
-        std::string m_method;
+        std::string m_category;
+        std::string m_event;
         std::string m_envId;
         std::string m_topic;
 
         std::array<const std::string*,4> m_selectors;
 };
 
-struct Notification
+struct Event
 {
+    std::string category;
+    std::string event;
+
     std::string topic;
     std::string messageTypeName;
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
 };
 
-using NotificationHandler=std::function<void (common::SharedPtr<app::AppEnv> env,
+using EventHandler=std::function<void (common::SharedPtr<app::AppEnv> env,
                                               common::SharedPtr<Context> ctx,
-                                              const std::string& service,
-                                              const std::string& method,
-                                              std::shared_ptr<Notification> notification)>;
+                                              std::shared_ptr<Event> event)>;
 
-class HATN_CLIENTAPP_EXPORT NotificationSubscriptions
+class HATN_CLIENTAPP_EXPORT EventSubscriptions
 {
     public:
 
-        std::vector<NotificationHandler> find(const NotificationKey& key) const
+        std::vector<EventHandler> find(const EventKey& key) const
         {
-            std::vector<NotificationHandler> result;
+            std::vector<EventHandler> result;
             doFind(key,result);
             return result;
         }
 
-        size_t insert(NotificationKey key, NotificationHandler handler)
+        size_t insert(EventKey key, EventHandler handler)
         {
             return doInsert(std::move(key),std::move(handler));
         }
@@ -171,10 +172,10 @@ class HATN_CLIENTAPP_EXPORT NotificationSubscriptions
 
         static size_t Index;
 
-        std::map<size_t,NotificationHandler> handlers;
-        std::map<std::string,std::shared_ptr<NotificationSubscriptions>> keyHandlers;
+        std::map<size_t,EventHandler> handlers;
+        std::map<std::string,std::shared_ptr<EventSubscriptions>> keyHandlers;
 
-        size_t doRemove(size_t index, NotificationSubscriptions* subscriptions)
+        size_t doRemove(size_t index, EventSubscriptions* subscriptions)
         {
             size_t removedCount=subscriptions->handlers.erase(index);
             if (removedCount!=0)
@@ -198,7 +199,7 @@ class HATN_CLIENTAPP_EXPORT NotificationSubscriptions
             return 0;
         }
 
-        size_t doInsert(NotificationKey key, NotificationHandler handler, size_t selectorIndex=0)
+        size_t doInsert(EventKey key, EventHandler handler, size_t selectorIndex=0)
         {
             if (selectorIndex==key.selectors().size() || key.isSubNull(selectorIndex))
             {
@@ -214,14 +215,14 @@ class HATN_CLIENTAPP_EXPORT NotificationSubscriptions
                 return it->second->doInsert(std::move(key),std::move(handler),selectorIndex+1);
             }
 
-            auto subs=std::make_shared<NotificationSubscriptions>();
+            auto subs=std::make_shared<EventSubscriptions>();
             auto subsPtr=subs.get();
             keyHandlers.emplace(std::move(*selector),std::move(subs));
 
             return subsPtr->doInsert(std::move(key),std::move(handler),selectorIndex+1);
         }
 
-        void doFind(const NotificationKey& key,std::vector<NotificationHandler>& result, size_t selectorIndex=0) const
+        void doFind(const EventKey& key,std::vector<EventHandler>& result, size_t selectorIndex=0) const
         {
             if (!handlers.empty())
             {
@@ -245,23 +246,21 @@ class HATN_CLIENTAPP_EXPORT NotificationSubscriptions
         }
 };
 
-class HATN_CLIENTAPP_EXPORT NotificationDispatcher
+class HATN_CLIENTAPP_EXPORT EventDispatcher
 {
     public:
 
-        NotificationDispatcher();
+        EventDispatcher();
 
         void publish(
             common::SharedPtr<app::AppEnv> env,
             common::SharedPtr<Context> ctx,
-            const std::string& service,
-            const std::string& method,
-            std::shared_ptr<Notification> notification
+            std::shared_ptr<Event> event
         );
 
         size_t subscribe(
-            NotificationHandler handler,
-            NotificationKey key={}
+            EventHandler handler,
+            EventKey key={}
         )
         {
             common::SharedLocker::ExclusiveScope l{m_mutex};
@@ -278,10 +277,10 @@ class HATN_CLIENTAPP_EXPORT NotificationDispatcher
 
     private:
 
-        std::shared_ptr<NotificationSubscriptions> m_subscriptions;
+        std::shared_ptr<EventSubscriptions> m_subscriptions;
         common::SharedLocker m_mutex;
 };
 
 HATN_CLIENTAPP_NAMESPACE_END
 
-#endif // HATNCLIENTNOTIFICATIONDISPATCHER_H
+#endif // HATNCLIENTEVENTDISPATCHER_H

@@ -10,50 +10,45 @@
 /*
 
 */
-/** @file clientapp/notificationdispatcher.сpp
+/** @file clientapp/eventdispatcher.сpp
   *
   */
 
-#include <hatn/clientapp/notificationdispatcher.h>
+#include <hatn/clientapp/eventdispatcher.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-size_t NotificationSubscriptions::Index=0;
+size_t EventSubscriptions::Index=0;
 
-NotificationDispatcher::NotificationDispatcher() : m_subscriptions(std::make_shared<NotificationSubscriptions>())
+EventDispatcher::EventDispatcher() : m_subscriptions(std::make_shared<EventSubscriptions>())
 {}
 
 //---------------------------------------------------------------
 
-void NotificationDispatcher::publish(
+void EventDispatcher::publish(
         common::SharedPtr<app::AppEnv> env,
         common::SharedPtr<Context> ctx,
-        const std::string& service,
-        const std::string& method,
-        std::shared_ptr<Notification> notification
+        std::shared_ptr<Event> event
     )
 {
-    HATN_CTX_SCOPE("notifications::publish")
-    HATN_CTX_PUSH_VAR("notification_service",service);
-    HATN_CTX_PUSH_VAR("notification_method",method);
+    HATN_CTX_SCOPE("eventdispatcher::publish")
+    HATN_CTX_PUSH_VAR("category",event->category);
+    HATN_CTX_PUSH_VAR("event",event->event);
 
-    NotificationKey key{
-        service,
-        method
+    EventKey key{
+        event->category,
+        event->event
     };
     if (env)
     {
         key.setEnvId(env->name());
     }
-    if (notification)
-    {
-        key.setTopic(notification->topic);
-        HATN_CTX_PUSH_VAR("notification_topic",notification->topic);
-    }
+    key.setTopic(event->topic);
+    HATN_CTX_PUSH_VAR("event_topic",event->topic);
 
-    std::vector<NotificationHandler> handlers;
+    std::vector<EventHandler> handlers;
     {
         common::SharedLocker::SharedScope l{m_mutex};
         handlers=m_subscriptions->find(key);
@@ -63,7 +58,7 @@ void NotificationDispatcher::publish(
     {
         if (handler)
         {
-            handler(env,ctx,service,method,notification);
+            handler(env,ctx,event);
         }
     }
 }
