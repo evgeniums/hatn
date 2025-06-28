@@ -17,17 +17,78 @@
 #ifndef HATNSIMPLEQUEUE_H
 #define HATNSIMPLEQUEUE_H
 
+#include <memory>
+#include <type_traits>
+
 #include <hatn/common/common.h>
 #include <hatn/common/queuetmpl.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-template <typename T>
-class SimpleQueueTraits
+class WithNoLock
 {
     public:
 
-        using Queue=QueueTmpl<T,SimpleQueueTraits<T>>;
+        struct ScopeLocker
+        {
+            ScopeLocker(int=0)
+            {}
+        };
+
+        void lock()
+        {}
+
+        void unlock()
+        {}
+
+    protected:
+
+        constexpr static int locker() noexcept
+        {
+            return 0;
+        }
+};
+
+template <typename Locker=MutexLock>
+class WithLock
+{
+    public:
+
+        using ScopeLocker=common::ScopedLock<Locker::Atomic>;
+
+        void lock()
+        {
+            m_locker.lock();
+        }
+
+        void unlock()
+        {
+            m_locker.unlock();
+        }
+
+    protected:
+
+        auto& locker() noexcept
+        {
+            return m_locker;
+        }
+
+        mutable Locker m_locker;
+};
+
+#define HATN_LOCK_SCOPE(WithLockPtr) \
+    using thisType=decltype(WithLockPtr); \
+    using elementType=typename std::pointer_traits<thisType>::element_type;\
+    using nonConstType=std::remove_const_t<elementType>;\
+    auto* nonConstSelf=const_cast<nonConstType*>(WithLockPtr);\
+    typename std::decay_t<elementType>::ScopeLocker l{nonConstSelf->locker()};
+
+template <typename T, typename SyncLocker>
+class SimpleQueueTraits : public SyncLocker
+{
+    public:
+
+        using Queue=QueueTmpl<T,SimpleQueueTraits<T,SyncLocker>>;
         using Item=QueueItemTmpl<T>;
 
         struct Stats
@@ -107,10 +168,11 @@ class SimpleQueueTraits
 
         SimpleQueueTraits& operator=(const SimpleQueueTraits&)=delete;
 
-
         //! Push item to queue
         void pushInternalItem(Item* item) noexcept
         {
+            HATN_LOCK_SCOPE(this)
+
             if (m_last!=nullptr)
             {
                 m_last->m_next.store(item,std::memory_order_relaxed);
@@ -132,6 +194,8 @@ class SimpleQueueTraits
         {
             Item* first=nullptr;
             {
+                HATN_LOCK_SCOPE(this)
+
                 if (m_size!=0)
                 {
                     first=m_first;
@@ -163,12 +227,16 @@ class SimpleQueueTraits
         //! Get queued size
         size_t size() const noexcept
         {
+            HATN_LOCK_SCOPE(this)
+
             return m_size;
         }
 
         //! Check if queue is empty
         bool isEmpty() const noexcept
         {
+            HATN_LOCK_SCOPE(this)
+
             return m_size==0;
         }
 
@@ -181,6 +249,8 @@ class SimpleQueueTraits
         //! Read statistics
         void readStats(size_t& maxSize,size_t& minSize,int64_t& maxDuration,int64_t& minDuration) noexcept
         {
+            HATN_LOCK_SCOPE(this)
+
             updateSizeStats();
             if (m_size!=0&&m_first!=nullptr)
             {
@@ -204,6 +274,8 @@ class SimpleQueueTraits
         //! Reset statistics
         void resetStats() noexcept
         {
+            HATN_LOCK_SCOPE(this)
+
             m_stats.reset();
         }
 
@@ -211,10 +283,12 @@ class SimpleQueueTraits
 
         //! Clear the queue
         inline void doClear() noexcept
-        {
+        {            
             // clear all vars in locked mode
             Item* first=nullptr;
             {
+                HATN_LOCK_SCOPE(this)
+
                 first=m_first;
                 m_first=nullptr;
                 m_last=nullptr;
@@ -255,8 +329,8 @@ class SimpleQueueTraits
         Queue* m_queue;
 };
 
-template <typename T>
-using SimpleQueue=QueueTmpl<T,SimpleQueueTraits<T>>;
+template <typename T, typename SyncLocker=WithNoLock>
+using SimpleQueue=QueueTmpl<T,SimpleQueueTraits<T,SyncLocker>>;
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
