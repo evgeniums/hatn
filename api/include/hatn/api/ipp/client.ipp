@@ -46,9 +46,9 @@ common::Result<
 {
     HATN_CTX_SCOPE("apiclientprepare")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth)));
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth)));
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
-    auto ec=req->serialize(service,method,topic,tenancy);
+    auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     return req;
 }
@@ -62,7 +62,7 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     SessionWrapperT session,
     const Service& service,
     const Method& method,
-    MessageType message,    
+    MessageType message,
     lib::string_view  topic,
     Priority priority,
     uint32_t timeoutMs,
@@ -71,9 +71,9 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 {
     HATN_CTX_SCOPE("apiclientexec")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs);
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs);
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
-    auto ec=req->serialize(service,method,topic,tenancy);
+    auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),std::move(callback),std::move(req));
     return OK;
@@ -333,12 +333,21 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                         auto status=respWrapper.status();
                         if (!respWrapper.isSuccess())
                         {
-                            if (status==protocol::ResponseStatus::AuthError && !m_closed)
+                            bool invokeCallback=true;
+
+                            if (status==protocol::ResponseStatus::AuthError)
                             {
+                                bool needRefreshSession=req->session()->checkNeedRefreshForAuthError(req->service(),req->method(),respWrapper);
+
                                 // process auth error in session
-                                refreshSession(std::move(req),std::move(respWrapper));
+                                if (needRefreshSession && !m_closed)
+                                {
+                                    invokeCallback=false;
+                                    refreshSession(std::move(req),std::move(respWrapper));
+                                }
                             }
-                            else
+
+                            if (invokeCallback)
                             {
                                 // parse error response
                                 auto ec1=respWrapper.parseError(m_allocatorFactory);
@@ -462,9 +471,6 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
 
     HATN_CTX_SCOPE("apiclientrefreshsession")
 
-    // set session invalid
-    req->session()->setValid(false);
-
     // increment counter
     auto& count=m_sessionWaitingReqCount[req->priority()];
     count++;
@@ -481,6 +487,16 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
     auto reqPtr=req.get();
     auto& queue=it->second;
     queue.push(std::move(req));
+
+    // skip if already refreshing
+    if (req->session()->isRefreshing())
+    {
+        //! @todo Do we need resp in this case?
+        return;
+    }
+
+    // set session invalid
+    req->session()->setValid(false);
 
     // invoke session refresh
     auto clientCtx=this->sharedMainCtx();

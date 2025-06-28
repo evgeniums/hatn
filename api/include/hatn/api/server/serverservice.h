@@ -274,7 +274,7 @@ class ServiceMethodT : public common::WithTraits<Traits>
         ServiceMethodBase* m_base;
 };
 
-template <typename Traits, typename MessageT=NoMessage, typename RequestT=Request<>>
+template <typename Traits, typename MessageT=typename Traits::Message, typename RequestT=typename Traits::Request>
 class ServiceMethodNV : public ServiceMethodBase,
                         public ServiceMethodT<Traits,MessageT,RequestT>
 {

@@ -157,10 +157,13 @@ class Service1Method1Traits : public server::NoValidatorTraits
 {
     public:
 
+        using Request=server::Request<>;
+        using Message=service1_msg1::managed;
+
         void exec(
-            SharedPtr<server::RequestContext<server::Request<>>> request,
-            server::RouteCb<server::Request<>> callback,
-            SharedPtr<service1_msg1::managed> msg
+                SharedPtr<server::RequestContext<server::Request<>>> request,
+                server::RouteCb<server::Request<>> callback,
+                SharedPtr<service1_msg1::managed> msg
             ) const
         {
             BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
@@ -170,11 +173,11 @@ class Service1Method1Traits : public server::NoValidatorTraits
             callback(std::move(request));
         }
 };
-class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits,service1_msg1::managed>
+class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits>
 {
     public:
 
-        using Base=server::ServiceMethodNV<Service1Method1Traits,service1_msg1::managed>;
+        using Base=server::ServiceMethodNV<Service1Method1Traits>;
 
         Service1Method1() : Base("service1_method1")
         {}
@@ -185,26 +188,29 @@ using Service1=server::ServerServiceV<server::ServiceSingleMethod<Service1Method
 
 class Service2Method1Traits : public server::NoValidatorTraits
 {
-public:
+    public:
 
-    void exec(
-        SharedPtr<server::RequestContext<server::Request<>>> request,
-        server::RouteCb<server::Request<>> callback,
-        SharedPtr<service2_msg1::managed> msg
-        ) const
-    {
-        BOOST_TEST_MESSAGE(fmt::format("Service2 method1 exec: field1={}, field2={}",msg->fieldValue(service2_msg1::field1),msg->fieldValue(service2_msg1::field2)));
+        using Request=server::Request<>;
+        using Message=service2_msg1::managed;
 
-        auto& req=request->get<server::Request<>>();
-        req.response.setStatus();
-        callback(std::move(request));
-    }
+        void exec(
+            SharedPtr<server::RequestContext<server::Request<>>> request,
+            server::RouteCb<server::Request<>> callback,
+            SharedPtr<service2_msg1::managed> msg
+            ) const
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Service2 method1 exec: field1={}, field2={}",msg->fieldValue(service2_msg1::field1),msg->fieldValue(service2_msg1::field2)));
+
+            auto& req=request->get<server::Request<>>();
+            req.response.setStatus();
+            callback(std::move(request));
+        }
 };
-class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service2_msg1::managed>>
+class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits>>
 {
     public:
 
-        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits,service2_msg1::managed>>;
+        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method1Traits>>;
 
         Service2Method1() : Base("service2_method1")
         {}
@@ -212,29 +218,32 @@ class Service2Method1 : public server::ServiceMethodV<server::ServiceMethodT<Ser
 
 class Service2Method2Traits : public server::NoValidatorTraits
 {
-public:
+    public:
 
-    void exec(
-        SharedPtr<server::RequestContext<server::Request<>>> request,
-        server::RouteCb<server::Request<>> callback,
-        SharedPtr<service2_msg2::managed> msg
-        ) const
-    {
-        BOOST_TEST_MESSAGE(fmt::format("Service2 method2 exec: f1={}, f2={}, f3={}",msg->fieldValue(service2_msg2::f1),msg->fieldValue(service2_msg2::f2),msg->fieldValue(service2_msg2::f3)));
+        using Request=server::Request<>;
+        using Message=service2_msg2::managed;
 
-        auto& req=request->get<server::Request<>>();
-        req.response.setStatus();
-        callback(std::move(request));
-    }
+        void exec(
+            SharedPtr<server::RequestContext<server::Request<>>> request,
+            server::RouteCb<server::Request<>> callback,
+            SharedPtr<service2_msg2::managed> msg
+            ) const
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Service2 method2 exec: f1={}, f2={}, f3={}",msg->fieldValue(service2_msg2::f1),msg->fieldValue(service2_msg2::f2),msg->fieldValue(service2_msg2::f3)));
+
+            auto& req=request->get<server::Request<>>();
+            req.response.setStatus();
+            callback(std::move(request));
+        }
 };
-class Service2Method2 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service2_msg2::managed>>
+class Service2Method2 : public server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits>>
 {
-public:
+    public:
 
-    using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits,service2_msg2::managed>>;
+        using Base=server::ServiceMethodV<server::ServiceMethodT<Service2Method2Traits>>;
 
-    Service2Method2() : Base("service2_method2")
-    {}
+        Service2Method2() : Base("service2_method2")
+        {}
 };
 
 using Service2=server::ServerServiceV<server::ServiceMultipleMethods<>>;
@@ -273,7 +282,7 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     ec=app->init();
     if (ec)
     {
-        BOOST_TEST_MESSAGE(fmt::format("{}failed to init app: {}",ec.message()));
+        BOOST_TEST_MESSAGE(fmt::format("{}failed to init app: {}",expectedFail,ec.message()));
         if (expectedErrorCode!=0)
         {
             BOOST_CHECK_EQUAL(ec.value(),expectedErrorCode);

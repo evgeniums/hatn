@@ -54,6 +54,8 @@ struct Request
 
         Request(
                 const common::pmr::AllocatorFactory* factory,
+                const Service& service,
+                const Method& method,
                 SessionWrapper session,
                 MessageType message,
                 MethodAuth methodAuth={},
@@ -67,7 +69,9 @@ struct Request
                 m_pending(true),
                 m_cancelled(false),
                 m_methodAuth(std::move(methodAuth)),
-                responseData(factory)
+                responseData(factory),
+                m_service(&service),
+                m_method(&method)
         {
             responseData.setUseInlineBuffers(true);
         }
@@ -112,6 +116,16 @@ struct Request
             return m_cancelled;
         }
 
+        const Service* service() const noexcept
+        {
+            return m_service;
+        }
+
+        const Method* method() const noexcept
+        {
+            return m_method;
+        }
+
     protected:
 
         void setNotPending() noexcept
@@ -149,8 +163,6 @@ struct Request
         MessageType m_message;
 
         Error serialize(
-            const Service& service,
-            const Method& method,
             lib::string_view topic,
             const Tenancy& tenancy
         );
@@ -167,6 +179,9 @@ struct Request
         MethodAuth m_methodAuth;        
         du::WireBufSolidShared requestData;
         mutable du::WireBufSolidShared responseData;
+
+        const Service* m_service;
+        const Method* m_method;
 
         template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;

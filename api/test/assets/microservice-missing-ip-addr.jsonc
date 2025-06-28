@@ -7,6 +7,10 @@
         "name" : "streamlogger"
     },
 
+    "crypt" : {
+        "provider" : ""
+    },
+
     "microservices" : [
         {
             "name": "microservice1",

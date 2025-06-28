@@ -39,6 +39,9 @@
 
 HATN_API_NAMESPACE_BEGIN
 
+class Service;
+class Method;
+
 namespace client {
 
 /********************** SessionAuth **************************/
@@ -172,6 +175,11 @@ class Session : public common::WithTraits<Traits>,
             );
         }
 
+        bool checkNeedRefreshForAuthError(const Service* service, const Method* method, const Response& resp) const
+        {
+            return this->traits().checkNeedRefreshForAuthError(service,method,resp);
+        }
+
     private:
 
         void init()
@@ -256,6 +264,11 @@ class SessionWrapper
             session().resetAuthHeader();
         }
 
+        bool checkNeedRefreshForAuthError(const Service* service, const Method* method, const Response& resp) const
+        {
+            return session().checkNeedRefreshForAuthError(service,method,resp);
+        }
+
     private:
 
         common::SharedPtr<SessionContextT> m_sessionCtx;
@@ -280,6 +293,11 @@ class SessionNoAuthTraits
             m_session->resetAuthHeader();
             callback(Error{});
             return;
+        }
+
+        bool checkNeedRefreshForAuthError(const Service*, const Method*, const Response&) const
+        {
+            return false;
         }
 
     private:

@@ -124,10 +124,10 @@ void ServiceMethodT<Traits,MessageT,RequestT>::exec(
         lib::string_view messageType
     ) const
 {
-    if constexpr (std::is_same_v<Message,NoMessage>)
+    if constexpr (std::is_same<Message,NoMessage>::value)
     {
         // handle request without message
-        this->service()->handleMessage->template handleMessage<Request,NoMessage>(
+        m_base->service()->template handleMessage<Request,NoMessage>(
             std::move(request),
             std::move(callback),
             [this](common::SharedPtr<RequestContext<Request>> request, RouteCb<Request> callback)

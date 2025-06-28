@@ -31,8 +31,6 @@ namespace client {
 
 template <typename SessionT, typename MessageT, typename RequestUnitT>
 Error Request<SessionT,MessageT,RequestUnitT>::serialize(
-        const Service& service,
-        const Method& method,
         lib::string_view topic,
         const Tenancy& tenancy
     )
@@ -41,12 +39,12 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 
     auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
-    m_unit->setFieldValue(protocol::request::service,service.name());
-    if (service.version()!=1)
+    m_unit->setFieldValue(protocol::request::service,service()->name());
+    if (service()->version()!=1)
     {
-        m_unit->setFieldValue(protocol::request::service_version,service.version());
+        m_unit->setFieldValue(protocol::request::service_version,service()->version());
     }
-    m_unit->setFieldValue(protocol::request::method,method.name());
+    m_unit->setFieldValue(protocol::request::method,method()->name());
     if (!topic.empty())
     {
         m_unit->setFieldValue(protocol::request::topic,topic);
