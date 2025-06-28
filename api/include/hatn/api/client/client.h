@@ -23,6 +23,7 @@
 #include <hatn/common/flatmap.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/threadwithqueue.h>
 
 #include <hatn/base/configobject.h>
 
@@ -70,17 +71,15 @@ class Client : public common::TaskSubcontext
 
     private:
 
-        struct Queue : public common::SimpleQueue<common::SharedPtr<ReqCtx>>
-        {
-            using common::SimpleQueue<common::SharedPtr<ReqCtx>>::SimpleQueue;
-        };
+        using Queue=common::SimpleQueue<common::SharedPtr<ReqCtx>,common::WithLock<>>;
+        using SessionWaitingQueue=common::SimpleQueue<common::SharedPtr<ReqCtx>>;
 
     public:        
 
         Client(
                 std::shared_ptr<ClientConfig> cfg,
                 common::SharedPtr<RouterT> router,
-                common::Thread* thread=common::Thread::currentThread(),
+                common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : m_cfg(std::move(cfg)),
                 m_connectionPool(std::move(router),thread),
@@ -107,7 +106,7 @@ class Client : public common::TaskSubcontext
             std::shared_ptr<ClientConfig> cfg,
             common::SharedPtr<RouterT> router,
             const common::pmr::AllocatorFactory* factory
-            ) : Client(std::move(cfg),std::move(router),common::Thread::currentThread(),factory)
+            ) : Client(std::move(cfg),std::move(router),common::ThreadQWithTaskContext::current(),factory)
         {}
 
         Error exec(
@@ -195,6 +194,7 @@ class Client : public common::TaskSubcontext
             bool regenId=false
         );
 
+        void postDequeue(Priority priority);
         void dequeue(Priority priority);
 
         void resetPriority(Priority priority)
@@ -218,16 +218,13 @@ class Client : public common::TaskSubcontext
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 
-        //! @todo Use thread safe queue
         common::FlatMap<Priority,Queue> m_queues;
 
-        //! @todo Use thread with task queue
-        common::Thread* m_thread;
-        bool m_closed;
+        common::ThreadQWithTaskContext* m_thread;
+        std::atomic<bool> m_closed;
 
-        using SessionWaitingQueueMap=common::pmr::map<SessionId,Queue,std::less<>>;
+        using SessionWaitingQueueMap=common::pmr::map<SessionId,SessionWaitingQueue,std::less<>>;
 
-        //! @todo Implement thread safe session handling
         SessionWaitingQueueMap m_sessionWaitingQueues;
         common::FlatMap<Priority,size_t> m_sessionWaitingReqCount;
 };

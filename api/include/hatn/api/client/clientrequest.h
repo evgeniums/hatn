@@ -71,7 +71,8 @@ struct Request
                 m_methodAuth(std::move(methodAuth)),
                 responseData(factory),
                 m_service(&service),
-                m_method(&method)
+                m_method(&method),
+                m_callbackThread(common::ThreadQWithTaskContext::current())
         {
             responseData.setUseInlineBuffers(true);
         }
@@ -124,6 +125,11 @@ struct Request
         const Method* method() const noexcept
         {
             return m_method;
+        }
+
+        common::ThreadQWithTaskContext* callbackThread() const
+        {
+            return m_callbackThread;
         }
 
     protected:
@@ -182,6 +188,8 @@ struct Request
 
         const Service* m_service;
         const Method* m_method;
+
+        common::ThreadQWithTaskContext* m_callbackThread;
 
         template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
