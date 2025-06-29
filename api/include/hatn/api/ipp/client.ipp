@@ -126,7 +126,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
         common::postAsyncTask(
             req->callbackThread(),
             std::move(ctx),
-            [callback=std::move(callback),ec=std::move(ec)](auto ctx, auto)
+            [callback=std::move(callback),ec=std::move(ec)](auto ctx)
             {
                 ctx->onAsyncHandlerEnter();
 
@@ -178,7 +178,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::postDequ
     common::postAsyncTask(
         m_thread,
         sharedMainCtx(),
-        [priority,this](auto, auto)
+        [priority,this](auto)
         {
             dequeue(priority);
         }
@@ -249,7 +249,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequ
         common::postAsyncTask(
             reqPtr->callbackThread(),
             reqPtr->taskCtx,
-            [req{std::move(req)},ec{std::move(ec)}](auto ctx, auto)
+            [req{std::move(req)},ec{std::move(ec)}](auto ctx)
             {
                 ctx->onAsyncHandlerEnter();
 
@@ -368,7 +368,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                     common::postAsyncTask(
                         reqPtr->callbackThread(),
                         reqPtr->taskCtx,
-                        [req{std::move(req)},ec{std::move(ec)},respWrapper=std::move(respWrapper)](auto ctx, auto)
+                        [req{std::move(req)},ec{std::move(ec)},respWrapper=std::move(respWrapper)](auto ctx)
                         {
                             ctx->onAsyncHandlerEnter();
 
@@ -503,7 +503,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
     common::postAsyncTask(
         m_thread,
         sharedMainCtx(),
-        [req=std::move(req),resp=std::move(resp),this](auto ctx, auto)
+        [req=std::move(req),resp=std::move(resp),this](auto ctx)
         {
             if (m_closed)
             {
@@ -553,7 +553,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                         common::postAsyncTask(
                             m_thread,
                             clientCtx,
-                            [clientCtx{std::move(clientCtx)},this,ec{std::move(ec)},sessionId](auto, auto)
+                            [clientCtx{std::move(clientCtx)},this,ec{std::move(ec)},sessionId](auto)
                             {
                                 if (m_closed)
                                 {
@@ -589,7 +589,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                                             common::postAsyncTask(
                                                 reqPtr->callbackThread(),
                                                 reqPtr->taskCtx,
-                                                [req{std::move(req)},ec](auto ctx, auto)
+                                                [req{std::move(req)},ec](auto ctx)
                                                 {
                                                     ctx->onAsyncHandlerEnter();
 
@@ -632,7 +632,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::pushToSe
     common::postAsyncTask(
         m_thread,
         sharedMainCtx(),
-        [req=std::move(req),this](auto ctx, auto)
+        [req=std::move(req),this](auto ctx)
         {
             if (m_closed)
             {

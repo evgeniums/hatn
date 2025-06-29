@@ -182,11 +182,11 @@ struct NoOpCallback
 
 struct postAsyncTaskT
 {
-    template <typename HandlerT, typename CallbackT=NoOpCallback>
+    template <typename HandlerT, typename CallbackT>
     void operator ()(ThreadQWithTaskContext* thread,
                     SharedPtr<TaskContext> ctx,
                     HandlerT handler,
-                    CallbackT callback={}
+                    CallbackT callback
                     ) const
     {
         auto originThreadQ=TaskWithContextThread::current();
@@ -235,6 +235,18 @@ struct postAsyncTaskT
 
         auto task=thread->prepare();
         task->setHandler(std::move(threadHandler));
+        task->setContext(std::move(ctx));
+        thread->post(task);
+    }
+
+    template <typename HandlerT, typename CallbackT=NoOpCallback>
+    void operator ()(ThreadQWithTaskContext* thread,
+                     SharedPtr<TaskContext> ctx,
+                     HandlerT handler
+                    ) const
+    {
+        auto task=thread->prepare();
+        task->setHandler(std::move(handler));
         task->setContext(std::move(ctx));
         thread->post(task);
     }
