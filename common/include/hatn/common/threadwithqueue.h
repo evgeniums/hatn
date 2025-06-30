@@ -239,7 +239,7 @@ struct postAsyncTaskT
         thread->post(task);
     }
 
-    template <typename HandlerT, typename CallbackT=NoOpCallback>
+    template <typename HandlerT>
     void operator ()(ThreadQWithTaskContext* thread,
                      SharedPtr<TaskContext> ctx,
                      HandlerT handler
@@ -254,46 +254,6 @@ struct postAsyncTaskT
     //! @todo Implement operator with guard
 };
 constexpr postAsyncTaskT postAsyncTask{};
-
-template <typename CallbackT>
-struct postAsyncCallback
-{
-    template <typename ContextT, typename ...Args>
-    void operator()(SharedPtr<ContextT> ctx, Args&&... args) const
-    {
-        auto ts=hana::make_tuple(ctx,std::forward<Args>(args)...);
-        postAsyncTask(
-            thread,
-            ctx,
-            [ts{std::move(ts)},cb{callback}](const common::SharedPtr<common::TaskContext>&)
-            {
-                hana::unpack(std::move(ts),std::move(cb));
-            }
-        );
-    }
-
-    postAsyncCallback(
-            CallbackT callback,
-            ThreadQWithTaskContext* thread=ThreadQWithTaskContext::current()
-        ) : callback(std::move(callback)),thread(thread)
-    {}
-
-    CallbackT callback;
-    ThreadQWithTaskContext* thread;
-};
-
-struct makePostAsynCallbackT
-{
-    template <typename CallbackT>
-    auto operator()(
-            CallbackT callback,
-            ThreadQWithTaskContext* thread=ThreadQWithTaskContext::current()
-        ) const
-    {
-        return postAsyncCallback<CallbackT>{std::move(callback),thread};
-    }
-};
-constexpr makePostAsynCallbackT makePostAsynCallback{};
 
 enum class MappedThreadMode : uint8_t
 {
