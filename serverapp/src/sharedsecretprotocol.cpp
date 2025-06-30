@@ -99,7 +99,8 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     }
 
     // done
-    response->field(auth_protocol_response::content).set(std::move(challenge));
+    response->field(auth_protocol_response::message).set(std::move(challenge));
+    response->field(auth_protocol_response::message_type).set(challenge->unitName());
     return response;
 }
 
