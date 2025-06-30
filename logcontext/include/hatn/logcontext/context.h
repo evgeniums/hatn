@@ -624,10 +624,18 @@ HATN_COMMON_NAMESPACE_END
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(false);
 
 #define HATN_CTX_CHECK_EC(ec) \
-    HATN_CTX_IF() \
     if (ec) \
     { \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(true); \
+        HATN_CTX_IF() \
+            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(true); \
+        return ec; \
+    }
+
+#define HATN_CTX_CHECK_EC_MSG(ec,msg) \
+    if (ec) \
+    { \
+        HATN_CTX_IF() \
+            HATN_CTX_SCOPE_ERROR(msg) \
         return ec; \
     }
 
