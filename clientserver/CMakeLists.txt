@@ -8,7 +8,15 @@ SET (HEADERS
     include/hatn/clientserver/accountconfigparser.h
 
     include/hatn/clientserver/auth/authprotocol.h
+    include/hatn/clientserver/auth/clientauthprotocol.h
+    include/hatn/clientserver/auth/clientauthprotocolsharedsecret.h
     include/hatn/clientserver/auth/clientsession.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+
+    include/hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp
 )
 
 SET (HEADERS
@@ -30,6 +38,8 @@ SET (SOURCES
     src/clientserver.cpp
     src/accountconfigparser.cpp
     src/clientservererror.cpp
+
+    src/clientauthprotocolsharedsecret.cpp
 )
 
 BUILD_HATN_MODULE()

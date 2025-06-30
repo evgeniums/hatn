@@ -36,11 +36,12 @@ HDU_UNIT(auth_negotiate_request,
 
 HDU_UNIT(auth_protocol_response,
     HDU_FIELD(token,TYPE_BYTES,1)
-    HDU_FIELD(content,TYPE_DATAUNIT,2)
+    HDU_FIELD(message_type,TYPE_STRING,2)
+    HDU_FIELD(message,TYPE_DATAUNIT,3)
 )
 
 HDU_UNIT_WITH(auth_negotiate_response,(HDU_BASE(auth_protocol_response)),
-    HDU_FIELD(protocol,HATN_API_NAMESPACE::auth_protocol::TYPE,3)
+    HDU_FIELD(protocol,HATN_API_NAMESPACE::auth_protocol::TYPE,10)
 )
 
 constexpr const char* AUTH_PROTOCOL_HATN_SHARED_SECRET="hss";
