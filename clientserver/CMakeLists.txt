@@ -8,6 +8,7 @@ SET (HEADERS
     include/hatn/clientserver/accountconfigparser.h
 
     include/hatn/clientserver/auth/authprotocol.h
+    include/hatn/clientserver/auth/clientsession.h
 )
 
 SET (HEADERS
