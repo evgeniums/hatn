@@ -2,6 +2,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/environment.h>
+#include <hatn/common/env.h>
+
 #include <hatn/test/interfacetestdll.h>
 
 HATN_USING
@@ -11,32 +13,60 @@ BOOST_AUTO_TEST_SUITE(TestEnvironment)
 
 struct OpInterface0 : public HATN_COMMON_NAMESPACE::Interface<OpInterface0>
 {
+    constexpr static const char* Name="OpInterface0";
+
     int a=1;
     char b=2;
     int c=3;
+
+    std::string name() const
+    {
+        return Name;
+    }
 };
 struct OpInterface1 : public HATN_COMMON_NAMESPACE::Interface<OpInterface1>
 {
+    constexpr static const char* Name="OpInterface1";
+
     int i=7;
     uint16_t j=6;
     char k=5;
     int64_t e=4;
+
+    std::string name() const
+    {
+        return Name;
+    }
 };
 struct OpInterface2 : public HATN_COMMON_NAMESPACE::Interface<OpInterface2>
 {
+    constexpr static const char* Name="OpInterface2";
+
     int i=7;
     uint16_t j=6;
     char k=5;
     int64_t e=4;
     float q;
+
+    std::string name() const
+    {
+        return Name;
+    }
 };
 struct OpInterface3 : public HATN_COMMON_NAMESPACE::Interface<OpInterface3>
 {
+    constexpr static const char* Name="OpInterface3";
+
     HATN_CUID_DECLARE()
 
     int a=1;
     char b=2;
     int c=3;
+
+    std::string name() const
+    {
+        return Name;
+    }
 };
 HATN_CUID_INIT(OpInterface3)
 
@@ -138,6 +168,37 @@ BOOST_AUTO_TEST_CASE(EnvInterfaces)
     auto* interface3=env.interface<OpInterface3>();
     auto* interface3Pos=reinterpret_cast<OpInterface3*>(env.interfaceAtPos(3));
     BOOST_CHECK_EQUAL(interface3,interface3Pos);
+}
+
+BOOST_AUTO_TEST_CASE(EnvVisitor)
+{
+    auto selector=[](std::string name)
+    {
+        return [name=std::move(name)](const auto& v)
+        {
+            return v.name()==name;
+        };
+    };
+
+    auto visitor=[](const auto& v)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("Visited {}",v.name()));
+    };
+
+    using envType=common::Env<OpInterface0,OpInterface1,OpInterface2,OpInterface3>;
+    envType env;
+
+    auto found=env.visitIf(visitor,selector(OpInterface3::Name));
+    BOOST_CHECK(found);
+    found=env.visitIf(visitor,selector(OpInterface2::Name));
+    BOOST_CHECK(found);
+    found=env.visitIf(visitor,selector(OpInterface1::Name));
+    BOOST_CHECK(found);
+    found=env.visitIf(visitor,selector(OpInterface0::Name));
+    BOOST_CHECK(found);
+
+    auto notFound=env.visitIf(visitor,selector("unknown"));
+    BOOST_CHECK(!notFound);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -25,6 +25,9 @@
 #include <hatn/common/makeshared.h>
 #include <hatn/common/meta/decaytuple.h>
 #include <hatn/common/meta/tupletypec.h>
+#include <hatn/common/meta/foreachif.h>
+
+#include <hatn/common/taskcontext.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -304,6 +307,29 @@ class EnvT : public BaseT
         auto* operator ->() noexcept
         {
             return &get();
+        }
+
+        template <typename VisitorT, typename SelectorT>
+        auto visitIf(VisitorT&& visitor, SelectorT&& selector)
+        {
+            auto pred=[](bool found)
+            {
+                return found;
+            };
+
+            return common::foreach_if(
+                m_refs,
+                pred,
+                [visitor=std::move(visitor),selector=std::move(selector)](auto& v,auto)
+                {
+                    if (selector(v.get()))
+                    {
+                        visitor(v.get());
+                        return true;
+                    }
+                    return false;
+                }
+            );
         }
 
     private:
