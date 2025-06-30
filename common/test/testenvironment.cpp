@@ -180,24 +180,28 @@ BOOST_AUTO_TEST_CASE(EnvVisitor)
         };
     };
 
-    auto visitor=[](const auto& v)
+    auto visitor=[](std::string name)
     {
-        BOOST_TEST_MESSAGE(fmt::format("Visited {}",v.name()));
+        return [name=std::move(name)](const auto& v)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Visited {}",v.name()));
+            BOOST_CHECK_EQUAL(name,v.name());
+        };
     };
 
     using envType=common::Env<OpInterface0,OpInterface1,OpInterface2,OpInterface3>;
     envType env;
 
-    auto found=env.visitIf(visitor,selector(OpInterface3::Name));
+    auto found=env.visitIf(visitor(OpInterface3::Name),selector(OpInterface3::Name));
     BOOST_CHECK(found);
-    found=env.visitIf(visitor,selector(OpInterface2::Name));
+    found=env.visitIf(visitor(OpInterface2::Name),selector(OpInterface2::Name));
     BOOST_CHECK(found);
-    found=env.visitIf(visitor,selector(OpInterface1::Name));
+    found=env.visitIf(visitor(OpInterface1::Name),selector(OpInterface1::Name));
     BOOST_CHECK(found);
-    found=env.visitIf(visitor,selector(OpInterface0::Name));
+    found=env.visitIf(visitor(OpInterface0::Name),selector(OpInterface0::Name));
     BOOST_CHECK(found);
 
-    auto notFound=env.visitIf(visitor,selector("unknown"));
+    auto notFound=env.visitIf(visitor("unknown"),selector("unknown"));
     BOOST_CHECK(!notFound);
 }
 
