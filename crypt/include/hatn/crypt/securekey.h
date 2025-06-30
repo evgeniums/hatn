@@ -18,7 +18,6 @@
 #define HATNCRYPTSECUREKEY_H
 
 #include <hatn/common/error.h>
-#include <hatn/common/memorylockeddata.h>
 #include <hatn/common/pointerwithinit.h>
 #include <hatn/common/valueordefault.h>
 
@@ -34,7 +33,7 @@ class EncryptHMAC;
 class KeyProtector;
 
 //! Base class for secure keys
-class HATN_CRYPT_EXPORT SecureKey : public KeyContainer<common::MemoryLockedArray,ContainerFormat::RAW_ENCRYPTED>
+class HATN_CRYPT_EXPORT SecureKey : public SecureContainer<ContainerFormat::RAW_ENCRYPTED>
 {
     public:
 

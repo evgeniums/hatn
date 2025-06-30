@@ -17,6 +17,7 @@
 
 #include <hatn/common/error.h>
 #include <hatn/common/bytearray.h>
+#include <hatn/common/memorylockeddata.h>
 
 #include <hatn/crypt/crypt.h>
 
@@ -173,6 +174,10 @@ class KeyContainer
         ContainerFormat m_format;
         ContentT m_content;
 };
+
+template <ContainerFormat Format>
+using SecureContainer=KeyContainer<common::MemoryLockedArray,Format>;
+using SecurePlainContainer=SecureContainer<ContainerFormat::RAW_PLAIN>;
 
 inline bool checkInContainerSize(
         const size_t containerSize,
