@@ -445,10 +445,13 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
     bool clientConnectionClosed=false;
     auto closeClientConnection=[&clientConnectionClosed](HATN_COMMON_NAMESPACE::SharedPtr<HATN_API_NAMESPACE::client::PlainTcpConnectionContext> ctx, std::function<void()> cb)
     {
+        HATN_TEST_MESSAGE_TS("closeClientConnection");
+
         clientConnectionClosed=true;
         auto& connection=ctx->get<HATN_API_NAMESPACE::client::PlainTcpConnection>();
         auto cb1=[ctx,cb](const HATN_NAMESPACE::Error& ec)
         {
+            HATN_TEST_MESSAGE_TS(fmt::format("closeClientConnectionCb: {}/{}",ec.code(),ec.message()));
             std::ignore=ctx;
             HATN_CHECK_TS(!ec);
             cb();

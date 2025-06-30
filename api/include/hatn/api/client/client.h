@@ -115,7 +115,7 @@ class Client : public common::TaskSubcontext
             SessionWrapperT session,
             const Service& service,
             const Method& method,
-            MessageType message,            
+            MessageType message,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
@@ -189,7 +189,7 @@ class Client : public common::TaskSubcontext
 
         void doExec(
             common::SharedPtr<Context> ctx,
-            RequestCb<Context> callback,
+            RequestCbInternal<Context> callback,
             common::SharedPtr<ReqCtx> req,            
             bool regenId=false
         );

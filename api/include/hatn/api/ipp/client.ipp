@@ -19,6 +19,8 @@
 #ifndef HATNAPICLIENT_IPP
 #define HATNAPICLIENT_IPP
 
+#include <hatn/logcontext/postasync.h>
+
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/clientrequest.h>
@@ -75,7 +77,7 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
     auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
-    doExec(std::move(ctx),std::move(callback),std::move(req));
+    doExec(std::move(ctx),makeAsyncCallback(std::move(callback)),std::move(req));
     return OK;
 }
 
@@ -90,7 +92,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 {
     HATN_CTX_SCOPE("apiclientexec")
 
-    doExec(std::move(ctx),std::move(callback),std::move(req));
+    doExec(std::move(ctx),makeAsyncCallback(std::move(callback)),std::move(req));
 }
 
 //---------------------------------------------------------------
@@ -98,7 +100,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
         common::SharedPtr<Context> ctx,
-        RequestCb<Context> callback,
+        RequestCbInternal<Context> callback,
         common::SharedPtr<ReqCtx> req,
         bool regenId
     )
@@ -122,23 +124,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
 
     if (ec)
     {
-        // report error
-        common::postAsyncTask(
-            req->callbackThread(),
-            std::move(ctx),
-            [callback=std::move(callback),ec=std::move(ec)](auto ctx)
-            {
-                ctx->onAsyncHandlerEnter();
-
-                {
-                    HATN_CTX_SCOPE("apiclientexec")
-                    callback(ctx,ec,{});
-                }
-
-                ctx->onAsyncHandlerExit();
-            }
-        );
-
+        callback("apiclientexec",std::move(ctx),std::move(ec),Response{});
         return;
     }
 
@@ -150,7 +136,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
     }
 
     // if session not ready then push to waiting queue for this session
-    if (!req->session()->isValid())
+    if (req->session() && !req->session()->isValid())
     {
         pushToSessionWaitingQueue(std::move(req));
         return;
@@ -243,24 +229,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequ
     {
         // dequeue next request
         postDequeue(req->priority());
-
-        // report serialization error
-        auto reqPtr=req.get();
-        common::postAsyncTask(
-            reqPtr->callbackThread(),
-            reqPtr->taskCtx,
-            [req{std::move(req)},ec{std::move(ec)}](auto ctx)
-            {
-                ctx->onAsyncHandlerEnter();
-
-                {
-                    HATN_CTX_SCOPE("apiclientsend")
-                    req->callback(ctx,ec,{});
-                }
-
-                ctx->onAsyncHandlerExit();
-            }
-        );
+        req->callback("apiclientsend",req->taskCtx,std::move(ec),Response{});
 
         return;
     }
@@ -280,7 +249,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequ
                 // failed to send, maybe connection is broken
                 if (!req->cancelled())
                 {
-                    req->callback(req->taskCtx,ec,{});
+                    req->callback(req->taskCtx,ec,Response{});
                 }
 
                 // nothing to do if client is closed
@@ -341,7 +310,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                         auto status=respWrapper.status();
                         if (!respWrapper.isSuccess())
                         {
-                            if (status==protocol::ResponseStatus::AuthError)
+                            if (status==protocol::ResponseStatus::AuthError && req->session())
                             {
                                 bool needRefreshSession=req->session()->checkNeedRefreshForAuthError(req->service(),req->method(),respWrapper);
 
@@ -364,22 +333,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
 
                 if (invokeCallback)
                 {
-                    auto reqPtr=req.get();
-                    common::postAsyncTask(
-                        reqPtr->callbackThread(),
-                        reqPtr->taskCtx,
-                        [req{std::move(req)},ec{std::move(ec)},respWrapper=std::move(respWrapper)](auto ctx)
-                        {
-                            ctx->onAsyncHandlerEnter();
-
-                            {
-                                HATN_CTX_SCOPE("apiclientresp")
-                                req->callback(ctx,ec,std::move(respWrapper));
-                            }
-
-                            ctx->onAsyncHandlerExit();
-                        }
-                    );
+                    req->callback("apiclientresp",req->taskCtx,ec,std::move(respWrapper));
                 }
             }
 
@@ -409,87 +363,65 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
 {
     m_closed.store(true);
 
-    common::postAsyncTask(
+    postAsync(
+        "apiclientclose",
         m_thread,
         std::move(ctx),
         [this,callbackRequests,clientCtx=sharedMainCtx()](auto ctx, auto cb)
         {
-            ctx->onAsyncHandlerEnter();
-
+            auto abortRequest=[](auto req)
             {
-                HATN_CTX_SCOPE("apiclientclose")
-
-                auto abortRequest=[](auto req)
+                if (!req->cancelled())
                 {
-                    if (!req->cancelled())
-                    {
-                        auto reqPtr=req.get();
-                        common::postAsyncTask(
-                            reqPtr->callbackThread(),
-                            reqPtr->taskCtx,
-                            [req{std::move(req)}](auto ctx, auto)
-                            {
-                                ctx->onAsyncHandlerEnter();
-
-                                {
-                                    HATN_CTX_SCOPE("apiclientclose")
-                                    req->callback(req->taskCtx,commonError(common::CommonError::ABORTED),{});
-                                }
-
-                                ctx->onAsyncHandlerExit();
-                            }
-                            );
-                    }
-                };
-
-                // clear queues
-                for (auto&& it: m_queues)
-                {
-                    if (callbackRequests)
-                    {
-                        while (!it.second.empty())
-                        {
-                            auto req=it.second.pop();
-                            abortRequest(std::move(req));
-                        }
-                    }
-                    else
-                    {
-                        it.second.clear();
-                    }
+                    req->callback("apiclientclose",req->taskCtx,commonError(common::CommonError::ABORTED),{});
                 }
+            };
 
-                // reset counters
-                for (auto&& it: m_sessionWaitingReqCount)
-                {
-                    it.second=0;
-                }
-
-                // clear session waiting queues
+            // clear queues
+            for (auto&& it: m_queues)
+            {
                 if (callbackRequests)
                 {
-                    for (auto&& it: m_sessionWaitingQueues)
+                    while (!it.second.empty())
                     {
-                        while (!it.second.empty())
-                        {
-                            auto req=it.second.pop();
-                            abortRequest(std::move(req));
-                        }
+                        auto req=it.second.pop();
+                        abortRequest(std::move(req));
                     }
                 }
-                m_sessionWaitingQueues.clear();
-
-                // close connection pool
-                m_connectionPool.close(ctx,
-                                       [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const auto& ec)
-                                       {
-                                           std::ignore=clientCtx;
-                                           cb(ctx,ec);
-                                       }
-                );
+                else
+                {
+                    it.second.clear();
+                }
             }
 
-            ctx->onAsyncHandlerExit();
+            // reset counters
+            for (auto&& it: m_sessionWaitingReqCount)
+            {
+                it.second=0;
+            }
+
+            // clear session waiting queues
+            if (callbackRequests)
+            {
+                for (auto&& it: m_sessionWaitingQueues)
+                {
+                    while (!it.second.empty())
+                    {
+                        auto req=it.second.pop();
+                        abortRequest(std::move(req));
+                    }
+                }
+            }
+            m_sessionWaitingQueues.clear();
+
+            // close connection pool
+            m_connectionPool.close(ctx,
+                                   [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const auto& ec)
+                                   {
+                                       std::ignore=clientCtx;
+                                       cb(ctx,ec);
+                                   }
+            );
         },
         std::move(callback)
     );
@@ -500,126 +432,96 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
-    common::postAsyncTask(
+    postAsync(
+        "apiclientrefreshsession",
         m_thread,
         sharedMainCtx(),
-        [req=std::move(req),resp=std::move(resp),this](auto ctx)
+        [req=std::move(req),resp=std::move(resp),this](auto)
         {
             if (m_closed)
             {
                 return;
             }
 
-            ctx->onAsyncHandlerEnter();
+            // increment counter
+            auto& count=m_sessionWaitingReqCount[req->priority()];
+            count++;
 
+            // find or create queue
+            auto it=m_sessionWaitingQueues.find(req->session()->id());
+            if (it==m_sessionWaitingQueues.end())
             {
-                HATN_CTX_SCOPE("apiclientrefreshsession")
-
-                // increment counter
-                auto& count=m_sessionWaitingReqCount[req->priority()];
-                count++;
-
-                // find or create queue
-                auto it=m_sessionWaitingQueues.find(req->session()->id());
-                if (it==m_sessionWaitingQueues.end())
-                {
-                    auto empl=m_sessionWaitingQueues.emplace(req->session()->id(),m_allocatorFactory->objectMemoryResource());
-                    it=empl.first;
-                }
-
-                // enqueue
-                auto reqPtr=req.get();
-                auto& queue=it->second;
-                queue.push(std::move(req));
-
-                // skip if already refreshing
-                if (req->session()->isRefreshing())
-                {
-                    //! @todo Do we need resp in this case?
-                    return;
-                }
-
-                // set session invalid
-                req->session()->setValid(false);
-
-                // invoke session refresh
-                reqPtr->session()->refresh(
-                    ctx->id(),
-                    [clientCtx=ctx,this](Error ec, const auto* session)
-                    {
-                        auto sessionId=session->id();
-
-                        // process in own thread
-                        common::postAsyncTask(
-                            m_thread,
-                            clientCtx,
-                            [clientCtx{std::move(clientCtx)},this,ec{std::move(ec)},sessionId](auto)
-                            {
-                                if (m_closed)
-                                {
-                                    // ignore if session is closed
-                                    return;
-                                }
-
-                                // find queue of waiting requests
-                                auto it=m_sessionWaitingQueues.find(sessionId);
-                                if (it==m_sessionWaitingQueues.end())
-                                {
-                                    return;
-                                }
-                                auto& queue=it->second;
-
-                                // handle each waiting request
-                                while (!queue.empty())
-                                {
-                                    auto req=queue.pop();
-
-                                    // decrement count
-                                    auto& count=m_sessionWaitingReqCount[req->priority()];
-                                    if (count>0)
-                                    {
-                                        count--;
-                                    }
-
-                                    auto reqPtr=req.get();
-                                    {
-                                        if (ec)
-                                        {
-                                            // if error then invoke callback on request
-                                            common::postAsyncTask(
-                                                reqPtr->callbackThread(),
-                                                reqPtr->taskCtx,
-                                                [req{std::move(req)},ec](auto ctx)
-                                                {
-                                                    ctx->onAsyncHandlerEnter();
-
-                                                    {
-                                                        HATN_CTX_SCOPE("apiclientrefreshsession")
-                                                        req->callback(ctx,ec,{});
-                                                    }
-
-                                                    ctx->onAsyncHandlerExit();
-                                                }
-                                            );
-                                        }
-                                        else
-                                        {
-                                            // enqueue request again
-                                            doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
-                                        }
-                                    }
-                                }
-
-                                // delete queue for this session
-                                m_sessionWaitingQueues.erase(it);
-                            }
-                            );
-                    },
-                    std::move(resp)
-                );
+                auto empl=m_sessionWaitingQueues.emplace(req->session()->id(),m_allocatorFactory->objectMemoryResource());
+                it=empl.first;
             }
 
-            ctx->onAsyncHandlerExit();
+            // enqueue
+            auto reqPtr=req.get();
+            auto& queue=it->second;
+            queue.push(std::move(req));
+
+            // skip if already refreshing
+            if (reqPtr->session()->isRefreshing())
+            {
+                return;
+            }
+
+            // set session invalid
+            reqPtr->session()->setValid(false);
+
+            // invoke session refresh
+            reqPtr->session()->refresh(
+                sharedMainCtx(),
+                this,
+                [this,sessionId=reqPtr->session()->id()](auto, Error ec)
+                {
+                    Assert(m_thread->id()==common::Thread::currentThreadID(),"Session must work in the same thread with client");
+
+                    if (m_closed)
+                    {
+                        // ignore if session is closed
+                        return;
+                    }
+
+                    // find queue of waiting requests
+                    auto it=m_sessionWaitingQueues.find(sessionId);
+                    if (it==m_sessionWaitingQueues.end())
+                    {
+                        return;
+                    }
+                    auto& queue=it->second;
+
+                    // handle each waiting request
+                    while (!queue.empty())
+                    {
+                        auto req=queue.pop();
+
+                        // decrement count
+                        auto& count=m_sessionWaitingReqCount[req->priority()];
+                        if (count>0)
+                        {
+                            count--;
+                        }
+
+                        auto reqPtr=req.get();
+                        {
+                            if (ec)
+                            {
+                                req->callback("apiclientrefreshsession",req->taskCtx,std::move(ec),Response{});
+                            }
+                            else
+                            {
+                                // enqueue request again
+                                doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
+                            }
+                        }
+                    }
+
+                    // delete queue for this session
+                    m_sessionWaitingQueues.erase(it);
+                },
+                std::move(resp)
+            );
         }
     );
 }
@@ -629,39 +531,32 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
 template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
 void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req)
 {
-    common::postAsyncTask(
+    postAsync(
+        "apiclientpushreqwaitsession",
         m_thread,
         sharedMainCtx(),
-        [req=std::move(req),this](auto ctx)
+        [req=std::move(req),this](auto)
         {
             if (m_closed)
             {
                 return;
             }
 
-            ctx->onAsyncHandlerEnter();
-
+            // find session queue
+            auto it=m_sessionWaitingQueues.find(req->session()->id());
+            if (it==m_sessionWaitingQueues.end())
             {
-                HATN_CTX_SCOPE("apiclientpushreqwaitsession")
-
-                // find session queue
-                auto it=m_sessionWaitingQueues.find(req->session()->id());
-                if (it==m_sessionWaitingQueues.end())
-                {
-                    // no waiting session found, call session refresh
-                    refreshSession(std::move(req));
-                    return;
-                }
-
-                // increment counter
-                auto& count=m_sessionWaitingReqCount[req->priority()];
-                count++;
-
-                // just push request to waiting queue
-                it->second.push(std::move(req));
+                // no waiting session found, call session refresh
+                refreshSession(std::move(req));
+                return;
             }
 
-            ctx->onAsyncHandlerExit();
+            // increment counter
+            auto& count=m_sessionWaitingReqCount[req->priority()];
+            count++;
+
+            // just push request to waiting queue
+            it->second.push(std::move(req));
         }
     );
 }

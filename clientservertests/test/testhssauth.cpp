@@ -104,7 +104,7 @@ using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
 
-auto createClient(Thread* thread)
+auto createClient(ThreadQWithTaskContext* thread)
 {
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
     std::vector<client::IpHostName> hosts;

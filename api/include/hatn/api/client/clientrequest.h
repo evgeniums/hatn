@@ -22,6 +22,7 @@
 #include <hatn/common/asiotimer.h>
 
 #include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/makeasynccallback.h>
 
 #include <hatn/dataunit/unitwrapper.h>
 #include <hatn/dataunit/wirebufchained.h>
@@ -45,6 +46,9 @@ namespace client {
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
+template <typename ContextT>
+using RequestCbInternal=postAsyncCallbackT<RequestCb<ContextT>>;
+
 template <typename SessionWrapper, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 struct Request
 {
@@ -66,13 +70,11 @@ struct Request
                 m_message(std::move(message)),
                 m_priority(priority),
                 m_timeoutMs(timeoutMs),
-                m_pending(true),
                 m_cancelled(false),
                 m_methodAuth(std::move(methodAuth)),
                 responseData(factory),
                 m_service(&service),
-                m_method(&method),
-                m_callbackThread(common::ThreadQWithTaskContext::current())
+                m_method(&method)
         {
             responseData.setUseInlineBuffers(true);
         }
@@ -97,24 +99,15 @@ struct Request
             return m_timeoutMs;
         }
 
-        bool pending() const noexcept
-        {
-            return m_pending;
-        }
-
         bool cancel() noexcept
         {
-            if (m_pending)
-            {
-                return false;
-            }
-            m_cancelled=true;
+            m_cancelled.store(true);
             return true;
         }
 
         bool cancelled() const noexcept
         {
-            return m_cancelled;
+            return m_cancelled.load();
         }
 
         const Service* service() const noexcept
@@ -127,17 +120,7 @@ struct Request
             return m_method;
         }
 
-        common::ThreadQWithTaskContext* callbackThread() const
-        {
-            return m_callbackThread;
-        }
-
     protected:
-
-        void setNotPending() noexcept
-        {
-            m_pending=false;
-        }
 
         lib::string_view id() const noexcept;
 
@@ -179,8 +162,7 @@ struct Request
         Priority m_priority;
         uint32_t m_timeoutMs;
 
-        bool m_pending;
-        bool m_cancelled;
+        std::atomic<bool> m_cancelled;
 
         MethodAuth m_methodAuth;        
         du::WireBufSolidShared requestData;
@@ -188,8 +170,6 @@ struct Request
 
         const Service* m_service;
         const Method* m_method;
-
-        common::ThreadQWithTaskContext* m_callbackThread;
 
         template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
         friend class Client;
@@ -222,7 +202,7 @@ class RequestContext : public RequestT,
         }
 
         void setCallback(
-                RequestCb<TaskContextT> cb
+                RequestCbInternal<TaskContextT> cb
             ) noexcept
         {
             callback=std::move(cb);
@@ -315,7 +295,7 @@ class RequestContext : public RequestT,
         }
 
         common::SharedPtr<TaskContextT> taskCtx;
-        RequestCb<TaskContextT> callback;
+        RequestCbInternal<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
 
         template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>

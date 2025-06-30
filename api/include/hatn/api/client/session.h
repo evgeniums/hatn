@@ -60,8 +60,7 @@ public:
 
 using SessionId=du::ObjectId::String;
 
-template <typename ContextT>
-using SessionCb=std::function<void (common::SharedPtr<ContextT> ctx, const common::Error&)>;
+using SessionRefreshCb=std::function<void (common::TaskContextShared,Error)>;
 
 template <typename Traits, typename NoAuthT=hana::false_>
 class Session : public common::WithTraits<Traits>,
@@ -72,7 +71,7 @@ class Session : public common::WithTraits<Traits>,
     public:
 
         constexpr static const bool NoAuth=NoAuthT::value;
-        using RefreshCb=std::function<void (const Error& ec, Session* session)>;
+        using RefreshCb=SessionRefreshCb;
 
         template <typename ...TraitsArgs>
         Session(TraitsArgs&& ...traitsArgs)
@@ -142,9 +141,10 @@ class Session : public common::WithTraits<Traits>,
             m_refreshing=enable;
         }
 
-        void refresh(lib::string_view ctxId, RefreshCb callback, Response resp={})
+        template <typename ContextT, typename ClientT>
+        void refresh(common::SharedPtr<ContextT> ctx, ClientT* client, RefreshCb callback, Response resp={})
         {
-            m_callbacks[ctxId]=std::move(callback);
+            m_callbacks.emplace_back(std::move(callback));
 
             if (isRefreshing())
             {
@@ -155,8 +155,9 @@ class Session : public common::WithTraits<Traits>,
             //! @todo Maybe switch log context to session context
             auto sessionCtx=this->sharedMainCtx();
             this->traits().refresh(
-                ctxId,
-                [sessionCtx{std::move(sessionCtx)},this](const Error& ec)
+                std::move(ctx),
+                client,
+                [sessionCtx{std::move(sessionCtx)},this](auto ctx, Error ec)
                 {
                     setRefreshing(false);
                     setValid(!ec);
@@ -167,7 +168,7 @@ class Session : public common::WithTraits<Traits>,
 
                     for (auto&& it: m_callbacks)
                     {
-                        it.second(ec,this);
+                        it(ctx,ec);
                     }
                     m_callbacks.clear();
                 },
@@ -188,7 +189,7 @@ class Session : public common::WithTraits<Traits>,
         SessionId m_id;
         bool m_valid;
         bool m_refreshing;
-        std::map<common::TaskContextId,RefreshCb,std::less<>> m_callbacks;
+        std::vector<RefreshCb> m_callbacks;
 };
 
 /********************** SessionWrapper **************************/
@@ -241,9 +242,10 @@ class SessionWrapper
             session().setRefreshing(enable);
         }
 
-        void refresh(lib::string_view ctxId, typename SessionT::RefreshCb callback, Response resp={})
+        template <typename ContextT, typename ClientT>
+        void refresh(common::SharedPtr<ContextT> ctx, ClientT* client, typename SessionT::RefreshCb callback, Response resp={})
         {
-            session().refresh(ctxId,std::move(callback),std::move(resp));
+            session().refresh(std::move(ctx),client,std::move(callback),std::move(resp));
         }
 
         template <typename UnitT>
@@ -287,11 +289,11 @@ class SessionNoAuthTraits
             session->setValid(true);
         }
 
-        template <typename CallbackT>
-        void refresh(lib::string_view, CallbackT callback, Response ={})
+        template <typename ContextT, typename ClientT, typename CallbackT>
+        void refresh(common::SharedPtr<ContextT> ctx, ClientT*, CallbackT callback, Response ={})
         {
             m_session->resetAuthHeader();
-            callback(Error{});
+            callback(std::move(ctx),Error{});
             return;
         }
 
