@@ -312,10 +312,8 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                         {
                             if (status==protocol::ResponseStatus::AuthError && req->session())
                             {
-                                bool needRefreshSession=req->session()->checkNeedRefreshForAuthError(req->service(),req->method(),respWrapper);
-
                                 // process auth error in session
-                                if (needRefreshSession && !m_closed)
+                                if (!m_closed)
                                 {
                                     invokeCallback=false;
                                     refreshSession(std::move(req),std::move(respWrapper));
@@ -469,57 +467,60 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
             // set session invalid
             reqPtr->session()->setValid(false);
 
+            // define refresh callback
+            auto refreshCb=[this,sessionId=reqPtr->session()->id()](auto, const Error& ec)
+            {
+                Assert(m_thread->id()==common::Thread::currentThreadID(),"Session must work in the same thread with client");
+
+                if (m_closed)
+                {
+                    // ignore if session is closed
+                    return;
+                }
+
+                // find queue of waiting requests
+                auto it=m_sessionWaitingQueues.find(sessionId);
+                if (it==m_sessionWaitingQueues.end())
+                {
+                    return;
+                }
+                auto& queue=it->second;
+
+                // handle each waiting request
+                while (!queue.empty())
+                {
+                    auto req=queue.pop();
+
+                    // decrement count
+                    auto& count=m_sessionWaitingReqCount[req->priority()];
+                    if (count>0)
+                    {
+                        count--;
+                    }
+
+                    auto reqPtr=req.get();
+                    {
+                        if (ec)
+                        {
+                            req->callback("apiclientrefreshsession",req->taskCtx,ec,Response{});
+                        }
+                        else
+                        {
+                            // enqueue request again
+                            doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
+                        }
+                    }
+                }
+
+                // delete queue for this session
+                m_sessionWaitingQueues.erase(it);
+            };
+
             // invoke session refresh
             reqPtr->session()->refresh(
-                sharedMainCtx(),
+                sharedMainCtx(),                
+                std::move(refreshCb),
                 this,
-                [this,sessionId=reqPtr->session()->id()](auto, Error ec)
-                {
-                    Assert(m_thread->id()==common::Thread::currentThreadID(),"Session must work in the same thread with client");
-
-                    if (m_closed)
-                    {
-                        // ignore if session is closed
-                        return;
-                    }
-
-                    // find queue of waiting requests
-                    auto it=m_sessionWaitingQueues.find(sessionId);
-                    if (it==m_sessionWaitingQueues.end())
-                    {
-                        return;
-                    }
-                    auto& queue=it->second;
-
-                    // handle each waiting request
-                    while (!queue.empty())
-                    {
-                        auto req=queue.pop();
-
-                        // decrement count
-                        auto& count=m_sessionWaitingReqCount[req->priority()];
-                        if (count>0)
-                        {
-                            count--;
-                        }
-
-                        auto reqPtr=req.get();
-                        {
-                            if (ec)
-                            {
-                                req->callback("apiclientrefreshsession",req->taskCtx,std::move(ec),Response{});
-                            }
-                            else
-                            {
-                                // enqueue request again
-                                doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
-                            }
-                        }
-                    }
-
-                    // delete queue for this session
-                    m_sessionWaitingQueues.erase(it);
-                },
                 std::move(resp)
             );
         }
