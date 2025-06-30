@@ -44,6 +44,7 @@
 
 HATN_API_NAMESPACE_BEGIN
 namespace server{}
+namespace client{}
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPI_H
