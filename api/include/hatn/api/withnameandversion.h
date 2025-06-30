@@ -110,6 +110,12 @@ class WithNameAndVersion : public WithVersion
             return false;
         }
 
+        template <typename T>
+        bool is(const T& other) const noexcept
+        {
+            return name()==other.name() && version()==other.version();
+        }
+
     private:
 
         NameType m_name;
