@@ -15,6 +15,8 @@ SET (HEADERS
     include/hatn/logcontext/filelogger.h
     include/hatn/logcontext/fileloggertraits.h
     include/hatn/logcontext/logconfigrecords.h
+    include/hatn/logcontext/postasync.h
+    include/hatn/logcontext/makeasynccallback.h
 )
 
 SET (HEADERS
