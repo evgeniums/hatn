@@ -60,7 +60,7 @@ public:
 
 using SessionId=du::ObjectId::String;
 
-using SessionRefreshCb=std::function<void (common::TaskContextShared,Error)>;
+using SessionRefreshCb=std::function<void (common::TaskContextShared,const Error&)>;
 
 template <typename Traits, typename NoAuthT=hana::false_>
 class Session : public common::WithTraits<Traits>,
@@ -142,7 +142,7 @@ class Session : public common::WithTraits<Traits>,
         }
 
         template <typename ContextT, typename ClientT>
-        void refresh(common::SharedPtr<ContextT> ctx, ClientT* client, RefreshCb callback, Response resp={})
+        void refresh(common::SharedPtr<ContextT> ctx, RefreshCb callback, ClientT* client, Response resp={})
         {
             m_callbacks.emplace_back(std::move(callback));
 
@@ -157,7 +157,7 @@ class Session : public common::WithTraits<Traits>,
             this->traits().refresh(
                 std::move(ctx),
                 client,
-                [sessionCtx{std::move(sessionCtx)},this](auto ctx, Error ec)
+                [sessionCtx{std::move(sessionCtx)},this](auto ctx, const Error& ec)
                 {
                     setRefreshing(false);
                     setValid(!ec);
@@ -174,11 +174,6 @@ class Session : public common::WithTraits<Traits>,
                 },
                 std::move(resp)
             );
-        }
-
-        bool checkNeedRefreshForAuthError(const Service* service, const Method* method, const Response& resp) const
-        {
-            return this->traits().checkNeedRefreshForAuthError(service,method,resp);
         }
 
     private:
@@ -243,7 +238,7 @@ class SessionWrapper
         }
 
         template <typename ContextT, typename ClientT>
-        void refresh(common::SharedPtr<ContextT> ctx, ClientT* client, typename SessionT::RefreshCb callback, Response resp={})
+        void refresh(common::SharedPtr<ContextT> ctx, typename SessionT::RefreshCb callback, ClientT* client, Response resp={})
         {
             session().refresh(std::move(ctx),client,std::move(callback),std::move(resp));
         }
@@ -266,11 +261,6 @@ class SessionWrapper
             session().resetAuthHeader();
         }
 
-        bool checkNeedRefreshForAuthError(const Service* service, const Method* method, const Response& resp) const
-        {
-            return session().checkNeedRefreshForAuthError(service,method,resp);
-        }
-
     private:
 
         common::SharedPtr<SessionContextT> m_sessionCtx;
@@ -289,17 +279,12 @@ class SessionNoAuthTraits
             session->setValid(true);
         }
 
-        template <typename ContextT, typename ClientT, typename CallbackT>
-        void refresh(common::SharedPtr<ContextT> ctx, ClientT*, CallbackT callback, Response ={})
+        template <typename ContextT, typename CallbackT, typename ClientT>
+        void refresh(common::SharedPtr<ContextT> ctx, CallbackT callback, ClientT*, Response ={})
         {
             m_session->resetAuthHeader();
             callback(std::move(ctx),Error{});
             return;
-        }
-
-        bool checkNeedRefreshForAuthError(const Service*, const Method*, const Response&) const
-        {
-            return false;
         }
 
     private:
