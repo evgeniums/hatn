@@ -133,7 +133,7 @@ class AuthProtocols
             uint32_t priority=DefaultProtocolPriority
             )
         {
-            registerProtocol(protocol.name(),protocol.version(),priority);
+            registerProtocol(std::string{protocol.name()},protocol.version(),priority);
         }
 
         void setDefaultProtocol(AuthProtocol defaultProtocol)

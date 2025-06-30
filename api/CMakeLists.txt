@@ -22,6 +22,7 @@ SET (HEADERS
     include/hatn/api/withnameandversion.h
     include/hatn/api/genericerror.h
     include/hatn/api/makeapierror.h
+    include/hatn/api/authprotocol.h
 )
 
 SET (HEADERS
