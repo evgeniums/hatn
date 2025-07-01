@@ -29,36 +29,32 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 namespace clientapi=HATN_API_NAMESPACE::client;
 namespace api=HATN_API_NAMESPACE;
 
+class ClientSessionImpl;
+
 class ClientAuthProtocol : public api::AuthProtocol
 {
     public:
 
         ClientAuthProtocol(lib::string_view name,
-                           VersionType version,
-                           std::shared_ptr<api::Service> service={}
+                           VersionType version
                            )
                     : api::AuthProtocol(name,version),
-                      m_service(std::move(service))
+                      m_session(nullptr)
         {}
 
-        const api::Service* service() const noexcept
+        ClientSessionImpl* session() const noexcept
         {
-            return m_service.get();
+            return m_session;
         }
 
-        auto serviceShared() const
+        void setSession(ClientSessionImpl* session) noexcept
         {
-            return m_service;
-        }
-
-        void setService(std::shared_ptr<api::Service> service)
-        {
-            m_service=std::move(service);
+            m_session=session;
         }
 
     private:
 
-        std::shared_ptr<api::Service> m_service;
+        ClientSessionImpl* m_session;
 };
 
 HATN_CLIENT_SERVER_NAMESPACE_END

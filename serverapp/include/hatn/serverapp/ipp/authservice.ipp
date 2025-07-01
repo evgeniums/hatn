@@ -48,6 +48,7 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
 
     // invoke first stage of negotiated protocol if applicable
 
+    //! @todo Negotiate session auth protocol
     //! @todo Use registry of auth protocols, currently only HSS protocol supported
     const auto& hssProtocol=req.template envContext<WithSharedSecretAuthProtocol>();
     if (proto->is(*hssProtocol))

@@ -102,6 +102,8 @@ class AuthProtocols
                 return clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
             }
 
+            //! @todo negotiate session auth
+
             // protocol negotiated
             //! @todo optimization: keep protocol and return shared ptr
             return *proto;

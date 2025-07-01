@@ -28,6 +28,7 @@
 
 #include <hatn/clientserver/clientservererror.h>
 #include <hatn/clientserver/auth/authprotocol.h>
+#include <hatn/clientserver/auth/clientsession.h>
 #include <hatn/clientserver/auth/clientauthprotocolsharedsecret.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
@@ -39,9 +40,7 @@ void ClientAuthProtocolSharedSecret::invoke(
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
         ClientT* client,
-        common::SharedPtr<auth_negotiate_response::managed> authNegotiateResponse,
-        lib::string_view topic,
-        uint32_t timeoutMs
+        common::SharedPtr<auth_negotiate_response::managed> authNegotiateResponse
     ) const
 {
     HATN_CTX_SCOPE("authsharedsecret")
@@ -57,7 +56,7 @@ void ClientAuthProtocolSharedSecret::invoke(
 
     // parse message
     Error ec;
-    auth_hss_challenge::type challengeMsg;
+    auth_hss_challenge::type challengeMsg{session()->factory()};
     du::WireBufSolidShared buf{authNegotiateResponse->field(auth_protocol_response::message).skippedNotParsedContent()};
     du::io::deserialize(challengeMsg,buf,ec);
     if (ec)
@@ -68,7 +67,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     }
 
     // prepare HSS auth request with MAC using shared secret
-    auto req=authNegotiateResponse->factory()->template createObject<auth_hss_check::managed>();
+    auto req=session()->factory()->template createObject<auth_hss_check::managed>();
     req->setFieldValue(auth_hss_check::token,authNegotiateResponse->fieldValue(auth_protocol_response::token));
     ec=calculateMAC(challengeMsg.fieldValue(auth_hss_challenge::challenge),*req->field(auth_hss_check::mac).buf(true),challengeMsg.fieldValue(auth_hss_challenge::cipher_suite));
     if (ec)
@@ -97,12 +96,12 @@ void ClientAuthProtocolSharedSecret::invoke(
     client->exec(
         ctx,
         std::move(reqCb),
-        *service(),
+        *session()->service(),
         api::Method{AuthHssCheckMethodName},
         std::move(req),
         auth_hss_check::conf().name,
-        topic,
-        timeoutMs,
+        session()->topic(),
+        session()->timeoutSecs(),
         api::Priority::Highest
     );
 }

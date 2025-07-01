@@ -17,6 +17,7 @@ SET (HEADERS
     ${HEADERS}
 
     include/hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp
+    include/hatn/clientserver/ipp/clientsession.ipp
 )
 
 SET (HEADERS
@@ -38,6 +39,7 @@ SET (SOURCES
     src/clientserver.cpp
     src/accountconfigparser.cpp
     src/clientservererror.cpp
+    src/clientsession.cpp
 
     src/clientauthprotocolsharedsecret.cpp
 )

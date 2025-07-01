@@ -28,7 +28,7 @@ class HATN_CLIENT_SERVER_EXPORT ClientAuthProtocolSharedSecretImpl : public Clie
 {
     public:
 
-        ClientAuthProtocolSharedSecretImpl(std::shared_ptr<api::Service> service={}, const crypt::CipherSuites* cipherSuites=nullptr);
+        ClientAuthProtocolSharedSecretImpl(const crypt::CipherSuites* cipherSuites=nullptr);
 
         void setCipherSuites(const crypt::CipherSuites* cipherSuites) noexcept
         {
@@ -76,9 +76,7 @@ class ClientAuthProtocolSharedSecret : public ClientAuthProtocolSharedSecretImpl
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
             ClientT* client,
-            common::SharedPtr<auth_negotiate_response::managed> authNegotiateResponse,
-            lib::string_view topic,
-            uint32_t timeoutMs
+            common::SharedPtr<auth_negotiate_response::managed> authNegotiateResponse
         ) const;
 };
 

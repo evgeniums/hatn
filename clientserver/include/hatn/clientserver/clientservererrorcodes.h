@@ -37,6 +37,7 @@
     Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_INVALID_TYPE,_TR("invalid authentication token type","clientserver")) \
     Do(ClientServerError,AUTH_SESSION_INVALID,_TR("authentication session is not valid","clientserver")) \
+    Do(ClientServerError,AUTH_COMPLETION_FAILED,_TR("failed to complete authentication","clientserver")) \
 
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN

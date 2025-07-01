@@ -31,7 +31,8 @@ constexpr const char* AuthHssCheckMethodName="hss_check";
 HDU_UNIT(auth_negotiate_request,
     HDU_FIELD(login,TYPE_STRING,1,true)
     HDU_FIELD(topic,TYPE_STRING,2)
-    HDU_REPEATED_FIELD(protocols,HATN_API_NAMESPACE::auth_protocol::TYPE,3,true)
+    HDU_REPEATED_FIELD(protocols,HATN_API_NAMESPACE::auth_protocol::TYPE,3)
+    HDU_REPEATED_FIELD(session_auth,HATN_API_NAMESPACE::auth_protocol::TYPE,4)
 )
 
 HDU_UNIT(auth_protocol_response,
@@ -77,6 +78,12 @@ HDU_UNIT(auth_complete,
 HDU_UNIT(auth_refresh,
     HDU_FIELD(token,auth_with_token::TYPE,1)
 )
+
+inline bool isAuthTokenExpired(const auth_token::type* token)
+{
+    auto now=common::DateTime::currentUtc();
+    return now.after(token->fieldValue(auth_token::expire));
+}
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 

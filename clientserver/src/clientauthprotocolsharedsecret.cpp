@@ -49,14 +49,14 @@ Result<std::tuple<const crypt::CipherSuite*,const crypt::CryptAlgorithm*,common:
 
 //--------------------------------------------------------------------------
 
-ClientAuthProtocolSharedSecretImpl::ClientAuthProtocolSharedSecretImpl(std::shared_ptr<api::Service> service, const crypt::CipherSuites* cipherSuites)
+ClientAuthProtocolSharedSecretImpl::ClientAuthProtocolSharedSecretImpl(const crypt::CipherSuites* cipherSuites)
     : ClientAuthProtocol(
           AUTH_PROTOCOL_HATN_SHARED_SECRET,
-          AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION,
-          std::move(service)
+          AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION
           ),
     m_cipherSuites(cipherSuites)
-{}
+{
+}
 
 //--------------------------------------------------------------------------
 
