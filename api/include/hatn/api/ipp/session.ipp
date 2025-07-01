@@ -44,6 +44,95 @@ Error SessionAuth::serializeAuthHeader(lib::string_view protocol, uint32_t proto
 
 //---------------------------------------------------------------
 
+template <typename Traits, typename NoAuthT>
+Session<Traits,NoAuthT>::Session()
+    : common::WithTraits<Traits>(this),
+    m_id(du::ObjectId::generateIdStr()),
+    m_valid(NoAuth),
+    m_refreshing(false)
+{
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits, typename NoAuthT>
+template <typename ...TraitsArgs>
+Session<Traits,NoAuthT>::Session(TraitsArgs&& ...traitsArgs)
+    : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+        m_id(du::ObjectId::generateIdStr()),
+        m_valid(NoAuth),
+        m_refreshing(false)
+{
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits, typename NoAuthT>
+template <typename ...TraitsArgs>
+Session<Traits,NoAuthT>::Session(
+        lib::string_view id,
+        const common::pmr::AllocatorFactory* allocatorFactory,
+        TraitsArgs&& ...traitsArgs)
+        : common::pmr::WithFactory(allocatorFactory),
+        common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+        m_id(id),
+        m_valid(NoAuth),
+        m_refreshing(false)
+{
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits, typename NoAuthT>
+template <typename ...TraitsArgs>
+Session<Traits,NoAuthT>::Session(
+    const std::string& id,
+    TraitsArgs&& ...traitsArgs)
+    : common::WithTraits<Traits>(this,std::forward<TraitsArgs>(traitsArgs)...),
+    m_id(id),
+    m_valid(NoAuth),
+    m_refreshing(false)
+{
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits, typename NoAuthT>
+template <typename ContextT, typename ClientT>
+void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb callback, ClientT* client, Response resp)
+{
+    m_callbacks.emplace_back(std::move(callback));
+
+    if (isRefreshing())
+    {
+        return;
+    }
+    setRefreshing(true);
+
+    //! @todo Maybe switch log context to session context
+    auto sessionCtx=this->sharedMainCtx();
+    this->traits().refresh(
+        std::move(ctx),
+        client,
+        [sessionCtx{std::move(sessionCtx)},this](auto ctx, const Error& ec)
+        {
+            setRefreshing(false);
+            setValid(!ec);
+            if (ec)
+            {
+                resetAuthHeader();
+            }
+
+            for (auto&& it: m_callbacks)
+            {
+                it(ctx,ec);
+            }
+            m_callbacks.clear();
+        },
+        std::move(resp)
+        );
+}
+
 } // namespace client
 
 HATN_API_NAMESPACE_END
