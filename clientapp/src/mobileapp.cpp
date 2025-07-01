@@ -16,6 +16,7 @@
 
 #include <hatn/common/thread.h>
 
+#include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
@@ -34,6 +35,7 @@
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
+#include <hatn/clientapp/eventdispatcher.h>
 
 #include <hatn/common/logger.h>
 #include <hatn/common/loggermoduleimp.h>
@@ -45,8 +47,16 @@ HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 constexpr const char* TestingSection="testing";
 
+HDU_UNIT(test_event,
+    HDU_FIELD(category,TYPE_STRING,1)
+    HDU_FIELD(event,TYPE_STRING,2)
+    HDU_FIELD(period,TYPE_UINT32,3)
+    HDU_FIELD(run_once,TYPE_BOOL,4)
+)
+
 HDU_UNIT(testing_config,
     HDU_FIELD(enable,TYPE_UINT8,1)
+    HDU_REPEATED_FIELD(events,test_event::TYPE,2)
 )
 
 using TestingConfig=HATN_BASE_NAMESPACE::ConfigObject<testing_config::type>;
@@ -259,6 +269,8 @@ size_t MobileApp::subscribeEvent(
                                             common::SharedPtr<Context>,
                                             std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::Event> event)
     {
+        HATN_CTX_SCOPE("eventhandler")
+
         Event ntfcn;
         //! @todo omptimization: use referenses for similar fields instead of copying
         ntfcn.category=event->category;
@@ -321,6 +333,54 @@ int MobileApp::initTests()
     pimpl->app->bridge().registerService(
         std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(pimpl->app.get())
     );
+
+    const auto& events=testingConfig.config().field(testing_config::events);
+    for (size_t i=0;i<events.count();i++)
+    {
+        std::cout << "Adding event " << i << std::endl;
+
+        const auto& event=events.at(i);
+        std::string category{event.fieldValue(test_event::category)};
+        std::string name{event.fieldValue(test_event::event)};
+        auto json=event.toString(true);
+        auto handler=[this,category,name,json]()
+        {
+            DefaultContextBuilder ctxBuilder{};
+
+            auto ctx=ctxBuilder.makeContext(pimpl->app->app().env());
+            ctx->beforeThreadProcessing();
+
+            {
+                HATN_CTX_SCOPE("testevent::publish")
+                HATN_CTX_INFO("publish event")
+
+                auto event=std::make_shared<HATN_CLIENTAPP_NAMESPACE::Event>();
+                event->category=category;
+                event->event=name;
+                event->messageTypeName=test_event::conf().name;
+                auto msg=common::makeShared<test_event::managed>();
+                du::WireBufSolid buf{json.data(),json.size(),true};
+                msg->parse(buf);
+                event->message=msg;
+
+                pimpl->app->eventDispatcher().publish(
+                    pimpl->app->app().env(),
+                    ctx,
+                    event
+                    );
+            }
+
+            ctx->afterThreadProcessing();
+
+            return true;
+        };
+
+        pimpl->app->app().appThread()->installTimer(
+            event.fieldValue(test_event::period) * 1000 * 1000,
+            handler,
+            event.fieldValue(test_event::run_once)
+        );
+    }
 
     return 0;
 }
