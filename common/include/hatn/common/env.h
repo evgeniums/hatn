@@ -323,13 +323,13 @@ class EnvT : public BaseT
             };
 
             return common::foreach_if(
-                m_refs,
+                m_contexts,
                 pred,
-                [visitor=std::move(visitor),selector=std::move(selector)](auto& v,auto)
+                [&visitor,&selector](auto& v,auto)
                 {
-                    if (selector(v.get()))
+                    if (selector(v))
                     {
-                        visitor(v.get());
+                        visitor(v);
                         return true;
                     }
                     return false;
