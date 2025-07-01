@@ -129,12 +129,12 @@ ENDFUNCTION(COPY_PREBUILD_THIRDPARTY_HEADERS)
 
 MACRO(HATN_STRIP_RELEASE Target)
     IF (NOT MSVC)
-        IF(BUILD_RELEASE AND STRIP_SYMBOLS AND NOT BUILD_STATIC)
-            ADD_CUSTOM_COMMAND(
-                  TARGET ${Target} POST_BUILD
-                  COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${Target}>
-                  COMMENT "Stripping symbols from ${Target}"
-              )
-        ENDIF()
+        # IF(BUILD_RELEASE AND STRIP_SYMBOLS AND NOT BUILD_STATIC)
+        #     ADD_CUSTOM_COMMAND(
+        #           TARGET ${Target} POST_BUILD
+        #           COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${Target}>
+        #           COMMENT "Stripping symbols from ${Target}"
+        #       )
+        # ENDIF()
     ENDIF()
 ENDMACRO()
