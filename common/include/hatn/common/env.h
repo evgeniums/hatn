@@ -185,6 +185,11 @@ class EnvT : public BaseT
             );
         }
 
+        auto contextRefs() const
+        {
+            return m_refs;
+        }
+
         /**
          * @brief Get context by type.
          * @return Const reference to context.
