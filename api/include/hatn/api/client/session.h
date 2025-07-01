@@ -137,7 +137,7 @@ class SessionWrapper
 {
     public:
 
-        SessionWrapper(common::SharedPtr<SessionContextT> sessionCtx):m_sessionCtx(std::move(sessionCtx))
+        SessionWrapper(common::SharedPtr<SessionContextT> sessionCtx={}):m_sessionCtx(std::move(sessionCtx))
         {}
 
         const SessionT& session() const
@@ -183,7 +183,7 @@ class SessionWrapper
         template <typename ContextT, typename ClientT>
         void refresh(common::SharedPtr<ContextT> ctx, typename SessionT::RefreshCb callback, ClientT* client, Response resp={})
         {
-            session().refresh(std::move(ctx),client,std::move(callback),std::move(resp));
+            session().refresh(std::move(ctx),std::move(callback),client,std::move(resp));
         }
 
         template <typename UnitT>

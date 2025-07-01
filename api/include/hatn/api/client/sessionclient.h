@@ -80,7 +80,7 @@ class SessionClient : public common::TaskSubcontext
             RequestCb<Context> callback,
             const Service& service,
             const Method& method,
-            MessageType message,            
+            MessageType message,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,

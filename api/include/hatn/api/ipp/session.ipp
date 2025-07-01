@@ -112,8 +112,7 @@ void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb
     //! @todo Maybe switch log context to session context
     auto sessionCtx=this->sharedMainCtx();
     this->traits().refresh(
-        std::move(ctx),
-        client,
+        std::move(ctx),        
         [sessionCtx{std::move(sessionCtx)},this](auto ctx, const Error& ec)
         {
             setRefreshing(false);
@@ -129,6 +128,7 @@ void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb
             }
             m_callbacks.clear();
         },
+        client,
         std::move(resp)
         );
 }

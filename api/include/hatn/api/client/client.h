@@ -144,7 +144,7 @@ class Client : public common::TaskSubcontext
             MethodAuth methodAuth={}
         )
         {
-            return exec(std::move(ctx),std::move(callback),{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+            return exec(std::move(ctx),std::move(callback),SessionWrapperT{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
         }
 
         common::Result<common::SharedPtr<ReqCtx>> prepare(
