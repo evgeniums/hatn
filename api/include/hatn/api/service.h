@@ -61,6 +61,34 @@ class ServiceNameAndVersion
         const protocol::request::type& req;
 };
 
+class WithService
+{
+    public:
+
+        WithService(std::shared_ptr<Service> service={})
+            : m_service(std::move(service))
+        {}
+
+        const api::Service* service() const noexcept
+        {
+            return m_service.get();
+        }
+
+        auto serviceShared() const
+        {
+            return m_service;
+        }
+
+        void setService(std::shared_ptr<api::Service> service)
+        {
+            m_service=std::move(service);
+        }
+
+    private:
+
+        std::shared_ptr<api::Service> m_service;
+};
+
 HATN_API_NAMESPACE_END
 
 namespace std

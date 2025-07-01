@@ -52,6 +52,11 @@ class Auth
             return m_authHeader;
         }
 
+        bool isAuthHeaderValid() const noexcept
+        {
+            return m_authHeader;
+        }
+
     private:
 
         common::ByteArrayShared m_authHeader;

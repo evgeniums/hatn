@@ -67,7 +67,7 @@ struct Response
         const auto& messageField=unit->field(protocol::response::message);
 
         // if error message field not set then construct api error from response status
-        if (unit->fieldValue(protocol::response::category)!=protocol::ResponseCategoryError || !messageField.isSet())
+        if (unit->fieldValue(protocol::response::message_type)!=protocol::response_error_message::conf().name || !messageField.isSet())
         {
             return makeApiError(
                 ApiLibError::SERVER_RESPONDED_WITH_ERROR,

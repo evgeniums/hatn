@@ -55,12 +55,12 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
     if (status!=protocol::ResponseStatus::Success)
     {
         unit.field(protocol::response::message).fieldReset();
-        unit.field(protocol::response::category).fieldReset();
+        unit.field(protocol::response::message_type).fieldReset();
     }
 
     if (ec && ec.apiError()!=nullptr)
     {
-        unit.setFieldValue(protocol::response::category,protocol::ResponseCategoryError);
+        unit.setFieldValue(protocol::response::message_type,protocol::response_error_message::conf().name);
 
         const common::ApiError* apiErr=ec.native()->apiError();
 

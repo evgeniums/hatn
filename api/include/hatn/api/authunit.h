@@ -27,9 +27,12 @@
 
 HATN_API_NAMESPACE_BEGIN
 
+constexpr const char* AuthTokenSessionProtocol="token";
+constexpr const uint32_t AuthTokenSessionProtocolVersion=1;
+
 HDU_UNIT(auth_protocol,
-    HDU_FIELD(protocol,HDU_TYPE_FIXED_STRING(protocol::AuthProtocolNameLengthMax),1)
-    HDU_FIELD(version,TYPE_UINT32,2,false,1)
+    HDU_FIELD(protocol,HDU_TYPE_FIXED_STRING(protocol::AuthProtocolNameLengthMax),1,false,AuthTokenSessionProtocol)
+    HDU_FIELD(version,TYPE_UINT32,2,false,AuthTokenSessionProtocolVersion)
 )
 
 HDU_UNIT_WITH(auth,(HDU_BASE(auth_protocol)),

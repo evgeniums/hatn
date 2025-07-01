@@ -32,11 +32,9 @@ namespace protocol
 HDU_UNIT(response,
     HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
     HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::Success)
-    HDU_FIELD(category,HDU_TYPE_FIXED_STRING(ResponseCategoryNameLengthMax),3)
+    HDU_FIELD(message_type,HDU_TYPE_FIXED_STRING(ResponseMsgTypeLengthMax),3)
     HDU_FIELD(message,TYPE_DATAUNIT,4)
 )
-
-constexpr const char* ResponseCategoryError="error";
 
 HDU_UNIT(response_error_message,
     HDU_FIELD(code,TYPE_INT32,1,true)
