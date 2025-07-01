@@ -16,6 +16,7 @@
 #ifndef HATNAUTHPROTOCOLSHAREDSECRET_IPP
 #define HATNAUTHPROTOCOLSHAREDSECRET_IPP
 
+#include "hatn/api/message.h"
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -73,37 +74,52 @@ void ClientAuthProtocolSharedSecret::invoke(
     if (ec)
     {
         HATN_CTX_ERROR(ec,"failed to calculate MAC")
-        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED),{});
+        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_PROCESSING_FAILED),{});
         return;
     }
 
     // define request callback
-    auto reqCb=[ctx,callback=std::move(callback)](auto, const Error& ec, api::client::Response response)
+    auto reqCb=[callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
     {
         HATN_CTX_SCOPE("authsharedsecretexeccb")
 
         if (ec)
         {
             HATN_CTX_DEBUG_RECORDS(1,"failed to send HSS to server",{"errm",ec.message()},{"errc",ec.codeString()})
-            callback(std::move(ctx),ec,{});
+            callback(std::move(ctx),ec,api::client::Response{});
             return;
         }
 
-        callback(std::move(ctx),{},std::move(response));
+        callback(std::move(ctx),Error{},std::move(response));
     };
 
+    // prepare msg
+    auto msg=api::Message<>{auth_hss_check::conf().name};
+    ec=msg.setContent(*req,session()->factory());
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to prepare HSS check message")
+        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_PROCESSING_FAILED),api::client::Response{});
+        return;
+    }
+
     // send request to server
-    client->exec(
+    ec=client->exec(
         ctx,
         std::move(reqCb),
         *session()->service(),
         api::Method{AuthHssCheckMethodName},
-        std::move(req),
-        auth_hss_check::conf().name,
+        std::move(msg),
         session()->topic(),
-        session()->timeoutSecs(),
-        api::Priority::Highest
+        api::Priority::Highest,
+        session()->timeoutSecs()
     );
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to exec HSS check message")
+        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_PROCESSING_FAILED),api::client::Response{});
+        return;
+    }
 }
 
 HATN_CLIENT_SERVER_NAMESPACE_END

@@ -25,6 +25,8 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 using ClientSessionSharedSecret=ClientSession<ClientAuthProtocolSharedSecret>;
 using ClientSessionSharedSecretContext=ClientSessionContext<ClientAuthProtocolSharedSecret>;
 
+using ClientSessionHssWrapper=clientapi::SessionWrapper<ClientSessionSharedSecretContext,ClientSessionSharedSecret>;
+
 struct allocateSessionSharedSecretContextT
 {
     template <typename ...Args>

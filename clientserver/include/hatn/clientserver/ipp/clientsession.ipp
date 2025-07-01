@@ -16,6 +16,7 @@
 #ifndef HATNCLIENTSESSIONT_IPP
 #define HATNCLIENTSESSIONT_IPP
 
+#include "hatn/api/message.h"
 #include <hatn/common/meta/chain.h>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -66,7 +67,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             // check if token expired
             if (!isAuthTokenExpired(m_sessionToken.get()))
             {
-                m_session->serializeAuthHeader(name(),version(),m_sessionToken);
+                std::ignore=m_session->serializeAuthHeader(name(),version(),m_sessionToken);
                 callback(std::move(ctx),{});
                 return;
             }
@@ -101,7 +102,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // define request callback
-        auto reqCb=[this,sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response)
+        auto reqCb=[this,sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
         {
             HATN_CTX_SCOPE("clientsession::negotiatecb")
 
@@ -121,22 +122,37 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             invokeAuth(std::move(ctx),std::move(callback),client,std::move(response));
         };
 
+        // prepare msg
+        auto msg=api::Message<>{auth_negotiate_request::conf().name};
+        auto ec=msg.setContent(*req,factory());
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to prepare negotiation message")
+            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+            return;
+        }
+
         // send request to server
-        client->exec(
+        //! @todo optimization: Use static method singleton
+        ec=client->exec(
             ctx,
             std::move(reqCb),
             *service(),
             api::Method{AuthNegotiateMethodName},
-            std::move(req),
-            auth_hss_check::conf().name,
+            std::move(msg),
             topic(),
-            timeoutSecs(),
-            api::Priority::Highest
-        );
+            api::Priority::Highest,
+            timeoutSecs()
+        );        
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to invoke exec negotiation message")
+            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+        }
     };
 
     // invoke auth with negotiated auth protocol
-    auto invokeAuth=[this,sessionCtx=m_session->sharedMainCtx()](auto&& handleTokens, auto ctx, auto callback, ClientT* client, api::client::Response negotiationResponse)
+    auto invokeAuth=[this,sessionCtx=m_session->sharedMainCtx()](auto&& handleTokens, auto ctx, auto callback, ClientT* client, api::client::Response negotiationResponse) mutable
     {
         HATN_CTX_SCOPE("clientsession::invokeauth")
 
@@ -162,7 +178,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // define invoke cb
-        auto invokeCb=[handleTokens=std::move(handleTokens),callback=std::move(callback),sessionCtx=std::move(sessionCtx)](auto ctx,const Error& ec, api::client::Response authResponse)
+        auto invokeCb=[handleTokens=std::move(handleTokens),callback=std::move(callback),sessionCtx=std::move(sessionCtx)](auto ctx,const Error& ec, api::client::Response authResponse) mutable
         {
             HATN_CTX_SCOPE("clientsession::invokeauthcb")
 
@@ -179,13 +195,13 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         const auto& protoField=negotiateResp->field(auth_negotiate_response::protocol);
         auto selector=[&protoField](const auto& authProto)
         {
-            return protoField.field(api::auth_protocol::protocol)==authProto.name() && protoField.field(api::auth_protocol::version)==authProto.version();
+            return protoField.field(api::auth_protocol::protocol).value()==authProto.name() && protoField.field(api::auth_protocol::version).value()==authProto.version();
         };
-        auto visitor=[ctx,invokeCb=invokeCb,client,negotiateResp=std::move(negotiateResp)](const auto& authProto)
+        auto visitor=[ctx,invokeCb=std::move(invokeCb),client,negotiateResp=std::move(negotiateResp)](auto& authProto)
         {
-            authProto->invoke(std::move(ctx),std::move(invokeCb),client,std::move(negotiateResp));
+            authProto.invoke(std::move(ctx),std::move(invokeCb),client,std::move(negotiateResp));
         };
-        this->visitIf(selector,visitor);
+        this->visitIf(visitor,selector);
     };
 
     // handle auth tokens from response

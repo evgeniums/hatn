@@ -79,7 +79,7 @@ HDU_UNIT(auth_refresh,
     HDU_FIELD(token,auth_with_token::TYPE,1)
 )
 
-inline bool isAuthTokenExpired(const auth_token::type* token)
+inline bool isAuthTokenExpired(const auth_token::shared_managed* token)
 {
     auto now=common::DateTime::currentUtc();
     return now.after(token->fieldValue(auth_token::expire));
