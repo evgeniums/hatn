@@ -11,6 +11,7 @@ SET (HEADERS
     include/hatn/clientserver/auth/clientauthprotocol.h
     include/hatn/clientserver/auth/clientauthprotocolsharedsecret.h
     include/hatn/clientserver/auth/clientsession.h
+    include/hatn/clientserver/auth/clientsessionsharedsecret.h
 )
 
 SET (HEADERS
@@ -42,6 +43,7 @@ SET (SOURCES
     src/clientsession.cpp
 
     src/clientauthprotocolsharedsecret.cpp
+    src/clientsessionsharedsecret.cpp
 )
 
 BUILD_HATN_MODULE()

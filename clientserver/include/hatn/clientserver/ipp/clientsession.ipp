@@ -42,7 +42,7 @@ ClientSessionTraits<AuthProtocols...>::ClientSessionTraits(SessionType* session,
     : common::Env<AuthProtocols...>(std::forward<Args>(args)...),
       m_session(session)
 {
-    hana::for_each(this->contextRefs(),
+    hana::for_each(this->contexts(),
                    [this](auto& protocol)
                    {
                        protocol.setSession(this);

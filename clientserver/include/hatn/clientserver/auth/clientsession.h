@@ -112,6 +112,12 @@ class ClientSessionTraits : public ClientSessionImpl,
         SessionType* m_session;
 };
 
+template <typename ...AuthProtocols>
+using ClientSession=clientapi::Session<ClientSessionTraits<AuthProtocols...>>;
+
+template <typename ...AuthProtocols>
+using ClientSessionContext=common::TaskContextType<ClientSession<AuthProtocols...>,HATN_LOGCONTEXT_NAMESPACE::Context>;
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSESSION_H

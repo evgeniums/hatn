@@ -48,6 +48,8 @@
 #include <hatn/api/server/plaintcpmicroservice.h>
 #include <hatn/api/server/microservicefactory.h>
 
+#include <hatn/clientserver/auth/clientsessionsharedsecret.h>
+
 #include <hatn/serverapp/auth/authservice.h>
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
@@ -59,7 +61,6 @@
 #include <hatn/api/ipp/methodauth.ipp>
 #include <hatn/api/ipp/serverresponse.ipp>
 #include <hatn/api/ipp/serverservice.ipp>
-#include <hatn/api/ipp/session.ipp>
 #include <hatn/api/ipp/makeapierror.ipp>
 #include <hatn/api/ipp/networkmicroservice.ipp>
 #include <hatn/api/ipp/plaintcpmicroservice.ipp>
@@ -76,6 +77,7 @@ HATN_COMMON_USING
 HATN_LOGCONTEXT_USING
 HATN_NETWORK_USING
 HATN_SERVERAPP_USING
+HATN_CLIENT_SERVER_USING
 
 /********************** TestEnv **************************/
 
@@ -99,7 +101,7 @@ constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,LogCtxType>;
+using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<ClientSessionSharedSecretContext,ClientSessionSharedSecret>,LogCtxType>;
 using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
@@ -127,19 +129,6 @@ auto createClient(ThreadQWithTaskContext* thread)
                 thread
             );
     return cl;
-}
-
-using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,client::ClientContext<ClientType>,ClientType>;
-using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
-
-HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
-HATN_TASK_CONTEXT_DEFINE(ClientWithAuthType)
-
-template <typename SessionWrapperT>
-auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, SessionWrapperT session)
-{
-    auto scl=client::makeClientWithAuthContext<ClientWithAuthCtxType>(std::move(session),std::move(clientCtx));
-    return scl;
 }
 
 //---------------------------------------------------------------
@@ -295,9 +284,27 @@ void runCreateServer(std::string configFile, TestEnv* env, T expectedErrorCode)
 
 BOOST_AUTO_TEST_SUITE(TestHssAuth)
 
-BOOST_FIXTURE_TEST_CASE(CreateServerOk,TestEnv)
+BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 {
     runCreateServer("hssauth.jsonc",this,0);
+}
+
+BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
+{
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
+
+    auto session=makeSessionSharedSecretContext();
+    auto client=createClient(clientThread.get());
+
+    clientThread->start();
+
+    int secs=3;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
+    clientThread->stop();
+
+    exec(1);
 }
 
 #if 0
