@@ -115,8 +115,8 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     }
 
     // init platform context
-    ec=platformCtx->init(this);
-    if (ec)
+    auto ret=platformCtx->init(this);
+    if (ret!=0)
     {
         return -3;
     }
@@ -172,10 +172,10 @@ int MobileApp::close()
 
     if (pimpl->platformCtx)
     {
-        auto ec=pimpl->platformCtx->close();
-        if (ec)
+        auto ret=pimpl->platformCtx->close();
+        if (ret!=0)
         {
-            return -1;
+            return ret;
         }
     }
     return 0;
