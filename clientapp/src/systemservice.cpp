@@ -31,5 +31,3 @@ SystemService::SystemService(ClientApp* app) : Service(app,Name)
 //---------------------------------------------------------------
 
 HATN_CLIENTAPP_NAMESPACE_END
-
-HATN_TASK_CONTEXT_DEFINE(HATN_CLIENTAPP_NAMESPACE::WithClientApp,WithClientApp)
