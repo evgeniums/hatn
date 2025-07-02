@@ -24,7 +24,7 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 HDU_UNIT(sync_datetime,
     HDU_FIELD(utc,TYPE_DATETIME,1)
-    HDU_FIELD(local_timezone_offset_minutes,TYPE_INT32,2)
+    HDU_FIELD(local_tz_offset,TYPE_INT32,2)
 )
 
 //---------------------------------------------------------------
@@ -39,6 +39,9 @@ void MethodSyncDateTime::exec(
     HATN_CTX_SCOPE("syncdatetime::exec")
 
     auto msg=request.message.as<sync_datetime::managed>();
+
+    HATN_CTX_DEBUG_RECORDS(1,"date time updated",{"utc",msg->fieldValue(sync_datetime::utc)},{"local_tz_offset",msg->fieldValue(sync_datetime::local_tz_offset)})
+
     std::ignore=msg;
     std::ignore=ctx;
     std::ignore=env;

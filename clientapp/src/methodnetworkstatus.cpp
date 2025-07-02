@@ -38,6 +38,9 @@ void MethodNetworkStatus::exec(
     HATN_CTX_SCOPE("networkstatus::exec")
 
     auto msg=request.message.as<network_status::managed>();
+
+    HATN_CTX_DEBUG_RECORDS(1,"network status updated",{"connected",msg->fieldValue(network_status::connected)})
+
     std::ignore=msg;
     std::ignore=ctx;
     std::ignore=env;
