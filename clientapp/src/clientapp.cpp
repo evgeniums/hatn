@@ -17,6 +17,7 @@
 #include <hatn/app/app.h>
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/eventdispatcher.h>
+#include <hatn/clientapp/systemservice.h>
 #include <hatn/clientapp/clientapp.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -79,6 +80,14 @@ EventDispatcher& ClientApp::eventDispatcher()
 Error ClientApp::init()
 {
     return app().init();
+}
+
+//--------------------------------------------------------------------------
+
+Error ClientApp::initBridge()
+{
+    bridge().registerService(std::make_shared<SystemService>(this));
+    return initBridgeServices();
 }
 
 //--------------------------------------------------------------------------

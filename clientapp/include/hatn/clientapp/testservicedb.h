@@ -18,8 +18,6 @@
 #ifndef HATNCLIENTTESSERVICEDB_H
 #define HATNCLIENTTESSERVICEDB_H
 
-#include <hatn/api/api.h>
-
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/bridgeappcontext.h>
 

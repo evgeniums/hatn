@@ -32,6 +32,13 @@ Method::~Method()
 
 //---------------------------------------------------------------
 
+Service::Service(ClientApp* app, std::string name) : Service(std::move(name))
+{
+    setContextBuilder(std::make_shared<BridgeAppContextBuilder>(app));
+}
+
+//---------------------------------------------------------------
+
 void Service::exec(
         common::SharedPtr<app::AppEnv> env,
         const std::string& method,

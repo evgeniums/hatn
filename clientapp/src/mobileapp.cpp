@@ -141,8 +141,8 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
         return -5;
     }
 
-    // init bridge services
-    ec=pimpl->app->initBridgeServices();
+    // init bridge
+    ec=pimpl->app->initBridge();
     if (ec)
     {
         close();
@@ -190,7 +190,7 @@ void MobileApp::exec(
         Callback callback
     )
 {
-    HATN_CTX_SCOPE("mobileapp:exec")
+    HATN_CTX_SCOPE("mobileapp::exec")
 
     HATN_CLIENTAPP_NAMESPACE::Request req{
         std::move(request.envId),
