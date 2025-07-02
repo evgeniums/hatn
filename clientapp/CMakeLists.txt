@@ -13,6 +13,8 @@ SET (HEADERS
     include/hatn/clientapp/systemservice.h
     include/hatn/clientapp/methodnetworkstatus.h
     include/hatn/clientapp/methodsyncdatetime.h
+
+    include/hatn/clientapp/networkevent.h
 )
 
 SET (SOURCES
