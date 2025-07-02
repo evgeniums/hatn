@@ -67,7 +67,7 @@ class HATN_NETWORK_EXPORT CaresLib
 
 #if defined(ANDROID) || defined(__ANDROID__)
 
-        static Error initAndroid(jobject connectivityManager)
+        static Error initAndroid(jobject connectivityManager);
 
         static bool isAndroidInitialized();
 

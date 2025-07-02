@@ -58,6 +58,7 @@
 #include <hatn/common/translate.h>
 
 #include <hatn/network/networkerrorcodes.h>
+#include <hatn/network/asio/careslib.h>
 #include <hatn/network/asio/caresolver.h>
 
 HATN_NETWORK_NAMESPACE_BEGIN
