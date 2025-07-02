@@ -133,6 +133,31 @@ void CaresLib::cleanup()
     m_allocatorFactory=nullptr;
 }
 
+#if defined(ANDROID) || defined(__ANDROID__)
+
+//---------------------------------------------------------------
+
+Error CaresLib::initAndroid(jobject connectivityManager)
+{
+    return caresError(ares_library_init_android(connectivityManager));
+}
+
+//---------------------------------------------------------------
+
+bool CaresLib::isAndroidInitialized()
+{
+    return ares_library_android_initialized()==ARES_SUCCESS;
+}
+
+//---------------------------------------------------------------
+
+void CaresLib::initJvm(JavaVM *jvm)
+{
+    ares_library_init_jvm(jvm);
+}
+
+#endif
+
 /********************** CaresErrorCategory **************************/
 
 //---------------------------------------------------------------
