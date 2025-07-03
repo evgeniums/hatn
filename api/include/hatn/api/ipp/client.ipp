@@ -48,7 +48,7 @@ common::Result<
 {
     HATN_CTX_SCOPE("apiclientprepare")
 
-    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth)));
+    auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth));
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
     auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
@@ -116,7 +116,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
     {
         ec=commonError(common::CommonError::ABORTED);
     }
-    else if (req->priority()!=Priority::Highest && queue.size()>(m_cfg->config().fieldValue(config::max_queue_depth)+m_sessionWaitingReqCount[req->priority()]))
+    else if (req->priority()!=Priority::Highest && queue.size()>(config().fieldValue(config::max_queue_depth)+m_sessionWaitingReqCount[req->priority()]))
     {
         // check if queue is filled
         ec=apiLibError(ApiLibError::QUEUE_OVERFLOW);

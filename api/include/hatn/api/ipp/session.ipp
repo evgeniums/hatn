@@ -26,8 +26,6 @@
 #include <hatn/api/requestunit.h>
 #include <hatn/api/client/session.h>
 
-HATN_TASK_CONTEXT_DEFINE(HATN_API_NAMESPACE::client::SessionNoAuth,SessionNoAuth)
-
 HATN_API_NAMESPACE_BEGIN
 
 namespace client {

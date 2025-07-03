@@ -95,6 +95,7 @@ SET (SOURCES
     src/microservicefactory.cpp
     src/microservice.cpp
     src/serverenv.cpp
+    src/clientsession.cpp
 )
 
 BUILD_HATN_MODULE()

@@ -52,15 +52,11 @@ HDU_UNIT(config,
     HDU_FIELD(max_pool_priority_connections,TYPE_UINT32,2,false,DefaultMaxPoolPriorityConnections)
 )
 
-class ClientConfig : public base::ConfigObject<config::type>
-{
-    public:
-};
-
 using ClientTaskContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
 
 template <typename RouterT, typename SessionWrapperT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
-class Client : public common::TaskSubcontext
+class Client : public common::TaskSubcontext,
+               public base::ConfigObject<config::type>
 {
     public:
 
@@ -74,15 +70,13 @@ class Client : public common::TaskSubcontext
         using Queue=common::SimpleQueue<common::SharedPtr<ReqCtx>,common::WithLock<>>;
         using SessionWaitingQueue=common::SimpleQueue<common::SharedPtr<ReqCtx>>;
 
-    public:        
+    public:
 
         Client(
-                std::shared_ptr<ClientConfig> cfg,
                 common::SharedPtr<RouterT> router,
                 common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_cfg(std::move(cfg)),
-                m_connectionPool(std::move(router),thread),
+            ) : m_connectionPool(std::move(router),thread),
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
@@ -98,16 +92,26 @@ class Client : public common::TaskSubcontext
                     m_queues.reserve(count);
                 }
             );
-
-            m_connectionPool.setMaxConnectionsPerPriority(m_cfg->config().fieldValue(config::max_pool_priority_connections));
         }
 
         Client(
-            std::shared_ptr<ClientConfig> cfg,
             common::SharedPtr<RouterT> router,
             const common::pmr::AllocatorFactory* factory
-            ) : Client(std::move(cfg),std::move(router),common::ThreadQWithTaskContext::current(),factory)
+            ) : Client(std::move(router),common::ThreadQWithTaskContext::current(),factory)
         {}
+
+        Error loadLogConfig(
+            const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+            const std::string& configPath,
+            HATN_BASE_NAMESPACE::config_object::LogRecords& records,
+            const HATN_BASE_NAMESPACE::config_object::LogSettings& settings
+        )
+        {
+            auto ec=base::ConfigObject<config::type>::loadLogConfig(configTree,configPath,records,settings);
+            HATN_CHECK_EC(ec)
+            m_connectionPool.setMaxConnectionsPerPriority(config().fieldValue(config::max_pool_priority_connections));
+            return OK;
+        }
 
         Error exec(
             common::SharedPtr<Context> ctx,
@@ -211,8 +215,6 @@ class Client : public common::TaskSubcontext
         void refreshSession(common::SharedPtr<ReqCtx> req, Response resp={});
 
         void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
-
-        std::shared_ptr<ClientConfig> m_cfg;
 
         ConnectionPool<RouterT> m_connectionPool;
 

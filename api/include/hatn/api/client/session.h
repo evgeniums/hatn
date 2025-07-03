@@ -122,6 +122,16 @@ class Session : public common::WithTraits<Traits>,
         template <typename ContextT, typename ClientT>
         void refresh(common::SharedPtr<ContextT> ctx, RefreshCb callback, ClientT* client, Response resp={});
 
+        Error loadLogConfig(
+            const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+            const std::string& configPath,
+            HATN_BASE_NAMESPACE::config_object::LogRecords& records,
+            const HATN_BASE_NAMESPACE::config_object::LogSettings& settings={}
+        )
+        {
+            return this->traits().loadLogConfig(configTree,configPath,records,settings);
+        }
+
     private:
 
         SessionId m_id;
@@ -132,81 +142,138 @@ class Session : public common::WithTraits<Traits>,
 
 /********************** SessionWrapper **************************/
 
-template <typename SessionContextT, typename SessionT>
-class SessionWrapper
+template <typename SessionWrapperT>
+class SessionWrapperImpl : public SessionWrapperT
 {
     public:
 
-        SessionWrapper(common::SharedPtr<SessionContextT> sessionCtx={}):m_sessionCtx(std::move(sessionCtx))
-        {}
-
-        const SessionT& session() const
-        {
-            return m_sessionCtx-> template get<SessionT>();
-        }
-
-        SessionT& session()
-        {
-            return m_sessionCtx-> template get<SessionT>();
-        }
+        using SessionWrapperT::SessionWrapperT;
 
         void setId(lib::string_view id) noexcept
         {
-            session().setId(id);
+            this->session().setId(id);
         }
 
         lib::string_view id() const noexcept
         {
-            return session().id();
+            return this->session().id();
         }
 
         bool isValid() const noexcept
         {
-            return session().isValid();
+            return this->session().isValid();
         }
 
         void setValid(bool enable) noexcept
         {
-            session().setValid(enable);
+            this->session().setValid(enable);
         }
 
         bool isRefreshing() const noexcept
         {
-            return session().isRefreshing();
+            return this->session().isRefreshing();
         }
 
         void setRefreshing(bool enable) noexcept
         {
-            session().setRefreshing(enable);
+            this->session().setRefreshing(enable);
         }
 
-        template <typename ContextT, typename ClientT>
-        void refresh(common::SharedPtr<ContextT> ctx, typename SessionT::RefreshCb callback, ClientT* client, Response resp={})
+        template <typename ContextT, typename CallbackT, typename ClientT>
+        void refresh(common::SharedPtr<ContextT> ctx, CallbackT callback, ClientT* client, Response resp={})
         {
-            session().refresh(std::move(ctx),std::move(callback),client,std::move(resp));
+            this->session().refresh(std::move(ctx),std::move(callback),client,std::move(resp));
         }
 
         template <typename UnitT>
         Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
                                   const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-        )
+                                  )
         {
-            return session().serializeAuthHeader(protocol,protocolVersion,std::move(content),factory);
+            return this->session().serializeAuthHeader(protocol,protocolVersion,std::move(content),factory);
         }
 
         auto authHeader() const
         {
-            return session().authHeader();
+            return this->session().authHeader();
         }
 
         void resetAuthHeader()
         {
-            session().resetAuthHeader();
+            this->session().resetAuthHeader();
+        }
+};
+
+template <typename SessionT,typename SessionContextT=void>
+class SessionWrapperT
+{
+    public:
+
+        SessionWrapperT(common::SharedPtr<SessionContextT> sessionCtx={}):m_sessionCtx(std::move(sessionCtx))
+        {}
+
+        void setSession(common::SharedPtr<SessionContextT> sessionCtx) noexcept
+        {
+            m_sessionCtx=std::move(sessionCtx);
+        }
+
+        const SessionT& session() const
+        {
+            return m_sessionCtx->template get<SessionT>();
+        }
+
+        SessionT& session()
+        {
+            return m_sessionCtx->template get<SessionT>();
         }
 
     private:
 
         common::SharedPtr<SessionContextT> m_sessionCtx;
+};
+
+template <typename SessionT>
+class SessionWrapperT<SessionT>
+{
+    public:
+
+        SessionWrapperT(SessionT* session=nullptr):m_session(session)
+        {}
+
+        void setSession(SessionT* session) noexcept
+        {
+            m_session=session;
+        }
+
+        const SessionT& session() const
+        {
+            return *m_session;
+        }
+
+        SessionT& session()
+        {
+            return *m_session;
+        }
+
+    private:
+
+        SessionT* m_session;
+};
+
+template <typename SessionT,typename SessionContextT=void>
+class SessionWrapper : public SessionWrapperImpl<SessionWrapperT<SessionT,SessionContextT>>
+{
+    public:
+
+        using SessionWrapperImpl<SessionWrapperT<SessionT,SessionContextT>>::SessionWrapperImpl;
+};
+
+template <typename SessionT>
+class SessionWrapper<SessionT> : public SessionWrapperImpl<SessionWrapperT<SessionT>>
+{
+    public:
+
+        using SessionWrapperImpl<SessionWrapperT<SessionT>>::SessionWrapperImpl;
 };
 
 /********************** SessionNoAuth **************************/
@@ -247,7 +314,7 @@ struct allocateSessionNoAuthContextT
         Args&&... args
         ) const
     {
-        return SessionWrapper<SessionNoAuthContext,SessionNoAuth>{
+        return SessionWrapper<SessionNoAuth,SessionNoAuthContext>{
                 HATN_COMMON_NAMESPACE::allocateTaskContextType<SessionNoAuthContext>(
                     allocator,
                     HATN_COMMON_NAMESPACE::subcontexts(
@@ -267,7 +334,7 @@ struct makeSessionNoAuthContextT
         Args&&... args
         ) const
     {
-        return SessionWrapper<SessionNoAuthContext,SessionNoAuth>{
+        return SessionWrapper<SessionNoAuth,SessionNoAuthContext>{
             HATN_COMMON_NAMESPACE::makeTaskContextType<SessionNoAuthContext>(
                 HATN_COMMON_NAMESPACE::subcontexts(
                     HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
