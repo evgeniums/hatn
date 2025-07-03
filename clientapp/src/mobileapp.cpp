@@ -211,9 +211,17 @@ void MobileApp::exec(
         req.message=msgR.takeValue();
     }
 
+    // copy buffers
+    req.buffers.reserve(request.buffers.size());
+    for (auto&& buffer : request.buffers)
+    {
+        req.buffers.emplace_back(common::makeShared<common::ByteArray>(buffer.data(),buffer.size()));
+    }
+
+    // prepare callback
     auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_CLIENTAPP_NAMESPACE::Response resp)
     {
-        HATN_CTX_SCOPE("mobileapp:exec:cb")
+        HATN_CTX_SCOPE("mobileapp::exec::cb")
         if (ec)
         {
             HATN_CTX_PUSH_VAR("err",ec.codeString())
