@@ -29,7 +29,7 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 namespace clientapi=HATN_API_NAMESPACE::client;
 namespace api=HATN_API_NAMESPACE;
 
-class ClientSessionImpl;
+class ClientSessionBase;
 
 class ClientAuthProtocol : public api::AuthProtocol
 {
@@ -42,19 +42,19 @@ class ClientAuthProtocol : public api::AuthProtocol
                       m_session(nullptr)
         {}
 
-        ClientSessionImpl* session() const noexcept
+        ClientSessionBase* session() const noexcept
         {
             return m_session;
         }
 
-        void setSession(ClientSessionImpl* session) noexcept
+        void setSession(ClientSessionBase* session) noexcept
         {
             m_session=session;
         }
 
     private:
 
-        ClientSessionImpl* m_session;
+        ClientSessionBase* m_session;
 };
 
 HATN_CLIENT_SERVER_NAMESPACE_END

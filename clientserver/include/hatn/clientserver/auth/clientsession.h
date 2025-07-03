@@ -31,7 +31,7 @@ HDU_UNIT(client_session_config,
     HDU_FIELD(timeout_secs,TYPE_UINT32,1,false,30)
 )
 
-class HATN_CLIENT_SERVER_EXPORT ClientSessionImpl : public common::pmr::WithFactory,
+class HATN_CLIENT_SERVER_EXPORT ClientSessionBase : public common::pmr::WithFactory,
                                                     public api::AuthProtocol,
                                                     public api::WithService,
                                                     public base::ConfigObject<client_session_config::type>
@@ -41,7 +41,7 @@ class HATN_CLIENT_SERVER_EXPORT ClientSessionImpl : public common::pmr::WithFact
         using Callback=clientapi::SessionRefreshCb;
         using TokensUpdatedFn=std::function<void(common::ByteArrayShared,common::ByteArrayShared)>;
 
-        ClientSessionImpl(
+        ClientSessionBase(
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
@@ -94,7 +94,7 @@ class HATN_CLIENT_SERVER_EXPORT ClientSessionImpl : public common::pmr::WithFact
 };
 
 template <typename ...AuthProtocols>
-class ClientSessionTraits : public ClientSessionImpl,
+class ClientSessionTraits : public ClientSessionBase,
                             public common::Env<AuthProtocols...>
 {
     public:

@@ -25,7 +25,7 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 using ClientSessionSharedSecret=ClientSession<ClientAuthProtocolSharedSecret>;
 using ClientSessionSharedSecretContext=ClientSessionContext<ClientAuthProtocolSharedSecret>;
 
-using ClientSessionHssWrapper=clientapi::SessionWrapper<ClientSessionSharedSecretContext,ClientSessionSharedSecret>;
+using ClientSessionHssWrapper=clientapi::SessionWrapper<ClientSessionSharedSecret,ClientSessionSharedSecretContext>;
 
 struct allocateSessionSharedSecretContextT
 {
@@ -35,7 +35,7 @@ struct allocateSessionSharedSecretContextT
         Args&&... args
         ) const
     {
-        return clientapi::SessionWrapper<ClientSessionSharedSecretContext,ClientSessionSharedSecret>{
+        return clientapi::SessionWrapper<ClientSessionSharedSecret,ClientSessionSharedSecretContext>{
             HATN_COMMON_NAMESPACE::allocateTaskContextType<ClientSessionSharedSecretContext>(
                 allocator,
                 HATN_COMMON_NAMESPACE::subcontexts(
@@ -55,7 +55,7 @@ struct makeSessionSharedSecretContextT
         Args&&... args
         ) const
     {
-        return clientapi::SessionWrapper<ClientSessionSharedSecretContext,ClientSessionSharedSecret>{
+        return clientapi::SessionWrapper<ClientSessionSharedSecret,ClientSessionSharedSecretContext>{
             HATN_COMMON_NAMESPACE::makeTaskContextType<ClientSessionSharedSecretContext>(
                 HATN_COMMON_NAMESPACE::subcontexts(
                     HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),

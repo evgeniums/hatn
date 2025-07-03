@@ -26,7 +26,7 @@
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
-ClientSessionImpl::ClientSessionImpl(
+ClientSessionBase::ClientSessionBase(
         const common::pmr::AllocatorFactory* factory
     ) : common::pmr::WithFactory(factory),
         api::AuthProtocol(api::AuthTokenSessionProtocol,api::AuthTokenSessionProtocolVersion),
@@ -36,7 +36,7 @@ ClientSessionImpl::ClientSessionImpl(
 
 //--------------------------------------------------------------------------
 
-Error ClientSessionImpl::loadToken(common::SharedPtr<auth_token::shared_managed>& token, lib::string_view content) const
+Error ClientSessionBase::loadToken(common::SharedPtr<auth_token::shared_managed>& token, lib::string_view content) const
 {
     token=factory()->createObject<auth_token::shared_managed>();
 
@@ -49,7 +49,7 @@ Error ClientSessionImpl::loadToken(common::SharedPtr<auth_token::shared_managed>
 
 //--------------------------------------------------------------------------
 
-Error ClientSessionImpl::loadSessionToken(lib::string_view content)
+Error ClientSessionBase::loadSessionToken(lib::string_view content)
 {
     auto ec=loadToken(m_sessionToken,content);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to load session token")
@@ -58,7 +58,7 @@ Error ClientSessionImpl::loadSessionToken(lib::string_view content)
 
 //--------------------------------------------------------------------------
 
-Error ClientSessionImpl::loadRefreshToken(lib::string_view content)
+Error ClientSessionBase::loadRefreshToken(lib::string_view content)
 {
     auto ec=loadToken(m_refreshToken,content);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to load refresh token")

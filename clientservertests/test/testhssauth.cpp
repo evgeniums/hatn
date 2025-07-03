@@ -125,10 +125,7 @@ auto createClient(ThreadQWithTaskContext* thread)
             thread
         );
 
-    auto cfg=std::make_shared<client::ClientConfig>();
-
     auto cl=client::makeClientContext<client::ClientContext<ClientType>>(
-                std::move(cfg),
                 std::move(router),
                 thread
             );
