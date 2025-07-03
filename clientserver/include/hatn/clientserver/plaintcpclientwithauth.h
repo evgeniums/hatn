@@ -23,13 +23,12 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-using PlainTcpClientWithAuth=ClientWithAuthT<clientapi::PlainTcpRouter>;
-using makePlainTcpClientWithAuthContext=makeClientWithSharedSecretAuthContextT<clientapi::PlainTcpRouter>;
+using PlainTcpClientWithAuth=ClientWithSharedSecretAuthT<clientapi::PlainTcpRouter>;
+constexpr makeClientWithSharedSecretAuthContextT<clientapi::PlainTcpRouter> makePlainTcpClientWithAuthContext;
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 HATN_TASK_CONTEXT_DECLARE(HATN_CLIENT_SERVER_NAMESPACE::PlainTcpClientWithAuth,HATN_CLIENT_SERVER_EXPORT)
 HATN_TASK_CONTEXT_DECLARE(HATN_CLIENT_SERVER_NAMESPACE::PlainTcpClientWithAuth::Client,HATN_CLIENT_SERVER_EXPORT)
-HATN_TASK_CONTEXT_DECLARE(HATN_CLIENT_SERVER_NAMESPACE::PlainTcpClientWithAuth::Session,HATN_CLIENT_SERVER_EXPORT)
 
 #endif // HATNPLAINTCPCLIENTWITHAUTH_H

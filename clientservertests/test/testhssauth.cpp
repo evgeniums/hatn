@@ -48,14 +48,12 @@
 #include <hatn/api/server/plaintcpmicroservice.h>
 #include <hatn/api/server/microservicefactory.h>
 
-#include <hatn/clientserver/auth/clientsessionsharedsecret.h>
+#include <hatn/clientserver/plaintcpclientwithauth.h>
 
 #include <hatn/serverapp/auth/authservice.h>
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
 
-#include <hatn/api/ipp/client.ipp>
-#include <hatn/api/ipp/clientrequest.ipp>
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
 #include <hatn/api/ipp/methodauth.ipp>
@@ -65,13 +63,12 @@
 #include <hatn/api/ipp/networkmicroservice.ipp>
 #include <hatn/api/ipp/plaintcpmicroservice.ipp>
 #include <hatn/api/ipp/serverenv.ipp>
-
 #include <hatn/api/ipp/session.ipp>
-#include <hatn/clientserver/ipp/clientsession.ipp>
-#include <hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp>
 
 #include <hatn/serverapp/ipp/authservice.ipp>
 #include <hatn/serverapp/ipp/sharedsecretprotocol.ipp>
+
+#include <hatn/clientserver/ipp/clientsession.ipp>
 
 HATN_TEST_USING
 
@@ -105,11 +102,6 @@ constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-using ClientType=client::Client<client::PlainTcpRouter,ClientSessionHssWrapper,LogCtxType>;
-using ClientCtxType=client::ClientContext<ClientType>;
-HATN_TASK_CONTEXT_DECLARE(ClientType)
-HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
-
 auto createClient(ThreadQWithTaskContext* thread)
 {
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
@@ -125,23 +117,17 @@ auto createClient(ThreadQWithTaskContext* thread)
             thread
         );
 
-    auto cl=client::makeClientContext<client::ClientContext<ClientType>>(
-                std::move(router),
-                thread
-            );
+    const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault();
+
+    auto cl=makePlainTcpClientWithAuthContext(
+        subcontexts(
+            subcontext(),
+            subcontext(std::move(router),thread,factory),
+            subcontext(factory),
+            subcontext()
+        )
+    );
     return cl;
-}
-
-using ClientWithAuthType=client::ClientWithAuth<ClientSessionHssWrapper,client::ClientContext<ClientType>,ClientType>;
-using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
-
-HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
-HATN_TASK_CONTEXT_DEFINE(ClientWithAuthType)
-
-auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, ClientSessionHssWrapper session)
-{
-    auto scl=client::makeClientWithAuthContext<ClientWithAuthCtxType>(std::move(session),std::move(clientCtx));
-    return scl;
 }
 
 //---------------------------------------------------------------
@@ -307,12 +293,9 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto session=makeSessionSharedSecretContext();
-    auto client=createClient(clientThread.get());
-    auto clientWithAuth=createClientWithAuth(client,session);
-
-    auto& cl=clientWithAuth->get<ClientWithAuthType>();
-    cl.exec({},[](auto ctx, const Error& ec, client::Response){},{});
+    auto clientCtx=createClient(clientThread.get());
+    auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+    std::ignore=cl.exec({},[](auto ctx, const Error& ec, client::Response){},Service{"bbb"},Method{"aaa"},{});
 
     clientThread->start();
 

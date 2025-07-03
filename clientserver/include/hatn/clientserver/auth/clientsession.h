@@ -102,7 +102,11 @@ class ClientSessionTraits : public ClientSessionBase,
         using SessionType=clientapi::Session<ClientSessionTraits<AuthProtocols...>>;
 
         template <typename ...Args>
-        ClientSessionTraits(SessionType* session, Args&& ...args);
+        ClientSessionTraits(SessionType* session, const common::pmr::AllocatorFactory* factory, Args&& ...args);
+
+        template <typename ...Args>
+        ClientSessionTraits(SessionType* session, Args&& ...args) : ClientSessionTraits(session, common::pmr::AllocatorFactory::getDefault(), std::forward<Args>(args)...)
+        {}
 
         template <typename ContextT, typename CallbackT, typename ClientT>
         void refresh(common::SharedPtr<ContextT> ctx, CallbackT callback, ClientT* client, clientapi::Response ={});

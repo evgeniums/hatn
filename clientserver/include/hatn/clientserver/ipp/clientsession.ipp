@@ -39,8 +39,9 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 template <typename ...AuthProtocols>
 template <typename ...Args>
-ClientSessionTraits<AuthProtocols...>::ClientSessionTraits(SessionType* session, Args&& ...args)
-    : common::Env<AuthProtocols...>(std::forward<Args>(args)...),
+ClientSessionTraits<AuthProtocols...>::ClientSessionTraits(SessionType* session, const common::pmr::AllocatorFactory* factory, Args&& ...args)
+    : ClientSessionBase(factory),
+      common::Env<AuthProtocols...>(std::forward<Args>(args)...),
       m_session(session)
 {
     hana::for_each(this->contexts(),
