@@ -20,6 +20,8 @@
 
 #include <hatn/db/dberror.h>
 
+#include <hatn/clientserver/clientservererror.h>
+
 #include <hatn/serverapp/userdbmodels.h>
 #include <hatn/serverapp/localusercontroller.h>
 
@@ -76,13 +78,75 @@ void LocalUserControllerImpl<ContextTraits>::addUser(
         db::Topic topic
     )
 {
-    //! @todo Create user, default user character and temporary login
-
     db::AsyncModelController<ContextTraits>::create(
         std::move(ctx),
         std::move(callback),
         d->dbModelsWrapper->userModel(),
         std::move(usr),
+        topic
+    );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits>
+void LocalUserControllerImpl<ContextTraits>::findUser(
+        common::SharedPtr<Context> ctx,
+        CallbackObj<user::managed> callback,
+        const du::ObjectId& userId,
+        db::Topic topic
+    )
+{
+    db::AsyncModelController<ContextTraits>::read(
+        std::move(ctx),
+        std::move(callback),
+        d->dbModelsWrapper->userModel(),
+        userId,
+        topic
+    );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits>
+void LocalUserControllerImpl<ContextTraits>::addLogin(
+        common::SharedPtr<Context> ctx,
+        CallbackOid callback,
+        common::SharedPtr<login_profile::managed> login,
+        db::Topic topic
+    )
+{
+    db::AsyncModelController<ContextTraits>::create(
+        std::move(ctx),
+        std::move(callback),
+        d->dbModelsWrapper->loginProfileModel(),
+        std::move(login),
+        topic
+    );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename ContextTraits>
+void LocalUserControllerImpl<ContextTraits>::findLogin(
+        common::SharedPtr<Context> ctx,
+        CallbackObj<login_profile::managed> callback,
+        lib::string_view login,
+        db::Topic topic
+    )
+{
+    auto oid=du::ObjectId::fromString(login);
+    if (oid)
+    {
+        callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::INVALID_LOGIN_FORMAT));
+        return;
+    }
+
+    db::AsyncModelController<ContextTraits>::read(
+        std::move(ctx),
+        std::move(callback),
+        d->dbModelsWrapper->loginProfileModel(),
+        oid.value(),
         topic
     );
 }

@@ -58,6 +58,27 @@ class LocalUserControllerImpl
             db::Topic topic
         );
 
+        void findUser(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<user::managed> callback,
+            const du::ObjectId& userId,
+            db::Topic topic
+        );
+
+        void addLogin(
+            common::SharedPtr<Context> ctx,
+            CallbackOid callback,
+            common::SharedPtr<login_profile::managed> login,
+            db::Topic topic
+        );
+
+        void findLogin(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<login_profile::managed> callback,
+            lib::string_view login,
+            db::Topic topic
+        );
+
     private:
 
         std::shared_ptr<LocalUserController_p<ContextTraits>> d;
