@@ -44,6 +44,7 @@ class SessionController : public common::WithTraits<Traits>
 {
     public:
 
+        // Callback= void (auto ctx,common::Error ec,SessionResponse response}
         template <typename ContextT, typename CallbackT>
         void createSession(
             common::SharedPtr<ContextT> ctx,
@@ -55,6 +56,7 @@ class SessionController : public common::WithTraits<Traits>
             this->traits().createSession(std::move(ctx),std::move(callback),login,topic);
         }
 
+        // Callback= void (auto ctx,common::Error ec,SessionCheckResult result}
         template <typename ContextT, typename CallbackT>
         void checkSession(
             common::SharedPtr<ContextT> ctx,

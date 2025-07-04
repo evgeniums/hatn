@@ -84,8 +84,8 @@ void LocalSessionController<ContextTraits>::createSession(
             createSess(std::move(ctx),std::move(callback),std::move(session));
         };
 
-        const auto& loginAccessChecker=ContextTraits::loginAccessChecker(ctx);
-        loginAccessChecker.check(
+        const auto& loginController=ContextTraits::loginController(ctx);
+        loginController.checkCanLogin(
             std::move(ctx),
             std::move(cb),
             sessPtr->fieldValue(session::login),
@@ -262,8 +262,8 @@ void LocalSessionController<ContextTraits>::checkSession(
             updateSessClient(std::move(ctx),std::move(callback),std::move(session),std::move(token));
         };
 
-        const auto& loginAccessChecker=ContextTraits::loginAccessChecker(ctx);
-        loginAccessChecker.check(
+        const auto& loginController=ContextTraits::loginController(ctx);
+        loginController.checkCanLogin(
             std::move(ctx),
             std::move(cb),
             sessPtr->fieldValue(session::login),
