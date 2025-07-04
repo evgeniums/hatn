@@ -53,6 +53,9 @@
 #include <hatn/serverapp/auth/authservice.h>
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
+#include <hatn/serverapp/logincontroller.h>
+#include <hatn/serverapp/localusercontroller.h>
+#include <hatn/serverapp/localsessioncontroller.h>
 
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
@@ -65,8 +68,11 @@
 #include <hatn/api/ipp/serverenv.ipp>
 #include <hatn/api/ipp/session.ipp>
 
-#include <hatn/serverapp/ipp/authservice.ipp>
+#include <hatn/serverapp/ipp/localsessioncontroller.ipp>
 #include <hatn/serverapp/ipp/sharedsecretprotocol.ipp>
+#include <hatn/serverapp/ipp/logincontroller.ipp>
+#include <hatn/serverapp/ipp/localusercontroller.ipp>
+#include <hatn/serverapp/ipp/authservice.ipp>
 
 #include <hatn/clientserver/ipp/clientsession.ipp>
 
@@ -132,17 +138,117 @@ auto createClient(ThreadQWithTaskContext* thread)
 
 //---------------------------------------------------------------
 
+struct FooBar1;
+struct FooBar2;
+
+using EnvFooBar=Env<FooBar1,FooBar2>;
+
+struct FooBar1
+{
+    int value()
+    {
+        return 0;
+    }
+};
+
+struct FooBar2
+{
+    int value()
+    {
+        return env->get<FooBar1>().value();
+    }
+
+    EnvFooBar* env;
+};
+
 struct ServerApp
 {
     std::shared_ptr<App> app;
     std::map<std::string,std::shared_ptr<server::MicroService>> microservices;
 };
 
-using EnvWithAuth = Env<WithAuthProtocols,WithSharedSecretAuthProtocol,server::BasicEnv>;
+struct ContextTraits;
+
+using EnvWithAuthT = Env<WithAuthProtocols,
+                        WithSharedSecretAuthProtocol,
+                        LoginController<ContextTraits>,
+                        LocalUserController<ContextTraits>,
+                        LocalSessionController<ContextTraits>,
+                        server::BasicEnv>;
+
+struct RequestWithAuth;
+
+struct ContextTraits
+{
+    using Context=server::RequestContext<RequestWithAuth>;
+
+    static const auto& loginController(const SharedPtr<Context>& ctx);
+    static const auto& userController(const SharedPtr<Context>& ctx);
+    static const auto* factory(const SharedPtr<Context>& ctx);
+    static const auto& db(const SharedPtr<Context>& ctx);
+};
+
+class EnvWithAuth : public EnvWithAuthT
+{
+    public:
+
+        using EnvWithAuthT::EnvWithAuthT;
+
+        const auto& loginController() const
+        {
+            return get<LoginController<ContextTraits>>();
+        }
+
+        const auto& sessionController() const
+        {
+            return get<LocalSessionController<ContextTraits>>();
+        }
+
+        const auto& userController() const
+        {
+            return get<LocalUserController<ContextTraits>>();
+        }
+};
+
+struct RequestWithAuth : public server::Request<EnvWithAuth>
+{
+    using server::Request<EnvWithAuth>::Request;
+
+    RequestWithAuth& request()
+    {
+        return *this;
+    }
+
+    const RequestWithAuth& request() const
+    {
+        return *this;
+    }
+};
+
+const auto& ContextTraits::loginController(const SharedPtr<Context>& ctx)
+{
+    return server::requestEnv<RequestWithAuth>(ctx)->loginController();
+}
+
+const auto& ContextTraits::userController(const SharedPtr<Context>& ctx)
+{
+    return server::requestEnv<RequestWithAuth>(ctx)->userController();
+}
+
+const auto* ContextTraits::factory(const SharedPtr<Context>& ctx)
+{
+    return server::request<RequestWithAuth>(ctx).request().factory();
+}
+
+const auto& ContextTraits::db(const SharedPtr<Context>& ctx)
+{
+    return server::request<RequestWithAuth>(ctx).request().db();
+}
 
 struct EnvWithAuthConfigTraits
 {
     using Env=EnvWithAuth;
+    using Request=RequestWithAuth;
 
     static Result<SharedPtr<Env>> makeEnv(
         const HATN_APP_NAMESPACE::App& app,
@@ -150,6 +256,8 @@ struct EnvWithAuthConfigTraits
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
     {
+        auto sessionDbModels=std::make_shared<SessionDbModels>();
+
         // allocate
         auto f1=app.allocatorFactory().factory();
         auto allocator=f1->objectAllocator<Env>();
@@ -157,7 +265,10 @@ struct EnvWithAuthConfigTraits
             allocator,
             HATN_COMMON_NAMESPACE::contexts(
                 HATN_COMMON_NAMESPACE::context(std::make_shared<AuthProtocols>()),
-                HATN_COMMON_NAMESPACE::context(std::make_shared<SharedSecretAuthProtocol>())
+                HATN_COMMON_NAMESPACE::context(std::make_shared<SharedSecretAuthProtocol>()),
+                HATN_COMMON_NAMESPACE::context(),
+                HATN_COMMON_NAMESPACE::context(),
+                HATN_COMMON_NAMESPACE::context(std::move(sessionDbModels))
             ),
             server::BasicEnvConfig::prepareCtorArgs(app)
         );
@@ -176,11 +287,11 @@ struct EnvWithAuthConfigTraits
     }
 };
 
-using EnvWithAuthConfig=server::EnvConfigT<EnvWithAuthConfigTraits>;
+using EnvWithAuthConfig=server::EnvConfigT<EnvWithAuthConfigTraits,RequestWithAuth>;
 using MicroserviceBuilder=server::PlainTcpMicroServiceBuilderT<EnvWithAuthConfig>;
 
-HATN_TASK_CONTEXT_DECLARE(server::Request<EnvWithAuth>)
-HATN_TASK_CONTEXT_DEFINE(server::Request<EnvWithAuth>,RequestWithAuth)
+HATN_TASK_CONTEXT_DECLARE(RequestWithAuth)
+HATN_TASK_CONTEXT_DEFINE(RequestWithAuth,RequestWithAuth)
 
 HATN_TASK_CONTEXT_DECLARE(server::WithEnv<EnvWithAuth>)
 HATN_TASK_CONTEXT_DEFINE(server::WithEnv<EnvWithAuth>,EnvWithAuth)
@@ -224,10 +335,10 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     BOOST_REQUIRE(!ec);
 
     // create service dispatcher
-    auto serviceRouter=std::make_shared<server::ServiceRouter<EnvWithAuth>>();
-    auto authService=std::make_shared<AuthService<server::Request<EnvWithAuth>>>();
+    auto serviceRouter=std::make_shared<server::ServiceRouter<EnvWithAuth,RequestWithAuth>>();
+    auto authService=std::make_shared<AuthService<RequestWithAuth>>();
     serviceRouter->registerLocalService(std::move(authService));
-    using dispatcherType=server::ServiceDispatcher<EnvWithAuth>;
+    using dispatcherType=server::ServiceDispatcher<EnvWithAuth,RequestWithAuth>;
     auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
 
     // prepare factory
@@ -282,6 +393,15 @@ void runCreateServer(std::string configFile, TestEnv* env, T expectedErrorCode)
 /********************** Tests **************************/
 
 BOOST_AUTO_TEST_SUITE(TestHssAuth)
+
+BOOST_FIXTURE_TEST_CASE(EnvFB,TestEnv)
+{
+    EnvFooBar env;
+    auto& fb2=env.get<FooBar2>();
+    fb2.env=&env;
+    auto ret=fb2.value();
+    BOOST_CHECK_EQUAL(ret,0);
+}
 
 BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 {
