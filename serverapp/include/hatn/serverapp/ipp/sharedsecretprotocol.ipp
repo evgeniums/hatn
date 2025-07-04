@@ -64,7 +64,7 @@ template <typename ContextT, typename CallbackT, typename LoginControllerT>
 void SharedSecretAuthProtocol::check(
         common::SharedPtr<ContextT> ctx,
         CallbackT callback,
-        common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::managed> message,
+        common::SharedPtr<auth_hss_check::managed> message,
         const LoginControllerT* loginController,
         const common::pmr::AllocatorFactory* factory
     ) const
@@ -85,7 +85,7 @@ void SharedSecretAuthProtocol::check(
     auto now=common::DateTime::currentUtc();
     if (now.after(token->fieldValue(auth_challenge_token::expire)))
     {
-        callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_EXPIRED),{});
+        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_TOKEN_EXPIRED),{});
         return;
     }
 
@@ -95,7 +95,7 @@ void SharedSecretAuthProtocol::check(
         auto tokenPtr=token.get();
 
         auto findCb=[token=std::move(token),callback=std::move(callback),checkMAC=std::move(checkMAC)](auto ctx, const Error& ec,
-                                                                                                                 common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::login_profile::managed> login)
+                                                                                                                 common::SharedPtr<login_profile::managed> login)
         {
             if (ec)
             {
@@ -117,7 +117,7 @@ void SharedSecretAuthProtocol::check(
 
     // check MAC
     auto checkMAC=[this,message=std::move(message)](auto ctx, auto callback, common::SharedPtr<auth_challenge_token::managed> token,
-                           common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::login_profile::managed> login)
+                           common::SharedPtr<login_profile::managed> login)
     {
         Error ec;
 
@@ -133,7 +133,7 @@ void SharedSecretAuthProtocol::check(
 
         // prepare MAC key
         auto key=macAlg->createMACKey();
-        ec=key->importFromBuf(login->fieldValue(HATN_CLIENT_SERVER_NAMESPACE::login_profile::secret1),crypt::ContainerFormat::RAW_PLAIN);
+        ec=key->importFromBuf(login->fieldValue(login_profile::secret1),crypt::ContainerFormat::RAW_PLAIN);
         if (ec)
         {
             //! @todo critical: chain and log error
@@ -149,11 +149,11 @@ void SharedSecretAuthProtocol::check(
             callback(std::move(ctx),ec,{});
             return;
         }
-        ec=mac->check(macAlg,token->fieldValue(auth_challenge_token::challenge),message->fieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_hss_check::mac));
+        ec=mac->check(macAlg,token->fieldValue(auth_challenge_token::challenge),message->fieldValue(auth_hss_check::mac));
         if (ec)
         {
             //! @todo critical: log error
-            callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_FAILED),{});
+            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_FAILED),{});
             return;
         }
 
