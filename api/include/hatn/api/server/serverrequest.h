@@ -188,12 +188,11 @@ struct Request : public common::TaskSubcontext
 template <typename RequestT=Request<>>
 using RequestContext=common::TaskContextType<RequestT,HATN_LOGCONTEXT_NAMESPACE::Context>;
 
-template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
+template <typename RequestT>
 inline auto allocateRequestContext(
-        common::SharedPtr<EnvT> env
+        common::SharedPtr<typename RequestT::Env> env
     )
 {
-    using RequestT=Request<EnvT,RequestUnitT>;
     return HATN_COMMON_NAMESPACE::allocateTaskContextType<RequestContext<RequestT>>(
         env->template get<AllocatorFactory>().factory()->template objectAllocator<RequestContext<RequestT>>(),
         HATN_COMMON_NAMESPACE::subcontexts(
@@ -215,11 +214,41 @@ struct requestT
 template <typename Request>
 constexpr requestT<Request> request{};
 
+template <typename Request>
+struct requestEnvT
+{
+    template <typename T>
+    auto& operator() (const T& context) const
+    {
+        return context->template get<Request>().request().env;
+    }
+};
+template <typename Request>
+constexpr requestEnvT<Request> requestEnv{};
+
+
 template <typename RequestT=Request<>>
 using RouteCb=std::function<void (common::SharedPtr<RequestContext<RequestT>> request)>;
 
 template <typename RequestT=Request<>>
 using RouteFh=std::function<void (common::SharedPtr<RequestContext<RequestT>> request, RouteCb<RequestT> cb)>;
+
+template <typename Traits=BasicEnvConfig, typename RequestT=Request<typename Traits::Env>>
+struct EnvConfigT
+{
+    using Env=typename Traits::Env;
+    using Request=RequestT;
+
+    static Result<common::SharedPtr<Env>> makeEnv(
+        const HATN_APP_NAMESPACE::App& app,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+        )
+    {
+        return Traits::makeEnv(app,configTree,configTreePath);
+    }
+};
+using EnvConfig=EnvConfigT<>;
 
 } // namespace server
 

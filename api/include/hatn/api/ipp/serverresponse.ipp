@@ -79,6 +79,19 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
     }
 }
 
+//---------------------------------------------------------------
+
+template <typename EnvT, typename RequestUnitT>
+template <typename MessageT>
+void Response<EnvT,RequestUnitT>::setSuccessMessage(MessageT msg)
+{
+    unit.setFieldValue(protocol::response::status,protocol::ResponseStatus::Success);
+    unit.setFieldValue(protocol::response::message_type,msg->unitName());
+    unit.field(protocol::response::message).set(std::move(msg));
+}
+
+//---------------------------------------------------------------
+
 } // namespace server
 
 HATN_API_NAMESPACE_END

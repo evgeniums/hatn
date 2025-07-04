@@ -106,7 +106,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             // create request
-            auto reqCtx=allocateRequestContext<Env,typename Request::RequestUnit>(ctx->template get<WithEnv<Env>>().envShared());
+            auto reqCtx=allocateRequestContext<Request>(ctx->template get<WithEnv<Env>>().envShared());
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
             req.requestThread=common::ThreadQWithTaskContext::current();

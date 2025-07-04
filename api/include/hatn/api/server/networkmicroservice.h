@@ -68,6 +68,7 @@ class NetworkMicroServiceTraits
 
         using Dispatcher=DispatcherT;
         using AuthDispatcher=AuthDispatcherT;
+        using Request=typename Dispatcher::Request;
 
         using ConnectionCtx=typename NetworkMicroServiceConfigT::ConnectionCtx;
         using Connection=typename NetworkMicroServiceConfigT::Connection;
@@ -75,7 +76,7 @@ class NetworkMicroServiceTraits
         using NetworkServerCtx=typename NetworkMicroServiceConfigT::NetworkServerCtx;
         using NetworkServer=typename NetworkMicroServiceConfigT::NetworkServer;
 
-        using Server=server::Server<ConnectionsStore,Dispatcher,AuthDispatcher,Env>;
+        using Server=server::Server<ConnectionsStore,Dispatcher,AuthDispatcher,Env,Request>;
 
         NetworkMicroServiceTraits(MicroServiceT* microservice) : m_microservice(microservice)
         {}
@@ -110,8 +111,8 @@ class NetworkMicroServiceTraits
 
 template <typename NetworkMicroServiceConfigT,
          typename EnvConfigT,
-         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env>,
-         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>
+         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>,
+         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>
          >
 class NetworkMicroService : public MicroServiceT<
                                     NetworkMicroServiceTraits<

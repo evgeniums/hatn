@@ -48,8 +48,8 @@ struct PlainTcpMicroServiceConfig
 };
 
 template <typename EnvConfigT=EnvConfig,
-         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env>,
-         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>
+         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>,
+         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>
          >
 using PlainTcpMicroServiceT=NetworkMicroService<PlainTcpMicroServiceConfig<typename EnvConfigT::Env>,
                                                   EnvConfigT,
@@ -75,8 +75,8 @@ struct PlainTcpMicroServiceBuilderTraits
 };
 
 template <typename EnvConfigT=EnvConfig,
-         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env>,
-         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>
+         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>,
+         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>
          >
 using PlainTcpMicroServiceBuilderT=MicroServiceBuilder<PlainTcpMicroServiceBuilderTraits<EnvConfigT,DispatcherT,AuthDispatcherT>,
                                                          DispatcherT,AuthDispatcherT

@@ -120,22 +120,6 @@ struct HATN_API_EXPORT BasicEnvConfig
     );
 };
 
-template <typename Traits=BasicEnvConfig>
-struct EnvConfigT
-{
-    using Env=typename Traits::Env;
-
-    static Result<common::SharedPtr<Env>> makeEnv(
-        const HATN_APP_NAMESPACE::App& app,
-        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
-    )
-    {
-        return Traits::makeEnv(app,configTree,configTreePath);
-    }
-};
-using EnvConfig=EnvConfigT<>;
-
 } // namespace server
 
 HATN_API_NAMESPACE_END

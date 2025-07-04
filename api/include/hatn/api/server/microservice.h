@@ -88,8 +88,8 @@ class MicroServiceV : public common::WithImpl<ImplT>,
 template <
          typename Traits,
          typename EnvConfigT,
-         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env>,
-         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env>>
+         typename DispatcherT=ServiceDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>,
+         typename AuthDispatcherT=AuthDispatcher<typename EnvConfigT::Env,typename EnvConfigT::Request>>
 class MicroServiceT : public common::WithTraits<Traits>
 {
     public:

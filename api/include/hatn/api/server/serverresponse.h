@@ -66,6 +66,9 @@ struct Response
     Error serialize();
 
     void setStatus(protocol::ResponseStatus status=protocol::ResponseStatus::Success, const Error& ec=Error{});
+
+    template <typename MessageT>
+    void setSuccessMessage(MessageT msg);
 };
 
 } // namespace server
