@@ -95,7 +95,7 @@ void LocalUserControllerImpl<ContextTraits>::findUser(
         CallbackObj<user::managed> callback,
         const du::ObjectId& userId,
         db::Topic topic
-    )
+    ) const
 {
     db::AsyncModelController<ContextTraits>::read(
         std::move(ctx),
@@ -133,7 +133,7 @@ void LocalUserControllerImpl<ContextTraits>::findLogin(
         CallbackObj<login_profile::managed> callback,
         lib::string_view login,
         db::Topic topic
-    )
+    ) const
 {
     auto oid=du::ObjectId::fromString(login);
     if (oid)

@@ -63,7 +63,7 @@ class LocalUserControllerImpl
             CallbackObj<user::managed> callback,
             const du::ObjectId& userId,
             db::Topic topic
-        );
+        ) const;
 
         void addLogin(
             common::SharedPtr<Context> ctx,
@@ -77,7 +77,7 @@ class LocalUserControllerImpl
             CallbackObj<login_profile::managed> callback,
             lib::string_view login,
             db::Topic topic
-        );
+        ) const;
 
     private:
 
@@ -88,7 +88,7 @@ class LocalUserControllerImpl
 };
 
 template <typename ContextTraits>
-using LocalUserController=UserController<typename ContextTraits::Context,LocalUserControllerImpl<ContextTraits>>;
+using LocalUserController=UserController<ContextTraits,LocalUserControllerImpl<ContextTraits>>;
 
 HATN_SERVERAPP_NAMESPACE_END
 

@@ -53,29 +53,29 @@ Result<SessionToken::Tokens> SessionToken::makeToken(
     Tokens tokens;
 
     // create session token
-    tokens.sessionToken=factory->createObject<auth_token::managed>();
+    tokens.serverSessionToken=factory->createObject<auth_token::shared_managed>();
 
     // fill session token
-    tokens.sessionToken->field(auth_token::id).mutableValue()->generate();
-    tokens.sessionToken->field(auth_token::created_at).mutableValue()->loadCurrentUtc();
-    tokens.sessionToken->setFieldValue(auth_token::session,session->fieldValue(db::object::_id));
-    tokens.sessionToken->setFieldValue(auth_token::session_created_at,session->fieldValue(db::object::created_at));
-    tokens.sessionToken->setFieldValue(auth_token::login,session->fieldValue(session::login));
-    tokens.sessionToken->setFieldValue(auth_token::username,session->fieldValue(session::username));
-    tokens.sessionToken->setFieldValue(auth_token::topic,topic.topic());
-    tokens.sessionToken->setFieldValue(auth_token::token_type,tokenType);
-    tokens.sessionToken->setFieldValue(auth_token::expire,tokens.sessionToken->field(auth_token::created_at).value());
-    tokens.sessionToken->field(auth_token::expire).mutableValue()->addSeconds(static_cast<int>(ttlSecs));
+    tokens.serverSessionToken->field(auth_token::id).mutableValue()->generate();
+    tokens.serverSessionToken->field(auth_token::created_at).mutableValue()->loadCurrentUtc();
+    tokens.serverSessionToken->setFieldValue(auth_token::session,session->fieldValue(db::object::_id));
+    tokens.serverSessionToken->setFieldValue(auth_token::session_created_at,session->fieldValue(db::object::created_at));
+    tokens.serverSessionToken->setFieldValue(auth_token::login,session->fieldValue(session::login));
+    tokens.serverSessionToken->setFieldValue(auth_token::username,session->fieldValue(session::username));
+    tokens.serverSessionToken->setFieldValue(auth_token::topic,topic.topic());
+    tokens.serverSessionToken->setFieldValue(auth_token::token_type,tokenType);
+    tokens.serverSessionToken->setFieldValue(auth_token::expire,tokens.serverSessionToken->field(auth_token::created_at).value());
+    tokens.serverSessionToken->field(auth_token::expire).mutableValue()->addSeconds(static_cast<int>(ttlSecs));
 
     // create client token
-    tokens.clientToken=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_token::managed>();
+    tokens.clientToken=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_token::shared_managed>();
     auto& tokenField=tokens.clientToken->field(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::token);
     auto* tokenBuf=tokenField.buf(true);
     tokens.clientToken->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::tag,m_currentTag);
-    tokens.clientToken->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_token::expire,tokens.sessionToken->field(auth_token::expire).value());
+    tokens.clientToken->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_token::expire,tokens.serverSessionToken->field(auth_token::expire).value());
 
     // serialize session token
-    auto ec=m_currentTokenHandler->serializeToken(*tokens.sessionToken,*tokenBuf,factory);
+    auto ec=m_currentTokenHandler->serializeToken(*tokens.serverSessionToken,*tokenBuf,factory);
     if (ec)
     {
         //! @todo critical: chain and log errors

@@ -24,6 +24,8 @@
 
 #include <hatn/db/topic.h>
 
+#include <hatn/api/server/serverservice.h>
+
 #include <hatn/clientserver/auth/authprotocol.h>
 
 #include <hatn/serverapp/serverappdefs.h>
@@ -31,6 +33,8 @@
 #include <hatn/serverapp/encryptedtoken.h>
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
+
+/**************************** SharedSecretAuth ***************************/
 
 HDU_UNIT(auth_protocol_shared_secret_config,
     HDU_FIELD(secret,TYPE_STRING,1)
@@ -78,12 +82,45 @@ class SharedSecretAuthProtocol : public SharedSecretAuthBase
             common::SharedPtr<ContextT> ctx,
             CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<login_profile::managed> login)
             common::SharedPtr<auth_hss_check::managed> message,
-            const LoginControllerT* loginController,
+            const LoginControllerT& loginController,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         ) const;
 };
 
 using WithSharedSecretAuthProtocol=common::WithSharedValue<SharedSecretAuthProtocol>;
+
+/**************************** AuthHssCheckMethod ***************************/
+
+template <typename RequestT>
+class AuthHssCheckMethodImpl
+{
+    public:
+
+        using Request=RequestT;
+        using Message=auth_hss_check::managed;
+
+        void exec(
+            common::SharedPtr<serverapi::RequestContext<Request>> request,
+            serverapi::RouteCb<Request> callback,
+            common::SharedPtr<Message> msg
+        ) const;
+
+        HATN_VALIDATOR_NAMESPACE::error_report validate(
+            const common::SharedPtr<serverapi::RequestContext<Request>> request,
+            const Message& msg
+        ) const;
+};
+
+template <typename RequestT>
+class AuthHssCheckMethod : public serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthHssCheckMethodImpl<RequestT>>,RequestT>
+{
+    public:
+
+        using Base=serverapi::ServiceMethodV<serverapi::ServiceMethodT<AuthHssCheckMethodImpl<RequestT>>,RequestT>;
+
+        AuthHssCheckMethod() : Base(AuthHssCheckMethodName)
+        {}
+};
 
 HATN_SERVERAPP_NAMESPACE_END
 

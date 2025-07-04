@@ -97,7 +97,7 @@ class LocalSessionController : public LocalSessionControllerBase
             common::SharedPtr<Context> ctx,
             CallbackT callback,
             const du::ObjectId& login,
-            lib::string_view& username,
+            lib::string_view username,
             db::Topic topic
         ) const;
 

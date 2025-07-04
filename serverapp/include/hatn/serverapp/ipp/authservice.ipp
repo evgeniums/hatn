@@ -13,8 +13,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNLOCALSESSIONCONTROLLER_IPP
-#define HATNLOCALSESSIONCONTROLLER_IPP
+#ifndef HATNSERVERAUTHSERVICE_IPP
+#define HATNSERVERAUTHSERVICE_IPP
 
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
@@ -105,12 +105,12 @@ HATN_VALIDATOR_NAMESPACE::error_report AuthNegotiateMethodImpl<RequestT>::valida
 template <typename RequestT>
 AuthService<RequestT>::AuthService() : Base(AuthServiceName,AuthServiceVersion)
 {
-    auto negotiate=std::make_shared<AuthNegotiateMethod<Request>>();
-    this->impl().registerMethod(std::move(negotiate));
+    this->impl().registerMethod(std::make_shared<AuthNegotiateMethod<Request>>());
+    this->impl().registerMethod(std::make_shared<AuthHssCheckMethod<Request>>());
 }
 
 //--------------------------------------------------------------------------
 
 HATN_SERVERAPP_NAMESPACE_END
 
-#endif // HATNLOCALSESSIONCONTROLLER_IPP
+#endif // HATNSERVERAUTHSERVICE_IPP

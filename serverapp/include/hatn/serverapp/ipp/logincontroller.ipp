@@ -40,8 +40,10 @@ void LoginController<ContextTraits>::findLogin(
         db::Topic topic
     ) const
 {
-    const auto& userController=ContextTraits::userController(ctx);
-    userController.findLogin(std::move(ctx),std::move(callback),login,topic);
+    //! @todo Fix findLogin
+
+    // const auto& userController=ContextTraits::userController(ctx);
+    // userController.findLogin(std::move(ctx),std::move(callback),login,topic);
 }
 
 //--------------------------------------------------------------------------
@@ -76,7 +78,7 @@ void LoginController<ContextTraits>::checkCanLogin(
 
             checkUser(std::move(ctx),std::move(callback),std::move(loginObj),std::move(topic));
         };
-        findLogin(std::move(ctx),std::move(callback),login,topic);
+        this->findLogin(std::move(ctx),std::move(callback),login,topic);
     };
 
     auto checkUser=[](auto&& checkACL, auto ctx, auto callback, auto loginObj)

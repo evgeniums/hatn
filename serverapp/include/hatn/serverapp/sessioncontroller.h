@@ -29,7 +29,7 @@ HATN_SERVERAPP_NAMESPACE_BEGIN
 
 struct SessionResponse
 {
-    common::SharedPtr<auth_complete::managed> response;
+    common::SharedPtr<auth_complete::shared_managed> response;
     common::SharedPtr<session::managed> session;
 };
 

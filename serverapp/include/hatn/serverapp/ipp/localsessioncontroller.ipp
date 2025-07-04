@@ -40,7 +40,7 @@ void LocalSessionController<ContextTraits>::createSession(
         common::SharedPtr<Context> ctx,
         CallbackT callback,
         const du::ObjectId& login,
-        lib::string_view& username,
+        lib::string_view username,
         db::Topic topic
     ) const
 {
@@ -72,7 +72,7 @@ void LocalSessionController<ContextTraits>::createSession(
     auto checkCanLogin=[topic](auto&& createSess, auto ctx, auto callback, auto session)
     {
         auto sessPtr=session.get();
-        auto cb=[session=std::move(session()),callback=std::move(callback),createSess=std::move(createSess)](auto ctx, const common::Error& ec)
+        auto cb=[session=std::move(session),callback=std::move(callback),createSess=std::move(createSess)](auto ctx, const common::Error& ec)
         {
             if (ec)
             {
@@ -88,7 +88,7 @@ void LocalSessionController<ContextTraits>::createSession(
         loginController.checkCanLogin(
             std::move(ctx),
             std::move(cb),
-            sessPtr->fieldValue(session::login),
+            sessPtr->fieldValue(session::login).string(),
             topic
         );
     };
@@ -114,7 +114,7 @@ void LocalSessionController<ContextTraits>::createSession(
             std::move(ctx),
             std::move(createCb),
             topic,
-            dbModels.sessionModel(),
+            dbModels->sessionModel(),
             sessPtr
         );
     };
@@ -126,6 +126,8 @@ void LocalSessionController<ContextTraits>::createSession(
         sessionClient->setFieldValue(session_client::login,session->fieldValue(session::login));
         sessionClient->setFieldValue(session_client::session,session->fieldValue(db::object::_id));
         sessionClient->setFieldValue(session_client::ttl,session->fieldValue(session::ttl));
+        //! @todo critical: Implement ClientAgent and ClientIp for server request
+#if 0
         const ClientAgent& agent=ContextTraits::clientAgent(ctx);
         sessionClient->setFieldValue(session_client::agent,agent.name);
         sessionClient->setFieldValue(session_client::agent_os,agent.os);
@@ -133,7 +135,7 @@ void LocalSessionController<ContextTraits>::createSession(
         const ClientIp& ip=ContextTraits::clientIp(ctx);
         sessionClient->setFieldValue(session_client::ip_addr,ip.ip_addr);
         sessionClient->setFieldValue(session_client::proxy_ip_addr,ip.proxy_ip_addr);
-
+#endif
         auto sessClientPtr=sessionClient.get();
         auto createCb=[sessionClient=std::move(sessionClient),session=std::move(session()),callback=std::move(callback),done=std::move(done)](auto ctx, const common::Error& ec)
         {
@@ -153,18 +155,18 @@ void LocalSessionController<ContextTraits>::createSession(
             std::move(ctx),
             std::move(createCb),
             topic,
-            dbModels.sessionClientModel(),
+            dbModels->sessionClientModel(),
             sessClientPtr
         );
     };
 
-    auto done=[refreshToken=std::move(refreshToken),sessToken=std::move(sessToken),factory](auto ctx, auto callback, auto session)
+    auto done=[refreshToken=refreshToken.takeValue(),sessToken=sessToken.takeValue(),factory](auto ctx, auto callback, auto session)
     {
-        auto response=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_complete::managed>();
+        auto response=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_complete::shared_managed>();
         auto& sessTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::session_token);
-        sessTokenField.set(std::move(sessToken));
+        sessTokenField.set(std::move(sessToken.clientToken));
         auto& refreshTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::refresh_token);
-        refreshTokenField.set(std::move(refreshToken));
+        refreshTokenField.set(std::move(refreshToken.clientToken));
 
         callback(std::move(ctx),common::Error{},SessionResponse{std::move(response,std::move(session))});
     };
