@@ -39,6 +39,8 @@
     Do(ClientServerError,AUTH_SESSION_INVALID,_TR("authentication session is not valid","clientserver")) \
     Do(ClientServerError,AUTH_PROCESSING_FAILED,_TR("failed to process authentication","clientserver")) \
     Do(ClientServerError,AUTH_COMPLETION_FAILED,_TR("failed to complete authentication","clientserver")) \
+    Do(ClientServerError,INVALID_LOGIN_FORMAT,_TR("invalid format of login","clientserver")) \
+    Do(ClientServerError,ACCESS_DENIED,_TR("access denied","clientserver")) \
 
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
