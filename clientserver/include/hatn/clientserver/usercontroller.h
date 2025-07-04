@@ -28,14 +28,14 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-template <typename ContextT, typename Traits>
+template <typename ContextTraits, typename Traits>
 class UserController : public common::WithTraits<Traits>
 {
     public:
 
         using common::WithTraits<Traits>::WithTraits;
 
-        using Context=ContextT;
+        using Context=typename ContextTraits::Context;
         using CallbackEc=db::AsyncCallbackEc<Context>;
         using CallbackList=db::AsyncCallbackList<Context>;
         using CallbackOid=db::AsyncCallbackOid<Context>;
@@ -57,7 +57,7 @@ class UserController : public common::WithTraits<Traits>
             CallbackObj<user::managed> callback,
             const du::ObjectId& userId,
             db::Topic topic
-        )
+        ) const
         {
             this->traits().findUser(std::move(ctx),std::move(callback),userId,topic);
         }
@@ -77,7 +77,7 @@ class UserController : public common::WithTraits<Traits>
             CallbackObj<login_profile::managed> callback,
             lib::string_view login,
             db::Topic topic
-        )
+        ) const
         {
             this->traits().findLogin(std::move(ctx),std::move(callback),login,topic);
         }
