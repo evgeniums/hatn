@@ -24,6 +24,7 @@
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/user.h>
+#include <hatn/clientserver/models/loginprofile.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
@@ -49,6 +50,36 @@ class UserController : public common::WithTraits<Traits>
         )
         {
             this->traits().addUser(std::move(ctx),std::move(callback),std::move(usr),topic);
+        }
+
+        void findUser(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<user::managed> callback,
+            const du::ObjectId& userId,
+            db::Topic topic
+        )
+        {
+            this->traits().findUser(std::move(ctx),std::move(callback),userId,topic);
+        }
+
+        void addLogin(
+            common::SharedPtr<Context> ctx,
+            CallbackOid callback,
+            common::SharedPtr<login_profile::managed> login,
+            db::Topic topic
+            )
+        {
+            this->traits().addLogin(std::move(ctx),std::move(callback),std::move(login),topic);
+        }
+
+        void findLogin(
+            common::SharedPtr<Context> ctx,
+            CallbackObj<login_profile::managed> callback,
+            lib::string_view login,
+            db::Topic topic
+        )
+        {
+            this->traits().findLogin(std::move(ctx),std::move(callback),login,topic);
         }
 
         //! @todo Implement the rest user operations
