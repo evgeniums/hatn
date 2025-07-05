@@ -37,10 +37,8 @@ class ServiceDispatcherTraits
         using DispatcherType=Dispatcher<Self,Env,Request>;
 
         ServiceDispatcherTraits(
-                DispatcherType* dispatcher,
                 std::shared_ptr<ServiceRouter<Env,Request>> serviceRouter
-            ) : m_dispatcher(dispatcher),
-                m_serviceRouter(std::move(serviceRouter))
+            ) : m_serviceRouter(std::move(serviceRouter))
         {}
 
         void dispatch(
@@ -55,8 +53,6 @@ class ServiceDispatcherTraits
         }
 
     private:
-
-        DispatcherType* m_dispatcher;
 
         std::shared_ptr<ServiceRouter<Env,Request>> m_serviceRouter;
 };
