@@ -69,11 +69,11 @@ struct postAsyncT
         );
     }
 
-    template <typename HandlerT>
+    template <typename HandlerT, typename ContextT>
     void operator ()(
                     const char* startScopeName,
                     common::ThreadQWithTaskContext* thread,
-                    common::SharedPtr<common::TaskContext> ctx,
+                    ContextT ctx,
                     HandlerT handler
                     ) const
     {
