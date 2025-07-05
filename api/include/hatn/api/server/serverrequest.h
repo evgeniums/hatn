@@ -33,6 +33,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/protocol.h>
+#include <hatn/api/authprotocol.h>
 #include <hatn/api/server/serverresponse.h>
 #include <hatn/api/server/env.h>
 #include <hatn/api/service.h>
@@ -135,6 +136,22 @@ struct Request : public common::TaskSubcontext
             return contentField.skippedNotParsedContent();
         }
         return common::ByteArrayShared{};
+    }
+
+    const auto& authField() const
+    {
+        return unit.field(protocol::request::session_auth);
+    }
+
+    AuthProtocol authProtocol() const
+    {
+        const auto& authField=unit.field(protocol::request::session_auth);
+        if (authField.isSet())
+        {
+            AuthProtocol ret{authField.field(auth_protocol::protocol).value(),authField.field(auth_protocol::version).value()};
+            return ret;
+        }
+        return AuthProtocol{};
     }
 
     Error parseMessage()
