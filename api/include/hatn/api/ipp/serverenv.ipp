@@ -58,7 +58,7 @@ Error BasicEnvConfig::initEnv(
 
 //---------------------------------------------------------------
 
-auto BasicEnvConfig::prepareCtorArgs(const HATN_APP_NAMESPACE::App& app)
+inline auto BasicEnvConfig::prepareCtorArgs(const HATN_APP_NAMESPACE::App& app)
 {
     return std::make_tuple(
         std::make_tuple(app.allocatorFactory().factory()),

@@ -68,7 +68,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             // check if token expired
             if (!isAuthTokenExpired(m_sessionToken.get()))
             {
-                std::ignore=m_session->serializeAuthHeader(name(),version(),m_sessionToken);
+                std::ignore=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
                 callback(std::move(ctx),{});
                 return;
             }
