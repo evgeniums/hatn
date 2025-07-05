@@ -3,7 +3,7 @@
 call "%MSVCARGS%" %MSVC_ARCH%
 if %errorlevel% neq 0 exit %errorlevel%
 
-echo "BUILDS_ROOT=%builds_root%"
+ECHO "run.bat: BUILDS_ROOT=%builds_root%, PROJECT_PATH=%PROJECT_PATH%, running in %CD%"
 
 IF DEFINED BOOST_COMPILER (
   SET USE_BOOST_COMPILER="-DBoost_COMPILER=%BOOST_COMPILER%"

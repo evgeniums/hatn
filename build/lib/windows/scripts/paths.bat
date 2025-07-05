@@ -1,4 +1,4 @@
 SET BUILDS_ROOT=%WORKING_DIR%
 
-IF "%SRC_ROOT%"=="" SET SOURCES_ROOT=%~dp0\..\..\..\..
+IF "%SRC_ROOT%"=="" SET SRC_ROOT=%~dp0\..\..\..\..
 

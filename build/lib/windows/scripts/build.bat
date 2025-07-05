@@ -68,7 +68,7 @@ IF "%PREPARE_TESTS%"=="1" (
 	)                          	
 	
     (
-		@ECHO OFF
+        @ECHO OFF
         ECHO ECHO Running test script
 		ECHO IF EXIST %BUILDS_ROOT%\result-xml rmdir /Q /S %BUILDS_ROOT%\result-xml
 		ECHO mkdir %BUILDS_ROOT%\result-xml

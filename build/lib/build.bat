@@ -1,8 +1,8 @@
 @ECHO OFF
 
-ECHO "CMAKE_CXX_STANDARD=%CMAKE_CXX_STANDARD%"
-ECHO "HATN_SMARTPOINTERS_STD=%HATN_SMARTPOINTERS_STD%"
-ECHO "HATN_TEST_NAME=%HATN_TEST_NAME%"
+ECHO "build.bat: CMAKE_CXX_STANDARD=%CMAKE_CXX_STANDARD%"
+ECHO "build.bat: HATN_SMARTPOINTERS_STD=%HATN_SMARTPOINTERS_STD%"
+ECHO "build.bat: HATN_TEST_NAME=%HATN_TEST_NAME%"
 
 SET HATN_LIB=%1
 SET HATN_COMPILER=%2
@@ -12,6 +12,6 @@ SET HATN_LINK=%5
 SET HATN_PLUGINS=%6
 SET mypath=%~dp0
 
-echo "Running build script %mypath%do-build.bat"
+ECHO "build.bat: Running build script %mypath%do-build.bat"
 call %mypath%do-build.bat
 if %errorlevel% neq 0 exit /b %errorlevel%
