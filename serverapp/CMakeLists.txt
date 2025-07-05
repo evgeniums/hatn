@@ -11,6 +11,7 @@ SET (HEADERS
     include/hatn/serverapp/auth/authprotocols.h    
     include/hatn/serverapp/auth/sharedsecretprotocol.h
     include/hatn/serverapp/auth/authservice.h
+    include/hatn/serverapp/auth/sessionauthdispatcher.h
 
     include/hatn/serverapp/encryptedtoken.h
 
