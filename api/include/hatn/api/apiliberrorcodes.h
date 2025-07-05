@@ -51,6 +51,8 @@
     Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
     Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
+    Do(ApiLibError,AUTH_PROTOCOL_UNKNOWN,_TR("unknown authentication protocol","clientserver")) \
+    Do(ApiLibError,AUTH_MISSING,_TR("missing authentication in request","clientserver")) \
 
 
 HATN_API_NAMESPACE_BEGIN
