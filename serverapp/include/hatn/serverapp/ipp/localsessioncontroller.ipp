@@ -88,7 +88,7 @@ void LocalSessionController<ContextTraits>::createSession(
         loginController.checkCanLogin(
             std::move(ctx),
             std::move(cb),
-            sessPtr->fieldValue(session::login).string(),
+            sessPtr->fieldValue(session::login),
             topic
         );
     };
@@ -208,7 +208,7 @@ void LocalSessionController<ContextTraits>::checkSession(
     {
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
-        auto cb=[checkCanLogin=std::move(checkCanLogin),callback=std::move(callback),token=std::move(token)](auto ctx, auto foundSessObj)
+        auto cb=[checkCanLogin=std::move(checkCanLogin),callback=std::move(callback),token=std::move(token)](auto ctx, auto foundSessObj) mutable
         {
             if (foundSessObj)
             {
@@ -242,7 +242,7 @@ void LocalSessionController<ContextTraits>::checkSession(
             std::move(ctx),
             std::move(cb),
             topic,
-            dbModels.sessionClientModel(),
+            dbModels->sessionModel(),
             tokenPtr->fieldValue(auth_token::session)
         );
     };
@@ -252,7 +252,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto sessPtr=session.get();
-        auto cb=[session=std::move(session()),callback=std::move(callback),updateSessClient=std::move(updateSessClient),token=std::move(token)](auto ctx, const common::Error& ec)
+        auto cb=[session=std::move(session),callback=std::move(callback),updateSessClient=std::move(updateSessClient),token=std::move(token)](auto ctx, const common::Error& ec)
         {
             if (ec)
             {
@@ -284,7 +284,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto sessPtr=session.get();
-        auto cb=[session=std::move(session()),callback=std::move(callback),done=std::move(done),token=std::move(token)](auto ctx, const common::Error& ec)
+        auto cb=[session=std::move(session),callback=std::move(callback),done=std::move(done),token=std::move(token)](auto ctx, const common::Error& ec)
         {
             if (ec)
             {
@@ -294,7 +294,7 @@ void LocalSessionController<ContextTraits>::checkSession(
             done(std::move(ctx),std::move(callback),std::move(session),std::move(token));
         };
 
-        updateSessionClient(
+        this->updateSessionClient(
             std::move(ctx),
             std::move(cb),
             sessPtr->fieldValue(db::object::_id),
@@ -302,7 +302,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         );
     };
 
-    auto done=[factory](auto ctx, auto callback, auto session, common::SharedPtr<auth_token::managed> token)
+    auto done=[](auto ctx, auto callback, auto session, common::SharedPtr<auth_token::managed> token)
     {
         callback(std::move(ctx),common::Error{},SessionCheckResult{std::move(token),std::move(session)});
     };
@@ -313,7 +313,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         std::move(updateSessClient),
         std::move(done)
     );
-    chain(std::move(ctx),std::move(callback),std::move(token));
+    chain(std::move(ctx),std::move(callback),token.takeValue());
 }
 
 //--------------------------------------------------------------------------

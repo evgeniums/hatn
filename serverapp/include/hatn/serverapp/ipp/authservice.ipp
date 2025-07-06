@@ -16,6 +16,8 @@
 #ifndef HATNSERVERAUTHSERVICE_IPP
 #define HATNSERVERAUTHSERVICE_IPP
 
+#include <hatn/clientserver/auth/defaultauth.h>
+
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
 #include <hatn/serverapp/auth/authservice.h>
@@ -103,7 +105,7 @@ HATN_VALIDATOR_NAMESPACE::error_report AuthNegotiateMethodImpl<RequestT>::valida
 //--------------------------------------------------------------------------
 
 template <typename RequestT>
-AuthService<RequestT>::AuthService() : Base(AuthServiceName,AuthServiceVersion)
+AuthService<RequestT>::AuthService() : Base(DefaultAuthService::instance())
 {
     this->impl().registerMethod(std::make_shared<AuthNegotiateMethod<Request>>());
     this->impl().registerMethod(std::make_shared<AuthHssCheckMethod<Request>>());

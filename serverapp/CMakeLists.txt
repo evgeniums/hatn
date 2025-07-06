@@ -31,6 +31,7 @@ SET (HEADERS
     include/hatn/serverapp/ipp/sharedsecretprotocol.ipp
     include/hatn/serverapp/ipp/authservice.ipp
     include/hatn/serverapp/ipp/logincontroller.ipp
+    include/hatn/serverapp/ipp/sessionauthdispatcher.ipp
 )
 
 SET (SOURCES
@@ -41,6 +42,7 @@ SET (SOURCES
     src/encryptedtoken.cpp
     src/sessiontoken.cpp
     src/localsessioncontroller.cpp
+    src/authservice.cpp
 )
 
 BUILD_HATN_MODULE()

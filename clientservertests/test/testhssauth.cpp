@@ -53,6 +53,7 @@
 #include <hatn/serverapp/auth/authservice.h>
 #include <hatn/serverapp/auth/authprotocols.h>
 #include <hatn/serverapp/auth/sharedsecretprotocol.h>
+#include <hatn/serverapp/auth/sessionauthdispatcher.h>
 #include <hatn/serverapp/logincontroller.h>
 #include <hatn/serverapp/localusercontroller.h>
 #include <hatn/serverapp/localsessioncontroller.h>
@@ -73,6 +74,7 @@
 #include <hatn/serverapp/ipp/logincontroller.ipp>
 #include <hatn/serverapp/ipp/localusercontroller.ipp>
 #include <hatn/serverapp/ipp/authservice.ipp>
+#include <hatn/serverapp/ipp/sessionauthdispatcher.ipp>
 
 #include <hatn/clientserver/ipp/clientsession.ipp>
 
@@ -287,8 +289,11 @@ struct EnvWithAuthConfigTraits
     }
 };
 
+using ServiceDispatcherType=server::ServiceDispatcher<EnvWithAuth,RequestWithAuth>;
+using AuthDispatcherType=SessionAuthDispatcher<EnvWithAuth,RequestWithAuth>;
+
 using EnvWithAuthConfig=server::EnvConfigT<EnvWithAuthConfigTraits,RequestWithAuth>;
-using MicroserviceBuilder=server::PlainTcpMicroServiceBuilderT<EnvWithAuthConfig>;
+using MicroserviceBuilder=server::PlainTcpMicroServiceBuilderT<EnvWithAuthConfig,ServiceDispatcherType,AuthDispatcherType>;
 
 HATN_TASK_CONTEXT_DECLARE(RequestWithAuth)
 HATN_TASK_CONTEXT_DEFINE(RequestWithAuth,RequestWithAuth)
@@ -337,14 +342,18 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     // create service dispatcher
     auto serviceRouter=std::make_shared<server::ServiceRouter<EnvWithAuth,RequestWithAuth>>();
     auto authService=std::make_shared<AuthService<RequestWithAuth>>();
-    serviceRouter->registerLocalService(std::move(authService));
-    using dispatcherType=server::ServiceDispatcher<EnvWithAuth,RequestWithAuth>;
-    auto dispatcher=std::make_shared<dispatcherType>(serviceRouter);
+    serviceRouter->registerLocalService(std::move(authService));    
+    auto dispatcher=std::make_shared<ServiceDispatcherType>(serviceRouter);
+    auto serviceDispatchers=std::make_shared<server::DispatchersStore<ServiceDispatcherType>>();
+    serviceDispatchers->registerDispatcher("default",std::move(dispatcher));
 
-    // prepare factory
-    auto dispatchers=std::make_shared<server::DispatchersStore<dispatcherType>>();
-    dispatchers->registerDispatcher("hss_authdispatcher",std::move(dispatcher));
-    MicroserviceBuilder microserviceBuilder{dispatchers};
+    // create suth dispatcher
+    auto authDispatcher=std::make_shared<AuthDispatcherType>();
+    auto authDispatchers=std::make_shared<server::DispatchersStore<AuthDispatcherType>>();
+    authDispatchers->registerDispatcher("token_session",std::move(authDispatcher));
+
+    // prepare microservice factory
+    MicroserviceBuilder microserviceBuilder{serviceDispatchers,authDispatchers};
     server::MicroServiceFactory factory;
     factory.registerBuilder("microservice1",microserviceBuilder);
 

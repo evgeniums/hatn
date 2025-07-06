@@ -51,7 +51,7 @@ class SessionController : public common::WithTraits<Traits>
             CallbackT callback,
             const du::ObjectId& login,
             db::Topic topic
-        )
+        ) const
         {
             this->traits().createSession(std::move(ctx),std::move(callback),login,topic);
         }
@@ -61,9 +61,9 @@ class SessionController : public common::WithTraits<Traits>
         void checkSession(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed> sessionContent,
+            common::SharedPtr<auth_with_token::managed> sessionContent,
             bool update=true
-        )
+        ) const
         {
             this->traits().checkSession(std::move(ctx),std::move(callback),std::move(sessionContent),update);
         }
@@ -72,8 +72,8 @@ class SessionController : public common::WithTraits<Traits>
         void refreshSession(
             common::SharedPtr<ContextT> ctx,
             CallbackT callback,
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_refresh::managed> message
-        )
+            common::SharedPtr<auth_refresh::managed> message
+        ) const
         {
             this->traits().refreshSession(std::move(ctx),std::move(callback),std::move(message));
         }

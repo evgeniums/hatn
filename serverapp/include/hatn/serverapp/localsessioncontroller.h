@@ -113,7 +113,7 @@ class LocalSessionController : public LocalSessionControllerBase
         void checkSession(
             common::SharedPtr<Context> ctx,
             CallbackT callback,
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::managed> sessionContent,
+            common::SharedPtr<auth_with_token::managed> sessionContent,
             bool update=true
         ) const;
 
@@ -121,7 +121,7 @@ class LocalSessionController : public LocalSessionControllerBase
         void refreshSession(
             common::SharedPtr<Context> ctx,
             CallbackT callback,
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_refresh::managed> message
+            common::SharedPtr<auth_refresh::managed> message
         ) const;
 };
 

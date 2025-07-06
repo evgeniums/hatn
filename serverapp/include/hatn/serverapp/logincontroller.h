@@ -16,6 +16,7 @@
 #ifndef HATNLOGINCONTROLLER_H
 #define HATNLOGINCONTROLLER_H
 
+#include <hatn/dataunit/objectid.h>
 #include <hatn/db/topic.h>
 
 #include <hatn/serverapp/serverappdefs.h>
@@ -46,6 +47,17 @@ class LoginController
             lib::string_view login,
             db::Topic topic
         ) const;
+
+        template <typename CallbackT>
+        void checkCanLogin(
+            common::SharedPtr<Context> ctx,
+            CallbackT callback,
+            const du::ObjectId& login,
+            db::Topic topic
+        ) const
+        {
+            checkCanLogin(std::move(ctx),std::move(callback),login.string(),topic);
+        }
 };
 
 HATN_SERVERAPP_NAMESPACE_END
