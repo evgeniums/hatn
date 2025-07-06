@@ -50,7 +50,7 @@ struct DispatcherScopes
 
 template <typename Traits, typename EnvT=BasicEnv, typename RequestT=Request<EnvT>, typename Scopes=DispatcherScopes>
 class Dispatcher : public common::WithTraits<Traits>,
-                   public std::enable_shared_from_this<Dispatcher<Traits,EnvT,RequestT>>
+                   public std::enable_shared_from_this<Dispatcher<Traits,EnvT,RequestT,Scopes>>
 {
     public:
 
