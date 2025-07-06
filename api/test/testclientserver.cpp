@@ -98,7 +98,7 @@ HDU_UNIT(service2_msg2,
 
 /********************** Client **************************/
 
-using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,LogCtxType>;
+using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,LogCtxType>;
 using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
@@ -118,17 +118,14 @@ auto createClient(ThreadQWithTaskContext* thread)
             thread
         );
 
-    auto cfg=std::make_shared<client::ClientConfig>();
-
     auto cl=client::makeClientContext<client::ClientContext<ClientType>>(
-                std::move(cfg),
                 std::move(router),
                 thread
             );
     return cl;
 }
 
-using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuthContext,client::SessionNoAuth>,client::ClientContext<ClientType>,ClientType>;
+using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,client::ClientContext<ClientType>,ClientType>;
 using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
 
 HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
