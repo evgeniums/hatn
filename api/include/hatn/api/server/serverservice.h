@@ -157,6 +157,14 @@ public:
         common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
     {}
 
+    template <typename ...ImplArgs>
+    ServerServiceV(
+        const Service& service,
+        ImplArgs&&... implArgs
+        ) : ServerService<Request>(service.name(),service.version()),
+        common::WithImpl<Impl>(std::forward<ImplArgs>(implArgs)...)
+    {}
+
     virtual void handleRequest(
         common::SharedPtr<RequestContext<RequestT>> request,
         RouteCb<RequestT> callback
