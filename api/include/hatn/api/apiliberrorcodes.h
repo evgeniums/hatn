@@ -53,6 +53,7 @@
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
     Do(ApiLibError,AUTH_PROTOCOL_UNKNOWN,_TR("unknown authentication protocol","clientserver")) \
     Do(ApiLibError,AUTH_MISSING,_TR("missing authentication in request","clientserver")) \
+    Do(ApiLibError,AUTH_HEADER_FORMAT,_TR("invalid format of authentication header","clientserver")) \
 
 
 HATN_API_NAMESPACE_BEGIN
