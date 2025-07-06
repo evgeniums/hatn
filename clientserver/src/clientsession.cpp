@@ -19,6 +19,7 @@
 
 #include <hatn/clientserver/auth/authprotocol.h>
 #include <hatn/clientserver/auth/clientsession.h>
+#include <hatn/clientserver/auth/defaultauth.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
@@ -29,8 +30,8 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 ClientSessionBase::ClientSessionBase(
         const common::pmr::AllocatorFactory* factory
     ) : common::pmr::WithFactory(factory),
-        api::AuthProtocol(api::AuthTokenSessionProtocol,api::AuthTokenSessionProtocolVersion),
-        api::WithService(std::make_shared<api::Service>(AuthServiceName,AuthServiceVersion))
+        api::AuthProtocol(DefaultAuthSessionProtocol::instance()),
+        api::WithService(std::make_shared<api::Service>(DefaultAuthService::instance()))
 {
 }
 
