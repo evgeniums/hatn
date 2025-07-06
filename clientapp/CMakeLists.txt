@@ -8,24 +8,13 @@ SET (HEADERS
     include/hatn/clientapp/clientapp.h
     include/hatn/clientapp/bridgeappcontext.h
     include/hatn/clientapp/eventdispatcher.h
-    include/hatn/clientapp/bridgemethod.h
-
-    include/hatn/clientapp/systemservice.h
-    include/hatn/clientapp/methodnetworkstatus.h
-    include/hatn/clientapp/methodsyncdatetime.h
-
-    include/hatn/clientapp/networkevent.h
 )
 
 SET (SOURCES
     src/clientapperror.cpp
     src/clientbridge.cpp
     src/clientapp.cpp
-    src/contextapp.cpp
     src/eventdispatcher.cpp
-    src/systemservice.cpp
-    src/methodnetworkstatus.cpp
-    src/methodsyncdatetime.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)
@@ -41,7 +30,7 @@ IF(BUILD_ANDROID OR BUILD_IOS)
         ${SOURCES}
         src/mobileapp.cpp
         src/mobileplatformcontext.cpp
-        src/testservicedb.cpp        
+        src/testservicedb.cpp
     )
 
 ENDIF()

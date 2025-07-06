@@ -32,7 +32,7 @@ MobilePlatformContext::~MobilePlatformContext()
 
 //-----------------------------------------------------------------------------
 
-int MobilePlatformContext::init(MobileApp* app)
+HATN_NAMESPACE::Error MobilePlatformContext::init(MobileApp* app)
 {
     m_app=app;
     return doInit();
@@ -40,16 +40,16 @@ int MobilePlatformContext::init(MobileApp* app)
 
 //-----------------------------------------------------------------------------
 
-int MobilePlatformContext::doInit()
+HATN_NAMESPACE::Error MobilePlatformContext::doInit()
 {
-    return 0;
+    return HATN_NAMESPACE::OK;
 }
 
 //-----------------------------------------------------------------------------
 
-int MobilePlatformContext::close()
+HATN_NAMESPACE::Error MobilePlatformContext::close()
 {
-    return 0;
+    return HATN_NAMESPACE::OK;
 }
 
 //-----------------------------------------------------------------------------

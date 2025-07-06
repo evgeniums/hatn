@@ -28,8 +28,6 @@
 #include <hatn/dataunit/datauniterror.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
-#include <hatn/network/asio/careslib.h>
-
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/db/dbplugin.h>
@@ -599,10 +597,6 @@ Error App::init()
     ec=d->logger->start();
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to start logger","app"),HLOG_MODULE(app))
 
-    // init c-ares library
-    ec=HATN_NETWORK_NAMESPACE::CaresLib::init(factory.factory());
-    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to init c-ares DNS library","app"),HLOG_MODULE(app))
-
     // done
     return OK;
 }
@@ -655,11 +649,7 @@ void App::close()
     // destroy env
     m_env.reset();
 
-    // free rocksdb
     freeRocksDb();
-
-    // cleanuo c-ares library
-    HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
 }
 
 //---------------------------------------------------------------

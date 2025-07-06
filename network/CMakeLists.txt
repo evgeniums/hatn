@@ -18,7 +18,6 @@ SET (HEADERS
     include/hatn/network/asio/tcpserver.h
     include/hatn/network/asio/tcpserverconfig.h
     include/hatn/network/asio/udpchannel.h
-    include/hatn/network/asio/careslib.h
     include/hatn/network/asio/caresolver.h
 
     include/hatn/network/detail/asynchandler.ipp

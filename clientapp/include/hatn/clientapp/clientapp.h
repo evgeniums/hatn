@@ -63,8 +63,6 @@ class HATN_CLIENTAPP_EXPORT ClientApp
             return OK;
         }
 
-        Error initBridge();
-
         virtual Error initBridgeServices()
         {
             return OK;

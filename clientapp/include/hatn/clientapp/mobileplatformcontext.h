@@ -18,6 +18,8 @@
 #ifndef HATNMOBILEPLATFORMCTX_H
 #define HATNMOBILEPLATFORMCTX_H
 
+#include <hatn/common/error.h>
+
 #include <hatn/clientapp/clientappdefs.h>
 
 HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
@@ -36,8 +38,8 @@ class HATN_CLIENTAPP_EXPORT MobilePlatformContext
         MobilePlatformContext& operator=(const MobilePlatformContext&)=delete;
         MobilePlatformContext& operator=(MobilePlatformContext&&)=default;
 
-        int init(MobileApp* app);
-        virtual int close();
+        HATN_NAMESPACE::Error init(MobileApp* app);
+        virtual HATN_NAMESPACE::Error close();
 
         MobileApp* app() const noexcept
         {
@@ -46,7 +48,7 @@ class HATN_CLIENTAPP_EXPORT MobilePlatformContext
 
     protected:
 
-        virtual int doInit();
+        virtual HATN_NAMESPACE::Error doInit();
 
     private:
 
