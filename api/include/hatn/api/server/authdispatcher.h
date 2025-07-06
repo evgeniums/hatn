@@ -38,25 +38,25 @@ class NoAuthProtocol
 };
 
 template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>, typename ...AuthProtocols>
-class AuthDispatcherT : public common::EnvT<AuthProtocols...>
+class AuthDispatcherT : public common::Env<AuthProtocols...>
 {
     public:
 
         using Request=RequestT;
 
-        using common::EnvT<AuthProtocols...>::common::EnvT;
+        using common::Env<AuthProtocols...>::Env;
 
         void dispatch(
                 common::SharedPtr<RequestContext<Request>> reqCtx,
                 DispatchCb<Request> callback
             )
         {
-            const auto& req=request<Request>(reqCtx).request();
+            auto& req=request<Request>(reqCtx).request();
 
             // check if auth can be skipped for service
             auto service=req.serviceNameAndVersion();
             auto it=m_skipAuth.find(service);
-            if (it!=m_skipAuth)
+            if (it!=m_skipAuth.end())
             {
                 callback(std::move(reqCtx));
                 return;
@@ -111,10 +111,33 @@ class AuthDispatcherT<EnvT,RequestT,NoAuthProtocol>
         {
             callback(std::move(reqCtx));
         }
+
+        void addSkipAuthService(Service)
+        {}
 };
 
-template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>, typename AuthDispatcherTraits=AuthDispatcherT<EnvT,RequestT,NoAuthProtocol>>
-using AuthDispatcher = Dispatcher<AuthDispatcherTraits,EnvT,RequestT,AuthDispatcherScopes>;
+template <typename EnvT=BasicEnv, typename RequestT=Request<EnvT>, typename ...AuthProtocols>
+class AuthDispatcher : public Dispatcher<AuthDispatcherT<EnvT,RequestT,AuthProtocols...>,EnvT,RequestT,AuthDispatcherScopes>
+{
+    public:
+
+        using Base=Dispatcher<AuthDispatcherT<EnvT,RequestT,AuthProtocols...>,EnvT,RequestT,AuthDispatcherScopes>;
+
+        using Base::Base;
+
+        void addSkipAuthService(Service service)
+        {
+            this->traits().addSkipAuthService(std::move(service));
+        }
+};
+
+template <typename EnvT, typename RequestT>
+class AuthDispatcher<EnvT,RequestT> : public AuthDispatcher<EnvT,RequestT,NoAuthProtocol>
+{
+    public:
+
+        using AuthDispatcher<EnvT,RequestT,NoAuthProtocol>::AuthDispatcher;
+};
 
 } // namespace server
 
