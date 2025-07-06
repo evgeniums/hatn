@@ -46,10 +46,57 @@ class EventKey
                 m_envId(std::move(envId)),
                 m_topic(std::move(topic))
         {
-            m_selectors[0]=&m_category;
-            m_selectors[1]=&m_event;
-            m_selectors[2]=&m_envId;
-            m_selectors[3]=&m_topic;
+            initSelectors();
+        }
+
+        ~EventKey()=default;
+
+        EventKey(EventKey&& other)
+        {
+            m_category=std::move(other.m_category);
+            m_event=std::move(other.m_event);
+            m_envId=std::move(other.m_envId);
+            m_topic=std::move(other.m_topic);
+            initSelectors();
+        }
+
+        EventKey(const EventKey& other)
+        {
+            m_category=other.m_category;
+            m_event=other.m_event;
+            m_envId=other.m_envId;
+            m_topic=other.m_topic;
+            initSelectors();
+        }
+
+        EventKey operator=(EventKey&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_category=std::move(other.m_category);
+            m_event=std::move(other.m_event);
+            m_envId=std::move(other.m_envId);
+            m_topic=std::move(other.m_topic);
+            initSelectors();
+            return *this;
+        }
+
+        EventKey& operator=(const EventKey& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_category=other.m_category;
+            m_event=other.m_event;
+            m_envId=other.m_envId;
+            m_topic=other.m_topic;
+            initSelectors();
+            return *this;
         }
 
         bool isNull() const noexcept
@@ -96,12 +143,12 @@ class EventKey
             return m_topic;
         }
 
-        void setcategory(std::string category)
+        void setCategory(std::string category)
         {
             m_category=std::move(category);
         }
 
-        void setevent(std::string event)
+        void setEvent(std::string event)
         {
             m_event=std::move(event);
         }
@@ -121,8 +168,15 @@ class EventKey
             return m_selectors;
         }
 
-
     private:
+
+        void initSelectors()
+        {
+            m_selectors[0]=&m_category;
+            m_selectors[1]=&m_event;
+            m_selectors[2]=&m_envId;
+            m_selectors[3]=&m_topic;
+        }
 
         std::string m_category;
         std::string m_event;
@@ -175,75 +229,11 @@ class HATN_CLIENTAPP_EXPORT EventSubscriptions
         std::map<size_t,EventHandler> handlers;
         std::map<std::string,std::shared_ptr<EventSubscriptions>> keyHandlers;
 
-        size_t doRemove(size_t index, EventSubscriptions* subscriptions)
-        {
-            size_t removedCount=subscriptions->handlers.erase(index);
-            if (removedCount!=0)
-            {
-                return removedCount;
-            }
+        size_t doRemove(size_t index, EventSubscriptions* subscriptions);
 
-            for (auto& it: subscriptions->keyHandlers)
-            {
-                size_t removedCount=doRemove(index,it.second.get());
-                if (removedCount!=0)
-                {
-                    if (it.second->handlers.empty() && it.second->keyHandlers.empty())
-                    {
-                        subscriptions->keyHandlers.erase(it.first);
-                    }
-                    return removedCount;
-                }
-            }
+        size_t doInsert(EventKey key, EventHandler handler, size_t selectorIndex=0);
 
-            return 0;
-        }
-
-        size_t doInsert(EventKey key, EventHandler handler, size_t selectorIndex=0)
-        {
-            if (selectorIndex==key.selectors().size() || key.isSubNull(selectorIndex))
-            {
-                auto idx=Index++;
-                handlers.emplace(idx,std::move(handler));
-                return idx;
-            }
-
-            const auto* selector=key.selectors().at(selectorIndex);
-            auto it=keyHandlers.find(*selector);
-            if (it!=keyHandlers.end())
-            {
-                return it->second->doInsert(std::move(key),std::move(handler),selectorIndex+1);
-            }
-
-            auto subs=std::make_shared<EventSubscriptions>();
-            auto subsPtr=subs.get();
-            keyHandlers.emplace(std::move(*selector),std::move(subs));
-
-            return subsPtr->doInsert(std::move(key),std::move(handler),selectorIndex+1);
-        }
-
-        void doFind(const EventKey& key,std::vector<EventHandler>& result, size_t selectorIndex=0) const
-        {
-            if (!handlers.empty())
-            {
-                for (const auto& handler:handlers)
-                {
-                    result.push_back(handler.second);
-                }
-            }
-
-            if (selectorIndex==key.selectors().size())
-            {
-                return;
-            }
-
-            const auto* selector=key.selectors().at(selectorIndex);
-            auto it=keyHandlers.find(*selector);
-            if (it!=keyHandlers.end())
-            {
-                it->second->doFind(key,result,selectorIndex+1);
-            }
-        }
+        void doFind(const EventKey& key,std::vector<EventHandler>& result, size_t selectorIndex=0) const;
 };
 
 class HATN_CLIENTAPP_EXPORT EventDispatcher
@@ -261,19 +251,11 @@ class HATN_CLIENTAPP_EXPORT EventDispatcher
         size_t subscribe(
             EventHandler handler,
             EventKey key={}
-        )
-        {
-            common::SharedLocker::ExclusiveScope l{m_mutex};
-            return m_subscriptions->insert(std::move(key),std::move(handler));
-        }
+        );
 
         void unsubscribe(
             size_t id
-        )
-        {
-            common::SharedLocker::ExclusiveScope l{m_mutex};
-            m_subscriptions->remove(id);
-        }
+        );
 
     private:
 
