@@ -10,11 +10,12 @@ SET (HEADERS
     include/hatn/clientserver/auth/authprotocol.h
     include/hatn/clientserver/auth/clientauthprotocol.h
     include/hatn/clientserver/auth/clientauthprotocolsharedsecret.h
+    include/hatn/clientserver/auth/defaultauth.h
     include/hatn/clientserver/auth/clientsession.h
     include/hatn/clientserver/auth/clientsessionsharedsecret.h
 
     include/hatn/clientserver/clientwithauth.h
-    include/hatn/clientserver/plaintcpclientwithauth.h
+    include/hatn/clientserver/plaintcpclientwithauth.h        
 )
 
 SET (HEADERS
@@ -44,6 +45,7 @@ SET (SOURCES
     src/clientserver.cpp
     src/accountconfigparser.cpp
     src/clientservererror.cpp
+    src/defaultauth.cpp
     src/clientsession.cpp
 
     src/clientauthprotocolsharedsecret.cpp
