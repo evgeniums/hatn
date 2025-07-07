@@ -68,6 +68,7 @@ class Dispatcher : public common::WithTraits<Traits>,
             auto cb=makeAsyncCallback(std::move(callback));
             auto& req=reqCtx->template get<Request>();
             auto* reqPtr=&req;
+            req.routed=false;
             auto self=this->shared_from_this();
             postAsync(
                 Scopes::dispatch,

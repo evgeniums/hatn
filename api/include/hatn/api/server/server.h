@@ -171,7 +171,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                         req.rawData()->size(),
                         [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                         {
-                            HATN_CTX_SCOPE("apireqbody")
+                            HATN_CTX_SCOPE("apireq")
 
                             // handle error
                             if (ec)

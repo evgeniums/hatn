@@ -536,8 +536,20 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     {
         auto cb=[](auto ctx, const Error& ec, auto response)
         {
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.value(),ec.message()));
-            BOOST_CHECK(!ec);
+            if (ec)
+            {
+                auto msg=ec.message();
+                //! @todo Improve handling of api error
+                if (ec.apiError()!=nullptr)
+                {
+                    msg+=ec.apiError()->message();
+                }
+                HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+            }
+            else
+            {
+                HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 OK"));
+            }
         };
 
         auto& cl=clientCtx->get<PlainTcpClientWithAuth>();

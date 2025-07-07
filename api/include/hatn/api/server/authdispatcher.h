@@ -52,6 +52,7 @@ class AuthDispatcherT : public common::Env<AuthProtocols...>
             )
         {
             auto& req=request<Request>(reqCtx).request();
+            req.routed=true;
 
             // check if auth can be skipped for service
             auto service=req.serviceNameAndVersion();
