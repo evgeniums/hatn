@@ -82,7 +82,8 @@ class KeyContainer
         }
 
         //! Ctor from data container
-        template <typename ContainerT> explicit KeyContainer(const ContainerT& container, ContainerFormat format=Format):m_format(format)
+        template <typename ContainerT>
+        explicit KeyContainer(const ContainerT& container, ContainerFormat format=Format):m_format(format)
         {
             loadContent(container);
         }
