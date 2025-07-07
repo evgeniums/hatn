@@ -354,6 +354,42 @@ HATN_TASK_CONTEXT_DEFINE(server::WithEnv<EnvWithAuth>,EnvWithAuth)
 HATN_TASK_CONTEXT_DECLARE(server::PlainTcpServerT<EnvWithAuth>)
 HATN_TASK_CONTEXT_DEFINE(server::PlainTcpServerT<EnvWithAuth>,TcpServer)
 
+HDU_UNIT(service1_msg1,
+    HDU_FIELD(field1,TYPE_UINT32,1)
+    HDU_FIELD(field2,TYPE_STRING,2)
+)
+
+class Service1Method1Traits : public server::NoValidatorTraits
+{
+    public:
+
+        using Request=RequestWithAuth;
+        using Message=service1_msg1::managed;
+
+        void exec(
+                SharedPtr<server::RequestContext<Request>> request,
+                server::RouteCb<Request> callback,
+                SharedPtr<Message> msg
+            ) const
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
+
+            auto& req=request->get<Request>();
+            req.response.setStatus();
+            callback(std::move(request));
+        }
+};
+class Service1Method1 : public server::ServiceMethodNV<Service1Method1Traits,Service1Method1Traits::Message,RequestWithAuth>
+{
+    public:
+
+        using Base=server::ServiceMethodNV<Service1Method1Traits,Service1Method1Traits::Message,RequestWithAuth>;
+
+        Service1Method1() : Base("service1_method1")
+        {}
+};
+using Service1=server::ServerServiceV<server::ServiceSingleMethod<Service1Method1,RequestWithAuth>,RequestWithAuth>;
+
 Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode=0)
 {
     std::string expectedFail;
@@ -391,6 +427,8 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
 
     // create service dispatcher
     auto serviceRouter=std::make_shared<server::ServiceRouter<EnvWithAuth,RequestWithAuth>>();
+    auto service1=std::make_shared<Service1>("service1");
+    serviceRouter->registerLocalService(std::move(service1));
     auto authService=std::make_shared<AuthService<RequestWithAuth>>();
     serviceRouter->registerLocalService(std::move(authService));    
     auto dispatcher=std::make_shared<ServiceDispatcherType>(serviceRouter);
@@ -473,10 +511,7 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     auto clientThread=threadWithContextTask(0);
 
     std::string sharedSecret1{"shared_secret1"};
-    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));
-    auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
-    std::ignore=cl.exec({},[](auto ctx, const Error& ec, client::Response){},Service{"bbb"},Method{"aaa"},{});
-
+    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));    
     clientThread->start();
 
     int secs=3;
@@ -487,23 +522,49 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     exec(1);
 }
 
-#if 0
 BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 {
-    auto serverCtx=createServer("microservices.jsonc");
+    auto serverCtx=createServer("hssauth.jsonc");
 
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto session=client::makeSessionNoAuthContext();
-    auto client=createClient(clientThread.get());
-    auto clientWithAuth=createClientWithAuth(client,session);
+    std::string sharedSecret1{"shared_secret1"};
+    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));
 
-    auto service1Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service1",clientWithAuth);
+    auto invokeTask1=[clientCtx]()
+    {
+        auto cb=[](auto ctx, const Error& ec, auto response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_CHECK(!ec);
+        };
 
+        auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+
+        auto ctx=makeLogCtx();
+        service1_msg1::type msg;
+        msg.setFieldValue(service1_msg1::field1,100);
+        msg.setFieldValue(service1_msg1::field2,"hello world!");
+        Message msgData;
+        auto ec=msgData.setContent(msg);
+        HATN_TEST_EC(ec);
+        BOOST_REQUIRE(!ec);
+        ec=cl.exec(
+            ctx,
+            cb,
+            Service{"service1"},
+            Method{"method1"},
+            std::move(msgData),
+            "topic1"
+            );
+        HATN_TEST_EC(ec);
+        BOOST_REQUIRE(!ec);
+    };
     clientThread->start();
+    clientThread->execAsync(invokeTask1);
 
-    int secs=3;
+    int secs=60;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
@@ -520,7 +581,7 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 
     BOOST_CHECK(true);
 }
-#endif
+
 
 BOOST_AUTO_TEST_SUITE_END()
 

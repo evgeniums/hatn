@@ -237,6 +237,11 @@ class SessionWrapperT
             return m_sessionCtx->template get<SessionT>();
         }
 
+        bool isNull() const noexcept
+        {
+            return m_sessionCtx.isNull();
+        }
+
     private:
 
         common::SharedPtr<SessionContextT> m_sessionCtx;
@@ -263,6 +268,11 @@ class SessionWrapperT<SessionT>
         SessionT& session()
         {
             return *m_session;
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_session==nullptr;
         }
 
     private:

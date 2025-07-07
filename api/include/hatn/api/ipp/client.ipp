@@ -136,7 +136,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
     }
 
     // if session not ready then push to waiting queue for this session
-    if (req->session() && !req->session()->isValid())
+    if (!req->session().isNull() && !req->session().isValid())
     {
         pushToSessionWaitingQueue(std::move(req));
         return;
@@ -310,7 +310,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                         auto status=respWrapper.status();
                         if (!respWrapper.isSuccess())
                         {
-                            if (status==protocol::ResponseStatus::AuthError && req->session())
+                            if (status==protocol::ResponseStatus::AuthError && !req->session().isNull())
                             {
                                 // process auth error in session
                                 if (!m_closed)
@@ -446,10 +446,10 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
             count++;
 
             // find or create queue
-            auto it=m_sessionWaitingQueues.find(req->session()->id());
+            auto it=m_sessionWaitingQueues.find(req->session().id());
             if (it==m_sessionWaitingQueues.end())
             {
-                auto empl=m_sessionWaitingQueues.emplace(req->session()->id(),m_allocatorFactory->objectMemoryResource());
+                auto empl=m_sessionWaitingQueues.emplace(req->session().id(),m_allocatorFactory->objectMemoryResource());
                 it=empl.first;
             }
 
@@ -459,16 +459,16 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
             queue.push(std::move(req));
 
             // skip if already refreshing
-            if (reqPtr->session()->isRefreshing())
+            if (reqPtr->session().isRefreshing())
             {
                 return;
             }
 
             // set session invalid
-            reqPtr->session()->setValid(false);
+            reqPtr->session().setValid(false);
 
             // define refresh callback
-            auto refreshCb=[this,sessionId=reqPtr->session()->id()](auto, const Error& ec)
+            auto refreshCb=[this,sessionId=reqPtr->session().id()](auto, const Error& ec)
             {
                 Assert(m_thread->id()==common::Thread::currentThreadID(),"Session must work in the same thread with client");
 
@@ -517,7 +517,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
             };
 
             // invoke session refresh
-            reqPtr->session()->refresh(
+            reqPtr->session().refresh(
                 sharedMainCtx(),                
                 std::move(refreshCb),
                 this,
@@ -544,7 +544,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::pushToSe
             }
 
             // find session queue
-            auto it=m_sessionWaitingQueues.find(req->session()->id());
+            auto it=m_sessionWaitingQueues.find(req->session().id());
             if (it==m_sessionWaitingQueues.end())
             {
                 // no waiting session found, call session refresh

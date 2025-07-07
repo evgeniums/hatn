@@ -458,7 +458,7 @@ class ServiceSingleMethodTraits
 };
 
 template <typename MethodT, typename RequestT=Request<>>
-using ServiceSingleMethod = ServerServiceT<ServiceSingleMethodTraits<MethodT>,RequestT>;
+using ServiceSingleMethod = ServerServiceT<ServiceSingleMethodTraits<MethodT,RequestT>,RequestT>;
 
 //---------------------------------------------------------------
 

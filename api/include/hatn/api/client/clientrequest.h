@@ -124,14 +124,14 @@ struct Request
 
         lib::string_view id() const noexcept;
 
-        const SessionWrapper* session() const
+        const SessionWrapper& session() const
         {
-            return &m_session;
+            return m_session;
         }
 
-        SessionWrapper* session()
+        SessionWrapper& session()
         {
-            return &m_session;
+            return m_session;
         }
 
         const MessageType& message() const
@@ -257,9 +257,9 @@ class RequestContext : public RequestT,
 
             size_t extraCount=1;
             common::ByteArrayShared authHeader;
-            if (this->session())
+            if (!this->session().isNull())
             {
-                authHeader=this->session()->authHeader();
+                authHeader=this->session().authHeader();
                 if (authHeader)
                 {
                     extraCount++;

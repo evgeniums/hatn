@@ -52,7 +52,7 @@ void LocalSessionController<ContextTraits>::createSession(
     session->setFieldValue(session::ttl,session->fieldValue(db::object::created_at));
     session->field(session::ttl).mutableValue()->addDays(config().fieldValue(session_config::session_ttl_days));
 
-    auto sessToken=tokenHandler()->makeToken(session.get(),auth_token::TokenType::Session,config().fieldValue(session_config::session_token_ttl_secs),topic,factory);
+    auto sessToken=tokenHandler().makeToken(session.get(),auth_token::TokenType::Session,config().fieldValue(session_config::session_token_ttl_secs),topic,factory);
     if (sessToken)
     {
         //! @todo critical: Log and chain errors
@@ -60,7 +60,7 @@ void LocalSessionController<ContextTraits>::createSession(
         callback(std::move(ctx),ec,{});
         return;
     }
-    auto refreshToken=tokenHandler()->makeToken(session.get(),auth_token::TokenType::Refresh,config().fieldValue(session_config::refresh_token_ttl_secs),topic,factory);
+    auto refreshToken=tokenHandler().makeToken(session.get(),auth_token::TokenType::Refresh,config().fieldValue(session_config::refresh_token_ttl_secs),topic,factory);
     if (refreshToken)
     {
         //! @todo critical: Log and chain errors
@@ -194,7 +194,7 @@ void LocalSessionController<ContextTraits>::checkSession(
     const common::pmr::AllocatorFactory* factory=ContextTraits::factory(ctx);
 
     // parse token
-    auto token=tokenHandler()->parseToken(sessionContent.get(),auth_token::TokenType::Session,factory);
+    auto token=tokenHandler().parseToken(sessionContent.get(),auth_token::TokenType::Session,factory);
     if (token)
     {
         //! @todo critical: Log and chain errors

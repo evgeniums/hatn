@@ -67,7 +67,7 @@ class HATN_SERVERAPP_EXPORT LocalSessionControllerBase : public HATN_BASE_NAMESP
 
         Error init(const crypt::CipherSuites* suites);
 
-        std::shared_ptr<SessionToken> tokenHandler() const
+        const SessionToken& tokenHandler() const
         {
             return m_tokenHandler;
         }
@@ -79,7 +79,7 @@ class HATN_SERVERAPP_EXPORT LocalSessionControllerBase : public HATN_BASE_NAMESP
 
     private:
 
-        std::shared_ptr<SessionToken> m_tokenHandler;
+        SessionToken m_tokenHandler;
         std::shared_ptr<SessionDbModels> m_sessionDbModels;
 };
 
