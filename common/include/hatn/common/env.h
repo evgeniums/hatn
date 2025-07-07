@@ -358,7 +358,7 @@ constexpr auto context(Args&&... args) noexcept
  * @param args Arguments to forward.
  */
 template <typename... Args>
-constexpr auto baseenv(Args&&... args) noexcept
+constexpr auto baseEnv(Args&&... args) noexcept
 {
     return std::forward_as_tuple(std::forward<Args>(args)...);
 }
@@ -375,7 +375,7 @@ constexpr auto contexts(Args&&... args) noexcept
 
 namespace detail {
 
-template <typename ...Types>
+template <template <typename ...> class EnvClass, typename ...Types>
 struct EnvTraits
 {
     constexpr static auto typeFn()
@@ -409,7 +409,7 @@ struct EnvTraits
         auto base=boost::hana::second(tc);
 
         // return actual type of Env
-        return boost::hana::template_<EnvT>(boost::hana::type_c<wrappersT>,base);
+        return boost::hana::template_<EnvClass>(boost::hana::type_c<wrappersT>,base);
     }
 
     using tupleC=decltype(typeFn());
@@ -418,8 +418,11 @@ struct EnvTraits
 
 }
 
+template <template <typename ...> class EnvClass,typename ...Types>
+using EnvTmpl=typename detail::EnvTraits<EnvClass,Types...>::type;
+
 template <typename ...Types>
-using Env=typename detail::EnvTraits<Types...>::type;
+using Env=EnvTmpl<EnvT,Types...>;
 
 template <typename Type>
 struct makeEnvTypeT
@@ -523,6 +526,106 @@ struct allocateEnvT
 };
 template <typename ...Types>
 constexpr allocateEnvT<Types...> allocateEnv{};
+
+/**
+ * @brief The WithEmbeddedEnvBase class
+ */
+template <typename EmbeddedEnvT>
+class WithEmbeddedEnvBase
+{
+    public:
+
+        WithEmbeddedEnvBase(common::SharedPtr<EmbeddedEnvT> env={}) : m_emddedEnv(std::move(env))
+        {}
+
+        void setEmbeddedEnv(common::SharedPtr<EmbeddedEnvT> env)
+        {
+            m_emddedEnv=std::move(env);
+        }
+
+        common::SharedPtr<EmbeddedEnvT> embeddedEnvShared() const noexcept
+        {
+            return m_emddedEnv;
+        }
+
+        const EmbeddedEnvT* embeddedEnv() const noexcept
+        {
+            return m_emddedEnv.get();
+        }
+
+        EmbeddedEnvT* embeddedEnv() noexcept
+        {
+            return m_emddedEnv.get();
+        }
+
+    private:
+
+        common::SharedPtr<EmbeddedEnvT> m_emddedEnv;
+};
+
+/**
+ * @brief The WithEmbeddedEnvT class
+ */
+template <typename EmbeddedEnvT, typename Contexts, typename BaseT=common::BaseEnv>
+class WithEmbeddedEnvT : public common::EnvT<Contexts,BaseT>,
+                         public WithEmbeddedEnvBase<EmbeddedEnvT>
+{
+    public:
+
+        using selfT=WithEmbeddedEnvT<EmbeddedEnvT,Contexts,BaseT>;
+        using baseT=common::EnvT<Contexts,BaseT>;
+
+        using common::EnvT<Contexts,BaseT>::EnvT;
+
+        template <typename T>
+        constexpr auto hasContext() const noexcept
+        {
+            const baseT* base=this;
+            auto typeC=hana::type_c<T>;
+
+            return hana::eval_if(
+                this->embeddedEnv()->template hasContext<T>(),
+                []()
+                {
+                    return hana::true_c;
+                },
+                [&](auto _)
+                {
+                    using type=typename std::decay_t<decltype(_(typeC))>::type;
+                    return _(base)->template hasContext<type>();
+                }
+            );
+        }
+
+        template <typename T>
+        const T& get() const noexcept
+        {
+            const auto* self=this;
+            const baseT* base=this;
+            auto typeC=hana::type_c<T>;
+
+            return hana::eval_if(
+                this->embeddedEnv()->template hasContext<T>(),
+                [&](auto _) -> decltype(auto)
+                {
+                    using type=typename std::decay_t<decltype(_(typeC))>::type;
+                    return _(self)->embeddedEnv()->template get<type>();
+                },
+                [&](auto _) -> decltype(auto)
+                {
+                    using type=typename std::decay_t<decltype(_(typeC))>::type;
+                    return _(base)->template get<type>();
+                }
+            );
+        }
+
+        template <typename T>
+        T& get() noexcept
+        {
+            auto constSelf=const_cast<const selfT*>(this);
+            return const_cast<T&>(constSelf->template get<T>());
+        }
+};
 
 HATN_COMMON_NAMESPACE_END
 
