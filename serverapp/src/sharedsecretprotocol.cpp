@@ -35,7 +35,7 @@ Error SharedSecretAuthBase::init(const crypt::CipherSuite* suite)
     //! @todo use validator for config
     if (config().fieldValue(auth_protocol_shared_secret_config::secret).empty())
     {
-        return common::genericError(_TR("Encryption secret for shared secret authentication must be not empty"));
+        return common::genericError(_TR("encryption secret for shared secret authentication must be not empty"));
     }
 
     return EncryptedToken::init(suite,config().fieldValue(auth_protocol_shared_secret_config::secret));

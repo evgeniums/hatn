@@ -97,12 +97,12 @@ class ClientWithSharedSecretAuthT : public ClientWithAuthT<RouterT,RequestContex
 
         const ClientAuthProtocolSharedSecret* sharedSecretAuth() const
         {
-            return &this->session()->template get<ClientAuthProtocolSharedSecret>();
+            return &this->session()->sessionImpl().template get<ClientAuthProtocolSharedSecret>();
         }
 
         ClientAuthProtocolSharedSecret* sharedSecretAuth()
         {
-            return &this->session()->template get<ClientAuthProtocolSharedSecret>();
+            return &this->session()->sessionImpl().template get<ClientAuthProtocolSharedSecret>();
         }
 };
 

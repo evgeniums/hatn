@@ -10,7 +10,8 @@
     "microservices" : [
         {
             "name": "microservice1",
-            "dispatcher": "hss_authdispatcher",
+            "dispatcher": "default",
+            "auth_dispatcher": "token_session",
             "microservice": {
                 "ip_address" : "127.0.0.1",
                 "port" : 53852
@@ -32,5 +33,22 @@
             }
         ],
         "default_cipher_suite" : "aes256gcm-sha256-secp256r1"
+    },
+
+    "auth" :
+    {
+        "hss" : {
+            "secret" : "shared_secret1"
+        },
+
+        "sessions" : {
+            "current_tag" : "tag1",
+            "tokens": [
+                {
+                   "tag" : "tag1",
+                   "secret" : "sessionsecret1"
+                }
+            ]
+        }
     }
 }

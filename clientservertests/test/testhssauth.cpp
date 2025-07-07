@@ -110,7 +110,7 @@ constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-auto createClient(ThreadQWithTaskContext* thread)
+auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
 {
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
     std::vector<client::IpHostName> hosts;
@@ -127,7 +127,7 @@ auto createClient(ThreadQWithTaskContext* thread)
 
     const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault();
 
-    auto cl=makePlainTcpClientWithAuthContext(
+    auto ctx=makePlainTcpClientWithAuthContext(
         subcontexts(
             subcontext(),
             subcontext(std::move(router),thread,factory),
@@ -135,7 +135,30 @@ auto createClient(ThreadQWithTaskContext* thread)
             subcontext()
         )
     );
-    return cl;
+
+    auto& client=ctx->get<PlainTcpClientWithAuth>();
+
+    auto sharedSecretAuth=client.sharedSecretAuth();
+    HATN_CRYPT_NAMESPACE::SecurePlainContainer sharedSecretContainer;
+    sharedSecretContainer.loadContent(sharedSecret);
+    sharedSecretAuth->setSharedSecret(std::move(sharedSecretContainer));
+
+    auto tokensUpdateCb=[](ByteArrayShared sessionToken,ByteArrayShared refreshToken)
+    {
+        HATN_TEST_MESSAGE_TS("In tokensUpdateCb");
+        if (!sessionToken.isNull())
+        {
+            HATN_TEST_MESSAGE_TS("Session token updated");
+        }
+        if (!refreshToken.isNull())
+        {
+            HATN_TEST_MESSAGE_TS("Refresh token updated");
+        }
+    };
+    auto session=client.session();
+    session->sessionImpl().setTokensUpdatedCb(std::move(tokensUpdateCb));
+
+    return ctx;
 }
 
 //---------------------------------------------------------------
@@ -206,6 +229,11 @@ class EnvWithAuth : public EnvWithAuthT
             return get<LocalSessionController<ContextTraits>>();
         }
 
+        auto& sessionController()
+        {
+            return get<LocalSessionController<ContextTraits>>();
+        }
+
         const auto& userController() const
         {
             return get<LocalUserController<ContextTraits>>();
@@ -265,24 +293,46 @@ struct EnvWithAuthConfigTraits
         auto allocator=f1->objectAllocator<Env>();
         auto env=allocateEnvType<Env>(
             allocator,
-            HATN_COMMON_NAMESPACE::contexts(
-                HATN_COMMON_NAMESPACE::context(std::make_shared<AuthProtocols>()),
-                HATN_COMMON_NAMESPACE::context(std::make_shared<SharedSecretAuthProtocol>()),
-                HATN_COMMON_NAMESPACE::context(),
-                HATN_COMMON_NAMESPACE::context(),
-                HATN_COMMON_NAMESPACE::context(std::move(sessionDbModels))
+            contexts(
+                context(std::make_shared<AuthProtocols>()),
+                context(std::make_shared<SharedSecretAuthProtocol>()),
+                context(),
+                context(),
+                context(std::move(sessionDbModels))
             ),
-            server::BasicEnvConfig::prepareCtorArgs(app)
+            context()
         );
+
+        // init
+        auto ec=server::BasicEnvConfig::initEnv(*env,app,configTree,configTreePath);
+        HATN_TEST_EC(ec)
+        HATN_CHECK_EC(ec)
 
         auto f2=env->get<AllocatorFactory>().factory();
         BOOST_REQUIRE_EQUAL(f1,f2);
 
-        // init
-        auto ec=server::BasicEnvConfig::initEnv(*env,configTree,configTreePath);
+        auto& hssProtocol=env->get<WithSharedSecretAuthProtocol>();
+
+        // load config for SharedSecretAuthProtocol
+        ec=hatn::loadLogConfig("configuration of shared secret authentication protocol",hssProtocol.value(),app.configTree(),"auth.hss");
+        HATN_TEST_EC(ec)
         HATN_CHECK_EC(ec)
 
-        //! @todo init AuthProtocols and SharedSecretAuthProtocol
+        // init SharedSecretAuthProtocol
+        const auto& cipherSuitesCtx=env->get<CipherSuites>();
+        ec=hssProtocol.value().init(cipherSuitesCtx.suites()->defaultSuite());
+        HATN_TEST_EC(ec)
+        HATN_CHECK_EC(ec)
+
+        // load config for session controller
+        ec=hatn::loadLogConfig("configuration of authentication sessions",env->sessionController(),app.configTree(),"auth.sessions");
+        HATN_TEST_EC(ec)
+        HATN_CHECK_EC(ec)
+
+        // init session controller
+        ec=env->sessionController().init(cipherSuitesCtx.suites());
+        HATN_TEST_EC(ec)
+        HATN_CHECK_EC(ec)
 
         // done
         return env;
@@ -347,7 +397,7 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     auto serviceDispatchers=std::make_shared<server::DispatchersStore<ServiceDispatcherType>>();
     serviceDispatchers->registerDispatcher("default",std::move(dispatcher));
 
-    // create suth dispatcher
+    // create auth dispatcher
     auto authDispatcher=std::make_shared<AuthDispatcherType>();
     auto authDispatchers=std::make_shared<server::DispatchersStore<AuthDispatcherType>>();
     authDispatchers->registerDispatcher("token_session",std::move(authDispatcher));
@@ -422,7 +472,8 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto clientCtx=createClient(clientThread.get());
+    std::string sharedSecret1{"shared_secret1"};
+    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));
     auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
     std::ignore=cl.exec({},[](auto ctx, const Error& ec, client::Response){},Service{"bbb"},Method{"aaa"},{});
 

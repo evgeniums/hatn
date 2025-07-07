@@ -56,6 +56,10 @@ ClientAuthProtocolSharedSecretImpl::ClientAuthProtocolSharedSecretImpl(const cry
           ),
     m_cipherSuites(cipherSuites)
 {
+    if (m_cipherSuites==nullptr)
+    {
+        m_cipherSuites=&crypt::CipherSuitesGlobal::instance();
+    }
 }
 
 //--------------------------------------------------------------------------
