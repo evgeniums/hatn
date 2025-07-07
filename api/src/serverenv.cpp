@@ -36,12 +36,11 @@ Result<common::SharedPtr<BasicEnv>> BasicEnvConfig::makeEnv(
     // allocate
     auto allocator=app.allocatorFactory().factory()->objectAllocator<BasicEnv>();
     auto env=common::allocateEnvType<BasicEnv>(
-        allocator,
-        prepareCtorArgs(app)
+        allocator
     );
 
     // init
-    auto ec=initEnv(*env,configTree,configTreePath);
+    auto ec=initEnv(*env,app,configTree,configTreePath);
     HATN_CHECK_EC(ec)
 
     // done

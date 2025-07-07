@@ -44,7 +44,7 @@ using Threads=common::WithMappedThreads;
 
 using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,CipherSuites,Translator>;
 
-class WithAppEnv : public common::TaskSubcontext
+class WithAppEnv
 {
     public:
 
@@ -71,10 +71,33 @@ class WithAppEnv : public common::TaskSubcontext
             return m_env.get();
         }
 
+        void setAppEnv(common::SharedPtr<AppEnv> env)
+        {
+            m_env=std::move(env);
+        }
+
+        common::SharedPtr<AppEnv> appEnvShared() const noexcept
+        {
+            return m_env;
+        }
+
+        const AppEnv* appEnv() const noexcept
+        {
+            return m_env.get();
+        }
+
+        AppEnv* appEnv() noexcept
+        {
+            return m_env.get();
+        }
+
     private:
 
         common::SharedPtr<AppEnv> m_env;
 };
+
+template <typename Contexts, typename BaseT=common::BaseEnv>
+using EnvWithAppEnvT = common::WithEmbeddedEnvT<AppEnv,Contexts,BaseT>;
 
 using AppEnvContext=common::TaskContextType<WithAppEnv,HATN_LOGCONTEXT_NAMESPACE::TaskLogContext>;
 

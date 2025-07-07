@@ -31,6 +31,7 @@
 #include <hatn/db/asyncclient.h>
 
 #include <hatn/app/appdefs.h>
+#include <hatn/app/appenv.h>
 
 #include <hatn/api/api.h>
 #include <hatn/api/protocol.h>
@@ -65,7 +66,8 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
     //! @todo protect with mutex
 };
 
-using BasicEnv = common::Env<AllocatorFactory,Threads,Logger,Db,ProtocolConfig>;
+// using BasicEnv = common::Env<AllocatorFactory,Threads,Logger,Db,ProtocolConfig>;
+using BasicEnv=common::EnvTmpl<HATN_APP_NAMESPACE::EnvWithAppEnvT,ProtocolConfig>;
 
 template <typename EnvT=BasicEnv>
 class WithEnv
@@ -111,12 +113,9 @@ struct HATN_API_EXPORT BasicEnvConfig
     template <typename EnvT>
     static Error initEnv(
         EnvT& env,
+        const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
-    );
-
-    static inline auto prepareCtorArgs(
-        const HATN_APP_NAMESPACE::App& app
     );
 };
 

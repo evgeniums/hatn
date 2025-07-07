@@ -32,13 +32,13 @@ namespace server {
 
 template <typename EnvT>
 Error BasicEnvConfig::initEnv(
-    EnvT& env,
-    const HATN_BASE_NAMESPACE::ConfigTree& configTree,
-    const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
+        EnvT& env,
+        const HATN_APP_NAMESPACE::App& app,
+        const HATN_BASE_NAMESPACE::ConfigTree& configTree,
+        const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
 {
-    //! @todo Setup server threads
-    //! @todo Copy db clients
+    env.setEmbeddedEnv(app.env());
 
     // load protocol configuration
     auto path=configTreePath.copyAppend("protocol");
@@ -54,19 +54,6 @@ Error BasicEnvConfig::initEnv(
 
     // done
     return OK;
-}
-
-//---------------------------------------------------------------
-
-inline auto BasicEnvConfig::prepareCtorArgs(const HATN_APP_NAMESPACE::App& app)
-{
-    return std::make_tuple(
-        std::make_tuple(app.allocatorFactory().factory()),
-        std::make_tuple(app.appThread()),
-        std::make_tuple(app.logger().loggerShared()),
-        std::make_tuple(),
-        std::make_tuple()
-    );
 }
 
 //---------------------------------------------------------------
