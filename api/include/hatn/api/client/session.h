@@ -132,6 +132,16 @@ class Session : public common::WithTraits<Traits>,
             return this->traits().loadLogConfig(configTree,configPath,records,settings);
         }
 
+        auto& sessionImpl()
+        {
+            return this->traits();
+        }
+
+        const auto& sessionImpl() const
+        {
+            return this->traits();
+        }
+
     private:
 
         SessionId m_id;
