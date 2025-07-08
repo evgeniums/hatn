@@ -83,42 +83,63 @@ class TextLogFormatterT : public TextLogFormatterBase
                 buf.append(ctx->mainCtx().name());
             }
 
+            auto addStack=[&](bool full)
+            {
+                // add scope stack
+                if (!ctx->scopeStack().empty())
+                {
+                    size_t maxIdx=0;
+                    if (!std::is_same<CloseT,hana::false_>::value)
+                    {
+                        maxIdx=ctx->lockScopeIdx();
+                        if (full || maxIdx==0)
+                        {
+                            maxIdx=ctx->scopeStack().size();
+                        }
+                        else
+                        {
+                            maxIdx=std::min(maxIdx,ctx->scopeStack().size());
+                        }
+                    }
+                    else
+                    {
+                        maxIdx=ctx->scopeStack().size();
+                    }
+
+                    buf.append(lib::string_view(" stack=\""));
+                    for (size_t i=0;i<maxIdx;i++)
+                    {
+                        const auto& scope=ctx->scopeStack().at(i);
+                        if (i!=0)
+                        {
+                            buf.append(lib::string_view("."));
+                        }
+                        buf.append(lib::string_view(scope.first));
+
+                        hana::eval_if(
+                            std::is_same<ErrorT,hana::false_>{},
+                            [](auto){},
+                            [&](auto _)
+                            {
+                                if (_(ec) && !common::StrEmpty(_(scope).second.error))
+                                {
+                                    _(buf).append(lib::string_view("("));
+                                    _(buf).append(lib::string_view(_(scope).second.error));
+                                    _(buf).append(lib::string_view(")"));
+                                }
+                            }
+                            );
+                    }
+                    buf.append(lib::string_view("\""));
+                }
+            };
+
             // check if it is a CLOSE request and add DONE with elapsed microseconds and api status if applicable
+            bool resetStacks=false;
             hana::eval_if(
                 std::is_same<CloseT,hana::false_>{},
                 [&](auto _){
-
-                    // add scope stack
-                    if (!_(ctx)->scopeStack().empty())
-                    {
-                        _(buf).append(lib::string_view(" stack=\""));
-                        size_t i=0;
-                        for (const auto& scope:_(ctx)->scopeStack())
-                        {
-                            if (i!=0)
-                            {
-                                _(buf).append(lib::string_view("."));
-                            }
-                            _(buf).append(lib::string_view(scope.first));
-
-                            hana::eval_if(
-                                std::is_same<ErrorT,hana::false_>{},
-                                [](auto){},
-                                [&](auto _)
-                                {
-                                    if (_(ec) && !common::StrEmpty(_(scope).second.error))
-                                    {
-                                        _(buf).append(lib::string_view("("));
-                                        _(buf).append(lib::string_view(_(scope).second.error));
-                                        _(buf).append(lib::string_view(")"));
-                                    }
-                                }
-                                );
-
-                            i++;
-                        }
-                        _(buf).append(lib::string_view("\""));
-                    }
+                    _(addStack)(true);
                 },
                 [&](auto _){
                     fmt::format_to(std::back_inserter(_(buf))," us={}",_(ctx)->mainCtx().finishMicroseconds());
@@ -143,8 +164,13 @@ class TextLogFormatterT : public TextLogFormatterBase
                         },
                         [](auto){}
                     );
-                    auto* c=const_cast<ContextT*>(_(ctx));
-                    c->resetStacks();
+                    _(resetStacks)=true;
+
+                    if (_(ec))
+                    {
+                        // add stack for error
+                        _(addStack)(false);
+                    }
                 }
             );
 
@@ -154,13 +180,17 @@ class TextLogFormatterT : public TextLogFormatterBase
                 [](auto){},
                 [&](auto _)
                 {
-                    _(buf).append(lib::string_view(" err="));
-                    _(ec).codeString(_(buf));
-                    if (_(ec).isType(common::Error::Type::Native))
+                    if (_(ec))
                     {
-                        _(buf).append(lib::string_view(" err_msg=\""));
-                        _(buf).append(_(ec).message());
-                        _(buf).append(lib::string_view("\""));
+                        _(buf).append(lib::string_view(" err="));
+                        _(ec).codeString(_(buf));
+                        if (_(ec).isType(common::Error::Type::Native))
+                        {
+                            _(buf).append(lib::string_view(" err_msg=\""));
+                            _(buf).append(_(ec).message());
+                            _(buf).append(lib::string_view("\""));
+                        }
+                        _(resetStacks)=false;
                     }
                 }
             );
@@ -178,6 +208,13 @@ class TextLogFormatterT : public TextLogFormatterBase
             {
                 buf.append(lib::string_view(" mdl="));
                 buf.append(module);
+            }
+
+            // reset stacks
+            if (resetStacks)
+            {
+                auto* c=const_cast<ContextT*>(ctx);
+                c->resetStacks();
             }
 
             // add context's fixed vars

@@ -363,6 +363,11 @@ inline Error chainAndLogError(Error&& prevEc, std::string message)
     return ec;
 }
 
+inline Error chainAndLogError(Error&& prevEc, const char* message)
+{
+    return chainAndLogError(std::move(prevEc),std::string{message});
+}
+
 inline Error chainAndLogError(Error&& prevEc, std::string message, const char* module)
 {
     auto ec=common::chainError(std::move(prevEc),std::move(message));

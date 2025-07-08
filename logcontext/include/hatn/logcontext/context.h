@@ -99,8 +99,9 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         using tagRecordT=std::pair<tagT,LogLevel>;
 
         ContextT()
-            :   m_currentScopeIdx(0),
+            :   m_currentScopeIdx(0),                
                 m_lockStack(false),
+                m_lockScopeIdx(0),
                 m_logLevel(LogLevel::Default),
                 m_enableStackLocking(true),
                 m_debugVerbosity(0),
@@ -134,6 +135,10 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             if (lockStack && m_enableStackLocking)
             {
                 m_lockStack=true;
+                if (m_lockScopeIdx==0)
+                {
+                    m_lockScopeIdx=m_currentScopeIdx;
+                }
             }
             auto* scopeCursor=currentScope();
             Assert(scopeCursor!=nullptr,"describeScopeError() forbidden in empty scope stack");
@@ -316,6 +321,10 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
             bool locked=m_lockStack;
             m_lockStack=enable;
+            if (m_lockScopeIdx==0)
+            {
+                m_lockScopeIdx=m_currentScopeIdx;
+            }
 
             // restore stack cursors to current scope
             if (locked)
@@ -386,6 +395,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         void resetStacks()
         {
             m_currentScopeIdx=0;
+            m_lockScopeIdx=0;
             m_scopeStack.clear();
             m_varStack.clear();
             m_barrierStack.clear();
@@ -473,6 +483,11 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             return m_logger;
         }
 
+        size_t lockScopeIdx() const noexcept
+        {
+            return m_lockScopeIdx;
+        }
+
     private:
 
         void restoreStackCursors()
@@ -489,12 +504,14 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 {
                     m_varStack.clear();
                 }
+                m_lockScopeIdx=0;
             }
         }
 
         size_t m_currentScopeIdx;
         bool m_lockStack;
-        LogLevel m_logLevel;        
+        size_t m_lockScopeIdx;
+        LogLevel m_logLevel;
 
         HATN_COMMON_NAMESPACE::VectorOnStack<scopeCursorT,config::ScopeDepth> m_scopeStack;
         HATN_COMMON_NAMESPACE::VectorOnStack<recordT,config::VarStackSize> m_varStack;
@@ -638,6 +655,25 @@ HATN_COMMON_NAMESPACE_END
             HATN_CTX_SCOPE_ERROR(msg) \
         return ec; \
     }
+
+#define HATN_CTX_CHECK_EC_LOG(ec,msg) \
+    if (ec) \
+    { \
+            HATN_CTX_IF() \
+                HATN_CTX_SCOPE_LOCK() \
+                HATN_CTX_ERROR(ec,msg) \
+            return ec; \
+    }
+
+#define HATN_CTX_CHECK_EC_LOG_MSG(ec,msg) \
+    if (ec) \
+    { \
+            HATN_CTX_IF() \
+                HATN_CTX_SCOPE_ERROR(msg) \
+                HATN_CTX_ERROR(ec,"") \
+            return ec; \
+    }
+
 
 #define HATN_CTX_STACK_BARRIER_ON(Name) \
     HATN_CTX_IF() \
