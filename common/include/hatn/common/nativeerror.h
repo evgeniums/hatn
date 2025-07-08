@@ -87,6 +87,17 @@ class HATN_COMMON_EXPORT NativeError
                 m_apiError(std::in_place,apiCode,apiCat)
         {}
 
+        NativeError(
+            ApiError apiError,
+            const ErrorCategory* cat
+        ) : m_category(cat),
+            m_systemCategory(nullptr),
+            m_boostCategory(nullptr),
+            m_apiError(std::move(apiError))
+        {
+            m_nativeCode=m_apiError->code();
+        }
+
         virtual ~NativeError();
         NativeError(const NativeError&)=default;
         NativeError(NativeError&&) =default;

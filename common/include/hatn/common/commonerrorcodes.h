@@ -52,6 +52,7 @@
     Do(CommonError,INVALID_FORMAT,_TR("invalid data format","common")) \
     Do(CommonError,GENERIC_ERROR,_TR("generic error","common")) \
     Do(CommonError,CONFIGURATION_ERROR,_TR("configuration error","common")) \
+    Do(CommonError,SERVER_API_ERROR,_TR("server responded with an error","common")) \
 
 HATN_COMMON_NAMESPACE_BEGIN
 

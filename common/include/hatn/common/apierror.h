@@ -52,7 +52,12 @@ class HATN_COMMON_EXPORT ApiError
 
         constexpr static const char* DefaultStatus="success";
 
-        ApiError(int code, const ApiErrorCategory* cat=nullptr)
+        template <typename T>
+        ApiError(T code=0, const ApiErrorCategory* cat=nullptr)
+            : ApiError(static_cast<int>(code),cat)
+        {}
+
+        ApiError(int code=0, const ApiErrorCategory* cat=nullptr)
             : m_cat(cat),
               m_code(code),
               m_nestedMessage(false)
@@ -140,6 +145,11 @@ class HATN_COMMON_EXPORT ApiError
         const std::string& dataType() const noexcept
         {
             return m_dataType;
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_code==0;
         }
 
     private:
