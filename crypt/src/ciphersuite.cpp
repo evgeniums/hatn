@@ -646,7 +646,7 @@ Error CipherSuites::setDefaultSuite(lib::string_view suiteId)
         return cryptError((CryptError::INVALID_CIPHER_SUITE));
     }
 
-    m_defaultSuite=std::move(s);
+    setDefaultSuite(std::move(s));
     return OK;
 }
 
