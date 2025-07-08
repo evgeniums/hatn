@@ -19,6 +19,7 @@
 #define HATNCRYPTERROR_H
 
 #include <hatn/common/error.h>
+#include <hatn/common/nativeerror.h>
 #include <hatn/common/fixedbytearray.h>
 
 #include <hatn/crypt/crypt.h>
@@ -152,9 +153,7 @@ inline Error cryptError(CryptError code) noexcept
  */
 inline Error cryptError(CryptError code, Error ec) noexcept
 {
-    //! @todo Implement cryptError from other error
-    std::ignore=ec;
-    return Error(code,&CryptErrorCategory::getCategory());
+    return common::chainErrors(std::move(ec),Error(code,&CryptErrorCategory::getCategory()));
 }
 
 HATN_CRYPT_NAMESPACE_END
