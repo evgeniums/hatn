@@ -76,12 +76,11 @@ TcpStreamTraits::TcpStreamTraits(TcpStream *stream):
 //---------------------------------------------------------------
 void TcpStreamTraits::cancel()
 {
-    HATN_CTX_SCOPE("tcpstreamcancel")
-
     boost::system::error_code ec;
     rawSocket().cancel(ec);
     if (ec)
     {
+        HATN_CTX_SCOPE("tcpstreamcancel")
         HATN_CTX_WARN_RECORDS_M("failed to cancel TCP socket",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
     }
 }

@@ -31,16 +31,38 @@
 #include <hatn/dataunit/visitors.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/apiliberror.h>
 #include <hatn/api/requestunit.h>
 #include <hatn/api/protocol.h>
 #include <hatn/api/authprotocol.h>
 #include <hatn/api/server/serverresponse.h>
 #include <hatn/api/server/env.h>
 #include <hatn/api/service.h>
+#include <hatn/api/makeapierror.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
+
+struct ResponseError
+{
+    protocol::ResponseStatus status=protocol::ResponseStatus::InternalServerError;
+    common::ApiError apiError;
+    const common::ApiError* apiErrorPtr=nullptr;
+
+    ResponseError(protocol::ResponseStatus status, const common::ApiError* apiErrorPtr)
+        : status(status), apiErrorPtr(apiErrorPtr)
+    {}
+
+    ResponseError(protocol::ResponseStatus status, common::ApiError apiError)
+        : status(status), apiError(std::move(apiError)), apiErrorPtr(&this->apiError)
+    {}
+
+    const common::ApiError* actualApiError() const
+    {
+        return apiErrorPtr;
+    }
+};
 
 template <typename EnvT=BasicEnv, typename RequestUnitT=protocol::request::type>
 struct Request : public common::TaskSubcontext
@@ -56,7 +78,8 @@ struct Request : public common::TaskSubcontext
           routed(false),
           closeConnection(false),
           requestThread(nullptr),
-          translator(nullptr)
+          translator(nullptr),
+          complete(false)
     {
         requestBuf.setUseInlineBuffers(true);
     }
@@ -80,6 +103,57 @@ struct Request : public common::TaskSubcontext
     du::ObjectId sessionClienttId;
 
     const common::Translator* translator;
+
+    Error error;
+    lib::optional<ResponseError> responseError;
+    bool complete;
+
+    void setResponseError(Error ec, protocol::ResponseStatus status=protocol::ResponseStatus::InternalServerError, bool overrideRespError=false)
+    {
+        if (error)
+        {
+            error=common::chainErrors(std::move(error),std::move(ec));
+        }
+        else
+        {
+            error=std::move(ec);
+        }
+
+        if (!responseError || overrideRespError)
+        {
+            responseError=ResponseError{status,error.apiError()};
+        }
+    }
+
+    void setResponseError(Error ec, common::ApiError apiError, protocol::ResponseStatus status=protocol::ResponseStatus::InternalServerError, bool overrideRespError=false)
+    {
+        if (ec)
+        {
+            auto apiErrEc=cloneApiError(std::move(apiError),ApiLibError::SERVER_RESPONDED_WITH_ERROR,&ApiLibErrorCategory::getCategory());
+            auto nextEc=common::chainErrors(std::move(ec),std::move(apiErrEc));
+            setResponseError(std::move(nextEc),status,overrideRespError);
+        }
+        else
+        {
+            setResponseError(std::move(apiError),status,overrideRespError);
+        }
+    }
+
+    void setResponseError(common::ApiError apiError, protocol::ResponseStatus status=protocol::ResponseStatus::ExecFailed, bool overrideRespError=false)
+    {
+        if (!responseError || overrideRespError)
+        {
+            responseError=ResponseError{status,std::move(apiError)};
+        }
+    }
+
+    void setResponseError(protocol::ResponseStatus status, bool overrideRespError=false)
+    {
+        if (!responseError || overrideRespError)
+        {
+            responseError=ResponseError{status,error.apiError()};
+        }
+    }
 
     common::ThreadQWithTaskContext* thread() const
     {
@@ -168,11 +242,7 @@ struct Request : public common::TaskSubcontext
         return ServiceNameAndVersion{unit};
     }
 
-    void close(const Error& ec)
-    {
-        // flush request's logs
-        HATN_CTX_CLOSE_API(ec,"API EXEC")
-    }
+    void close(const Error& ec);
 
     Request& request()
     {
@@ -200,6 +270,8 @@ struct Request : public common::TaskSubcontext
     {
         return envContext<AllocatorFactory>().factory();
     }
+
+    void setResponseStatus();
 };
 
 template <typename RequestT=Request<>>

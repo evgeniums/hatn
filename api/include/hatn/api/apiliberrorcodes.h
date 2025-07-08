@@ -34,7 +34,7 @@
     Do(ApiLibError,FAILED_SERIALIZE_REQUEST,_TR("failed to serialize request","api")) \
     Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE,_TR("failed to deserialize response","api")) \
     Do(ApiLibError,FAILED_DESERIALIZE_RESPONSE_ERROR,_TR("failed to deserialize response error","api")) \
-    Do(ApiLibError,SERVER_RESPONDED_WITH_ERROR,_TR("server responded with error","api")) \
+    Do(ApiLibError,SERVER_RESPONDED_WITH_ERROR,_TR("server responded with an error","api")) \
     Do(ApiLibError,SERVER_CLOSED,_TR("server closed during request","api")) \
     Do(ApiLibError,CONNECTION_CLOSED,_TR("connection was closed during request","api")) \
     Do(ApiLibError,FORCE_CONNECTION_CLOSE,_TR("connection was forced to close","api")) \
@@ -51,10 +51,6 @@
     Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
     Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
-    Do(ApiLibError,AUTH_PROTOCOL_UNKNOWN,_TR("unknown authentication protocol","clientserver")) \
-    Do(ApiLibError,AUTH_MISSING,_TR("missing authentication in request","clientserver")) \
-    Do(ApiLibError,AUTH_HEADER_FORMAT,_TR("invalid format of authentication header","clientserver")) \
-
 
 HATN_API_NAMESPACE_BEGIN
 

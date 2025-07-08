@@ -16,6 +16,9 @@
 #ifndef HATNENCRYPTEDTOKEN_IPP
 #define HATNENCRYPTEDTOKEN_IPP
 
+#include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/context.h>
+
 #include <hatn/crypt/cryptcontainer.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -36,18 +39,20 @@ Error EncryptedToken::serializeToken(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("encrypttoken::serialize")
+
     // serialize token
     Error ec;
     du::WireBufSolid buf{factory};
     du::io::serialize(token,buf,ec);
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
+    HATN_CTX_CHECK_EC_LOG_MSG(ec,"failed to serialize token")
 
     // encrypt token
-    return encrypt(buf.mainContainer(),encryptedToken);
+    ec=encrypt(buf.mainContainer(),encryptedToken);
+    HATN_CHECK_EC(ec)
+
+    // done
+    return OK;
 }
 
 //--------------------------------------------------------------------------
@@ -58,23 +63,17 @@ Result<common::SharedPtr<TokenT>> EncryptedToken::parseToken(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("encrypttoken::parse")
+
     // decrypt token
     du::WireBufSolid buf{factory};
     auto ec=decrypt(encryptedToken,*buf.mainContainer());
-    if (ec)
-    {
-        //! @todo critical: chain and log error
-        return ec;
-    }
+    HATN_CTX_CHECK_EC_LOG_MSG(ec,"failed to decrypt token")
 
     // deserialize token
     auto token=factory->createObject<TokenT>();
     du::io::deserialize(*token,buf,ec);
-    if (ec)
-    {
-        //! @todo critical: chain and log error        
-        return ec;
-    }
+    HATN_CTX_CHECK_EC_LOG_MSG(ec,"failed to deserialize token")
 
     // done
     return token;

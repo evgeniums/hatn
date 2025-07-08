@@ -5,7 +5,7 @@
 
     "logger" : {
         "name" : "streamlogger",
-        "level" : "TRACE"
+        "level" : "INFO"
     },
 
     "microservices" : [

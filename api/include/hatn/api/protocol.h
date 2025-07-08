@@ -29,19 +29,19 @@
 #include <hatn/api/apiconstants.h>
 
 #define HATN_API_RESPONSE_STATUS(Do) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,Success,_TR("success","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,AuthError,_TR("authentification error","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,InternalServerError,_TR("internal server error","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,FormatError,_TR("invalid data format","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ValidationError,_TR("data validation failed","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RoutingError,_TR("cannot route request","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RequestTooBig,_TR("size of request is too big","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,UnknownMethod,_TR("unknown method of request","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,InvalidMessageType,_TR("invalid type of message in request","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,MessageMissing,_TR("missing message in request","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ExecFailed,_TR("failed to execute request","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,RetryLater,_TR("server not ready to process the request, please retry later","api_protocol",translator)) \
-    Do(HATN_API_NAMESPACE::protocol::ResponseStatus,ForeignServerFailed,_TR("could not forward request to foreign server, please retry later","api_protocol",translator))
+    Do(ApiResponseStatus,Success,_TR("success","api_protocol",translator)) \
+    Do(ApiResponseStatus,AuthError,_TR("authentification error","api_protocol",translator)) \
+    Do(ApiResponseStatus,InternalServerError,_TR("internal server error","api_protocol",translator)) \
+    Do(ApiResponseStatus,FormatError,_TR("invalid data format","api_protocol",translator)) \
+    Do(ApiResponseStatus,ValidationError,_TR("data validation failed","api_protocol",translator)) \
+    Do(ApiResponseStatus,RoutingError,_TR("cannot route request","api_protocol",translator)) \
+    Do(ApiResponseStatus,RequestTooBig,_TR("size of request is too big","api_protocol",translator)) \
+    Do(ApiResponseStatus,UnknownMethod,_TR("unknown method of request","api_protocol",translator)) \
+    Do(ApiResponseStatus,InvalidMessageType,_TR("invalid type of message in request","api_protocol",translator)) \
+    Do(ApiResponseStatus,MessageMissing,_TR("missing message in request","api_protocol",translator)) \
+    Do(ApiResponseStatus,ExecFailed,_TR("failed to execute request","api_protocol",translator)) \
+    Do(ApiResponseStatus,RetryLater,_TR("server not ready to process the request, please retry later","api_protocol",translator)) \
+    Do(ApiResponseStatus,ForeignServerFailed,_TR("could not forward request to foreign server, please retry later","api_protocol",translator))
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -116,7 +116,7 @@ enum class ResponseStatus : int
 };
 
 constexpr const char* const ResponseStatusStrings[] = {
-    HATN_API_RESPONSE_STATUS(HATN_ERROR_STR)
+    HATN_API_RESPONSE_STATUS(HATN_PLAIN_ERROR_STR)
 };
 
 inline const char* responseStatusString(ResponseStatus status)
@@ -124,7 +124,9 @@ inline const char* responseStatusString(ResponseStatus status)
     return errorString(status,ResponseStatusStrings);
 }
 
-}
+} // namespace protocol
+
+using ApiResponseStatus=protocol::ResponseStatus;
 
 HATN_API_NAMESPACE_END
 

@@ -23,6 +23,7 @@ SET (HEADERS
     include/hatn/api/genericerror.h
     include/hatn/api/makeapierror.h
     include/hatn/api/authprotocol.h
+    include/hatn/api/autherror.h
 )
 
 SET (HEADERS
@@ -75,6 +76,7 @@ SET (IPP_HEADERS
     include/hatn/api/ipp/auth.ipp
     include/hatn/api/ipp/methodauth.ipp
     include/hatn/api/ipp/serverservice.ipp
+    include/hatn/api/ipp/serverrequest.ipp
     include/hatn/api/ipp/serverresponse.ipp
     include/hatn/api/ipp/makeapierror.ipp
     include/hatn/api/ipp/networkmicroservice.ipp
@@ -96,6 +98,7 @@ SET (SOURCES
     src/microservice.cpp
     src/serverenv.cpp
     src/clientsession.cpp
+    src/autherror.cpp
 )
 
 BUILD_HATN_MODULE()

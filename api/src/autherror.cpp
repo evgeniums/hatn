@@ -10,43 +10,43 @@
 /*
 
 */
-/** @file api/genericerror.сpp
+/** @file api/autherror.сpp
   */
 
 #include <hatn/common/translate.h>
 
-#include <hatn/api/genericerror.h>
+#include <hatn/api/autherror.h>
 
 HATN_API_NAMESPACE_BEGIN
 
-/********************** ApiGenericErrorCategory **************************/
+/********************** ApiAuthErrorCategory **************************/
 
 //---------------------------------------------------------------
-const ApiGenericErrorCategory& ApiGenericErrorCategory::getCategory() noexcept
+const ApiAuthErrorCategory& ApiAuthErrorCategory::getCategory() noexcept
 {
-    static ApiGenericErrorCategory inst;
+    static ApiAuthErrorCategory inst;
     return inst;
 }
 
 //---------------------------------------------------------------
-std::string ApiGenericErrorCategory::message(int code,const common::Translator* translator) const
+std::string ApiAuthErrorCategory::message(int code,const common::Translator* translator) const
 {
     std::string result;
     switch (code)
     {
-        HATN_API_RESPONSE_STATUS(HATN_ERROR_MESSAGE)
+        HATN_API_AUTH_ERRORS(HATN_ERROR_MESSAGE)
 
         default:
-            result=_TR("unknown error","generic",translator);
+            result=_TR("unknown error","auth",translator);
     }
 
     return result;
 }
 
 //---------------------------------------------------------------
-const char* ApiGenericErrorCategory::status(int code) const
+const char* ApiAuthErrorCategory::status(int code) const
 {
-    return errorString(code,protocol::ResponseStatusStrings);
+    return errorString(code,ApiAuthErrorStrings);
 }
 
 //---------------------------------------------------------------

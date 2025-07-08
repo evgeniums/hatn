@@ -16,6 +16,8 @@
 #ifndef HATNSERVERAUTHSERVICE_IPP
 #define HATNSERVERAUTHSERVICE_IPP
 
+#include <hatn/api/autherror.h>
+
 #include <hatn/clientserver/auth/defaultauth.h>
 
 #include <hatn/serverapp/auth/authprotocols.h>
@@ -35,6 +37,8 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
         common::SharedPtr<Message> msg
     ) const
 {
+    HATN_CTX_SCOPE("authnegotiatemethod")
+
     auto& req=serverapi::request<Request>(request).request();
 
     // negotiate auth protocol
@@ -42,8 +46,7 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
     auto proto=protocols->negotiate(msg.get());
     if (proto)
     {
-        //! @todo critical: log error
-        req.response.setStatus(api::protocol::ResponseStatus::AuthError,clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+        req.setResponseError(proto.takeError(),apiAuthError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED),api::protocol::ResponseStatus::AuthError);
         callback(std::move(request));
         return;
     }
@@ -55,20 +58,16 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
     const auto& hssProtocol=req.template envContext<WithSharedSecretAuthProtocol>();
     if (proto->is(*hssProtocol))
     {
-        auto cb=[callback=std::move(callback)](auto request, const Error& ec, common::SharedPtr<auth_negotiate_response::managed> message)
+        auto cb=[callback=std::move(callback)](auto request, Error ec, common::SharedPtr<auth_negotiate_response::managed> message)
         {
             auto& req=serverapi::request<Request>(request).request();
-            //! @todo critical: chain and log error
-            //! @todo check if it is internal error or invalid login data
             if (ec)
             {
-                req.response.setStatus(api::protocol::ResponseStatus::AuthError,ec);
+                req.setResponseError(std::move(ec),api::protocol::ResponseStatus::InternalServerError);
             }
             else
             {
-                //! @todo set category?
-                req.response.unit.field(api::protocol::response::message).set(std::move(message));
-                req.response.setStatus();
+                req.response.setSuccessMessage(std::move(message));
             }
             callback(std::move(request));
         };
@@ -82,8 +81,7 @@ void AuthNegotiateMethodImpl<RequestT>::exec(
         return;
     }
 
-    //! @todo critical: log error
-    req.response.setStatus(api::protocol::ResponseStatus::AuthError,clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+    req.setResponseError(apiAuthError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED),api::protocol::ResponseStatus::AuthError);
     callback(std::move(request));
     return;
 }

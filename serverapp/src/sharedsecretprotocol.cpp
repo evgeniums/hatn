@@ -30,7 +30,9 @@ HATN_SERVERAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-Error SharedSecretAuthBase::init(const crypt::CipherSuite* suite)
+Error SharedSecretAuthBase::init(
+        const crypt::CipherSuite* suite
+    )
 {
     //! @todo use validator for config
     if (config().fieldValue(auth_protocol_shared_secret_config::secret).empty())
@@ -48,6 +50,8 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("sharedsecretauth::preparechallenge")
+
     // prepare response
     auto response=factory->createObject<auth_negotiate_response::managed>();
 
@@ -60,18 +64,15 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     auto randGen=m_suite->suites()->randomGenerator();
     if (randGen==nullptr)
     {
-        return crypt::cryptError(crypt::CryptError::RANDOM_GENERATOR_NOT_DEFINED);
+        auto ec=crypt::cryptError(crypt::CryptError::RANDOM_GENERATOR_NOT_DEFINED);
+        HATN_CTX_CHECK_EC_LOG(ec,"invalid random generator")
     }
 
     auto challenge=factory->createObject<auth_hss_challenge::managed>();
     auto& challengeField=challenge->field(auth_hss_challenge::challenge);
     auto* challengeBuf=challengeField.buf(true);
     auto ec=randGen->randContainer(*challengeBuf,config().fieldValue(auth_protocol_shared_secret_config::max_challenge_size),config().fieldValue(auth_protocol_shared_secret_config::min_challenge_size));
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
+    HATN_CTX_CHECK_EC_MSG(ec,"failed to generate challenge")
     challenge->setFieldValue(auth_hss_challenge::cipher_suite,m_suite->id());
 
     // fill token
@@ -92,11 +93,7 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     auto& tokenField=response->field(auth_protocol_response::token);
     auto* tokenBuf=tokenField.buf(true);
     ec=serializeToken(token,*tokenBuf,factory);
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
+    HATN_CHECK_EC(ec)
 
     // done
     response->field(auth_protocol_response::message).set(std::move(challenge));

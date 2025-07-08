@@ -60,15 +60,27 @@ void SessionAuthProtocol<EnvT,RequestT>::invoke(
     if (ec)
     {
         HATN_CTX_SCOPE_ERROR("failed to parse auth field content")
-        req.response.setStatus(api::protocol::ResponseStatus::AuthError,api::apiLibError(api::ApiLibError::AUTH_HEADER_FORMAT));
+        req.setResponseError(std::move(ec),api::apiAuthError(api::ApiAuthError::AUTH_HEADER_FORMAT),api::protocol::ResponseStatus::AuthError);
         callback(std::move(reqCtx));
         return;
     }
 
     // define check session callback
-    auto cb=[](auto ctx, const Error& ec, common::SharedPtr<auth_token::managed> response)
+    auto cb=[callback=std::move(callback)](auto ctx, Error ec, common::SharedPtr<auth_token::managed> response)
     {
-        //! @todo critical: implement response
+        HATN_CTX_SCOPE("sessionauthprotocol.checksessioncb")
+
+        auto& req=serverapi::request<Request>(ctx).request();
+        if (ec)
+        {
+            HATN_CTX_SCOPE_ERROR("failed to check session")
+            req.setResponseError(std::move(ec),api::protocol::ResponseStatus::AuthError);
+        }
+        else
+        {
+            req.response.setSuccessMessage(std::move(response));
+        }
+        callback(std::move(ctx));
     };
 
     // check session

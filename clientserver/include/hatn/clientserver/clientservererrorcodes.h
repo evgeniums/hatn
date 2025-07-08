@@ -42,7 +42,6 @@
     Do(ClientServerError,INVALID_LOGIN_FORMAT,_TR("invalid format of login","clientserver")) \
     Do(ClientServerError,ACCESS_DENIED,_TR("access denied","clientserver")) \
 
-
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 //! Error codes of hatnclientServer lib.

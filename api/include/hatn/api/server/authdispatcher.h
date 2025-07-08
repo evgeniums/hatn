@@ -21,6 +21,7 @@
 
 #include <hatn/api/api.h>
 #include <hatn/api/apiliberror.h>
+#include <hatn/api/autherror.h>
 #include <hatn/api/server/servicedispatcher.h>
 
 HATN_API_NAMESPACE_BEGIN
@@ -67,7 +68,7 @@ class AuthDispatcherT : public common::Env<AuthProtocols...>
             const auto& authField=req.authField();
             if (!authField.isSet() || req.authMessage().isNull())
             {
-                req.response.setStatus(protocol::ResponseStatus::AuthError,apiLibError(ApiLibError::AUTH_MISSING));
+                req.setResponseError(apiAuthError(ApiAuthError::AUTH_MISSING),protocol::ResponseStatus::AuthError);
                 callback(std::move(reqCtx));
                 return;
             }
@@ -85,7 +86,7 @@ class AuthDispatcherT : public common::Env<AuthProtocols...>
             auto found=this->visitIf(visitor,selector);
             if (!found)
             {
-                req.response.setStatus(protocol::ResponseStatus::AuthError,apiLibError(ApiLibError::AUTH_PROTOCOL_UNKNOWN));
+                req.setResponseError(apiAuthError(ApiAuthError::AUTH_PROTOCOL_UNKNOWN),protocol::ResponseStatus::AuthError);
                 callback(std::move(reqCtx));
             }
         }

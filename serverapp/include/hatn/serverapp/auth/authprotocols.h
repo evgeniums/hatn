@@ -19,6 +19,8 @@
 #include <hatn/common/flatmap.h>
 #include <hatn/common/withsharedvalue.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/clientserver/clientservererror.h>
 
 #include <hatn/serverapp/serverappdefs.h>
@@ -55,6 +57,13 @@ class AuthProtocols
                 const auth_negotiate_request::managed* message
             ) const
         {
+            HATN_CTX_SCOPE("authprotocols::negotiate")
+            HATN_CTX_PUSH_FIXED_VAR("login",message->fieldValue(auth_negotiate_request::login))
+            if (!message->fieldValue(auth_negotiate_request::topic).empty())
+            {
+                HATN_CTX_PUSH_FIXED_VAR("login_topic",message->fieldValue(auth_negotiate_request::topic))
+            }
+
             uint32_t priority=0;
             AuthProtocol p;
             const AuthProtocol* proto=nullptr;
@@ -96,12 +105,16 @@ class AuthProtocols
                 }
             }
 
+#if 0
             // failed to negotiate protocol
             if (proto==nullptr)
             {
                 return clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
             }
-
+#else
+            //! @todo use config mode to force negotation
+            proto=&m_defaultProtocol;
+#endif
             //! @todo negotiate session auth
 
             // protocol negotiated

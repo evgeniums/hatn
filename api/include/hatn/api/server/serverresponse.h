@@ -63,12 +63,18 @@ struct Response
         return unit.fieldValue(protocol::response::status);
     }
 
-    Error serialize();
-
-    void setStatus(protocol::ResponseStatus status=protocol::ResponseStatus::Success, const Error& ec=Error{});
+    Error serialize();    
 
     template <typename MessageT>
     void setSuccessMessage(MessageT msg);
+    void setSuccess();
+
+    private:
+
+        void setStatus(protocol::ResponseStatus status=protocol::ResponseStatus::Success, const common::ApiError* apiError=nullptr);
+
+        template <typename EnvT1, typename RequestUnitT1>
+        friend struct Request;
 };
 
 } // namespace server

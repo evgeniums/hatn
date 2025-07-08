@@ -20,6 +20,7 @@
 #define HATNAPIMAKEAPIERROR_H
 
 #include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/apierror.h>
 
 #include <hatn/api/api.h>
 
@@ -50,10 +51,18 @@ struct makeApiErrorT
                        ) const
     {
         Assert(ec.category()!=nullptr,"Can be used only for errors of ErrorCategory category");
-        return makeApiErrorT{}(ec.code(),ec,ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
+        return makeApiErrorT{}(ec.code(),ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
     }
 };
 constexpr makeApiErrorT makeApiError{};
+
+template <typename ErrCodeT, typename ErrorCatergoryT>
+inline Error cloneApiError(common::ApiError apiErr, ErrCodeT code=CommonError::SERVER_API_ERROR, const ErrorCatergoryT* cat=&common::CommonErrorCategory::getCategory())
+{
+    auto native=std::make_shared<common::NativeError>(std::move(apiErr),cat);
+    auto ec=Error{code,std::move(native)};
+    return ec;
+}
 
 HATN_API_NAMESPACE_END
 

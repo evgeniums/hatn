@@ -204,24 +204,24 @@ void LocalSessionController<ContextTraits>::checkSession(
     }
 
     // check if session exists and active
-    auto checkSess=[dbModels=sessionDbModels()](auto&& checkCanLogin, auto ctx, auto callback, common::SharedPtr<auth_token::managed> token)
+    auto checkSess=[dbModels=sessionDbModels()](auto&& checkCanLogin, auto reqCtx, auto callback, common::SharedPtr<auth_token::managed> token)
     {
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
-        auto cb=[checkCanLogin=std::move(checkCanLogin),callback=std::move(callback),token=std::move(token)](auto ctx, auto foundSessObj) mutable
+        auto cb=[checkCanLogin=std::move(checkCanLogin),callback=std::move(callback),token=std::move(token),reqCtx](auto, auto foundSessObj) mutable
         {
             if (foundSessObj)
             {
                 //! @todo critical: Log and chain errors
                 auto ec=foundSessObj.takeError();
-                callback(std::move(ctx),ec,{});
+                callback(std::move(reqCtx),ec,{});
                 return;
             }
 
             if (!foundSessObj.value()->fieldValue(session::active))
             {
                 auto ec=HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_SESSION_INVALID);
-                callback(std::move(ctx),ec,{});
+                callback(std::move(reqCtx),ec,{});
                 return;
             }
 
@@ -229,17 +229,17 @@ void LocalSessionController<ContextTraits>::checkSession(
             {
                 //! @todo critical: Log and chain errors
                 auto ec=HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_SESSION_INVALID);
-                callback(std::move(ctx),ec,{});
+                callback(std::move(reqCtx),ec,{});
                 return;
             }
 
-            checkCanLogin(std::move(ctx),std::move(callback),foundSessObj.takeValue(),std::move(token));
+            checkCanLogin(std::move(reqCtx),std::move(callback),foundSessObj.takeValue(),std::move(token));
         };
 
-        const db::AsyncDb& asyncDb=ContextTraits::db(ctx);
+        const db::AsyncDb& asyncDb=ContextTraits::db(reqCtx);
         const auto& dbClient=asyncDb.dbClient(topic);
         dbClient->read(
-            std::move(ctx),
+            std::move(reqCtx),
             std::move(cb),
             topic,
             dbModels->sessionModel(),

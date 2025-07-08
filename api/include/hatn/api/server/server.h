@@ -158,7 +158,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                     {
                         //! @todo Detect HTTP request and optionally redirect to some URL or send http-response
 
-                        req.response.setStatus(protocol::ResponseStatus::RequestTooBig);
+                        req.setResponseError(protocol::ResponseStatus::RequestTooBig);
                         sendResponse(std::move(ctx),std::move(reqCtx),connection);
                         return;
                     }
@@ -186,7 +186,8 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                             auto ec1=req.parseMessage();
                             if (ec1)
                             {
-                                req.response.setStatus(protocol::ResponseStatus::FormatError,ec1);
+                                HATN_CTX_SCOPE_ERROR("failed to parse message")
+                                req.setResponseError(std::move(ec1),protocol::ResponseStatus::FormatError);
                                 sendResponse(std::move(ctx),std::move(reqCtx),connection);
                                 return;
                             }
@@ -321,13 +322,15 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             m_dispatcher->dispatch(std::move(reqCtx),
                                    [wCtx{std::move(wCtx)},self{std::move(self)},this,&connection](common::SharedPtr<RequestContext<Request>> reqCtx)
                 {
+                    auto& req=reqCtx->template get<Request>();
+                    req.complete=true;
+
                     HATN_CTX_SCOPE("apidispatchcb")
                     if (m_closed)
                     {
                        closeRequest(reqCtx,apiLibError(ApiLibError::SERVER_CLOSED));
                        return;
                     }
-                    auto& req=reqCtx->template get<Request>();
 
                     // check if connection was destroyed
                     auto ctx=wCtx.lock();
@@ -366,13 +369,14 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                 return;
             }
             auto& req=reqCtx->template get<Request>();
+            req.setResponseStatus();
 
             // serialize response
             auto ec=req.response.serialize();
             if (ec)
             {
                 HATN_CTX_ERROR(ec,"failed to serialize response")
-                req.response.setStatus(protocol::ResponseStatus::InternalServerError);
+                req.setResponseError(protocol::ResponseStatus::InternalServerError);
             }
 
             auto self=this->shared_from_this();

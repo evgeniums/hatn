@@ -13,6 +13,9 @@
 
 /****************************************************************************/
 
+#include <hatn/logcontext/contextlogger.h>
+#include <hatn/logcontext/context.h>
+
 #include <hatn/crypt/cryptcontainer.h>
 
 #include <hatn/serverapp/encryptedtoken.h>
@@ -31,10 +34,18 @@ Error EncryptedToken::init(
     )
 {
     m_suite=suite;
-    Error ec;
-    auto passphraseKey=suite->createPassphraseKey(ec);
-    HATN_CHECK_EC(ec)
+
+    crypt::CryptAlgorithmConstP aeadAlg;
+    auto ec=m_suite->aeadAlgorithm(aeadAlg);
+    HATN_CHECK_CHAIN_LOG_EC(ec,"failed to create find AEAD algorithm")
+
+    auto passphraseKey=suite->createPassphraseKey(ec,aeadAlg);
+    HATN_CHECK_CHAIN_LOG_EC(ec,"failed to create passphrase key")
     passphraseKey->set(secret);
+    ec=passphraseKey->deriveKey();
+    HATN_CHECK_CHAIN_LOG_EC(ec,"failed to derive encryption key")
+
+    m_tokenEncryptionKey=passphraseKey->derivedKeyHolder();
     return OK;
 }
 
@@ -46,13 +57,12 @@ Error EncryptedToken::encrypt(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("encryptedtoken::encrypt")
+
     crypt::CryptContainer cipher{m_tokenEncryptionKey.get(),m_suite,factory};
+    cipher.setCipherSuites(m_suite->suites());
     auto ec=cipher.pack(*serializedToken,encryptedToken);
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
+    HATN_CHECK_CHAIN_LOG_EC(ec,"failed to pack crypt container")
 
     return OK;
 }
@@ -65,6 +75,8 @@ Error EncryptedToken::decrypt(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("encryptedtoken::decrypt")
+
     crypt::CryptContainer decryptor{factory};
     decryptor.setCipherSuites(m_suite->suites());
     decryptor.setMasterKey(m_tokenEncryptionKey.get());

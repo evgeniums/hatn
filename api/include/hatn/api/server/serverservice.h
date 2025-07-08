@@ -71,7 +71,7 @@ class ServerServiceBase
             common::SharedPtr<RequestContext<RequestT>> request,
             RouteCb<RequestT> callback,
             ServiceMethodStatus status,
-            const Error& ec=Error{}
+            Error ec=Error{}
         ) const;
 };
 

@@ -22,6 +22,8 @@
 #include <hatn/api/server/serverresponse.h>
 #include <hatn/api/server/serverrequest.h>
 
+#include <hatn/api/ipp/serverrequest.ipp>
+
 HATN_API_NAMESPACE_BEGIN
 
 namespace server {
@@ -49,7 +51,7 @@ Error Response<EnvT,RequestUnitT>::serialize()
 //---------------------------------------------------------------
 
 template <typename EnvT, typename RequestUnitT>
-void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, const Error& ec)
+void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, const common::ApiError* apiError)
 {
     unit.setFieldValue(protocol::response::status,status);
     if (status!=protocol::ResponseStatus::Success)
@@ -58,25 +60,31 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
         unit.field(protocol::response::message_type).fieldReset();
     }
 
-    if (ec && ec.apiError()!=nullptr)
+    if (apiError!=nullptr)
     {
         unit.setFieldValue(protocol::response::message_type,protocol::response_error_message::conf().name);
 
-        const common::ApiError* apiErr=ec.native()->apiError();
-
         auto errorUnit=request->env->template get<AllocatorFactory>().factory()->template createObject<protocol::response_error_message::shared_managed>();
-        errorUnit->setFieldValue(protocol::response_error_message::code,apiErr->code());
-        errorUnit->setFieldValue(protocol::response_error_message::family,apiErr->family());
-        errorUnit->setFieldValue(protocol::response_error_message::status,apiErr->status());
-        errorUnit->setFieldValue(protocol::response_error_message::description,apiErr->message(request->translator));
-        auto data=apiErr->data();
+        errorUnit->setFieldValue(protocol::response_error_message::code,apiError->code());
+        errorUnit->setFieldValue(protocol::response_error_message::family,apiError->family());
+        errorUnit->setFieldValue(protocol::response_error_message::status,apiError->status());
+        errorUnit->setFieldValue(protocol::response_error_message::description,apiError->message(request->translator));
+        auto data=apiError->data();
         if (data)
         {
             errorUnit->field(protocol::response_error_message::data).set(std::move(data));
-            errorUnit->setFieldValue(protocol::response_error_message::data_type,apiErr->dataType());
+            errorUnit->setFieldValue(protocol::response_error_message::data_type,apiError->dataType());
         }
         unit.field(protocol::response::message).set(std::move(errorUnit));
     }
+}
+
+//---------------------------------------------------------------
+
+template <typename EnvT, typename RequestUnitT>
+void Response<EnvT,RequestUnitT>::setSuccess()
+{
+    unit.setFieldValue(protocol::response::status,protocol::ResponseStatus::Success);
 }
 
 //---------------------------------------------------------------

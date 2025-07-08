@@ -82,7 +82,7 @@ class Dispatcher : public common::WithTraits<Traits>,
                         if (!req.routed)
                         {
                             // report error that no route is found
-                            req.response.setStatus(protocol::ResponseStatus::RoutingError);
+                            req.setResponseError(protocol::ResponseStatus::RoutingError);
                         }
                         cb(Scopes::dispatchCb,std::move(reqCtx));
                     };

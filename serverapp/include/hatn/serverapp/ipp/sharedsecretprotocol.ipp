@@ -48,10 +48,11 @@ void SharedSecretAuthProtocol::prepare(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("sharedsecretauth::prepare")
+
     auto msg=prepareChallengeToken(std::move(message),factory);
     if (msg)
     {
-        //! @todo critical: Log error
         callback(std::move(ctx),msg.error(),{});
         return;
     }
@@ -70,6 +71,8 @@ void SharedSecretAuthProtocol::check(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("sharedsecretauth::check")
+
     // deserialize token
     const auto& tokenField=message->field(auth_hss_check::token);
     const auto* tokenBuf=tokenField.buf();
@@ -190,7 +193,8 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
             //! @todo check if it is internal error or invalid login data
             if (ec)
             {
-                req.response.setStatus(api::protocol::ResponseStatus::AuthError,ec);
+                //! @todo critical: set API error
+                // req.response.setStatus(api::protocol::ResponseStatus::AuthError,ec);
                 callback(std::move(ctx));
                 return;
             }
@@ -222,7 +226,8 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
             //! @todo check if it is internal error or invalid login data
             if (ec)
             {
-                req.response.setStatus(api::protocol::ResponseStatus::AuthError,ec);
+                //! @todo critical: set API error
+                // req.response.setStatus(api::protocol::ResponseStatus::AuthError,ec);
                 callback(std::move(request));
                 return;
             }

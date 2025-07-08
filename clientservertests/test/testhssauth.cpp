@@ -375,7 +375,7 @@ class Service1Method1Traits : public server::NoValidatorTraits
             BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
 
             auto& req=request->get<Request>();
-            req.response.setStatus();
+            req.response.setSuccess();
             callback(std::move(request));
         }
 };

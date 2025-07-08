@@ -54,7 +54,7 @@ void ServerServiceBase::handleMessage(
         du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
         if (!du::io::deserialize(*msg,buf))
         {
-            req.response.setStatus(protocol::ResponseStatus::FormatError);
+            req.setResponseError(protocol::ResponseStatus::FormatError);
             callback(std::move(request));
             return;
         }
@@ -65,7 +65,7 @@ void ServerServiceBase::handleMessage(
         {
             //! @todo construct API error with validationEc
 
-            req.response.setStatus(protocol::ResponseStatus::ValidationError);
+            req.setResponseError(protocol::ResponseStatus::ValidationError);
             callback(std::move(request));
             return;
         }
@@ -82,11 +82,11 @@ void ServerServiceBase::methodFailed(
         common::SharedPtr<RequestContext<RequestT>> request,
         RouteCb<RequestT> callback,
         ServiceMethodStatus status,
-        const Error& ec
+        Error ec
     ) const
 {
     auto& req=request->template get<RequestT>();
-    req.response.setStatus(status,ec);
+    req.setResponseError(std::move(ec),status);
     callback(std::move(request));
 }
 
