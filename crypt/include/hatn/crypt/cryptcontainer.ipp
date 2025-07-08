@@ -397,7 +397,7 @@ common::Error CryptContainer::packDescriptor(
         }
         else
         {
-            return cryptError(CryptError::SALT_GEN_FAILED);
+            return cryptError(CryptError::SALT_GEN_FAILED,cryptError((CryptError::RANDOM_GENERATOR_NOT_DEFINED)));
         }
     }
 
