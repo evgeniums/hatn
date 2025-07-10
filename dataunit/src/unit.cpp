@@ -52,7 +52,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 Unit::Unit(const AllocatorFactory *factory)
     :m_clean(true),
      m_factory(factory),
-     m_jsonParseHandlers(factory->objectAllocator<JsonParseHandler>())
+     m_jsonParseHandlers(factory->objectAllocator<JsonParseHandler>()),
+     m_tree(false)
 {
 }
 
