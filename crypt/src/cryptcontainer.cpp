@@ -38,7 +38,12 @@ CryptContainer::CryptContainer(
           m_autoSalt(true),
           m_streamingMode(false),
           m_suites(&CipherSuitesGlobal::instance())
-{}
+{
+    if (suite!=nullptr)
+    {
+        m_suites=suite->suites();
+    }
+}
 
 //---------------------------------------------------------------
 common::Error CryptContainer::deriveKey(

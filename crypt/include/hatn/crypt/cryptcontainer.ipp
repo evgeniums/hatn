@@ -255,6 +255,10 @@ inline uint32_t CryptContainer::maxPlainChunkSize(uint32_t seqnum) const
 inline void CryptContainer::setCipherSuite(const CipherSuite* suite) noexcept
 {
     m_cipherSuite=suite;
+    if (m_cipherSuite!=nullptr && (m_suites==nullptr || m_suites==&CipherSuitesGlobal::instance()))
+    {
+        m_suites=m_cipherSuite->suites();
+    }
 }
 
 //---------------------------------------------------------------
