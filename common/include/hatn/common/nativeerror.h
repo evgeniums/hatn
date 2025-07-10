@@ -79,7 +79,7 @@ class HATN_COMMON_EXPORT NativeError
         NativeError(
                 int apiCode,
                 const ApiErrorCategory* apiCat,
-                const ErrorCategory* cat
+                const ErrorCategory* cat=nullptr
             ) : m_nativeCode(apiCode),
                 m_category(cat),
                 m_systemCategory(nullptr),
@@ -89,7 +89,7 @@ class HATN_COMMON_EXPORT NativeError
 
         NativeError(
             ApiError apiError,
-            const ErrorCategory* cat
+            const ErrorCategory* cat=nullptr
         ) : m_category(cat),
             m_systemCategory(nullptr),
             m_boostCategory(nullptr),
