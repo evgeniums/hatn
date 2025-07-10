@@ -31,6 +31,7 @@
 
 #include <hatn/db/db.h>
 #include <hatn/db/objectid.h>
+#include <hatn/db/topic.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -85,8 +86,6 @@ auto makeInitObjectPtr()
 }
 
 constexpr const size_t ReservedTopicLength=ObjectId::Length;
-
-using TopicContainer=std::string;
 
 class DbObject : public du::UnitWrapper
 {
@@ -156,7 +155,7 @@ class DbObject : public du::UnitWrapper
 
     private:
 
-        TopicContainer m_topic;
+        TopicHolder m_topic;
 
         template <typename T1>
         friend class DbObjectT;
@@ -240,7 +239,7 @@ class DbObjectT : public du::UnitWrapperT<T>
 
     private:
 
-        TopicContainer m_topic;
+        TopicHolder m_topic;
 };
 
 HATN_DB_NAMESPACE_END

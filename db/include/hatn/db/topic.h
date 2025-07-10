@@ -25,9 +25,13 @@
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/allocatoronstack.h>
 
+#include <hatn/dataunit/objectid.h>
+
 #include <hatn/db/db.h>
 
 HATN_DB_NAMESPACE_BEGIN
+
+using TopicHolder=std::string;
 
 class Topic
 {
@@ -39,6 +43,11 @@ class Topic
         Topic(const Topic& other)=default;
         Topic& operator=(Topic&&)=default;
         Topic& operator=(const Topic&)=default;
+
+        Topic(const du::ObjectId& topic)
+            : m_holder(topic.string()),
+              m_topic(m_holder.data(),m_holder.size())
+        {}
 
         Topic(const char* topic)
             : m_topic(topic)
@@ -102,14 +111,19 @@ class Topic
             return m_topic<other.m_topic;
         }
 
+        void load(lib::string_view topic)
+        {
+            m_holder=topic;
+            m_topic=m_holder;
+        }
+
     private:
 
-        lib::string_view m_topic;        
+        TopicHolder m_holder;
+        lib::string_view m_topic;
 };
 
 using Topics=common::FlatSetOnStack<Topic,4>;
-
-using TopicHolder=std::string;
 
 HATN_DB_NAMESPACE_END
 
