@@ -94,10 +94,18 @@ class KeyContainer
         }
 
         //! Load content
-        template <typename ContainerT> inline void loadContent(const ContainerT& container, ContainerFormat format=Format)
+        template <typename ContainerT>
+        inline void loadContent(const ContainerT& container, ContainerFormat format=Format)
         {
             setFormat(format);
             m_content.load(container.data(),container.size());
+        }
+
+        //! Load content
+        template <typename ContentT1, ContainerFormat Format1>
+        inline void loadContent(const KeyContainer<ContentT1,Format1>& other)
+        {
+            loadContent(other.content(),other.format());
         }
 
         //! Load content
