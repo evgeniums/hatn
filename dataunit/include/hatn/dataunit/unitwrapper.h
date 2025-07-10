@@ -27,8 +27,6 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
-//! @todo Refactor DbObject
-
 class UnitWrapper
 {
     public:
@@ -235,7 +233,6 @@ class UnitWrapperT : public UnitWrapper
             return get();
         }
 
-        template <typename T1>
         auto shared() const noexcept
         {
             return get()->sharedFromThis();
