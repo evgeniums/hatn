@@ -182,9 +182,9 @@ struct NoOpCallback
 
 struct postAsyncTaskT
 {
-    template <typename HandlerT, typename CallbackT>
+    template <typename HandlerT, typename ContextT, typename CallbackT>
     void operator ()(ThreadQWithTaskContext* thread,
-                    SharedPtr<TaskContext> ctx,
+                    SharedPtr<ContextT> ctx,
                     HandlerT handler,
                     CallbackT callback
                     ) const
@@ -192,10 +192,10 @@ struct postAsyncTaskT
         auto originThreadQ=TaskWithContextThread::current();
         auto originThread=Thread::currentThreadOrMain();
 
-        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](SharedPtr<TaskContext> ctx,auto&&... args) mutable
+        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](auto ctx,auto&&... args) mutable
         {
             auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
-            auto returnCb=[ts{std::move(ts)},callback{std::move(callback)}](auto ctx) mutable
+            auto returnCb=[ctx,ts{std::move(ts)},callback{std::move(callback)}](auto) mutable
             {
                 hana::unpack(std::move(ts),
                                  [ctx{std::move(ctx)},callback{std::move(callback)}](auto&& ...args) mutable
@@ -228,9 +228,9 @@ struct postAsyncTaskT
             originThreadQ->post(cbTask);
         };
 
-        auto threadHandler=[cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext> ctx) mutable
+        auto threadHandler=[ctx,cb{std::move(cb)},handler{std::move(handler)}](SharedPtr<TaskContext>) mutable
         {
-            handler(ctx,cb);
+            handler(std::move(ctx),cb);
         };
 
         auto task=thread->prepare();
