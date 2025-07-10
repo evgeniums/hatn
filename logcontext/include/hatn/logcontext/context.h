@@ -132,6 +132,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
          */
         void describeScopeError(const char* err, bool lockStack=true)
         {
+            //! @todo Use error stack
+
             if (lockStack && m_enableStackLocking)
             {
                 m_lockStack=true;
@@ -314,6 +316,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         void setStackLocked(bool enable)
         {
+            //! @todo Use error stack
+
             if (!m_enableStackLocking)
             {
                 return;
@@ -651,29 +655,29 @@ HATN_COMMON_NAMESPACE_END
 #define HATN_CTX_CHECK_EC_MSG(ec,msg) \
     if (ec) \
     { \
-        HATN_CTX_IF() \
-            HATN_CTX_SCOPE_ERROR(msg) \
+        HATN_CTX_SCOPE_ERROR(msg) \
         return ec; \
     }
 
 #define HATN_CTX_CHECK_EC_LOG(ec,msg) \
     if (ec) \
     { \
-            HATN_CTX_IF() \
-                HATN_CTX_SCOPE_LOCK() \
-                HATN_CTX_ERROR(ec,msg) \
-            return ec; \
+        HATN_CTX_SCOPE_LOCK() \
+        HATN_CTX_ERROR(ec,msg) \
+        return ec; \
     }
 
 #define HATN_CTX_CHECK_EC_LOG_MSG(ec,msg) \
     if (ec) \
     { \
-            HATN_CTX_IF() \
-                HATN_CTX_SCOPE_ERROR(msg) \
-                HATN_CTX_ERROR(ec,"") \
-            return ec; \
+        HATN_CTX_SCOPE_ERROR(msg) \
+        HATN_CTX_ERROR(ec,"") \
+        return ec; \
     }
 
+#define HATN_CTX_EC_LOG(ec,msg) \
+    HATN_CTX_SCOPE_ERROR(msg) \
+    HATN_CTX_ERROR(ec,msg)
 
 #define HATN_CTX_STACK_BARRIER_ON(Name) \
     HATN_CTX_IF() \
