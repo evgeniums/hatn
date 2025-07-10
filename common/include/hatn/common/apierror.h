@@ -43,6 +43,11 @@ class HATN_COMMON_EXPORT ApiErrorCategory
 
         //! Get description for the code.
         virtual std::string message(int code,const Translator* translator=nullptr) const=0;
+
+        bool is(const ApiErrorCategory& other) const noexcept
+        {
+            return strcmp(family(),other.family())==0;
+        }
 };
 
 //! API error is used to hold information to be sent back as a result of some request or API command.
@@ -150,6 +155,22 @@ class HATN_COMMON_EXPORT ApiError
         bool isNull() const noexcept
         {
             return m_code==0;
+        }
+
+        template <typename T>
+        bool is(T code, const ApiErrorCategory& cat) const noexcept
+        {
+            return static_cast<int>(code)==m_code && isFamily(cat);
+        }
+
+        bool isFamily(const ApiErrorCategory& cat) const noexcept
+        {
+            return strcmp(cat.family(),category()->family())==0;
+        }
+
+        bool isFamily(lib::string_view other) const noexcept
+        {
+            return other==family();
         }
 
     private:
