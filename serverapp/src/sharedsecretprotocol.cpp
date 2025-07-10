@@ -91,44 +91,12 @@ Result<common::SharedPtr<auth_negotiate_response::managed>> SharedSecretAuthBase
     }
     challenge->setFieldValue(auth_hss_challenge::expire,token.fieldValue(auth_challenge_token::expire));
 
-#if 0
-    std::cout << "Generated token:\n" << token.toString(true) << std::endl;
-#endif
-
     // serialize token
     auto& tokenField=response->field(auth_protocol_response::token);
     auto* tokenBuf=tokenField.buf(true);
     ec=serializeToken(token,*tokenBuf,factory);
     HATN_CHECK_EC(ec)
 
-    //! @todo critical: remove it
-#if 0
-    du::WireBufSolid buf0{factory};
-    du::io::serialize(token,buf0,ec);
-    HATN_CHECK_EC(ec)
-
-    // decrypt token
-    du::WireBufSolid buf1{factory};
-    ec=decrypt(*tokenBuf,*buf1.mainContainer());
-    HATN_CHECK_EC(ec)
-    buf1.setSize(buf1.mainContainer()->size());
-
-    std::string ser;
-    std::string dec;
-    common::ContainerUtils::rawToBase64(ser,*buf0.mainContainer());
-    common::ContainerUtils::rawToBase64(dec,*buf1.mainContainer());
-    std::cout << "serialized==decrypted: " << (*buf0.mainContainer() == *buf1.mainContainer()) << std::endl;
-    std::cout << "ser:\n" << ser << std::endl;
-    std::cout << "dec:\n" << dec << std::endl;
-
-    auto token1=factory->createObject<auth_challenge_token::managed>();
-    du::io::deserialize(*token1,buf0,ec);
-
-    std::cout << "Deserialized token1:\n" << token1->toString(true) << std::endl;
-
-    ec=parseToken<auth_challenge_token::managed>(*tokenBuf,factory);
-    HATN_CHECK_EC(ec)
-#endif
     // done
     response->field(auth_protocol_response::message).set(std::move(challenge));
     response->field(auth_protocol_response::message_type).set(challenge->unitName());
