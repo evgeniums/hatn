@@ -452,7 +452,13 @@ struct HATN_DATAUNIT_EXPORT DATAUNIT : public BaseType<Unit,std::false_type,Valu
 
     static shared_type createManagedObject(const AllocatorFactory*,Unit* parentUnit)
     {
-        return parentUnit->createManagedUnit();
+        if (parentUnit!=nullptr && parentUnit->isTree())
+        {
+            //! @todo Use it only for repeated fields
+            auto obj=parentUnit->createManagedUnit();
+            obj->setTree(true);
+        }
+        return shared_type{};
     }
 };
 

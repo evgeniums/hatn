@@ -423,6 +423,16 @@ class HATN_DATAUNIT_EXPORT Unit
             return 0;
         }
 
+        bool isTree() const noexcept
+        {
+            return m_tree;
+        }
+
+        void setTree(bool enable) noexcept
+        {
+            m_tree=enable;
+        }
+
     protected:
 
         void setFieldParent(Field& field);
@@ -441,6 +451,8 @@ class HATN_DATAUNIT_EXPORT Unit
 
         const AllocatorFactory* m_factory;
         common::pmr::list<JsonParseHandler> m_jsonParseHandlers;
+
+        bool m_tree;
 
         friend struct visitors;
 };
