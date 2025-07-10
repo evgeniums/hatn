@@ -1,0 +1,26 @@
+{
+    "app" : {
+        "thread_count" : 1
+    },
+
+    "logger" : {
+        "name" : "streamlogger",
+        "level" : "DEBUG"
+    },
+
+    "crypt" : {
+        "cipher_suites" : [
+            {
+                "id" :        "aes256gcm-sha256-secp256r1",
+                "aead" :      "aes-256-gcm",
+                "pbkdf" :     "pbkdf2/sha256",
+                "digest" :    "sha256",
+                "mac" :       "HMAC/sha256",
+                "hkdf" :      "sha256",
+                "ecdh" :      "EC/secp256r1",
+                "signature" : "EC/secp256r1"
+            }
+        ],
+        "default_cipher_suite" : "aes256gcm-sha256-secp256r1"
+    }
+}

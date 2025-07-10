@@ -27,7 +27,7 @@ HDU_UNIT_WITH(session,(HDU_BASE(db::object)),
     HDU_FIELD(login,TYPE_OBJECT_ID,1)
     HDU_FIELD(active,TYPE_BOOL,2,false,true)
     HDU_FIELD(ttl,TYPE_DATETIME,3)
-    HDU_FIELD(username,TYPE_STRING,4)
+    HDU_FIELD(user,TYPE_OBJECT_ID,4)
 )
 
 HATN_DB_INDEX(sessionLoginIdx,session::login)

@@ -25,6 +25,7 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
+#include <hatn/api/autherror.h>
 #include <hatn/api/service.h>
 #include <hatn/api/method.h>
 #include <hatn/api/priority.h>
@@ -129,7 +130,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         if (ec)
         {
             HATN_CTX_ERROR(ec,"failed to prepare negotiation message")
-            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+            callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
             return;
         }
 
@@ -148,7 +149,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         if (ec)
         {
             HATN_CTX_ERROR(ec,"failed to invoke exec negotiation message")
-            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+            callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
         }
     };
 
@@ -160,7 +161,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         // check response message
         if (negotiationResponse.unit->fieldValue(api::protocol::response::message_type)!=auth_negotiate_response::conf().name)
         {
-            auto ec=clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
+            auto ec=api::makeApiError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory());
             HATN_CTX_ERROR_RECORDS(ec,"invalid negotiation response message type",{"message_type",negotiationResponse.unit->fieldValue(api::protocol::response::message_type)})
             callback(std::move(ctx),std::move(ec));
             return;
@@ -174,7 +175,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         if (ec)
         {
             HATN_CTX_ERROR(ec,"failed to deserialize negotiation response message")
-            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED));
+            callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
             return;
         }
 

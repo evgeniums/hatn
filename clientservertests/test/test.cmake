@@ -36,7 +36,8 @@ ENDFUNCTION(TestClientServerTests)
 ADD_CUSTOM_TARGET(clientservertest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
 
 SET (TEST_JSON
-    ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauth.jsonc
+    ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthclient.jsonc
+    ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthserver.jsonc
 )
 
 ADD_CUSTOM_TARGET(clientservertest-json SOURCES ${TEST_JSON})

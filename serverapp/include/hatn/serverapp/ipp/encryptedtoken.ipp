@@ -68,12 +68,14 @@ Result<common::SharedPtr<TokenT>> EncryptedToken::parseToken(
     // decrypt token
     du::WireBufSolid buf{factory};
     auto ec=decrypt(encryptedToken,*buf.mainContainer());
-    HATN_CTX_CHECK_EC_LOG_MSG(ec,"failed to decrypt token")
+    HATN_CTX_CHECK_EC_MSG(ec,"failed to decrypt token")
+    buf.setSize(buf.mainContainer()->size());
 
     // deserialize token
     auto token=factory->createObject<TokenT>();
     du::io::deserialize(*token,buf,ec);
-    HATN_CTX_CHECK_EC_LOG_MSG(ec,"failed to deserialize token")
+
+    HATN_CTX_CHECK_EC_MSG(ec,"failed to deserialize token")    
 
     // done
     return token;

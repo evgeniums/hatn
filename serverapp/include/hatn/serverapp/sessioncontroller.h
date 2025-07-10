@@ -24,6 +24,7 @@
 
 #include <hatn/serverapp/serverappdefs.h>
 #include <hatn/serverapp/sessiondbmodels.h>
+#include <hatn/serverapp/auth/authtokens.h>
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
@@ -48,12 +49,13 @@ class SessionController : public common::WithTraits<Traits>
         template <typename ContextT, typename CallbackT>
         void createSession(
             common::SharedPtr<ContextT> ctx,
-            CallbackT callback,
+            CallbackT callback,            
             const du::ObjectId& login,
+            const du::ObjectId& user,
             db::Topic topic
         ) const
         {
-            this->traits().createSession(std::move(ctx),std::move(callback),login,topic);
+            this->traits().createSession(std::move(ctx),std::move(callback),login,user,topic);
         }
 
         // Callback= void (auto ctx,common::Error ec,SessionCheckResult result}

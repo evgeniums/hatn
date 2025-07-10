@@ -29,10 +29,9 @@ HDU_UNIT(auth_token,
     HDU_FIELD(session_created_at,TYPE_DATETIME,4,true)
     HDU_FIELD(expire,TYPE_DATETIME,5,true)
     HDU_FIELD(login,TYPE_OBJECT_ID,6,true)
-    HDU_FIELD(username,TYPE_STRING,7)
-    HDU_FIELD(topic,TYPE_STRING,8)
+    HDU_FIELD(topic,TYPE_STRING,7)
     HDU_ENUM(TokenType,Session,Refresh)
-    HDU_FIELD(token_type,HDU_TYPE_ENUM(TokenType),9,false,TokenType::Session)
+    HDU_FIELD(token_type,HDU_TYPE_ENUM(TokenType),8,false,TokenType::Session)
 )
 
 HDU_UNIT(auth_challenge_token,

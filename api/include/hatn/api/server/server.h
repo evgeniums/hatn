@@ -122,110 +122,113 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             //! @todo Log connection
 
             auto reqPtr=reqCtx.get();
+            //! @todo critical: ensure that HATN_CTX_SCOPE is in different scope than beforeThreadProcessing()/afterThreadProcessing()
             reqPtr->beforeThreadProcessing();
 
-            HATN_CTX_SCOPE("apiwaitforrequest")
+            {
+                HATN_CTX_SCOPE("apiwaitforrequest")
 
-            // recv header
-            auto self=this->shared_from_this();
-            connection.recv(
-                std::move(reqCtx),
-                req.header.data(),
-                req.header.size(),
-                [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
-                {
-                    HATN_CTX_SCOPE("apireqheader")
-
-                    // handle error
-                    if (ec)
+                // recv header
+                auto self=this->shared_from_this();
+                connection.recv(
+                    std::move(reqCtx),
+                    req.header.data(),
+                    req.header.size(),
+                    [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
                     {
-                        HATN_CTX_SCOPE_ERROR("recv header failed")
-                        closeRequest(reqCtx,ec);
-                        resetConnection(ctx);
-                        return;
-                    }
+                        HATN_CTX_SCOPE("apireqheader")
 
-                    // if no message then wait for the next request
-                    if (req.header.messageSize()==0)
-                    {
-                        HATN_CTX_WARN("zero request size")
-                        closeRequest(reqCtx);
-                        waitForRequest(std::move(ctx),connection);
-                        return;
-                    }
-
-                    if (req.header.messageSize() > req.env->template get<ProtocolConfig>().maxMessageSize())
-                    {
-                        //! @todo Detect HTTP request and optionally redirect to some URL or send http-response
-
-                        req.setResponseError(protocol::ResponseStatus::RequestTooBig);
-                        sendResponse(std::move(ctx),std::move(reqCtx),connection);
-                        return;
-                    }
-
-                    // receive message
-                    req.rawData()->resize(req.header.messageSize());
-                    connection.recv(
-                        std::move(reqCtx),
-                        req.rawData()->data(),
-                        req.rawData()->size(),
-                        [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
+                        // handle error
+                        if (ec)
                         {
-                            HATN_CTX_SCOPE("apireq")
-
-                            // handle error
-                            if (ec)
-                            {
-                                HATN_CTX_SCOPE_ERROR("recv body failed")
-                                closeRequest(reqCtx,ec);
-                                resetConnection(ctx);
-                                return;
-                            }
-
-                            // parse request
-                            auto ec1=req.parseMessage();
-                            if (ec1)
-                            {
-                                HATN_CTX_SCOPE_ERROR("failed to parse message")
-                                req.setResponseError(std::move(ec1),protocol::ResponseStatus::FormatError);
-                                sendResponse(std::move(ctx),std::move(reqCtx),connection);
-                                return;
-                            }
-
-                            //! @todo Validate request
-
-                            //! @todo Handle proxy field if allowed by server settings
-
-                            auto& req=reqCtx->template get<Request>();
-                            HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
-                            HATN_CTX_PUSH_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
-                            HATN_CTX_PUSH_VAR("srv",req.unit.fieldValue(protocol::request::service))
-                            if (req.unit.field(protocol::request::service_version).isSet())
-                            {
-                                HATN_CTX_PUSH_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
-                            }
-                            if (req.unit.field(protocol::request::topic).isSet())
-                            {
-                                HATN_CTX_PUSH_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
-                            }
-                            if (req.unit.field(protocol::request::message_type).isSet())
-                            {
-                                HATN_CTX_PUSH_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
-                            }
-
-                            // auth request if auth dispatcher is set
-                            if (m_authDispatcher)
-                            {
-                                authRequest(std::move(ctx),std::move(reqCtx),connection);
-                            }
-                            else
-                            {
-                                dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
-                            }
+                            HATN_CTX_SCOPE_ERROR("recv header failed")
+                            closeRequest(reqCtx,ec);
+                            resetConnection(ctx);
+                            return;
                         }
+
+                        // if no message then wait for the next request
+                        if (req.header.messageSize()==0)
+                        {
+                            HATN_CTX_WARN("zero request size")
+                            closeRequest(reqCtx);
+                            waitForRequest(std::move(ctx),connection);
+                            return;
+                        }
+
+                        if (req.header.messageSize() > req.env->template get<ProtocolConfig>().maxMessageSize())
+                        {
+                            //! @todo Detect HTTP request and optionally redirect to some URL or send http-response
+
+                            req.setResponseError(protocol::ResponseStatus::RequestTooBig);
+                            sendResponse(std::move(ctx),std::move(reqCtx),connection);
+                            return;
+                        }
+
+                        // receive message
+                        req.rawData()->resize(req.header.messageSize());
+                        connection.recv(
+                            std::move(reqCtx),
+                            req.rawData()->data(),
+                            req.rawData()->size(),
+                            [ctx{std::move(ctx)},self{std::move(self)},this,&connection,&req](common::SharedPtr<RequestContext<Request>> reqCtx, const Error& ec)
+                            {
+                                HATN_CTX_SCOPE("apireq")
+
+                                // handle error
+                                if (ec)
+                                {
+                                    HATN_CTX_SCOPE_ERROR("recv body failed")
+                                    closeRequest(reqCtx,ec);
+                                    resetConnection(ctx);
+                                    return;
+                                }
+
+                                // parse request
+                                auto ec1=req.parseMessage();
+                                if (ec1)
+                                {
+                                    HATN_CTX_SCOPE_ERROR("failed to parse message")
+                                    req.setResponseError(std::move(ec1),protocol::ResponseStatus::FormatError);
+                                    sendResponse(std::move(ctx),std::move(reqCtx),connection);
+                                    return;
+                                }
+
+                                //! @todo Validate request
+
+                                //! @todo Handle proxy field if allowed by server settings
+
+                                auto& req=reqCtx->template get<Request>();
+                                HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
+                                HATN_CTX_PUSH_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
+                                HATN_CTX_PUSH_VAR("srv",req.unit.fieldValue(protocol::request::service))
+                                if (req.unit.field(protocol::request::service_version).isSet())
+                                {
+                                    HATN_CTX_PUSH_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
+                                }
+                                if (req.unit.field(protocol::request::topic).isSet())
+                                {
+                                    HATN_CTX_PUSH_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
+                                }
+                                if (req.unit.field(protocol::request::message_type).isSet())
+                                {
+                                    HATN_CTX_PUSH_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
+                                }
+
+                                // auth request if auth dispatcher is set
+                                if (m_authDispatcher)
+                                {
+                                    authRequest(std::move(ctx),std::move(reqCtx),connection);
+                                }
+                                else
+                                {
+                                    dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
+                                }
+                            }
+                            );
+                    }
                     );
-                }
-            );
+            }
 
             reqPtr->afterThreadProcessing();
         }

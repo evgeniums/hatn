@@ -31,20 +31,21 @@
     Do(ClientServerError,ACCOUNT_CONFIG_DATA_DESERIALIZATION,_TR("invalid format of account configuration data","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("invalid passphrase","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_EXPIRED,_TR("account configuration expired","clientserver")) \
-    Do(ClientServerError,AUTH_NEGOTIATION_FAILED,_TR("failed to negotiate authentication protocol","clientserver")) \
-    Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
-    Do(ClientServerError,AUTH_FAILED,_TR("authentication failed","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
-    Do(ClientServerError,AUTH_TOKEN_INVALID_TYPE,_TR("invalid authentication token type","clientserver")) \
-    Do(ClientServerError,AUTH_SESSION_INVALID,_TR("authentication session is not valid","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_INVALID,_TR("invalid authentication token","clientserver")) \
+    Do(ClientServerError,AUTH_TOKEN_INVALID_TYPE,_TR("invalid type of authentication token","clientserver")) \
+    Do(ClientServerError,AUTH_SESSION_INACTIVE,_TR("authentication session is not active","clientserver")) \
+    Do(ClientServerError,AUTH_SESSION_LOGINS_MISMATCH,_TR("authentication session login mismatches token login","clientserver")) \
+    Do(ClientServerError,AUTH_SESSION_NOT_FOUND,_TR("authentication session not found","clientserver")) \
     Do(ClientServerError,AUTH_PROCESSING_FAILED,_TR("failed to process authentication","clientserver")) \
     Do(ClientServerError,AUTH_COMPLETION_FAILED,_TR("failed to complete authentication","clientserver")) \
     Do(ClientServerError,INVALID_LOGIN_FORMAT,_TR("invalid format of login","clientserver")) \
-    Do(ClientServerError,ACCESS_DENIED,_TR("access denied","clientserver")) \
+    Do(ClientServerError,LOGIN_NOT_FOUND,_TR("login not found","clientserver")) \
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-//! Error codes of hatnclientServer lib.
+//! Error codes of hatnclientserver lib.
 enum class ClientServerError : int
 {
     HATN_CLIENTSERVER_ERRORS(HATN_ERROR_CODE)

@@ -22,6 +22,7 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
+#include <hatn/api/autherror.h>
 #include <hatn/api/service.h>
 #include <hatn/api/method.h>
 #include <hatn/api/priority.h>
@@ -49,7 +50,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     // check message type
     if (authNegotiateResponse->fieldValue(auth_protocol_response::message_type) != auth_hss_challenge::conf().name)
     {
-        auto ec=clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
+        auto ec=api::makeApiError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory());
         HATN_CTX_ERROR_RECORDS(ec,"invalid message type in auth_negotiate_response",{"message_type",authNegotiateResponse->fieldValue(auth_protocol_response::message_type)})
         callback(std::move(ctx),ec,{});
         return;
@@ -63,7 +64,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     if (ec)
     {
         HATN_CTX_ERROR(ec,"failed to parse auth_hss_challenge in auth_negotiate_response")
-        callback(std::move(ctx),clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED),{});
+        callback(std::move(ctx),api::makeApiError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()),{});
         return;
     }
 

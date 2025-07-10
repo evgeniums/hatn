@@ -61,7 +61,6 @@ Result<SessionToken::Tokens> SessionToken::makeToken(
     tokens.serverSessionToken->setFieldValue(auth_token::session,session->fieldValue(db::object::_id));
     tokens.serverSessionToken->setFieldValue(auth_token::session_created_at,session->fieldValue(db::object::created_at));
     tokens.serverSessionToken->setFieldValue(auth_token::login,session->fieldValue(session::login));
-    tokens.serverSessionToken->setFieldValue(auth_token::username,session->fieldValue(session::username));
     tokens.serverSessionToken->setFieldValue(auth_token::topic,topic.topic());
     tokens.serverSessionToken->setFieldValue(auth_token::token_type,tokenType);
     tokens.serverSessionToken->setFieldValue(auth_token::expire,tokens.serverSessionToken->field(auth_token::created_at).value());
@@ -76,11 +75,7 @@ Result<SessionToken::Tokens> SessionToken::makeToken(
 
     // serialize session token
     auto ec=m_currentTokenHandler->serializeToken(*tokens.serverSessionToken,*tokenBuf,factory);
-    if (ec)
-    {
-        //! @todo critical: chain and log errors
-        return ec;
-    }
+    HATN_CHECK_EC(ec)
 
     // done
     return tokens;
@@ -94,6 +89,8 @@ Result<common::SharedPtr<auth_token::managed>> SessionToken::parseToken(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
+    HATN_CTX_SCOPE("sessiontoken::parse")
+
     // find handler for tag
     EncryptedToken* handler=nullptr;
     if (clientToken->fieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::tag)==m_currentTag)
@@ -105,6 +102,7 @@ Result<common::SharedPtr<auth_token::managed>> SessionToken::parseToken(
         auto it=m_tagTokenHandlers.find(clientToken->fieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::tag));
         if (it==m_tagTokenHandlers.end())
         {
+            HATN_CTX_SCOPE_LOCK()
             return HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_TAG_INVALID);
         }
         handler=it->second.get();
@@ -115,14 +113,14 @@ Result<common::SharedPtr<auth_token::managed>> SessionToken::parseToken(
     const auto* tokenBuf=tokenField.buf();
     auto tokenR=handler->parseToken<auth_token::managed>(*tokenBuf,factory);
     if (tokenR)
-    {
-        //! @todo critical: chain and log errors
+    {        
         return tokenR.takeError();
     }
 
     // check token type
     if (tokenType!=tokenR.value()->fieldValue(auth_token::token_type))
     {
+        HATN_CTX_SCOPE_LOCK()
         return HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_INVALID_TYPE);
     }
 
@@ -130,6 +128,7 @@ Result<common::SharedPtr<auth_token::managed>> SessionToken::parseToken(
     auto now=common::DateTime::currentUtc();
     if (now.after(tokenR.value()->fieldValue(auth_token::expire)))
     {
+        HATN_CTX_SCOPE_LOCK()
         return HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_TOKEN_EXPIRED);
     }
 

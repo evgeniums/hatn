@@ -138,7 +138,7 @@ void LocalUserControllerImpl<ContextTraits>::findLogin(
     auto oid=du::ObjectId::fromString(login);
     if (oid)
     {
-        callback(std::move(ctx),HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::INVALID_LOGIN_FORMAT));
+        callback(std::move(ctx),clientServerError(ClientServerError::INVALID_LOGIN_FORMAT));
         return;
     }
 

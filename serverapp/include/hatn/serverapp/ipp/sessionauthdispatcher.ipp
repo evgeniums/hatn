@@ -66,19 +66,27 @@ void SessionAuthProtocol<EnvT,RequestT>::invoke(
     }
 
     // define check session callback
-    auto cb=[callback=std::move(callback)](auto ctx, Error ec, common::SharedPtr<auth_token::managed> response)
+    auto cb=[callback=std::move(callback)](auto ctx, Error ec, SessionCheckResult response)
     {
         HATN_CTX_SCOPE("sessionauthprotocol.checksessioncb")
+
+        //! @todo critical: fill session data in request context for logging
 
         auto& req=serverapi::request<Request>(ctx).request();
         if (ec)
         {
-            HATN_CTX_SCOPE_ERROR("failed to check session")
-            req.setResponseError(std::move(ec),api::protocol::ResponseStatus::AuthError);
+            if (ec.apiError()!=nullptr && ec.apiError()->isFamily(api::ApiAuthErrorCategory::getCategory()))
+            {
+                req.setResponseError(std::move(ec),api::protocol::ResponseStatus::AuthError);
+            }
+            else
+            {
+                req.setResponseError(std::move(ec));
+            }
         }
         else
-        {
-            req.response.setSuccessMessage(std::move(response));
+        {            
+            std::ignore=response;
         }
         callback(std::move(ctx));
     };

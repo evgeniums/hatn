@@ -97,7 +97,7 @@ class LocalSessionController : public LocalSessionControllerBase
             common::SharedPtr<Context> ctx,
             CallbackT callback,
             const du::ObjectId& login,
-            lib::string_view username,
+            const du::ObjectId& user,
             db::Topic topic
         ) const;
 
@@ -105,7 +105,7 @@ class LocalSessionController : public LocalSessionControllerBase
         void updateSessionClient(
             common::SharedPtr<Context> ctx,
             CallbackT callback,
-            const common::SharedPtr<session::managed>& session,
+            common::SharedPtr<session::managed> session,
             db::Topic topic
         ) const;
 

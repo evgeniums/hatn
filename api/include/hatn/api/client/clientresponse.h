@@ -71,9 +71,9 @@ struct Response
         {
             return makeApiError(
                 ApiLibError::SERVER_RESPONDED_WITH_ERROR,
-                &ApiLibErrorCategory::getCategory(),
+                ApiLibErrorCategory::getCategory(),
                 unit->fieldValue(protocol::response::status),
-                &ApiGenericErrorCategory::getCategory()
+                ApiGenericErrorCategory::getCategory()
             );
         }
 
@@ -86,7 +86,7 @@ struct Response
         }
 
         // make api error from response_error_message
-        auto nativeError=std::make_shared<common::NativeError>(errUnit.fieldValue(protocol::response_error_message::code));
+        auto nativeError=std::make_shared<common::NativeError>(ApiLibError::SERVER_RESPONDED_WITH_ERROR,&ApiLibErrorCategory::getCategory());
         common::ApiError apiError{errUnit.fieldValue(protocol::response_error_message::code)};
         nativeError->setApiError(std::move(apiError));
         nativeError->mutableApiError()->setDescription(std::string{errUnit.fieldValue(protocol::response_error_message::description)});

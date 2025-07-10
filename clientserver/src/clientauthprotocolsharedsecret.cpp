@@ -25,10 +25,13 @@ Result<std::tuple<const crypt::CipherSuite*,const crypt::CryptAlgorithm*,common:
         lib::string_view cipherSuiteId
     )
 {
+    HATN_CTX_SCOPE("preparemac")
+
     // find cipher suite
     const auto* suite=cipherSuites->suite(cipherSuiteId);
     if (suite==nullptr)
     {
+        HATN_CTX_SCOPE_LOCK()
         auto ec=crypt::cryptError(crypt::CryptError::UNKNOWN_CIPHER_SUITE);
         HATN_CTX_CHECK_EC(ec)
     }
@@ -71,6 +74,7 @@ Result<crypt::SecurePlainContainer> ClientAuthProtocolSharedSecretImpl::calculat
     ) const
 {
     HATN_CTX_SCOPE("calcsharedsecret")
+    HATN_CTX_SCOPE_PUSH("cipher_suite",cipherSuiteId)
 
     // prepare MAC
     auto r=prepareMAC(m_cipherSuites,cipherSuiteId);
@@ -108,12 +112,14 @@ Error ClientAuthProtocolSharedSecretImpl::calculateMAC(
     ) const
 {
     HATN_CTX_SCOPE("calcsharedsecretmac")
+    HATN_CTX_SCOPE_PUSH("cipher_suite",cipherSuiteId)
 
     // prepare MAC
     auto r=prepareMAC(m_cipherSuites,cipherSuiteId);
     HATN_CHECK_RESULT(r)
     const auto* suite=std::get<0>(*r);
     const auto& macKey=std::get<2>(*r);
+    macKey->loadContent(m_sharedSecret);
 
     // create MAC processor
     Error ec;

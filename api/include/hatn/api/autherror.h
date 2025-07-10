@@ -46,7 +46,7 @@ enum class ApiAuthError : int
 
 //! API errors codes as strings.
 constexpr const char* const ApiAuthErrorStrings[] = {
-    HATN_API_AUTH_ERRORS(HATN_ERROR_STR)
+    HATN_API_AUTH_ERRORS(HATN_PLAIN_ERROR_STR)
 };
 
 //! API error code to string.

@@ -31,16 +31,16 @@ HATN_API_NAMESPACE_BEGIN
 template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT>
 Error makeApiErrorT::operator() (
                ErrCodeT code,
-               const ErrorCatergoryT* errCat,
+               const ErrorCatergoryT& errCat,
                ApiCodeT apiCode,
-               const ApiCategoryT* apiCat,
+               const ApiCategoryT& apiCat,
                std::string description,
                DataT dataUnit,
                std::string dataType,
                const common::pmr::AllocatorFactory* factory
     ) const
 {
-    auto nativeError=std::make_shared<common::NativeError>(static_cast<int>(apiCode),apiCat,errCat);
+    auto nativeError=std::make_shared<common::NativeError>(static_cast<int>(apiCode),&apiCat,&errCat);
     if (!description.empty())
     {
         nativeError->mutableApiError()->setDescription(std::move(description),true);
@@ -64,6 +64,60 @@ Error makeApiErrorT::operator() (
         }
     }
     return Error{code,std::move(nativeError)};
+}
+
+//---------------------------------------------------------------
+
+template <typename ApiCodeT, typename ApiCategoryT, typename DataT>
+Error makeApiErrorT::operator() (
+    ApiCodeT apiCode,
+    const ApiCategoryT& apiCat,
+    std::string description,
+    DataT dataUnit,
+    std::string dataType,
+    const common::pmr::AllocatorFactory* factory
+    ) const
+{
+    return makeApiError(CommonError::SERVER_API_ERROR,common::CommonErrorCategory::getCategory(),apiCode,apiCat,std::move(description),std::move(dataUnit),std::move(dataType),factory);
+}
+
+//---------------------------------------------------------------
+
+template <typename ApiCodeT, typename ApiCategoryT, typename DataT>
+Error makeApiErrorT::operator() (
+        Error ec,
+        ApiCodeT apiCode,
+        const ApiCategoryT& apiCat,
+        std::string description,
+        DataT dataUnit,
+        std::string dataType,
+        const common::pmr::AllocatorFactory* factory
+    ) const
+{
+    auto nativeError=std::make_shared<common::NativeError>(static_cast<int>(apiCode),&apiCat);
+    if (!description.empty())
+    {
+        nativeError->mutableApiError()->setDescription(std::move(description),true);
+    }
+    if constexpr (!std::is_same_v<DataT,std::nullptr_t>)
+    {
+        if (dataUnit!=nullptr)
+        {
+            nativeError->mutableApiError()->setDataType(std::move(dataType));
+            du::WireBufSolidShared buf{factory};
+            Error ec;
+            int r=du::io::serializeAsSubunit(*dataUnit,buf,protocol::response_error_message::data);
+            if (r<0)
+            {
+                std::cerr << "Failed to serialize data of API error " << dataType << std::endl;
+            }
+            else
+            {
+                nativeError->mutableApiError()->setData(buf.sharedMainContainer());
+            }
+        }
+    }
+    return common::chainErrors(std::move(ec),Error{CommonError::SERVER_API_ERROR,std::move(nativeError)});
 }
 
 HATN_API_NAMESPACE_END

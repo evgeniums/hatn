@@ -109,7 +109,7 @@ class AuthProtocols
             // failed to negotiate protocol
             if (proto==nullptr)
             {
-                return clientServerError(ClientServerError::AUTH_NEGOTIATION_FAILED);
+                return api::apiAuthError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED);
             }
 #else
             //! @todo use config mode to force negotation

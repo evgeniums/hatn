@@ -60,7 +60,6 @@ Error EncryptedToken::encrypt(
     HATN_CTX_SCOPE("encryptedtoken::encrypt")
 
     crypt::CryptContainer cipher{m_tokenEncryptionKey.get(),m_suite,factory};
-    cipher.setCipherSuites(m_suite->suites());
     auto ec=cipher.pack(*serializedToken,encryptedToken);
     HATN_CHECK_CHAIN_LOG_EC(ec,"failed to pack crypt container")
 
@@ -81,11 +80,7 @@ Error EncryptedToken::decrypt(
     decryptor.setCipherSuites(m_suite->suites());
     decryptor.setMasterKey(m_tokenEncryptionKey.get());
     auto ec=decryptor.unpack(encryptedToken,serializedToken);
-    if (ec)
-    {
-        //! @todo critical: chain errors
-        return ec;
-    }
+    HATN_CTX_CHECK_EC(ec)
 
     return OK;
 }

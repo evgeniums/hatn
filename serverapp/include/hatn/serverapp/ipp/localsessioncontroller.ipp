@@ -23,6 +23,9 @@
 #include <hatn/db/update.h>
 #include <hatn/db/indexquery.h>
 
+#include <hatn/api/autherror.h>
+#include <hatn/api/makeapierror.h>
+
 #include <hatn/clientserver/clientservererror.h>
 
 #include <hatn/serverapp/sessiondbmodels.h>
@@ -40,7 +43,7 @@ void LocalSessionController<ContextTraits>::createSession(
         common::SharedPtr<Context> ctx,
         CallbackT callback,
         const du::ObjectId& login,
-        lib::string_view username,
+        const du::ObjectId& user,
         db::Topic topic
     ) const
 {
@@ -48,23 +51,23 @@ void LocalSessionController<ContextTraits>::createSession(
     auto session=factory->template createObject<session::managed>();
     db::initObject(*session);
     session->setFieldValue(session::login,login);
-    session->setFieldValue(session::username,username);
+    session->setFieldValue(session::user,user);
     session->setFieldValue(session::ttl,session->fieldValue(db::object::created_at));
     session->field(session::ttl).mutableValue()->addDays(config().fieldValue(session_config::session_ttl_days));
 
     auto sessToken=tokenHandler().makeToken(session.get(),auth_token::TokenType::Session,config().fieldValue(session_config::session_token_ttl_secs),topic,factory);
     if (sessToken)
     {
-        //! @todo critical: Log and chain errors
         auto ec=sessToken.takeError();
+        HATN_CTX_EC_LOG(ec,"failed to make session token")
         callback(std::move(ctx),ec,{});
         return;
     }
     auto refreshToken=tokenHandler().makeToken(session.get(),auth_token::TokenType::Refresh,config().fieldValue(session_config::refresh_token_ttl_secs),topic,factory);
     if (refreshToken)
     {
-        //! @todo critical: Log and chain errors
         auto ec=refreshToken.takeError();
+        HATN_CTX_EC_LOG(ec,"failed to make refresh token")
         callback(std::move(ctx),ec,{});
         return;
     }
@@ -72,12 +75,11 @@ void LocalSessionController<ContextTraits>::createSession(
     auto checkCanLogin=[topic](auto&& createSess, auto ctx, auto callback, auto session)
     {
         auto sessPtr=session.get();
-        auto cb=[session=std::move(session),callback=std::move(callback),createSess=std::move(createSess)](auto ctx, const common::Error& ec)
+        auto cb=[session=std::move(session),callback=std::move(callback),createSess=std::move(createSess)](auto ctx, common::Error ec) mutable
         {
             if (ec)
             {
-                //! @todo critical: Log and chain errors
-                callback(std::move(ctx),ec,{});
+                callback(std::move(ctx),std::move(ec),{});
                 return;
             }
 
@@ -96,11 +98,11 @@ void LocalSessionController<ContextTraits>::createSession(
     auto createSess=[topic,dbModels=sessionDbModels()](auto&& createSessionClient, auto ctx, auto callback, auto session)
     {
         auto sessPtr=session.get();
-        auto createCb=[session=std::move(session()),callback=std::move(callback),createSessionClient=std::move(createSessionClient)](auto ctx, const common::Error& ec)
+        auto createCb=[session=std::move(session),callback=std::move(callback),createSessionClient=std::move(createSessionClient)](auto ctx, const common::Error& ec) mutable
         {
             if (ec)
             {
-                //! @todo critical: Log and chain errors
+                HATN_CTX_EC_LOG(ec,"failed to create session in db")
                 callback(std::move(ctx),ec,{});
                 return;
             }
@@ -108,7 +110,7 @@ void LocalSessionController<ContextTraits>::createSession(
             createSessionClient(std::move(ctx),std::move(callback),std::move(session));
         };
 
-        const db::AsyncDb& asyncDb=ContextTraits::db(ctx);
+        const db::AsyncDb& asyncDb=ContextTraits::contextDb(ctx);
         const auto& dbClient=asyncDb.dbClient(topic);
         dbClient->create(
             std::move(ctx),
@@ -137,11 +139,11 @@ void LocalSessionController<ContextTraits>::createSession(
         sessionClient->setFieldValue(session_client::proxy_ip_addr,ip.proxy_ip_addr);
 #endif
         auto sessClientPtr=sessionClient.get();
-        auto createCb=[sessionClient=std::move(sessionClient),session=std::move(session()),callback=std::move(callback),done=std::move(done)](auto ctx, const common::Error& ec)
+        auto createCb=[sessionClient=std::move(sessionClient),session=std::move(session),callback=std::move(callback),done=std::move(done)](auto ctx, const common::Error& ec) mutable
         {
             if (ec)
             {
-                //! @todo critical: Log and chain errors
+                HATN_CTX_EC_LOG(ec,"failed to create session client in db")
                 callback(std::move(ctx),ec,{});
                 return;
             }
@@ -149,7 +151,7 @@ void LocalSessionController<ContextTraits>::createSession(
             done(std::move(ctx),std::move(callback),std::move(session));
         };
 
-        const db::AsyncDb& asyncDb=ContextTraits::db(ctx);
+        const db::AsyncDb& asyncDb=ContextTraits::contextDb(ctx);
         const auto& dbClient=asyncDb.dbClient(topic);
         dbClient->create(
             std::move(ctx),
@@ -168,7 +170,7 @@ void LocalSessionController<ContextTraits>::createSession(
         auto& refreshTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::refresh_token);
         refreshTokenField.set(std::move(refreshToken.clientToken));
 
-        callback(std::move(ctx),common::Error{},SessionResponse{std::move(response,std::move(session))});
+        callback(std::move(ctx),common::Error{},SessionResponse{std::move(response),std::move(session)});
     };
 
     auto chain=hatn::chain(
@@ -191,13 +193,14 @@ void LocalSessionController<ContextTraits>::checkSession(
         bool update
     ) const
 {
+    HATN_CTX_SCOPE("checksession")
+
     const common::pmr::AllocatorFactory* factory=ContextTraits::factory(ctx);
 
     // parse token
     auto token=tokenHandler().parseToken(sessionContent.get(),auth_token::TokenType::Session,factory);
     if (token)
-    {
-        //! @todo critical: Log and chain errors
+    {        
         auto ec=token.takeError();
         callback(std::move(ctx),ec,{});
         return;
@@ -212,31 +215,39 @@ void LocalSessionController<ContextTraits>::checkSession(
         {
             if (foundSessObj)
             {
-                //! @todo critical: Log and chain errors
+                HATN_CTX_SCOPE_ERROR("failed to find session in db")
                 auto ec=foundSessObj.takeError();
                 callback(std::move(reqCtx),ec,{});
                 return;
             }
 
-            if (!foundSessObj.value()->fieldValue(session::active))
+            if (foundSessObj->isNull())
             {
-                auto ec=HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_SESSION_INVALID);
+                auto ec=api::makeApiError(clientServerError(ClientServerError::AUTH_SESSION_NOT_FOUND),api::ApiAuthError::AUTH_SESSION_INVALID,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(reqCtx),ec,{});
                 return;
             }
 
-            if (foundSessObj.value()->fieldValue(session::login)!=token->fieldValue(auth_token::login))
+            auto session=foundSessObj->shared();
+
+            if (!session->fieldValue(session::active))
             {
-                //! @todo critical: Log and chain errors
-                auto ec=HATN_CLIENT_SERVER_NAMESPACE::clientServerError(HATN_CLIENT_SERVER_NAMESPACE::ClientServerError::AUTH_SESSION_INVALID);
+                auto ec=api::makeApiError(clientServerError(ClientServerError::AUTH_SESSION_INACTIVE),api::ApiAuthError::AUTH_SESSION_INVALID,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(reqCtx),ec,{});
                 return;
             }
 
-            checkCanLogin(std::move(reqCtx),std::move(callback),foundSessObj.takeValue(),std::move(token));
+            if (session->fieldValue(session::login)!=token->fieldValue(auth_token::login))
+            {
+                auto ec=api::makeApiError(clientServerError(ClientServerError::AUTH_SESSION_LOGINS_MISMATCH),api::ApiAuthError::AUTH_SESSION_INVALID,api::ApiAuthErrorCategory::getCategory());
+                callback(std::move(reqCtx),ec,{});
+                return;
+            }
+
+            checkCanLogin(std::move(reqCtx),std::move(callback),std::move(session),std::move(token));
         };
 
-        const db::AsyncDb& asyncDb=ContextTraits::db(reqCtx);
+        const db::AsyncDb& asyncDb=ContextTraits::contextDb(reqCtx);
         const auto& dbClient=asyncDb.dbClient(topic);
         dbClient->read(
             std::move(reqCtx),
@@ -247,17 +258,16 @@ void LocalSessionController<ContextTraits>::checkSession(
         );
     };
 
-    auto checkCanLogin=[](auto&& updateSessClient, auto ctx, auto callback, auto session, common::SharedPtr<auth_token::managed> token)
+    auto checkCanLogin=[](auto&& updateSessClient, auto ctx, auto callback, common::SharedPtr<session::managed> session, common::SharedPtr<auth_token::managed> token) mutable
     {
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto sessPtr=session.get();
-        auto cb=[session=std::move(session),callback=std::move(callback),updateSessClient=std::move(updateSessClient),token=std::move(token)](auto ctx, const common::Error& ec)
+        auto cb=[session=std::move(session),callback=std::move(callback),updateSessClient=std::move(updateSessClient),token=std::move(token)](auto ctx, common::Error ec) mutable
         {
             if (ec)
-            {
-                //! @todo critical: Log and chain errors
-                callback(std::move(ctx),ec,{});
+            {                
+                callback(std::move(ctx),std::move(ec),{});
                 return;
             }
 
@@ -273,7 +283,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         );
     };
 
-    auto updateSessClient=[update,this](auto&& done, auto ctx, auto callback, auto session, common::SharedPtr<auth_token::managed> token)
+    auto updateSessClient=[update,this](auto&& done, auto ctx, auto callback, common::SharedPtr<session::managed> session, common::SharedPtr<auth_token::managed> token)
     {
         if (!update)
         {
@@ -283,12 +293,11 @@ void LocalSessionController<ContextTraits>::checkSession(
 
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
-        auto sessPtr=session.get();
-        auto cb=[session=std::move(session),callback=std::move(callback),done=std::move(done),token=std::move(token)](auto ctx, const common::Error& ec)
+        auto cb=[session,callback=std::move(callback),done=std::move(done),token=std::move(token)](auto ctx, const common::Error& ec) mutable
         {
             if (ec)
             {
-                //! @todo critical: Log error
+                HATN_CTX_ERROR(ec,"faield to update session client in db")
             }
 
             done(std::move(ctx),std::move(callback),std::move(session),std::move(token));
@@ -297,12 +306,12 @@ void LocalSessionController<ContextTraits>::checkSession(
         this->updateSessionClient(
             std::move(ctx),
             std::move(cb),
-            sessPtr->fieldValue(db::object::_id),
+            session,
             topic
         );
     };
 
-    auto done=[](auto ctx, auto callback, auto session, common::SharedPtr<auth_token::managed> token)
+    auto done=[](auto ctx, auto callback, common::SharedPtr<session::managed> session, common::SharedPtr<auth_token::managed> token)
     {
         callback(std::move(ctx),common::Error{},SessionCheckResult{std::move(token),std::move(session)});
     };
@@ -323,10 +332,13 @@ template <typename CallbackT>
 void LocalSessionController<ContextTraits>::updateSessionClient(
         common::SharedPtr<Context> ctx,
         CallbackT callback,
-        const common::SharedPtr<session::managed>& session,
+        common::SharedPtr<session::managed> session,
         db::Topic topic
     ) const
 {
+//! @todo Implement ClientAgent and ClientIp
+#if 0
+
     const common::pmr::AllocatorFactory* factory=ContextTraits::factory(ctx);
 
     auto sessionClient=factory->template createObject<session_client::managed>();
@@ -343,7 +355,7 @@ void LocalSessionController<ContextTraits>::updateSessionClient(
     sessionClient->setFieldValue(session_client::proxy_ip_addr,ip.proxy_ip_addr);
 
     auto q=db::wrapQueryBuilder(
-        [session,ctx,topic]()
+        [session=std::move(session),ctx,topic]()
         {
             const ClientIp& ip=ContextTraits::clientIp(ctx);
             return db::makeQuery(sessionClientSessIdx(),
@@ -372,7 +384,7 @@ void LocalSessionController<ContextTraits>::updateSessionClient(
         }
     };
 
-    const db::AsyncDb& asyncDb=ContextTraits::db(ctx);
+    const db::AsyncDb& asyncDb=ContextTraits::contextDb(ctx);
     const auto& dbClient=asyncDb.dbClient(topic);
     dbClient->findUpdateCreate(
         std::move(ctx),
@@ -385,6 +397,9 @@ void LocalSessionController<ContextTraits>::updateSessionClient(
         nullptr,
         topic
     );
+#else
+    callback(std::move(ctx),Error{});
+#endif
 }
 
 //--------------------------------------------------------------------------

@@ -23,6 +23,7 @@
 #include <hatn/common/apierror.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/genericerror.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -31,9 +32,9 @@ struct makeApiErrorT
     template <typename ErrCodeT, typename ErrorCatergoryT, typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
     Error operator() (
                        ErrCodeT code,
-                       const ErrorCatergoryT* errCat,
+                       const ErrorCatergoryT& errCat,
                        ApiCodeT apiCode,
-                       const ApiCategoryT* apiCat,
+                       const ApiCategoryT& apiCat,
                        std::string description={},
                        DataT dataUnit=nullptr,
                        std::string dataType={},
@@ -41,18 +42,25 @@ struct makeApiErrorT
                        ) const;
 
     template <typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
-    Error operator() (const Error& ec,
+    Error operator() (
+                        ApiCodeT apiCode,
+                        const ApiCategoryT& apiCat,
+                        std::string description={},
+                        DataT dataUnit=nullptr,
+                        std::string dataType={},
+                        const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+                    ) const;
+
+    template <typename ApiCodeT, typename ApiCategoryT, typename DataT=std::nullptr_t>
+    Error operator() (
+                       Error ec,
                        ApiCodeT apiCode,
-                       const ApiCategoryT* apiCat,
+                       const ApiCategoryT& apiCat,
                        std::string description={},
                        DataT dataUnit=nullptr,
                        std::string dataType={},
                        const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-                       ) const
-    {
-        Assert(ec.category()!=nullptr,"Can be used only for errors of ErrorCategory category");
-        return makeApiErrorT{}(ec.code(),ec.category(),apiCode,apiCat,std::move(description),dataUnit,dataType,factory);
-    }
+                     ) const;
 };
 constexpr makeApiErrorT makeApiError{};
 
@@ -62,6 +70,11 @@ inline Error cloneApiError(common::ApiError apiErr, ErrCodeT code=CommonError::S
     auto native=std::make_shared<common::NativeError>(std::move(apiErr),cat);
     auto ec=Error{code,std::move(native)};
     return ec;
+}
+
+inline Error internalServerError(Error ec)
+{
+    return makeApiError(std::move(ec),ApiResponseStatus::InternalServerError,ApiGenericErrorCategory::getCategory());
 }
 
 HATN_API_NAMESPACE_END

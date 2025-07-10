@@ -23,6 +23,7 @@
 #include <hatn/common/random.h>
 
 #include <hatn/logcontext/streamlogger.h>
+#include <hatn/logcontext/context.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
@@ -110,8 +111,21 @@ constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
+auto createClient(std::string sharedSecret, std::string configFileName)
 {
+    // init client app
+    AppName appName{"authclient","Auth Client"};
+    auto app=std::make_shared<App>(appName);
+    auto configFile=MultiThreadFixture::assetsFilePath("clientservertests",configFileName);
+    auto ec=app->loadConfigFile(configFile);
+    HATN_TEST_EC(ec);
+    BOOST_REQUIRE(!ec);
+    ec=app->init();
+    HATN_TEST_EC(ec);
+    BOOST_REQUIRE(!ec);
+
+    auto thread=app->appThread();
+
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
     std::vector<client::IpHostName> hosts;
     hosts.resize(1);
@@ -125,7 +139,7 @@ auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
             thread
         );
 
-    const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault();
+    const pmr::AllocatorFactory* factory=app->allocatorFactory().factory();
 
     auto ctx=makePlainTcpClientWithAuthContext(
         subcontexts(
@@ -135,6 +149,8 @@ auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
             subcontext()
         )
     );
+    auto& logContext=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+    logContext.setLogger(app->logger().logger());
 
     auto& client=ctx->get<PlainTcpClientWithAuth>();
 
@@ -142,6 +158,7 @@ auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
     HATN_CRYPT_NAMESPACE::SecurePlainContainer sharedSecretContainer;
     sharedSecretContainer.loadContent(sharedSecret);
     sharedSecretAuth->setSharedSecret(std::move(sharedSecretContainer));
+    sharedSecretAuth->setCipherSuites(app->cipherSuites().suites());
 
     auto tokensUpdateCb=[](ByteArrayShared sessionToken,ByteArrayShared refreshToken)
     {
@@ -158,7 +175,7 @@ auto createClient(ThreadQWithTaskContext* thread, std::string sharedSecret)
     auto session=client.session();
     session->sessionImpl().setTokensUpdatedCb(std::move(tokensUpdateCb));
 
-    return ctx;
+    return std::make_pair(app,ctx);
 }
 
 //---------------------------------------------------------------
@@ -210,7 +227,7 @@ struct ContextTraits
     static const auto& loginController(const SharedPtr<Context>& ctx);
     static const auto& userController(const SharedPtr<Context>& ctx);
     static const auto* factory(const SharedPtr<Context>& ctx);
-    static const auto& db(const SharedPtr<Context>& ctx);
+    static const auto& contextDb(const SharedPtr<Context>& ctx);
 };
 
 class EnvWithAuth : public EnvWithAuthT
@@ -270,7 +287,7 @@ const auto* ContextTraits::factory(const SharedPtr<Context>& ctx)
     return server::request<RequestWithAuth>(ctx).request().factory();
 }
 
-const auto& ContextTraits::db(const SharedPtr<Context>& ctx)
+const auto& ContextTraits::contextDb(const SharedPtr<Context>& ctx)
 {
     return server::request<RequestWithAuth>(ctx).request().db();
 }
@@ -507,30 +524,26 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
 {
-    createThreads(1);
-    auto clientThread=threadWithContextTask(0);
-
     std::string sharedSecret1{"shared_secret1"};
-    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));    
-    clientThread->start();
+    auto clientCtx=createClient(std::move(sharedSecret1),"hssauthclient.jsonc");
 
     int secs=3;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
-    clientThread->stop();
+
+    clientCtx.first->close();
 
     exec(1);
 }
 
 BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 {
-    auto serverCtx=createServer("hssauth.jsonc");
-
-    createThreads(1);
-    auto clientThread=threadWithContextTask(0);
+    auto serverCtx=createServer("hssauthserver.jsonc");
 
     std::string sharedSecret1{"shared_secret1"};
-    auto clientCtx=createClient(clientThread.get(),std::move(sharedSecret1));
+    auto client=createClient(std::move(sharedSecret1),"hssauthclient.jsonc");
+    auto clientCtx=client.second;
+    auto clientThread=client.first->appThread();
 
     auto invokeTask1=[clientCtx]()
     {
@@ -539,7 +552,6 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
             if (ec)
             {
                 auto msg=ec.message();
-                //! @todo Improve handling of api error
                 if (ec.apiError()!=nullptr)
                 {
                     msg+=ec.apiError()->message();
@@ -580,14 +592,14 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
-    clientThread->stop();
-
     for (auto&& it: serverCtx->microservices)
     {
         it.second->close();
     }
     exec(1);
+
     serverCtx->app->close();
+    client.first->close();
 
     exec(1);
 
