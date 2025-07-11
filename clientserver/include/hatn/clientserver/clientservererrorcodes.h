@@ -42,6 +42,9 @@
     Do(ClientServerError,AUTH_COMPLETION_FAILED,_TR("failed to complete authentication","clientserver")) \
     Do(ClientServerError,INVALID_LOGIN_FORMAT,_TR("invalid format of login","clientserver")) \
     Do(ClientServerError,LOGIN_NOT_FOUND,_TR("login not found","clientserver")) \
+    Do(ClientServerError,USER_NOT_FOUND,_TR("user not found","clientserver")) \
+    Do(ClientServerError,LOGIN_BLOCKED,_TR("login blocked","clientserver")) \
+    Do(ClientServerError,USER_BLOCKED,_TR("user blocked","clientserver")) \
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 

@@ -51,5 +51,14 @@
                 }
             ]
         }
+    },
+
+    "db" : {
+        "provider" : "hatnrocksdb",
+        "hatnrocksdb" : {
+            "main": {
+                "dbpath" : "$data_dir/testdb"
+            }
+        }
     }
 }

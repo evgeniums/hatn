@@ -21,6 +21,8 @@
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/logcontext/context.h>
 
+#include <hatn/db/dberror.h>
+
 #include <hatn/api/autherror.h>
 #include <hatn/api/makeapierror.h>
 
@@ -45,20 +47,30 @@ void LoginController<ContextTraits>::findLogin(
 {
     auto cb=[callback=std::move(callback)](auto ctx, auto result) mutable
     {
+        HATN_CTX_SCOPE("logincontroller::findlogin")
+
         if (result)
         {
+            if (result.error().is(ClientServerError::INVALID_LOGIN_FORMAT,ClientServerErrorCategory::getCategory()))
+            {
+                auto ec=api::makeApiError(result.takeError(),api::ApiAuthError::INVALID_LOGIN_FORMAT,api::ApiAuthErrorCategory::getCategory());
+                callback(std::move(ctx),std::move(ec),common::SharedPtr<login_profile::managed>{});
+                return;
+            }
+
+            if (db::objectNotFound(result))
+            {
+                auto ec=api::makeApiError(common::chainErrors(result.takeError(),clientServerError(ClientServerError::LOGIN_NOT_FOUND)),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
+                callback(std::move(ctx),std::move(ec),common::SharedPtr<login_profile::managed>{});
+                return;
+            }
+
+            HATN_CTX_EC_LOG(result.error(),"failed to find login")
             callback(std::move(ctx),result.takeError(),common::SharedPtr<login_profile::managed>{});
             return;
         }
 
-        if (result->isNull())
-        {
-            callback(std::move(ctx),Error{},common::SharedPtr<login_profile::managed>{});
-        }
-        else
-        {
-            callback(std::move(ctx),Error{},result->shared());
-        }
+        callback(std::move(ctx),Error{},result->shared());
     };
 
     const auto& userController=ContextTraits::userController(ctx);
@@ -83,29 +95,17 @@ void LoginController<ContextTraits>::checkCanLogin(
             HATN_CTX_SCOPE("logincontroller::checklogin")
             if (ec)
             {
-                if (ec.is(ClientServerError::INVALID_LOGIN_FORMAT,ClientServerErrorCategory::getCategory()))
-                {
-                    callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::INVALID_LOGIN_FORMAT,api::ApiAuthErrorCategory::getCategory()));
-                }
-                else
-                {
-                    HATN_CTX_EC_LOG(ec,"failed to find login")
-                    callback(std::move(ctx),std::move(ec));
-                }
+                HATN_CTX_SCOPE_LOCK()
+                callback(std::move(ctx),std::move(ec));
                 return;
             }
-
-            if (loginObj.isNull())
-            {
-                HATN_CTX_SCOPE_ERROR("login not found")
-                callback(std::move(ctx),api::makeApiError(api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory()));
-                return;
-            }
+            Assert(loginObj,"login can not be null");
 
             if (loginObj->fieldValue(login_profile::blocked))
             {
-                HATN_CTX_SCOPE_ERROR("login blocked")
-                callback(std::move(ctx),api::makeApiError(api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory()));
+                HATN_CTX_SCOPE_LOCK()
+                ec=api::makeApiError(common::chainErrors(std::move(ec),clientServerError(ClientServerError::LOGIN_BLOCKED)),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
+                callback(std::move(ctx),std::move(ec));
                 return;
             }
 
@@ -121,23 +121,26 @@ void LoginController<ContextTraits>::checkCanLogin(
             HATN_CTX_SCOPE("logincontroller::checkcanlogin")
             if (result)
             {
+                if (db::objectNotFound(result))
+                {
+                    HATN_CTX_SCOPE_LOCK()
+                    auto ec=api::makeApiError(common::chainErrors(result.takeError(),clientServerError(ClientServerError::USER_NOT_FOUND)),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
+                    callback(std::move(ctx),std::move(ec));
+                    return;
+                }
+
                 HATN_CTX_EC_LOG(result.error(),"failed to find user")
                 callback(std::move(ctx),result.takeError());
                 return;
             }
-
-            if (result->isNull())
-            {
-                HATN_CTX_SCOPE_ERROR("user not found")
-                callback(std::move(ctx),api::makeApiError(api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory()));
-                return;
-            }
+            Assert(!result->isNull(),"user can not be null");
 
             auto user=result->shared();
             if (user->fieldValue(user::blocked))
             {
-                HATN_CTX_SCOPE_ERROR("user blocked")
-                callback(std::move(ctx),api::makeApiError(api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory()));
+                HATN_CTX_SCOPE_LOCK()
+                auto ec=api::makeApiError(common::chainErrors(result.takeError(),clientServerError(ClientServerError::USER_BLOCKED)),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
+                callback(std::move(ctx),std::move(ec));
                 return;
             }
 

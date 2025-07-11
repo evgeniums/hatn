@@ -58,6 +58,8 @@
 #include <hatn/serverapp/logincontroller.h>
 #include <hatn/serverapp/localusercontroller.h>
 #include <hatn/serverapp/localsessioncontroller.h>
+#include <hatn/serverapp/sessiondbmodelsprovider.h>
+#include <hatn/serverapp/userdbmodelsprovider.h>
 
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
@@ -174,6 +176,7 @@ auto createClient(std::string sharedSecret, std::string configFileName)
     };
     auto session=client.session();
     session->sessionImpl().setTokensUpdatedCb(std::move(tokensUpdateCb));
+    session->sessionImpl().setLogin(HATN_DATAUNIT_NAMESPACE::ObjectId::generateIdStr());
 
     return std::make_pair(app,ctx);
 }
@@ -297,14 +300,14 @@ struct EnvWithAuthConfigTraits
     using Env=EnvWithAuth;
     using Request=RequestWithAuth;
 
+    static std::shared_ptr<SessionDbModels> sessionDbModels;
+
     static Result<SharedPtr<Env>> makeEnv(
         const HATN_APP_NAMESPACE::App& app,
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const HATN_BASE_NAMESPACE::ConfigTreePath& configTreePath
     )
     {
-        auto sessionDbModels=std::make_shared<SessionDbModels>();
-
         // allocate
         auto f1=app.allocatorFactory().factory();
         auto allocator=f1->objectAllocator<Env>();
@@ -315,7 +318,7 @@ struct EnvWithAuthConfigTraits
                 context(std::make_shared<SharedSecretAuthProtocol>()),
                 context(),
                 context(),
-                context(std::move(sessionDbModels))
+                context(sessionDbModels)
             ),
             context()
         );
@@ -355,6 +358,7 @@ struct EnvWithAuthConfigTraits
         return env;
     }
 };
+std::shared_ptr<SessionDbModels> EnvWithAuthConfigTraits::sessionDbModels;
 
 using ServiceDispatcherType=server::ServiceDispatcher<EnvWithAuth,RequestWithAuth>;
 using AuthDispatcherType=SessionAuthDispatcher<EnvWithAuth,RequestWithAuth>;
@@ -415,11 +419,18 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
         expectedFail="expected: ";
     }
 
+    EnvWithAuthConfigTraits::sessionDbModels=std::make_shared<SessionDbModels>();
+    auto sessionDbModels=EnvWithAuthConfigTraits::sessionDbModels;
+
     // init server app
     AppName appName{"authserver","Auth Server"};
     auto app=std::make_shared<App>(appName);
+    app->setAppDataFolder(MultiThreadFixture::tmpFilePath("server-data"));
+    auto ec=app->createAppDataFolder();
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
     auto configFile=MultiThreadFixture::assetsFilePath("clientservertests",configFileName);
-    auto ec=app->loadConfigFile(configFile);
+    ec=app->loadConfigFile(configFile);
     if (ec)
     {
         BOOST_TEST_MESSAGE(fmt::format("{}failed to load app config: {}",expectedFail,ec.message()));
@@ -440,6 +451,13 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
             return ec;
         }
     }
+    BOOST_REQUIRE(!ec);
+
+    ec=app->destroyDb();
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+    ec=app->openDb();
+    HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
 
     // create service dispatcher
@@ -479,6 +497,21 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     auto microservices=microservicesR.takeValue();
     BOOST_REQUIRE_EQUAL(microservices.size(),1);
     BOOST_CHECK_EQUAL(microservices.begin()->first,"microservice1");
+
+    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>("main");
+
+    SessionDbModelsProvider sessDbModelsProvider{std::move(sessionDbModels)};
+    //! @todo Register rocksdb models in registerDbSchema
+    sessDbModelsProvider.registerRocksdbModels();
+    mainSchema->addModels(&sessDbModelsProvider);
+    UserDbModelsProvider userDbModelsProvider;
+    userDbModelsProvider.registerRocksdbModels();
+    mainSchema->addModels(&userDbModelsProvider);
+
+    app->registerDbSchema(mainSchema);
+    ec=app->database().setSchema(mainSchema);
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
 
     return ServerApp{std::move(app),std::move(microservices)};
 }

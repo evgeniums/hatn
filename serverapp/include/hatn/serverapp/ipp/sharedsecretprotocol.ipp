@@ -113,22 +113,6 @@ void SharedSecretAuthProtocol::check(
         {
             if (ec)
             {
-                if (ec.is(ClientServerError::INVALID_LOGIN_FORMAT,ClientServerErrorCategory::getCategory()))
-                {
-                    ec=api::makeApiError(std::move(ec),api::ApiAuthError::INVALID_LOGIN_FORMAT,api::ApiAuthErrorCategory::getCategory());
-                }
-                else
-                {
-                    HATN_CTX_EC_LOG(ec,"failed to find login")
-                }
-
-                callback(std::move(ctx),std::move(ec),std::move(token),{});
-                return;
-            }
-
-            if (login.isNull())
-            {
-                ec=api::makeApiError(ClientServerError::LOGIN_NOT_FOUND,ClientServerErrorCategory::getCategory(),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(ctx),std::move(ec),std::move(token),{});
                 return;
             }
