@@ -877,8 +877,9 @@ class WithAsyncClient
             m_db=std::move(db);
         }
 
-        const std::shared_ptr<AsyncClient>& dbClient() const noexcept
+        const std::shared_ptr<AsyncClient>& dbClient() const
         {
+            Assert(m_db,"async database client must be set");
             return m_db;
         }
 
