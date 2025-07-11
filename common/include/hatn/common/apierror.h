@@ -165,7 +165,7 @@ class HATN_COMMON_EXPORT ApiError
 
         bool isFamily(const ApiErrorCategory& cat) const noexcept
         {
-            return strcmp(cat.family(),category()->family())==0;
+            return isFamily(cat.family());
         }
 
         bool isFamily(lib::string_view other) const noexcept
