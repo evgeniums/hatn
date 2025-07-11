@@ -32,6 +32,7 @@
 #include <hatn/db/db.h>
 #include <hatn/db/objectid.h>
 #include <hatn/db/topic.h>
+#include <hatn/db/dberror.h>
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -241,6 +242,16 @@ class DbObjectT : public du::UnitWrapperT<T>
 
         TopicHolder m_topic;
 };
+
+template <typename T>
+bool objectNotFound(const T& result)
+{
+    if (result)
+    {
+        return isNotFound(result.error());
+    }
+    return result->isNull();
+}
 
 HATN_DB_NAMESPACE_END
 
