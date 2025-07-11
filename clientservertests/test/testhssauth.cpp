@@ -480,7 +480,7 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     server::MicroServiceFactory factory;
     factory.registerBuilder("microservice1",microserviceBuilder);
 
-    // craete and run microservices
+    // create and run microservices
     auto microservicesR=factory.makeAndRunAll(*app,app->configTree());
     if (microservicesR)
     {
@@ -539,6 +539,75 @@ void runCreateServer(std::string configFile, TestEnv* env, T expectedErrorCode)
 
 /********************** Tests **************************/
 
+enum class TestMode : int
+{
+    OK,
+    UknownLogin,
+    UknownUser,
+    InvalidSharedSecret,
+    InvalidToken,
+    ExpiredToken
+};
+
+struct TestConfig
+{
+    const char* serverConfigFile="hssauthserver.jsonc";
+    const char* clientConfigFile="hssauthclient.jsonc";
+    const char* clientSharedSecret="shared_secret1";
+    int runningSecs=3;
+};
+
+template <typename TestEnvT, typename CallbackT>
+void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConfig& config={})
+{
+    auto serverCtx=createServer(config.serverConfigFile);
+
+    std::string sharedSecret1{config.clientSharedSecret};
+    auto client=createClient(std::move(sharedSecret1),config.clientConfigFile);
+    auto clientCtx=client.second;
+    auto clientThread=client.first->appThread();
+
+    auto invokeTask1=[clientCtx,callback]()
+    {
+        auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+
+        auto ctx=makeLogCtx();
+        service1_msg1::type msg;
+        msg.setFieldValue(service1_msg1::field1,100);
+        msg.setFieldValue(service1_msg1::field2,"hello world!");
+        Message msgData;
+        auto ec=msgData.setContent(msg);
+        HATN_TEST_EC(ec);
+        BOOST_REQUIRE(!ec);
+        ec=cl.exec(
+            ctx,
+            callback,
+            Service{"service1"},
+            Method{"method1"},
+            std::move(msgData),
+            "topic1"
+            );
+        HATN_TEST_EC(ec);
+        BOOST_REQUIRE(!ec);
+    };
+    clientThread->start();
+    clientThread->execAsync(invokeTask1);
+
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",config.runningSecs));
+    testEnv->exec(config.runningSecs);
+
+    for (auto&& it: serverCtx->microservices)
+    {
+        it.second->close();
+    }
+    testEnv->exec(1);
+
+    serverCtx->app->close();
+    client.first->close();
+
+    testEnv->exec(1);
+}
+
 BOOST_AUTO_TEST_SUITE(TestHssAuth)
 
 BOOST_FIXTURE_TEST_CASE(EnvFB,TestEnv)
@@ -569,74 +638,31 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     exec(1);
 }
 
-BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
+BOOST_FIXTURE_TEST_CASE(UnknownLogin,TestEnv)
 {
-    auto serverCtx=createServer("hssauthserver.jsonc");
-
-    std::string sharedSecret1{"shared_secret1"};
-    auto client=createClient(std::move(sharedSecret1),"hssauthclient.jsonc");
-    auto clientCtx=client.second;
-    auto clientThread=client.first->appThread();
-
-    auto invokeTask1=[clientCtx]()
+    auto cb=[](auto ctx, const Error& ec, auto response)
     {
-        auto cb=[](auto ctx, const Error& ec, auto response)
+        if (ec)
         {
-            if (ec)
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
             {
-                auto msg=ec.message();
-                if (ec.apiError()!=nullptr)
-                {
-                    msg+=ec.apiError()->message();
-                }
-                HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+                msg+=ec.apiError()->message();
             }
-            else
-            {
-                HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 OK"));
-            }
-        };
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
 
-        auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
-
-        auto ctx=makeLogCtx();
-        service1_msg1::type msg;
-        msg.setFieldValue(service1_msg1::field1,100);
-        msg.setFieldValue(service1_msg1::field2,"hello world!");
-        Message msgData;
-        auto ec=msgData.setContent(msg);
-        HATN_TEST_EC(ec);
-        BOOST_REQUIRE(!ec);
-        ec=cl.exec(
-            ctx,
-            cb,
-            Service{"service1"},
-            Method{"method1"},
-            std::move(msgData),
-            "topic1"
-            );
-        HATN_TEST_EC(ec);
-        BOOST_REQUIRE(!ec);
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
     };
-    clientThread->start();
-    clientThread->execAsync(invokeTask1);
 
-    int secs=60;
-    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
-    exec(secs);
-
-    for (auto&& it: serverCtx->microservices)
-    {
-        it.second->close();
-    }
-    exec(1);
-
-    serverCtx->app->close();
-    client.first->close();
-
-    exec(1);
-
-    BOOST_CHECK(true);
+    runTest(this,cb,TestMode::UknownLogin);
 }
 
 
