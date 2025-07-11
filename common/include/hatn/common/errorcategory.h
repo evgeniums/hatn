@@ -33,6 +33,11 @@ class ErrorCategory : public std::error_category
 
         //! Get string representation of the code.
         virtual const char* codeString(int code) const=0;
+
+        bool is(const ErrorCategory& other) const noexcept
+        {
+            return strcmp(name(),other.name())==0;
+        }
 };
 
 
@@ -54,7 +59,7 @@ class HATN_COMMON_EXPORT CommonErrorCategory : public ErrorCategory
         virtual const char* codeString(int code) const override;
 
         //! Get category.
-        static const CommonErrorCategory& getCategory() noexcept;
+        static const CommonErrorCategory& getCategory() noexcept;        
 };
 
 //---------------------------------------------------------------
