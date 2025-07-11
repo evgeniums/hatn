@@ -88,6 +88,11 @@ inline void setDbErrorCode(Error& ec, DbError code)
     ec.setCode(code,&DbErrorCategory::getCategory());
 }
 
+inline bool isNotFound(const Error& ec) noexcept
+{
+    return (ec.is(DbError::NOT_FOUND) || ec.is(DbError::EXPIRED)) && (ec.category()==&DbErrorCategory::getCategory());
+}
+
 HATN_DB_NAMESPACE_END
 
 #endif // HATNBASEERROR_H
