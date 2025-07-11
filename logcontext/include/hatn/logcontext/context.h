@@ -143,7 +143,10 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 }
             }
             auto* scopeCursor=currentScope();
-            Assert(scopeCursor!=nullptr,"describeScopeError() forbidden in empty scope stack");
+            if (scopeCursor==nullptr)
+            {
+                Assert(false,"describeScopeError() forbidden in empty scope stack");
+            }
             scopeCursor->second.error=err;
         }
 
