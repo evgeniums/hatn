@@ -55,6 +55,11 @@ inline std::string UpdatedAtFieldName{object::updated_at.name()};
 template <typename ObjectT>
 void initObject(ObjectT& obj)
 {
+    if (obj.field(object::_id).isSet())
+    {
+        return;
+    }
+
     // generate _id
     auto* id=obj.field(object::_id).mutableValue();
     id->generate();
