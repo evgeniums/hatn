@@ -54,8 +54,6 @@ void SharedSecretAuthProtocol::prepare(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
-    HATN_CTX_SCOPE("sharedsecretauth::prepare")
-
     auto msg=prepareChallengeToken(std::move(message),factory);
     if (msg)
     {
@@ -77,7 +75,7 @@ void SharedSecretAuthProtocol::check(
         const common::pmr::AllocatorFactory* factory
     ) const
 {
-    HATN_CTX_SCOPE("sharedsecretauth::check")
+    HATN_CTX_SCOPE_WITH_BARRIER("authhss::check")
 
     // deserialize token
     const auto& tokenField=message->field(auth_hss_check::token);
@@ -92,6 +90,12 @@ void SharedSecretAuthProtocol::check(
     }
     auto token=tokenR.takeValue();
 
+    HATN_CTX_PUSH_FIXED_VAR("login",token->fieldValue(auth_challenge_token::login))
+    if (!token->fieldValue(auth_challenge_token::topic).empty())
+    {
+        HATN_CTX_PUSH_FIXED_VAR("login_topic",token->fieldValue(auth_challenge_token::topic))
+    }
+
     // check if token expired
     auto now=common::DateTime::currentUtc();
     if (now.after(token->fieldValue(auth_challenge_token::expire)))
@@ -104,7 +108,7 @@ void SharedSecretAuthProtocol::check(
     // find login
     auto findLogin=[loginController=&loginController](auto&& checkMAC, auto ctx, auto callback, auto token)
     {
-        HATN_CTX_SCOPE("findlogin")
+        HATN_CTX_SCOPE_WITH_BARRIER("[findlogin]")
 
         auto tokenPtr=token.get();
 
@@ -117,6 +121,7 @@ void SharedSecretAuthProtocol::check(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[findlogin]")
             checkMAC(std::move(ctx),std::move(callback),std::move(token),std::move(login));
         };
 
@@ -132,7 +137,7 @@ void SharedSecretAuthProtocol::check(
     auto checkMAC=[this,message=std::move(message)](auto ctx, auto callback, common::SharedPtr<auth_challenge_token::managed> token,
                            common::SharedPtr<login_profile::managed> login)
     {
-        HATN_CTX_SCOPE("checkmac")
+        HATN_CTX_SCOPE_WITH_BARRIER("[checkmac]")
 
         Error ec;
 
@@ -164,7 +169,8 @@ void SharedSecretAuthProtocol::check(
             callback(std::move(ctx),std::move(ec),std::move(token),{});
             return;
         }
-        ec=mac->check(macAlg,token->fieldValue(auth_challenge_token::challenge),message->fieldValue(auth_hss_check::mac));
+        mac->setKey(key.get());
+        ec=mac->runVerify(token->fieldValue(auth_challenge_token::challenge),message->fieldValue(auth_hss_check::mac));
         if (ec)
         {
             if (ec.is(crypt::CryptError::DIGEST_MISMATCH))
@@ -173,7 +179,7 @@ void SharedSecretAuthProtocol::check(
             }
             else
             {
-                HATN_CTX_EC_LOG(ec,"failed to check MAC")
+                HATN_CTX_EC_LOG(ec,"failed to verify MAC")
             }
             callback(std::move(ctx),std::move(ec),std::move(token),{});
             return;
@@ -181,6 +187,7 @@ void SharedSecretAuthProtocol::check(
 
         // MAC is ok
         // note that blocking and ACL must be checked somewhere else
+        HATN_CTX_STACK_BARRIER_OFF("authhss::check")
         callback(std::move(ctx),{},std::move(token),std::move(login));
     };
 
@@ -202,11 +209,11 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
     common::SharedPtr<Message> msg
     ) const
 {
-    HATN_CTX_SCOPE("authhss")
+    HATN_CTX_SCOPE_WITH_BARRIER("authhss")
 
     auto checkSharedSecret=[](auto&& createSession, auto request, auto callback, auto msg) mutable
     {
-        HATN_CTX_SCOPE("authhss::check")
+        HATN_CTX_SCOPE_WITH_BARRIER("[checksharedsecret]")
 
         auto cb=[createSession=std::move(createSession),callback=std::move(callback)](auto ctx, Error ec, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<login_profile::managed> login) mutable
         {
@@ -227,6 +234,7 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
             }
             else
             {
+                HATN_CTX_STACK_BARRIER_OFF("[checksharedsecret]")
                 createSession(std::move(ctx),std::move(callback),std::move(token),std::move(login));
             }
         };
@@ -246,14 +254,16 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
 
     auto createSession=[](auto request, auto callback, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<login_profile::managed> login)
     {
-        HATN_CTX_SCOPE("authhss::createsession")
+        HATN_CTX_SCOPE_WITH_BARRIER("[createsession]")
 
-        auto cb=[callback=std::move(callback)](auto request, common::Error ec, SessionResponse response)
+        auto tokenPtr=token.get();
+        auto loginPtr=login.get();
+        auto cb=[callback=std::move(callback),token=std::move(token),login=std::move(login)](auto request, common::Error ec, SessionResponse response)
         {
             auto& req=serverapi::request<Request>(request).request();
             if (ec)
             {
-                if (ec.apiError()!=nullptr && ec.apiError()->is(api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory()))
+                if (ec.apiError()!=nullptr && ec.apiError()->isFamily(api::ApiAuthErrorCategory::getCategory()))
                 {
                     req.setResponseError(std::move(ec),api::protocol::ResponseStatus::Forbidden);
                 }
@@ -265,6 +275,8 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
                 return;
             }
             req.response.setSuccessMessage(std::move(response.response));
+
+            HATN_CTX_STACK_BARRIER_OFF("authhss")
             callback(std::move(request));
         };
 
@@ -273,9 +285,9 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
         sessionController.createSession(
             std::move(request),
             std::move(cb),
-            login->fieldValue(db::object::_id),
-            login->fieldValue(with_user::user),
-            token->fieldValue(auth_challenge_token::topic)
+            loginPtr->fieldValue(db::object::_id),
+            loginPtr->fieldValue(with_user::user),
+            tokenPtr->fieldValue(auth_challenge_token::topic)
         );
     };
 

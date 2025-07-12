@@ -47,7 +47,6 @@ void Request<EnvT,RequestUnitT>::close(const Error& ec)
 {
     auto logClosing=[this]()
     {
-        HATN_CTX_SCOPE("request::close")
         if (!complete)
         {
             HATN_CTX_PUSH_FIXED_VAR("complete",complete)

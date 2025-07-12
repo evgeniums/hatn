@@ -50,6 +50,27 @@ struct ResponseError
     common::ApiError apiError;
     const common::ApiError* apiErrorPtr=nullptr;
 
+    ~ResponseError()=default;
+    ResponseError(const ResponseError&)=delete;
+    ResponseError& operator=(const ResponseError&)=delete;
+
+    ResponseError(ResponseError&& other)
+    {
+        moveOther(std::move(other));
+    }
+
+    ResponseError& operator=(ResponseError&& other)
+    {
+        if (this==&other)
+        {
+            return *this;
+        }
+
+        moveOther(std::move(other));
+
+        return *this;
+    }
+
     ResponseError(protocol::ResponseStatus status, const common::ApiError* apiErrorPtr)
         : status(status), apiErrorPtr(apiErrorPtr)
     {}
@@ -61,6 +82,20 @@ struct ResponseError
     const common::ApiError* actualApiError() const
     {
         return apiErrorPtr;
+    }
+
+    void moveOther(ResponseError&& other)
+    {
+        if (other.apiErrorPtr!=&other.apiError)
+        {
+            apiErrorPtr=other.apiErrorPtr;
+        }
+        else
+        {
+            apiError=std::move(other.apiError);
+            apiErrorPtr=&apiError;
+        }
+        other.apiErrorPtr=nullptr;
     }
 };
 
@@ -289,6 +324,18 @@ inline auto allocateRequestContext(
             HATN_COMMON_NAMESPACE::subcontext()
             )
         );
+}
+
+template <typename RequestT>
+auto allocateAndInitRequestContext(common::SharedPtr<typename RequestT::Env> env)
+{
+    auto reqCtx=allocateRequestContext<RequestT>(std::move(env));
+    auto& req=reqCtx->template get<RequestT>();
+    req.requestThread=common::ThreadQWithTaskContext::current();
+    auto& envLogger=req.env->template get<Logger>();
+    auto& logCtx=reqCtx->template get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+    logCtx.setLogger(envLogger.logger());
+    return reqCtx;
 }
 
 template <typename Request>

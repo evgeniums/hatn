@@ -36,6 +36,7 @@ Error SessionToken::init(
     {
         return common::genericError(fmt::format(_TR("current tag \"{}\" not found in session tokens",m_currentTag)),common::CommonError::CONFIGURATION_ERROR);
     }
+    m_currentTokenHandler=it->second;
 
     return OK;
 }

@@ -47,8 +47,6 @@ void LoginController<ContextTraits>::findLogin(
 {
     auto cb=[callback=std::move(callback)](auto ctx, auto result) mutable
     {
-        HATN_CTX_SCOPE("logincontroller::findlogin")
-
         if (result)
         {
             if (result.error().is(ClientServerError::INVALID_LOGIN_FORMAT,ClientServerErrorCategory::getCategory()))
@@ -65,6 +63,7 @@ void LoginController<ContextTraits>::findLogin(
                 return;
             }
 
+            HATN_CTX_SCOPE("logincontroller::findlogin")
             HATN_CTX_EC_LOG(result.error(),"failed to find login")
             callback(std::move(ctx),result.takeError(),common::SharedPtr<login_profile::managed>{});
             return;
@@ -88,11 +87,14 @@ void LoginController<ContextTraits>::checkCanLogin(
         db::Topic topic
     ) const
 {
+    HATN_CTX_SCOPE_WITH_BARRIER("logincontroller::checkcanlogin")
+
     auto checkLogin=[this](auto&& checkUser, auto ctx, auto callback, auto login, auto topic)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checklogin]")
+
         auto cb=[checkUser=std::move(checkUser),callback=std::move(callback),topic=db::TopicHolder{topic}](auto ctx, Error ec, common::SharedPtr<login_profile::managed> loginObj) mutable
         {
-            HATN_CTX_SCOPE("logincontroller::checklogin")
             if (ec)
             {
                 HATN_CTX_SCOPE_LOCK()
@@ -109,6 +111,10 @@ void LoginController<ContextTraits>::checkCanLogin(
                 return;
             }
 
+            HATN_CTX_PUSH_FIXED_VAR("user",loginObj->fieldValue(with_user::user).toString())
+            HATN_CTX_PUSH_FIXED_VAR("user_topic",loginObj->fieldValue(with_user::user_topic))
+
+            HATN_CTX_STACK_BARRIER_OFF("[checklogin]")
             checkUser(std::move(ctx),std::move(callback),std::move(loginObj));
         };
         this->findLogin(std::move(ctx),std::move(cb),login,topic);
@@ -116,9 +122,11 @@ void LoginController<ContextTraits>::checkCanLogin(
 
     auto checkUser=[](auto&& checkACL, auto ctx, auto callback, auto loginObj)
     {
+        auto loginPtr=loginObj.get();
         auto cb=[checkACL=std::move(checkACL),callback=std::move(callback),loginObj=std::move(loginObj)](auto ctx, auto result) mutable
         {
-            HATN_CTX_SCOPE("logincontroller::checkcanlogin")
+            HATN_CTX_SCOPE_WITH_BARRIER("[checkuser]")
+
             if (result)
             {
                 if (db::objectNotFound(result))
@@ -144,17 +152,22 @@ void LoginController<ContextTraits>::checkCanLogin(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[checkuser]")
             checkACL(std::move(ctx),std::move(callback),std::move(user),std::move(loginObj));
         };
         const auto& userController=ContextTraits::userController(ctx);
-        userController.findUser(std::move(ctx),std::move(cb),loginObj->fieldValue(with_user::user),loginObj->fieldValue(with_user::user_topic));
+        userController.findUser(std::move(ctx),std::move(cb),loginPtr->fieldValue(with_user::user),loginPtr->fieldValue(with_user::user_topic));
     };
 
     auto checkACL=[](auto ctx, auto callback, auto userObj, auto loginObj)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checkacl]")
+
         //! @todo critical: Check user ACL
         std::ignore=userObj;
         std::ignore=loginObj;
+
+        HATN_CTX_STACK_BARRIER_OFF("logincontroller::checkcanlogin")
         callback(std::move(ctx),Error{});
     };
 

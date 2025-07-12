@@ -18,6 +18,8 @@
 
 #include <hatn/common/meta/chain.h>
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/db/object.h>
 #include <hatn/db/asyncclient.h>
 #include <hatn/db/update.h>
@@ -47,6 +49,8 @@ void LocalSessionController<ContextTraits>::createSession(
         db::Topic topic
     ) const
 {
+    HATN_CTX_SCOPE_WITH_BARRIER("sessioncontroller::createsession")
+
     const common::pmr::AllocatorFactory* factory=ContextTraits::factory(ctx);
     auto session=factory->template createObject<session::managed>();
     db::initObject(*session);
@@ -74,6 +78,8 @@ void LocalSessionController<ContextTraits>::createSession(
 
     auto checkCanLogin=[topic](auto&& createSess, auto ctx, auto callback, auto session)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checkcanlogin]")
+
         auto sessPtr=session.get();
         auto cb=[session=std::move(session),callback=std::move(callback),createSess=std::move(createSess)](auto ctx, common::Error ec) mutable
         {
@@ -83,6 +89,7 @@ void LocalSessionController<ContextTraits>::createSession(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[checkcanlogin]")
             createSess(std::move(ctx),std::move(callback),std::move(session));
         };
 
@@ -97,6 +104,8 @@ void LocalSessionController<ContextTraits>::createSession(
 
     auto createSess=[topic,dbModels=sessionDbModels()](auto&& createSessionClient, auto ctx, auto callback, auto session)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[createsess]")
+
         auto sessPtr=session.get();
         auto createCb=[session=std::move(session),callback=std::move(callback),createSessionClient=std::move(createSessionClient)](auto ctx, const common::Error& ec) mutable
         {
@@ -107,6 +116,7 @@ void LocalSessionController<ContextTraits>::createSession(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[createsess]")
             createSessionClient(std::move(ctx),std::move(callback),std::move(session));
         };
 
@@ -123,6 +133,8 @@ void LocalSessionController<ContextTraits>::createSession(
 
     auto createSessionClient=[factory,topic,dbModels=sessionDbModels()](auto&& done, auto ctx, auto callback, auto session)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[createsessionclient]")
+
         auto sessionClient=factory->template createObject<session_client::managed>();
         db::initObject(*sessionClient);
         sessionClient->setFieldValue(session_client::login,session->fieldValue(session::login));
@@ -148,6 +160,7 @@ void LocalSessionController<ContextTraits>::createSession(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[createsessionclient]")
             done(std::move(ctx),std::move(callback),std::move(session));
         };
 
@@ -170,6 +183,7 @@ void LocalSessionController<ContextTraits>::createSession(
         auto& refreshTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::refresh_token);
         refreshTokenField.set(std::move(refreshToken.clientToken));
 
+        HATN_CTX_STACK_BARRIER_OFF("sessioncontroller::createsession")
         callback(std::move(ctx),common::Error{},SessionResponse{std::move(response),std::move(session)});
     };
 
@@ -193,7 +207,7 @@ void LocalSessionController<ContextTraits>::checkSession(
         bool update
     ) const
 {
-    HATN_CTX_SCOPE("checksession")
+    HATN_CTX_SCOPE_WITH_BARRIER("sessioncontroller::checksession")
 
     const common::pmr::AllocatorFactory* factory=ContextTraits::factory(ctx);
 
@@ -313,6 +327,7 @@ void LocalSessionController<ContextTraits>::checkSession(
 
     auto done=[](auto ctx, auto callback, common::SharedPtr<session::managed> session, common::SharedPtr<auth_token::managed> token)
     {
+        HATN_CTX_STACK_BARRIER_OFF("sessioncontroller::checksession")
         callback(std::move(ctx),common::Error{},SessionCheckResult{std::move(token),std::move(session)});
     };
 

@@ -113,7 +113,7 @@ constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-auto createClient(std::string sharedSecret, std::string configFileName)
+auto createClient(std::string sharedSecret, std::string configFileName, std::string login={}, std::string topic={})
 {
     // init client app
     AppName appName{"authclient","Auth Client"};
@@ -176,7 +176,7 @@ auto createClient(std::string sharedSecret, std::string configFileName)
     };
     auto session=client.session();
     session->sessionImpl().setTokensUpdatedCb(std::move(tokensUpdateCb));
-    session->sessionImpl().setLogin(HATN_DATAUNIT_NAMESPACE::ObjectId::generateIdStr());
+    session->sessionImpl().setLogin(login,topic);
 
     return std::make_pair(app,ctx);
 }
@@ -227,10 +227,10 @@ struct ContextTraits
 {
     using Context=server::RequestContext<RequestWithAuth>;
 
-    static const auto& loginController(const SharedPtr<Context>& ctx);
-    static const auto& userController(const SharedPtr<Context>& ctx);
+    static auto& loginController(const SharedPtr<Context>& ctx);
+    static auto& userController(const SharedPtr<Context>& ctx);
     static const auto* factory(const SharedPtr<Context>& ctx);
-    static const auto& contextDb(const SharedPtr<Context>& ctx);
+    static auto& contextDb(const SharedPtr<Context>& ctx);
 };
 
 class EnvWithAuth : public EnvWithAuthT
@@ -239,14 +239,9 @@ class EnvWithAuth : public EnvWithAuthT
 
         using EnvWithAuthT::EnvWithAuthT;
 
-        const auto& loginController() const
+        auto& loginController()
         {
             return get<LoginController<ContextTraits>>();
-        }
-
-        const auto& sessionController() const
-        {
-            return get<LocalSessionController<ContextTraits>>();
         }
 
         auto& sessionController()
@@ -254,7 +249,7 @@ class EnvWithAuth : public EnvWithAuthT
             return get<LocalSessionController<ContextTraits>>();
         }
 
-        const auto& userController() const
+        auto& userController()
         {
             return get<LocalUserController<ContextTraits>>();
         }
@@ -275,12 +270,12 @@ struct RequestWithAuth : public server::Request<EnvWithAuth>
     }
 };
 
-const auto& ContextTraits::loginController(const SharedPtr<Context>& ctx)
+auto& ContextTraits::loginController(const SharedPtr<Context>& ctx)
 {
     return server::requestEnv<RequestWithAuth>(ctx)->loginController();
 }
 
-const auto& ContextTraits::userController(const SharedPtr<Context>& ctx)
+auto& ContextTraits::userController(const SharedPtr<Context>& ctx)
 {
     return server::requestEnv<RequestWithAuth>(ctx)->userController();
 }
@@ -290,7 +285,7 @@ const auto* ContextTraits::factory(const SharedPtr<Context>& ctx)
     return server::request<RequestWithAuth>(ctx).request().factory();
 }
 
-const auto& ContextTraits::contextDb(const SharedPtr<Context>& ctx)
+auto& ContextTraits::contextDb(const SharedPtr<Context>& ctx)
 {
     return server::request<RequestWithAuth>(ctx).request().db();
 }
@@ -301,6 +296,7 @@ struct EnvWithAuthConfigTraits
     using Request=RequestWithAuth;
 
     static std::shared_ptr<SessionDbModels> sessionDbModels;
+    static SharedPtr<Env> env;
 
     static Result<SharedPtr<Env>> makeEnv(
         const HATN_APP_NAMESPACE::App& app,
@@ -311,7 +307,7 @@ struct EnvWithAuthConfigTraits
         // allocate
         auto f1=app.allocatorFactory().factory();
         auto allocator=f1->objectAllocator<Env>();
-        auto env=allocateEnvType<Env>(
+        env=allocateEnvType<Env>(
             allocator,
             contexts(
                 context(std::make_shared<AuthProtocols>()),
@@ -359,6 +355,7 @@ struct EnvWithAuthConfigTraits
     }
 };
 std::shared_ptr<SessionDbModels> EnvWithAuthConfigTraits::sessionDbModels;
+SharedPtr<EnvWithAuthConfigTraits::Env> EnvWithAuthConfigTraits::env;
 
 using ServiceDispatcherType=server::ServiceDispatcher<EnvWithAuth,RequestWithAuth>;
 using AuthDispatcherType=SessionAuthDispatcher<EnvWithAuth,RequestWithAuth>;
@@ -553,8 +550,11 @@ struct TestConfig
 {
     const char* serverConfigFile="hssauthserver.jsonc";
     const char* clientConfigFile="hssauthclient.jsonc";
-    const char* clientSharedSecret="shared_secret1";
-    int runningSecs=3;
+    const char* clientSharedSecret1="shared_secret1";
+    const char* clientSharedSecret2="shared_secret2";
+    const char* topic1="topic1";
+    const char* topic2="topic2";
+    int runningSecs=60;
 };
 
 template <typename TestEnvT, typename CallbackT>
@@ -562,36 +562,122 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
 {
     auto serverCtx=createServer(config.serverConfigFile);
 
-    std::string sharedSecret1{config.clientSharedSecret};
-    auto client=createClient(std::move(sharedSecret1),config.clientConfigFile);
+    auto usr1=makeShared<user::managed>();
+    HATN_DB_NAMESPACE::initObject(*usr1);
+    auto usr2=makeShared<user::managed>();
+    HATN_DB_NAMESPACE::initObject(*usr2);
+    auto login1_1=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login1_1);
+    login1_1->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login1_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
+    login1_1->setFieldValue(with_user::user_topic,config.topic1);
+    auto login1_2=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login1_2);
+    login1_2->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login1_2->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
+    login1_2->setFieldValue(with_user::user_topic,config.topic1);
+
+    auto sharedSecret=config.clientSharedSecret1;
+    auto login=login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString();
+    auto loginTopic=config.topic1;
+    if (mode==TestMode::UknownLogin)
+    {
+        login=HATN_DATAUNIT_NAMESPACE::ObjectId::generateIdStr();
+    }
+    else if (mode==TestMode::InvalidSharedSecret)
+    {
+        sharedSecret=config.clientSharedSecret2;
+    }
+
+    auto addUser1Topic1=[&config,usr1](auto&& next, auto ctx)
+    {
+        auto cb=[next=std::move(next),usr1](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addUser(
+            std::move(ctx),
+            cb,
+            std::move(usr1),
+            config.topic1
+        );
+    };
+
+    auto addLogin1_1Topic1=[&config,login1_1](auto&& next, auto ctx)
+    {
+        auto cb=[login1_1,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login1_1),
+            config.topic1
+        );
+    };
+
+    auto client=createClient(sharedSecret,config.clientConfigFile,login,loginTopic);
     auto clientCtx=client.second;
     auto clientThread=client.first->appThread();
-
-    auto invokeTask1=[clientCtx,callback]()
+    auto execClient=[clientThread,clientCtx,callback](auto)
     {
-        auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+        auto invokeTask1=[clientCtx,callback]()
+        {
+            auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
 
-        auto ctx=makeLogCtx();
-        service1_msg1::type msg;
-        msg.setFieldValue(service1_msg1::field1,100);
-        msg.setFieldValue(service1_msg1::field2,"hello world!");
-        Message msgData;
-        auto ec=msgData.setContent(msg);
-        HATN_TEST_EC(ec);
-        BOOST_REQUIRE(!ec);
-        ec=cl.exec(
-            ctx,
-            callback,
-            Service{"service1"},
-            Method{"method1"},
-            std::move(msgData),
-            "topic1"
+            auto ctx=makeLogCtx();
+            service1_msg1::type msg;
+            msg.setFieldValue(service1_msg1::field1,100);
+            msg.setFieldValue(service1_msg1::field2,"hello world!");
+            Message msgData;
+            auto ec=msgData.setContent(msg);
+            HATN_TEST_EC(ec);
+            BOOST_REQUIRE(!ec);
+            ec=cl.exec(
+                ctx,
+                callback,
+                Service{"service1"},
+                Method{"method1"},
+                std::move(msgData),
+                "test_topic"
             );
-        HATN_TEST_EC(ec);
-        BOOST_REQUIRE(!ec);
+            HATN_TEST_EC(ec);
+            BOOST_REQUIRE(!ec);
+        };
+        clientThread->execAsync(invokeTask1);
     };
+
+    testEnv->createThreads(1);
+    auto testThread=testEnv->thread(0);
+    testThread->start();
     clientThread->start();
-    clientThread->execAsync(invokeTask1);
+
+    testThread->execAsync(
+        [
+         addUser1Topic1=std::move(addUser1Topic1),
+         addLogin1_1Topic1=std::move(addLogin1_1Topic1),
+         execClient=std::move(execClient)
+        ]()
+        {
+            auto reqCtx=server::allocateAndInitRequestContext<RequestWithAuth>(EnvWithAuthConfigTraits::env);
+            auto chain=hatn::chain(
+                std::move(addUser1Topic1),
+                std::move(addLogin1_1Topic1),
+                std::move(execClient)
+            );
+            chain(std::move(reqCtx));
+        }
+    );
 
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",config.runningSecs));
     testEnv->exec(config.runningSecs);
@@ -605,6 +691,8 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     serverCtx->app->close();
     client.first->close();
 
+    testEnv->exec(1);
+    testThread->stop();
     testEnv->exec(1);
 }
 
@@ -665,6 +753,28 @@ BOOST_FIXTURE_TEST_CASE(UnknownLogin,TestEnv)
     runTest(this,cb,TestMode::UknownLogin);
 }
 
+BOOST_FIXTURE_TEST_CASE(Ok,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    runTest(this,cb,TestMode::OK);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 

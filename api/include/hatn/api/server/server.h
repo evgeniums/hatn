@@ -106,13 +106,9 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             }
 
             // create request
-            auto reqCtx=allocateRequestContext<Request>(ctx->template get<WithEnv<Env>>().envShared());
+            auto reqCtx=allocateAndInitRequestContext<Request>(ctx->template get<WithEnv<Env>>().envShared());
             auto& req=reqCtx->template get<Request>();
             req.connectionCtx=ctx;
-            req.requestThread=common::ThreadQWithTaskContext::current();
-            auto& envLogger=req.env->template get<Logger>();
-            auto& logCtx=reqCtx->template get<HATN_LOGCONTEXT_NAMESPACE::Context>();
-            logCtx.setLogger(envLogger.logger());
 
             ctx->resetParentCtx(reqCtx);
             //! @todo Fill request parameters with connection parameters
@@ -199,20 +195,20 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                 //! @todo Handle proxy field if allowed by server settings
 
                                 auto& req=reqCtx->template get<Request>();
-                                HATN_CTX_PUSH_VAR("mthd",req.unit.fieldValue(protocol::request::method))
-                                HATN_CTX_PUSH_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
-                                HATN_CTX_PUSH_VAR("srv",req.unit.fieldValue(protocol::request::service))
+                                HATN_CTX_PUSH_FIXED_VAR("mthd",req.unit.fieldValue(protocol::request::method))
+                                HATN_CTX_PUSH_FIXED_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
+                                HATN_CTX_PUSH_FIXED_VAR("srv",req.unit.fieldValue(protocol::request::service))
                                 if (req.unit.field(protocol::request::service_version).isSet())
                                 {
-                                    HATN_CTX_PUSH_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
+                                    HATN_CTX_PUSH_FIXED_VAR("s_ver",req.unit.fieldValue(protocol::request::service_version))
                                 }
                                 if (req.unit.field(protocol::request::topic).isSet())
                                 {
-                                    HATN_CTX_PUSH_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
+                                    HATN_CTX_PUSH_FIXED_VAR("tpc",req.unit.fieldValue(protocol::request::topic))
                                 }
                                 if (req.unit.field(protocol::request::message_type).isSet())
                                 {
-                                    HATN_CTX_PUSH_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
+                                    HATN_CTX_PUSH_FIXED_VAR("typ",req.unit.fieldValue(protocol::request::message_type))
                                 }
 
                                 // auth request if auth dispatcher is set
