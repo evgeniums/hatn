@@ -230,7 +230,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             }
 
             bool restore=false;
-            size_t idx=m_barrierStack.size()-1;
+            int idx=static_cast<int>(m_barrierStack.size())-1;
             for (;idx>=0;idx--)
             {
                 if (std::strcmp(m_barrierStack[idx].name,name)==0)
@@ -262,7 +262,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             }
 
             bool restore=false;
-            size_t idx=m_barrierStack.size()-1;
+            int idx=static_cast<int>(m_barrierStack.size())-1;
             for (;idx>=0;idx--)
             {
                 if (std::strcmp(m_barrierStack[idx].name,name)==0)
@@ -697,5 +697,11 @@ HATN_COMMON_NAMESPACE_END
 #define HATN_CTX_STACK_BARRIER_LAST_OFF() \
     HATN_CTX_IF() \
         HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierLastOff();
+
+#define HATN_CTX_SCOPE_WITH_BARRIER(Name) \
+    HATN_CTX_SCOPE(Name) \
+    HATN_CTX_IF() \
+        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOn(Name);
+
 
 #endif // HATNLOGCONTEXT_H
