@@ -554,7 +554,7 @@ struct TestConfig
     const char* clientSharedSecret2="shared_secret2";
     const char* topic1="topic1";
     const char* topic2="topic2";
-    int runningSecs=60;
+    int runningSecs=5;
 };
 
 template <typename TestEnvT, typename CallbackT>
@@ -630,10 +630,44 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     auto clientCtx=client.second;
     auto clientThread=client.first->appThread();
     auto execClient=[clientThread,clientCtx,callback](auto)
-    {
+    {        
         auto invokeTask1=[clientCtx,callback]()
         {
             auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+
+            auto invokeTask2=[&cl,clientCtx,callback](auto ctx, Error ec, auto)
+            {
+                if (ec)
+                {
+                    auto msg=ec.message();
+                    if (ec.apiError()!=nullptr)
+                    {
+                        msg+=ec.apiError()->message();
+                    }
+                    HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 completed with error, ec: {}/{}",ec.codeString(),msg));
+                    return;
+                }
+
+                HATN_TEST_MESSAGE_TS("invokeTask1 sucessfully completed, running invokeTask2");
+
+                service1_msg1::type msg;
+                msg.setFieldValue(service1_msg1::field1,200);
+                msg.setFieldValue(service1_msg1::field2,"hi!");
+                Message msgData;
+                ec=msgData.setContent(msg);
+                HATN_TEST_EC(ec);
+                BOOST_REQUIRE(!ec);
+                ec=cl.exec(
+                    ctx,
+                    callback,
+                    Service{"service1"},
+                    Method{"service1_method1"},
+                    std::move(msgData),
+                    "test_topic"
+                );
+                HATN_TEST_EC(ec);
+                BOOST_REQUIRE(!ec);
+            };
 
             auto ctx=makeLogCtx();
             service1_msg1::type msg;
@@ -645,9 +679,9 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
             BOOST_REQUIRE(!ec);
             ec=cl.exec(
                 ctx,
-                callback,
+                invokeTask2,
                 Service{"service1"},
-                Method{"method1"},
+                Method{"service1_method1"},
                 std::move(msgData),
                 "test_topic"
             );

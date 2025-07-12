@@ -89,13 +89,16 @@ struct ResponseError
         if (other.apiErrorPtr!=&other.apiError)
         {
             apiErrorPtr=other.apiErrorPtr;
+            apiError=std::move(other.apiError);
         }
         else
         {
             apiError=std::move(other.apiError);
             apiErrorPtr=&apiError;
         }
+        status=other.status;
         other.apiErrorPtr=nullptr;
+        other.status=protocol::ResponseStatus::InternalServerError;
     }
 };
 

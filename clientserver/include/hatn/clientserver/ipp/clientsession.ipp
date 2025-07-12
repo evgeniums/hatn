@@ -69,9 +69,16 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             // check if token expired
             if (!isAuthTokenExpired(m_sessionToken.get()))
             {
-                std::ignore=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
-                callback(std::move(ctx),{});
-                return;
+                auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
+                if (ec)
+                {
+                    HATN_CTX_ERROR(ec,"failed to serialize session token")
+                }
+                else
+                {
+                    callback(std::move(ctx),{});
+                    return;
+                }
             }
         }
     }
@@ -248,7 +255,25 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             return;
         }
 
-        // serialize tokens and invoke tokens callback
+        // serialize session token
+        if (!isAuthTokenExpired(m_sessionToken.get()))
+        {
+            auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
+            if (ec)
+            {
+                HATN_CTX_ERROR(ec,"failed to serialize session token")
+                callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
+                return;
+            }
+        }
+        else
+        {
+            HATN_CTX_ERROR(clientServerError(ClientServerError::AUTH_TOKEN_EXPIRED),"received already expired session token")
+            callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
+            return;
+        }
+
+        // invoke tokens callback
         if (m_tokensUpdatedCb)
         {
             du::WireBufSolidShared sessionTokenBuf{factory()};

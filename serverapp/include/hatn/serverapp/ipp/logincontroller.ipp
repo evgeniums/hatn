@@ -122,11 +122,11 @@ void LoginController<ContextTraits>::checkCanLogin(
 
     auto checkUser=[](auto&& checkACL, auto ctx, auto callback, auto loginObj)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checkuser]")
+
         auto loginPtr=loginObj.get();
         auto cb=[checkACL=std::move(checkACL),callback=std::move(callback),loginObj=std::move(loginObj)](auto ctx, auto result) mutable
         {
-            HATN_CTX_SCOPE_WITH_BARRIER("[checkuser]")
-
             if (result)
             {
                 if (db::objectNotFound(result))
@@ -161,7 +161,7 @@ void LoginController<ContextTraits>::checkCanLogin(
 
     auto checkACL=[](auto ctx, auto callback, auto userObj, auto loginObj)
     {
-        HATN_CTX_SCOPE_WITH_BARRIER("[checkacl]")
+        // HATN_CTX_SCOPE_WITH_BARRIER("[checkacl]")
 
         //! @todo critical: Check user ACL
         std::ignore=userObj;
