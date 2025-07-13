@@ -106,13 +106,12 @@ void LoginController<ContextTraits>::checkCanLogin(
             if (loginObj->fieldValue(login_profile::blocked))
             {
                 HATN_CTX_SCOPE_LOCK()
-                ec=api::makeApiError(common::chainErrors(std::move(ec),clientServerError(ClientServerError::LOGIN_BLOCKED)),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
+                ec=api::makeApiError(clientServerError(ClientServerError::LOGIN_BLOCKED),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(ctx),std::move(ec));
                 return;
             }
 
-            HATN_CTX_PUSH_FIXED_VAR("user",loginObj->fieldValue(with_user::user).toString())
-            HATN_CTX_PUSH_FIXED_VAR("user_topic",loginObj->fieldValue(with_user::user_topic))
+            HATN_CTX_PUSH_FIXED_VAR("usr",loginObj->fieldValue(with_user::user).toString())
 
             HATN_CTX_STACK_BARRIER_OFF("[checklogin]")
             checkUser(std::move(ctx),std::move(callback),std::move(loginObj));
@@ -147,7 +146,7 @@ void LoginController<ContextTraits>::checkCanLogin(
             if (user->fieldValue(user::blocked))
             {
                 HATN_CTX_SCOPE_LOCK()
-                auto ec=api::makeApiError(common::chainErrors(result.takeError(),clientServerError(ClientServerError::USER_BLOCKED)),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
+                auto ec=api::makeApiError(clientServerError(ClientServerError::USER_BLOCKED),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(ctx),std::move(ec));
                 return;
             }

@@ -93,7 +93,7 @@ void SharedSecretAuthProtocol::check(
     HATN_CTX_PUSH_FIXED_VAR("login",token->fieldValue(auth_challenge_token::login))
     if (!token->fieldValue(auth_challenge_token::topic).empty())
     {
-        HATN_CTX_PUSH_FIXED_VAR("login_topic",token->fieldValue(auth_challenge_token::topic))
+        HATN_CTX_PUSH_FIXED_VAR("usrtpc",token->fieldValue(auth_challenge_token::topic))
     }
 
     // check if token expired
@@ -173,7 +173,7 @@ void SharedSecretAuthProtocol::check(
         ec=mac->runVerify(token->fieldValue(auth_challenge_token::challenge),message->fieldValue(auth_hss_check::mac));
         if (ec)
         {
-            if (ec.is(crypt::CryptError::DIGEST_MISMATCH))
+            if (ec.is(crypt::CryptError::MAC_FAILED) || ec.is(crypt::CryptError::DIGEST_MISMATCH))
             {
                 ec=api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
             }
@@ -234,6 +234,10 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
             }
             else
             {
+                req.login=login->fieldValue(db::object::_id);
+                req.user=login->fieldValue(with_user::user);
+                req.userTopic.load(login->fieldValue(with_user::user_topic));
+
                 HATN_CTX_STACK_BARRIER_OFF("[checksharedsecret]")
                 createSession(std::move(ctx),std::move(callback),std::move(token),std::move(login));
             }

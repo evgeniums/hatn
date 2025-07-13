@@ -61,7 +61,7 @@ class AuthProtocols
             HATN_CTX_PUSH_FIXED_VAR("login",message->fieldValue(auth_negotiate_request::login))
             if (!message->fieldValue(auth_negotiate_request::topic).empty())
             {
-                HATN_CTX_PUSH_FIXED_VAR("login_topic",message->fieldValue(auth_negotiate_request::topic))
+                HATN_CTX_PUSH_FIXED_VAR("usrtpc",message->fieldValue(auth_negotiate_request::topic))
             }
 
             uint32_t priority=0;

@@ -26,11 +26,25 @@
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
+#if 0
+
+//! @todo critical: unique if not emplty
+
 HATN_DB_UNIQUE_INDEX(userPhoneIdx,user_profile::phone)
 HATN_DB_UNIQUE_INDEX(userEmailIdx,user_profile::email)
 HATN_DB_INDEX(userNameIdx,user_profile::name)
 HATN_DB_UNIQUE_INDEX(userReferenceIdx,user::reference,user::reference_type)
 HATN_DB_MODEL_PROTOTYPE(userModel,user,userNameIdx(),userPhoneIdx(),userEmailIdx(),userReferenceIdx())
+
+#else
+
+HATN_DB_INDEX(userPhoneIdx,user_profile::phone)
+HATN_DB_INDEX(userEmailIdx,user_profile::email)
+HATN_DB_INDEX(userNameIdx,user_profile::name)
+HATN_DB_INDEX(userReferenceIdx,user::reference,user::reference_type)
+HATN_DB_MODEL_PROTOTYPE(userModel,user,userNameIdx(),userPhoneIdx(),userEmailIdx(),userReferenceIdx())
+
+#endif
 
 HATN_DB_INDEX(withUserIdx,with_user::user,with_user::user_topic)
 HATN_DB_INDEX(withUserCharacterIdx,with_user_character::user_character,with_user_character::user_character_topic)

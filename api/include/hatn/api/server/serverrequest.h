@@ -138,13 +138,17 @@ struct Request : public common::TaskSubcontext
     common::ThreadQWithTaskContext* requestThread;
 
     du::ObjectId sessionId;
-    du::ObjectId sessionClienttId;
+    du::ObjectId sessionClientId;
 
     const common::Translator* translator;
 
     Error error;
     lib::optional<ResponseError> responseError;
     bool complete;
+
+    du::ObjectId login;
+    du::ObjectId user;
+    db::Topic userTopic;
 
     void setResponseError(Error ec, protocol::ResponseStatus status=protocol::ResponseStatus::InternalServerError, bool overrideRespError=false)
     {

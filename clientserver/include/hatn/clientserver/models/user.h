@@ -28,6 +28,7 @@ HDU_UNIT_WITH(user_profile,(HDU_BASE(db::object)),
     HDU_FIELD(default_character,TYPE_OBJECT_ID,3)
     HDU_FIELD(email,TYPE_STRING,4)
     HDU_FIELD(phone,TYPE_STRING,5)
+    HDU_FIELD(title,TYPE_STRING,6)
 )
 
 HDU_UNIT_WITH(user,(HDU_BASE(user_profile)),

@@ -97,17 +97,36 @@ struct TestEnv : public MultiThreadFixture
 {
     TestEnv()
     {
+        reset();
     }
 
     ~TestEnv()
     {
+        reset();
+    }
+
+    void reset()
+    {
+        testAmount=0;
+        testUserTopic.clear();
+        testLogin.reset();
+        testUser.reset();
     }
 
     TestEnv(const TestEnv&)=delete;
     TestEnv(TestEnv&&) =delete;
     TestEnv& operator=(const TestEnv&)=delete;
     TestEnv& operator=(TestEnv&&) =delete;
+
+    static int testAmount;
+    static HATN_DATAUNIT_NAMESPACE::ObjectId testLogin;
+    static HATN_DATAUNIT_NAMESPACE::ObjectId testUser;
+    static std::string testUserTopic;
 };
+int TestEnv::testAmount=0;
+HATN_DATAUNIT_NAMESPACE::ObjectId TestEnv::testLogin;
+HATN_DATAUNIT_NAMESPACE::ObjectId TestEnv::testUser;
+std::string TestEnv::testUserTopic;
 
 constexpr const uint32_t TcpPort=53852;
 
@@ -231,6 +250,8 @@ struct ContextTraits
     static auto& userController(const SharedPtr<Context>& ctx);
     static const auto* factory(const SharedPtr<Context>& ctx);
     static auto& contextDb(const SharedPtr<Context>& ctx);
+
+    static auto& request(const SharedPtr<Context>& ctx);
 };
 
 class EnvWithAuth : public EnvWithAuthT
@@ -288,6 +309,11 @@ const auto* ContextTraits::factory(const SharedPtr<Context>& ctx)
 auto& ContextTraits::contextDb(const SharedPtr<Context>& ctx)
 {
     return server::request<RequestWithAuth>(ctx).request().db();
+}
+
+auto& ContextTraits::request(const SharedPtr<Context>& ctx)
+{
+    return server::request<RequestWithAuth>(ctx);
 }
 
 struct EnvWithAuthConfigTraits
@@ -392,7 +418,16 @@ class Service1Method1Traits : public server::NoValidatorTraits
         {
             BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
 
+            TestEnv::testAmount+=msg->fieldValue(service1_msg1::field1);
+
             auto& req=request->get<Request>();
+
+            BOOST_CHECK(req.login==TestEnv::testLogin);
+            BOOST_CHECK(req.user==TestEnv::testUser);
+            BOOST_CHECK_EQUAL(req.userTopic.topic(),TestEnv::testUserTopic);
+            BOOST_CHECK(!req.sessionId.isNull());
+            BOOST_CHECK(!req.sessionClientId.isNull());
+
             req.response.setSuccess();
             callback(std::move(request));
         }
@@ -450,13 +485,6 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     }
     BOOST_REQUIRE(!ec);
 
-    ec=app->destroyDb();
-    HATN_TEST_EC(ec)
-    BOOST_REQUIRE(!ec);
-    ec=app->openDb();
-    HATN_TEST_EC(ec)
-    BOOST_REQUIRE(!ec);
-
     // create service dispatcher
     auto serviceRouter=std::make_shared<server::ServiceRouter<EnvWithAuth,RequestWithAuth>>();
     auto service1=std::make_shared<Service1>("service1");
@@ -504,8 +532,15 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     UserDbModelsProvider userDbModelsProvider;
     userDbModelsProvider.registerRocksdbModels();
     mainSchema->addModels(&userDbModelsProvider);
-
     app->registerDbSchema(mainSchema);
+
+    ec=app->destroyDb();
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+    ec=app->openDb();
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
+
     ec=app->database().setSchema(mainSchema);
     HATN_TEST_EC(ec)
     BOOST_REQUIRE(!ec);
@@ -539,9 +574,13 @@ void runCreateServer(std::string configFile, TestEnv* env, T expectedErrorCode)
 enum class TestMode : int
 {
     OK,
+    SecondLoginOk,
+    OtherUserOk,
     UknownLogin,
     UknownUser,
     InvalidSharedSecret,
+    LoginBlocked,
+    UserBlocked,
     InvalidToken,
     ExpiredToken
 };
@@ -564,22 +603,88 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
 
     auto usr1=makeShared<user::managed>();
     HATN_DB_NAMESPACE::initObject(*usr1);
+    BOOST_TEST_MESSAGE(fmt::format("usr1= {}",usr1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
     auto usr2=makeShared<user::managed>();
     HATN_DB_NAMESPACE::initObject(*usr2);
+    BOOST_TEST_MESSAGE(fmt::format("usr2= {}",usr2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+    auto usr4=makeShared<user::managed>();
+    HATN_DB_NAMESPACE::initObject(*usr4);
+    usr4->setFieldValue(user::blocked,true);
+    BOOST_TEST_MESSAGE(fmt::format("usr4= {}",usr4->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+
     auto login1_1=makeShared<login_profile::managed>();
     HATN_DB_NAMESPACE::initObject(*login1_1);
     login1_1->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login1_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
     login1_1->setFieldValue(with_user::user_topic,config.topic1);
+    BOOST_TEST_MESSAGE(fmt::format("login1_1= {}",login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
     auto login1_2=makeShared<login_profile::managed>();
     HATN_DB_NAMESPACE::initObject(*login1_2);
     login1_2->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login1_2->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
     login1_2->setFieldValue(with_user::user_topic,config.topic1);
+    BOOST_TEST_MESSAGE(fmt::format("login1_2= {}",login1_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+
+    auto login3_0=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login3_0);
+    login3_0->setFieldValue(with_user::user,HATN_DATAUNIT_NAMESPACE::ObjectId::generateId());
+    login3_0->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
+    login3_0->setFieldValue(with_user::user_topic,config.topic1);
+    BOOST_TEST_MESSAGE(fmt::format("login3_0= {}",login3_0->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+
+    auto login2_1=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login2_1);
+    login2_1->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login2_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
+    login2_1->setFieldValue(with_user::user_topic,config.topic1);
+    BOOST_TEST_MESSAGE(fmt::format("login2_1= {}",login2_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+    auto login2_2=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login2_2);
+    login2_2->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login2_2->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
+    login2_2->setFieldValue(with_user::user_topic,config.topic1);
+    login2_2->setFieldValue(login_profile::blocked,true);
+    BOOST_TEST_MESSAGE(fmt::format("login2_2= {}",login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+
+    auto login4_1=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login4_1);
+    login4_1->setFieldValue(with_user::user,usr4->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login4_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
+    login4_1->setFieldValue(with_user::user_topic,config.topic1);
+    BOOST_TEST_MESSAGE(fmt::format("login4_1= {}",login4_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+
+    TestEnv::testUser=usr1->fieldValue(HATN_DB_NAMESPACE::object::_id);
+    TestEnv::testUserTopic=config.topic1;
 
     auto sharedSecret=config.clientSharedSecret1;
-    auto login=login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString();
+    auto loginOid=login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id);    
+    if (mode==TestMode::SecondLoginOk)
+    {
+        loginOid=login1_2->fieldValue(HATN_DB_NAMESPACE::object::_id);
+        sharedSecret=config.clientSharedSecret2;
+    }
+    else if (mode==TestMode::UknownUser)
+    {
+        loginOid=login3_0->fieldValue(HATN_DB_NAMESPACE::object::_id);
+    }
+    else if (mode==TestMode::LoginBlocked)
+    {
+        loginOid=login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id);
+        sharedSecret=config.clientSharedSecret2;
+    }
+    else if (mode==TestMode::UserBlocked)
+    {
+        loginOid=login4_1->fieldValue(HATN_DB_NAMESPACE::object::_id);
+    }
+    else if (mode==TestMode::OtherUserOk)
+    {
+        loginOid=login2_1->fieldValue(HATN_DB_NAMESPACE::object::_id);
+        TestEnv::testUser=usr2->fieldValue(HATN_DB_NAMESPACE::object::_id);
+    }
+
+    auto login=loginOid.toString();
     auto loginTopic=config.topic1;
+    TestEnv::testLogin=loginOid;
     if (mode==TestMode::UknownLogin)
     {
         login=HATN_DATAUNIT_NAMESPACE::ObjectId::generateIdStr();
@@ -626,6 +731,134 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
         );
     };
 
+    auto addLogin1_2Topic1=[&config,login1_2](auto&& next, auto ctx)
+    {
+        auto cb=[login1_2,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login1_2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login1_2),
+            config.topic1
+            );
+    };
+
+    auto addLogin3_0Topic1=[&config,login3_0](auto&& next, auto ctx)
+    {
+        auto cb=[login3_0,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login3_0->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login3_0),
+            config.topic1
+        );
+    };
+
+    auto addUser2Topic1=[&config,usr2](auto&& next, auto ctx)
+    {
+        auto cb=[next=std::move(next),usr2](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addUser(
+            std::move(ctx),
+            cb,
+            std::move(usr2),
+            config.topic1
+        );
+    };
+
+    auto addUser4Topic1=[&config,usr4](auto&& next, auto ctx)
+    {
+        auto cb=[next=std::move(next),usr4](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==usr4->fieldValue(HATN_DB_NAMESPACE::object::_id));
+
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addUser(
+            std::move(ctx),
+            cb,
+            std::move(usr4),
+            config.topic1
+        );
+    };
+
+    auto addLogin2_1Topic1=[&config,login2_1](auto&& next, auto ctx)
+    {
+        auto cb=[login2_1,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login2_1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login2_1),
+            config.topic1
+            );
+    };
+
+    auto addLogin2_2Topic1=[&config,login2_2](auto&& next, auto ctx)
+    {
+        auto cb=[login2_2,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login2_2),
+            config.topic1
+            );
+    };
+
+    auto addLogin4_1Topic1=[&config,login4_1](auto&& next, auto ctx)
+    {
+        auto cb=[login4_1,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login4_1->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login4_1),
+            config.topic1
+        );
+    };
+
     auto client=createClient(sharedSecret,config.clientConfigFile,login,loginTopic);
     auto clientCtx=client.second;
     auto clientThread=client.first->appThread();
@@ -652,7 +885,7 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
 
                 service1_msg1::type msg;
                 msg.setFieldValue(service1_msg1::field1,200);
-                msg.setFieldValue(service1_msg1::field2,"hi!");
+                msg.setFieldValue(service1_msg1::field2,"third run");
                 Message msgData;
                 ec=msgData.setContent(msg);
                 HATN_TEST_EC(ec);
@@ -669,22 +902,41 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
                 BOOST_REQUIRE(!ec);
             };
 
-            auto ctx=makeLogCtx();
-            service1_msg1::type msg;
-            msg.setFieldValue(service1_msg1::field1,100);
-            msg.setFieldValue(service1_msg1::field2,"hello world!");
-            Message msgData;
-            auto ec=msgData.setContent(msg);
+            auto ctx1=makeLogCtx();
+            service1_msg1::type msg1;
+            msg1.setFieldValue(service1_msg1::field1,150);
+            msg1.setFieldValue(service1_msg1::field2,"first run");
+            Message msgData1;
+            auto ec=msgData1.setContent(msg1);
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
             ec=cl.exec(
-                ctx,
+                ctx1,
                 invokeTask2,
                 Service{"service1"},
                 Method{"service1_method1"},
-                std::move(msgData),
+                std::move(msgData1),
                 "test_topic"
             );
+            HATN_TEST_EC(ec);
+            BOOST_REQUIRE(!ec);
+
+            auto ctx2=makeLogCtx();
+            service1_msg1::type msg2;
+            msg2.setFieldValue(service1_msg1::field1,330);
+            msg2.setFieldValue(service1_msg1::field2,"second run");
+            Message msgData2;
+            ec=msgData2.setContent(msg2);
+            HATN_TEST_EC(ec);
+            BOOST_REQUIRE(!ec);
+            ec=cl.exec(
+                ctx2,
+                callback,
+                Service{"service1"},
+                Method{"service1_method1"},
+                std::move(msgData2),
+                "test_topic"
+                );
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
         };
@@ -700,6 +952,13 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
         [
          addUser1Topic1=std::move(addUser1Topic1),
          addLogin1_1Topic1=std::move(addLogin1_1Topic1),
+         addLogin1_2Topic1=std::move(addLogin1_2Topic1),
+         addUser2Topic1=std::move(addUser2Topic1),
+         addLogin2_1Topic1=std::move(addLogin2_1Topic1),
+         addLogin2_2Topic1=std::move(addLogin2_2Topic1),
+         addLogin3_0Topic1=std::move(addLogin3_0Topic1),
+         addUser4Topic1=std::move(addUser4Topic1),
+         addLogin4_1Topic1=std::move(addLogin4_1Topic1),
          execClient=std::move(execClient)
         ]()
         {
@@ -707,6 +966,13 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
             auto chain=hatn::chain(
                 std::move(addUser1Topic1),
                 std::move(addLogin1_1Topic1),
+                std::move(addLogin1_2Topic1),
+                std::move(addUser2Topic1),
+                std::move(addLogin2_1Topic1),
+                std::move(addLogin2_2Topic1),
+                std::move(addLogin3_0Topic1),
+                std::move(addUser4Topic1),
+                std::move(addLogin4_1Topic1),
                 std::move(execClient)
             );
             chain(std::move(reqCtx));
@@ -743,7 +1009,7 @@ BOOST_FIXTURE_TEST_CASE(EnvFB,TestEnv)
 
 BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 {
-    runCreateServer("hssauth.jsonc",this,0);
+    runCreateServer("hssauthserver.jsonc",this,0);
 }
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
@@ -771,7 +1037,7 @@ BOOST_FIXTURE_TEST_CASE(UnknownLogin,TestEnv)
             {
                 msg+=ec.apiError()->message();
             }
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
             BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
             BOOST_REQUIRE(ec.apiError()!=nullptr);
             BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
@@ -785,9 +1051,10 @@ BOOST_FIXTURE_TEST_CASE(UnknownLogin,TestEnv)
     };
 
     runTest(this,cb,TestMode::UknownLogin);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
 }
 
-BOOST_FIXTURE_TEST_CASE(Ok,TestEnv)
+BOOST_FIXTURE_TEST_CASE(Login1Ok,TestEnv)
 {
     auto cb=[](auto ctx, const Error& ec, auto response)
     {
@@ -798,7 +1065,7 @@ BOOST_FIXTURE_TEST_CASE(Ok,TestEnv)
             {
                 msg+=ec.apiError()->message();
             }
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.codeString(),msg));
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
         }
         else
         {
@@ -808,7 +1075,170 @@ BOOST_FIXTURE_TEST_CASE(Ok,TestEnv)
     };
 
     runTest(this,cb,TestMode::OK);
+
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,680);
+}
+
+BOOST_FIXTURE_TEST_CASE(Login2Ok,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    runTest(this,cb,TestMode::SecondLoginOk);
+
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,680);
+}
+
+BOOST_FIXTURE_TEST_CASE(User2Ok,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    runTest(this,cb,TestMode::OtherUserOk);
+
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,680);
+}
+
+BOOST_FIXTURE_TEST_CASE(InvalidSharedSecret,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::InvalidSharedSecret);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
+BOOST_FIXTURE_TEST_CASE(UnknownUser,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::UknownUser);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
+BOOST_FIXTURE_TEST_CASE(LoginBlocked,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::ACCESS_DENIED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::LoginBlocked);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
+BOOST_FIXTURE_TEST_CASE(UserBlocked,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::ACCESS_DENIED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::UserBlocked);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-

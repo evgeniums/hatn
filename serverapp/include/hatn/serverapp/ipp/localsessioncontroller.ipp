@@ -59,6 +59,10 @@ void LocalSessionController<ContextTraits>::createSession(
     session->setFieldValue(session::ttl,session->fieldValue(db::object::created_at));
     session->field(session::ttl).mutableValue()->addDays(config().fieldValue(session_config::session_ttl_days));
 
+    auto& req=ContextTraits::request(ctx);
+    req.sessionId=session->fieldValue(db::object::_id);
+    HATN_CTX_PUSH_FIXED_VAR("sess",req.sessionId.toString())
+
     auto sessToken=tokenHandler().makeToken(session.get(),auth_token::TokenType::Session,config().fieldValue(session_config::session_token_ttl_secs),topic,factory);
     if (sessToken)
     {
@@ -140,6 +144,10 @@ void LocalSessionController<ContextTraits>::createSession(
         sessionClient->setFieldValue(session_client::login,session->fieldValue(session::login));
         sessionClient->setFieldValue(session_client::session,session->fieldValue(db::object::_id));
         sessionClient->setFieldValue(session_client::ttl,session->fieldValue(session::ttl));
+
+        auto& req=ContextTraits::request(ctx);
+        req.sessionClientId=session->fieldValue(db::object::_id);
+
         //! @todo critical: Implement ClientAgent and ClientIp for server request
 #if 0
         const ClientAgent& agent=ContextTraits::clientAgent(ctx);
@@ -223,6 +231,10 @@ void LocalSessionController<ContextTraits>::checkSession(
     // check if session exists and active
     auto checkSess=[dbModels=sessionDbModels()](auto&& checkCanLogin, auto reqCtx, auto callback, common::SharedPtr<auth_token::managed> token)
     {
+        HATN_CTX_PUSH_FIXED_VAR("login",token->fieldValue(auth_token::login).toString())
+        HATN_CTX_PUSH_FIXED_VAR("usrtpc",token->fieldValue(auth_token::topic))
+        HATN_CTX_PUSH_FIXED_VAR("sess",token->fieldValue(auth_token::session).toString())
+
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto cb=[checkCanLogin=std::move(checkCanLogin),callback=std::move(callback),token=std::move(token),reqCtx](auto, auto foundSessObj) mutable
@@ -284,6 +296,12 @@ void LocalSessionController<ContextTraits>::checkSession(
                 callback(std::move(ctx),std::move(ec),{});
                 return;
             }
+
+            auto& req=ContextTraits::request(ctx);
+            req.sessionId=session->fieldValue(db::object::_id);
+            req.login=session->fieldValue(session::login);
+            req.userTopic.load(token->fieldValue(auth_token::topic));
+            req.user=session->fieldValue(session::user);
 
             updateSessClient(std::move(ctx),std::move(callback),std::move(session),std::move(token));
         };
@@ -389,6 +407,9 @@ void LocalSessionController<ContextTraits>::updateSessionClient(
 
     auto cb=[callback=std::move(callback),sessionClient](auto ctx, auto res)
     {
+        auto& req=ContextTraits::request(ctx);
+        req.sessionClientId=session->fieldValue(db::object::_id);
+
         if (res)
         {
             callback(std::move(ctx),res.error());
@@ -413,6 +434,9 @@ void LocalSessionController<ContextTraits>::updateSessionClient(
         topic
     );
 #else
+    auto& req=ContextTraits::request(ctx);
+    req.sessionClientId=du::ObjectId::generateId();
+    HATN_CTX_PUSH_FIXED_VAR("sesscl",req.sessionClientId.toString())
     callback(std::move(ctx),Error{});
 #endif
 }

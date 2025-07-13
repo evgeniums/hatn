@@ -609,6 +609,8 @@ void App::close()
 
     if (m_env)
     {
+        HATN_CTX_DEBUG(1,"closing database")
+
         // close db client
         auto ec=database().close();
         if (ec)
@@ -740,7 +742,15 @@ void App_p::loadPlugins(const std::string& pluginFolder)
     {
         lib::filesystem::path p{folder};
         p.append(pluginFolder);
-        common::PluginLoader::instance().listDynamicPlugins(p.string());
+        auto plugins=common::PluginLoader::instance().listDynamicPlugins(p.string());
+        for (const auto& plugin : plugins)
+        {
+            HATN_CTX_INFO_RECORDS("found plugin",{"file",plugin->fileName},{"type",plugin->type},{"name",plugin->name},
+                                  {"vendor",plugin->vendor},
+                                  {"revision",plugin->revision},
+                                  {"description",plugin->description}
+                            )
+        }
     }
 #else
     std::ignore=pluginFolder;
@@ -780,15 +790,25 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
     }
 
     // load plugin
-    dbPlugin=common::PluginLoader::instance().loadPlugin<db::DbPlugin>(std::string{name});
-    if (!dbPlugin)
+    std::string nm{name};
+
+    auto r1=common::PluginLoader::instance().loadPlugin(db::DbPlugin::Type,nm);
+    Assert(!r1,"failed to load db plugin");
+    std::cout << "plugin type: " << r1.value()->info()->type << " name: " << r1.value()->info()->name << std::endl;
+    auto p=dynamic_cast<db::DbPlugin*>(r1.value().get());
+    std::cout << "casted plugin: " << p << std::endl;
+
+    auto r=common::PluginLoader::instance().loadPlugin<db::DbPlugin>(nm);
+    if (r)
     {
-        return chainAndLogError(db::dbError(db::DbError::DB_PLUGIN_FAILED),fmt::format(_TR("failed to load database plugin \"{}\"","app"),name));
+        auto ec=common::chainErrors(r.takeError(),db::dbError(db::DbError::DB_PLUGIN_FAILED));
+        HATN_CHECK_CHAIN_LOG_EC(ec,nm,HLOG_MODULE(app))
     }
+    dbPlugin=r.takeValue();
 
     // init plugin
     auto ec=dbPlugin->init();
-    HATN_CHECK_CHAIN_LOG_EC(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),name),HLOG_MODULE(app))
+    HATN_CHECK_CHAIN_LOG_EC(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),nm),HLOG_MODULE(app))
 
     // done
     return dbPlugin;
@@ -1057,11 +1077,13 @@ Error App_p::loadCryptPlugin(lib::string_view nameView)
 
     // load plugin
     std::string name{nameView};
-    cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(name);
-    if (!cryptPlugin)
+    auto r=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(name);
+    if (r)
     {
-        return common::chainError(crypt::cryptError(crypt::CryptError::CRYPT_PLUGIN_FAILED),fmt::format(_TR("plugin name \"{}\"","app"),name));
+        auto ec=common::chainErrors(r.takeError(),crypt::cryptError(crypt::CryptError::CRYPT_PLUGIN_FAILED));
+        return chainAndLogError(std::move(ec),fmt::format("\"{}\"",name));
     }
+    cryptPlugin=r.takeValue();
 
     // init plugin
     auto ec=cryptPlugin->init();
