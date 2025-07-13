@@ -19,7 +19,6 @@
 #define HATNPLUGIN_H
 
 #include <string>
-#include <list>
 #include <map>
 #include <functional>
 
@@ -32,6 +31,8 @@
 #include <hatn/common/translate.h>
 #include <hatn/common/logger.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/result.h>
+#include <hatn/common/nativeerror.h>
 
 #ifdef _WIN32
 #define DECL_EXPORT __declspec(dllexport)
@@ -175,19 +176,21 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
         PluginLoader& operator=(PluginLoader&&) =delete;
 
         //! Load dynamic plugin of specific type
-        template <typename T> std::shared_ptr<T> loadDynamicPlugin(
-            const std::string& fileName, //!< Plugin path
-            std::string& error //!< Error description if failed to load plugin
+        template <typename T>
+        Result<std::shared_ptr<T>> loadDynamicPlugin(
+            const std::string& fileName //!< Plugin path
         )
         {
             std::shared_ptr<T> result;
-            std::shared_ptr<hatn::common::Plugin> plugin=loadDynamicPlugin(fileName,error);
+            auto r=loadDynamicPlugin(fileName);
+            HATN_CHECK_RESULT(r)
+            auto plugin=r.takeValue();
             if (plugin)
             {
                 result=std::dynamic_pointer_cast<T>(plugin);
                 if (!result)
                 {
-                    error=fmt::format(_TR("Could not cast plugin {0} to requested type!"),fileName);
+                    return genericError(fmt::format(_TR("Could not cast plugin {0} to requested type!"),fileName),CommonError::PLUGIN_FAILED);
                 }
             }
             return result;
@@ -199,9 +202,8 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @param error Error description
          * @return Loaded plugin
          */
-        std::shared_ptr<hatn::common::Plugin> loadDynamicPlugin(
-            std::string fileName,
-            std::string& error
+        Result<std::shared_ptr<hatn::common::Plugin>> loadDynamicPlugin(
+            std::string fileName
         );
 
         //! Close plugin
@@ -266,11 +268,19 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @return Loaded plugin
          */
         template <typename T>
-        std::shared_ptr<T> loadPlugin(
+        Result<std::shared_ptr<T>> loadPlugin(
                 const std::string& name=std::string()
             ) const
         {
-            return std::dynamic_pointer_cast<T>(loadPlugin(T::Type,name));
+            auto r=loadPlugin(T::Type,name);
+            HATN_CHECK_RESULT(r)
+
+            auto plugin=std::dynamic_pointer_cast<T>(r.takeValue());
+            if (!plugin)
+            {
+                return commonError(CommonError::PLUGIN_INCOMPLATIBLE);
+            }
+            return plugin;
         }
 
         /**
@@ -279,7 +289,7 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @param name Name of plugin, if empty then the first plugin of requested type will be loaded
          * @return Loaded plugin
          */
-        std::shared_ptr<Plugin> loadPlugin(
+        Result<std::shared_ptr<Plugin>> loadPlugin(
             const std::string& type,
             const std::string& name=std::string()
         ) const;
@@ -289,11 +299,19 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @param pluginInfo Plugin meta info
          * @return Loaded plugin
          */
-        template <typename T> std::shared_ptr<T> loadPlugin(
+        template <typename T>
+        Result<std::shared_ptr<T>> loadPlugin(
                 const PluginInfo* pluginInfo
             )
         {
-            return std::dynamic_pointer_cast<T>(loadPlugin(pluginInfo));
+            auto r=loadPlugin(pluginInfo);
+            HATN_CHECK_RESULT(r)
+            auto plugin=std::dynamic_pointer_cast<T>(r.takeValue());
+            if (!plugin)
+            {
+                return commonError(CommonError::PLUGIN_INCOMPLATIBLE);
+            }
+            return plugin;
         }
 
         /**
@@ -301,7 +319,7 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @param pluginInfo Plugin meta info
          * @return Loaded plugin
          */
-        std::shared_ptr<Plugin> loadPlugin(
+        Result<std::shared_ptr<Plugin>> loadPlugin(
             const PluginInfo* pluginInfo
         )
         {
@@ -309,14 +327,19 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
             if (info)
             {
                 auto plugin=std::shared_ptr<Plugin>(info->buildPlugin());
-                if (!plugin && !info->isEmbedded())
+                if (plugin)
                 {
-                    std::string error;
-                    return loadDynamicPlugin(info->fileName,error);
+                    return plugin;
                 }
-                return plugin;
+                if (!info->isEmbedded())
+                {
+                    auto r=loadDynamicPlugin(info->fileName);
+                    HATN_CHECK_RESULT(r)
+                    return r.takeValue();
+                }
+                return commonError(CommonError::PLUGIN_EMBEDDED);
             }
-            return std::shared_ptr<Plugin>();
+            return commonError(CommonError::PLUGIN_NOT_FOUND);
         }
 
         /**

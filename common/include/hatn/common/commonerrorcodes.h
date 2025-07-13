@@ -53,6 +53,11 @@
     Do(CommonError,GENERIC_ERROR,_TR("generic error","common")) \
     Do(CommonError,CONFIGURATION_ERROR,_TR("configuration error","common")) \
     Do(CommonError,SERVER_API_ERROR,_TR("server responded with an error","common")) \
+    Do(CommonError,PLUGIN_FAILED,_TR("failed to load plugin","common")) \
+    Do(CommonError,PLUGIN_NOT_FOUND,_TR("plugin not found","common")) \
+    Do(CommonError,PLUGIN_MAKE_FAILED,_TR("plugin not make plugin","common")) \
+    Do(CommonError,PLUGIN_EMBEDDED,_TR("cannot load embedded plugin","common")) \
+    Do(CommonError,PLUGIN_INCOMPLATIBLE,_TR("incomplatible plugin type","common")) \
 
 HATN_COMMON_NAMESPACE_BEGIN
 
