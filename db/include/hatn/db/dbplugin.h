@@ -29,8 +29,6 @@ class HATN_DB_EXPORT DbPlugin : public common::Plugin
 {
     public:
 
-        //! @todo Change plugin type
-
         //! Db plugin type
         constexpr static const char* Type="hatndbplugin";
 
