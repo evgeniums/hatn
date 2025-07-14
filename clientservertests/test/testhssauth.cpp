@@ -1171,7 +1171,7 @@ BOOST_FIXTURE_TEST_CASE(UnknownUser,TestEnv)
             HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
             BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
             BOOST_REQUIRE(ec.apiError()!=nullptr);
-            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::ACCESS_DENIED,ApiAuthErrorCategory::getCategory()));
 
             //! @todo check journal for login try
         }
