@@ -83,17 +83,20 @@ auto createClient(HATN_COMMON_NAMESPACE::Thread* thread)
 
 auto createServer(HATN_COMMON_NAMESPACE::ThreadQWithTaskContext* thread)
 {
-    auto tcpServerCtx=HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
-    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_API_NAMESPACE::server::BasicEnv>(
-        HATN_COMMON_NAMESPACE::contexts(
-                HATN_COMMON_NAMESPACE::context(HATN_COMMON_NAMESPACE::pmr::AllocatorFactory::getDefault()),
-                HATN_COMMON_NAMESPACE::context(thread),
-                HATN_COMMON_NAMESPACE::context(),
-                HATN_COMMON_NAMESPACE::context(),
-                HATN_COMMON_NAMESPACE::context()
+    auto appEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_APP_NAMESPACE::AppEnv>(
+        HATN_COMMON_NAMESPACE::subcontexts(
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext(thread),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext()
             )
         );
-    serverEnv->get<HATN_COMMON_NAMESPACE::WithMappedThreads>().threads()->setDefaultThread(thread);
+    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_API_SERVER_NAMESPACE::BasicEnv>();
+    serverEnv->setEmbeddedEnv(appEnv);
+
+    auto tcpServerCtx=HATN_API_NAMESPACE::server::makePlainTcpServerContext(thread,"server");
     auto& tcpServer=tcpServerCtx->get<HATN_API_NAMESPACE::server::PlainTcpServer>();
     tcpServer.setEnv(serverEnv);
     return tcpServerCtx;

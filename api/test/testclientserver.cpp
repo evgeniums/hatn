@@ -156,7 +156,7 @@ class Service1Method1Traits : public server::NoValidatorTraits
             BOOST_TEST_MESSAGE(fmt::format("Service1 method1 exec: field1={}, field2={}",msg->fieldValue(service1_msg1::field1),msg->fieldValue(service1_msg1::field2)));
 
             auto& req=request->get<server::Request<>>();
-            req.response.setStatus();
+            req.response.setSuccess();
             callback(std::move(request));
         }
 };
@@ -189,7 +189,7 @@ class Service2Method1Traits : public server::NoValidatorTraits
             BOOST_TEST_MESSAGE(fmt::format("Service2 method1 exec: field1={}, field2={}",msg->fieldValue(service2_msg1::field1),msg->fieldValue(service2_msg1::field2)));
 
             auto& req=request->get<server::Request<>>();
-            req.response.setStatus();
+            req.response.setSuccess();
             callback(std::move(request));
         }
 };
@@ -219,7 +219,7 @@ class Service2Method2Traits : public server::NoValidatorTraits
             BOOST_TEST_MESSAGE(fmt::format("Service2 method2 exec: f1={}, f2={}, f3={}",msg->fieldValue(service2_msg2::f1),msg->fieldValue(service2_msg2::f2),msg->fieldValue(service2_msg2::f3)));
 
             auto& req=request->get<server::Request<>>();
-            req.response.setStatus();
+            req.response.setSuccess();
             callback(std::move(request));
         }
 };
@@ -272,18 +272,21 @@ auto createServer(ThreadQWithTaskContext* thread, std::map<std::string,SharedPtr
 
     auto streamLogHandler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogHandler>();
 
-    auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
-    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::BasicEnv>(
-        HATN_COMMON_NAMESPACE::contexts(
-            HATN_COMMON_NAMESPACE::context(HATN_COMMON_NAMESPACE::pmr::AllocatorFactory::getDefault()),
-            HATN_COMMON_NAMESPACE::context(thread),
-            HATN_COMMON_NAMESPACE::context(streamLogHandler),
-            HATN_COMMON_NAMESPACE::context(),
-            HATN_COMMON_NAMESPACE::context()
+    auto appEnv=HATN_COMMON_NAMESPACE::makeEnvType<HATN_APP_NAMESPACE::AppEnv>(
+        HATN_COMMON_NAMESPACE::subcontexts(
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext(thread),
+            HATN_COMMON_NAMESPACE::subcontext(streamLogHandler),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext(),
+            HATN_COMMON_NAMESPACE::subcontext()
         )
     );
-    serverEnv->get<server::Threads>().threads()->setDefaultThread(thread);
+    auto serverEnv=HATN_COMMON_NAMESPACE::makeEnvType<server::BasicEnv>();
+    serverEnv->setEmbeddedEnv(appEnv);
     serverEnv->get<server::Logger>().logger()->setModuleLevel("tcpserver",HATN_LOGCONTEXT_NAMESPACE::LogLevel::Details);
+
+    auto tcpServerCtx=server::makePlainTcpServerContext(thread,"tcpserver");
     auto& tcpServer=tcpServerCtx->get<server::PlainTcpServer>();
     tcpServer.setEnv(serverEnv);
     tcpServer.setConnectionHandler(onNewTcpConnection);
