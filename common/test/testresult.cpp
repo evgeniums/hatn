@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(ErrorDefinition)
 {
     BOOST_CHECK_EQUAL(int(Errors::OK),int(CommonError::OK));
     BOOST_CHECK_EQUAL(errorString(Errors::OK,ErrorStrings),"OK");
-    BOOST_CHECK_EQUAL(errorString(Errors::UNKNOWN,ErrorStrings),"UNKNOWN");
+    BOOST_CHECK_EQUAL(errorString(Errors::UNKNOWN,ErrorStrings),"CommonError-UNKNOWN");
 }
 
 //! @todo Add explicit tests for errors. Though, they are implicitly tested in other tests where Result is used.
