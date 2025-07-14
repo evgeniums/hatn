@@ -81,10 +81,10 @@ class PluginList
             if (context.index<context.plugins.size())
             {
                 auto pluginInfo=context.plugins[context.index++];
-                auto plugin=common::PluginLoader::instance().loadPlugin<T>(pluginInfo);
-                if (!plugin)
+                auto r=common::PluginLoader::instance().loadPlugin<T>(pluginInfo);
+                if (r)
                 {
-                    std::string msg=std::string("Failed to load plugin ")+pluginInfo->name;
+                    std::string msg=std::string("Failed to load plugin ")+pluginInfo->name+": "+r.error().message();
                     if (stopOnFail)
                     {
                         BOOST_FAIL(msg);
@@ -95,7 +95,10 @@ class PluginList
                         return nextPlugin<T>(context,stopOnFail);
                     }
                 }
-                return plugin;
+                else
+                {
+                    return r.takeValue();
+                }
             }
             return std::shared_ptr<T>();
         }

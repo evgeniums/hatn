@@ -199,13 +199,12 @@ bool PrepareDbAndRun::prepareEncryption(
     // prepare encryption manager
 
     // load crypt plugin
-    cryptPlugin=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(
-        HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN
-        );
-    if (!cryptPlugin)
+    auto r=common::PluginLoader::instance().loadPlugin<crypt::CryptPlugin>(HATN_TEST_DB_ENCRYPTED_CRYPT_PLUGIN);
+    if (r)
     {
         return false;
     }
+    cryptPlugin=r.takeValue();
 
     auto path=PluginList::assetsPath("db");
     auto cipherSuiteFile=fmt::format("{}/crypt-ciphersuite1.json",path);

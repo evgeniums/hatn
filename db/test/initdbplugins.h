@@ -51,19 +51,23 @@ class DbPluginTest : public PluginTest
         {
             auto cryptPluginHandler=[](const common::PluginInfo* pluginInfo)
             {
-                auto plugin=common::PluginLoader::instance().loadPlugin<CryptPluginTraits::plugin_type>(pluginInfo);
-                if (plugin)
+                auto r=common::PluginLoader::instance().loadPlugin<CryptPluginTraits::plugin_type>(pluginInfo);
+                if (!r)
                 {
-                    auto ec=plugin->init();
-                    if (ec)
+                    auto plugin=r.takeValue();
+                    if (plugin)
                     {
-                        std::string msg="Failed to init crypt plugin "+plugin->info()->name+": "+ec.message();
-                        plugin.reset();
-                        BOOST_FAIL(msg.c_str());
-                    }
-                    else
-                    {
-                        BOOST_TEST_MESSAGE(fmt::format("Loaded crypt plugin {}", plugin->info()->name));
+                        auto ec=plugin->init();
+                        if (ec)
+                        {
+                            std::string msg="Failed to init crypt plugin "+plugin->info()->name+": "+ec.message();
+                            plugin.reset();
+                            BOOST_FAIL(msg.c_str());
+                        }
+                        else
+                        {
+                            BOOST_TEST_MESSAGE(fmt::format("Loaded crypt plugin {}", plugin->info()->name));
+                        }
                     }
                 }
             };
@@ -110,18 +114,22 @@ class DbPluginTest : public PluginTest
 
             auto cryptPluginHandler=[](const common::PluginInfo* pluginInfo)
             {
-                auto plugin=common::PluginLoader::instance().loadPlugin<CryptPluginTraits::plugin_type>(pluginInfo);
-                if (plugin)
+                auto r=common::PluginLoader::instance().loadPlugin<CryptPluginTraits::plugin_type>(pluginInfo);
+                if (!r)
                 {
-                    auto ec=plugin->cleanup();
-                    if (ec)
+                    auto plugin=r.takeValue();
+                    if (plugin)
                     {
-                        std::string msg="Failed to cleanup crypt plugin "+plugin->info()->name+": "+ec.message();
-                        BOOST_WARN_MESSAGE(false,msg.c_str());
-                    }
-                    else
-                    {
-                        BOOST_TEST_MESSAGE(fmt::format("Done cleanup crypt plugin {}", plugin->info()->name));
+                        auto ec=plugin->cleanup();
+                        if (ec)
+                        {
+                            std::string msg="Failed to cleanup crypt plugin "+plugin->info()->name+": "+ec.message();
+                            BOOST_WARN_MESSAGE(false,msg.c_str());
+                        }
+                        else
+                        {
+                            BOOST_TEST_MESSAGE(fmt::format("Done cleanup crypt plugin {}", plugin->info()->name));
+                        }
                     }
                 }
             };
