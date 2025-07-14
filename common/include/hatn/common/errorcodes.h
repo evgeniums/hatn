@@ -40,6 +40,11 @@ constexpr size_t arraySize(T (&)[N]) { return N; }
 template <typename T, typename S>
 const char* errorString(T code, const S& strings)
 {
+    if (static_cast<int>(code)==0)
+    {
+        return "OK";
+    }
+
     auto c=static_cast<size_t>(code);
     if (c<arraySize(strings))
     {
