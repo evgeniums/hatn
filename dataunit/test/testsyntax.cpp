@@ -1482,6 +1482,7 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
         return true;
     };
 
+    unit->setTree(true);
     auto res=unit->iterateUnitTree(handler,unit.get(),tree::children);
     BOOST_CHECK(res);
 

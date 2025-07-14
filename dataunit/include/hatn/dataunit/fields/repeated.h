@@ -89,7 +89,7 @@ struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
 
     template <typename> inline static valueType createValue(Unit* parentUnit)
     {
-        auto val=Type::createManagedObject(parentUnit->factory(),parentUnit);
+        auto val=Type::createManagedObject(parentUnit->factory(),parentUnit,true);
         if (val.isNull())
         {
             HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");

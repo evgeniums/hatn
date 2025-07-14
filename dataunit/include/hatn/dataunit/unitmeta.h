@@ -673,7 +673,7 @@ struct subunit : public types::TYPE_DATAUNIT
         constexpr static const bool isSizeIterateNeeded=true;
 
         template <typename ...Args>
-        static shared_type createManagedObject(const AllocatorFactory* factory, Unit* unitBase)
+        static shared_type createManagedObject(const AllocatorFactory* factory, Unit* unitBase, bool /*repeatedSubunit*/=false)
         {
             if (factory==nullptr) factory=unitBase->factory();
             auto m=factory->createObject<typename shared_traits::managed>(factory);
