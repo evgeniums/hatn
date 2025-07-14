@@ -36,6 +36,8 @@ BOOST_AUTO_TEST_SUITE(TestApp)
 BOOST_AUTO_TEST_CASE(AppEnv)
 {
     TestEnv env;
+    auto appEnv=common::makeShared<HATN_APP_NAMESPACE::AppEnv>();
+    env.setEmbeddedEnv(std::move(appEnv));
 
     auto& testCtx=env.get<TestContext>();
     static_assert(std::is_same<TestContext,std::decay_t<decltype(testCtx)>>::value,"");
