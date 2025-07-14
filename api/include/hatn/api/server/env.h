@@ -66,7 +66,6 @@ class ProtocolConfig : public HATN_BASE_NAMESPACE::ConfigObject<protocol_config:
     //! @todo protect with mutex
 };
 
-// using BasicEnv = common::Env<AllocatorFactory,Threads,Logger,Db,ProtocolConfig>;
 using BasicEnv=common::EnvTmpl<HATN_APP_NAMESPACE::EnvWithAppEnvT,ProtocolConfig>;
 
 template <typename EnvT=BasicEnv>
