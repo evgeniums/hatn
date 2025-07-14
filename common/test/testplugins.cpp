@@ -23,11 +23,16 @@ BOOST_AUTO_TEST_CASE(Sha1)
 
 BOOST_AUTO_TEST_CASE(DynamicPlugin)
 {
-    std::string error;
     std::string pluginFolder="plugins/common/";
 
     std::string filename=PluginLoader::dynlibName("hatntestplugin");
-    auto plugin=PluginLoader::instance().loadDynamicPlugin(pluginFolder+filename,error);
+    auto r=PluginLoader::instance().loadDynamicPlugin(pluginFolder+filename);
+    if (r)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("error: {}",r.error().message()));
+    }
+    BOOST_REQUIRE(!r);
+    auto plugin=r.takeValue();
     BOOST_REQUIRE(plugin);
     BOOST_CHECK_EQUAL(plugin->info()->name,std::string("hatntestplugin"));
     BOOST_CHECK_EQUAL(plugin->info()->description,std::string("Test Plugin"));
@@ -81,7 +86,13 @@ BOOST_AUTO_TEST_CASE(DynamicPlugin)
     plugins=PluginLoader::instance().listDynamicPlugins(pluginFolder);
     BOOST_REQUIRE_EQUAL(plugins.size(),static_cast<uint32_t>(1));
     pluginInfo=plugins.front();
-    plugin=PluginLoader::instance().loadPlugin(pluginInfo.get());
+    r=PluginLoader::instance().loadPlugin(pluginInfo.get());
+    if (r)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("error: {}",r.error().message()));
+    }
+    BOOST_REQUIRE(!r);
+    plugin=r.takeValue();
     BOOST_CHECK(plugin);
     info=const_cast<PluginInfo*>(PluginLoader::instance().findPluginInfo("TestPlugin","hatntestplugin"));
     BOOST_REQUIRE(info!=nullptr);
@@ -93,7 +104,13 @@ BOOST_AUTO_TEST_CASE(DynamicPlugin)
 
 BOOST_AUTO_TEST_CASE(EmbeddedPlugin)
 {
-    auto plugin=PluginLoader::instance().loadPlugin<VSamplePlugin>();
+    auto r=PluginLoader::instance().loadPlugin<VSamplePlugin>();
+    if (r)
+    {
+        BOOST_TEST_MESSAGE(fmt::format("error: {}",r.error().message()));
+    }
+    BOOST_REQUIRE(!r);
+    auto plugin=r.takeValue();
     BOOST_REQUIRE(plugin);
     BOOST_CHECK_EQUAL(plugin->info()->name,std::string("hatnsampleplugin"));
     BOOST_CHECK_EQUAL(plugin->info()->description,std::string("Sample Plugin"));
@@ -104,8 +121,8 @@ BOOST_AUTO_TEST_CASE(EmbeddedPlugin)
 
 #if !defined(NO_DYNAMIC_HATN_PLUGINS) && !defined(HATN_TEST_MODULE_ALL)
     PluginLoader::instance().free();
-    plugin=PluginLoader::instance().loadPlugin<VSamplePlugin>();
-    BOOST_CHECK(!plugin);
+    r=PluginLoader::instance().loadPlugin<VSamplePlugin>();
+    BOOST_CHECK(r);
 #endif
 }
 
