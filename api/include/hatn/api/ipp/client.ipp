@@ -181,28 +181,38 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(
         return;
     }
 
-    auto it=m_queues.find(priority);
-    auto& queue=it->second;
-    while (!queue.empty())
+    //! @todo maybe implement weighted priorities handling
+    auto handlePriorityQueue=[this,priority](Priority p)
     {
-        auto* front=queue.front();
-        if ((*front)->cancelled())
+        std::ignore=priority;
+
+        auto it=m_queues.find(p);
+        auto& queue=it->second;
+
+        while (!queue.empty())
         {
-            queue.pop();
-            continue;
+            auto* front=queue.front();
+            if ((*front)->cancelled())
+            {
+                queue.pop();
+                continue;
+            }
+
+            if (!m_connectionPool.canSend(p))
+            {
+                return false;
+            }
+
+            auto req=queue.pop();
+            auto taskCtx=req->taskCtx;
+            taskCtx->onAsyncHandlerEnter();
+            sendRequest(std::move(req));
+            taskCtx->onAsyncHandlerExit();
         }
 
-        if (!m_connectionPool.canSend(priority))
-        {
-            break;
-        }
-
-        auto req=queue.pop();
-        auto taskCtx=req->taskCtx;
-        taskCtx->onAsyncHandlerEnter();
-        sendRequest(std::move(req));
-        taskCtx->onAsyncHandlerExit();
-    }
+        return false;
+    };
+    handleByPriority(handlePriorityQueue);
 }
 
 //---------------------------------------------------------------
@@ -316,6 +326,9 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResp
                                 if (!m_closed)
                                 {
                                     invokeCallback=false;
+                                    // set session invalid
+                                    req->session().setValid(false);
+                                    // refresh session
                                     refreshSession(std::move(req),std::move(respWrapper));
                                 }
                             }
@@ -441,6 +454,14 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                 return;
             }
 
+            // if session is valid then exec request
+            auto reqPtr=req.get();
+            if (reqPtr->session().isValid())
+            {
+                doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
+                return;
+            }
+
             // increment counter
             auto& count=m_sessionWaitingReqCount[req->priority()];
             count++;
@@ -453,8 +474,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
                 it=empl.first;
             }
 
-            // enqueue
-            auto reqPtr=req.get();
+            // enqueue            
             auto& queue=it->second;
             queue.push(std::move(req));
 
@@ -463,9 +483,6 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
             {
                 return;
             }
-
-            // set session invalid
-            reqPtr->session().setValid(false);
 
             // define refresh callback
             auto refreshCb=[this,sessionId=reqPtr->session().id()](auto, const Error& ec)

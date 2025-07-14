@@ -38,6 +38,8 @@ ADD_CUSTOM_TARGET(clientservertest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} $
 SET (TEST_JSON
     ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthclient.jsonc
     ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthserver.jsonc
+    ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthserver-sess-token-exp.jsonc
+    ${CLIENTSERVERTESTS_TEST_SRC}/assets/hssauthserver-sess-exp.jsonc
 )
 
 ADD_CUSTOM_TARGET(clientservertest-json SOURCES ${TEST_JSON})

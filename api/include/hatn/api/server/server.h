@@ -289,15 +289,15 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
                                         }
 
                                         // check auth status
-                                        if (req.response.status()==protocol::ResponseStatus::Success)
-                                        {
-                                            // auth is ok, dispatch request
-                                            dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
-                                        }
-                                        else
+                                        if (req.failed())
                                         {
                                             // auth failed, send response
                                             sendResponse(std::move(ctx),std::move(reqCtx),connection);
+                                        }
+                                        else
+                                        {
+                                            // auth is ok, dispatch request
+                                            dispatchRequest(std::move(ctx),std::move(reqCtx),connection);
                                         }
                                    }
                                 );

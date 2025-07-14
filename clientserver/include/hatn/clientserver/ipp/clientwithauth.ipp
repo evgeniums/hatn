@@ -61,6 +61,24 @@ Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProto
 //--------------------------------------------------------------------------
 
 template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
+Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::execNoAuth(
+    common::SharedPtr<RequestContext> ctx,
+    Callback callback,
+    const api::Service& service,
+    const api::Method& method,
+    MessageType message,
+    lib::string_view topic,
+    api::Priority priority,
+    uint32_t timeoutMs,
+    clientapi::MethodAuth methodAuth
+    )
+{
+    return m_client->exec(std::move(ctx),std::move(callback),SessionWrapper{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+}
+
+//--------------------------------------------------------------------------
+
+template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
 Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::loadLogConfig(
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const std::string& configPath

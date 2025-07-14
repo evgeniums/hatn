@@ -39,15 +39,16 @@
     "auth" :
     {
         "hss" : {
-            "secret" : "shared_secret1"
+            "secret" : "shared_secret11"
         },
 
         "sessions" : {
             "current_tag" : "tag1",
+            "session_ttl_secs": 3,
             "tokens": [
                 {
                    "tag" : "tag1",
-                   "secret" : "sessionsecret1"
+                   "secret" : "sessionsecret11"
                 }
             ]
         }

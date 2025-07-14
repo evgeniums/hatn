@@ -66,6 +66,28 @@ inline const char* priorityName(Priority priority)
     return "";
 }
 
+template <typename EachT>
+void handleByPriority(const EachT& each)
+{
+    static std::array<Priority,PrioritiesCount> priorities{
+        Priority::Highest,
+        Priority::High,
+        Priority::Normal,
+        Priority::Low,
+        Priority::Lowest
+    };
+
+    for (const auto& priority : priorities)
+    {
+        auto done=each(priority);
+        if (done)
+        {
+            break;
+        }
+    }
+}
+
+
 HATN_API_NAMESPACE_END
 
 #endif // HATNAPIPRIORITY_H

@@ -57,7 +57,7 @@ void LocalSessionController<ContextTraits>::createSession(
     session->setFieldValue(session::login,login);
     session->setFieldValue(session::user,user);
     session->setFieldValue(session::ttl,session->fieldValue(db::object::created_at));
-    session->field(session::ttl).mutableValue()->addDays(config().fieldValue(session_config::session_ttl_days));
+    session->field(session::ttl).mutableValue()->addSeconds(config().fieldValue(session_config::session_ttl_secs));
 
     auto& req=ContextTraits::request(ctx);
     req.sessionId=session->fieldValue(db::object::_id);
@@ -222,8 +222,9 @@ void LocalSessionController<ContextTraits>::checkSession(
     // parse token
     auto token=tokenHandler().parseToken(sessionContent.get(),auth_token::TokenType::Session,factory);
     if (token)
-    {        
-        auto ec=token.takeError();
+    {
+        HATN_CTX_SCOPE_ERROR("failed to parse token")
+        auto ec=api::makeApiError(common::chainErrors(token.takeError(),clientServerError(ClientServerError::AUTH_TOKEN_INVALID)),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
         callback(std::move(ctx),ec,{});
         return;
     }
@@ -231,6 +232,8 @@ void LocalSessionController<ContextTraits>::checkSession(
     // check if session exists and active
     auto checkSess=[dbModels=sessionDbModels()](auto&& checkCanLogin, auto reqCtx, auto callback, common::SharedPtr<auth_token::managed> token)
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checksess]")
+
         HATN_CTX_PUSH_FIXED_VAR("login",token->fieldValue(auth_token::login).toString())
         HATN_CTX_PUSH_FIXED_VAR("usrtpc",token->fieldValue(auth_token::topic))
         HATN_CTX_PUSH_FIXED_VAR("sess",token->fieldValue(auth_token::session).toString())
@@ -241,15 +244,15 @@ void LocalSessionController<ContextTraits>::checkSession(
         {
             if (foundSessObj)
             {
+                if (db::objectNotFound(foundSessObj))
+                {
+                    auto ec=api::makeApiError(clientServerError(ClientServerError::AUTH_SESSION_NOT_FOUND),api::ApiAuthError::AUTH_SESSION_INVALID,api::ApiAuthErrorCategory::getCategory());
+                    callback(std::move(reqCtx),ec,{});
+                    return;
+                }
+
                 HATN_CTX_SCOPE_ERROR("failed to find session in db")
                 auto ec=foundSessObj.takeError();
-                callback(std::move(reqCtx),ec,{});
-                return;
-            }
-
-            if (foundSessObj->isNull())
-            {
-                auto ec=api::makeApiError(clientServerError(ClientServerError::AUTH_SESSION_NOT_FOUND),api::ApiAuthError::AUTH_SESSION_INVALID,api::ApiAuthErrorCategory::getCategory());
                 callback(std::move(reqCtx),ec,{});
                 return;
             }
@@ -270,6 +273,7 @@ void LocalSessionController<ContextTraits>::checkSession(
                 return;
             }
 
+            HATN_CTX_STACK_BARRIER_OFF("[checksess]")
             checkCanLogin(std::move(reqCtx),std::move(callback),std::move(session),std::move(token));
         };
 
@@ -286,6 +290,8 @@ void LocalSessionController<ContextTraits>::checkSession(
 
     auto checkCanLogin=[](auto&& updateSessClient, auto ctx, auto callback, common::SharedPtr<session::managed> session, common::SharedPtr<auth_token::managed> token) mutable
     {
+        HATN_CTX_SCOPE_WITH_BARRIER("[checkcanlogin]")
+
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto sessPtr=session.get();
@@ -303,6 +309,7 @@ void LocalSessionController<ContextTraits>::checkSession(
             req.userTopic.load(token->fieldValue(auth_token::topic));
             req.user=session->fieldValue(session::user);
 
+            HATN_CTX_STACK_BARRIER_OFF("[checkcanlogin]")
             updateSessClient(std::move(ctx),std::move(callback),std::move(session),std::move(token));
         };
 
@@ -323,6 +330,10 @@ void LocalSessionController<ContextTraits>::checkSession(
             return;
         }
 
+        //! @todo fix barriers with callbacks in the same call stack
+#if 0
+        HATN_CTX_SCOPE_WITH_BARRIER("[updatesesscl]")
+#endif
         auto tokenPtr=token.get();
         auto topic=tokenPtr->fieldValue(auth_token::topic);
         auto cb=[session,callback=std::move(callback),done=std::move(done),token=std::move(token)](auto ctx, const common::Error& ec) mutable
@@ -331,7 +342,10 @@ void LocalSessionController<ContextTraits>::checkSession(
             {
                 HATN_CTX_ERROR(ec,"faield to update session client in db")
             }
-
+            //! @todo fix barriers with callbacks in the same call stack
+#if 0
+            HATN_CTX_STACK_BARRIER_OFF("[updatesesscl]")
+#endif
             done(std::move(ctx),std::move(callback),std::move(session),std::move(token));
         };
 

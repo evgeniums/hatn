@@ -81,6 +81,8 @@
 
 #include <hatn/clientserver/ipp/clientsession.ipp>
 
+using namespace std::chrono_literals;
+
 HATN_TEST_USING
 
 HATN_APP_USING
@@ -122,19 +124,20 @@ struct TestEnv : public MultiThreadFixture
     static HATN_DATAUNIT_NAMESPACE::ObjectId testLogin;
     static HATN_DATAUNIT_NAMESPACE::ObjectId testUser;
     static std::string testUserTopic;
+    static ByteArrayShared sessionToken;
 };
 int TestEnv::testAmount=0;
 HATN_DATAUNIT_NAMESPACE::ObjectId TestEnv::testLogin;
 HATN_DATAUNIT_NAMESPACE::ObjectId TestEnv::testUser;
 std::string TestEnv::testUserTopic;
+ByteArrayShared TestEnv::sessionToken;
 
 constexpr const uint32_t TcpPort=53852;
 
 /********************** Client **************************/
 
-auto createClient(std::string sharedSecret, std::string configFileName, std::string login={}, std::string topic={})
+auto createClientApp(std::string configFileName)
 {
-    // init client app
     AppName appName{"authclient","Auth Client"};
     auto app=std::make_shared<App>(appName);
     auto configFile=MultiThreadFixture::assetsFilePath("clientservertests",configFileName);
@@ -144,7 +147,11 @@ auto createClient(std::string sharedSecret, std::string configFileName, std::str
     ec=app->init();
     HATN_TEST_EC(ec);
     BOOST_REQUIRE(!ec);
+    return app;
+}
 
+auto createClient(std::string sharedSecret, std::shared_ptr<App> app, std::string login={}, std::string topic={})
+{
     auto thread=app->appThread();
 
     auto resolver=std::make_shared<client::IpHostResolver>(thread);
@@ -155,9 +162,9 @@ auto createClient(std::string sharedSecret, std::string configFileName, std::str
     hosts[0].ipVersion=IpVersion::V4;
 
     auto router=makeShared<client::PlainTcpRouter>(
-            hosts,
-            resolver,
-            thread
+        hosts,
+        resolver,
+        thread
         );
 
     const pmr::AllocatorFactory* factory=app->allocatorFactory().factory();
@@ -168,8 +175,8 @@ auto createClient(std::string sharedSecret, std::string configFileName, std::str
             subcontext(std::move(router),thread,factory),
             subcontext(factory),
             subcontext()
-        )
-    );
+            )
+        );
     auto& logContext=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
     logContext.setLogger(app->logger().logger());
 
@@ -187,6 +194,10 @@ auto createClient(std::string sharedSecret, std::string configFileName, std::str
         if (!sessionToken.isNull())
         {
             HATN_TEST_MESSAGE_TS("Session token updated");
+            TestEnv::sessionToken=sessionToken;
+            auto ec=sessionToken->saveToFile(MultiThreadFixture::tmpFilePath("session-token.dat"));
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
         }
         if (!refreshToken.isNull())
         {
@@ -581,8 +592,15 @@ enum class TestMode : int
     InvalidSharedSecret,
     LoginBlocked,
     UserBlocked,
-    InvalidToken,
-    ExpiredToken
+    LoginExpired,
+    SessionTokenOk,
+    SessionTokenExpired,
+    SessionTokenExpiredReloginOk,
+    SessionExpired,
+    SessionExpiredReloginOk,
+    SessionTokenInvalid,
+    SessionTokenInvalidOk,
+    AuthMissing
 };
 
 struct TestConfig
@@ -645,6 +663,15 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     login2_2->setFieldValue(with_user::user_topic,config.topic1);
     login2_2->setFieldValue(login_profile::blocked,true);
     BOOST_TEST_MESSAGE(fmt::format("login2_2= {}",login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
+    auto login2_3=makeShared<login_profile::managed>();
+    HATN_DB_NAMESPACE::initObject(*login2_3);
+    login2_3->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
+    login2_3->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
+    login2_3->setFieldValue(with_user::user_topic,config.topic1);
+    auto expAt=DateTime::currentUtc();
+    expAt.addDays(-1);
+    login2_3->setFieldValue(login_profile::expire_at,expAt);
+    BOOST_TEST_MESSAGE(fmt::format("login2_3= {}",login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
 
     auto login4_1=makeShared<login_profile::managed>();
     HATN_DB_NAMESPACE::initObject(*login4_1);
@@ -670,6 +697,11 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     else if (mode==TestMode::LoginBlocked)
     {
         loginOid=login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id);
+        sharedSecret=config.clientSharedSecret2;
+    }
+    else if (mode==TestMode::LoginExpired)
+    {
+        loginOid=login2_3->fieldValue(HATN_DB_NAMESPACE::object::_id);
         sharedSecret=config.clientSharedSecret2;
     }
     else if (mode==TestMode::UserBlocked)
@@ -841,6 +873,24 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
             );
     };
 
+    auto addLogin2_3Topic1=[&config,login2_3](auto&& next, auto ctx)
+    {
+        auto cb=[login2_3,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
+        {
+            HATN_TEST_EC(ec)
+            BOOST_REQUIRE(!ec);
+            BOOST_REQUIRE(oid==login2_3->fieldValue(HATN_DB_NAMESPACE::object::_id));
+            next(std::move(ctx));
+        };
+
+        ContextTraits::userController(ctx).addLogin(
+            std::move(ctx),
+            cb,
+            std::move(login2_3),
+            config.topic1
+            );
+    };
+
     auto addLogin4_1Topic1=[&config,login4_1](auto&& next, auto ctx)
     {
         auto cb=[login4_1,next=std::move(next)](SharedPtr<ContextTraits::Context> ctx, const Error& ec, const du::ObjectId& oid) mutable
@@ -859,16 +909,34 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
         );
     };
 
-    auto client=createClient(sharedSecret,config.clientConfigFile,login,loginTopic);
+    auto clientApp=createClientApp(config.clientConfigFile);
+    if (mode==TestMode::SessionTokenInvalid || mode==TestMode::AuthMissing)
+    {
+        login="19808c490dc00000154b6311a";
+    }
+    auto client=createClient(sharedSecret,clientApp,login,loginTopic);
     auto clientCtx=client.second;
+    if (mode==TestMode::SessionTokenInvalid || mode==TestMode::SessionTokenInvalidOk)
+    {
+        ByteArray token;
+        auto ec=token.loadFromFile(MultiThreadFixture::assetsFilePath("clientservertests","session-token.dat"));
+        HATN_TEST_EC(ec)
+        BOOST_REQUIRE(!ec);
+
+        auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
+        auto session=cl.session();
+        ec=session->sessionImpl().loadSessionToken(token.stringView());
+        HATN_TEST_EC(ec)
+        BOOST_REQUIRE(!ec);
+    }
     auto clientThread=client.first->appThread();
-    auto execClient=[clientThread,clientCtx,callback](auto)
-    {        
-        auto invokeTask1=[clientCtx,callback]()
+    auto execClient=[clientThread,clientCtx,callback,mode](auto&& next, auto)
+    {
+        auto invokeTask1=[clientCtx,callback,mode,next=std::move(next)]()
         {
             auto& cl=clientCtx->get<PlainTcpClientWithAuth>();
 
-            auto invokeTask2=[&cl,clientCtx,callback](auto ctx, Error ec, auto)
+            auto invokeTask2=[&cl,clientCtx,callback,next=std::move(next)](auto ctx, Error ec, auto resp)
             {
                 if (ec)
                 {
@@ -878,10 +946,28 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
                         msg+=ec.apiError()->message();
                     }
                     HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 completed with error, ec: {}/{}",ec.codeString(),msg));
+                    callback(std::move(ctx),std::move(ec),std::move(resp));
                     return;
                 }
 
                 HATN_TEST_MESSAGE_TS("invokeTask1 sucessfully completed, running invokeTask2");
+
+                auto cb=[next=std::move(next),callback](auto ctx, const Error& ec, auto resp) mutable
+                {
+                    if (ec)
+                    {
+                        auto msg=ec.message();
+                        if (ec.apiError()!=nullptr)
+                        {
+                            msg+=ec.apiError()->message();
+                        }
+                        HATN_TEST_MESSAGE_TS(fmt::format("invokeTask2 completed with error, ec: {}/{}",ec.codeString(),msg));
+                        callback(std::move(ctx),std::move(ec),std::move(resp));
+                        return;
+                    }
+
+                    next(std::move(ctx));
+                };
 
                 service1_msg1::type msg;
                 msg.setFieldValue(service1_msg1::field1,200);
@@ -892,7 +978,7 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
                 BOOST_REQUIRE(!ec);
                 ec=cl.exec(
                     ctx,
-                    callback,
+                    cb,
                     Service{"service1"},
                     Method{"service1_method1"},
                     std::move(msgData),
@@ -910,37 +996,127 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
             auto ec=msgData1.setContent(msg1);
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
-            ec=cl.exec(
-                ctx1,
-                invokeTask2,
-                Service{"service1"},
-                Method{"service1_method1"},
-                std::move(msgData1),
-                "test_topic"
-            );
+
+            if (mode!=TestMode::AuthMissing)
+            {
+                ec=cl.exec(
+                    ctx1,
+                    invokeTask2,
+                    Service{"service1"},
+                    Method{"service1_method1"},
+                    std::move(msgData1),
+                    "test_topic"
+                    );
+            }
+            else
+            {
+                ec=cl.execNoAuth(
+                    ctx1,
+                    invokeTask2,
+                    Service{"service1"},
+                    Method{"service1_method1"},
+                    std::move(msgData1),
+                    "test_topic"
+                );
+            }
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
 
-            auto ctx2=makeLogCtx();
-            service1_msg1::type msg2;
-            msg2.setFieldValue(service1_msg1::field1,330);
-            msg2.setFieldValue(service1_msg1::field2,"second run");
-            Message msgData2;
-            ec=msgData2.setContent(msg2);
+            if (mode!=TestMode::SessionTokenExpired && mode!=TestMode::SessionExpired && mode!=TestMode::SessionTokenInvalid && mode!=TestMode::AuthMissing)
+            {
+                auto ctx2=makeLogCtx();
+                service1_msg1::type msg2;
+                msg2.setFieldValue(service1_msg1::field1,330);
+                msg2.setFieldValue(service1_msg1::field2,"second run");
+                Message msgData2;
+                ec=msgData2.setContent(msg2);
+                HATN_TEST_EC(ec);
+                BOOST_REQUIRE(!ec);
+                ec=cl.exec(
+                    ctx2,
+                    callback,
+                    Service{"service1"},
+                    Method{"service1_method1"},
+                    std::move(msgData2),
+                    "test_topic"
+                    );
+                HATN_TEST_EC(ec);
+                BOOST_REQUIRE(!ec);
+            }
+        };
+        clientThread->execAsync(invokeTask1);
+    };
+
+    auto client2=createClient(sharedSecret,clientApp);
+    auto clientCtx2=client2.second;
+    auto clientThread2=client2.first->appThread();
+    if (mode==TestMode::SessionTokenExpiredReloginOk || mode==TestMode::SessionExpiredReloginOk)
+    {
+        auto& client=clientCtx2->get<PlainTcpClientWithAuth>();
+        auto session=client.session();
+        session->sessionImpl().setLogin(login,loginTopic);
+    }
+    else if (mode==TestMode::SessionExpired)
+    {
+        auto& client=clientCtx2->get<PlainTcpClientWithAuth>();
+        auto session=client.session();
+        session->sessionImpl().setLogin(login,config.topic2);
+    }
+    auto execClient2=[clientThread2,clientCtx2,callback,mode](auto)
+    {
+        if (mode!=TestMode::SessionTokenOk
+            && mode!=TestMode::SessionTokenExpired
+            && mode!=TestMode::SessionTokenExpiredReloginOk
+            && mode!=TestMode::SessionExpired
+            && mode!=TestMode::SessionExpiredReloginOk
+            )
+        {
+            return;
+        }
+
+        if (mode==TestMode::SessionTokenExpired || mode==TestMode::SessionTokenExpiredReloginOk)
+        {
+            HATN_TEST_MESSAGE_TS("waiting for 5 seconds for session token expiration...")
+            std::this_thread::sleep_for(5000ms);
+        }
+
+        if (mode==TestMode::SessionExpired || mode==TestMode::SessionExpiredReloginOk)
+        {
+            HATN_TEST_MESSAGE_TS("waiting for 5 seconds for session expiration...")
+            std::this_thread::sleep_for(5000ms);
+        }
+
+        BOOST_REQUIRE(TestEnv::sessionToken);
+        auto& cl=clientCtx2->get<PlainTcpClientWithAuth>();
+        auto session=cl.session();
+        auto ec=session->sessionImpl().loadSessionToken(TestEnv::sessionToken->stringView());
+        HATN_TEST_EC(ec)
+        BOOST_REQUIRE(!ec);
+
+        auto invokeTask=[clientCtx2,callback]()
+        {
+            auto& cl=clientCtx2->get<PlainTcpClientWithAuth>();
+
+            auto ctx1=makeLogCtx();
+            service1_msg1::type msg1;
+            msg1.setFieldValue(service1_msg1::field1,550);
+            msg1.setFieldValue(service1_msg1::field2,"run with session token");
+            Message msgData1;
+            auto ec=msgData1.setContent(msg1);
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
             ec=cl.exec(
-                ctx2,
+                ctx1,
                 callback,
                 Service{"service1"},
                 Method{"service1_method1"},
-                std::move(msgData2),
+                std::move(msgData1),
                 "test_topic"
                 );
             HATN_TEST_EC(ec);
             BOOST_REQUIRE(!ec);
         };
-        clientThread->execAsync(invokeTask1);
+        clientThread2->execAsync(invokeTask);
     };
 
     testEnv->createThreads(1);
@@ -956,10 +1132,12 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
          addUser2Topic1=std::move(addUser2Topic1),
          addLogin2_1Topic1=std::move(addLogin2_1Topic1),
          addLogin2_2Topic1=std::move(addLogin2_2Topic1),
+         addLogin2_3Topic1=std::move(addLogin2_3Topic1),
          addLogin3_0Topic1=std::move(addLogin3_0Topic1),
          addUser4Topic1=std::move(addUser4Topic1),
          addLogin4_1Topic1=std::move(addLogin4_1Topic1),
-         execClient=std::move(execClient)
+         execClient=std::move(execClient),
+         execClient2=std::move(execClient2)
         ]()
         {
             auto reqCtx=server::allocateAndInitRequestContext<RequestWithAuth>(EnvWithAuthConfigTraits::env);
@@ -970,10 +1148,12 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
                 std::move(addUser2Topic1),
                 std::move(addLogin2_1Topic1),
                 std::move(addLogin2_2Topic1),
+                std::move(addLogin2_3Topic1),
                 std::move(addLogin3_0Topic1),
                 std::move(addUser4Topic1),
                 std::move(addLogin4_1Topic1),
-                std::move(execClient)
+                std::move(execClient),
+                std::move(execClient2)
             );
             chain(std::move(reqCtx));
         }
@@ -989,7 +1169,7 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     testEnv->exec(1);
 
     serverCtx->app->close();
-    client.first->close();
+    clientApp->close();
 
     testEnv->exec(1);
     testThread->stop();
@@ -1014,14 +1194,15 @@ BOOST_FIXTURE_TEST_CASE(CreateServer,TestEnv)
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
 {
-    std::string sharedSecret1{"shared_secret1"};
-    auto clientCtx=createClient(std::move(sharedSecret1),"hssauthclient.jsonc");
+    std::string sharedSecret{"shared_secret1"};
+    auto app=createClientApp("hssauthclient.jsonc");
+    auto clientCtx=createClient(sharedSecret,app,"hssauthclient.jsonc");
 
     int secs=3;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
-    clientCtx.first->close();
+    app->close();
 
     exec(1);
 }
@@ -1213,6 +1394,34 @@ BOOST_FIXTURE_TEST_CASE(LoginBlocked,TestEnv)
     BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
 }
 
+BOOST_FIXTURE_TEST_CASE(LoginExpired,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::LoginExpired);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
 BOOST_FIXTURE_TEST_CASE(UserBlocked,TestEnv)
 {
     auto cb=[](auto ctx, const Error& ec, auto response)
@@ -1241,4 +1450,240 @@ BOOST_FIXTURE_TEST_CASE(UserBlocked,TestEnv)
     BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
 }
 
+BOOST_FIXTURE_TEST_CASE(SessionTokenOk,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    runTest(this,cb,TestMode::SessionTokenOk);
+
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,1230);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionTokenExpired,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ClientServerError::LOGIN_NOT_SET,ClientServerErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    TestConfig config;
+    config.serverConfigFile="hssauthserver-sess-token-exp.jsonc";
+    config.clientSharedSecret1="shared_secret11";
+    config.clientSharedSecret2="shared_secret22";
+    config.runningSecs=10;
+    runTest(this,cb,TestMode::SessionTokenExpired,config);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,350);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionTokenExpiredReloginOk,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    TestConfig config;
+    config.serverConfigFile="hssauthserver-sess-token-exp.jsonc";
+    config.clientSharedSecret1="shared_secret11";
+    config.clientSharedSecret2="shared_secret22";
+    config.runningSecs=10;
+    runTest(this,cb,TestMode::SessionTokenExpiredReloginOk,config);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,1230);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionExpired,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    TestConfig config;
+    config.serverConfigFile="hssauthserver-sess-exp.jsonc";
+    config.clientSharedSecret1="shared_secret11";
+    config.clientSharedSecret2="shared_secret22";
+    config.runningSecs=10;
+    runTest(this,cb,TestMode::SessionExpired,config);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,350);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionExpiredReloginOk,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    TestConfig config;
+    config.serverConfigFile="hssauthserver-sess-exp.jsonc";
+    config.clientSharedSecret1="shared_secret11";
+    config.clientSharedSecret2="shared_secret22";
+    config.runningSecs=10;
+    runTest(this,cb,TestMode::SessionExpiredReloginOk,config);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,1230);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionTokenInvalid,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_FAILED,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::SessionTokenInvalid);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
+BOOST_FIXTURE_TEST_CASE(SessionTokenInvalidOk,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+        }
+        else
+        {
+            HATN_TEST_MESSAGE_TS("exec completed");
+        }
+        BOOST_CHECK(!ec);
+    };
+
+    TestConfig config;
+    runTest(this,cb,TestMode::SessionTokenInvalidOk,config);
+
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,680);
+}
+
+BOOST_FIXTURE_TEST_CASE(AuthMissing,TestEnv)
+{
+    auto cb=[](auto ctx, const Error& ec, auto response)
+    {
+        if (ec)
+        {
+            auto msg=ec.message();
+            if (ec.apiError()!=nullptr)
+            {
+                msg+=ec.apiError()->message();
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("exec cb, ec: {}/{}",ec.codeString(),msg));
+            BOOST_CHECK(ec.is(ApiLibError::SERVER_RESPONDED_WITH_ERROR,ApiLibErrorCategory::getCategory()));
+            BOOST_REQUIRE(ec.apiError()!=nullptr);
+            BOOST_CHECK(ec.apiError()->is(ApiAuthError::AUTH_MISSING,ApiAuthErrorCategory::getCategory()));
+
+            //! @todo check journal for login try
+        }
+        else
+        {
+            BOOST_FAIL("test must fail");
+        }
+    };
+
+    runTest(this,cb,TestMode::AuthMissing);
+    BOOST_CHECK_EQUAL(TestEnv::testAmount,0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
+
+/**
+ * @todo Test auth:
+ *
+ * 1. Invalid challenge token.
+ * 2. Expired challenge token.
+ * 3. Missing challenge token.
+ * 4. Session tags.
+ * 5. Inactive session.
+ * 6. Client auth API logs.
+ */

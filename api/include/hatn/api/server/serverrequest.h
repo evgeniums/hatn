@@ -150,6 +150,11 @@ struct Request : public common::TaskSubcontext
     du::ObjectId user;
     db::Topic userTopic;
 
+    bool failed() const
+    {
+        return !error.isNull() || responseError.has_value();
+    }
+
     void setResponseError(Error ec, protocol::ResponseStatus status=protocol::ResponseStatus::InternalServerError, bool overrideRespError=false)
     {
         if (error)

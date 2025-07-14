@@ -101,22 +101,22 @@ class Session : public common::WithTraits<Traits>,
 
         bool isValid() const noexcept
         {
-            return m_valid;
+            return m_valid.load();
         }
 
         void setValid(bool enable) noexcept
         {
-            m_valid=enable;
+            m_valid.store(enable);
         }
 
         bool isRefreshing() const noexcept
         {
-            return m_refreshing;
+            return m_refreshing.load();
         }
 
         void setRefreshing(bool enable) noexcept
         {
-            m_refreshing=enable;
+            m_refreshing.store(enable);
         }
 
         template <typename ContextT, typename ClientT>
@@ -145,8 +145,8 @@ class Session : public common::WithTraits<Traits>,
     private:
 
         SessionId m_id;
-        bool m_valid;
-        bool m_refreshing;
+        std::atomic<bool> m_valid;
+        std::atomic<bool> m_refreshing;
         std::vector<RefreshCb> m_callbacks;
 };
 

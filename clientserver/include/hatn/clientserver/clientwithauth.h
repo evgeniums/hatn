@@ -64,6 +64,18 @@ class ClientWithAuthT : public DefaultRequestContext
             clientapi::MethodAuth methodAuth={}
         );
 
+        Error execNoAuth(
+            common::SharedPtr<RequestContext> ctx,
+            Callback callback,
+            const api::Service& service,
+            const api::Method& method,
+            MessageType message,
+            lib::string_view topic={},
+            api::Priority priority=api::Priority::Normal,
+            uint32_t timeoutMs=0,
+            clientapi::MethodAuth methodAuth={}
+        );
+
         void setClient(Client* client)
         {
             m_client=client;

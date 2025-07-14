@@ -40,10 +40,12 @@
     Do(ClientServerError,AUTH_SESSION_NOT_FOUND,_TR("authentication session not found","clientserver")) \
     Do(ClientServerError,AUTH_PROCESSING_FAILED,_TR("failed to process authentication","clientserver")) \
     Do(ClientServerError,AUTH_COMPLETION_FAILED,_TR("failed to complete authentication","clientserver")) \
+    Do(ClientServerError,LOGIN_NOT_SET,_TR("login must be specified","clientserver")) \
     Do(ClientServerError,INVALID_LOGIN_FORMAT,_TR("invalid format of login","clientserver")) \
     Do(ClientServerError,LOGIN_NOT_FOUND,_TR("login not found","clientserver")) \
     Do(ClientServerError,USER_NOT_FOUND,_TR("user not found","clientserver")) \
     Do(ClientServerError,LOGIN_BLOCKED,_TR("login blocked","clientserver")) \
+    Do(ClientServerError,LOGIN_EXPIRED,_TR("login expired","clientserver")) \
     Do(ClientServerError,USER_BLOCKED,_TR("user blocked","clientserver")) \
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN

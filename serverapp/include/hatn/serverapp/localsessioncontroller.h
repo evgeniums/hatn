@@ -49,7 +49,7 @@ HDU_UNIT(session_config,
     HDU_FIELD(current_tag,TYPE_STRING,1,true)
     HDU_FIELD(session_token_ttl_secs,TYPE_UINT32,2,false,21600)
     HDU_FIELD(refresh_token_ttl_secs,TYPE_UINT32,3,false,2592000)
-    HDU_FIELD(session_ttl_days,TYPE_UINT32,4,false,365)
+    HDU_FIELD(session_ttl_secs,TYPE_UINT32,4,false,365*24*3600)
     HDU_REPEATED_FIELD(tokens,session_token::TYPE,5,true)
 )
 

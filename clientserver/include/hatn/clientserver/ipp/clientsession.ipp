@@ -101,6 +101,14 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
     {
         HATN_CTX_SCOPE("clientsession::negotiate")
 
+        if (login().empty())
+        {
+            auto ec=clientServerError(ClientServerError::LOGIN_NOT_SET);
+            HATN_CTX_ERROR(ec,"login not set in client")
+            callback(std::move(ctx),ec);
+            return;
+        }
+
         auto req=factory()->template createObject<auth_negotiate_request::managed>();
         req->setFieldValue(auth_negotiate_request::login,login());
         if (!topic().empty())

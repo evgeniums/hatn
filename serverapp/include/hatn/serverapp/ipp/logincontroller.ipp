@@ -111,6 +111,17 @@ void LoginController<ContextTraits>::checkCanLogin(
                 return;
             }
 
+            if (loginObj->field(login_profile::expire_at).isSet())
+            {
+                auto now=common::DateTime::currentUtc();
+                if (now.after(loginObj->fieldValue(login_profile::expire_at)))
+                {
+                    ec=api::makeApiError(clientServerError(ClientServerError::LOGIN_EXPIRED),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
+                    callback(std::move(ctx),std::move(ec));
+                    return;
+                }
+            }
+
             HATN_CTX_PUSH_FIXED_VAR("usr",loginObj->fieldValue(with_user::user).toString())
 
             HATN_CTX_STACK_BARRIER_OFF("[checklogin]")
