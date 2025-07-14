@@ -81,7 +81,7 @@ class JournalDbModels : public db::ModelsWrapper
 
         const auto& eventModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::eventModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::eventModel);
         }
 
         auto models()

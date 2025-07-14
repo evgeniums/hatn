@@ -931,6 +931,11 @@ Error App::destroyDb()
 
 void App::registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
 {
+    for (auto&& provider: schema->modelProviders())
+    {
+        provider->registerRocksdbModels();
+    }
+
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
     HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::instance().registerSchema(std::move(schema));
 #else

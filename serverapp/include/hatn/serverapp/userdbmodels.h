@@ -69,27 +69,27 @@ class UserDbModels : public db::ModelsWrapper
 
         const auto& userModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::userModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::userModel);
         }
 
         const auto& userCharacterModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterModel);
         }
 
         const auto& loginProfileModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::loginProfileModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::loginProfileModel);
         }
 
         const auto& userCharacterShareModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterShareModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterShareModel);
         }
 
         const auto& userCharacterLoginModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterLoginModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::userCharacterLoginModel);
         }
 
         auto models()

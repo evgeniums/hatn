@@ -48,22 +48,22 @@ class AclDbModels : public db::ModelsWrapper
 
         const auto& aclRelationModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRelationModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::aclRelationModel);
         }
 
         const auto& aclRoleModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleModel);
         }
 
         const auto& aclRoleOperationModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleOperationModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::aclRoleOperationModel);
         }
 
         const auto& aclOpFamilyAccessModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::aclOpFamilyAccessModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::aclOpFamilyAccessModel);
         }
 
         auto models()

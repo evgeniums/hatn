@@ -38,7 +38,7 @@ class SectionDbModels : public db::ModelsWrapper
 
         const auto& topicModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_UTILITY_NAMESPACE::topicModel);
+            return db::makeModelFromPrototype(prefix(),HATN_UTILITY_NAMESPACE::topicModel);
         }
 
         auto models()

@@ -35,7 +35,7 @@ class HATN_DB_EXPORT ModelsWrapper
         ModelsWrapper& operator=(const ModelsWrapper&)=default;
         ModelsWrapper& operator=(ModelsWrapper&&)=default;
 
-        std::string prefix() const
+        const std::string& prefix() const
         {
             return m_prefix;
         }

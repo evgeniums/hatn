@@ -332,6 +332,7 @@ struct EnvWithAuthConfigTraits
     using Env=EnvWithAuth;
     using Request=RequestWithAuth;
 
+    static std::shared_ptr<UserDbModels> userDbModels;
     static std::shared_ptr<SessionDbModels> sessionDbModels;
     static SharedPtr<Env> env;
 
@@ -350,7 +351,7 @@ struct EnvWithAuthConfigTraits
                 context(std::make_shared<AuthProtocols>()),
                 context(std::make_shared<SharedSecretAuthProtocol>()),
                 context(),
-                context(),
+                context(userDbModels),
                 context(sessionDbModels)
             ),
             context()
@@ -391,6 +392,7 @@ struct EnvWithAuthConfigTraits
         return env;
     }
 };
+std::shared_ptr<UserDbModels> EnvWithAuthConfigTraits::userDbModels;
 std::shared_ptr<SessionDbModels> EnvWithAuthConfigTraits::sessionDbModels;
 SharedPtr<EnvWithAuthConfigTraits::Env> EnvWithAuthConfigTraits::env;
 
@@ -462,7 +464,9 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
         expectedFail="expected: ";
     }
 
-    EnvWithAuthConfigTraits::sessionDbModels=std::make_shared<SessionDbModels>();
+    EnvWithAuthConfigTraits::userDbModels=std::make_shared<UserDbModels>("admin");
+    auto userDbModels=EnvWithAuthConfigTraits::userDbModels;
+    EnvWithAuthConfigTraits::sessionDbModels=std::make_shared<SessionDbModels>("admin");
     auto sessionDbModels=EnvWithAuthConfigTraits::sessionDbModels;
 
     // init server app
@@ -535,14 +539,10 @@ Result<ServerApp> createServer(std::string configFileName, int expectedErrorCode
     BOOST_CHECK_EQUAL(microservices.begin()->first,"microservice1");
 
     auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>("main");
-
-    SessionDbModelsProvider sessDbModelsProvider{std::move(sessionDbModels)};
-    //! @todo Register rocksdb models in registerDbSchema
-    sessDbModelsProvider.registerRocksdbModels();
-    mainSchema->addModels(&sessDbModelsProvider);
-    UserDbModelsProvider userDbModelsProvider;
-    userDbModelsProvider.registerRocksdbModels();
-    mainSchema->addModels(&userDbModelsProvider);
+    mainSchema->addModelsProvider(std::make_shared<UserDbModelsProvider>(std::move(userDbModels)));
+    mainSchema->addModelsProvider(std::make_shared<UserDbModelsProvider>());
+    mainSchema->addModelsProvider(std::make_shared<SessionDbModelsProvider>(std::move(sessionDbModels)));
+    mainSchema->addModelsProvider(std::make_shared<SessionDbModelsProvider>());
     app->registerDbSchema(mainSchema);
 
     ec=app->destroyDb();

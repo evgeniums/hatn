@@ -69,10 +69,27 @@ class HATN_DB_EXPORT Schema
             }
         }
 
+        void addModelsProvider(std::shared_ptr<ModelsProvider> provider)
+        {
+            addModels(provider.get());
+            m_modelProviders.emplace_back(std::move(provider));
+        }
+
+        auto& modelProviders()
+        {
+            return m_modelProviders;
+        }
+
+        const auto& modelProviders() const
+        {
+            return m_modelProviders;
+        }
+
     private:
 
         std::string m_name;
         std::map<std::string,std::shared_ptr<ModelInfo>> m_models;
+        std::vector<std::shared_ptr<ModelsProvider>> m_modelProviders;
 };
 
 struct makeSchemaT

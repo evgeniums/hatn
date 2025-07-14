@@ -91,12 +91,12 @@ class SessionDbModels : public db::ModelsWrapper
 
         const auto& sessionModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::sessionModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::sessionModel);
         }
 
         const auto& sessionClientModel() const
         {
-            return db::makeModelFromProrotype(prefix(),HATN_SERVERAPP_NAMESPACE::sessionClientModel);
+            return db::makeModelFromPrototype(prefix(),HATN_SERVERAPP_NAMESPACE::sessionClientModel);
         }
 
         auto models()
