@@ -75,15 +75,8 @@ void initOpensslPlugin()
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
 HATN_PLUGIN_INIT_FN(HATN_ROCKSDB_NAMESPACE::RocksdbPlugin,initRocksdbPlugin)
-void freeRocksDb()
-{
-    HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::free();
-    HATN_ROCKSDB_NAMESPACE::RocksdbModels::free();
-}
 #else
 void initRocksdbPlugin()
-{}
-void freeRocksDb()
 {}
 #endif
 
@@ -95,9 +88,17 @@ void initOpensslPlugin()
 void initRocksdbPlugin()
 {}
 
+#endif
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+void freeRocksDb()
+{
+    HATN_ROCKSDB_NAMESPACE::RocksdbSchemas::free();
+    HATN_ROCKSDB_NAMESPACE::RocksdbModels::free();
+}
+#else
 void freeRocksDb()
 {}
-
 #endif
 
 class LogAppConfig : public HATN_LOGCONTEXT_NAMESPACE::AppConfig
