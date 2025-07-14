@@ -578,8 +578,10 @@ class WithEmbeddedEnvT : public common::EnvT<Contexts,BaseT>,
         using common::EnvT<Contexts,BaseT>::EnvT;
 
         template <typename T>
-        constexpr auto hasContext() const noexcept
+        constexpr auto hasContext() const
         {
+            Assert(this->embeddedEnv(),"Embedded environment not set");
+
             const baseT* base=this;
             auto typeC=hana::type_c<T>;
 
@@ -598,8 +600,10 @@ class WithEmbeddedEnvT : public common::EnvT<Contexts,BaseT>,
         }
 
         template <typename T>
-        const T& get() const noexcept
+        const T& get() const
         {
+            Assert(this->embeddedEnv(),"Embedded environment not set");
+
             const auto* self=this;
             const baseT* base=this;
             auto typeC=hana::type_c<T>;
@@ -620,7 +624,7 @@ class WithEmbeddedEnvT : public common::EnvT<Contexts,BaseT>,
         }
 
         template <typename T>
-        T& get() noexcept
+        T& get()
         {
             auto constSelf=const_cast<const selfT*>(this);
             return const_cast<T&>(constSelf->template get<T>());
