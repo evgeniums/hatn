@@ -732,35 +732,35 @@ BOOST_AUTO_TEST_CASE(LoadWithErrors)
     BOOST_REQUIRE(r1);
     expectedError(r1.error(),
                   "failed to parse configuration file: file not found: not-existent-file.jsonc",
-                  "CONFIG_PARSE_ERROR"
+                  "BaseError-CONFIG_PARSE_ERROR"
                   );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config5.jsonc"));
     BOOST_REQUIRE(r1);
     expectedError(r1.error(),
                   "failed to parse configuration file: include file not found: not-existent-include.jsonc",
-                  "CONFIG_PARSE_ERROR"
+                  "BaseError-CONFIG_PARSE_ERROR"
                   );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config6.xml"));
     BOOST_REQUIRE(r1);
     expectedError(r1.error(),
                   "",
-                  "CONFIG_LOAD_ERROR:UNSUPPORTED_CONFIG_FORMAT"
+                  "BaseError-CONFIG_LOAD_ERROR:BaseError-UNSUPPORTED_CONFIG_FORMAT"
                   );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err1.jsonc"));
     BOOST_REQUIRE(r1);
     expectedError(r1.error(),
                   "",
-                  "CONFIG_LOAD_ERROR:CONFIG_PARSE_ERROR"
+                  "BaseError-CONFIG_LOAD_ERROR:BaseError-CONFIG_PARSE_ERROR"
                   );
 
     r1=loader.createFromFile(MultiThreadFixture::assetsFilePath("base/assets/config_err2.jsonc"));
     BOOST_REQUIRE(r1);
     expectedError(r1.error(),
                   "",
-                  "CONFIG_LOAD_ERROR:CONFIG_PARSE_ERROR"
+                  "BaseError-CONFIG_LOAD_ERROR:BaseError-CONFIG_PARSE_ERROR"
                   );
 }
 
