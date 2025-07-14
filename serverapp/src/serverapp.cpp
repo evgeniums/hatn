@@ -214,6 +214,8 @@ void ServerApp_p::close()
     }
 
     app.close();
+
+    HATN_COMMON_NAMESPACE::Thread::releaseMainThread();
 }
 
 //--------------------------------------------------------------------------

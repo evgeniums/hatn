@@ -63,6 +63,7 @@ namespace {
 struct MainThreadWrapper
 {
     std::shared_ptr<Thread> mainThread;
+    int count=0;
 };
 
 static MainThreadWrapper& MainThread()
@@ -456,8 +457,14 @@ const char* Thread::currentThreadID() noexcept
 //---------------------------------------------------------------
 void Thread::releaseMainThread() noexcept
 {
-    MainThread().mainThread.reset();
-    ThisThread=nullptr;
+    MainThread().count--;
+    if (MainThread().count<=0)
+    {
+        MainThread().count=0;
+        MainThread().mainThread.reset();
+        ThisThread=nullptr;
+        std::cout<<"Main thread released"<<std::endl;
+    }
 }
 
 //---------------------------------------------------------------
@@ -477,8 +484,19 @@ std::shared_ptr<Thread> Thread::setMainThread(std::shared_ptr<Thread> thread)
 {
     Assert(thread!=nullptr,"Main thread can not be null!");
     Assert(!thread->d->newThread,"Main thread must be instantiated with newThread=false!");
-    Assert(static_cast<bool>(MainThread().mainThread)==false,"Main thread already exists!");
-    MainThread().mainThread=std::move(thread);
+#if 0
+    Assert(static_cast<bool>(MainThread().mainThread)==false || !unique,"Main thread already exists!");
+#endif
+    if (!MainThread().mainThread)
+    {
+        MainThread().mainThread=std::move(thread);
+        std::cout<<"Main thread initialized"<<std::endl;
+    }
+    else
+    {
+        std::cout<<"Main thread reused"<<std::endl;
+    }
+    MainThread().count++;
     return MainThread().mainThread;
 }
 
