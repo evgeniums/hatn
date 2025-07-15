@@ -16,6 +16,7 @@
 
 #include <hatn/common/thread.h>
 
+#include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
@@ -34,6 +35,7 @@
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
+#include <hatn/clientapp/eventdispatcher.h>
 
 #include <hatn/common/logger.h>
 #include <hatn/common/loggermoduleimp.h>
@@ -45,8 +47,16 @@ HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 constexpr const char* TestingSection="testing";
 
+HDU_UNIT(test_event,
+    HDU_FIELD(category,TYPE_STRING,1)
+    HDU_FIELD(event,TYPE_STRING,2)
+    HDU_FIELD(period,TYPE_UINT32,3)
+    HDU_FIELD(run_once,TYPE_BOOL,4)
+)
+
 HDU_UNIT(testing_config,
     HDU_FIELD(enable,TYPE_UINT8,1)
+    HDU_REPEATED_FIELD(events,test_event::TYPE,2)
 )
 
 using TestingConfig=HATN_BASE_NAMESPACE::ConfigObject<testing_config::type>;
@@ -105,8 +115,8 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     }
 
     // init platform context
-    ec=platformCtx->init(this);
-    if (ec)
+    auto ret=platformCtx->init(this);
+    if (ret!=0)
     {
         return -3;
     }
@@ -131,8 +141,8 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
         return -5;
     }
 
-    // init bridge services
-    ec=pimpl->app->initBridgeServices();
+    // init bridge
+    ec=pimpl->app->initBridge();
     if (ec)
     {
         close();
@@ -162,10 +172,10 @@ int MobileApp::close()
 
     if (pimpl->platformCtx)
     {
-        auto ec=pimpl->platformCtx->close();
-        if (ec)
+        auto ret=pimpl->platformCtx->close();
+        if (ret!=0)
         {
-            return -1;
+            return ret;
         }
     }
     return 0;
@@ -180,7 +190,7 @@ void MobileApp::exec(
         Callback callback
     )
 {
-    HATN_CTX_SCOPE("mobileapp:exec")
+    HATN_CTX_SCOPE("mobileapp::exec")
 
     HATN_CLIENTAPP_NAMESPACE::Request req{
         std::move(request.envId),
@@ -201,9 +211,17 @@ void MobileApp::exec(
         req.message=msgR.takeValue();
     }
 
+    // copy buffers
+    req.buffers.reserve(request.buffers.size());
+    for (auto&& buffer : request.buffers)
+    {
+        req.buffers.emplace_back(common::makeShared<common::ByteArray>(buffer.data(),buffer.size()));
+    }
+
+    // prepare callback
     auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_CLIENTAPP_NAMESPACE::Response resp)
     {
-        HATN_CTX_SCOPE("mobileapp:exec:cb")
+        HATN_CTX_SCOPE("mobileapp::exec::cb")
         if (ec)
         {
             HATN_CTX_PUSH_VAR("err",ec.codeString())
@@ -268,6 +286,8 @@ size_t MobileApp::subscribeEvent(
                                             common::SharedPtr<Context>,
                                             std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::Event> event)
     {
+        HATN_CTX_SCOPE("eventhandler")
+
         Event ntfcn;
         //! @todo omptimization: use references for similar fields instead of copying
         ntfcn.category=event->category;
@@ -348,7 +368,8 @@ int MobileApp::initTests()
             ctx->beforeThreadProcessing();
 
             {
-                HATN_CTX_SCOPE("testevent::publish")                
+                HATN_CTX_SCOPE("testevent::publish")
+                HATN_CTX_INFO("publish event")
 
                 auto event=std::make_shared<HATN_CLIENTAPP_NAMESPACE::Event>();
                 event->category=category;
@@ -378,6 +399,7 @@ int MobileApp::initTests()
             event.fieldValue(test_event::run_once)
         );
     }
+
     return 0;
 }
 

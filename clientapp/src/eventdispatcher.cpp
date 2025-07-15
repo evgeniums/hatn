@@ -120,8 +120,8 @@ void EventDispatcher::publish(
     )
 {
     HATN_CTX_SCOPE("eventdispatcher::publish")
-    HATN_CTX_PUSH_VAR("category",event->category);
-    HATN_CTX_PUSH_VAR("event",event->event);
+    HATN_CTX_SCOPE_PUSH("event_category",event->category);
+    HATN_CTX_SCOPE_PUSH("event",event->event);
 
     EventKey key{
         event->category,
@@ -131,8 +131,11 @@ void EventDispatcher::publish(
     {
         key.setEnvId(env->name());
     }
-    key.setTopic(event->topic);
-    HATN_CTX_PUSH_VAR("event_topic",event->topic);
+    if (!event->topic.empty())
+    {
+        key.setTopic(event->topic);
+        HATN_CTX_SCOPE_PUSH("event_topic",event->topic);
+    }
 
     std::vector<EventHandler> handlers;
     {
@@ -140,11 +143,18 @@ void EventDispatcher::publish(
         handlers=m_subscriptions->find(key);
     }
 
+    if (handlers.empty())
+    {
+        HATN_CTX_DEBUG(1,"event subscribers not found")
+    }
+
     for (auto&& handler : handlers)
     {
         if (handler)
         {
+            HATN_CTX_DEBUG(1,"before event subscriber invoke")
             handler(env,ctx,event);
+            HATN_CTX_DEBUG(1,"after event subscriber invoke")
         }
     }
 }

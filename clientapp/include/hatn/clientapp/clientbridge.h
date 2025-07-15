@@ -153,6 +153,27 @@ class HATN_CLIENTAPP_EXPORT Method
         std::string m_name;
 };
 
+template <typename ServiceT>
+class ServiceMethod : public Method
+{
+    public:
+
+        ServiceMethod(ServiceT *service, std::string name)
+            : Method(std::move(name)),
+              m_service(service)
+        {}
+
+        ServiceT* service() const noexcept
+        {
+            return m_service;
+        }
+
+    private:
+
+        ServiceT* m_service;
+};
+
+
 template <typename MessageT>
 struct MessageBuilder
 {
@@ -174,6 +195,8 @@ class HATN_CLIENTAPP_EXPORT Service
 
         Service(std::string name) : m_name(std::move(name))
         {}
+
+        Service(ClientApp* app, std::string name);
 
         void exec(
             common::SharedPtr<app::AppEnv> env,

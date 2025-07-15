@@ -32,6 +32,13 @@ Method::~Method()
 
 //---------------------------------------------------------------
 
+Service::Service(ClientApp* app, std::string name) : Service(std::move(name))
+{
+    setContextBuilder(std::make_shared<BridgeAppContextBuilder>(app));
+}
+
+//---------------------------------------------------------------
+
 void Service::exec(
         common::SharedPtr<app::AppEnv> env,
         const std::string& method,
@@ -48,7 +55,7 @@ void Service::exec(
         thread->execAsync(
             [callback=std::move(callback),this,method]()
             {
-                HATN_CTX_SCOPE("service:exec:cb")
+                HATN_CTX_SCOPE("service::exec::cb")
                 HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
                 HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",method)
 
@@ -67,9 +74,11 @@ void Service::exec(
         ctx->onAsyncHandlerEnter();
 
         {
-            HATN_CTX_SCOPE("service:exec:cb")
+            HATN_CTX_SCOPE("service::exec::cb")
+
             HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
             HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
+
             mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
         }
 
