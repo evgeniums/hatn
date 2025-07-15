@@ -26,9 +26,7 @@
 
 HATN_SERVERAPP_NAMESPACE_BEGIN
 
-#if 0
-
-//! @todo critical: unique if not emplty
+#if 1
 
 HATN_DB_UNIQUE_INDEX(userPhoneIdx,user_profile::phone)
 HATN_DB_UNIQUE_INDEX(userEmailIdx,user_profile::email)
