@@ -243,9 +243,10 @@ class RequestContext : public RequestT,
 
             taskCtx->onAsyncHandlerEnter();
 
-            HATN_CTX_SCOPE("apirequesttimeout")
-
-            callback(taskCtx,common::CommonError::TIMEOUT,{});
+            {
+                HATN_CTX_SCOPE("apirequesttimeout")
+                callback(taskCtx,common::CommonError::TIMEOUT,{});
+            }
 
             taskCtx->onAsyncHandlerExit();
         }

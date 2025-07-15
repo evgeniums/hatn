@@ -123,8 +123,10 @@ class UnreliableChannelMultiple : public UnreliableChannel<EndpointT,Traits>
                     {
                         if (detail::enterAsyncHandler(wptr,callback))
                         {
-                            HATN_CTX_SCOPE("unrcontainersendto")
-                            callback(Error(CommonError::INVALID_SIZE),0);
+                            {
+                                HATN_CTX_SCOPE("unrcontainersendto")
+                                callback(Error(CommonError::INVALID_SIZE),0);
+                            }
                             this->leaveAsyncHandler();
                         }
                     }
@@ -147,8 +149,10 @@ class UnreliableChannelMultiple : public UnreliableChannel<EndpointT,Traits>
                     {
                         if (detail::enterAsyncHandler(wptr,callback,buffer))
                         {
-                            HATN_CTX_SCOPE("unrbufsendto")
-                            callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            {
+                                HATN_CTX_SCOPE("unrbufsendto")
+                                callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            }
                             this->leaveAsyncHandler();
                         }
                     }
@@ -228,8 +232,10 @@ class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
                     {
                         if (detail::enterAsyncHandler(wptr,callback))
                         {
-                            HATN_CTX_SCOPE("unrsinglelcontainersend")
-                            callback(Error(CommonError::INVALID_SIZE),0);
+                            {
+                                HATN_CTX_SCOPE("unrsinglelcontainersend")
+                                callback(Error(CommonError::INVALID_SIZE),0);
+                            }
                             this->leaveAsyncHandler();
                         }
                     }
@@ -251,8 +257,10 @@ class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
                     {
                         if (detail::enterAsyncHandler(wptr,callback,buffer))
                         {
-                            HATN_CTX_SCOPE("unrsinglelbufsendto")
-                            callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            {
+                                HATN_CTX_SCOPE("unrsinglelbufsendto")
+                                callback(Error(common::CommonError::INVALID_SIZE),0,std::move(buffer));
+                            }
                             this->leaveAsyncHandler();
                         }
                     }
@@ -264,8 +272,10 @@ class UnreliableChannelSingle : public UnreliableChannel<EndpointT,Traits>,
             {
                 if (detail::enterAsyncHandler(wptr,callback,buffer))
                 {
-                    HATN_CTX_SCOPE("unrlbufsendto")
-                    callback(ec,size,std::move(buffer));
+                    {
+                        HATN_CTX_SCOPE("unrlbufsendto")
+                        callback(ec,size,std::move(buffer));
+                    }
                     this->leaveAsyncHandler();
                 }
             };

@@ -118,7 +118,6 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
             //! @todo Log connection
 
             auto reqPtr=reqCtx.get();
-            //! @todo critical: ensure that HATN_CTX_SCOPE is in different scope than beforeThreadProcessing()/afterThreadProcessing()
             reqPtr->beforeThreadProcessing();
 
             {

@@ -150,24 +150,28 @@ void TcpServer::accept(
             return;
         }
         mainCtx().onAsyncHandlerEnter();
-        HATN_CTX_SCOPE("tcpserveraccept")
 
-        if (d->closed)
         {
-            callback(commonError(CommonError::ABORTED));
-            return;
-        }
-        if (!ec)
-        {
-            HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"new connection to TCP server",HatnAsioLog,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
+            HATN_CTX_SCOPE("tcpserveraccept")
 
-            //! @todo Configure socket options
-            callback(Error{});
+            if (d->closed)
+            {
+                callback(commonError(CommonError::ABORTED));
+                return;
+            }
+            if (!ec)
+            {
+                HATN_CTX_DEBUG_RECORDS_M(DoneDebugVerbosity,"new connection to TCP server",HatnAsioLog,{"remote_ip",socket.socket().remote_endpoint().address().to_string()},{"remote_port",socket.socket().remote_endpoint().port()})
+
+                //! @todo Configure socket options
+                callback(Error{});
+            }
+            else
+            {
+                callback(makeBoostError(ec));
+            }
         }
-        else
-        {
-            callback(makeBoostError(ec));
-        }
+
         mainCtx().onAsyncHandlerExit();
     };
 

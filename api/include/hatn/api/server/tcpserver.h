@@ -162,38 +162,40 @@ class TcpServer : public WithEnv<typename Traits::Env>,
                 }
 
                 connectionCtx->onAsyncHandlerEnter();
-
-                HATN_CTX_SCOPE("tcpserveraccept")
-
-                //! @todo Fill connection parameters
-
-                boost::system::error_code ec1;
-                auto ep=socket.socket().remote_endpoint(ec1);
-                if (!ec1)
                 {
-                    HATN_CTX_PUSH_VAR("r_ip",ep.address().to_string())
-                    HATN_CTX_PUSH_VAR("r_port",ep.port())
+
+                    HATN_CTX_SCOPE("tcpserveraccept")
+
+                    //! @todo Fill connection parameters
+
+                    boost::system::error_code ec1;
+                    auto ep=socket.socket().remote_endpoint(ec1);
+                    if (!ec1)
+                    {
+                        HATN_CTX_PUSH_VAR("r_ip",ep.address().to_string())
+                        HATN_CTX_PUSH_VAR("r_port",ep.port())
+                    }
+
+                    HATN_CTX_DETAILS("connection accepted","tcpserver");
+
+                    auto selfCtxW=common::toWeakPtr(this->sharedMainCtx());
+                    this->m_handleNewConnection(connectionCtx,Error{},
+                                                [selfCtxW{std::move(selfCtxW)},this,serverCtx{std::move(serverCtx)}](const Error& ec)
+                                                {
+                                                    if (ec)
+                                                    {
+                                                        return;
+                                                    }
+
+                                                    auto selfCtx=selfCtxW.lock();
+                                                    if (!selfCtx)
+                                                    {
+                                                        return;
+                                                    }
+                                                    this->acceptNext(std::move(serverCtx));
+                                                }
+                    );
                 }
-
-                HATN_CTX_DETAILS("connection accepted","tcpserver");
-
-                auto selfCtxW=common::toWeakPtr(this->sharedMainCtx());
-                this->m_handleNewConnection(connectionCtx,Error{},
-                  [selfCtxW{std::move(selfCtxW)},this,serverCtx{std::move(serverCtx)}](const Error& ec)
-                  {
-                    if (ec)
-                    {
-                        return;
-                    }
-
-                    auto selfCtx=selfCtxW.lock();
-                    if (!selfCtx)
-                    {
-                        return;
-                    }
-                    this->acceptNext(std::move(serverCtx));
-                  }
-                );
 
                 connectionCtx->onAsyncHandlerExit();
             };

@@ -66,12 +66,13 @@ void Service::exec(
     {
         ctx->onAsyncHandlerEnter();
 
-        HATN_CTX_SCOPE("service:exec:cb")
+        {
+            HATN_CTX_SCOPE("service:exec:cb")
+            HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
+            HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
+            mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
+        }
 
-        HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
-        HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
-
-        mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
         ctx->onAsyncHandlerExit();
     };
     thread->execAsync(handler);

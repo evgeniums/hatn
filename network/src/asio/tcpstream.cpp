@@ -105,39 +105,42 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
             m_stream->mainCtx().onAsyncHandlerEnter();
         }
 
-        HATN_CTX_SCOPE("tcpstreamdoclose")
-
-        common::Error ret;
-        if (rawSocket().lowest_layer().is_open())
         {
-            try
+            HATN_CTX_SCOPE("tcpstreamdoclose")
+
+            common::Error ret;
+            if (rawSocket().lowest_layer().is_open())
             {
-                boost::system::error_code ec;
-
-                rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
-                if (ec)
+                try
                 {
-                    HATN_CTX_WARN_RECORDS_M("failed to shutdown",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
-                }
+                    boost::system::error_code ec;
 
-                rawSocket().lowest_layer().close(ec);
-                if (ec)
-                {
-                    HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
-                    throw boost::system::system_error(ec);
+                    rawSocket().shutdown(boost::asio::socket_base::shutdown_both,ec);
+                    if (ec)
+                    {
+                        HATN_CTX_WARN_RECORDS_M("failed to shutdown",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
+                    }
+
+                    rawSocket().lowest_layer().close(ec);
+                    if (ec)
+                    {
+                        HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec.value()},{"err_msg",ec.message()})
+                        throw boost::system::system_error(ec);
+                    }
+                    HATN_CTX_DEBUG(DoneDebugVerbosity,"stream closed",HatnAsioLog)
                 }
-                HATN_CTX_DEBUG(DoneDebugVerbosity,"stream closed",HatnAsioLog)
+                catch (const boost::system::system_error& e)
+                {
+                    ret=makeBoostError(e.code());
+                }
             }
-            catch (const boost::system::system_error& e)
+
+            if (callback)
             {
-                ret=makeBoostError(e.code());
+                callback(ret);
             }
         }
 
-        if (callback)
-        {
-            callback(ret);
-        }
         if (postThread)
         {
             m_stream->mainCtx().onAsyncHandlerExit();
@@ -210,8 +213,10 @@ void TcpStreamTraits::prepare(
             {
                 if (detail::enterAsyncHandler(wptr,callback))
                 {
-                    HATN_CTX_SCOPE("tcpstreamprepare")
-                    callback(makeBoostError(ec));
+                    {
+                        HATN_CTX_SCOPE("tcpstreamprepare")
+                        callback(makeBoostError(ec));
+                    }
                     leaveAsyncHandler();
                 }
             }
@@ -229,32 +234,35 @@ void TcpStreamTraits::prepare(
                             return;
                         }
 
-                        HATN_CTX_SCOPE("tcpsocketconnect")
+                        {
+                            HATN_CTX_SCOPE("tcpsocketconnect")
 
-                        if (!ec)
-                        {
-                            m_stream->updateEndpoints();
-                            if (!bind)
+                            if (!ec)
                             {
-                                HATN_CTX_SCOPE_PUSH("local_ip",m_stream->localEndpoint().address().to_string())
-                                HATN_CTX_SCOPE_PUSH("local_port",m_stream->localEndpoint().port())
-                            }
-                            HATN_CTX_DEBUG(DoneDebugVerbosity,"client connected",HatnAsioLog);
-                        }
-                        else
-                        {
-                            if (rawSocket().lowest_layer().is_open())
-                            {
-                                boost::system::error_code ec1;
-                                rawSocket().lowest_layer().close(ec1);
-                                if (ec1)
+                                m_stream->updateEndpoints();
+                                if (!bind)
                                 {
-                                    HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec1.value()},{"err_msg",ec1.message()})
+                                    HATN_CTX_SCOPE_PUSH("local_ip",m_stream->localEndpoint().address().to_string())
+                                    HATN_CTX_SCOPE_PUSH("local_port",m_stream->localEndpoint().port())
+                                }
+                                HATN_CTX_DEBUG(DoneDebugVerbosity,"client connected",HatnAsioLog);
+                            }
+                            else
+                            {
+                                if (rawSocket().lowest_layer().is_open())
+                                {
+                                    boost::system::error_code ec1;
+                                    rawSocket().lowest_layer().close(ec1);
+                                    if (ec1)
+                                    {
+                                        HATN_CTX_WARN_RECORDS_M("failed to close",HatnAsioLog,{"err_code",ec1.value()},{"err_msg",ec1.message()})
+                                    }
                                 }
                             }
+
+                            callback(makeBoostError(ec));
                         }
 
-                        callback(makeBoostError(ec));
                         leaveAsyncHandler();
                     }
                 );
@@ -274,8 +282,10 @@ void TcpStreamTraits::read(
             {
                 if (detail::enterAsyncHandler(wptr,callback,0))
                 {
-                    HATN_CTX_SCOPE("tcpsocketread")
-                    callback(makeBoostError(boost::asio::error::eof),0);
+                    {
+                        HATN_CTX_SCOPE("tcpsocketread")
+                        callback(makeBoostError(boost::asio::error::eof),0);
+                    }
                     leaveAsyncHandler();
                 }
             }
@@ -290,7 +300,9 @@ void TcpStreamTraits::read(
             {
                 if (detail::enterAsyncHandler(wptr,callback,0))
                 {
-                    callback(common::Error(),0);
+                    {
+                        callback(common::Error(),0);
+                    }
                     leaveAsyncHandler();
                 }
             }
@@ -304,7 +316,10 @@ void TcpStreamTraits::read(
                     {
                         if (detail::enterAsyncHandler(wptr,callback,0))
                         {
-                            callback(makeBoostError(ec),size);
+                            {
+                                callback(makeBoostError(ec),size);
+                            }
+
                             leaveAsyncHandler();
                         }
                     }
@@ -325,7 +340,10 @@ void TcpStreamTraits::write(
             {
                 if (detail::enterAsyncHandler(wptr,callback,0))
                 {
-                    callback(makeBoostError(boost::asio::error::eof),0);
+                    {
+                        callback(makeBoostError(boost::asio::error::eof),0);
+                    }
+
                     leaveAsyncHandler();
                 }
             }
