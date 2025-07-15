@@ -70,8 +70,6 @@ void SessionAuthProtocol<EnvT,RequestT>::invoke(
     {
         HATN_CTX_SCOPE("sessionauthprotocol.checksessioncb")
 
-        //! @todo critical: fill session data in request context for logging
-
         auto& req=serverapi::request<Request>(ctx).request();
         if (ec)
         {
