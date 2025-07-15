@@ -16,6 +16,8 @@
 
 #include <hatn/clientapp/methodnetworkstatus.h>
 #include <hatn/clientapp/methodsyncdatetime.h>
+#include <hatn/clientapp/methodupdatesystemca.h>
+
 #include <hatn/clientapp/systemservice.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -26,6 +28,7 @@ SystemService::SystemService(ClientApp* app) : Service(app,Name)
 {
     registerMethod(std::make_shared<MethodNetworkStatus>(this));
     registerMethod(std::make_shared<MethodSyncDateTime>(this));
+    registerMethod(std::make_shared<MethodUpdateSystemCa>(this));
 }
 
 //---------------------------------------------------------------

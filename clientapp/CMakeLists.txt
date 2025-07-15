@@ -13,8 +13,10 @@ SET (HEADERS
     include/hatn/clientapp/systemservice.h
     include/hatn/clientapp/methodnetworkstatus.h
     include/hatn/clientapp/methodsyncdatetime.h
+    include/hatn/clientapp/methodupdatesystemca.h
 
     include/hatn/clientapp/networkevent.h
+    include/hatn/clientapp/systemcaevent.h
 )
 
 SET (SOURCES
@@ -26,6 +28,7 @@ SET (SOURCES
     src/systemservice.cpp
     src/methodnetworkstatus.cpp
     src/methodsyncdatetime.cpp
+    src/methodupdatesystemca.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)
