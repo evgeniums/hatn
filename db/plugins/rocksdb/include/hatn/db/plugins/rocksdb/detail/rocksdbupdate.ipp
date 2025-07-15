@@ -240,7 +240,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 if (!newKey.exists || newKey.replace)
                 {
                     // save new key
-                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique,indexCf,rdbTx,indexValue,newKey.replace);
+                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique && newKey.isSet,indexCf,rdbTx,indexValue,newKey.replace);
                     if (ec)
                     {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",newKey.indexName)

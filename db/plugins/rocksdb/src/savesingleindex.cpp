@@ -72,8 +72,9 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
             {
                 if (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed)
                 {
-                    //! @todo Create native error with id/name of duplicate key
-                    return dbError(DbError::DUPLICATE_UNIQUE_KEY);
+                    auto ec=dbError(DbError::DUPLICATE_UNIQUE_KEY);
+                    HATN_CTX_ERROR_RECORDS(ec,"",{"dupl_key",logKey(k)})
+                    return ec;
                 }
 
                 return makeError(DbError::SAVE_INDEX_FAILED,status);

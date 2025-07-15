@@ -41,7 +41,8 @@ Error Keys::iterateIndexFields(
         const UnitT* object,
         const IndexT& index,
         const Keys::KeyHandlerFn& handler,
-        PosT pos
+        PosT pos,
+        IsIndexSet isIndexSet
     )
 {
     if constexpr (decltype(hana::equal(pos,hana::size(index.fields)))::value)
@@ -49,7 +50,7 @@ Error Keys::iterateIndexFields(
         IndexKeySlice key;
         key[0]=ROCKSDB_NAMESPACE::Slice{buf.data(),buf.size()};
         key[1]=objectId;
-        return handler(key);
+        return handler(key,isIndexSet);
     }
     else
     {
@@ -79,13 +80,19 @@ Error Keys::iterateIndexFields(
 
                     buf.append(SeparatorCharStr);
 
+                    if (isIndexSet==IsIndexSet::Unknown)
+                    {
+                        isIndexSet=IsIndexSet::Yes;
+                    }
+
                     auto ec=iterateIndexFields(
                         buf,
                         objectId,
                         object,
                         index,
                         handler,
-                        hana::plus(pos,hana::size_c<1>)
+                        hana::plus(pos,hana::size_c<1>),
+                        isIndexSet
                         );
                     HATN_CHECK_EC(ec)
 
@@ -95,6 +102,8 @@ Error Keys::iterateIndexFields(
             }
             else
             {
+                isIndexSet=IsIndexSet::No;
+
                 buf.append(SeparatorCharStr);
                 return iterateIndexFields(
                     buf,
@@ -102,7 +111,8 @@ Error Keys::iterateIndexFields(
                     object,
                     index,
                     handler,
-                    hana::plus(pos,hana::size_c<1>)
+                    hana::plus(pos,hana::size_c<1>),
+                    isIndexSet
                 );
             }
         }
@@ -110,6 +120,10 @@ Error Keys::iterateIndexFields(
         {
             if (field.fieldHasDefaultValue() || field.isSet())
             {
+                if (isIndexSet==IsIndexSet::Unknown)
+                {
+                    isIndexSet=IsIndexSet::Yes;
+                }
                 fieldToStringBuf(buf,field.value());
             }
             else
@@ -124,8 +138,9 @@ Error Keys::iterateIndexFields(
                 object,
                 index,
                 handler,
-                hana::plus(pos,hana::size_c<1>)
-                );
+                hana::plus(pos,hana::size_c<1>),
+                isIndexSet
+            );
         }
     }
 }

@@ -70,13 +70,13 @@ class Indexes
 
             // make and handle key
             return m_keys.makeIndexKey(topic,objectId,object,idx,
-                [&](auto&& key){
+                [&](auto&& key, Keys::IsIndexSet isIndexSet){
 
 //! @maybe Log debug
 #if 0
                     std::cout<<"Index " << idx.name() << " " << logKey(key[0]) << std::endl;
 #endif
-                    auto ec=SaveSingleIndex(handler,key,idx.unique(),m_cf,tx,indexValue,replace);
+                    auto ec=SaveSingleIndex(handler,key,idx.unique() && isIndexSet==Keys::IsIndexSet::Yes,m_cf,tx,indexValue,replace);
                     if (ec)
                     {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
@@ -126,7 +126,7 @@ class Indexes
 
             // make and handle key
             return m_keys.makeIndexKey(topic,objectId,object,idx,
-                                       [&](auto&& key){
+                                       [&](auto&& key, Keys::IsIndexSet){
 
                                            size_t slicesCount=idx.unique()?key.size()-1:key.size();
                                            ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(slicesCount)};

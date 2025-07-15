@@ -39,6 +39,13 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 {
     public:
 
+        enum class IsIndexSet : uint8_t
+        {
+            Unknown,
+            Yes,
+            No
+        };
+
         using KeyBufT=common::pmr::string;
 
         using ObjectKeyValue=std::array<ROCKSDB_NAMESPACE::Slice,8>;
@@ -50,7 +57,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         inline static const char ObjectIndexVersion{0x1};
 
-        using KeyHandlerFn=std::function<Error (const IndexKeySlice&)>;
+        using KeyHandlerFn=std::function<Error (const IndexKeySlice&, IsIndexSet)>;
 
         Keys(const AllocatorFactory* factory) : factory(factory)
         {}
@@ -158,7 +165,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
             const UnitT* object,
             const IndexT& index,
             const KeyHandlerFn& handler,
-            PosT pos
+            PosT pos,
+            IsIndexSet=IsIndexSet::Unknown
         );
 };
 

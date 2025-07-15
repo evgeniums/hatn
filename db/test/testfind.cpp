@@ -593,6 +593,7 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         std::string str2{"Not unique string"};
         std::string str3{"Unique string 2"};
         std::string str4{"Unique string 3"};
+        std::string str5{"Not unique string 2"};
 
         auto q0=makeQuery(u1_str_f2_idx(),query::where(u1_str::f2,query::eq,str2),topic1);
 
@@ -704,6 +705,50 @@ BOOST_AUTO_TEST_CASE(UniqueIndex)
         BOOST_CHECK(r3.value().at(2).unit<u1_str::type>()->fieldValue(object::_id)==o4.fieldValue(object::_id));
 
         BOOST_TEST_MESSAGE(fmt::format("Find o3: {}", r3.value().at(1).unit<u1_str::type>()->toString(true)));
+
+        HATN_CTX_INFO("create object5 with empty unique field")
+        auto o5=makeInitObject<u1_str::type>();
+        o5.setFieldValue(u1_str::f2,str5);
+        ec=client->create(topic1,m1_str(),&o5);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        HATN_CTX_INFO("create object6 with empty unique field")
+        auto o6=makeInitObject<u1_str::type>();
+        o6.setFieldValue(u1_str::f2,str5);
+        ec=client->create(topic1,m1_str(),&o6);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        HATN_CTX_INFO("find objects with null unique field by not unique field")
+        auto q4=makeQuery(u1_str_f2_idx(),query::where(u1_str::f2,query::eq,str5),topic1);
+        auto r4=client->find(m1_str(),q4);
+        if (r4)
+        {
+            BOOST_TEST_MESSAGE(r4.error().message());
+        }
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),2);
+        BOOST_CHECK(r4.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o5.fieldValue(object::_id));
+        BOOST_CHECK(r4.value().at(1).unit<u1_str::type>()->fieldValue(object::_id)==o6.fieldValue(object::_id));
+
+        HATN_CTX_INFO("find objects by null unique field")
+        auto q5=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::eq,query::Null),topic1);
+        auto r5=client->find(m1_str(),q5);
+        if (r5)
+        {
+            BOOST_TEST_MESSAGE(r5.error().message());
+        }
+        BOOST_REQUIRE(!r5);
+        BOOST_REQUIRE_EQUAL(r5.value().size(),2);
+        BOOST_CHECK(r5.value().at(0).unit<u1_str::type>()->fieldValue(object::_id)==o5.fieldValue(object::_id));
+        BOOST_CHECK(r5.value().at(1).unit<u1_str::type>()->fieldValue(object::_id)==o6.fieldValue(object::_id));
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 
@@ -1155,4 +1200,7 @@ BOOST_AUTO_TEST_SUITE_END()
  *  27. Implement and test updating repeated subunits
  *  28. done: Implement and test delete topic
  *  29. done: Implement and test model-topic relations (with merge and TTL)
+ *  30. Test updating unique indexes.
+ *  31. Test updating NULL unique indexes.
+ *  32. Test updating nested unique indexes.
  */

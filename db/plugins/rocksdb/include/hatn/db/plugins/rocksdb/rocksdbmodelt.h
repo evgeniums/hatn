@@ -43,9 +43,10 @@ struct IndexKeyUpdate
     bool unique;
     size_t slice2Offset;
     bool replace;
+    bool isSet;
 
-    IndexKeyUpdate(const std::string& indexName, IndexKeySlice k, bool unique)
-        : indexName(indexName),exists(false),unique(unique),slice2Offset(k[0].size()),replace(false)
+    IndexKeyUpdate(const std::string& indexName, IndexKeySlice k, bool unique, bool isSet)
+        : indexName(indexName),exists(false),unique(unique),slice2Offset(k[0].size()),replace(false),isSet(isSet)
     {
         key.append(k[0].data(),k[0].size());
         key.append(k[1].data(),k[1].size());

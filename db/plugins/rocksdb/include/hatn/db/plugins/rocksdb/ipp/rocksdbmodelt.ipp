@@ -54,9 +54,9 @@ void RocksdbModelT<ModelT>::init(const T& model)
                                    )
                 {
                     std::ignore=keysHandler.makeIndexKey(topic,objectId,obj,idx,
-                                                           [&keys,&idx](auto&& key)
+                                                           [&keys,&idx](auto&& key, Keys::IsIndexSet isIndexSet)
                                                            {
-                                                               keys.insert(IndexKeyUpdate{idx.name(),key,idx.unique()});
+                                                               keys.insert(IndexKeyUpdate{idx.name(),key,idx.unique(),isIndexSet==Keys::IsIndexSet::Yes});
                                                                return Error{OK};
                                                            }
                                                            );
