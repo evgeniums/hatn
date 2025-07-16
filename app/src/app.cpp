@@ -817,10 +817,6 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 
     auto r1=common::PluginLoader::instance().loadPlugin(db::DbPlugin::Type,nm);
     Assert(!r1,"failed to load db plugin");
-    std::cout << "plugin type: " << r1.value()->info()->type << " name: " << r1.value()->info()->name << std::endl;
-    auto p=dynamic_cast<db::DbPlugin*>(r1.value().get());
-    std::cout << "casted plugin: " << p << std::endl;
-
     auto r=common::PluginLoader::instance().loadPlugin<db::DbPlugin>(nm);
     if (r)
     {
