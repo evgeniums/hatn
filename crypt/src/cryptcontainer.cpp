@@ -121,7 +121,7 @@ common::Error CryptContainer::deriveKey(
         {
             // for PbkdfThenHkdf mode first derive m_encryptionKey and then go to HKDF
             HATN_CHECK_RETURN(m_pbkdf->derive(m_masterKey,m_encryptionKeyHolder,salt()))
-            Assert(m_encryptionKeyHolder.get(),"Invalid derived HKDF key");
+            Assert(m_encryptionKeyHolder.get(),"Invalid derived PKDF key");
             m_encryptionKey=m_encryptionKeyHolder.get();
             return deriveKey(key,derivedKey,info,alg);
         }
