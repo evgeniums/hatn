@@ -88,6 +88,7 @@ Result<crypt::SecurePlainContainer> ClientAuthProtocolSharedSecretImpl::calculat
     HATN_CTX_CHECK_EC_MSG(ec,"failed to create passphrase key")
     key->set(password);
     key->setSalt(login);
+    //! @todo critical: Fix derived key?
     key->setDerivedKey(macKey);
 
     // derive shared secret
