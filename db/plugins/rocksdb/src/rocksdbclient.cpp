@@ -205,7 +205,6 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     }
 
     // load options
-    //! @todo records with prefix?
     ec=d->opt.loadLogConfig(*config.opt,config.optPath,records);
     if (ec)
     {
