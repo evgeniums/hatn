@@ -28,7 +28,7 @@
     Do(AppError,OK,_TR("OK")) \
     Do(AppError,UNKNOWN_LOGGER,_TR("unknown logger type","app")) \
     Do(AppError,UNKNOWN_DB_PROVIDER,_TR("unknown database provider","app")) \
-
+    Do(AppError,INVALID_DB_CIPHER_SUITE,_TR("invalid cipher suite for database encryption","app")) \
 
 HATN_APP_NAMESPACE_BEGIN
 

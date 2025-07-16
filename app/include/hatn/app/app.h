@@ -30,8 +30,19 @@
 #include <hatn/app/appname.h>
 #include <hatn/app/appenv.h>
 
+HATN_CRYPT_NAMESPACE_BEGIN
+
+class SymmetricKey;
+
+HATN_CRYPT_NAMESPACE_END
+
 HATN_DB_NAMESPACE_BEGIN
+
 class Schema;
+class EncryptionManager;
+class SymmetricKey;
+class ClientEnvironment;
+
 HATN_DB_NAMESPACE_END
 
 DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
@@ -97,6 +108,9 @@ class HATN_APP_EXPORT App
         {
             return m_env->get<CipherSuites>();
         }
+
+        const HATN_CRYPT_NAMESPACE::CipherSuite* storageCipherSuite() const noexcept;
+        const HATN_CRYPT_NAMESPACE::CipherSuite* defaultCipherSuite() const noexcept;
 
         const Translator& translator() const noexcept
         {
@@ -169,7 +183,18 @@ class HATN_APP_EXPORT App
 
         void addPluginFolders(std::vector<std::string> folders);
 
-        Error openDb(bool create=true);
+        void setDbEncryptionKey(common::SharedPtr<HATN_CRYPT_NAMESPACE::SymmetricKey> key);
+
+        std::shared_ptr<HATN_DB_NAMESPACE::EncryptionManager> makeDbEncryptionManager();
+
+        std::shared_ptr<HATN_DB_NAMESPACE::ClientEnvironment> dbEnvironment() const;
+        std::shared_ptr<HATN_DB_NAMESPACE::EncryptionManager> dbEncryptionManager() const;
+
+        bool isDbEncrypted() const noexcept;
+
+        Error openDb(
+            bool create=true
+        );
 
         Error destroyDb();
 

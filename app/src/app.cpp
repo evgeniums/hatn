@@ -32,7 +32,10 @@
 
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptplugin.h>
+#include <hatn/crypt/securekey.h>
+
 #include <hatn/db/dbplugin.h>
+#include <hatn/db/encryptionmanager.h>
 
 #ifdef NO_DYNAMIC_HATN_PLUGINS
 
@@ -178,6 +181,11 @@ HDU_UNIT(logger_config,
 HDU_UNIT(db_config,
     HDU_FIELD(provider,TYPE_STRING,1,false,"hatnrocksdb")
     HDU_FIELD(thread_count,TYPE_UINT8,2,false,1)
+    HDU_FIELD(encrypted,TYPE_BOOL,3)
+    HDU_FIELD(cipher_suite,TYPE_STRING,4)
+    HDU_FIELD(encryption_chunk_size,TYPE_UINT32,5,false,crypt::MaxContainerChunkSize)
+    HDU_FIELD(encryption_first_chunk_size,TYPE_UINT32,6,false,crypt::MaxContainerFirstChunkSize)
+    HDU_FIELD(main_db_path,TYPE_STRING,7)
 )
 
 HDU_UNIT(crypt_config,
@@ -220,16 +228,20 @@ class App_p
         std::shared_ptr<log::FileLogger> fileLogger;
 
         std::shared_ptr<crypt::CryptPlugin> cryptPlugin;
-        std::vector<std::shared_ptr<HATN_CRYPT_NAMESPACE::CipherSuite>> preloadedCipherSuites;
+        std::vector<std::shared_ptr<crypt::CipherSuite>> preloadedCipherSuites;
         std::string defaultCipherSuiteId;
         std::string defaultCryptProviderId;
+
+        std::shared_ptr<db::EncryptionManager> dbEncryptionManager;
+        common::SharedPtr<crypt::SymmetricKey> dbEncryptionKey;
+        std::shared_ptr<crypt::CipherSuite> dbCipherSuite;
 
         void loadCryptPlugins();
         void loadDbPlugins();
         void loadPlugins(const std::string& pluginFolder);
 
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
-        db::ClientConfig dbClientConfig(lib::string_view name) const;
+        db::ClientConfig dbClientConfig(lib::string_view name);
         void setAppLogger(std::shared_ptr<log::Logger> newLogger)
         {
             logger=std::move(newLogger);
@@ -827,22 +839,23 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 
 //---------------------------------------------------------------
 
-db::ClientConfig App_p::dbClientConfig(lib::string_view name) const
+db::ClientConfig App_p::dbClientConfig(lib::string_view name)
 {
-    //! @todo Create/init encryption manager
-
     auto cfgPath=base::ConfigTreePath{DbConfigRoot}.copyAppend(name);
     db::ClientConfig cfg{app->m_configTree,
                          app->m_configTree,
                          cfgPath.copyAppend("main"),
                          cfgPath.copyAppend("options")
                          };
+    cfg.encryptionManager=dbEncryptionManager;
     return cfg;
 }
 
 //---------------------------------------------------------------
 
-Error App::openDb(bool create)
+Error App::openDb(
+        bool create
+    )
 {
     HATN_CTX_SCOPE("appOpenDb")
 
@@ -872,7 +885,8 @@ Error App::openDb(bool create)
     std::ignore=thread->execSync(
         [this,&ec,&logRecords,&name,create]()
         {
-            ec=d->dbClient->openDb(d->dbClientConfig(name),logRecords,create);
+            auto cfg=d->dbClientConfig(name);
+            ec=d->dbClient->openDb(cfg,logRecords,create);
         }
     );
     logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
@@ -939,7 +953,7 @@ Error App::destroyDb()
 
 //---------------------------------------------------------------
 
-void App::registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
+void App::registerDbSchema(std::shared_ptr<db::Schema> schema)
 {
     for (auto&& provider: schema->modelProviders())
     {
@@ -1017,6 +1031,17 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
     ec=suites->setDefaultSuite(defaultSuiteId);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to set default cipher suite","app"),HLOG_MODULE(app))
 
+    auto dbCipherSuiteId=defaultSuiteId;
+    if (dbConfig.config().isSet(db_config::cipher_suite))
+    {
+        dbCipherSuiteId=dbConfig.config().fieldValue(db_config::cipher_suite);
+    }
+    dbCipherSuite=suites->suiteShared(dbCipherSuiteId);
+    if (!dbCipherSuite)
+    {
+        return appError(AppError::INVALID_DB_CIPHER_SUITE);
+    }
+
     // done
     return suites;
 }
@@ -1032,7 +1057,7 @@ Error App::setPreloadedCipherSuites(const std::vector<std::string>& suitesJson)
     {
         try
         {
-            auto suite=HATN_CRYPT_NAMESPACE::CipherSuite::fromJSON(json);
+            auto suite=crypt::CipherSuite::fromJSON(json);
             d->preloadedCipherSuites.emplace_back(std::move(suite));
         }
         catch (const common::ErrorException& ex)
@@ -1049,7 +1074,7 @@ Error App::setPreloadedCipherSuites(const std::vector<std::string>& suitesJson)
 
 //---------------------------------------------------------------
 
-std::vector<std::shared_ptr<HATN_CRYPT_NAMESPACE::CipherSuite>> App::preloadedCipherSuites() const
+std::vector<std::shared_ptr<crypt::CipherSuite>> App::preloadedCipherSuites() const
 {
     return d->preloadedCipherSuites;
 }
@@ -1110,6 +1135,81 @@ Error App_p::loadCryptPlugin(lib::string_view nameView)
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::setDbEncryptionKey(common::SharedPtr<crypt::SymmetricKey> key)
+{
+    d->dbEncryptionKey=std::move(key);
+    if (d->dbEncryptionManager)
+    {
+        d->dbEncryptionManager->setDefaultKey(d->dbEncryptionKey);
+    }
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<db::EncryptionManager> App::makeDbEncryptionManager()
+{
+    if (d->dbEncryptionManager)
+    {
+        return d->dbEncryptionManager;
+    }
+
+    d->dbEncryptionManager=std::make_shared<db::EncryptionManager>(allocatorFactory().factory());
+    d->dbEncryptionManager->setSuite(d->dbCipherSuite);
+    d->dbEncryptionManager->setDefaultKey(d->dbEncryptionKey);
+    d->dbEncryptionManager->setChunkMaxSize(d->dbConfig.config().fieldValue(db_config::encryption_chunk_size));
+    d->dbEncryptionManager->setFirstChunkMaxSize(d->dbConfig.config().fieldValue(db_config::encryption_first_chunk_size));
+    if (d->dbConfig.config().isSet(db_config::main_db_path))
+    {
+        d->dbEncryptionManager->addDb(std::string{d->dbConfig.config().fieldValue(db_config::main_db_path)});
+    }
+    return d->dbEncryptionManager;
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<db::EncryptionManager> App::dbEncryptionManager() const
+{
+    return d->dbEncryptionManager;
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<db::ClientEnvironment> App::dbEnvironment() const
+{
+    if (d->dbClient->isOpen())
+    {
+        return d->dbClient->cloneEnvironment();
+    }
+    return std::shared_ptr<db::ClientEnvironment>{};
+}
+
+//---------------------------------------------------------------
+
+bool App::isDbEncrypted() const noexcept
+{
+    return d->dbConfig.config().fieldValue(db_config::encrypted);
+}
+
+//---------------------------------------------------------------
+
+const HATN_CRYPT_NAMESPACE::CipherSuite* App::defaultCipherSuite() const noexcept
+{
+    return cipherSuites().suites()->defaultSuite();
+}
+
+//---------------------------------------------------------------
+
+const HATN_CRYPT_NAMESPACE::CipherSuite* App::storageCipherSuite() const noexcept
+{
+    if (d->dbCipherSuite)
+    {
+        return d->dbCipherSuite.get();
+    }
+    return defaultCipherSuite();
 }
 
 //---------------------------------------------------------------
