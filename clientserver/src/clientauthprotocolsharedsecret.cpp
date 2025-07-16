@@ -20,7 +20,7 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 namespace {
 
-Result<std::tuple<const crypt::CipherSuite*,const crypt::CryptAlgorithm*,common::SharedPtr<crypt::MACKey>>> prepareMAC(
+Result<std::tuple<const crypt::CipherSuite*,const crypt::CryptAlgorithm*>> prepareMAC(
         const crypt::CipherSuites* cipherSuites,
         lib::string_view cipherSuiteId
     )
@@ -41,11 +41,8 @@ Result<std::tuple<const crypt::CipherSuite*,const crypt::CryptAlgorithm*,common:
     auto ec=suite->macAlgorithm(macAlg);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to find MAC alg in suite")
 
-    // create MAC key to hold shared secret in
-    auto macKey=macAlg->createMACKey();
-
     // done
-    return std::make_tuple(suite,macAlg,macKey);
+    return std::make_tuple(suite,macAlg);
 }
 
 }
@@ -80,16 +77,14 @@ Result<crypt::SecurePlainContainer> ClientAuthProtocolSharedSecretImpl::calculat
     auto r=prepareMAC(m_cipherSuites,cipherSuiteId);
     HATN_CHECK_RESULT(r)
     const auto* suite=std::get<0>(*r);
-    const auto& macKey=std::get<2>(*r);
+    const auto& macAlg=std::get<1>(*r);
 
     // create passphrase key
     Error ec;
-    auto key=suite->createPassphraseKey(ec);
+    auto key=suite->createPassphraseKey(ec,macAlg);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to create passphrase key")
     key->set(password);
     key->setSalt(login);
-    //! @todo critical: Fix derived key?
-    key->setDerivedKey(macKey);
 
     // derive shared secret
     ec=key->deriveKey();
@@ -97,7 +92,7 @@ Result<crypt::SecurePlainContainer> ClientAuthProtocolSharedSecretImpl::calculat
 
     // export shared secret to container
     crypt::SecurePlainContainer secretContainer;
-    ec=macKey->exportToBuf(secretContainer.content(),crypt::ContainerFormat::RAW_PLAIN);
+    ec=key->derivedKey()->exportToBuf(secretContainer.content(),crypt::ContainerFormat::RAW_PLAIN);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to export shared secret key to container")
 
     // done
@@ -119,7 +114,8 @@ Error ClientAuthProtocolSharedSecretImpl::calculateMAC(
     auto r=prepareMAC(m_cipherSuites,cipherSuiteId);
     HATN_CHECK_RESULT(r)
     const auto* suite=std::get<0>(*r);
-    const auto& macKey=std::get<2>(*r);
+    const auto& macAlg=std::get<1>(*r);
+    auto macKey=macAlg->createMACKey();
     macKey->loadContent(m_sharedSecret);
 
     // create MAC processor
