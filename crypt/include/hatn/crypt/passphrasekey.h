@@ -53,7 +53,7 @@ class PassphraseKey : public SymmetricKey
             setFormat(ContainerFormat::RAW_PLAIN);
         }
 
-        //! Ctor from ByteArray
+        //! Ctor from MemoryLockedArray
         void set(common::MemoryLockedArray data) noexcept
         {
             setFormat(ContainerFormat::RAW_PLAIN);
