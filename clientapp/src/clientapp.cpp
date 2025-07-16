@@ -14,7 +14,10 @@
   *
   */
 
+#include <hatn/common/flatmap.h>
+
 #include <hatn/app/app.h>
+
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/systemservice.h>
@@ -34,6 +37,11 @@ class ClientApp_p
         HATN_APP_NAMESPACE::App app;
         Dispatcher bridge;
         EventDispatcher eventDispatcher;
+
+        common::FlatMap<std::string,common::SharedPtr<crypt::SymmetricKey>,std::less<>> encryptionKeys;
+
+        std::string mainDbType=ClientApp::MainDbData;
+        std::string mainStorageKeyName=ClientApp::MainStorageKey;
 };
 
 //--------------------------------------------------------------------------
@@ -88,6 +96,100 @@ Error ClientApp::initBridge()
 {
     bridge().registerService(std::make_shared<SystemService>(this));
     return initBridgeServices();
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::loadEncryptionKey(
+        std::string name,
+        common::SharedPtr<crypt::SymmetricKey> key
+    )
+{
+    pimpl->encryptionKeys.emplace(std::move(name),std::move(key));
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::removeEncryptionKey(lib::string_view name)
+{
+    pimpl->encryptionKeys.erase(name);
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::clearEncryptionKeys()
+{
+    pimpl->encryptionKeys.clear();
+}
+
+//--------------------------------------------------------------------------
+
+common::SharedPtr<crypt::SymmetricKey> ClientApp::encryptionKey(lib::string_view name) const
+{
+    auto it=pimpl->encryptionKeys.find(name);
+    if (it!=pimpl->encryptionKeys.end())
+    {
+        return it->second;
+    }
+    return common::SharedPtr<crypt::SymmetricKey>{};
+}
+
+//--------------------------------------------------------------------------
+
+Error ClientApp::initDb()
+{
+    // init database encryption
+    if (app().isDbEncrypted())
+    {
+        auto key=encryptionKey(mainStorageKeyName());
+        if (!key)
+        {
+            return clientAppError(ClientAppError::DB_ENCRYPTION_KEY_NOT_SET);
+        }
+        app().setDbEncryptionKey(std::move(key));
+        app().makeDbEncryptionManager();
+    }
+
+    // create db schema
+    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>(mainDbType());
+
+    // init db schema in derived class
+    auto ec=doInitDb(mainSchema);
+    HATN_CHECK_EC(ec)
+
+    // register db schema in app
+    app().registerDbSchema(mainSchema);
+
+    // done
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::setMainDbType(std::string name)
+{
+    pimpl->mainDbType=std::move(name);
+}
+
+//--------------------------------------------------------------------------
+
+const std::string& ClientApp::mainDbType() const
+{
+    return pimpl->mainDbType;
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::setMainStorageKeyName(std::string name)
+{
+    pimpl->mainStorageKeyName=std::move(name);
+}
+
+//--------------------------------------------------------------------------
+
+const std::string& ClientApp::mainStorageKeyName() const
+{
+    return pimpl->mainStorageKeyName;
 }
 
 //--------------------------------------------------------------------------

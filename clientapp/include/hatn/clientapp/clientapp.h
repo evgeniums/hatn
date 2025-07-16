@@ -20,6 +20,8 @@
 
 #include <memory>
 
+#include <hatn/crypt/securekey.h>
+
 #include <hatn/app/app.h>
 #include <hatn/app/appname.h>
 
@@ -40,6 +42,12 @@ class ClientApp_p;
 class HATN_CLIENTAPP_EXPORT ClientApp
 {
     public:
+
+        constexpr static const char* MainDbData="main";
+        constexpr static const char* MainDbNotifications="notifications";
+
+        constexpr static const char* MainStorageKey="main";
+        constexpr static const char* NotificationsStorageKey="notifications";
 
         ClientApp(HATN_APP_NAMESPACE::AppName appName);
         virtual ~ClientApp();
@@ -70,8 +78,30 @@ class HATN_CLIENTAPP_EXPORT ClientApp
             return OK;
         }
 
-        virtual Error initDb()
+        Error initDb();
+
+        void loadEncryptionKey(
+            std::string name,
+            common::SharedPtr<crypt::SymmetricKey> key
+        );
+
+        common::SharedPtr<crypt::SymmetricKey> encryptionKey(lib::string_view name) const;
+
+        void removeEncryptionKey(lib::string_view name);
+
+        void clearEncryptionKeys();
+
+        void setMainDbType(std::string name);
+        const std::string& mainDbType() const;
+
+        void setMainStorageKeyName(std::string name);
+        const std::string& mainStorageKeyName() const;
+
+    protected:
+
+        virtual Error doInitDb(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
         {
+            std::ignore=schema;
             return OK;
         }
 
