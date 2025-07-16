@@ -22,6 +22,7 @@
 
 #include <hatn/common/random.h>
 
+#include <hatn/network/asio/careslib.h>
 #include <hatn/network/asio/caresolver.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
