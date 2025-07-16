@@ -87,12 +87,22 @@ static void* myMalloc(size_t size)
 }
 static void myFree(void* ptr)
 {
+    if (ptr==nullptr)
+    {
+        return;
+    }
+
     auto buf=reinterpret_cast<char*>(ptr)-sizeof(size_t);
     auto size=reinterpret_cast<size_t*>(buf);
     Allocator->deallocate(buf,*size);
 }
 static void* myRealloc(void *ptr, size_t size)
 {
+    if (ptr==nullptr)
+    {
+        return myMalloc(size);
+    }
+
     auto newSize=size+sizeof(size_t);
     auto buf=Allocator->allocate(newSize);
     auto prevBuf=reinterpret_cast<char*>(ptr)-sizeof(size_t);
@@ -109,6 +119,8 @@ static void* myRealloc(void *ptr, size_t size)
 Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
 {
     int res=ARES_SUCCESS;
+//! @todo critical: Fix c-ares memory allocation
+#if 0
     if (allocatorFactory!=nullptr)
     {
         m_allocatorFactory=allocatorFactory;
@@ -116,6 +128,7 @@ Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
         res=ares_library_init_mem(ARES_LIB_INIT_ALL,myMalloc,myFree,myRealloc);
     }
     else
+#endif
     {
         res=ares_library_init(ARES_LIB_INIT_ALL);
     }
