@@ -21,6 +21,7 @@
 #include <hatn/test/multithreadfixture.h>
 
 #include <hatn/common/random.h>
+#include <hatn/common/containerutils.h>
 
 #include <hatn/logcontext/streamlogger.h>
 #include <hatn/logcontext/context.h>
@@ -187,6 +188,36 @@ auto createClient(std::string sharedSecret, std::shared_ptr<App> app, std::strin
     sharedSecretContainer.loadContent(sharedSecret);
     sharedSecretAuth->setSharedSecret(std::move(sharedSecretContainer));
     sharedSecretAuth->setCipherSuites(app->cipherSuites().suites());
+
+    auto calcSs1=sharedSecretAuth->calculateSharedSecret("login1",sharedSecret,app->defaultCipherSuiteId());
+    if (calcSs1)
+    {
+        HATN_TEST_EC(calcSs1.error())
+    }
+    BOOST_REQUIRE(!calcSs1);
+    std::string calcSs1Str;
+    ContainerUtils::rawToBase64(calcSs1.value().content(),calcSs1Str);
+    BOOST_TEST_MESSAGE(fmt::format("calculated shared secret for login1: {}",calcSs1Str));
+
+    auto calcSs2=sharedSecretAuth->calculateSharedSecret("login2",sharedSecret,app->defaultCipherSuiteId());
+    if (calcSs2)
+    {
+        HATN_TEST_EC(calcSs2.error())
+    }
+    BOOST_REQUIRE(!calcSs2);
+    BOOST_CHECK(!calcSs2.value().content().empty());
+    BOOST_CHECK(!(calcSs1.value()==calcSs2.value()));
+    std::string calcSs2Str;
+    ContainerUtils::rawToBase64(calcSs2.value().content(),calcSs2Str);
+    BOOST_TEST_MESSAGE(fmt::format("calculated shared secret for login2: {}",calcSs2Str));
+
+    auto calcSs3=sharedSecretAuth->calculateSharedSecret("login1",sharedSecret,app->defaultCipherSuiteId());
+    if (calcSs3)
+    {
+        HATN_TEST_EC(calcSs3.error())
+    }
+    BOOST_REQUIRE(!calcSs3);
+    BOOST_CHECK(calcSs1.value()==calcSs3.value());
 
     auto tokensUpdateCb=[](ByteArrayShared sessionToken,ByteArrayShared refreshToken)
     {
