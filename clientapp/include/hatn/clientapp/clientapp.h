@@ -49,6 +49,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         constexpr static const char* MainStorageKey="main";
         constexpr static const char* NotificationsStorageKey="notifications";
 
+        constexpr static const char* PassphraseKey="passphrase";
+        constexpr static const char* PincodeKey="pincode";
+
         ClientApp(HATN_APP_NAMESPACE::AppName appName);
         virtual ~ClientApp();
 
