@@ -50,6 +50,8 @@ SET (HEADERS
     include/hatn/crypt/cryptdataunits.h
 
     include/hatn/crypt/asymmetricworker.h
+    include/hatn/crypt/passphraseprotectedkey.h
+    include/hatn/crypt/checksharedsecret.h
 )
 
 SET (SOURCES
@@ -74,6 +76,7 @@ SET (SOURCES
     src/cryptfile.cpp
 
     src/cryptdataunits.cpp
+    src/passphraseprotectedkey.cpp
 )
 
 BUILD_HATN_MODULE()

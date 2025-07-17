@@ -37,4 +37,7 @@
 #define HATN_CRYPT_NS crypt
 #define HATN_CRYPT_USING using namespace hatn::crypt;
 
+HATN_CRYPT_NAMESPACE_BEGIN
+HATN_CRYPT_NAMESPACE_END
+
 #endif // HATNCRYPT_H
