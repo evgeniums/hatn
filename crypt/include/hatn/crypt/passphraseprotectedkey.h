@@ -115,6 +115,60 @@ struct protectWithPassphraseT
 };
 constexpr protectWithPassphraseT protectWithPassphrase{};
 
+struct unpackWithPassphraseT
+{
+    template <typename KeyContainerT>
+    Error operator() (
+            const KeyContainerT& keyContent,
+            common::SharedPtr<PassphraseKey> passphraseKey,
+            SymmetricKey* key,
+            const CipherSuite *suite,
+            const common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
+        ) const
+    {
+        return invoke(keyContent,std::move(passphraseKey),key,suite,factory);
+    }
+
+    template <typename KeyContainerT, typename PassphraseContainerT, typename SaltContainerT=std::string>
+    Error operator() (
+        const KeyContainerT& keyContent,
+        const PassphraseContainerT& passphrase,
+        SymmetricKey* key,
+        const CipherSuite *suite,
+        const SaltContainerT& salt={},
+        const common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
+        ) const
+    {
+        CryptAlgorithmConstP alg;
+        auto ec=suite->aeadAlgorithm(alg);
+        HATN_CHECK_EC(ec)
+        auto passphraseKey=suite->createPassphraseKey(ec,alg);
+        HATN_CHECK_EC(ec)
+        passphraseKey->set(passphrase);
+        passphraseKey->setSalt(salt);
+        return invoke(keyContent,std::move(passphraseKey),key,suite,factory);
+    }
+
+    private:
+
+        template <typename KeyContainerT>
+        static Error invoke(
+            const KeyContainerT& keyContent,
+            common::SharedPtr<PassphraseKey> passphraseKey,
+            SymmetricKey* key,
+            const CipherSuite *suite,
+            const common::pmr::AllocatorFactory *factory=common::pmr::AllocatorFactory::getDefault()
+            )
+        {
+            KeyProtector protector{std::move(passphraseKey),suite,factory};
+            key->setProtector(&protector);
+            auto ec=key->importFromBuf(keyContent,ContainerFormat::RAW_ENCRYPTED);
+            HATN_CHECK_EC(ec)
+            return OK;
+        }
+};
+constexpr unpackWithPassphraseT unpackWithPassphrase{};
+
 HATN_CRYPT_NAMESPACE_END
 
 #endif // HATNCRYPTPASSPHRASEPROTECTEDKEY_H
