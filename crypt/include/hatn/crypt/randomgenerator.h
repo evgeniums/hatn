@@ -17,8 +17,6 @@
 #ifndef HATNCRYPTRANDOMGENERATOR_H
 #define HATNCRYPTRANDOMGENERATOR_H
 
-#include <functional>
-
 #include <hatn/common/error.h>
 #include <hatn/common/memorylockeddata.h>
 
@@ -27,7 +25,7 @@
 HATN_CRYPT_NAMESPACE_BEGIN
 
 /**
- * @brief The PasswordGenerator class
+ * @brief The RandomGenerator class
  */
 class RandomGenerator
 {
