@@ -450,6 +450,11 @@ class HATN_CRYPT_EXPORT CipherSuites
             return defaultRandomGenerator();
         }
 
+        PasswordGenerator* passwordGenerator() const noexcept
+        {
+            return m_passwordGenerator.get();
+        }
+
         /**
          * @brief Load crypt engines to the set
          * @param engines Crypt engines
@@ -485,6 +490,7 @@ class HATN_CRYPT_EXPORT CipherSuites
         std::shared_ptr<CryptEngine> m_defaultEngine;
 
         common::SharedPtr<RandomGenerator> m_randomGenerator;
+        common::SharedPtr<PasswordGenerator> m_passwordGenerator;
 };
 
 class HATN_CRYPT_EXPORT CipherSuitesGlobal : public CipherSuites,

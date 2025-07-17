@@ -558,6 +558,7 @@ void CipherSuites::reset() noexcept
     m_defaultEngine.reset();
     m_engines.clear();
     m_randomGenerator.reset();
+    m_passwordGenerator.reset();
 }
 
 //---------------------------------------------------------------
@@ -568,6 +569,7 @@ void CipherSuites::setDefaultEngine(std::shared_ptr<CryptEngine> engine)
     if (plugin)
     {
         m_randomGenerator=plugin->createRandomGenerator();
+        m_passwordGenerator=plugin->createPasswordGenerator();
     }
 }
 
