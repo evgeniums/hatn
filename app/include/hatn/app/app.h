@@ -191,6 +191,7 @@ class HATN_APP_EXPORT App
         std::shared_ptr<HATN_DB_NAMESPACE::EncryptionManager> dbEncryptionManager() const;
 
         bool isDbEncrypted() const noexcept;
+        bool dbLocalDirExists() const;
 
         Error openDb(
             bool create=true

@@ -1192,6 +1192,18 @@ bool App::isDbEncrypted() const noexcept
 
 //---------------------------------------------------------------
 
+bool App::dbLocalDirExists() const
+{
+    if (d->dbConfig.config().isSet(db_config::main_db_path))
+    {
+        std::string path{d->dbConfig.config().isSet(db_config::main_db_path)};
+        return lib::filesystem::exists(path);
+    }
+    return false;
+}
+
+//---------------------------------------------------------------
+
 const HATN_CRYPT_NAMESPACE::CipherSuite* App::defaultCipherSuite() const noexcept
 {
     return cipherSuites().suites()->defaultSuite();
