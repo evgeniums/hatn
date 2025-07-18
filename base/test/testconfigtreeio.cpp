@@ -764,4 +764,53 @@ BOOST_AUTO_TEST_CASE(LoadWithErrors)
                   );
 }
 
+BOOST_AUTO_TEST_CASE(SectionToJson, *boost::unit_test::tolerance(0.000001))
+{
+    ConfigTree t1;
+    t1.set("one.two.three",100);
+    t1.set("one.two.four","hello");
+
+    auto arr1=t1.toArray<int>("array-section");
+    arr1->append(1);
+    arr1->append(2);
+    arr1->append(3);
+
+    ConfigTreeJson jsonIo;
+
+    auto jsonR0=jsonIo.serialize(t1);
+    BOOST_REQUIRE(!jsonR0);
+    std::cout<<"Serialize full tree"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR0.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+
+    auto jsonR1=jsonIo.serialize(t1,"one.two");
+    BOOST_REQUIRE(!jsonR1);
+    std::cout<<"Serialize \"one.two\" section"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR1.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+
+    auto jsonR2=jsonIo.serialize(t1,"one.two.three");
+    BOOST_REQUIRE(!jsonR2);
+    std::cout<<"Serialize \"one.two.three\" section"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR2.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+
+    auto jsonR3=jsonIo.serialize(t1,"one.two.four");
+    BOOST_REQUIRE(!jsonR3);
+    std::cout<<"Serialize \"one.two.four\" section"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR3.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+
+    auto jsonR4=jsonIo.serialize(t1,"array-section");
+    BOOST_REQUIRE(!jsonR4);
+    std::cout<<"Serialize \"array-section\" section"<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+    std::cout<<jsonR4.value()<<std::endl;
+    std::cout<<"*********************************"<<std::endl;
+}
+
 BOOST_AUTO_TEST_SUITE_END()
