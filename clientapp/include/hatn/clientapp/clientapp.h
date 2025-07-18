@@ -43,8 +43,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 {
     public:
 
-        constexpr static const char* MainDbData="main";
-        constexpr static const char* MainDbNotifications="notifications";
+        constexpr static const char* DbMain="main";
+        constexpr static const char* DbNotifications="notifications";
 
         constexpr static const char* MainStorageKey="main";
         constexpr static const char* NotificationsStorageKey="notifications";
@@ -100,11 +100,13 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         void setMainStorageKeyName(std::string name);
         const std::string& mainStorageKeyName() const;
 
+        Error openMainDb(bool create=true);
+
     protected:
 
-        virtual Error doInitDb(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema)
+        virtual Error doInitDbSchemas(std::map<std::string,std::shared_ptr<db::Schema>>& schemas)
         {
-            std::ignore=schema;
+            std::ignore=schemas;
             return OK;
         }
 

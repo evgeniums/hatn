@@ -46,6 +46,11 @@ class BridgeMethod : public ServiceMethod<ServiceT>,
     public:
 
         using ServiceMethod<ServiceT>::ServiceMethod;
+
+        auto controller() const
+        {
+            return this->service()->controller();
+        }
 };
 
 HATN_CLIENTAPP_NAMESPACE_END

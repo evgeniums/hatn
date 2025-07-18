@@ -270,6 +270,37 @@ class HATN_CLIENTAPP_EXPORT Service
         std::map<std::string,MessageBuilderFn> m_messageBuilders;
 };
 
+template <typename ServiceName, typename ControllerT, typename ClientAppT>
+class ServiceT : public Service
+{
+    public:
+
+        using Controller=ControllerT;
+        using ClientApp=ClientAppT;
+
+        ServiceT(std::shared_ptr<Controller> ctrl)
+            : Service(ServiceName::Name),
+              m_ctrl(std::move(ctrl))
+        {}
+
+        ServiceT(ClientApp* app) : ServiceT(std::make_shared<Controller>(app))
+        {}
+
+        Controller* controller() const
+        {
+            return m_ctrl.get();
+        }
+
+        std::shared_ptr<Controller> controllerShared() const
+        {
+            return m_ctrl;
+        }
+
+    private:
+
+        std::shared_ptr<Controller> m_ctrl;
+};
+
 class HATN_CLIENTAPP_EXPORT Dispatcher
 {
     public:

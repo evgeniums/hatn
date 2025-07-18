@@ -40,8 +40,10 @@ class ClientApp_p
 
         common::FlatMap<std::string,common::SharedPtr<crypt::SymmetricKey>,std::less<>> encryptionKeys;
 
-        std::string mainDbType=ClientApp::MainDbData;
+        std::string mainDbType=ClientApp::DbMain;
         std::string mainStorageKeyName=ClientApp::MainStorageKey;
+
+        std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
 };
 
 //--------------------------------------------------------------------------
@@ -138,6 +140,28 @@ common::SharedPtr<crypt::SymmetricKey> ClientApp::encryptionKey(lib::string_view
 
 Error ClientApp::initDb()
 {
+    // create db schema
+    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>(mainDbType());
+    pimpl->dbSchemas.emplace(mainDbType(),mainSchema);
+
+    // init db schema in derived class
+    auto ec=doInitDbSchemas(pimpl->dbSchemas);
+    HATN_CHECK_EC(ec)
+
+    // register db schemas in app
+    for (auto&& schema : pimpl->dbSchemas)
+    {
+        app().registerDbSchema(schema.second);
+    }
+
+    // done
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
+Error ClientApp::openMainDb(bool create)
+{
     // init database encryption
     if (app().isDbEncrypted())
     {
@@ -150,18 +174,8 @@ Error ClientApp::initDb()
         app().makeDbEncryptionManager();
     }
 
-    // create db schema
-    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>(mainDbType());
-
-    // init db schema in derived class
-    auto ec=doInitDb(mainSchema);
-    HATN_CHECK_EC(ec)
-
-    // register db schema in app
-    app().registerDbSchema(mainSchema);
-
-    // done
-    return OK;
+    // open main db
+    return app().openDb(create);
 }
 
 //--------------------------------------------------------------------------
