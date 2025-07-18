@@ -52,7 +52,14 @@ template <typename ModelT>
 void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
                                   const AllocatorFactory* allocatorFactory)
 {
+#if 0
     Assert(m_models.find(model->info->modelId())==m_models.end(),"Failed to register duplicate model");
+#else
+    if (m_models.find(model->info->modelId())!=m_models.end())
+    {
+        return;
+    }
+#endif
 
     auto rdbModel=std::make_shared<RocksdbModel>(model->info,allocatorFactory);
 
