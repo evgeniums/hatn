@@ -168,7 +168,11 @@ Error ClientApp::openMainDb(bool create)
         auto key=encryptionKey(mainStorageKeyName());
         if (!key)
         {
-            return clientAppError(ClientAppError::DB_ENCRYPTION_KEY_NOT_SET);
+            if (mainStorageKeyName()==NotificationsStorageKey)
+            {
+                return clientAppError(ClientAppError::STORAGE_NOTIFICATION_KEY_REQUIRED);
+            }
+            return clientAppError(ClientAppError::STORAGE_KEYS_REQUIRED);
         }
         app().setDbEncryptionKey(std::move(key));
         app().makeDbEncryptionManager();

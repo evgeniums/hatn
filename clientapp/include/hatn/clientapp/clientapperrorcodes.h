@@ -33,7 +33,8 @@
     Do(ClientAppError,FAILED_PARSE_BRIDGE_JSON,_TR("failed to parse JSON message of bridge request","clientapp")) \
     Do(ClientAppError,CIPHER_SUITES_UNDEFINED,_TR("cipher suites undefined","clientapp")) \
     Do(ClientAppError,DEFAULT_CIPHER_SUITES_UNDEFINED,_TR("default cipher suites undefined","clientapp")) \
-    Do(ClientAppError,DB_ENCRYPTION_KEY_NOT_SET,_TR("database encryption key not set","clientapp")) \
+    Do(ClientAppError,STORAGE_KEYS_REQUIRED,hatn::_TR("storage keys required","clientapp")) \
+    Do(ClientAppError,STORAGE_NOTIFICATION_KEY_REQUIRED,hatn::_TR("notifications storage key required","clientapp")) \
     Do(ClientAppError,ENCRYPTION_KEY_NOT_FOUND,_TR("encryption key not found","clientapp")) \
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
