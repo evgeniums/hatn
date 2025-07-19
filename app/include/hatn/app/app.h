@@ -40,7 +40,6 @@ HATN_DB_NAMESPACE_BEGIN
 
 class Schema;
 class EncryptionManager;
-class SymmetricKey;
 class ClientEnvironment;
 
 HATN_DB_NAMESPACE_END
