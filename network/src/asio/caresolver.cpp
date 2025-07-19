@@ -77,6 +77,8 @@ std::unique_ptr<common::pmr::polymorphic_allocator<char>> Allocator;
 
 } // anonymous namespace
 
+#if 0
+
 static void* myMalloc(size_t size)
 {
     size+=sizeof(size_t);
@@ -114,12 +116,13 @@ static void* myRealloc(void *ptr, size_t size)
     Allocator->deallocate(prevBuf,*prevSize);
     return (buf+sizeof(size_t));
 }
+#endif
 
 //---------------------------------------------------------------
 Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
 {
     int res=ARES_SUCCESS;
-#if 1
+#if 0
     if (allocatorFactory!=nullptr)
     {
         m_allocatorFactory=allocatorFactory;
@@ -127,6 +130,8 @@ Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
         res=ares_library_init_mem(ARES_LIB_INIT_ALL,myMalloc,myFree,myRealloc);
     }
     else
+#else
+    std::ignore=allocatorFactory;
 #endif
     {
         res=ares_library_init(ARES_LIB_INIT_ALL);
