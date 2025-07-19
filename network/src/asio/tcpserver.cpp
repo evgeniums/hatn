@@ -157,6 +157,7 @@ void TcpServer::accept(
             if (d->closed)
             {
                 callback(commonError(CommonError::ABORTED));
+                mainCtx().onAsyncHandlerExit();
                 return;
             }
             if (!ec)

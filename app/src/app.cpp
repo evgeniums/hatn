@@ -675,6 +675,9 @@ void App::close()
 
     // cleanuo c-ares library
     HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
+
+    // reset log context
+    log::ThreadLocalFallbackContext::reset();
 }
 
 //---------------------------------------------------------------

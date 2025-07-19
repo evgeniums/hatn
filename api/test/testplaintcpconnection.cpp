@@ -52,6 +52,7 @@ struct Env : public ::hatn::test::MultiThreadFixture
     ~Env()
     {
         HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
+        HATN_LOGCONTEXT_NAMESPACE::ThreadLocalFallbackContext::reset();
     }
 
     Env(const Env&)=delete;
@@ -514,10 +515,18 @@ void sendRead(Env* env, MakeServerT makeServer, MakeClientT makeClient, bool sen
     std::ignore=server.close();
     client.close();
 
+    env->exec(1);
+
+    HATN_TEST_MESSAGE_TS("stopping threads")
+
     serverThread->stop();
     clientThread->stop();
 
+    HATN_TEST_MESSAGE_TS("threads stopped")
+
     env->exec(1);
+
+    HATN_TEST_MESSAGE_TS("after exec finished")
 
     BOOST_CHECK_EQUAL(totalBuf.size(),rxBuf.size());
     BOOST_CHECK(totalBuf==rxBuf);

@@ -22,6 +22,8 @@
 namespace {
     thread_local static HATN_LOGCONTEXT_NAMESPACE::Context* TSInstance_Context{nullptr};
     thread_local static HATN_LOGCONTEXT_NAMESPACE::Context* TSFallback_Context{nullptr};
+
+    thread_local static int refCount=0;
 }
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
@@ -49,19 +51,23 @@ void ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::setV
 {
     if (val==nullptr)
     {
+        refCount--;
         TSInstance_Context=nullptr;
+
+        // std::cout << "set log context nullptr: refCount=" << refCount << std::endl;
+
         return;
     }
+    refCount++;
+    // std::cout << "set log context: refCount=" << refCount << std::endl;
     TSInstance_Context=val->actualCtx();
 }
 
 void ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::reset() noexcept
 {
     TSInstance_Context=nullptr;
+    refCount=0;
+    // std::cout << "reset log context: refCount=" << refCount << std::endl;
 }
 
-// template class ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>;
-
 HATN_COMMON_NAMESPACE_END
-
-// HATN_TASK_CONTEXT_DEFINE(HATN_LOGCONTEXT_NAMESPACE::Context,Context)
