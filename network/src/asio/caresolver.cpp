@@ -119,8 +119,7 @@ static void* myRealloc(void *ptr, size_t size)
 Error CaresLib::init(const common::pmr::AllocatorFactory *allocatorFactory)
 {
     int res=ARES_SUCCESS;
-//! @todo critical: Fix c-ares memory allocation
-#if 0
+#if 1
     if (allocatorFactory!=nullptr)
     {
         m_allocatorFactory=allocatorFactory;
