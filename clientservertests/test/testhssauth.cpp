@@ -1236,6 +1236,8 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     app->close();
 
     exec(1);
+
+    clientCtx.second.reset();
 }
 
 BOOST_FIXTURE_TEST_CASE(UnknownLogin,TestEnv)
