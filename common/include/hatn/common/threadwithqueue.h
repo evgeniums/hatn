@@ -278,9 +278,7 @@ class MappedThreadQWithTaskContext
 
         MappedThreadQWithTaskContext(
                 ThreadQWithTaskContext* defaultThread
-            )
-            :   m_threadMode(MappedThreadMode::Default),
-                m_defaultThread(defaultThread)
+            ) : MappedThreadQWithTaskContext(MappedThreadMode::Default,defaultThread)
         {}
 
         void setThreadMode(MappedThreadMode threadMode) noexcept

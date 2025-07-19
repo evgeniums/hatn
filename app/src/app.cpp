@@ -260,6 +260,7 @@ App::App(AppName appName) :
         m_appName(std::move(appName)),
         m_configTree(std::make_shared<HATN_BASE_NAMESPACE::ConfigTree>()),
         m_configTreeLoader(std::make_shared<HATN_BASE_NAMESPACE::ConfigTreeLoader>()),
+        m_appThread(nullptr),
         d(std::make_unique<App_p>(this)),
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
@@ -675,6 +676,9 @@ void App::close()
 
     // cleanuo c-ares library
     HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
+
+    // reset log context
+    log::ThreadLocalFallbackContext::reset();
 }
 
 //---------------------------------------------------------------
