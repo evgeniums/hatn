@@ -22,6 +22,7 @@ SET (HEADERS
     include/hatn/clientapp/clientappdbmodelsprovider.h
 
     include/hatn/clientapp/clientappsettings.h
+    include/hatn/clientapp/lockingcontroller.h
 )
 
 SET (SOURCES
@@ -36,6 +37,7 @@ SET (SOURCES
     src/methodupdatesystemca.cpp
     src/clientappdbmodelsprovider.cpp
     src/clientappsettings.cpp
+    src/lockingcontroller.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)

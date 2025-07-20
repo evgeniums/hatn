@@ -24,6 +24,7 @@
 #include <hatn/clientapp/clientappdbmodelsprovider.h>
 #include <hatn/clientapp/clientappdbmodels.h>
 #include <hatn/clientapp/clientappsettings.h>
+#include <hatn/clientapp/lockingcontroller.h>
 #include <hatn/clientapp/clientapp.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -48,6 +49,7 @@ class ClientApp_p
 
         std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
         std::shared_ptr<ClientAppSettings> appSettings;
+        std::shared_ptr<LockingController> lockingController;
 };
 
 //--------------------------------------------------------------------------
@@ -55,6 +57,7 @@ class ClientApp_p
 ClientApp::ClientApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<ClientApp_p>(std::move(appName)))
 {
     pimpl->appSettings=std::make_shared<ClientAppSettings>(this);
+    pimpl->lockingController=std::make_shared<LockingController>(this);
 }
 
 //--------------------------------------------------------------------------
@@ -188,10 +191,6 @@ Error ClientApp::openMainDb(bool create)
 
     // open main db
     auto ec=app().openDb(create);
-    HATN_CHECK_EC(ec)
-
-    // load app settings
-    ec=pimpl->appSettings->load();
     HATN_CHECK_EC(ec)
 
     // done

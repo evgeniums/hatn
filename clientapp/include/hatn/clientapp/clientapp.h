@@ -39,6 +39,7 @@ class Dispatcher;
 class EventDispatcher;
 class ClientApp_p;
 class ClientAppSettings;
+class LockingController;
 
 class HATN_CLIENTAPP_EXPORT ClientApp
 {
@@ -107,6 +108,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         const ClientAppSettings* appSettings() const;
         ClientAppSettings* appSettings();
+
+        const LockingController* lockingController() const;
+        LockingController* lockingController();
 
     protected:
 
