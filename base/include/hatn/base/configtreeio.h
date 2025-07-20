@@ -158,12 +158,10 @@ class HATN_BASE_EXPORT ConfigTreeIo
             const std::string& format=std::string()
         ) const;
 
-        //! @todo Implement overriding individual valuues in path
-
     protected:
 
         /**
-         * @brief Protected destructo must be called by derived classes.
+         * @brief Protected destructor must be called by derived classes.
          * @param formats List formats supported by this loader, e.g. {"json","jsonc"}.
          */
         ConfigTreeIo(std::set<std::string> formats):m_formats(std::move(formats))
