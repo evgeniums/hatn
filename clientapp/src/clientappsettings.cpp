@@ -83,14 +83,15 @@ Error ClientAppSettings::load()
 
 void ClientAppSettings::flush(
         common::SharedPtr<Context> ctx,
-        Callback callback
+        Callback callback,
+        std::string section
     )
 {
     postAsync(
         "appsettings::flush",
         common::ThreadQWithTaskContext::current(),
         std::move(ctx),
-        [self=shared_from_this(),this](auto ctx, auto callback)
+        [self=shared_from_this(),this,section=std::move(section)](auto ctx, auto callback)
         {
             HATN_BASE_NAMESPACE::ConfigTreeJson serializer;
             auto r=serializer.serialize(m_configTree);
@@ -100,7 +101,7 @@ void ClientAppSettings::flush(
                 return;
             }
 
-            auto cb=[callback=std::move(callback)](auto ctx, auto result) mutable
+            auto cb=[callback=std::move(callback),section=std::move(section),self,this](auto ctx, auto result) mutable
             {
                 if (result)
                 {
@@ -108,6 +109,15 @@ void ClientAppSettings::flush(
                     return;
                 }
                 callback(std::move(ctx),Error{});
+
+                // publish event that app settings changed
+                auto appSettingsEvent=std::make_shared<AppSettingsEvent>();
+                appSettingsEvent->event=std::move(section);
+                m_app->eventDispatcher().publish(
+                    m_app->app().env(),
+                    HATN_LOGCONTEXT_NAMESPACE::makeLogCtx(),
+                    std::move(appSettingsEvent)
+                );
             };
 
             auto q=HATN_DB_NAMESPACE::wrapQueryBuilder(

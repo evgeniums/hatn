@@ -26,10 +26,23 @@
 #include <hatn/base/configtree.h>
 
 #include <hatn/clientapp/clientappdefs.h>
+#include <hatn/clientapp/eventdispatcher.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 class ClientApp;
+
+struct AppSettingsEvent : public Event
+{
+    public:
+
+        constexpr static const char* Category="appsettings";
+
+        AppSettingsEvent()
+        {
+            category=Category;
+        }
+};
 
 class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_this<ClientAppSettings>
 {
@@ -58,24 +71,12 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
             return m_configTree;
         }
 
-        template <typename T>
-        void set(
-                common::SharedPtr<Context> ctx,
-                Callback callback,
-                const HATN_BASE_NAMESPACE::ConfigTreePath& path,
-                T&& value
-            ) noexcept
-        {
-            auto r=configTree().set(path,std::forward<T>(value));
-            HATN_CHECK_RESULT(r)
-            flush(std::move(ctx),std::move(callback));
-        }
-
         Error load();
 
         virtual void flush(
             common::SharedPtr<Context> ctx,
-            Callback callback
+            Callback callback,
+            std::string section=""
         );
 
         void lock()
