@@ -113,6 +113,38 @@ using Callback=std::function<void (Error, Response response)>;
 
 using EventHandler=std::function<void (const Event& event)>;
 
+class HATN_CLIENTAPP_EXPORT LockingBridge
+{
+    public:
+
+        LockingBridge(HATN_CLIENTAPP_NAMESPACE::ClientApp* app);
+
+        void lock();
+
+        void unlock();
+
+        void updateLastActivity();
+
+        void setBackground();
+        void setForeground();
+
+        bool isLocked() const;
+
+        bool isBackground() const;
+
+        int autoLockPeriod() const;
+
+        int autoLockMode() const;
+
+        int passphraseThrottlePeriod() const;
+
+        int passphraseThrottleDelay() const;
+
+    private:
+
+        HATN_CLIENTAPP_NAMESPACE::ClientApp* app;
+};
+
 class HATN_CLIENTAPP_EXPORT MobileApp
 {
     public:
@@ -159,6 +191,9 @@ class HATN_CLIENTAPP_EXPORT MobileApp
             std::string& jsonValue,
             Error& error
         );
+
+        const LockingBridge* locking() const;
+        LockingBridge* locking();
 
     private:
 

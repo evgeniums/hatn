@@ -248,4 +248,18 @@ ClientAppSettings* ClientApp::appSettings()
 
 //--------------------------------------------------------------------------
 
+const LockingController* ClientApp::lockingController() const
+{
+    return pimpl->lockingController.get();
+}
+
+//--------------------------------------------------------------------------
+
+LockingController* ClientApp::lockingController()
+{
+    return pimpl->lockingController.get();
+}
+
+//--------------------------------------------------------------------------
+
 HATN_CLIENTAPP_NAMESPACE_END

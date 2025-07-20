@@ -37,6 +37,7 @@
 #include <hatn/clientapp/mobileapp.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/clientappsettings.h>
+#include <hatn/clientapp/lockingcontroller.h>
 
 #include <hatn/common/logger.h>
 #include <hatn/common/loggermoduleimp.h>
@@ -68,11 +69,15 @@ class MobileApp_p
 {
     public:
 
-        MobileApp_p(std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app) : app(std::move(app))
+        MobileApp_p(std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app)
+            : app(std::move(app)),
+              lockingBridge(this->app.get())
         {}
 
         std::shared_ptr<HATN_CLIENTAPP_NAMESPACE::ClientApp> app;
         MobilePlatformContext* platformCtx=nullptr;
+
+        LockingBridge lockingBridge;
 };
 
 //-----------------------------------------------------------------------------
@@ -475,4 +480,95 @@ int MobileApp::getAppSetting(
 
 //-----------------------------------------------------------------------------
 
+const LockingBridge* MobileApp::locking() const
+{
+    return &pimpl->lockingBridge;
+}
+
+//-----------------------------------------------------------------------------
+
+LockingBridge* MobileApp::locking()
+{
+    return &pimpl->lockingBridge;
+}
+
+//-----------------------------------------------------------------------------
+
+/******************************** LockingBridge *******************************/
+
+LockingBridge::LockingBridge(ClientApp* app) : app(app)
+{
+}
+
+//-----------------------------------------------------------------------------
+
+void LockingBridge::lock()
+{
+    app->lockingController()->lock();
+}
+
+//-----------------------------------------------------------------------------
+
+void LockingBridge::unlock()
+{
+    app->lockingController()->unlock();
+}
+
+//-----------------------------------------------------------------------------
+
+void LockingBridge::updateLastActivity()
+{
+    app->lockingController()->updateLastActivity();
+}
+
+//-----------------------------------------------------------------------------
+
+void LockingBridge::setBackground()
+{
+    app->lockingController()->setBackground();
+}
+
+//-----------------------------------------------------------------------------
+
+void LockingBridge::setForeground()
+{
+    app->lockingController()->setForeground();
+}
+
+//-----------------------------------------------------------------------------
+
+bool LockingBridge::isLocked() const
+{
+    return app->lockingController()->isLocked();
+}
+
+//-----------------------------------------------------------------------------
+
+int LockingBridge::autoLockPeriod() const
+{
+    return static_cast<int>(app->lockingController()->autoLockPeriod());
+}
+
+//-----------------------------------------------------------------------------
+
+int LockingBridge::autoLockMode() const
+{
+    return static_cast<int>(app->lockingController()->autoLockMode());
+}
+
+//-----------------------------------------------------------------------------
+
+int LockingBridge::passphraseThrottlePeriod() const
+{
+    return static_cast<int>(app->lockingController()->passphraseThrottlePeriod());
+}
+
+//-----------------------------------------------------------------------------
+
+int LockingBridge::passphraseThrottleDelay() const
+{
+    return static_cast<int>(app->lockingController()->passphraseThrottleDelay());
+}
+
+//-----------------------------------------------------------------------------
 HATN_CLIENTAPP_MOBILE_NAMESPACE_END
