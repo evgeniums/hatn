@@ -53,14 +53,14 @@ struct postAsyncT
         common::postAsyncTask(
             thread,
             ctx,
-            [startScopeName,handler=std::move(handler)](auto ctx)
+            [startScopeName,handler=std::move(handler)](auto ctx, auto cb)
             {
                 auto ctxPtr=ctx.get();
                 ctxPtr->onAsyncHandlerEnter();
 
                 {
                     HATN_CTX_SCOPE(startScopeName)
-                    handler(std::move(ctx));
+                    handler(std::move(ctx),std::move(cb));
                 }
 
                 ctxPtr->onAsyncHandlerExit();
