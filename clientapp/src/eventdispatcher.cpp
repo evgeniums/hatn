@@ -106,7 +106,7 @@ void EventSubscriptions::doFind(const EventKey& key,std::vector<EventHandler>& r
 
 //---------------------------------------------------------------
 
-size_t EventSubscriptions::Index=0;
+size_t EventSubscriptions::Index=1;
 
 EventDispatcher::EventDispatcher() : m_subscriptions(std::make_shared<EventSubscriptions>())
 {}
