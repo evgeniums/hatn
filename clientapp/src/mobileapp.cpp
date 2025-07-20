@@ -290,7 +290,7 @@ size_t MobileApp::subscribeEvent(
         HATN_CTX_SCOPE("eventhandler")
 
         Event ntfcn;
-        //! @todo omptimization: use references for similar fields instead of copying
+        //! @todo optimization: use references for similar fields instead of copying
         ntfcn.category=event->category;
         ntfcn.event=event->event;
         ntfcn.topic=event->topic;
