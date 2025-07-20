@@ -6,13 +6,13 @@ SET (HEADERS
     include/hatn/app/apperrorcodes.h
     include/hatn/app/appenv.h
     include/hatn/app/app.h
-    include/hatn/app/appname.h
+    include/hatn/app/appname.h    
 )
 
 SET (SOURCES
     src/apperror.cpp
     src/app.cpp
-    src/appenv.cpp
+    src/appenv.cpp    
 )
 
 BUILD_HATN_MODULE()
