@@ -582,7 +582,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void count(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -678,7 +678,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void deleteMany(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -699,7 +699,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void deleteManyBulk(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -720,7 +720,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void updateMany(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -743,7 +743,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
         }
 
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void findUpdateCreate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
@@ -767,7 +767,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             );
         }
 
-        template <typename ModelT, typename IndexT, typename ContextT, typename CallbackT, typename QueryT>
+        template <typename ModelT, typename ContextT, typename CallbackT, typename QueryT>
         void findUpdate(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
