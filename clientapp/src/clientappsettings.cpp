@@ -27,6 +27,9 @@
 #include <hatn/clientapp/clientappdbmodels.h>
 #include <hatn/clientapp/clientappsettings.h>
 
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
+
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------

@@ -36,6 +36,8 @@
     Do(ClientAppError,STORAGE_KEYS_REQUIRED,hatn::_TR("storage keys required","clientapp")) \
     Do(ClientAppError,STORAGE_NOTIFICATION_KEY_REQUIRED,hatn::_TR("notifications storage key required","clientapp")) \
     Do(ClientAppError,ENCRYPTION_KEY_NOT_FOUND,_TR("encryption key not found","clientapp")) \
+    Do(ClientAppError,APPLICATION_SETTING_NOT_SET,_TR("application setting not set","clientapp")) \
+    Do(ClientAppError,APPLICATION_CONFIG_NOT_SET,_TR("application configuration parameter not set","clientapp")) \
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 

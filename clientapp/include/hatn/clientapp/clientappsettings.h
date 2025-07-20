@@ -21,6 +21,7 @@
 #define HATNCLIENTAPPSETTINGS_H
 
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/locker.h>
 
 #include <hatn/base/configtree.h>
 
@@ -43,9 +44,9 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
 
         virtual ~ClientAppSettings()=default;
         ClientAppSettings(const ClientAppSettings&)=delete;
-        ClientAppSettings(ClientAppSettings&&)=default;
+        ClientAppSettings(ClientAppSettings&&)=delete;
         ClientAppSettings& operator=(const ClientAppSettings&)=delete;
-        ClientAppSettings& operator=(ClientAppSettings&&)=default;
+        ClientAppSettings& operator=(ClientAppSettings&&)=delete;
 
         const HATN_BASE_NAMESPACE::ConfigTree& configTree() const
         {
@@ -77,10 +78,26 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
             Callback callback
         );
 
+        void lock()
+        {
+            m_mutex.lock();
+        }
+
+        void unlock()
+        {
+            m_mutex.unlock();
+        }
+
+        common::MutexLock& mutex()
+        {
+            return m_mutex;
+        }
+
     private:
 
         ClientApp* m_app;
         HATN_BASE_NAMESPACE::ConfigTree m_configTree;
+        common::MutexLock m_mutex;
 };
 
 HATN_CLIENTAPP_NAMESPACE_END

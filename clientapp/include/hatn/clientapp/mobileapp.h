@@ -100,6 +100,13 @@ struct Error
     int code;
     std::string codeString;
     std::string message;
+
+    void reset()
+    {
+        code=0;
+        codeString.clear();
+        message.clear();
+    }
 };
 
 using Callback=std::function<void (Error, Response response)>;
@@ -140,6 +147,18 @@ class HATN_CLIENTAPP_EXPORT MobileApp
         int initTests();
 
         std::vector<std::string> listLogFiles() const;
+
+        int getAppSetting(
+            const std::string key,
+            std::string& jsonValue,
+            Error& error
+        );
+
+        int getAppConfig(
+            const std::string key,
+            std::string& jsonValue,
+            Error& error
+        );
 
     private:
 

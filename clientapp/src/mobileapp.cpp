@@ -36,6 +36,7 @@
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
 #include <hatn/clientapp/eventdispatcher.h>
+#include <hatn/clientapp/clientappsettings.h>
 
 #include <hatn/common/logger.h>
 #include <hatn/common/loggermoduleimp.h>
@@ -408,6 +409,68 @@ int MobileApp::initTests()
 std::vector<std::string> MobileApp::listLogFiles() const
 {
     return pimpl->app->app().listLogFiles();
+}
+
+//-----------------------------------------------------------------------------
+
+int MobileApp::getAppConfig(
+        const std::string key,
+        std::string& jsonValue,
+        Error& error
+    )
+{
+    if (!pimpl->app->app().configTree().isSet(key,true))
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_CONFIG_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+
+    HATN_BASE_NAMESPACE::ConfigTreeJson serializer;
+    auto r=serializer.serialize(pimpl->app->app().configTree(),key);
+    if (r)
+    {
+        error.code=r.error().code();
+        error.codeString=r.error().codeString();
+        error.message=r.error().message();
+        return r.error().code();
+    }
+    jsonValue=r.value();
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int MobileApp::getAppSetting(
+        const std::string key,
+        std::string& jsonValue,
+        Error& error
+    )
+{
+    common::MutexScopedLock l{pimpl->app->appSettings()->mutex()};
+
+    if (!pimpl->app->appSettings()->configTree().isSet(key,true))
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+
+    HATN_BASE_NAMESPACE::ConfigTreeJson serializer;
+    auto r=serializer.serialize(pimpl->app->appSettings()->configTree(),key);
+    if (r)
+    {
+        error.code=r.error().code();
+        error.codeString=r.error().codeString();
+        error.message=r.error().message();
+        return r.error().code();
+    }
+    jsonValue=r.value();
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
