@@ -17,6 +17,11 @@ SET (HEADERS
 
     include/hatn/clientapp/networkevent.h
     include/hatn/clientapp/systemcaevent.h
+
+    include/hatn/clientapp/clientappdbmodels.h
+    include/hatn/clientapp/clientappdbmodelsprovider.h
+
+    include/hatn/clientapp/clientappsettings.h
 )
 
 SET (SOURCES
@@ -29,6 +34,8 @@ SET (SOURCES
     src/methodnetworkstatus.cpp
     src/methodsyncdatetime.cpp
     src/methodupdatesystemca.cpp
+    src/clientappdbmodelsprovider.cpp
+    src/clientappsettings.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)
@@ -50,3 +57,7 @@ IF(BUILD_ANDROID OR BUILD_IOS)
 ENDIF()
 
 BUILD_HATN_MODULE()
+
+IF (HATN_PLUGIN_rocksdb)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
+ENDIF()

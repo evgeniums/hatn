@@ -38,6 +38,7 @@ using Context=common::TaskContext;
 class Dispatcher;
 class EventDispatcher;
 class ClientApp_p;
+class ClientAppSettings;
 
 class HATN_CLIENTAPP_EXPORT ClientApp
 {
@@ -101,6 +102,11 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         const std::string& mainStorageKeyName() const;
 
         Error openMainDb(bool create=true);
+
+        HATN_DB_NAMESPACE::AsyncDb& mainDb();
+
+        const ClientAppSettings* appSettings() const;
+        ClientAppSettings* appSettings();
 
     protected:
 

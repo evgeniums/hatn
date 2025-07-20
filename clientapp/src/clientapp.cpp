@@ -21,6 +21,9 @@
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/systemservice.h>
+#include <hatn/clientapp/clientappdbmodelsprovider.h>
+#include <hatn/clientapp/clientappdbmodels.h>
+#include <hatn/clientapp/clientappsettings.h>
 #include <hatn/clientapp/clientapp.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -44,12 +47,14 @@ class ClientApp_p
         std::string mainStorageKeyName=ClientApp::MainStorageKey;
 
         std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
+        std::shared_ptr<ClientAppSettings> appSettings;
 };
 
 //--------------------------------------------------------------------------
 
 ClientApp::ClientApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<ClientApp_p>(std::move(appName)))
 {
+    pimpl->appSettings=std::make_shared<ClientAppSettings>(this);
 }
 
 //--------------------------------------------------------------------------
@@ -141,7 +146,8 @@ common::SharedPtr<crypt::SymmetricKey> ClientApp::encryptionKey(lib::string_view
 Error ClientApp::initDb()
 {
     // create db schema
-    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>(mainDbType());
+    auto mainSchema=std::make_shared<HATN_DB_NAMESPACE::Schema>(mainDbType());    
+    mainSchema->addModelsProvider(std::make_shared<ClientAppDbModelsProvider>(ClientAppDbModels::defaultInstance()));
     pimpl->dbSchemas.emplace(mainDbType(),mainSchema);
 
     // init db schema in derived class
@@ -162,6 +168,8 @@ Error ClientApp::initDb()
 
 Error ClientApp::openMainDb(bool create)
 {
+    HATN_CTX_SCOPE("clientapp::openmaindb")
+
     // init database encryption
     if (app().isDbEncrypted())
     {
@@ -179,7 +187,22 @@ Error ClientApp::openMainDb(bool create)
     }
 
     // open main db
-    return app().openDb(create);
+    auto ec=app().openDb(create);
+    HATN_CHECK_EC(ec)
+
+    // load app settings
+    ec=pimpl->appSettings->load();
+    HATN_CHECK_EC(ec)
+
+    // done
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
+HATN_DB_NAMESPACE::AsyncDb& ClientApp::mainDb()
+{
+    return app().database();
 }
 
 //--------------------------------------------------------------------------
@@ -208,6 +231,20 @@ void ClientApp::setMainStorageKeyName(std::string name)
 const std::string& ClientApp::mainStorageKeyName() const
 {
     return pimpl->mainStorageKeyName;
+}
+
+//--------------------------------------------------------------------------
+
+const ClientAppSettings* ClientApp::appSettings() const
+{
+    return pimpl->appSettings.get();
+}
+
+//--------------------------------------------------------------------------
+
+ClientAppSettings* ClientApp::appSettings()
+{
+    return pimpl->appSettings.get();
 }
 
 //--------------------------------------------------------------------------
