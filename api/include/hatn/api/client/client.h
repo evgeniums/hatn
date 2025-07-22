@@ -189,6 +189,11 @@ class Client : public common::TaskSubcontext,
             m_connectionPool.setName(name);
         }
 
+        auto router() const
+        {
+            return m_connectionPool.router();
+        }
+
     private:
 
         void doExec(

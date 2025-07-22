@@ -384,7 +384,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
             {
                 if (!req->cancelled())
                 {
-                    req->callback("apiclientclose",req->taskCtx,commonError(common::CommonError::ABORTED),{});
+                    req->callback("apiclientclose",req->taskCtx,commonError(common::CommonError::ABORTED),Response{});
                 }
             };
 
@@ -427,10 +427,10 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
 
             // close connection pool
             m_connectionPool.close(ctx,
-                                   [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const auto& ec)
+                                   [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const Error& ec) mutable
                                    {
                                        std::ignore=clientCtx;
-                                       cb(ctx,ec);
+                                       cb(std::move(ctx),ec);
                                    }
             );
         },
