@@ -104,6 +104,11 @@ class ConnectionPool
             );
         }
 
+        common::SharedPtr<RouterT> router() const
+        {
+            return m_router;
+        }
+
         void setMaxConnectionsPerPriority(size_t maxConnectionsPerPriority) noexcept
         {
             m_maxConnectionsPerPriority=maxConnectionsPerPriority;
@@ -396,6 +401,8 @@ class ConnectionPool
             CallbackT cb
             )
         {
+            //! @todo Refactor ConnectionPool::closeConnection: parent cintext, thread async, error handling
+
             auto cb1=[ctx,cb{std::move(cb)},connection,this](const Error& ec)
             {
                 connection->ctx->resetParentCtx();
@@ -418,7 +425,7 @@ class ConnectionPool
         void closeNextPriority(common::SharedPtr<ContextT> ctx, std::function<void (const Error&)> cb)
         {
             auto it=m_connections.begin();
-            if (it==it->m_connections.end())
+            if (it==m_connections.end())
             {
                 cb(Error{});
                 return;
@@ -427,7 +434,7 @@ class ConnectionPool
             closeNextConnection(
                 std::move(ctx),
                 it->second,
-                [ctx{std::move(ctx)},it,cb{std::move(cb)},this]()
+                [ctx{std::move(ctx)},it,cb{std::move(cb)},this](const Error&)
                 {
                     m_connections.erase(it);
                     closeNextPriority(std::move(ctx),std::move(cb));
