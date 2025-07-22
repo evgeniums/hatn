@@ -447,7 +447,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         }
 
         template <typename ParentContextT>
-        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<ParentContextT>& parentCtx={})
+        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<ParentContextT>& parentCtx)
         {
             if (!parentCtx)
             {
@@ -455,6 +455,11 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 return;
             }
             m_parentLogCtx=&parentCtx->template get<ContextT>();
+        }
+
+        void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<HATN_COMMON_NAMESPACE::TaskContext>&)
+        {
+            resetParentCtx();
         }
 
         void resetParentCtx()
