@@ -112,11 +112,31 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         const LockingController* lockingController() const;
         LockingController* lockingController();
 
+        Error openData(bool init);
+        Error closeData();
+        Error removeData();
+
     protected:
 
         virtual Error doInitDbSchemas(std::map<std::string,std::shared_ptr<db::Schema>>& schemas)
         {
             std::ignore=schemas;
+            return OK;
+        }
+
+        virtual Error doOpenData(bool init)
+        {
+            std::ignore=init;
+            return OK;
+        }
+
+        virtual Error doCloseData()
+        {
+            return OK;
+        }
+
+        virtual Error doRemoveData()
+        {
             return OK;
         }
 

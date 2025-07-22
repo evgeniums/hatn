@@ -199,6 +199,82 @@ Error ClientApp::openMainDb(bool create)
 
 //--------------------------------------------------------------------------
 
+Error ClientApp::openData(bool init)
+{
+    // open main database
+    auto ec=openMainDb(init);
+    HATN_CHECK_EC(ec)
+
+    // start locking controller
+    pimpl->lockingController->start();
+
+    // open data in derived class
+    return doOpenData(init);
+}
+
+//--------------------------------------------------------------------------
+
+Error ClientApp::closeData()
+{
+    HATN_CTX_SCOPE("clientapp::closedata")
+
+    // close data in derived class
+    auto ec=doCloseData();
+    if (ec)
+    {
+        HATN_CTX_SCOPE_LOCK()
+    }
+
+    // close locking controller
+    pimpl->lockingController->close();
+
+    // close main database
+    auto ec1=app().closeDb();
+
+    HATN_CHECK_EC(ec)
+    HATN_CHECK_EC(ec1)
+
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
+Error ClientApp::removeData()
+{
+    // remove data in derived class
+    auto ec=doRemoveData();
+    if (ec)
+    {
+        ec=chainAndLogError(std::move(ec),_TR("failed to remove data in derived class","clientapp"));
+    }
+
+    // destroy main database
+    auto ec1=app().destroyDb();
+    if (ec1)
+    {
+        ec1=chainAndLogError(std::move(ec1),_TR("failed to destroy main database","clientapp"));
+    }
+
+    // remove data directory
+    auto appDataFolder=app().appDataFolder();
+    if (!appDataFolder.empty())
+    {
+        lib::fs_error_code fsErr;
+        lib::filesystem::remove_all(appDataFolder,fsErr);
+        if (fsErr)
+        {
+            return chainAndLogError(lib::makeFilesystemError(fsErr),_TR("failed to remove application data folder","clientapp"));
+        }
+    }
+
+    // done
+    HATN_CHECK_EC(ec1)
+    HATN_CHECK_EC(ec)
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
 HATN_DB_NAMESPACE::AsyncDb& ClientApp::mainDb()
 {
     return app().database();

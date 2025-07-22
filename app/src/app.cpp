@@ -623,9 +623,9 @@ Error App::init()
 
 //---------------------------------------------------------------
 
-void App::close()
+Error App::closeDb()
 {
-    logAppStop();
+    HATN_CTX_SCOPE("app::closedb")
 
     if (m_env)
     {
@@ -635,10 +635,24 @@ void App::close()
         auto ec=database().close();
         if (ec)
         {
-            std::ignore=chainError(std::move(ec),_TR("failed to close database","app"));
+            HATN_CTX_SCOPE_LOCK()
+            ec=chainAndLogError(std::move(ec),_TR("failed to close database","app"));
         }
-        database().reset();        
+        database().reset();
+
+        HATN_CHECK_EC(ec)
     }
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::close()
+{
+    logAppStop();
+
+    std::ignore=closeDb();
 
     // stop all threads
     for (auto&& it: m_threads)

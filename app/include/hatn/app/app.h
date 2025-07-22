@@ -196,6 +196,8 @@ class HATN_APP_EXPORT App
             bool create=true
         );
 
+        Error closeDb();
+
         Error destroyDb();
 
         common::SharedPtr<AppEnv> env() const
