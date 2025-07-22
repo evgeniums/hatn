@@ -84,6 +84,7 @@ Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProto
         const std::string& configPath
     )
 {
+    HATN_CTX_SCOPE("init_client")
     HATN_CTX_SCOPE_PUSH("client_name",name())
     auto ec=hatn::loadLogConfig(_TR("configuration of client with authentication"),*m_client,configTree,configPath);
     HATN_CHECK_EC(ec)

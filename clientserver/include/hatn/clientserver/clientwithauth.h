@@ -25,8 +25,8 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 using DefaultRequestContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
 
-template <typename RouterT, typename RequestContextT=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...AuthProtocols>
-class ClientWithAuthT : public DefaultRequestContext
+template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...AuthProtocols>
+class ClientWithAuthT : public HATN_LOGCONTEXT_NAMESPACE::TaskLogContext
 {
     public:
 
@@ -79,6 +79,11 @@ class ClientWithAuthT : public DefaultRequestContext
         void setClient(Client* client)
         {
             m_client=client;
+        }
+
+        Client* client()
+        {
+            return m_client;
         }
 
         void setSession(Session* session)
