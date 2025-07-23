@@ -112,7 +112,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
     Error ec;
 
     // check if client is closed
-    if (m_closed)
+    if (m_closed || m_networkDisconnected)
     {
         ec=commonError(common::CommonError::ABORTED);
     }

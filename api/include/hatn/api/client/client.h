@@ -194,6 +194,11 @@ class Client : public common::TaskSubcontext,
             return m_connectionPool.router();
         }
 
+        void setNetworkDisconnected(bool enable)
+        {
+            m_networkDisconnected.store(enable);
+        }
+
     private:
 
         void doExec(
@@ -229,6 +234,7 @@ class Client : public common::TaskSubcontext,
 
         common::ThreadQWithTaskContext* m_thread;
         std::atomic<bool> m_closed;
+        std::atomic<bool> m_networkDisconnected;
 
         using SessionWaitingQueueMap=common::pmr::map<SessionId,SessionWaitingQueue,std::less<>>;
 
