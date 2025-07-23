@@ -77,13 +77,13 @@ class KeyContainer
         {}
 
         //! Ctor from ByteArray
-        explicit KeyContainer(ContentT content, ContainerFormat format=Format) noexcept : m_format(format),m_content(std::move(content))
+        KeyContainer(ContentT content, ContainerFormat format=Format) noexcept : m_format(format),m_content(std::move(content))
         {
         }
 
         //! Ctor from data container
         template <typename ContainerT>
-        explicit KeyContainer(const ContainerT& container, ContainerFormat format=Format):m_format(format)
+        KeyContainer(const ContainerT& container, ContainerFormat format=Format):m_format(format)
         {
             loadContent(container);
         }
