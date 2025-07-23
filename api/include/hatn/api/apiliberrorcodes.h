@@ -51,6 +51,8 @@
     Do(ApiLibError,PROTOCOL_CONFIGURATION_FAILED,_TR("failed to load configuration of server protocol","api")) \
     Do(ApiLibError,UNKNOWN_SERVICE_DISPATCHER,_TR("unknown service dispatcher","api")) \
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
+    Do(ApiLibError,UNSUPPORTED_NETWORK_PROTOCOL,_TR("unsupported network protocol","api")) \
+    Do(ApiLibError,UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol","api")) \
 
 HATN_API_NAMESPACE_BEGIN
 
