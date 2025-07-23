@@ -31,6 +31,11 @@
     Do(ClientServerError,ACCOUNT_CONFIG_DATA_DESERIALIZATION,_TR("invalid format of account configuration data","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_DECRYPTION,_TR("invalid passphrase","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_EXPIRED,_TR("account configuration expired","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_INVALID_ROUTE,_TR("invalid route to server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_NETWORK_ROUTE_CHAIN,_TR("unsupported network routing chain for server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_NETWORK_PROTOCOL,_TR("unsupported network protocol for server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol for server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_UNKNOWN_IP_ADDRESS,_TR("unknown network address of server in account configuration","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_INVALID,_TR("invalid authentication token","clientserver")) \
