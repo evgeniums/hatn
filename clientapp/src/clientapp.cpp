@@ -55,10 +55,7 @@ class ClientApp_p
 //--------------------------------------------------------------------------
 
 ClientApp::ClientApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<ClientApp_p>(std::move(appName)))
-{
-    pimpl->appSettings=std::make_shared<ClientAppSettings>(this);
-    pimpl->lockingController=std::make_shared<LockingController>(this);
-}
+{}
 
 //--------------------------------------------------------------------------
 
@@ -97,7 +94,13 @@ EventDispatcher& ClientApp::eventDispatcher()
 
 Error ClientApp::init()
 {
-    return app().init();
+    auto ec=app().init();
+    if (!ec)
+    {
+        pimpl->appSettings=std::make_shared<ClientAppSettings>(this);
+        pimpl->lockingController=std::make_shared<LockingController>(this);
+    }
+    return ec;
 }
 
 //--------------------------------------------------------------------------
