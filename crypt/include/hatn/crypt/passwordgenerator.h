@@ -17,8 +17,6 @@
 #ifndef HATNCRYPTPASSWORDGENERATOR_H
 #define HATNCRYPTPASSWORDGENERATOR_H
 
-#include <functional>
-
 #include <hatn/common/error.h>
 #include <hatn/common/memorylockeddata.h>
 
@@ -30,17 +28,27 @@ constexpr const char PasswordGenLetters[]="_abcdefghijklmnopqrstuvwxyzABCDEFGHIJ
 constexpr const char PasswordGenDigits[]="0123456789";
 constexpr const char PasswordGenSpecials[]="~!@#$%^&*(){}+=-:;<>,.|/?[]";
 
-struct HATN_CRYPT_EXPORT  PasswordGeneratorParameters
+struct HATN_CRYPT_EXPORT PasswordGeneratorParameters
 {
-    size_t minLength=8;
-    size_t maxLength=14;
+    constexpr static size_t DefaultMinLength=8;
+    constexpr static size_t DefaultMaxLength=14;
 
-    size_t lettersWeight=20;
-    size_t digitsWeight=4;
-    size_t specialsWeight=2;
+    constexpr static size_t DefaultLettersWeight=20;
+    constexpr static size_t DefaultDigitsWeight=4;
+    constexpr static size_t DefaultSpecialsWeight=2;
 
-    bool hasSpecial=true;
-    bool hasDigit=true;
+    constexpr static bool DefaultHasSpecial=true;
+    constexpr static bool DefaultHasDigit=true;
+
+    size_t minLength=DefaultMinLength;
+    size_t maxLength=DefaultMaxLength;
+
+    size_t lettersWeight=DefaultLettersWeight;
+    size_t digitsWeight=DefaultDigitsWeight;
+    size_t specialsWeight=DefaultSpecialsWeight;
+
+    bool hasSpecial=DefaultHasSpecial;
+    bool hasDigit=DefaultHasDigit;
 
     //! @todo Implement configurable source arrays
 };
