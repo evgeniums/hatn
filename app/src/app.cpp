@@ -33,6 +33,7 @@
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/cryptplugin.h>
 #include <hatn/crypt/securekey.h>
+#include <hatn/crypt/passwordgenerator.h>
 
 #include <hatn/db/dbplugin.h>
 #include <hatn/db/encryptionmanager.h>
@@ -146,10 +147,17 @@ constexpr static const char* DbConfigRoot="db";
 #endif
 
 #ifdef HATN_APP_CRYPT_CONFIG_ROOT
-constexpr static const char* DbConfigRoot=HATN_APP_CRYPT_CONFIG_ROOT;
+constexpr static const char* CryptConfigRoot=HATN_APP_CRYPT_CONFIG_ROOT;
 #else
 constexpr static const char* CryptConfigRoot="crypt";
 #endif
+
+#ifdef HATN_APP_PASSWORD_GEN_CONFIG_ROOT
+constexpr static const char* PasswordGenConfigRoot=HATN_APP_PASSWORD_GEN_CONFIG_ROOT;
+#else
+constexpr static const char* PasswordGenConfigRoot="password_generator";
+#endif
+
 
 constexpr static const char* CryptPluginsFolder="crypt";
 constexpr static const char* DbPluginsFolder="db";
@@ -194,6 +202,45 @@ HDU_UNIT(crypt_config,
     HDU_FIELD(default_cipher_suite,TYPE_STRING,3)
 )
 
+HDU_UNIT(password_gen_config,
+    HDU_FIELD(min_length,TYPE_UINT32,1,false,crypt::PasswordGeneratorParameters::DefaultMinLength)
+    HDU_FIELD(max_length,TYPE_UINT32,2,false,crypt::PasswordGeneratorParameters::DefaultMaxLength)
+    HDU_FIELD(letters_weight,TYPE_UINT32,3,false,crypt::PasswordGeneratorParameters::DefaultLettersWeight)
+    HDU_FIELD(digits_weight,TYPE_UINT32,4,false,crypt::PasswordGeneratorParameters::DefaultDigitsWeight)
+    HDU_FIELD(specials_weight,TYPE_UINT32,5,false,crypt::PasswordGeneratorParameters::DefaultSpecialsWeight)
+    HDU_FIELD(has_special,TYPE_BOOL,6,false,crypt::PasswordGeneratorParameters::DefaultHasSpecial)
+    HDU_FIELD(has_digit,TYPE_BOOL,7,false,crypt::PasswordGeneratorParameters::DefaultHasDigit)
+)
+
+#if 0
+
+struct HATN_CRYPT_EXPORT PasswordGeneratorParameters
+{
+    constexpr static size_t DefaultMinLength=8;
+    constexpr static size_t DefaultMaxLength=14;
+
+    constexpr static size_t DefaultLettersWeight=20;
+    constexpr static size_t DefaultDigitsWeight=4;
+    constexpr static size_t DefaultSpecialsWeight=2;
+
+    constexpr static bool DefaultHasSpecial=true;
+    constexpr static bool DefaultHasDigit=true;
+
+    size_t minLength=DefaultMinLength;
+    size_t maxLength=DefaultMaxLength;
+
+    size_t lettersWeight=DefaultLettersWeight;
+    size_t digitsWeight=DefaultDigitsWeight;
+    size_t specialsWeight=DefaultSpecialsWeight;
+
+    bool hasSpecial=DefaultHasSpecial;
+    bool hasDigit=DefaultHasDigit;
+
+    //! @todo Implement configurable source arrays
+};
+
+#endif
+
 //---------------------------------------------------------------
 
 class App_p
@@ -211,6 +258,7 @@ class App_p
         base::ConfigObject<logger_config::type> loggerConfig;
         base::ConfigObject<db_config::type> dbConfig;
         base::ConfigObject<crypt_config::type> cryptConfig;
+        base::ConfigObject<password_gen_config::type> passwordGenConfig;
 
         std::map<std::string,LoggerHandlerBuilder,std::less<>> loggerBuilders;
         std::shared_ptr<log::Logger> logger;
@@ -451,6 +499,15 @@ Error App::applyConfig()
     }
     logConfigRecords(_TR("configuration of application cryptography","app"),HLOG_MODULE(app),logRecords);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of application cryptography","app"),HLOG_MODULE(app))
+
+    // load password generator config
+    if (m_configTree->isSet(PasswordGenConfigRoot,true))
+    {
+        //! @todo critical: Validate password generator configuration
+        ec=d->passwordGenConfig.loadLogConfig(*m_configTree,PasswordGenConfigRoot,logRecords);
+        logConfigRecords(_TR("configuration of password generator","app"),HLOG_MODULE(app),logRecords);
+        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load configuration of password generator","app"),HLOG_MODULE(app))
+    }
 
     // done
     return OK;
@@ -1055,6 +1112,17 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
     {
         return appError(AppError::INVALID_DB_CIPHER_SUITE);
     }
+
+    // init password generator
+    crypt::PasswordGeneratorParameters passwordGenParams;
+    passwordGenParams.minLength=passwordGenConfig.config().fieldValue(password_gen_config::min_length);
+    passwordGenParams.maxLength=passwordGenConfig.config().fieldValue(password_gen_config::max_length);
+    passwordGenParams.lettersWeight=passwordGenConfig.config().fieldValue(password_gen_config::letters_weight);
+    passwordGenParams.digitsWeight=passwordGenConfig.config().fieldValue(password_gen_config::digits_weight);
+    passwordGenParams.specialsWeight=passwordGenConfig.config().fieldValue(password_gen_config::specials_weight);
+    passwordGenParams.hasSpecial=passwordGenConfig.config().fieldValue(password_gen_config::has_special);
+    passwordGenParams.hasDigit=passwordGenConfig.config().fieldValue(password_gen_config::has_digit);
+    suites->passwordGenerator()->setDefaultParameters(passwordGenParams);
 
     // done
     return suites;
