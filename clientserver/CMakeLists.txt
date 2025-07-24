@@ -38,7 +38,14 @@ SET (HEADERS
     include/hatn/clientserver/models/withusercharacter.h
     include/hatn/clientserver/models/withloginprofile.h
 
+    include/hatn/clientserver/models/serverroute.h
     include/hatn/clientserver/models/accountconfig.h
+)
+
+SET (HEADERS
+    ${HEADERS}
+
+    include/hatn/clientserver/messages/accountmessages.h
 )
 
 SET (SOURCES
