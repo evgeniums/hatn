@@ -100,6 +100,31 @@ struct Response
         }
         return Error{ApiLibError::SERVER_RESPONDED_WITH_ERROR,std::move(nativeError)};
     }
+
+    template <typename UnitT>
+    Error parse(UnitT& obj, lib::string_view messageType={}) const
+    {
+        // check message type
+        if (messageType.empty())
+        {
+            messageType=obj.unitName();
+        }
+        if (messageType != unit->fieldValue(protocol::response::message_type))
+        {
+            return apiLibError(ApiLibError::MISMATCHED_RESPONSE_MESSAGE_TYPE);
+        }
+
+        // deserialize message
+        du::WireBufSolidShared buf{message};
+        Error ec;
+        if (!du::io::deserialize(obj,buf))
+        {
+            return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);
+        }
+
+        // done
+        return OK;
+    }
 };
 
 } // namespace client

@@ -53,6 +53,7 @@
     Do(ApiLibError,UNKNOWN_AUTH_DISPATCHER,_TR("unknown authentification dispatcher","api")) \
     Do(ApiLibError,UNSUPPORTED_NETWORK_PROTOCOL,_TR("unsupported network protocol","api")) \
     Do(ApiLibError,UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol","api")) \
+    Do(ApiLibError,MISMATCHED_RESPONSE_MESSAGE_TYPE,_TR("mismatched type of message in response","api")) \
 
 HATN_API_NAMESPACE_BEGIN
 

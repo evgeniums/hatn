@@ -173,23 +173,12 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
     {
         HATN_CTX_SCOPE("clientsession::invokeauth")
 
-        // check response message
-        if (negotiationResponse.unit->fieldValue(api::protocol::response::message_type)!=auth_negotiate_response::conf().name)
-        {
-            auto ec=api::makeApiError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory());
-            HATN_CTX_ERROR_RECORDS(ec,"invalid negotiation response message type",{"message_type",negotiationResponse.unit->fieldValue(api::protocol::response::message_type)})
-            callback(std::move(ctx),std::move(ec));
-            return;
-        }
-
         // parse response message
         auto negotiateResp=factory()->template createObject<auth_negotiate_response::managed>();
-        du::WireBufSolidShared buf{negotiationResponse.message};
-        Error ec;
-        du::io::deserialize(*negotiateResp,buf,ec);
+        auto ec=negotiationResponse.parse(*negotiateResp);
         if (ec)
         {
-            HATN_CTX_ERROR(ec,"failed to deserialize negotiation response message")
+            HATN_CTX_ERROR_RECORDS(ec,"failed to parse negotiation response message",{"message_type",negotiationResponse.unit->fieldValue(api::protocol::response::message_type)})
             callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
             return;
         }
