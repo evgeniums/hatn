@@ -85,12 +85,32 @@ static void testAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::s
     }
 
     account_config::type cfg1;
+    auto topic=du::ObjectId::generateIdStr();
     cfg1.setFieldValue(account_config::valid_till,validTill1);
     cfg1.setFieldValue(account_config::config_id,du::ObjectId::generateId());
+    cfg1.setFieldValue(account_config::account_id,du::ObjectId::generateId());
     cfg1.setFieldValue(account_config::user_name,userName);
     cfg1.setFieldValue(account_config::server_name,serverName);
     cfg1.setFieldValue(account_config::server_id,common::SHA1::containerHash(serverName));
-    cfg1.setFieldValue(account_config::user_token,"AAAA2222444");
+    cfg1.setFieldValue(account_config::token,"AAAA2222444");
+    cfg1.setFieldValue(account_config::token_tag,"t1");
+    cfg1.setFieldValue(account_config::topic,topic);
+
+    auto& serverNode=cfg1.field(account_config::server_route).createAndAppendValue();
+    serverNode.setFieldValue(server_node::name,"server1");
+    serverNode.setFieldValue(server_node::protocol,RouteProtocolTcp);
+    serverNode.setFieldValue(server_node::auth_token1,du::ObjectId::generateIdStr());
+    auto password=suites->passwordGenerator()->generateString();
+    if (password)
+    {
+        HATN_TEST_EC(password.error());
+    }
+    BOOST_REQUIRE(!password);
+    serverNode.setFieldValue(server_node::auth_token2,password.value());
+    auto& serverHost=serverNode.field(server_node::hosts).createAndAppendValue();
+    serverHost.setFieldValue(server_host::host,"localhost");
+    serverHost.setFieldValue(server_host::port,25157);
+
     BOOST_TEST_MESSAGE("cfg1 before parsing");
     auto cfg1Str=cfg1.toString(true);
     BOOST_TEST_MESSAGE(cfg1Str);
