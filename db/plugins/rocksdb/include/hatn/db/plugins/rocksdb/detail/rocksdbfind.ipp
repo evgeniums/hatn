@@ -50,7 +50,8 @@ struct FindT
         RocksdbHandler& handler,
         const ModelIndexQuery& query,
         bool single,
-        const AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory,
+        bool sharedResultType=false
     ) const;
 };
 constexpr FindT Find{};
@@ -61,7 +62,8 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
         RocksdbHandler& handler,
         const ModelIndexQuery& idxQuery,
         bool single,
-        const AllocatorFactory* allocatorFactory
+        const AllocatorFactory* allocatorFactory,
+        bool sharedResultType
     ) const
 {
     HATN_CTX_SCOPE("find")
@@ -157,26 +159,41 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
                 continue;
             }
 
-            // create unit
-            auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
-
-            // deserialize object
-            auto objSlice=TtlMark::stripTtlMark(value);
-            buf.loadInline(objSlice.data(),objSlice.size());
-            dataunit::io::deserialize(*sharedUnit,buf,ec);
-            if (ec)
+            auto addToResult=[&](auto&& sharedUnit)
             {
-                pushLogKey();
-                HATN_CTX_SCOPE_ERROR("deserialize-object")
-                return ec;
-            }
+                // deserialize object
+                auto objSlice=TtlMark::stripTtlMark(value);
+                buf.loadInline(objSlice.data(),objSlice.size());
+                dataunit::io::deserialize(*sharedUnit,buf,ec);
+                if (ec)
+                {
+                    pushLogKey();
+                    HATN_CTX_SCOPE_ERROR("deserialize-object")
+                    return ec;
+                }
 
 //! @maybe Log debug
 #if 0
             std::cout<<"Find: object appended to result" << std::endl;
-#endif
-            // emplace wrapped unit to result vector
-            objects.emplace_back(sharedUnit,key.topic());
+#endif \
+                // emplace wrapped unit to result vector
+                objects.emplace_back(std::move(sharedUnit),key.topic());
+
+                return Error{};
+            };
+
+            // create unit
+            if (sharedResultType)
+            {
+                auto sharedUnit=allocatorFactory->createObject<typename ModelT::SharedManagedType>(allocatorFactory);
+                ec=addToResult(std::move(sharedUnit));
+            }
+            else
+            {
+                auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
+                ec=addToResult(std::move(sharedUnit));
+            }
+            HATN_CHECK_EC(ec)
         }
     }
 

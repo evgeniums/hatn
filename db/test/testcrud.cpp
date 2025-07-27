@@ -187,6 +187,20 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
+        // find shared object in topic
+        auto r3_shared=client->find(m1,q3,true);
+        if (r3_shared)
+        {
+            BOOST_TEST_MESSAGE(r3_shared.error().message());
+        }
+        BOOST_REQUIRE(!r3_shared);
+        BOOST_REQUIRE_EQUAL(r3_shared->size(),1);
+        const auto* o3_shared=r3_shared->at(0).unit<simple1::shared_type>();
+        BOOST_CHECK_EQUAL(o3_shared->fieldValue(simple1::f1),o1.fieldValue(simple1::f1));
+        BOOST_CHECK(o3_shared->fieldValue(object::_id)==o1.fieldValue(object::_id));
+        BOOST_CHECK(o3_shared->fieldValue(object::created_at)==o1.fieldValue(object::created_at));
+        BOOST_CHECK(o3_shared->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
+
         // try to find unknown object
         auto q4=makeQuery(idx4(),query::where(simple1::f1,query::Operator::eq,101),"topic1");
         auto r4=client->find(m1,q4);

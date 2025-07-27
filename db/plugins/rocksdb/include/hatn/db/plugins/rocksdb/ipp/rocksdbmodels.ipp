@@ -114,10 +114,11 @@ void RocksdbModels::registerModel(std::shared_ptr<ModelWithInfo<ModelT>> model,
         (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
-            bool single
+            bool single,
+            bool sharedResultType
         )
     {
-        return Find(model->model,handler,query,single,allocatorFactory);
+        return Find(model->model,handler,query,single,allocatorFactory,sharedResultType);
     };
 
     rdbModel->findCb=[model,allocatorFactory]

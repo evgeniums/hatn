@@ -738,9 +738,10 @@ Result<DbObject> RocksdbClient::doRead(Topic topic,
 //---------------------------------------------------------------
 
 Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> RocksdbClient::doFind(
-                                                                              const ModelInfo &model,
-                                                                              const ModelIndexQuery &query
-                                                                              )
+        const ModelInfo &model,
+        const ModelIndexQuery &query,
+        bool sharedResultType
+    )
 {
     HATN_CTX_SCOPE("rdbfind")
 
@@ -749,7 +750,7 @@ Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> RocksdbClient::doFind(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    return rdbModel->find(*d->handler,query,false);
+    return rdbModel->find(*d->handler,query,false,sharedResultType);
 }
 
 //---------------------------------------------------------------
@@ -1024,7 +1025,7 @@ RocksdbClient::doFindOne(
     auto rdbModel=model.nativeModel<RocksdbModel>();
     Assert(rdbModel,"Model not registered");
 
-    auto r=rdbModel->find(*d->handler,query,true);
+    auto r=rdbModel->find(*d->handler,query,true,false);
     HATN_CHECK_RESULT(r)
     if (r->empty())
     {
