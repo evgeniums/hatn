@@ -34,7 +34,7 @@ HDU_UNIT(server_host,
 )
 
 HDU_UNIT(
-    server_route_hop,
+    server_node,
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(hosts,server_host::TYPE,2)
     HDU_FIELD(protocol,TYPE_STRING,3)
