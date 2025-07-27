@@ -433,6 +433,11 @@ class HATN_DATAUNIT_EXPORT Unit
             m_tree=enable;
         }
 
+        virtual bool isSharedType() const noexcept
+        {
+            return false;
+        }
+
     protected:
 
         void setFieldParent(Field& field);

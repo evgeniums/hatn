@@ -609,6 +609,16 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return Conf::name;
         }
 
+        constexpr static bool sharedType() noexcept
+        {
+            return Conf::shared::value;
+        }
+
+        bool isSharedType() const noexcept override
+        {
+            return sharedType();
+        }
+
     private:
 
         void setFieldsParent() noexcept

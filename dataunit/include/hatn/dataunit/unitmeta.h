@@ -491,10 +491,11 @@ constexpr check_names_unique_t check_names_unique{};
 
 //---------------------------------------------------------------
 
-template <typename ConfT, typename ToFieldCFn>
+template <typename ConfT, typename ToFieldCFn, typename Shared>
 struct unit_conf : public ConfT
 {
     using to_field_c=ToFieldCFn;
+    using shared=Shared;
 };
 
 struct to_type_c_t
@@ -522,11 +523,11 @@ constexpr to_shared_type_c_t to_shared_type_c{};
 template <typename ConfT>
 struct unit
 {
-    template <typename FieldsT, typename FieldFn>
-    constexpr static auto make(FieldsT fields, FieldFn /*to_field_c*/)
+    template <typename FieldsT, typename FieldFn, typename Shared>
+    constexpr static auto make(FieldsT fields, FieldFn /*to_field_c*/,Shared)
     {
         constexpr auto unit_c=hana::unpack(
-            hana::prepend(fields,hana::type_c<unit_conf<ConfT,FieldFn>>),
+            hana::prepend(fields,hana::type_c<unit_conf<ConfT,FieldFn,Shared>>),
             hana::template_<DataUnit>
         );
         return unit_c;
@@ -535,13 +536,13 @@ struct unit
     template <typename FieldsT>
     constexpr static auto type_c(FieldsT fields)
     {        
-        return make(fields,to_type_c);
+        return make(fields,to_type_c,hana::false_c);
     }
 
     template <typename FieldsT>
     constexpr static auto shared_type_c(FieldsT fields)
     {
-        return make(fields,to_shared_type_c);
+        return make(fields,to_shared_type_c,hana::true_c);
     }
 };
 
@@ -568,39 +569,19 @@ class managed_unit : public ManagedUnit<UnitT>,
         }
 };
 
-template <typename SharedUnitT>
-class shared_managed_unit : public ManagedUnit<SharedUnitT>,
-                            public common::WithStaticAllocator<shared_managed_unit<SharedUnitT>>
-{
-    public:
-
-        using hana_tag=managed_unit_tag;
-
-        using ManagedUnit<SharedUnitT>::ManagedUnit;
-
-        inline shared_managed_unit<SharedUnitT>* castToManagedUnit(Unit* unit) const noexcept
-        {
-            return common::dynamicCastWithSample(unit,this);
-        }
-        inline const shared_managed_unit<SharedUnitT>* castToManagedUnit(const Unit* unit) const noexcept
-        {
-            return common::dynamicCastWithSample(unit,this);
-        }
-};
-
 //---------------------------------------------------------------
 
 struct unit_tag
 {};
 
-template <typename BaseT, typename UniqueType=void>
+template <typename BaseT>
 class unit_t : public BaseT
 {
         public:
 
             using hana_tag=unit_tag;
 
-            using unit_type=unit_t<BaseT,UniqueType>;
+            using unit_type=unit_t<BaseT>;
 
             unit_t(const AllocatorFactory* factory=AllocatorFactory::getDefault());
 
@@ -666,7 +647,8 @@ struct subunit : public types::TYPE_DATAUNIT
 {
         using type=typename traits::type;
         using managed=typename traits::managed;
-        using shared_type=common::SharedPtr<typename shared_traits::managed>;
+        using shared_managed=typename shared_traits::managed;
+        using shared_type=common::SharedPtr<shared_managed>;
         using base_shared_type=typename shared_traits::type;
         using Hatn=std::true_type;
 

@@ -212,9 +212,9 @@ enum class EnumName : int {__VA_ARGS__};
     using unit_base_t=decltype(unit_c)::type;\
     using unit_shared_base_t=decltype(shared_unit_c)::type;\
     using type=unit_t<unit_base_t>;\
-    using shared_type=unit_t<unit_shared_base_t,hana::true_>;\
+    using shared_type=unit_t<unit_shared_base_t>;\
     using managed=managed_unit<type>;\
-    using shared_managed=shared_managed_unit<shared_type>;\
+    using shared_managed=managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
     struct field_id_s_t : public field_id_<HATN_COUNTER_GET(c)>{};\
     constexpr field_id_s_t fields{};\
@@ -265,9 +265,9 @@ enum class EnumName : int {__VA_ARGS__};
 
 #define HDU_V2_INSTANTIATE1(UnitName) \
     template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
-    template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t,boost::hana::true_>;\
+    template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
     template class HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
-    template class HATN_DATAUNIT_META_NAMESPACE::shared_managed_unit<UnitName::shared_type>;\
+    template class HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::shared_type>;\
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
 
@@ -275,9 +275,9 @@ enum class EnumName : int {__VA_ARGS__};
 
     #define HDU_V2_EXPORT(UnitName,Export) \
         template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
-        template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t,boost::hana::true_>;\
+        template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
         template class Export HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
-        template class Export HATN_DATAUNIT_META_NAMESPACE::shared_managed_unit<UnitName::shared_type>;\
+        template class Export HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::shared_type>;\
         template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
         template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
 
