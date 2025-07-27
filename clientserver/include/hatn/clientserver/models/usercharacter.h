@@ -25,10 +25,14 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-HDU_UNIT_WITH(user_character,(HDU_BASE(db::object),HDU_BASE(with_user)),
+HDU_UNIT_WITH(user_character,(HDU_BASE(db::object)),
     HDU_FIELD(name,TYPE_STRING,1)
-    HDU_FIELD(blocked,TYPE_BOOL,2)
-    HDU_FIELD(description,TYPE_STRING,3)
+    HDU_FIELD(description,TYPE_STRING,2)
+)
+
+HDU_UNIT_WITH(user_character_server,(HDU_BASE(with_user),HDU_BASE(user_character)),
+    HDU_FIELD(blocked,TYPE_BOOL,30)
+    HDU_FIELD(server_description,TYPE_STRING,31)
 )
 
 HDU_UNIT_WITH(user_character_share,(HDU_BASE(db::object),HDU_BASE(with_user),HDU_BASE(with_user_character)),

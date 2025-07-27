@@ -8,7 +8,7 @@
 /*
 
 */
-/** @file clientserver/models/accountmessages.h
+/** @file clientserver/messages/accountmessages.h
   */
 
 /****************************************************************************/
@@ -42,7 +42,7 @@ HDU_UNIT(account_login,
 
 HDU_UNIT(activate_account_response,
     HDU_FIELD(login,account_login::TYPE,1)
-    HDU_FIELD(charachter,user_character::TYPE,2)
+    HDU_FIELD(character,user_character::TYPE,2)
 )
 
 HDU_UNIT(commit_account_activation,
