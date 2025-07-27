@@ -79,6 +79,15 @@ class HATN_CRYPT_EXPORT PasswordGenerator
             return generate(password,m_params);
         }
 
+        inline Result<std::string> generateString()
+        {
+            common::MemoryLockedArray password;
+            auto ec=generate(password);
+            HATN_CHECK_EC(ec)
+
+            return std::string{password.data(),password.size()};
+        }
+
         void setDefaultParameters(PasswordGeneratorParameters params) noexcept
         {
             m_params=std::move(params);
