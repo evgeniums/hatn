@@ -46,8 +46,6 @@ void Service::exec(
         Callback callback
     )
 {
-    HATN_CTX_SCOPE("service::exec")
-
     auto thread=env->get<app::Threads>().threads()->defaultThread();
     auto it=m_methods.find(method);
     if (it==m_methods.end())
@@ -55,12 +53,14 @@ void Service::exec(
         thread->execAsync(
             [callback=std::move(callback),this,method]()
             {
-                HATN_CTX_SCOPE("service::exec::cb")
+                HATN_CTX_SCOPE("service::exec")
                 HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
                 HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",method)
 
                 auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD);
                 HATN_CTX_ERROR(ec,"failed to exec service method")
+
+                HATN_CTX_STACK_BARRIER_OFF("service::exec")
                 callback(ec,Response{});
             }
         );
@@ -74,8 +74,7 @@ void Service::exec(
         ctx->onAsyncHandlerEnter();
 
         {
-            HATN_CTX_SCOPE("service::exec::cb")
-
+            HATN_CTX_SCOPE("service::exec")
             HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
             HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
 

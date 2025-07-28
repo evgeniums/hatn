@@ -111,7 +111,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error openDb(const ClientConfig& config, base::config_object::LogRecords& records, bool creatIfNotExists=true)
         {
-            HATN_CTX_SCOPE("dbopendb")
+            HATN_CTX_SCOPE("db::opendb")
 
             if (m_open)
             {
@@ -141,7 +141,7 @@ class HATN_DB_EXPORT Client : public common::WithID
          */
         Error closeDb()
         {
-            HATN_CTX_SCOPE("dbclosedb")
+            HATN_CTX_SCOPE("db::closedb")
             if (m_open)
             {
                 Error ec;
@@ -154,19 +154,19 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error createDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
-            HATN_CTX_SCOPE("dbcreatedb")
+            HATN_CTX_SCOPE("db::createdb")
             return doCreateDb(config,records);
         }
 
         Error destroyDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
-            HATN_CTX_SCOPE("dbdestroydb")
+            HATN_CTX_SCOPE("db::destroydb")
             return doDestroyDb(config,records);
         }
 
         Error setSchema(std::shared_ptr<Schema> schema)
         {
-            HATN_CTX_SCOPE("dbsetschema")
+            HATN_CTX_SCOPE("db::setschema")
             if (m_open)
             {
                 return doSetSchema(std::move(schema));
@@ -177,7 +177,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Result<std::shared_ptr<Schema>> schema() const
         {
-            HATN_CTX_SCOPE("dbschema")
+            HATN_CTX_SCOPE("db::schema")
             if (m_open)
             {
                 return doGetSchema();
@@ -188,7 +188,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error checkSchema()
         {
-            HATN_CTX_SCOPE("dbcheckschema")
+            HATN_CTX_SCOPE("db::checkschema")
             if (m_open)
             {
                 return doCheckSchema();
@@ -199,7 +199,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error migrateSchema()
         {
-            HATN_CTX_SCOPE("dbmigrateschema")
+            HATN_CTX_SCOPE("db::migrateschema")
             if (m_open)
             {
                 return doMigrateSchema();
@@ -211,7 +211,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Error addDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
                                 const common::Date& from=common::Date::currentUtc())
         {
-            HATN_CTX_SCOPE("dbadddatepartitions")
+            HATN_CTX_SCOPE("db::adddatepartitions")
             if (m_open)
             {
                 return doAddDatePartitions(models,datePartitionRanges(models,to,from));
@@ -222,7 +222,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Result<std::set<common::DateRange>> listDatePartitions()
         {
-            HATN_CTX_SCOPE("dblistdatepartitions")
+            HATN_CTX_SCOPE("db::listdatepartitions")
             return doListDatePartitions();
         }
 
@@ -238,7 +238,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Error deleteDatePartitions(const std::vector<ModelInfo>& models, const common::Date& to,
                                    const common::Date& from)
         {
-            HATN_CTX_SCOPE("dbdeletedatepartitions")
+            HATN_CTX_SCOPE("db::deletedatepartitions")
             if (m_open)
             {
                 return doDeleteDatePartitions(models,datePartitionRanges(models,to,from));
@@ -258,7 +258,7 @@ class HATN_DB_EXPORT Client : public common::WithID
          */
         Error deleteTopic(Topic topic)
         {
-            HATN_CTX_SCOPE("dbdeletetopic")
+            HATN_CTX_SCOPE("db::deletetopic")
             if (m_open)
             {
                 return doDeleteTopic(topic);
@@ -278,7 +278,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Error isTopicEmpty(Topic /*topic*/)
         {
             //! @todo Implement checking if topic is empty.
-            HATN_CTX_SCOPE("dbistopicempty")
+            HATN_CTX_SCOPE("db::istopicempty")
             HATN_CTX_SCOPE_LOCK()
             return commonError(CommonError::NOT_IMPLEMENTED);
         }
@@ -290,7 +290,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                      Transaction* tx=nullptr
                      )
         {
-            HATN_CTX_SCOPE("dbcreate")
+            HATN_CTX_SCOPE("db::create")
             if (m_open)
             {
                 return doCreate(topic,*model->info,object,tx);
@@ -309,7 +309,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             checkPartitionField(model);
 
-            HATN_CTX_SCOPE("dbread")
+            HATN_CTX_SCOPE("db::read")
             if (m_open)
             {
                 return afterRead(model,doRead(topic,*model->info,id,tx,forUpdate),tpFilter);
@@ -328,7 +328,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                 bool forUpdate=false,
                                                 const TimePointFilter& tpFilter=TimePointFilter{})
         {
-            HATN_CTX_SCOPE("dbreadupdate")
+            HATN_CTX_SCOPE("db::readupdate")
             if (m_open)
             {
                 return afterRead(model,doRead(topic,*model->info,id,date,tx,forUpdate),tpFilter);
@@ -346,7 +346,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                        const common::Date& date,
                        Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbupdate")
+            HATN_CTX_SCOPE("db::update")
             if (m_open)
             {
                 return doUpdateObject(topic,*model->info,id,request,date,tx);
@@ -365,7 +365,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             checkPartitionField(model);
 
-            HATN_CTX_SCOPE("dbupdate")
+            HATN_CTX_SCOPE("db::update")
             if (m_open)
             {
                 return doUpdateObject(topic,*model->info,id,request,tx);
@@ -386,7 +386,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                            const TimePointFilter& tpFilter=TimePointFilter{}
                     )
         {
-            HATN_CTX_SCOPE("dbreadupdate")
+            HATN_CTX_SCOPE("db::readupdate")
             if (m_open)
             {
                 return afterRead(model,doReadUpdate(topic,*model->info,id,request,date,returnMode,tx),tpFilter);
@@ -408,7 +408,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             checkPartitionField(model);
 
-            HATN_CTX_SCOPE("dbreadupdate")
+            HATN_CTX_SCOPE("db::readupdate")
             if (m_open)
             {
                 return afterRead(model,doReadUpdate(topic,*model->info,id,request,returnMode,tx),tpFilter);
@@ -426,7 +426,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                             const common::Date& date,
                             Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbdelete")
+            HATN_CTX_SCOPE("db::delete")
             if (m_open)
             {
                 return doDeleteObject(topic,*model->info,id,date,tx);
@@ -444,7 +444,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         {
             checkPartitionField(model);
 
-            HATN_CTX_SCOPE("dbdelete")
+            HATN_CTX_SCOPE("db::delete")
             if (m_open)
             {
                 return doDeleteObject(topic,*model->info,id,tx);
@@ -461,7 +461,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             bool sharedResultType=false
         )
         {
-            HATN_CTX_SCOPE("dbfind")
+            HATN_CTX_SCOPE("db::find")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -480,7 +480,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 bool sharedResultType=false
             )
         {
-            HATN_CTX_SCOPE("dbfind")
+            HATN_CTX_SCOPE("db::find")
             if (m_open)
             {
                 return doFind(*model->info,query,sharedResultType);
@@ -498,7 +498,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 bool sharedResultType=false
             )
         {
-            HATN_CTX_SCOPE("dbfindall")
+            HATN_CTX_SCOPE("db::findall")
             if (m_open)
             {
                 auto query=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First,order),topic);
@@ -519,7 +519,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             bool sharedResultType=false
             )
         {
-            HATN_CTX_SCOPE("dbfindall")
+            HATN_CTX_SCOPE("db::findall")
             if (m_open)
             {
                 auto query=makeQuery(oidIdx(),query::where_partitioned(oidPartitionIdx(),object::_id,query::gte,query::First,order),topic);
@@ -554,7 +554,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 bool forUpdate=false
             )
         {
-            HATN_CTX_SCOPE("dbfindcb")
+            HATN_CTX_SCOPE("db::findcb")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -572,7 +572,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             const Query<IndexT>& query
             )
         {
-            HATN_CTX_SCOPE("dbfindone")            
+            HATN_CTX_SCOPE("db::findone")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -591,7 +591,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             const QueryT& query
             )
         {
-            HATN_CTX_SCOPE("dbcount")
+            HATN_CTX_SCOPE("db::count")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -615,7 +615,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             const std::shared_ptr<ModelT>& model
             )
         {
-            HATN_CTX_SCOPE("dbcountmodel")
+            HATN_CTX_SCOPE("db::countmodel")
             if (m_open)
             {
                 return doCount(*model->info,Topic{});
@@ -639,7 +639,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             Topic topic
             )
         {
-            HATN_CTX_SCOPE("dbcountmodel")
+            HATN_CTX_SCOPE("db::countmodel")
             if (m_open)
             {
                 return doCount(*model->info,topic);
@@ -664,7 +664,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             Topic topic=Topic{}
             )
         {
-            HATN_CTX_SCOPE("dbcountmodel")
+            HATN_CTX_SCOPE("db::countmodel")
             if (m_open)
             {
                 return doCount(*model->info,date,topic);
@@ -681,7 +681,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 Transaction* tx=nullptr
             )
         {
-            HATN_CTX_SCOPE("dbdeletemany")
+            HATN_CTX_SCOPE("db::deletemany")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -699,7 +699,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             Transaction* tx=nullptr
             )
         {
-            HATN_CTX_SCOPE("dbdeletemanyb")
+            HATN_CTX_SCOPE("db::deletemanyb")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -718,7 +718,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 Transaction* tx=nullptr
             )
         {
-            HATN_CTX_SCOPE("dbupdatemany")
+            HATN_CTX_SCOPE("db::updatemany")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -738,7 +738,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                                                       update::ModifyReturn returnMode=update::ModifyReturn::After,
                                                       Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbfindupdatecreate")
+            HATN_CTX_SCOPE("db::findupdatecreate")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
@@ -757,7 +757,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr)
         {
-            HATN_CTX_SCOPE("dbfindupdate")
+            HATN_CTX_SCOPE("db::findupdate")
             if (m_open)
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
