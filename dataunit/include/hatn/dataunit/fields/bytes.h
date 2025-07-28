@@ -78,6 +78,7 @@ class FieldTmplBytes : public Field, public BytesType
         using isRepeatedType=std::false_type;
         constexpr static const bool CanChainBlocks=true;
         constexpr static auto typeId=Type::typeId;
+        using type=typename Type::type;
 
         explicit FieldTmplBytes(
             Unit *parentUnit
