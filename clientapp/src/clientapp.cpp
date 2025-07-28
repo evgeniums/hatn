@@ -194,7 +194,21 @@ Error ClientApp::openMainDb(bool create)
 
     // open main db
     auto ec=app().openDb(create);
-    HATN_CHECK_EC(ec)
+    if (ec)
+    {
+        HATN_CTX_SCOPE_ERROR("failed to open main database")
+        return ec;
+    }
+
+    // set main schema to db client
+    auto mainDbSchemaIt=pimpl->dbSchemas.find(mainDbType());
+    Assert(mainDbSchemaIt!=pimpl->dbSchemas.end(),"Main database schema not initialized yet");
+    ec=app().database().setSchema(mainDbSchemaIt->second);
+    if (ec)
+    {
+        HATN_CTX_SCOPE_ERROR("failed to set main database schema to client")
+        return ec;
+    }
 
     // done
     return OK;
