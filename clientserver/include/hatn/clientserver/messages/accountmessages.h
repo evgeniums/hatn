@@ -37,7 +37,7 @@ HDU_UNIT(activate_account,
 
 HDU_UNIT(account_login,
     HDU_FIELD(login,login_profile::TYPE,1)
-    HDU_REPEATED_FIELD(server_route,server_route_hop::TYPE,2)
+    HDU_REPEATED_FIELD(server_route,server_node::TYPE,2)
 )
 
 HDU_UNIT(activate_account_response,
