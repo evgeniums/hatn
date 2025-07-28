@@ -54,6 +54,18 @@ struct Request
             topic(std::move(topic)),
             messageTypeName(std::move(messageTypeName))
     {}
+
+    template <typename T>
+    void setMessage(common::SharedPtr<T> msg, lib::string_view messageType={})
+    {
+        if (messageType.empty())
+        {
+            messageType=msg->unitName();
+        }
+
+        messageTypeName=messageType;
+        message=std::move(msg);
+    }
 };
 
 using Response=Request;
