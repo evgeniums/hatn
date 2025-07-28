@@ -71,7 +71,7 @@ class HATN_COMMON_EXPORT WeakPool final : public Singleton
         //! Create WeakCtrl object.
         inline WeakCtrl* allocate(ManagedObject* obj)
         {
-            assert(m_allocator);
+            Assert(m_allocator,"WeakPool not initialized");
             auto* ctrl=m_allocator->allocate(1);
             m_allocator->construct(ctrl,obj);
             auto* actualCtrl=obj->setWeakCtrl(ctrl);
