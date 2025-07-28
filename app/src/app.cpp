@@ -17,6 +17,7 @@
 #include <hatn/common/filesystem.h>
 #include <hatn/common/plugin.h>
 #include <hatn/common/threadwithqueue.h>
+#include <hatn/common/pointers/mempool/weakpool.h>
 
 #include <hatn/base/configobject.h>
 
@@ -663,8 +664,13 @@ Error App::init()
         )
     );
 
-    // start logger
+    // get factory
     const auto& factory=m_env->get<AllocatorFactory>();
+
+    // init weak pool
+    common::pointers_mempool::WeakPool::init(factory.factory()->objectMemoryResource());
+
+    // start logger    
     LogAppConfig appConfig{factory.factory()};
     d->logger->setAppConfig(appConfig);
     ec=d->logger->start();
@@ -750,6 +756,9 @@ void App::close()
 
     // reset log context
     log::ThreadLocalFallbackContext::reset();
+
+    // free weak pool
+    common::pointers_mempool::WeakPool::free();
 }
 
 //---------------------------------------------------------------
@@ -928,7 +937,7 @@ Error App::openDb(
         bool create
     )
 {
-    HATN_CTX_SCOPE("appOpenDb")
+    HATN_CTX_SCOPE("app::opendb")
 
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
@@ -997,7 +1006,7 @@ Error App::openDb(
 
 Error App::destroyDb()
 {
-    HATN_CTX_SCOPE("appDestroyDb")
+    HATN_CTX_SCOPE("app::destroydb")
 
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
@@ -1069,7 +1078,7 @@ std::vector<std::string> App::listLogFiles() const
 
 Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 {
-    HATN_CTX_SCOPE("initCipherSuites")
+    HATN_CTX_SCOPE("app::initciphersuites")
 
     auto suites=std::make_shared<crypt::CipherSuites>();
 
@@ -1132,7 +1141,7 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
 
 Error App::setPreloadedCipherSuites(const std::vector<std::string>& suitesJson)
 {
-    HATN_CTX_SCOPE("setPreloadedCipherSuites")
+    HATN_CTX_SCOPE("app::setpreloadedciphersuites")
 
     d->preloadedCipherSuites.clear();
     for (const auto& json : suitesJson)
@@ -1282,7 +1291,7 @@ bool App::dbLocalDirExists() const
 {
     if (d->dbConfig.config().isSet(db_config::main_db_path))
     {
-        std::string path{d->dbConfig.config().isSet(db_config::main_db_path)};
+        std::string path{d->dbConfig.config().fieldValue(db_config::main_db_path)};
         return lib::filesystem::exists(path);
     }
     return false;
