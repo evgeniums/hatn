@@ -37,6 +37,11 @@ struct postAsyncT
                     CallbackT callback
                     ) const
     {
+        if (!ctx)
+        {
+            Assert(ctx,"Context cannot be null");
+        }
+
         auto cb=[startScopeName,callback{std::move(callback)}](auto ctx,auto&&... args) mutable
         {
             auto ctxPtr=ctx.get();
@@ -77,6 +82,11 @@ struct postAsyncT
                     HandlerT handler
                     ) const
     {
+        if (!ctx)
+        {
+            Assert(ctx,"Context cannot be null");
+        }
+
         common::postAsyncTask(
             thread,
             ctx,
