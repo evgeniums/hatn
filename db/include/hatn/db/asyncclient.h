@@ -885,6 +885,11 @@ class WithAsyncClient
             return m_db;
         }
 
+        bool hasDbClient() const
+        {
+            return static_cast<bool>(m_db);
+        }
+
         Error close()
         {
             if (m_db)
