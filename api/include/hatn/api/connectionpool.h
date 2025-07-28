@@ -391,7 +391,14 @@ class ConnectionPool
                 cb(ec);
             };
 #endif
-            closeConnection(std::move(ctx),m_defaultConnection,std::move(cb));
+            if (m_defaultConnection->ctx)
+            {
+                closeConnection(std::move(ctx),m_defaultConnection,std::move(cb));
+            }
+            else
+            {
+                cb(Error{});
+            }
         }
 
         template <typename ContextT, typename CallbackT>
@@ -401,11 +408,15 @@ class ConnectionPool
             CallbackT cb
             )
         {
-            //! @todo Refactor ConnectionPool::closeConnection: parent cintext, thread async, error handling
+            //! @todo Refactor ConnectionPool::closeConnection: parent context, thread async, error handling
 
             auto cb1=[ctx,cb{std::move(cb)},connection,this](const Error& ec)
             {
-                connection->ctx->resetParentCtx();
+                if (connection->ctx)
+                {
+                    connection->ctx->resetParentCtx();
+                }
+                connection->ctx.reset();
                 connection->state=ConnectionContext::State::Disconnected;
                 connection->sendTriesCount=0;
 
@@ -417,7 +428,10 @@ class ConnectionPool
                 );
             };
             connection->state=ConnectionContext::State::Busy;
-            connection->ctx->resetParentCtx(ctx);
+            if (connection->ctx)
+            {
+                connection->ctx->resetParentCtx(ctx);
+            }
             connection->connection().close(std::move(cb1));
         }
 
