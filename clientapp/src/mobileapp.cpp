@@ -227,7 +227,7 @@ void MobileApp::exec(
     // prepare callback
     auto cb=[callback,method,service](const HATN_NAMESPACE::Error& ec, HATN_CLIENTAPP_NAMESPACE::Response resp)
     {
-        HATN_CTX_SCOPE("mobileapp::exec::cb")
+        HATN_CTX_SCOPE("mobileappcb")
         if (ec)
         {
             HATN_CTX_PUSH_VAR("err",ec.codeString())
