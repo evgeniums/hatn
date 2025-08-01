@@ -55,14 +55,14 @@ void Service::exec(
         thread->execAsync(
             [callback=std::move(callback),this,method]()
             {
-                HATN_CTX_SCOPE("service::exec")
+                HATN_CTX_ENTER_SCOPE("service::exec")
                 HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
                 HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",method)
 
                 auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_METHOD);
                 HATN_CTX_ERROR(ec,"failed to exec service method")
 
-                HATN_CTX_STACK_BARRIER_OFF("service::exec")
+                HATN_CTX_LEAVE_SCOPE()
                 callback(ec,Response{});
             }
         );
@@ -71,22 +71,23 @@ void Service::exec(
 
     auto mthd=it->second;
 
-    if (request.messageTypeName.empty() && !mthd->messageType().empty())
+    auto msgType=mthd->messageType();
+    if (!msgType.empty() && msgType!=request.messageTypeName)
     {
         thread->execAsync(
             [callback=std::move(callback),this,method]()
             {
-                HATN_CTX_SCOPE("service::exec")
+                HATN_CTX_ENTER_SCOPE("service::exec")
                 HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
                 HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",method)
 
-                auto ec=clientAppError(ClientAppError::BRIDGE_MESSASGE_TYPE_EMPTY);
+                auto ec=clientAppError(ClientAppError::BRIDGE_MESSASGE_TYPE_MISMATCH);
                 HATN_CTX_ERROR(ec,"failed to exec service method")
 
-                HATN_CTX_STACK_BARRIER_OFF("service::exec")
+                HATN_CTX_LEAVE_SCOPE()
                 callback(ec,Response{});
             }
-            );
+        );
         return;
     }
 
@@ -96,11 +97,28 @@ void Service::exec(
         ctx->onAsyncHandlerEnter();
 
         {
-            HATN_CTX_SCOPE("service::exec")
+            HATN_CTX_SCOPE_WITH_BARRIER("service::exec")
+
             HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
             HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
 
-            mthd->exec(env,std::move(ctx),std::move(request),std::move(callback));
+            auto cb=[callback=std::move(callback)](const Error& ec, Response response)
+            {
+                HATN_CTX_STACK_BARRIER_OFF("service::exec")
+
+                if (ec)
+                {
+                    HATN_CTX_DEBUG_RECORDS(1,"BRIDGE-EXEC",{"status","failed"},{"errc",ec.codeString()},{"error",ec.message()})
+                }
+                else
+                {
+                    HATN_CTX_DEBUG_RECORDS(1,"BRIDGE-EXEC",{"status","success"})
+                }
+
+                callback(ec,std::move(response));
+            };
+
+            mthd->exec(env,std::move(ctx),std::move(request),std::move(cb));
         }
 
         ctx->onAsyncHandlerExit();

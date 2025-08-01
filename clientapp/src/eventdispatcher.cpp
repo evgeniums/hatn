@@ -18,6 +18,12 @@
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
+namespace {
+
+constexpr const int DebugVerbosity=3;
+
+}
+
 //---------------------------------------------------------------
 
 size_t EventSubscriptions::doRemove(size_t index, EventSubscriptions* subscriptions)
@@ -48,14 +54,14 @@ size_t EventSubscriptions::doInsert(EventKey key, EventHandler handler, size_t s
 {
     HATN_CTX_SCOPE("eventsubcriptions::doinsert")
 
-    HATN_CTX_DEBUG_RECORDS(1,"",{"selector_index",selectorIndex},{"keyselectorssize",key.selectors().size()},{"keyissubnull",key.isSubNull(selectorIndex)},
+    HATN_CTX_DEBUG_RECORDS(DebugVerbosity,"",{"selector_index",selectorIndex},{"keyselectorssize",key.selectors().size()},{"keyissubnull",key.isSubNull(selectorIndex)},
                            {"selector0",*key.selectors().at(0)},
                           {"selector1",*key.selectors().at(1)}
     )
 
     if (selectorIndex==key.selectors().size() || key.isSubNull(selectorIndex))
     {
-        HATN_CTX_DEBUG_RECORDS(1,"handlers inserted")
+        HATN_CTX_DEBUG_RECORDS(DebugVerbosity,"handlers inserted")
         auto idx=Index++;
         handlers.emplace(idx,std::move(handler));
         return idx;
@@ -81,7 +87,7 @@ void EventSubscriptions::doFind(const EventKey& key,std::vector<EventHandler>& r
 {
     HATN_CTX_SCOPE("eventsubcriptions::dofind")
 
-    HATN_CTX_DEBUG_RECORDS(1,"",{"selector_index",selectorIndex},{"handlersempty",handlers.empty()})
+    HATN_CTX_DEBUG_RECORDS(DebugVerbosity,"",{"selector_index",selectorIndex},{"handlersempty",handlers.empty()})
 
     if (!handlers.empty())
     {
@@ -145,16 +151,16 @@ void EventDispatcher::publish(
 
     if (handlers.empty())
     {
-        HATN_CTX_DEBUG(1,"event subscribers not found")
+        HATN_CTX_DEBUG(DebugVerbosity,"event subscribers not found")
     }
 
     for (auto&& handler : handlers)
     {
         if (handler)
         {
-            HATN_CTX_DEBUG(1,"before event subscriber invoke")
+            HATN_CTX_DEBUG(DebugVerbosity,"before event subscriber invoke")
             handler(env,ctx,event);
-            HATN_CTX_DEBUG(1,"after event subscriber invoke")
+            HATN_CTX_DEBUG(DebugVerbosity,"after event subscriber invoke")
         }
     }
 }

@@ -261,6 +261,18 @@ HATN_LOGCONTEXT_NAMESPACE_END
     HATN_CTX_SCOPE_DEFER() \
     HATN_CTX_TRACE("enter")
 
+#define HATN_CTX_ENTER_SCOPE(Name) \
+    auto ScopeCtx=HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context); \
+    HATN_CTX_IF() \
+        { ScopeCtx->enterScope(Name); } \
+    HATN_CTX_TRACE("enter")
+
+#define HATN_CTX_LEAVE_SCOPE() \
+    HATN_CTX_IF() { \
+        HATN_CTX_TRACE("leave") \
+        ScopeCtx->leaveScope();\
+    } \
+
 #define HATN_CTX_DEBUG(...) HATN_CTX_LOG_DEBUG(__VA_ARGS__)
 
 #define HATN_CTX_FATAL(...) HATN_CTX_LOG_ERR(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Fatal,__VA_ARGS__)
