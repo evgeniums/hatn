@@ -36,9 +36,12 @@ LockingController::LockingController(ClientApp* app)
       m_autoLockMode(AutoLockMode::Disabled),
       m_passphraseThrottlePeriod(DefaultPassphraseThrottlePeriod),
       m_passphraseThrottleDelay(DefaultPassphraseThrottleDelay),
+      m_passphraseThrottleTries(DefaultPassphraseThrottleTolerateTries),
+      m_passphraseCheckPeriod(DefaultPassphraseCheckPeriod),
       m_appSettingsSubscription(0),
       m_lockingSettingsSubscription(0),
-      m_passhraseThrottleSettingsSubscription(0)
+      m_passhraseThrottleSettingsSubscription(0),
+      m_passhraseSettingsSubscription(0)
 {
     m_activityTimer.setAutoAsyncGuardEnabled(false);
 }
@@ -50,15 +53,19 @@ void LockingController::start()
     // set default settings
 
     HATN_BASE_NAMESPACE::ConfigTreePath lockingSection{SettingsLockingSection};
-    HATN_BASE_NAMESPACE::ConfigTreePath passphraseSection{SettingsPassphraseThrottleSection};
+    HATN_BASE_NAMESPACE::ConfigTreePath passphraseSection{SettingsPassphraseSection};
+    HATN_BASE_NAMESPACE::ConfigTreePath passphraseThrottleSection{SettingsPassphraseThrottleSection};
 
     m_app->appSettings()->lock();
 
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("period"),DefaultAutoLockPeriod);
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("mode"),static_cast<int>(AutoLockMode::Disabled));
 
-    m_app->appSettings()->configTree().setDefaultEx(passphraseSection.copyAppend("period"),DefaultPassphraseThrottlePeriod);
-    m_app->appSettings()->configTree().setDefaultEx(passphraseSection.copyAppend("delay"),DefaultPassphraseThrottleDelay);
+    m_app->appSettings()->configTree().setDefaultEx(passphraseThrottleSection.copyAppend("period"),DefaultPassphraseThrottlePeriod);
+    m_app->appSettings()->configTree().setDefaultEx(passphraseThrottleSection.copyAppend("delay"),DefaultPassphraseThrottleDelay);
+    m_app->appSettings()->configTree().setDefaultEx(passphraseThrottleSection.copyAppend("tolerate_tries"),DefaultPassphraseThrottleTolerateTries);
+
+    m_app->appSettings()->configTree().setDefaultEx(passphraseSection.copyAppend("check_period"),DefaultPassphraseCheckPeriod);
 
     m_app->appSettings()->unlock();
 
@@ -98,6 +105,13 @@ void LockingController::start()
         },
         EventKey{AppSettingsEvent::Category,SettingsPassphraseThrottleSection}
     );
+    m_passhraseSettingsSubscription=m_app->eventDispatcher().subscribe(
+        [self=shared_from_this(),this](auto,auto,auto)
+        {
+            updatePassphraseSettings();
+        },
+        EventKey{AppSettingsEvent::Category,SettingsPassphraseSection}
+    );
 }
 
 //---------------------------------------------------------------
@@ -109,6 +123,7 @@ void LockingController::close()
     m_app->eventDispatcher().unsubscribe(m_appSettingsSubscription);
     m_app->eventDispatcher().unsubscribe(m_lockingSettingsSubscription);
     m_app->eventDispatcher().unsubscribe(m_passhraseThrottleSettingsSubscription);
+    m_app->eventDispatcher().unsubscribe(m_passhraseSettingsSubscription);
 }
 
 //---------------------------------------------------------------
@@ -246,7 +261,8 @@ void LockingController::setPassphraseThrottleSettings(
         common::SharedPtr<ClientAppSettings::Context> ctx,
         ClientAppSettings::Callback callback,
         uint32_t period,
-        uint32_t delay
+        uint32_t delay,
+        uint32_t tolerateTries
     )
 {
     {
@@ -260,9 +276,34 @@ void LockingController::setPassphraseThrottleSettings(
             {
                 return;
             }
+            auto r3=m_app->appSettings()->configTree().set(passphraseSection.copyAppend("tolerate_tries"),tolerateTries);
+            if (r3)
+            {
+                return;
+            }
         }
     }
     m_app->appSettings()->flush(std::move(ctx),std::move(callback),SettingsPassphraseThrottleSection);
+}
+
+//---------------------------------------------------------------
+
+void LockingController::setPassphraseCheckPeriod(
+    common::SharedPtr<ClientAppSettings::Context> ctx,
+    ClientAppSettings::Callback callback,
+    uint32_t period
+    )
+{
+    {
+        common::MutexScopedLock l{m_app->appSettings()->mutex()};
+        HATN_BASE_NAMESPACE::ConfigTreePath passphraseSection{SettingsPassphraseSection};
+        auto r1=m_app->appSettings()->configTree().set(passphraseSection.copyAppend("check_period"),period);
+        if (r1)
+        {
+            return;
+        }
+    }
+    m_app->appSettings()->flush(std::move(ctx),std::move(callback),SettingsPassphraseSection);
 }
 
 //---------------------------------------------------------------
@@ -302,6 +343,7 @@ void LockingController::updatePassphraseThrottleSettings()
     HATN_BASE_NAMESPACE::ConfigTreePath passphraseSection{SettingsPassphraseThrottleSection};
     uint32_t period;
     uint32_t delay;
+    uint32_t tolerateTries;
 
     {
         common::MutexScopedLock l(m_app->appSettings()->mutex());
@@ -310,6 +352,7 @@ void LockingController::updatePassphraseThrottleSettings()
         {
             period=m_app->appSettings()->configTree().getEx(passphraseSection.copyAppend("period")).asEx<uint32_t>();
             delay=m_app->appSettings()->configTree().getEx(passphraseSection.copyAppend("delay")).asEx<uint32_t>();
+            tolerateTries=m_app->appSettings()->configTree().getEx(passphraseSection.copyAppend("tolerate_tries")).asEx<uint32_t>();
         }
         catch (...)
         {
@@ -321,6 +364,33 @@ void LockingController::updatePassphraseThrottleSettings()
         common::MutexScopedLock l(m_mutex);
         m_passphraseThrottlePeriod=period;
         m_passphraseThrottleDelay=delay;
+        m_passphraseThrottleTries=tolerateTries;
+    }
+}
+
+//---------------------------------------------------------------
+
+void LockingController::updatePassphraseSettings()
+{
+    HATN_BASE_NAMESPACE::ConfigTreePath passphraseSection{SettingsPassphraseSection};
+    uint32_t period;
+
+    {
+        common::MutexScopedLock l(m_app->appSettings()->mutex());
+
+        try
+        {
+            period=m_app->appSettings()->configTree().getEx(passphraseSection.copyAppend("check_period")).asEx<uint32_t>();
+        }
+        catch (...)
+        {
+            return;
+        }
+    }
+
+    {
+        common::MutexScopedLock l(m_mutex);
+        m_passphraseCheckPeriod=period;
     }
 }
 

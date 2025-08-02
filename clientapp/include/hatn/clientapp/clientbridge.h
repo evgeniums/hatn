@@ -41,6 +41,7 @@ struct ConfirmationDescriptor
     std::string confirmationMessage;
     std::string confirmationTitle;
     std::string confirmationData;
+    bool confirmationFailed=false;
     bool skipConfirmation=false;
 };
 

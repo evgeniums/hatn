@@ -45,7 +45,8 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
         constexpr static const char* EventCategory="locking";
 
         constexpr static const char* SettingsLockingSection="clientapp.locking";
-        constexpr static const char* SettingsPassphraseThrottleSection="clientapp.passphrase_throttle";
+        constexpr static const char* SettingsPassphraseSection="clientapp.passphrase";
+        constexpr static const char* SettingsPassphraseThrottleSection="clientapp.passphrase.throttle";
 
         constexpr static const uint32_t ActivityTimerPeriod=1;
 
@@ -53,6 +54,9 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         constexpr static const uint32_t DefaultPassphraseThrottlePeriod=60;
         constexpr static const uint32_t DefaultPassphraseThrottleDelay=5;
+        constexpr static const uint32_t DefaultPassphraseThrottleTolerateTries=3;
+
+        constexpr static const uint32_t DefaultPassphraseCheckPeriod=5; // 1 minute
 
         LockingController(ClientApp* app);
 
@@ -104,6 +108,18 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
             return m_passphraseThrottleDelay;
         }
 
+        uint32_t passphraseThrottleTolerateTries() const
+        {
+            common::MutexScopedLock l(m_mutex);
+            return m_passphraseThrottleTries;
+        }
+
+        uint32_t passphraseCheckPeriod() const
+        {
+            common::MutexScopedLock l(m_mutex);
+            return m_passphraseCheckPeriod;
+        }
+
         void setAutoLockSettings(
             common::SharedPtr<ClientAppSettings::Context> ctx,
             ClientAppSettings::Callback callback,
@@ -115,7 +131,14 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
             common::SharedPtr<ClientAppSettings::Context> ctx,
             ClientAppSettings::Callback callback,
             uint32_t period,
-            uint32_t delay
+            uint32_t delay,
+            uint32_t tolerateTries=DefaultPassphraseThrottleTolerateTries
+        );
+
+        void setPassphraseCheckPeriod(
+            common::SharedPtr<ClientAppSettings::Context> ctx,
+            ClientAppSettings::Callback callback,
+            uint32_t checkPeriod
         );
 
         void setLocked(bool enable)
@@ -146,15 +169,20 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         uint32_t m_passphraseThrottlePeriod;
         uint32_t m_passphraseThrottleDelay;
+        uint32_t m_passphraseThrottleTries;
+
+        uint32_t m_passphraseCheckPeriod;
 
         size_t m_appSettingsSubscription;
         size_t m_lockingSettingsSubscription;
         size_t m_passhraseThrottleSettingsSubscription;
+        size_t m_passhraseSettingsSubscription;
 
         mutable common::MutexLock m_mutex;
 
         void updateLockingSettings();
         void updatePassphraseThrottleSettings();
+        void updatePassphraseSettings();
 };
 
 class LockEvent : public Event
