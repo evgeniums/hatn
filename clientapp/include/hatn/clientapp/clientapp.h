@@ -54,6 +54,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         constexpr static const char* PassphraseKey="passphrase";
         constexpr static const char* PincodeKey="pincode";
 
+        constexpr static const char* DataInitFile=".init";
+
         ClientApp(HATN_APP_NAMESPACE::AppName appName);
         virtual ~ClientApp();
 
@@ -119,6 +121,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         Error openData(bool init);
         Error closeData();
         Error removeData();
+
+        bool appDataInitialized() const;
 
     protected:
 

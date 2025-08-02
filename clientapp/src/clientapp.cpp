@@ -15,6 +15,7 @@
   */
 
 #include <hatn/common/flatmap.h>
+#include <hatn/common/plainfile.h>
 
 #include <hatn/app/app.h>
 
@@ -227,7 +228,39 @@ Error ClientApp::openData(bool init)
     pimpl->lockingController->start();
 
     // open data in derived class
-    return doOpenData(init);
+    ec=doOpenData(init);
+    HATN_CHECK_EC(ec)
+
+    // create folder ready file
+    if (init)
+    {
+        lib::filesystem::path initFilePath{app().appDataFolder()};
+        initFilePath.append(DataInitFile);
+        common::PlainFile initFile;
+        ec=initFile.open(initFilePath.string(),common::File::Mode::write_new);
+        if (ec)
+        {
+            HATN_CTX_SCOPE_ERROR("failed to open init file")
+            return ec;
+        }
+        initFile.close();
+
+        lib::fs_error_code fsec;
+        lib::filesystem::permissions(
+            initFilePath,
+            lib::filesystem::perms::owner_read,
+            lib::filesystem::perm_options::replace,
+            fsec
+        );
+        if (fsec)
+        {
+            auto ec1=lib::makeFilesystemError(fsec);
+            HATN_CTX_ERROR(ec1,"failed to change permissions of .init file");
+        }
+    }
+
+    // done
+    return OK;
 }
 
 //--------------------------------------------------------------------------
@@ -352,6 +385,23 @@ const LockingController* ClientApp::lockingController() const
 LockingController* ClientApp::lockingController()
 {
     return pimpl->lockingController.get();
+}
+
+//--------------------------------------------------------------------------
+
+bool ClientApp::appDataInitialized() const
+{
+    lib::filesystem::path initFilePath{app().appDataFolder()};
+    initFilePath.append(DataInitFile);
+
+    lib::fs_error_code fsec;
+    auto ok=lib::filesystem::exists(initFilePath,fsec);
+    if (fsec)
+    {
+        auto ec1=lib::makeFilesystemError(fsec);
+        HATN_CTX_ERROR(ec1,"failed to check existence of .init file");
+    }
+    return ok;
 }
 
 //--------------------------------------------------------------------------
