@@ -30,6 +30,7 @@
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/logcontext/logcontext.h>
+#include <hatn/logcontext/contextlogger.h>
 #include <hatn/logcontext/buflogger.h>
 
 #include <hatn/logcontext/fileloggertraits.h>
@@ -539,6 +540,19 @@ Error FileLoggerTraits::loadLogConfig(
             ec=lib::makeFilesystemError(fsec);
             HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for log file {}","logcontext"),logFileName))
         }
+
+        // change permissions
+        lib::filesystem::permissions(
+            logFilePath.parent_path(),
+            lib::filesystem::perms::owner_all,
+            lib::filesystem::perm_options::replace,
+            fsec
+        );
+        if (fsec)
+        {
+            auto ec1=lib::makeFilesystemError(fsec);
+            HATN_CTX_ERROR(ec1,"failed to change permissions of logs folder");
+        }
     }
     ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
     HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open log file {}","logcontext"),logFileName))
@@ -577,6 +591,19 @@ Error FileLoggerTraits::loadLogConfig(
             {
                 ec=lib::makeFilesystemError(fsec);
                 HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for error log file {}","logcontext"),errorLogFileName))
+            }
+
+            // change permissions
+            lib::filesystem::permissions(
+                errorLogFilePath.parent_path(),
+                lib::filesystem::perms::owner_all,
+                lib::filesystem::perm_options::replace,
+                fsec
+            );
+            if (fsec)
+            {
+                auto ec1=lib::makeFilesystemError(fsec);
+                HATN_CTX_ERROR(ec1,"failed to change permissions of logs folder");
             }
         }
         ec=d->errorLogFile->open(errorLogFileName,common::PlainFile::Mode::append);

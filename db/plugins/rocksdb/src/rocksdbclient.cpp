@@ -71,6 +71,7 @@ HDU_UNIT(rocksdb_config,
 
 HDU_UNIT(rocksdb_options,
          HDU_FIELD(readonly,TYPE_BOOL,1)
+         HDU_FIELD(user_permissions_only,TYPE_BOOL,2)
          )
 
 } // anonymous namespace
@@ -283,6 +284,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     bool createNew=false;
     bool readOnly=d->opt.config().field(rocksdb_options::readonly).value();
+    bool userAccessOnly=d->opt.config().field(rocksdb_options::user_permissions_only).value();
 
     // list names of existing column families
     std::vector<std::string> cfNames;
@@ -343,8 +345,25 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
             return;
         }
 
+        // open db
         status = ROCKSDB_NAMESPACE::TransactionDB::Open(options,txOptions,dbPath,&transactionDb);
         db=transactionDb;
+
+        // change permissions
+        if (status.ok() && userAccessOnly)
+        {
+            lib::filesystem::permissions(
+                dbDir,
+                lib::filesystem::perms::owner_all,
+                lib::filesystem::perm_options::replace,
+                fec
+                );
+            if (fec)
+            {
+                auto ec1=lib::makeFilesystemError(fec);
+                HATN_CTX_ERROR(ec1,"failed to change permissions of db folder");
+            }
+        }
     }
     else
     {

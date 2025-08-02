@@ -826,10 +826,26 @@ Error App::createAppDataFolder()
 {
     Assert(!m_appDataFolder.empty(),"App data folder must not be empty");
 
+    // create folder
     lib::fs_error_code ec;
     lib::filesystem::create_directories(m_appDataFolder,ec);
     auto ec1=lib::makeFilesystemError(ec);
     HATN_CHECK_CHAIN_LOG_EC(ec1,_TR("failed to create application folder","app"),HLOG_MODULE(app))
+
+    // change permissions
+    lib::filesystem::permissions(
+        m_appDataFolder,
+        lib::filesystem::perms::owner_all,
+        lib::filesystem::perm_options::replace,
+        ec
+    );
+    if (ec)
+    {
+        ec1=lib::makeFilesystemError(ec);
+        HATN_CTX_ERROR(ec1,"failed to change permissions of data folder");
+    }
+
+    // done
     return OK;
 }
 
