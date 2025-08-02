@@ -32,6 +32,11 @@ Method::~Method()
 
 //---------------------------------------------------------------
 
+ConfirmationController::~ConfirmationController()
+{}
+
+//---------------------------------------------------------------
+
 Service::Service(ClientApp* app, std::string name) : Service(std::move(name))
 {
     setContextBuilder(std::make_shared<BridgeAppContextBuilder>(app));
@@ -147,58 +152,85 @@ void Dispatcher::exec(
         Callback callback
     )
 {
-#if 1
-
     Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
-    auto it=m_services.find(service);
-    if (it==m_services.end())
+    auto execService=[this](
+                           const std::string& service,
+                           const std::string& method,
+                           Request request,
+                           Callback callback
+                    )
     {
-        auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
-        thread->execAsync(
-            [callback{std::move(callback)},service,method]()
-            {
-                HATN_CTX_SCOPE("dispatcher:exec:cb")
-                HATN_CTX_SCOPE_PUSH("bridge_srv",service)
-                HATN_CTX_SCOPE_PUSH("bridge_mthd",method)
-
-                auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
-                HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
-
-                callback(ec,Response{});
-            }
-        );
-        return;
-    }
-
-    auto envr=env(request.envId);
-    it->second->exec(std::move(envr),method,std::move(request),std::move(callback));
-#else
-
-    Assert(m_defaultEnv,"Default env must be set in dispatcher of the app bridge");
-
-    auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
-    thread->execAsync(
-        [callback=std::move(callback),request=std::move(request),service,method,this]()
+        auto it=m_services.find(service);
+        if (it==m_services.end())
         {
-            HATN_CTX_SCOPE("dispatcher:exec:cb")
-            HATN_CTX_SCOPE_PUSH("bridge_srv",service)
-            HATN_CTX_SCOPE_PUSH("bridge_mthd",method)
+            auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
+            thread->execAsync(
+                [callback{std::move(callback)},service,method]()
+                {
+                    HATN_CTX_SCOPE("dispatcher:exec:cb")
+                    HATN_CTX_SCOPE_PUSH("bridge_srv",service)
+                    HATN_CTX_SCOPE_PUSH("bridge_mthd",method)
 
-            auto it=m_services.find(service);
-            if (it==m_services.end())
+                    auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
+                    HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
+
+                    callback(ec,Response{});
+                }
+            );
+            return;
+        }
+
+        auto envr=env(request.envId);
+        it->second->exec(std::move(envr),method,std::move(request),std::move(callback));
+    };
+
+    auto confirm=confirmation(service,method);
+    if (confirm!=nullptr)
+    {
+        auto cb=[service,method,callback,execService=std::move(execService)](const Error& ec, Response response, Request request)
+        {
+            if (ec)
             {
-                auto ec=clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
-                HATN_CTX_ERROR(ec,"failed to exec dispatcher service")
-                callback(ec,Response{});
+                callback(ec,std::move(response));
                 return;
             }
 
-            auto envr=env(request.envId);
-            it->second->exec(std::move(envr),method,std::move(request),std::move(callback));
-        }
-    );
+            execService(service,method,std::move(request),std::move(callback));
+        };
+        confirm->checkConfirmation(service,method,std::move(request),std::move(cb));
+    }
+    else
+    {
+        execService(service,method,std::move(request),std::move(callback));
+    }
+}
 
-#endif
+//---------------------------------------------------------------
+
+void Dispatcher::registerConfirmation(
+        const std::string& service,
+        const std::string& method,
+        std::shared_ptr<ConfirmationController> confirmation
+    )
+{
+    std::string key=method+service;
+    m_confirmations.emplace(std::move(key),std::move(confirmation));
+}
+
+//---------------------------------------------------------------
+
+ConfirmationController* Dispatcher::confirmation(
+        const std::string& service,
+        const std::string& method
+    ) const
+{
+    std::string key=method+service;
+    auto it=m_confirmations.find(key);
+    if (it!=m_confirmations.end())
+    {
+        return it->second.get();
+    }
+    return nullptr;
 }
 
 //---------------------------------------------------------------

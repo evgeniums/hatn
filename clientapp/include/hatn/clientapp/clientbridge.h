@@ -35,6 +35,14 @@
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
+struct ConfirmationDescriptor
+{
+    std::string confirmationType;
+    std::string confirmationMessage;
+    std::string confirmationTitle;
+    std::string confirmationData;
+};
+
 struct Request
 {
     std::string envId;
@@ -42,6 +50,8 @@ struct Request
     std::string messageTypeName;
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
+
+    ConfirmationDescriptor confirmation;
 
     Request()
     {}
@@ -313,6 +323,39 @@ class ServiceT : public Service
         std::shared_ptr<Controller> m_ctrl;
 };
 
+class HATN_CLIENTAPP_EXPORT ConfirmationController
+{
+    public:
+
+        using Callback=std::function<void (const Error& ec, Response response, Request request)>;
+
+        ConfirmationController(std::string typeName) : m_typeName(std::move(typeName))
+        {}
+
+        virtual ~ConfirmationController();
+
+        ConfirmationController(const ConfirmationController&)=default;
+        ConfirmationController(ConfirmationController&&)=default;
+        ConfirmationController& operator=(const ConfirmationController&)=default;
+        ConfirmationController& operator=(ConfirmationController&&)=default;
+
+        virtual void checkConfirmation(
+            const std::string& service,
+            const std::string& method,
+            Request request,
+            Callback callback
+        ) =0;
+
+        const std::string& type() const
+        {
+            return m_typeName;
+        }
+
+    private:
+
+        std::string m_typeName;
+};
+
 class HATN_CLIENTAPP_EXPORT Dispatcher
 {
     public:
@@ -376,10 +419,22 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             return it->second->makeMessage(messageType,messageJson);
         }
 
+        void registerConfirmation(
+            const std::string& service,
+            const std::string& method,
+            std::shared_ptr<ConfirmationController> confirmation
+        );
+
+        ConfirmationController* confirmation(
+            const std::string& service,
+            const std::string& method
+        ) const;
+
     private:
 
         common::FlatMap<std::string,std::shared_ptr<Service>> m_services;
         common::FlatMap<std::string,common::SharedPtr<app::AppEnv>> m_envs;
+        common::FlatMap<std::string,std::shared_ptr<ConfirmationController>> m_confirmations;
 
         std::shared_ptr<ContextBuilder>  m_defaultCtxBuilder;
         common::SharedPtr<app::AppEnv> m_defaultEnv;
