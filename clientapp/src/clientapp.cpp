@@ -108,6 +108,7 @@ Error ClientApp::init()
 Error ClientApp::initBridge()
 {
     bridge().registerService(std::make_shared<SystemService>(this));
+    initBridgeConfirmations();
     return initBridgeServices();
 }
 

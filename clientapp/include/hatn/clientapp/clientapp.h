@@ -83,6 +83,10 @@ class HATN_CLIENTAPP_EXPORT ClientApp
             return OK;
         }
 
+        virtual void initBridgeConfirmations()
+        {
+        }
+
         Error initDb();
 
         void loadEncryptionKey(

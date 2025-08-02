@@ -185,7 +185,7 @@ void Dispatcher::exec(
     };
 
     auto confirm=confirmation(service,method);
-    if (confirm!=nullptr)
+    if (confirm!=nullptr && !request.confirmation.skipConfirmation)
     {
         auto cb=[service,method,callback,execService=std::move(execService)](const Error& ec, Response response, Request request)
         {
