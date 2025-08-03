@@ -216,6 +216,7 @@ class FieldTmplBytes : public Field, public BytesType
 
         inline void set(typename Type::type::sharedType val)
         {
+            markSet();
             this->m_value.setSharedByteArray(std::move(val));
         }
 
