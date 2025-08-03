@@ -1333,4 +1333,16 @@ const HATN_CRYPT_NAMESPACE::CipherSuite* App::storageCipherSuite() const noexcep
 
 //---------------------------------------------------------------
 
+bool App::isDbOpen() const
+{
+    if (!database().hasDbClient())
+    {
+        return false;
+    }
+
+    return database().dbClient()->client()->isOpen();
+}
+
+//---------------------------------------------------------------
+
 HATN_APP_NAMESPACE_END
