@@ -34,6 +34,7 @@ LockingController::LockingController(ClientApp* app)
       m_activityTimer(app->app().appThread()),
       m_autoLockPeriod(DefaultAutoLockPeriod),
       m_autoLockMode(AutoLockMode::Disabled),
+      m_pincodeTolerateTries(DefaultPincodeTolerateTries),
       m_passphraseThrottlePeriod(DefaultPassphraseThrottlePeriod),
       m_passphraseThrottleDelay(DefaultPassphraseThrottleDelay),
       m_passphraseThrottleTries(DefaultPassphraseThrottleTolerateTries),
@@ -60,6 +61,7 @@ void LockingController::start()
 
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("period"),DefaultAutoLockPeriod);
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("mode"),static_cast<int>(AutoLockMode::Disabled));
+    m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("tolerate_tries"),DefaultPincodeTolerateTries);
 
     m_app->appSettings()->configTree().setDefaultEx(passphraseThrottleSection.copyAppend("period"),DefaultPassphraseThrottlePeriod);
     m_app->appSettings()->configTree().setDefaultEx(passphraseThrottleSection.copyAppend("delay"),DefaultPassphraseThrottleDelay);
@@ -236,7 +238,8 @@ void LockingController::setAutoLockSettings(
         common::SharedPtr<ClientAppSettings::Context> ctx,
         ClientAppSettings::Callback callback,
         AutoLockMode mode,
-        uint32_t period
+        uint32_t period,
+        uint32_t tolerateTries
     )
 {
     {
@@ -247,6 +250,11 @@ void LockingController::setAutoLockSettings(
         {
             auto r2=m_app->appSettings()->configTree().set(lockingSection.copyAppend("mode"),static_cast<int>(mode));
             if (r2)
+            {
+                return;
+            }
+            auto r3=m_app->appSettings()->configTree().set(lockingSection.copyAppend("tolerate_tries"),tolerateTries);
+            if (r3)
             {
                 return;
             }
@@ -313,6 +321,7 @@ void LockingController::updateLockingSettings()
     HATN_BASE_NAMESPACE::ConfigTreePath lockingSection{SettingsLockingSection};
     AutoLockMode mode;
     uint32_t period;
+    uint32_t tolerateTries;
 
     {
         common::MutexScopedLock l(m_app->appSettings()->mutex());
@@ -322,6 +331,7 @@ void LockingController::updateLockingSettings()
             period=m_app->appSettings()->configTree().getEx(lockingSection.copyAppend("period")).asEx<uint32_t>();
             int modeInt=m_app->appSettings()->configTree().getEx(lockingSection.copyAppend("mode")).asEx<int>();
             mode=static_cast<AutoLockMode>(modeInt);
+            tolerateTries=m_app->appSettings()->configTree().getEx(lockingSection.copyAppend("tolerate_tries")).asEx<uint32_t>();
         }
         catch (...)
         {
@@ -333,6 +343,7 @@ void LockingController::updateLockingSettings()
         common::MutexScopedLock l(m_mutex);
         m_autoLockPeriod=period;
         m_autoLockMode=mode;
+        m_pincodeTolerateTries=tolerateTries;
     }
 }
 
