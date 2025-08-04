@@ -83,11 +83,12 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
 
                 auto cfg=prepareConfig(plugin,testConfigFile,encryptionManager);
                 currentCfg=cfg.get();
-
-                // destroy existing database
-                BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
                 base::config_object::LogRecords logRecords;
-                auto ec=client->destroyDb(*cfg,logRecords);
+                Error ec;
+#ifndef PREPAREDB_SKIP_DESTROY_CREATE
+                // destroy existing database
+                BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));                
+                ec=client->destroyDb(*cfg,logRecords);
                 for (auto&& it:logRecords)
                 {
                     BOOST_TEST_MESSAGE(fmt::format("destroy DB configuration \"{}\": {}",it.name,it.value));
@@ -106,7 +107,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                     BOOST_TEST_MESSAGE(ec.message());
                 }
                 BOOST_REQUIRE(!ec);
-
+#endif
                 // open database
                 BOOST_TEST_MESSAGE(fmt::format("opening database by {} client",plugin->info()->name));
                 ec=client->openDb(*cfg,logRecords);
