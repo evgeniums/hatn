@@ -426,7 +426,8 @@ common::Error CryptContainer::packDescriptor(
 //---------------------------------------------------------------
 template <typename ContainerT>
 common::Error CryptContainer::unpackDescriptor(
-        const ContainerT& container
+        const ContainerT& container,
+        bool headerOnly
     )
 {
     // deserialize descriptor
@@ -461,6 +462,11 @@ common::Error CryptContainer::unpackDescriptor(
         {
             return cryptError(CryptError::INVALID_CIPHER_SUITE);
         }
+    }
+
+    if (headerOnly)
+    {
+        return OK;
     }
 
     // create master key from passphrase if not set yet

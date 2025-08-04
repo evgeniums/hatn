@@ -129,7 +129,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             auto scopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(onExit));\
             std::ignore=scopeGuard;
             doOpenDb(config,ec,records,creatIfNotExists);
-            HATN_CHECK_CHAIN_ERRORS(ec,dbError(DbError::DB_OPEN_FAILED))
+            HATN_CHECK_EC(ec)
             return OK;
         }
 

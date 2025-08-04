@@ -227,12 +227,12 @@ class HATN_DB_EXPORT EncryptionManager
             return OK;
         }
 
-        static Error fileSize(const std::string& fname, uint64_t* size)
+        Error fileSize(const std::string& fname, uint64_t* size) const
         {
 #if 0
             std::cout << "In EncryptionManager::fileSize " << fname << std::endl;
 #endif
-            crypt::CryptFile file;
+            crypt::CryptFile file{m_suite.get(),m_factory};
             file.setShareMode(
                 common::File::Sharing::featureMask({
                     common::File::Share::Read,

@@ -19,7 +19,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbencryption.h>
 
-// #define HATN_RDB_PRINT_FILE_OPEN
+#define HATN_RDB_PRINT_FILE_OPEN
 
 HATN_ROCKSDB_NAMESPACE_BEGIN
 

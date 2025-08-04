@@ -316,6 +316,8 @@ class HATN_CRYPT_EXPORT CryptContainer
 
         /**
          * @brief Unpack descriptor from container
+         * @param container
+         * @param headerOnly
          * @return Operation status
          *
          * After unpacking container's descriptor the cipher suite will be looked for by ID or constructed directly if the suite's descriptor
@@ -323,7 +325,8 @@ class HATN_CRYPT_EXPORT CryptContainer
          */
         template <typename ContainerT>                
         common::Error unpackDescriptor(
-            const ContainerT& container
+            const ContainerT& container,
+            bool headerOnly=false
         );
 
         /**

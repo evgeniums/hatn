@@ -189,7 +189,7 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
             {
                 throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
             }
-            HATN_CHECK_THROW(m_proc.unpackDescriptor(m_readBuffer))
+            HATN_CHECK_THROW(m_proc.unpackDescriptor(m_readBuffer,headerOnly && !isStreamingMode()))
 
             // set data offset to position after descriptor
             m_dataOffset=static_cast<size_t>(m_file->pos());
