@@ -40,6 +40,7 @@
     Do(ClientAppError,APPLICATION_SETTING_NOT_SET,_TR("application setting not set","clientapp")) \
     Do(ClientAppError,APPLICATION_CONFIG_NOT_SET,_TR("application configuration parameter not set","clientapp")) \
     Do(ClientAppError,CONFIRMATION_REQUIRED,_TR("confirmation required","clientapp")) \
+    Do(ClientAppError,CONFIRMATION_FAILED,_TR("confirmation failed","clientapp")) \
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 

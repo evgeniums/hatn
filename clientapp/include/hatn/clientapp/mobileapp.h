@@ -15,8 +15,8 @@
 
 /****************************************************************************/
 
-#ifndef HATNMMOBILEAPP_H
-#define HATNMMOBILEAPP_H
+#ifndef HATNMOBILEAPP_H
+#define HATNMOBILEAPP_H
 
 #include <string>
 #include <vector>
@@ -26,6 +26,7 @@
 #include <hatn/app/appname.h>
 
 #include <hatn/clientapp/clientappdefs.h>
+#include <hatn/clientapp/confirmationdescriptor.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
@@ -45,6 +46,7 @@ struct Request
     std::string messageTypeName;
     std::string messageJson;
     std::vector<std::vector<const char>> buffers;
+    ConfirmationDescriptor confirmation;
 
     Request()
     {}
@@ -66,6 +68,7 @@ struct Response
     std::string messageTypeName;
     std::string messageJson;
     std::vector<std::pair<const char*,size_t>> buffers;
+    ConfirmationDescriptor confirmation;
 
     Response()
     {}
@@ -202,4 +205,4 @@ class HATN_CLIENTAPP_EXPORT MobileApp
 
 HATN_CLIENTAPP_MOBILE_NAMESPACE_END
 
-#endif // HATNMMOBILEAPP_H
+#endif // HATNMOBILEAPP_H

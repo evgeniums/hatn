@@ -23,6 +23,7 @@ SET (HEADERS
 
     include/hatn/clientapp/clientappsettings.h
     include/hatn/clientapp/lockingcontroller.h
+    include/hatn/clientapp/confirmationdescriptor.h
 )
 
 SET (SOURCES

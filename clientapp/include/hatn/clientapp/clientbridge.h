@@ -32,20 +32,9 @@
 
 #include <hatn/clientapp/clientapperror.h>
 #include <hatn/clientapp/clientapp.h>
+#include <hatn/clientapp/confirmationdescriptor.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
-
-struct ConfirmationDescriptor
-{
-    std::string confirmationType;
-    std::string confirmationMessage;
-    std::string confirmationTitle;
-    std::string confirmationData;
-    bool confirmationFailed=false;
-    bool skipConfirmation=false;
-
-    uint32_t triesCount=0;
-};
 
 struct Request
 {

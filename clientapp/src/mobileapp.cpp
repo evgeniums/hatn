@@ -203,6 +203,7 @@ void MobileApp::exec(
         std::move(request.topic),
         std::move(request.messageTypeName)
     };
+    req.confirmation=std::move(request.confirmation);
 
     // make message
     if (req.messageTypeName!="")
@@ -243,6 +244,7 @@ void MobileApp::exec(
           std::move(resp.topic),
           std::move(resp.messageTypeName)
         };
+        response.confirmation=std::move(resp.confirmation);
         if (resp.message)
         {
             response.messageJson=resp.message.get()->toString();
