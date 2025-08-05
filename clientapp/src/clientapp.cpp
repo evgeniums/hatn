@@ -95,13 +95,20 @@ EventDispatcher& ClientApp::eventDispatcher()
 
 Error ClientApp::init()
 {
+    // init app
     auto ec=app().init();
     if (!ec)
     {
         pimpl->appSettings=std::make_shared<ClientAppSettings>(this);
         pimpl->lockingController=std::make_shared<LockingController>(this);
     }
-    return ec;
+    HATN_CHECK_EC(ec);
+
+    // init locking controller
+    pimpl->lockingController->init();
+
+    // done
+    return OK;
 }
 
 //--------------------------------------------------------------------------

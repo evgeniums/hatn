@@ -43,6 +43,8 @@ struct ConfirmationDescriptor
     std::string confirmationData;
     bool confirmationFailed=false;
     bool skipConfirmation=false;
+
+    uint32_t triesCount=0;
 };
 
 struct Request
