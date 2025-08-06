@@ -35,7 +35,7 @@
     Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_NETWORK_ROUTE_CHAIN,_TR("unsupported network routing chain for server in account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_NETWORK_PROTOCOL,_TR("unsupported network protocol for server in account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol for server in account configuration","clientserver")) \
-    Do(ClientServerError,ACCOUNT_CONFIG_UNKNOWN_IP_ADDRESS,_TR("unknown network address of server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_UNKNOWN_HOST,_TR("unknown network address of server in account configuration","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_INVALID,_TR("invalid authentication token","clientserver")) \
@@ -52,6 +52,7 @@
     Do(ClientServerError,LOGIN_BLOCKED,_TR("login blocked","clientserver")) \
     Do(ClientServerError,LOGIN_EXPIRED,_TR("login expired","clientserver")) \
     Do(ClientServerError,USER_BLOCKED,_TR("user blocked","clientserver")) \
+    Do(ClientServerError,INVALID_NETWORK_PROTOCOL_CONFIGURATION,_TR("invalid configuration of network protocol","clientserver")) \
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
