@@ -213,35 +213,6 @@ HDU_UNIT(password_gen_config,
     HDU_FIELD(has_digit,TYPE_BOOL,7,false,crypt::PasswordGeneratorParameters::DefaultHasDigit)
 )
 
-#if 0
-
-struct HATN_CRYPT_EXPORT PasswordGeneratorParameters
-{
-    constexpr static size_t DefaultMinLength=8;
-    constexpr static size_t DefaultMaxLength=14;
-
-    constexpr static size_t DefaultLettersWeight=20;
-    constexpr static size_t DefaultDigitsWeight=4;
-    constexpr static size_t DefaultSpecialsWeight=2;
-
-    constexpr static bool DefaultHasSpecial=true;
-    constexpr static bool DefaultHasDigit=true;
-
-    size_t minLength=DefaultMinLength;
-    size_t maxLength=DefaultMaxLength;
-
-    size_t lettersWeight=DefaultLettersWeight;
-    size_t digitsWeight=DefaultDigitsWeight;
-    size_t specialsWeight=DefaultSpecialsWeight;
-
-    bool hasSpecial=DefaultHasSpecial;
-    bool hasDigit=DefaultHasDigit;
-
-    //! @todo Implement configurable source arrays
-};
-
-#endif
-
 //---------------------------------------------------------------
 
 class App_p
@@ -290,6 +261,7 @@ class App_p
         void loadPlugins(const std::string& pluginFolder);
 
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
+        Error initDbPlugin();
         db::ClientConfig dbClientConfig(lib::string_view name);
         void setAppLogger(std::shared_ptr<log::Logger> newLogger)
         {
@@ -300,7 +272,9 @@ class App_p
             log::ThreadLocalFallbackContext::set(&currentLogCtx);
         }
 
-        Error loadCryptPlugin(lib::string_view name);
+        Error loadCryptPlugin(lib::string_view name);        
+
+        std::shared_ptr<common::MappedThreadQWithTaskContext> makeDbMappedThreads(common::ThreadQWithTaskContext* thread) const;
 };
 
 //---------------------------------------------------------------
@@ -940,11 +914,61 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view name)
     auto cfgPath=base::ConfigTreePath{DbConfigRoot}.copyAppend(name);
     db::ClientConfig cfg{app->m_configTree,
                          app->m_configTree,
-                         cfgPath.copyAppend("main"),
-                         cfgPath.copyAppend("options")
+                         cfgPath.copyAppend(App::DbConfigMainSection),
+                         cfgPath.copyAppend(App::DbConfigOptionsSection)
                          };
+    cfg.dbPathPrefix=app->appDataFolder();
     cfg.encryptionManager=dbEncryptionManager;
     return cfg;
+}
+
+//---------------------------------------------------------------
+
+std::shared_ptr<common::MappedThreadQWithTaskContext> App_p::makeDbMappedThreads(common::ThreadQWithTaskContext* thread) const
+{
+    //! @todo Use thread tags
+    auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
+    uint8_t dbThreadCount=dbConfig.config().fieldValue(db_config::thread_count);
+    if (dbThreadCount>app->m_threads.size()-1)
+    {
+        dbThreadCount=static_cast<uint8_t>(app->m_threads.size()-1);
+    }
+    if (dbThreadCount>1)
+    {
+        mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
+        size_t i=0;
+        for (auto&& it:app->m_threads)
+        {
+            mappedThreads->addMappedThread(it.get());
+            i++;
+            if (i==dbThreadCount)
+            {
+                break;
+            }
+        }
+    }
+    return mappedThreads;
+}
+
+//---------------------------------------------------------------
+
+Error App_p::initDbPlugin()
+{
+    if (!dbPlugin)
+    {
+        auto name=dbConfig.config().fieldValue(db_config::provider);
+        if (name.empty())
+        {
+            return chainAndLogError(appError(AppError::UNKNOWN_DB_PROVIDER),_TR("name of database provider must not be empty","app"));
+        }
+        auto plugin=loadDbPlugin(name);
+        if (plugin)
+        {
+            return chainAndLogError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
+        }
+        dbPlugin=plugin.takeValue();
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -954,19 +978,12 @@ Error App::openDb(
     )
 {
     HATN_CTX_SCOPE("app::opendb")
+    Error ec;
 
     // load plugin
     auto name=d->dbConfig.config().fieldValue(db_config::provider);
-    if (name.empty())
-    {
-        return chainAndLogError(appError(AppError::UNKNOWN_DB_PROVIDER),_TR("name of database provider must not be empty","app"));
-    }
-    auto plugin=d->loadDbPlugin(name);
-    if (plugin)
-    {
-        return chainAndLogError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
-    }
-    d->dbPlugin=plugin.takeValue();
+    ec=d->initDbPlugin();
+    HATN_CHECK_EC(ec)
 
     // create db client
     d->dbClient=d->dbPlugin->makeClient();
@@ -975,8 +992,7 @@ Error App::openDb(
     auto thread=appThread();
     Assert(thread!=nullptr,"Threads must be initialized before opening database");
 
-    // open db
-    Error ec;
+    // open db    
     base::config_object::LogRecords logRecords;
     std::ignore=thread->execSync(
         [this,&ec,&logRecords,&name,create]()
@@ -990,32 +1006,50 @@ Error App::openDb(
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to open application database","app"),HLOG_MODULE(app))
 
     // set db client in env
-    //! @todo Use thread tags
-    auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
-    uint8_t dbThreadCount=d->dbConfig.config().fieldValue(db_config::thread_count);
-    if (dbThreadCount>m_threads.size()-1)
-    {
-        dbThreadCount=static_cast<uint8_t>(m_threads.size()-1);
-    }
-    if (dbThreadCount>1)
-    {
-        mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
-        size_t i=0;
-        for (auto&& it:m_threads)
-        {
-            mappedThreads->addMappedThread(it.get());
-            i++;
-            if (i==dbThreadCount)
-            {
-                break;
-            }
-        }
-    }
+    auto mappedThreads=d->makeDbMappedThreads(thread);
     auto asyncDbClient=std::make_shared<db::AsyncClient>(d->dbClient,std::move(mappedThreads));
     database().setDbClient(std::move(asyncDbClient));
 
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+Result<std::shared_ptr<db::AsyncClient>> App::openAdditionalDatabase(
+        const std::string& name,
+        const db::ClientConfig& config,
+        bool create
+    )
+{
+    HATN_CTX_SCOPE("app::openadditionaldatabase")
+    Error ec;
+
+    // create db client
+    auto dbClient=d->dbPlugin->makeClient();
+    Assert(dbClient,"Failed to create db client in plugin");
+
+    auto thread=appThread();
+
+    // open db
+    base::config_object::LogRecords logRecords;
+    logRecords.emplace_back(base::config_object::LogRecord{"db_name",name});
+    std::ignore=thread->execSync(
+        [dbClient,&config,&ec,&logRecords,create]()
+        {
+            ec=dbClient->openDb(config,logRecords,create);
+        }
+    );
+    logConfigRecords(_TR("configuration of additional database","app"),HLOG_MODULE(app),logRecords);
+
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to open additional database","app"),HLOG_MODULE(app))
+
+    // set db client in env
+    auto mappedThreads=d->makeDbMappedThreads(thread);
+    auto asyncDbClient=std::make_shared<db::AsyncClient>(dbClient,std::move(mappedThreads));
+
+    // done
+    return asyncDbClient;
 }
 
 //---------------------------------------------------------------
@@ -1341,6 +1375,13 @@ bool App::isDbOpen() const
     }
 
     return database().dbClient()->client()->isOpen();
+}
+
+//---------------------------------------------------------------
+
+HATN_BASE_NAMESPACE::ConfigTreePath App::dbConfigProviderPath() const
+{
+    return HATN_BASE_NAMESPACE::ConfigTreePath{DbConfigRoot}.copyAppend(d->dbConfig.config().fieldValue(db_config::provider));
 }
 
 //---------------------------------------------------------------

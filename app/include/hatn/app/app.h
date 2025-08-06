@@ -56,6 +56,9 @@ class HATN_APP_EXPORT App
 
         constexpr static const char* DefaultCryptProvider="hatnopenssl";
 
+        constexpr static const char* DbConfigMainSection="main";
+        constexpr static const char* DbConfigOptionsSection="options";
+
         App(AppName appName);
         ~App();
 
@@ -265,6 +268,14 @@ class HATN_APP_EXPORT App
         static void registerDbSchema(std::shared_ptr<HATN_DB_NAMESPACE::Schema> schema);
         static void unregisterDbSchema(const std::string& name);
         static void freeDbSchemas();
+
+        HATN_BASE_NAMESPACE::ConfigTreePath dbConfigProviderPath() const;
+
+        Result<std::shared_ptr<db::AsyncClient>> openAdditionalDatabase(
+            const std::string& name,
+            const db::ClientConfig& config,
+            bool create=true
+        );
 
     private:
 
