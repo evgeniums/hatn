@@ -110,7 +110,7 @@ class PlainTcpRouterTraits
 
         template <typename ...Args>
         PlainTcpRouterTraits(
-                Args&... args
+                Args&&... args
             ) : m_config(std::forward<Args>(args)...),
                 m_allocatorFactory(common::pmr::AllocatorFactory::getDefault())
         {}
@@ -118,7 +118,7 @@ class PlainTcpRouterTraits
         template <typename ...Args>
         PlainTcpRouterTraits(
                 const common::pmr::AllocatorFactory* allocatorFactory,
-                Args&... args
+                Args&&... args
             ) : m_config(std::forward<Args>(args)...),
                 m_allocatorFactory(allocatorFactory)
         {}
