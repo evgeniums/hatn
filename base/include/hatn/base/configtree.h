@@ -178,6 +178,8 @@ class HATN_BASE_EXPORT ConfigTree : public ConfigTreeValue
 
         Result<std::vector<std::string>> allKeys(const ConfigTreePath& root=ConfigTreePath()) const;
 
+        Error copy(const ConfigTree& source, const ConfigTreePath& sourceRoot=ConfigTreePath(), const ConfigTreePath& targetRoot=ConfigTreePath());
+
     private:
 
         Result<const ConfigTree&> getImpl(const ConfigTreePath& path) const noexcept;

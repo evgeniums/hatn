@@ -17,6 +17,7 @@
 
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreepath.h>
+#include <hatn/base/configtreejson.h>
 
 HATN_BASE_NAMESPACE_BEGIN
 
@@ -473,6 +474,18 @@ Result<std::vector<std::string>> ConfigTree::allKeys(const ConfigTreePath &root)
 
     HATN_CHECK_RETURN(each(handler,root))
     return keys;
+}
+
+//---------------------------------------------------------------
+
+Error ConfigTree::copy(const ConfigTree& source, const ConfigTreePath& sourceRoot, const ConfigTreePath& targetRoot)
+{
+    ConfigTreeJson processor;
+
+    auto jsonR=processor.serialize(source,sourceRoot);
+    HATN_CHECK_RESULT(jsonR)
+
+    return processor.parse(*this,jsonR.value(),targetRoot);
 }
 
 //---------------------------------------------------------------
