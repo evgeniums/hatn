@@ -19,6 +19,7 @@
 #include <hatn/crypt/x509certificate.h>
 
 #include <hatn/clientapp/methodupdatesystemca.h>
+#include <hatn/clientapp/systemservice.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 

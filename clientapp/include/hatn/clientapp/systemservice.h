@@ -31,6 +31,11 @@ class HATN_CLIENTAPP_EXPORT SystemService : public Service
         constexpr static const char* Name="system";
 
         SystemService(ClientApp* app);
+
+        int controller() const
+        {
+            return 0;
+        }
 };
 
 using SystemServiceMethod=ServiceMethod<SystemService>;

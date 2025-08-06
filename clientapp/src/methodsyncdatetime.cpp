@@ -17,6 +17,7 @@
 #include <hatn/dataunit/syntax.h>
 
 #include <hatn/clientapp/methodsyncdatetime.h>
+#include <hatn/clientapp/systemservice.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 
