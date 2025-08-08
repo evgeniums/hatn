@@ -27,6 +27,7 @@
 #include <hatn/common/pmr/pmrtypes.h>
 #include <hatn/common/pmr/withstaticallocator.h>
 #include <hatn/common/stdwrappers.h>
+#include <hatn/common/meta/dynamiccastwithsample.h>
 
 #include <hatn/validator/utils/foreach_if.hpp>
 #include <hatn/validator/validator.hpp>
@@ -644,6 +645,9 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
 /**   template */
 template <typename Conf,typename ...Fields> using DataUnit=UnitConcat<Conf,Fields...>;
 
+struct managed_unit_tag
+{};
+
 /**  Managed variant of the DataUnit */
 template <typename UnitType>
 class ManagedUnit : public common::EnableSharedFromThis<ManagedUnit<UnitType>>, public UnitType
@@ -651,6 +655,18 @@ class ManagedUnit : public common::EnableSharedFromThis<ManagedUnit<UnitType>>, 
     public:
 
         using UnitType::UnitType;
+
+        using hana_tag=managed_unit_tag;
+
+        inline ManagedUnit* castToManagedUnit(Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
+
+        inline const ManagedUnit* castToManagedUnit(const Unit* unit) const noexcept
+        {
+            return common::dynamicCastWithSample(unit,this);
+        }
 
         /**
          * @brief Create dynamically allocated DataUnit of self type

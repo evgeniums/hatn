@@ -546,6 +546,8 @@ struct unit
     }
 };
 
+#if 0
+
 struct managed_unit_tag
 {};
 
@@ -568,6 +570,14 @@ class managed_unit : public ManagedUnit<UnitT>,
             return common::dynamicCastWithSample(unit,this);
         }
 };
+#else
+
+using managed_unit_tag=HATN_DATAUNIT_NAMESPACE::managed_unit_tag;
+
+template <typename UnitT>
+using managed_unit=ManagedUnit<UnitT>;
+
+#endif
 
 //---------------------------------------------------------------
 

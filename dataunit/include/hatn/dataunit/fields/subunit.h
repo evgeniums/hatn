@@ -328,7 +328,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         virtual void setV(common::SharedPtr<Unit> val) override
         {
+            //! @todo critical: Fix for shared_managed
+#if 0
             FTraits<Type,Shared>::setV(this,std::move(val));
+#else
+            std::ignore=val;
+#endif
         }
 
         virtual void getV(common::SharedPtr<Unit>& val) const override

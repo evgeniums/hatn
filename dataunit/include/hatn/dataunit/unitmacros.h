@@ -266,8 +266,8 @@ enum class EnumName : int {__VA_ARGS__};
 #define HDU_V2_INSTANTIATE1(UnitName) \
     template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
     template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
-    template class HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
-    template class HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::shared_type>;\
+    template class HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::type>;\
+    template class HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::shared_type>;\
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
     template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
 
@@ -276,8 +276,8 @@ enum class EnumName : int {__VA_ARGS__};
     #define HDU_V2_EXPORT(UnitName,Export) \
         template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
         template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
-        template class Export HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::type>;\
-        template class Export HATN_DATAUNIT_META_NAMESPACE::managed_unit<UnitName::shared_type>;\
+        template class Export HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::type>;\
+        template class Export HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::shared_type>;\
         template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
         template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
 

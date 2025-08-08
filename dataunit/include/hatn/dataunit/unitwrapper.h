@@ -49,7 +49,7 @@ class UnitWrapper
         }
 
         template <typename T>
-        T* unit()
+        auto* unit()
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>,"T must be of Unit type");
             Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
@@ -59,7 +59,7 @@ class UnitWrapper
         }
 
         template <typename T>
-        const T* unit() const
+        const auto* unit() const
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>,"T must be of Unit type");
             Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
@@ -69,7 +69,7 @@ class UnitWrapper
         }
 
         template <typename T>
-        T* managedUnit()
+        auto* managedUnit()
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>,"T must be of ManagedUnit type");
             Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
@@ -79,7 +79,7 @@ class UnitWrapper
         }
 
         template <typename T>
-        T* managedUnit() const
+        auto* managedUnit() const
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>,"T must be of ManagedUnit type");
             Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
@@ -99,14 +99,14 @@ class UnitWrapper
         }
 
         template <typename T>
-        T* get() const noexcept
+        auto* get() const noexcept
         {
             auto self=const_cast<UnitWrapper*>(this);
             return self->template get<T>();
         }
 
         template <typename T>
-        T* get() noexcept
+        auto* get() noexcept
         {            
             if constexpr (hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>)
             {
@@ -127,25 +127,25 @@ class UnitWrapper
         }
 
         template <typename T>
-        T* mutableValue() noexcept
+        auto* mutableValue() noexcept
         {
             return *get<T>();
         }
 
         template <typename T>
-        const T& value() const noexcept
+        const auto& value() const noexcept
         {
             return *get<T>();
         }
 
         template <typename T>
-        T* as() const noexcept
+        auto* as() const noexcept
         {
             return get<T>();
         }
 
         template <typename T>
-        T* as() noexcept
+        auto* as() noexcept
         {
             return get<T>();
         }
@@ -155,7 +155,7 @@ class UnitWrapper
             return m_shared;
         }
 
-        Unit* get() const noexcept
+        auto* get() const noexcept
         {
             return m_shared.get();
         }
@@ -186,42 +186,42 @@ class UnitWrapperT : public UnitWrapper
         UnitWrapperT(UnitWrapper other) : UnitWrapper(std::move(other))
         {}
 
-        T* get() const noexcept
+        auto* get() const noexcept
         {
             return this->template managedUnit<T>();
         }
 
-        T* get() noexcept
+        auto* get() noexcept
         {
             return this->template managedUnit<T>();
         }
 
-        T* mutableValue() noexcept
+        auto* mutableValue() noexcept
         {
             return *get();
         }
 
-        const T& value() const noexcept
+        const auto& value() const noexcept
         {
             return *get();
         }
 
-        T* operator->() const noexcept
+        auto* operator->() const noexcept
         {
             return get();
         }
 
-        T* operator->() noexcept
+        auto* operator->() noexcept
         {
             return get();
         }
 
-        T& operator*() const noexcept
+        auto& operator*() const noexcept
         {
             return value();
         }
 
-        T& operator*() noexcept
+        auto& operator*() noexcept
         {
             return mutableValue();
         }
