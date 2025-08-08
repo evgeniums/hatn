@@ -30,7 +30,7 @@ class LoginController
 
         using Context=typename ContextTraits::Context;
 
-        // CallbackT= void (auto ctx, const Error& ec, common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::login_profile::managed> login)
+        // CallbackT= void (auto ctx, const Error& ec, common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::user_login::managed> login)
         template <typename CallbackT>
         void findLogin(
             common::SharedPtr<Context> ctx,

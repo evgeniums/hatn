@@ -113,7 +113,7 @@ void SharedSecretAuthProtocol::check(
         auto tokenPtr=token.get();
 
         auto findCb=[token=std::move(token),callback=std::move(callback),checkMAC=std::move(checkMAC)](auto ctx, Error ec,
-                                                                                                                 common::SharedPtr<login_profile::managed> login) mutable
+                                                                                                                 common::SharedPtr<user_login::managed> login) mutable
         {
             if (ec)
             {
@@ -135,7 +135,7 @@ void SharedSecretAuthProtocol::check(
 
     // check MAC
     auto checkMAC=[this,message=std::move(message)](auto ctx, auto callback, common::SharedPtr<auth_challenge_token::managed> token,
-                           common::SharedPtr<login_profile::managed> login)
+                           common::SharedPtr<user_login::managed> login)
     {
         HATN_CTX_SCOPE_WITH_BARRIER("[checkmac]")
 
@@ -215,7 +215,7 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
     {
         HATN_CTX_SCOPE_WITH_BARRIER("[checksharedsecret]")
 
-        auto cb=[createSession=std::move(createSession),callback=std::move(callback)](auto ctx, Error ec, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<login_profile::managed> login) mutable
+        auto cb=[createSession=std::move(createSession),callback=std::move(callback)](auto ctx, Error ec, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<user_login::managed> login) mutable
         {
             auto& req=serverapi::request<Request>(ctx).request();
             if (ec)
@@ -256,7 +256,7 @@ void AuthHssCheckMethodImpl<RequestT>::exec(
         );
     };
 
-    auto createSession=[](auto request, auto callback, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<login_profile::managed> login)
+    auto createSession=[](auto request, auto callback, common::SharedPtr<auth_challenge_token::managed> token, common::SharedPtr<user_login::managed> login)
     {
         HATN_CTX_SCOPE_WITH_BARRIER("[createsession]")
 

@@ -52,20 +52,20 @@ void LoginController<ContextTraits>::findLogin(
             if (result.error().is(ClientServerError::INVALID_LOGIN_FORMAT,ClientServerErrorCategory::getCategory()))
             {
                 auto ec=api::makeApiError(result.takeError(),api::ApiAuthError::INVALID_LOGIN_FORMAT,api::ApiAuthErrorCategory::getCategory());
-                callback(std::move(ctx),std::move(ec),common::SharedPtr<login_profile::managed>{});
+                callback(std::move(ctx),std::move(ec),common::SharedPtr<user_login::managed>{});
                 return;
             }
 
             if (db::objectNotFound(result))
             {
                 auto ec=api::makeApiError(common::chainErrors(result.takeError(),clientServerError(ClientServerError::LOGIN_NOT_FOUND)),api::ApiAuthError::AUTH_FAILED,api::ApiAuthErrorCategory::getCategory());
-                callback(std::move(ctx),std::move(ec),common::SharedPtr<login_profile::managed>{});
+                callback(std::move(ctx),std::move(ec),common::SharedPtr<user_login::managed>{});
                 return;
             }
 
             HATN_CTX_SCOPE("logincontroller::findlogin")
             HATN_CTX_EC_LOG(result.error(),"failed to find login")
-            callback(std::move(ctx),result.takeError(),common::SharedPtr<login_profile::managed>{});
+            callback(std::move(ctx),result.takeError(),common::SharedPtr<user_login::managed>{});
             return;
         }
 
@@ -93,7 +93,7 @@ void LoginController<ContextTraits>::checkCanLogin(
     {
         HATN_CTX_SCOPE_WITH_BARRIER("[checklogin]")
 
-        auto cb=[checkUser=std::move(checkUser),callback=std::move(callback),topic=db::TopicHolder{topic}](auto ctx, Error ec, common::SharedPtr<login_profile::managed> loginObj) mutable
+        auto cb=[checkUser=std::move(checkUser),callback=std::move(callback),topic=db::TopicHolder{topic}](auto ctx, Error ec, common::SharedPtr<user_login::managed> loginObj) mutable
         {
             if (ec)
             {
@@ -103,7 +103,7 @@ void LoginController<ContextTraits>::checkCanLogin(
             }
             Assert(loginObj,"login can not be null");
 
-            if (loginObj->fieldValue(login_profile::blocked))
+            if (loginObj->fieldValue(user_login::blocked))
             {
                 HATN_CTX_SCOPE_LOCK()
                 ec=api::makeApiError(clientServerError(ClientServerError::LOGIN_BLOCKED),api::ApiAuthError::ACCESS_DENIED,api::ApiAuthErrorCategory::getCategory());

@@ -80,7 +80,7 @@ class SharedSecretAuthProtocol : public SharedSecretAuthBase
         template <typename ContextT, typename CallbackT, typename LoginControllerT>
         void check(
             common::SharedPtr<ContextT> ctx,
-            CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<login_profile::managed> login)
+            CallbackT callback, // void (common::SharedPtr<Context> ctx, const Error& ec, common::SharedPtr<user_login::managed> login)
             common::SharedPtr<auth_hss_check::managed> message,
             const LoginControllerT& loginController,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()

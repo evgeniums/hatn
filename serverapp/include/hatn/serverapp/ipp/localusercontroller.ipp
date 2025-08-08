@@ -112,7 +112,7 @@ template <typename ContextTraits>
 void LocalUserControllerImpl<ContextTraits>::addLogin(
         common::SharedPtr<Context> ctx,
         CallbackOid callback,
-        common::SharedPtr<login_profile::managed> login,
+        common::SharedPtr<user_login::managed> login,
         db::Topic topic
     )
 {
@@ -130,7 +130,7 @@ void LocalUserControllerImpl<ContextTraits>::addLogin(
 template <typename ContextTraits>
 void LocalUserControllerImpl<ContextTraits>::findLogin(
         common::SharedPtr<Context> ctx,
-        CallbackObj<login_profile::managed> callback,
+        CallbackObj<user_login::managed> callback,
         lib::string_view login,
         db::Topic topic
     ) const

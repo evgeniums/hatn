@@ -661,40 +661,40 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     usr4->setFieldValue(user::blocked,true);
     BOOST_TEST_MESSAGE(fmt::format("usr4= {}",usr4->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
 
-    auto login1_1=makeShared<login_profile::managed>();
+    auto login1_1=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login1_1);
     login1_1->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login1_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
     login1_1->setFieldValue(with_user::user_topic,config.topic1);
     BOOST_TEST_MESSAGE(fmt::format("login1_1= {}",login1_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
-    auto login1_2=makeShared<login_profile::managed>();
+    auto login1_2=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login1_2);
     login1_2->setFieldValue(with_user::user,usr1->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login1_2->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
     login1_2->setFieldValue(with_user::user_topic,config.topic1);
     BOOST_TEST_MESSAGE(fmt::format("login1_2= {}",login1_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
 
-    auto login3_0=makeShared<login_profile::managed>();
+    auto login3_0=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login3_0);
     login3_0->setFieldValue(with_user::user,HATN_DATAUNIT_NAMESPACE::ObjectId::generateId());
     login3_0->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
     login3_0->setFieldValue(with_user::user_topic,config.topic1);
     BOOST_TEST_MESSAGE(fmt::format("login3_0= {}",login3_0->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
 
-    auto login2_1=makeShared<login_profile::managed>();
+    auto login2_1=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login2_1);
     login2_1->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login2_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
     login2_1->setFieldValue(with_user::user_topic,config.topic1);
     BOOST_TEST_MESSAGE(fmt::format("login2_1= {}",login2_1->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
-    auto login2_2=makeShared<login_profile::managed>();
+    auto login2_2=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login2_2);
     login2_2->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login2_2->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
     login2_2->setFieldValue(with_user::user_topic,config.topic1);
-    login2_2->setFieldValue(login_profile::blocked,true);
+    login2_2->setFieldValue(user_login::blocked,true);
     BOOST_TEST_MESSAGE(fmt::format("login2_2= {}",login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
-    auto login2_3=makeShared<login_profile::managed>();
+    auto login2_3=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login2_3);
     login2_3->setFieldValue(with_user::user,usr2->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login2_3->setFieldValue(login_profile::secret1,config.clientSharedSecret2);
@@ -704,7 +704,7 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     login2_3->setFieldValue(login_profile::expire_at,expAt);
     BOOST_TEST_MESSAGE(fmt::format("login2_3= {}",login2_2->fieldValue(HATN_DB_NAMESPACE::object::_id).toString()));
 
-    auto login4_1=makeShared<login_profile::managed>();
+    auto login4_1=makeShared<user_login::managed>();
     HATN_DB_NAMESPACE::initObject(*login4_1);
     login4_1->setFieldValue(with_user::user,usr4->fieldValue(HATN_DB_NAMESPACE::object::_id));
     login4_1->setFieldValue(login_profile::secret1,config.clientSharedSecret1);
