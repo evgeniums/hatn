@@ -277,13 +277,43 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     {
                         server=asio::makeTcpServerCtx(isIpv6?"server-6":"server-4");
                         server->beginTaskContext();
-                        HATN_CTX_SCOPE("server-listen-accept")
-                        auto ec=(*server)->listen(serverEndpoint);
-                        HATN_REQUIRE_TS(!ec);
+                        {
+                            HATN_CTX_SCOPE("server-listen-accept")
+#if 0
+                        auto ScopeCtx=HATN_CTX_CURRENT();
+                        if (HATN_CTX_CURRENT()!=nullptr)
+                        {
+                            ScopeCtx->enterScope("server-listen-accept");
+                        }
+                        auto _ctxOnExit=[ScopeCtx]
+                        {
+                            const auto& logger=HATN_LOGCONTEXT_NAMESPACE::contextLogger(HATN_CTX_CURRENT());
+                            if (HATN_LOGCONTEXT_NAMESPACE::contextLoggerAvailable(HATN_CTX_CURRENT())
+                                &&
+                                HATN_LOGCONTEXT_NAMESPACE::Logger::passLog(
+                                        logger,
+                                        HATN_LOGCONTEXT_NAMESPACE::LogLevel::Trace,
+                                        HATN_CTX_CURRENT()
+                                    )
+                                )
+                            {
+                                HATN_CTX_TRACE("leave")
+                            }
 
-                        serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");                        
-                        (*server)->accept((*serverClient1)->socket(),acceptCb1);
-                        server->onAsyncHandlerExit();
+                            ScopeCtx->leaveScope();
+                        };
+                        auto _ctxScopeGuard=HATN_COMMON_NAMESPACE::makeScopeGuard(std::move(_ctxOnExit),ScopeCtx!=nullptr);
+                        std::ignore=_ctxScopeGuard;
+                        HATN_CTX_TRACE("enter")
+#endif
+                            auto ec=(*server)->listen(serverEndpoint);
+                            HATN_REQUIRE_TS(!ec);
+
+                            serverClient1=asio::makeTcpStreamCtx(isIpv6?"serverClient1-6":"serverClient1-4");
+                            (*server)->accept((*serverClient1)->socket(),acceptCb1);
+                        }
+
+                        server->endTaskContext();
                     }
             );
             BOOST_REQUIRE(!ec);
@@ -331,39 +361,50 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     {
                         client1=asio::makeTcpStreamCtx(isIpv6?"client1-6":"client1-4");
                         client1->beginTaskContext();
-                        HATN_CTX_SCOPE("client1-connect")
-                        (*client1)->setRemoteEndpoint(serverEndpoint);
-                        (*client1)->prepare(client1ConnectCb);
-                        client1->onAsyncHandlerExit();
+                        {
+                            HATN_CTX_SCOPE("client1-connect")
+                            (*client1)->setRemoteEndpoint(serverEndpoint);
+                            (*client1)->prepare(client1ConnectCb);
+                        }
+                        client1->endTaskContext();
                     }
 
                     {
                         client2=asio::makeTcpStreamCtx(isIpv6?"client2-6":"client2-4");
+
                         client2->beginTaskContext();
-                        HATN_CTX_SCOPE("client2-context")
-                        HATN_CTX_SCOPE_PUSH("client-id",2)
-                        HATN_CTX_STACK_BARRIER_ON("client2-context")
                         {
-                            HATN_CTX_SCOPE("client2-connect")
-                            (*client2)->setRemoteEndpoint(serverEndpoint);
-                            (*client2)->setLocalEndpoint(client2Endpoint);
-                            (*client2)->prepare(client2ConnectCb);
-                            client2->onAsyncHandlerExit();
+                            HATN_CTX_SCOPE("client2-context")
+                            HATN_CTX_SCOPE_PUSH("client-id",2)
+                            HATN_CTX_STACK_BARRIER_ON("client2-context")
+                            {
+                                HATN_CTX_SCOPE("client2-connect")
+                                (*client2)->setRemoteEndpoint(serverEndpoint);
+                                (*client2)->setLocalEndpoint(client2Endpoint);
+                                (*client2)->prepare(client2ConnectCb);
+                            }
                         }
+
+                        client2->endTaskContext();
                     }
 
                     {
                         client3=asio::makeTcpStreamCtx(isIpv6?"client3-6":"client3-4");
                         client3->beginTaskContext();
-                        HATN_CTX_SCOPE("client3-context")
-                        HATN_CTX_SCOPE_PUSH("client-id",3)
-                        HATN_CTX_STACK_BARRIER_ON("client2-context")
+
                         {
-                            HATN_CTX_SCOPE("client3-connect")
-                            (*client3)->setRemoteEndpoint(noServerEndpoint);
-                            (*client3)->prepare(client3ConnectCb);
-                            client3->onAsyncHandlerExit();
+
+                            HATN_CTX_SCOPE("client3-context")
+                            HATN_CTX_SCOPE_PUSH("client-id",3)
+                            HATN_CTX_STACK_BARRIER_ON("client2-context")
+                            {
+                                HATN_CTX_SCOPE("client3-connect")
+                                (*client3)->setRemoteEndpoint(noServerEndpoint);
+                                (*client3)->prepare(client3ConnectCb);
+                            }
                         }
+
+                        client3->endTaskContext();
                     }
                 }
             );
@@ -388,16 +429,22 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     {
                         {
                             client1->beginTaskContext();
-                            HATN_CTX_SCOPE("client1-close")
-                            (*client1)->close(closeCb);
-                            client1->onAsyncHandlerExit();
+
+                            {
+                                HATN_CTX_SCOPE("client1-close")
+                                (*client1)->close(closeCb);
+                            }
+
+                            client1->endTaskContext();
                         }
 
                         {
                             client2->beginTaskContext();
-                            HATN_CTX_SCOPE("client2-close")
-                            (*client2)->close(closeCb);
-                            client2->onAsyncHandlerExit();
+                            {
+                                HATN_CTX_SCOPE("client2-close")
+                                (*client2)->close(closeCb);
+                            }
+                            client2->endTaskContext();
                         }
                     }
             );
@@ -413,25 +460,31 @@ BOOST_FIXTURE_TEST_CASE(TcpServerAccept,Env)
                     {
                         {
                             serverClient1->beginTaskContext();
-                            HATN_CTX_SCOPE("serverclient1-close")
-                            (*serverClient1)->close(closeCb);
-                            serverClient1->onAsyncHandlerExit();
+                            {
+                                HATN_CTX_SCOPE("serverclient1-close")
+                                (*serverClient1)->close(closeCb);
+                            }
+                            serverClient1->endTaskContext();
                         }
 
                         if (serverClient2)
                         {
                             serverClient2->beginTaskContext();
-                            HATN_CTX_SCOPE("serverclient2-close")
-                            (*serverClient2)->close(closeCb);
-                            serverClient2->onAsyncHandlerExit();
+                            {
+                                HATN_CTX_SCOPE("serverclient2-close")
+                                (*serverClient2)->close(closeCb);
+                            }
+                            serverClient2->endTaskContext();
                         }
 
                         {
                             server->beginTaskContext();
-                            HATN_CTX_SCOPE("server-close")
-                            auto ec=(*server)->close();
-                            HATN_CHECK_TS(!ec);
-                            server->onAsyncHandlerExit();
+                            {
+                                HATN_CTX_SCOPE("server-close")
+                                auto ec=(*server)->close();
+                                HATN_CHECK_TS(!ec);
+                            }
+                            server->endTaskContext();
                         }
                     }
             );
@@ -595,15 +648,17 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         {
                             server=asio::makeTcpServerCtx(isIpv6?"server-6":"server-4");
                             server->beginTaskContext();
-                            HATN_CTX_SCOPE("connectserver-listen-accept")
-                            HATN_CTX_DEBUG("listen")
-                            auto ec=(*server)->listen(serverEndpoint);
-                            HATN_REQUIRE_TS(!ec);
+                            {
+                                HATN_CTX_SCOPE("connectserver-listen-accept")
+                                HATN_CTX_DEBUG("listen")
+                                auto ec=(*server)->listen(serverEndpoint);
+                                HATN_REQUIRE_TS(!ec);
 
-                            serverClient=asio::makeTcpStreamCtx(isIpv6?"serverClient-6":"serverClient-4");
-                            HATN_CTX_DEBUG("accept")
-                            (*server)->accept((*serverClient)->socket(),acceptCb);
-                            server->onAsyncHandlerExit();
+                                serverClient=asio::makeTcpStreamCtx(isIpv6?"serverClient-6":"serverClient-4");
+                                HATN_CTX_DEBUG("accept")
+                                (*server)->accept((*serverClient)->socket(),acceptCb);
+                            }
+                            server->endTaskContext();
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -681,21 +736,24 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         {
                             client=asio::makeTcpStreamCtx(isIpv6?"client-6":"client-4");
                             client->beginTaskContext();
-                            HATN_CTX_SCOPE("client-context")
-                            HATN_CTX_STACK_BARRIER_ON("client-context")
                             {
-                                HATN_CTX_SCOPE("client-prepare")
-                                HATN_CTX_STACK_BARRIER_ON("client-prepare")
+
+                                HATN_CTX_SCOPE("client-context")
+                                HATN_CTX_STACK_BARRIER_ON("client-context")
                                 {
-                                    HATN_CTX_SCOPE("client-connect")
-                                    HATN_CTX_STACK_BARRIER_ON("client-connect")
-                                    HATN_CTX_DEBUG("connecting")
-                                    (*client)->setRemoteEndpoint(serverEndpoint);
-                                    (*client)->prepare(connectCb);
-                                    client->onAsyncHandlerExit();
+                                    HATN_CTX_SCOPE("client-prepare")
+                                    HATN_CTX_STACK_BARRIER_ON("client-prepare")
+                                    {
+                                        HATN_CTX_SCOPE("client-connect")
+                                        HATN_CTX_STACK_BARRIER_ON("client-connect")
+                                        HATN_CTX_DEBUG("connecting")
+                                        (*client)->setRemoteEndpoint(serverEndpoint);
+                                        (*client)->prepare(connectCb);
+                                    }
                                 }
                             }
-                        }
+                            client->endTaskContext();
+                        }                        
         );
 
         BOOST_TEST_MESSAGE("Exec 10 seconds...");
@@ -712,10 +770,12 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         [&client,&closeCb]()
                         {
                             client->beginTaskContext();
-                            HATN_CTX_STACK_BARRIER_RESTORE("client-context")
-                            HATN_CTX_SCOPE("client-close")
-                            (*client)->close(closeCb);
-                            client->onAsyncHandlerExit();
+                            {
+                                HATN_CTX_STACK_BARRIER_RESTORE("client-context")
+                                HATN_CTX_SCOPE("client-close")
+                                (*client)->close(closeCb);
+                            }
+                            client->endTaskContext();
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -727,16 +787,21 @@ BOOST_FIXTURE_TEST_CASE(TcpSendRecv,Env)
                         {
                             {
                                 serverClient->beginTaskContext();
-                                HATN_CTX_SCOPE("serverclient-close")
-                                (*serverClient)->close(closeCb);
-                                serverClient->onAsyncHandlerExit();
+                                {
+                                    HATN_CTX_SCOPE("serverclient-close")
+                                    (*serverClient)->close(closeCb);
+                                }
+                                serverClient->endTaskContext();
                             }
 
                             {
+                                Error ec;
                                 server->beginTaskContext();
-                                HATN_CTX_SCOPE("server-close")
-                                auto ec=(*server)->close();
-                                server->onAsyncHandlerExit();
+                                {
+                                    HATN_CTX_SCOPE("server-close")
+                                    ec=(*server)->close();
+                                }
+                                server->endTaskContext();
                                 HATN_CHECK_TS(!ec);
                             }
                         }

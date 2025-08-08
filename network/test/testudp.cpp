@@ -180,6 +180,10 @@ BOOST_FIXTURE_TEST_CASE(UdpServerBind,Env)
 
 BOOST_FIXTURE_TEST_CASE(UdpClientPrepare,Env)
 {
+    auto handler=std::make_shared<HATN_LOGCONTEXT_NAMESPACE::StreamLogger>();
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::init(std::static_pointer_cast<HATN_LOGCONTEXT_NAMESPACE::LoggerHandler>(handler));
+    HATN_LOGCONTEXT_NAMESPACE::ContextLogger::instance().setDefaultLogLevel(HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug);
+
     uint16_t serverPortNumber=11511;
     uint16_t portNumber1=11712;
     uint16_t portNumber2=11513;
@@ -620,18 +624,25 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
                             server=HATN_NETWORK_NAMESPACE::asio::makeUdpServerCtx(isIpv6?"server-6":"server-4");
                             server->beginTaskContext();
 
-                            HATN_CTX_SCOPE("serverbind")
-                            HATN_CTX_DEBUG("binding server")
-
-                            auto bindOk=[&server,&rxPacketCount,&serverRecvBuf,&serverPacketsToSend,&serverTxPacketCount](const HATN_COMMON_NAMESPACE::Error &ec)
                             {
-                                HATN_CTX_SCOPE("serverbindcb")
-                                HATN_CTX_DEBUG("server bound")
 
-                                HATN_REQUIRE_TS(!ec);
-                                recvNext(&server->get(),serverRecvBuf,rxPacketCount,serverPacketsToSend,serverTxPacketCount);
-                            };
-                            (*server)->bind(serverEndpoint,bindOk);
+                                HATN_CTX_SCOPE("serverbind")
+                                HATN_CTX_DEBUG("binding server")
+
+                                auto bindOk=[&server,&rxPacketCount,&serverRecvBuf,&serverPacketsToSend,&serverTxPacketCount](const HATN_COMMON_NAMESPACE::Error &ec)
+                                {
+                                    HATN_CTX_SCOPE("serverbindcb")
+                                    HATN_CTX_DEBUG("server bound")
+
+                                    HATN_REQUIRE_TS(!ec);
+                                    recvNext(&server->get(),serverRecvBuf,rxPacketCount,serverPacketsToSend,serverTxPacketCount);
+                                };
+                                (*server)->bind(serverEndpoint,bindOk);
+
+                            }
+
+                            server->endTaskContext();
+
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -656,11 +667,15 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
                             client=HATN_NETWORK_NAMESPACE::asio::makeUdpClientCtx(isIpv6?"client-6":"client-4");
                             client->beginTaskContext();
 
-                            HATN_CTX_SCOPE("clientPrepare")
-                            HATN_CTX_DEBUG("client preparing")
+                            {
+                                HATN_CTX_SCOPE("clientPrepare")
+                                HATN_CTX_DEBUG("client preparing")
 
-                            (*client)->setRemoteEndpoint(serverEndpoint);
-                            (*client)->prepare(connectCb);
+                                (*client)->setRemoteEndpoint(serverEndpoint);
+                                (*client)->prepare(connectCb);
+                            }
+
+                            client->endTaskContext();
                         }
         );
 
@@ -682,10 +697,15 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
                         {
                             client->beginTaskContext();
 
-                            HATN_CTX_SCOPE("clientclose")
-                            HATN_CTX_DEBUG("client closing")
+                            {
+                                HATN_CTX_SCOPE("clientclose")
+                                HATN_CTX_DEBUG("client closing")
 
-                            (*client)->close(clientCloseCb);
+                                (*client)->close(clientCloseCb);
+                            }
+
+                            client->endTaskContext();
+
                         }
         );
         BOOST_REQUIRE(!ec);
@@ -704,10 +724,15 @@ BOOST_FIXTURE_TEST_CASE(UdpSendRecv,Env)
                         [&serverCloseCb,&server]()
                         {
                             server->beginTaskContext();
-                            HATN_CTX_SCOPE("serverclose")
-                            HATN_CTX_DEBUG("server closing")
 
-                            (*server)->close(serverCloseCb);
+                            {
+                                HATN_CTX_SCOPE("serverclose")
+                                HATN_CTX_DEBUG("server closing")
+
+                                (*server)->close(serverCloseCb);
+                            }
+
+                            server->endTaskContext();
                         }
         );
         BOOST_REQUIRE(!ec);

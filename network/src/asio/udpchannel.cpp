@@ -28,6 +28,8 @@ HATN_COMMON_USING
 
 namespace asio {
 
+//! @todo Refactor logging with context logger
+
 /********************** UdpChannelTraits **************************/
 
 //---------------------------------------------------------------
@@ -328,7 +330,7 @@ void UdpChannelSingleTraits::prepare(
         std::function<void (const Error &)> callback
     )
 {
-    HATN_CTX_SCOPE("udpsingleprepare")
+    HATN_CTX_SCOPE_WITH_BARRIER("udpsingleprepare")
 
     auto cb=[callback,wptr{channel()->ctxWeakPtr()},this](const Error &ec)
     {
@@ -338,11 +340,12 @@ void UdpChannelSingleTraits::prepare(
         }
 
         {
-            HATN_CTX_SCOPE("udpsingleconnect")
-
             if (ec)
             {
-                callback(ec);
+                {
+                    HATN_CTX_STACK_BARRIER_OFF("udpsingleprepare")
+                    callback(ec);
+                }
                 channel()->leaveAsyncHandler();
                 return;
             }
@@ -355,14 +358,14 @@ void UdpChannelSingleTraits::prepare(
                 }
 
                 {
-                    HATN_CTX_SCOPE("udpsingleconnect")
+                    HATN_CTX_STACK_BARRIER_OFF("udpsingleprepare")
 
                     if (!ec1)
                     {
                         channel()->localEndpoint()=rawSocket().local_endpoint();
 #if 0
-                DCS_DEBUG_ID(asioudpchannel,HATN_FORMAT("UDP socket connected to remote {}:{} from local {}:{}",channel()->remoteEndpoint().address().to_string(),channel()->remoteEndpoint().port(),
-                                                      channel()->localEndpoint().address().to_string(),channel()->localEndpoint().port()));
+            DCS_DEBUG_ID(asioudpchannel,HATN_FORMAT("UDP socket connected to remote {}:{} from local {}:{}",channel()->remoteEndpoint().address().to_string(),channel()->remoteEndpoint().port(),
+                                                  channel()->localEndpoint().address().to_string(),channel()->localEndpoint().port()));
 #endif
                     }
                     else
@@ -400,7 +403,7 @@ void UdpChannelSingleTraits::prepare(
                 if (detail::enterAsyncHandler(wptr,callback))
                 {
                     {
-                        HATN_CTX_SCOPE("udpsingleprepare")
+                        HATN_CTX_STACK_BARRIER_OFF("udpsingleprepare")
                         cb(Error());
                     }
                     channel()->leaveAsyncHandler();

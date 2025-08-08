@@ -7,6 +7,7 @@
 
 #include <hatn/test/multithreadfixture.h>
 
+#include <hatn/network/asio/careslib.h>
 #include <hatn/network/asio/caresolver.h>
 #include <hatn/network/resolvershuffle.h>
 
@@ -81,9 +82,9 @@ BOOST_FIXTURE_TEST_CASE(ResolveNotFound,Env)
                         };
 
                         resolver=std::make_shared<HATN_NETWORK_NAMESPACE::asio::CaResolver>();
-                        resolver->resolveName("notfound.decfile.com",notFoundCb,context);
-                        resolver->resolveService("_notfound._tcp.decfile.com",notFoundCb,context);
-                        resolver->resolveMx("notfound-mx.decfile.com",notFoundCb,context);
+                        resolver->resolveName(context,notFoundCb,"notfound.decfile.com");
+                        resolver->resolveService(context,notFoundCb,"_notfound._tcp.decfile.com");
+                        resolver->resolveMx(context,notFoundCb,"notfound-mx.decfile.com");
                     }
                 );
 
@@ -249,11 +250,11 @@ void checkResolve(Env* env, bool useGoogleServer)
                         {
                             resolver=std::make_shared<HATN_NETWORK_NAMESPACE::asio::CaResolver>();
                         }
-                        resolver->resolveName("r-test2.decfile.com",foundCb1,context,80);
-                        resolver->resolveService("_test._udp.decfile.com",foundCb2,context);
-                        resolver->resolveMx("decfile.com",foundCb3,context);
+                        resolver->resolveName(context,foundCb1,"r-test2.decfile.com",80);
+                        resolver->resolveService(context,foundCb2,"_test._udp.decfile.com");
+                        resolver->resolveMx(context,foundCb3,"decfile.com");
 #ifdef DNS_RESOLVE_LOCAL_HOSTS
-                        resolver->resolveName("test1.local",foundCb4,context,22);
+                        resolver->resolveName(context,foundCb4,"test1.local",22);
 #endif
                     }
                 );

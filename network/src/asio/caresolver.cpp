@@ -70,6 +70,8 @@ static const int CHECK_TIMEOUTS_PERIOD=1000; // ms
 
 /********************** CaresLib **************************/
 
+//! @todo Refactor logging with context logger
+
 const common::pmr::AllocatorFactory* CaresLib::m_allocatorFactory=nullptr;
 
 namespace {

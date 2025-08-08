@@ -53,6 +53,8 @@ HATN_COMMON_USING
 
 namespace asio {
 
+//! @todo Refactor logging with context logger
+
 /*********************** TcpStream **************************/
 
 //---------------------------------------------------------------
