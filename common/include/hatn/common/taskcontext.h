@@ -165,14 +165,12 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         /**
          * @brief Non-virtual version of beforeThreadProcessing
          */
-        void beforeThreadProcessingNV()
-        {}
+        void beforeThreadProcessingNV();
 
         /**
          * @brief Non-virtual version of afterThreadProcessing
          */
-        void afterThreadProcessingNV()
-        {}
+        void afterThreadProcessingNV();
 
         /**
          * @brief Method to invoke in the end of async handler.
@@ -357,7 +355,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
          */
         SharedPtr<TaskContext> parentCtx() const noexcept
         {
-            return m_parentCtx.storage;
+            return m_parentCtx.castBack();
         }
 
         /**
@@ -366,7 +364,18 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
          */
         bool hasParentCtx() const noexcept
         {
-            return m_parentCtx.storage;
+            return m_parentCtx.castBack();
+        }
+
+        static TaskContext* currentTaskCtx();
+
+        void setCurrentTaskCtxAsParent()
+        {
+            auto ctx=currentTaskCtx();
+            if (ctx!=nullptr)
+            {
+                resetParentCtx(ctx->sharedFromThis());
+            }
         }
 
     private:
@@ -677,6 +686,29 @@ class ActualTaskContext : public BaseTaskContext
                     subCtx.setMainCtx(this);
                 }
             );
+        }
+
+        ~ActualTaskContext()=default;
+        ActualTaskContext(const ActualTaskContext&)=delete;
+        ActualTaskContext& operator=(const ActualTaskContext&)=delete;
+
+        ActualTaskContext(ActualTaskContext&& other)
+            : m_subcontexts(std::move(other.subcontexts())),
+              m_refs(subctxRefs())
+        {
+        }
+
+        ActualTaskContext& operator=(ActualTaskContext&& other)
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_subcontexts=std::move(other.subcontexts());
+            m_refs=subctxRefs();
+
+            return *this;
         }
 
         /**

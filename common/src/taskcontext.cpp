@@ -21,6 +21,10 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+namespace {
+thread_local static TaskContext* CurrentTaskCtx=nullptr;
+}
+
 //---------------------------------------------------------------
 
 std::chrono::time_point<TaskContext::Clock> TaskContext::generateId(TaskContextId& id)
@@ -74,6 +78,27 @@ Result<std::chrono::time_point<TaskContext::Clock>> TaskContext::extractStarted(
 #endif
     auto dSinceEpoch=std::chrono::milliseconds(millisSinceEpoch);
     return std::chrono::time_point<TaskContext::Clock>(dSinceEpoch);
+}
+
+//---------------------------------------------------------------
+
+void TaskContext::beforeThreadProcessingNV()
+{
+    CurrentTaskCtx=this;
+}
+
+//---------------------------------------------------------------
+
+void TaskContext::afterThreadProcessingNV()
+{
+    CurrentTaskCtx=nullptr;
+}
+
+//---------------------------------------------------------------
+
+TaskContext* TaskContext::currentTaskCtx()
+{
+    return CurrentTaskCtx;
 }
 
 //---------------------------------------------------------------
