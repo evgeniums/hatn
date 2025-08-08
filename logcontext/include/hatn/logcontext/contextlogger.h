@@ -152,6 +152,28 @@ HATN_LOGCONTEXT_NAMESPACE_END
 
 #define HATN_CTX_DEBUG_0(Msg) HATN_CTX_DEBUG_1(0,Msg)
 
+#define HATN_CTX_DEBUG_ERROR_2(Verbosity,Err,Msg,Module) \
+    HATN_CTX_DEBUG_IF_2(Verbosity,Module) \
+    { \
+        HATN_LOG_CTX().logError( \
+                  HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
+                  Err, \
+                  HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
+                  Msg, \
+                  Module \
+                ); \
+    }
+
+#define HATN_CTX_DEBUG_ERROR_1(Verbosity,Err,Msg) \
+    HATN_CTX_DEBUG_IF_1(Verbosity) \
+    { \
+        HATN_LOG_CTX().logError( \
+                  HATN_LOGCONTEXT_NAMESPACE::LogLevel::Debug, \
+                  Err, \
+                  HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context), \
+                  Msg \
+                ); \
+    }
 
 #define HATN_CTX_LOG_ERR_1(Level,Err,Msg,Module) \
     HATN_CTX_LOG_IF_1(Level,Module) \
@@ -233,6 +255,12 @@ HATN_LOGCONTEXT_NAMESPACE_END
                                   HATN_CTX_LOG_ERR_1, \
                                   HATN_CTX_LOG_ERR_0 \
                                   )(__VA_ARGS__))
+
+#define HATN_CTX_LOG_DEBUG_ERROR(...) \
+    HATN_CTX_EXPAND(HATN_CTX_GET_ARG5(__VA_ARGS__, \
+                              HATN_CTX_DEBUG_ERROR_2, \
+                              HATN_CTX_DEBUG_ERROR_1 \
+                          )(__VA_ARGS__))
 
 #define HATN_CTX_LOG_DEBUG(...) \
         HATN_CTX_EXPAND(HATN_CTX_GET_ARG4(__VA_ARGS__, \
