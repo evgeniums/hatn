@@ -23,10 +23,10 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-using DefaultRequestContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
+using DefaultRequestContext=common::TaskContext;
 
 template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...AuthProtocols>
-class ClientWithAuthT : public HATN_LOGCONTEXT_NAMESPACE::TaskLogContext
+class ClientWithAuthT : public common::TaskContext
 {
     public:
 
@@ -128,7 +128,7 @@ using ClientWithSharedSecretAuthContext=common::TaskContextType<
         ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>,
         typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Client,
         typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Session,
-        HATN_LOGCONTEXT_NAMESPACE::Context
+        HATN_LOGCONTEXT_NAMESPACE::LogContext
     >;
 
 template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...ExtraAuthProtocols>
@@ -189,6 +189,7 @@ struct makeClientWithSharedSecretAuthContextT
             auto& clientWithAuth=ctx->template get<ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>>();
             auto& client=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Client>();
             auto& session=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Session>();
+            // auto& logContext=ctx->template get<HATN_LOGCONTEXT_NAMESPACE::LogContext>;
             clientWithAuth.setClient(&client);
             clientWithAuth.setSession(&session);
         }

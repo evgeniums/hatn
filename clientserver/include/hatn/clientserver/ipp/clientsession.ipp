@@ -151,8 +151,9 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
         // send request to server
         //! @todo optimization: Use static method singleton
+        auto ctx1=ctx.template staticCast<common::TaskContext>();
         ec=client->exec(
-            ctx,
+            ctx1,
             std::move(reqCb),
             *service(),
             api::Method{AuthNegotiateMethodName},

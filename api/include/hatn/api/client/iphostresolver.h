@@ -50,20 +50,19 @@ class IpHostResolverTraits
             ) : m_resolver(thread,nameServers,resolvConfPath)
         {}
 
-        template <typename ContextT>
         void resolve(
-                common::SharedPtr<ContextT> ctx,
-                const ServerName& serverName,
-                ResolverCallbackFn<ResolvedEndpoints> callback
+                const common::TaskContextShared& ctx,
+                ResolverCallbackFn<ResolvedEndpoints> callback,
+                const ServerName& serverName
             )
         {
             if (serverName.service)
             {
-                m_resolver.resolveService(serverName.name,std::move(callback),std::move(ctx),serverName.ipVersion);
+                m_resolver.resolveService(ctx,std::move(callback),serverName.name,serverName.ipVersion);
             }
             else
             {
-                m_resolver.resolveName(serverName.name,std::move(callback),std::move(ctx),serverName.port,serverName.ipVersion);
+                m_resolver.resolveName(ctx,std::move(callback),serverName.name,serverName.port,serverName.ipVersion);
             }
         }
 

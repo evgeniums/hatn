@@ -19,6 +19,8 @@
 #ifndef HATNAPICLIENTSESSION_IPP
 #define HATNAPICLIENTSESSION_IPP
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/visitors.h>
 
@@ -107,12 +109,17 @@ void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb
     }
     setRefreshing(true);
 
-    //! @todo Maybe switch log context to session context
+    HATN_CTX_SCOPE_WITH_BARRIER("session::refresh")
+
     auto sessionCtx=this->sharedMainCtx();
+    sessionCtx->resetParentCtx(ctx);
     this->traits().refresh(
         std::move(ctx),        
         [sessionCtx{std::move(sessionCtx)},this](auto ctx, const Error& ec)
         {
+            sessionCtx->resetParentCtx();
+            HATN_CTX_STACK_BARRIER_OFF("session::refresh")
+
             setRefreshing(false);
             setValid(!ec);
             if (ec)

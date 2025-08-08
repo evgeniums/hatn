@@ -498,7 +498,7 @@ class ConnectionPool
                     return;
                 }
 
-                connectionCtx->resetParentCtx(std::move(ctx));
+                connectionCtx->resetParentCtx(ctx);
                 auto& connection=connectionCtx->template get<Connection>();
                 auto connectCb=[connectionCtx{std::move(connectionCtx)},ctx{std::move(ctx)},cb{std::move(cb)}](const common::Error& ec)
                 {

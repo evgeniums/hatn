@@ -44,14 +44,13 @@ class Resolver : public common::WithTraits<Traits>
         using ResolvedEndpoints=typename Traits::ResolvedEndpoints;
         using ServerName=typename Traits::ServerName;
 
-        template <typename ContextT>
         void resolve(
-                common::SharedPtr<ContextT> ctx,
-                const ServerName& serverName,
-                ResolverCallbackFn<ResolvedEndpoints> callback
+                const common::TaskContextShared& ctx,
+                ResolverCallbackFn<ResolvedEndpoints> callback,
+                const ServerName& serverName
             )
         {
-            this->traits().resolve(std::move(ctx),serverName,std::move(callback));
+            this->traits().resolve(ctx,std::move(callback),serverName);
         }
 };
 

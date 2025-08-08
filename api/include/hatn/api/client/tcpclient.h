@@ -21,6 +21,8 @@
 
 #include <hatn/common/thread.h>
 
+#include <hatn/logcontext/contextlogger.h>
+
 #include <hatn/network/resolvershuffle.h>
 #include <hatn/network/asio/tcpstream.h>
 
@@ -61,6 +63,8 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                 std::function<void (const Error &)> callback
             )
         {
+            HATN_CTX_SCOPE("tcpclient::prepare")
+
             if (isClosed())
             {
                 reset();
@@ -93,10 +97,14 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                 return;
             }
 
+            HATN_CTX_SCOPE_WITH_BARRIER("tcpclient::connectnext")
+
             setRemoteEndpoint(eps[epIdx]);
 
-            auto cb=[this,hostsIdx,epIdx{epIdx+1},eps{std::move(eps)},callback{std::move(callback)}](const Error &ec)
+            auto cb=[this,hostsIdx,epIdx=epIdx+1,eps=std::move(eps),callback{std::move(callback)}](const Error &ec)
             {
+                HATN_CTX_STACK_BARRIER_OFF("tcpclient::connectnext")
+
                 if (ec)
                 {
                     if (epIdx==eps.size())
@@ -135,14 +143,19 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                 return;
             }
 
+            HATN_CTX_SCOPE_WITH_BARRIER("tcpclient::resolvenext")
+
             if (hostsIdx>=m_hosts.size())
             {
                 hostsIdx=0;
             }
             auto ctx=sharedMainCtx();
-            auto cb=[this,callback{std::move(callback)},ctx,hostsIdx{hostsIdx+1}](const Error& ec, std::vector<HATN_NETWORK_NAMESPACE::asio::IpEndpoint> eps)
+            ctx->setCurrentTaskCtxAsParent();
+            auto cb=[this,callback{std::move(callback)},hostsIdx{hostsIdx+1},ctx](const Error& ec, std::vector<HATN_NETWORK_NAMESPACE::asio::IpEndpoint> eps)
             {
-                std::ignore=ctx;
+                HATN_CTX_STACK_BARRIER_OFF("tcpclient::resolvenext")
+                ctx->resetParentCtx();
+
                 if (ec)
                 {
                     if (hostsIdx<m_hosts.size())
@@ -175,7 +188,7 @@ class TcpClient : public HATN_NETWORK_NAMESPACE::asio::TcpStream
                 }
                 connectNext(hostsIdx,0,std::move(eps),std::move(callback));
             };
-            m_resolver->resolve(ctx,m_hosts[hostsIdx],cb);
+            m_resolver->resolve(ctx,std::move(cb),m_hosts[hostsIdx]);
         }
 
         std::shared_ptr<IpHostResolver> m_resolver;

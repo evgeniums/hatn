@@ -52,7 +52,7 @@ HDU_UNIT(config,
     HDU_FIELD(max_pool_priority_connections,TYPE_UINT32,2,false,DefaultMaxPoolPriorityConnections)
 )
 
-using ClientTaskContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
+using ClientTaskContext=common::TaskContext;
 
 template <typename RouterT, typename SessionWrapperT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
 class Client : public common::TaskSubcontext,
@@ -80,6 +80,7 @@ class Client : public common::TaskSubcontext,
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
+                m_networkDisconnected(false),
                 m_sessionWaitingQueues(factory->objectAllocator<typename SessionWaitingQueueMap::value_type>())
         {
             handlePriorities(

@@ -49,7 +49,13 @@ common::Result<
     HATN_CTX_SCOPE("apiclientprepare")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth));
+    //! @todo Fix tenancy
+#if 0
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
+#else
+    std::ignore=ctx;
+    const auto& tenancy=Tenancy::notTenancy();
+#endif
     auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     return req;
@@ -74,7 +80,12 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
     HATN_CTX_SCOPE("apiclientexec")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs);
+    //! @todo Fix tenancy
+#if 0
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
+#else
+    const auto& tenancy=Tenancy::notTenancy();
+#endif
     auto ec=req->serialize(topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),makeAsyncCallback(std::move(callback)),std::move(req));
@@ -535,7 +546,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
 
             // invoke session refresh
             reqPtr->session().refresh(
-                sharedMainCtx(),                
+                sharedMainCtx(),
                 std::move(refreshCb),
                 this,
                 std::move(resp)
