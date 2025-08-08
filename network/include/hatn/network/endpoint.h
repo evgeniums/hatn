@@ -153,7 +153,7 @@ inline bool operator == (const Endpoint<AddressT,PortT,TypeT>& left,
 {
     return left.type()==right.type()
             && left.address()==right.address()
-            && left.port()<right.port();
+            && left.port()==right.port();
 }
 
 //! Type wrapper to use with Endpoint template
