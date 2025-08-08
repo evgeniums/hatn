@@ -605,20 +605,23 @@ class HATN_LOGCONTEXT_EXPORT ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NA
 
 HATN_COMMON_NAMESPACE_END
 
+#define HATN_CTX_CURRENT() \
+    HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)
+
 #define HATN_CTX_IF() \
-    if (HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)!=nullptr)
+    if (HATN_CTX_CURRENT()!=nullptr)
 
 #define HATN_CTX_SET_VAR(Name,Value) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setGlobalVar(Name,Value);
+        HATN_CTX_CURRENT()->setGlobalVar(Name,Value);
 
 #define HATN_CTX_PUSH_VAR(Name,Value) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setGlobalVar(Name,Value);
+        HATN_CTX_CURRENT()->setGlobalVar(Name,Value);
 
 #define HATN_CTX_PUSH_FIXED_VAR(Name,Value) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->pushFixedVar(Name,Value);
+        HATN_CTX_CURRENT()->pushFixedVar(Name,Value);
 
 #define HATN_CTX_UNSET_VAR(Name) \
     HATN_CTX_IF() \
@@ -626,7 +629,7 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_SCOPE_PUSH(Name,Value) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->pushStackVar(Name,Value);
+        HATN_CTX_CURRENT()->pushStackVar(Name,Value);
 
 #define HATN_CTX_SCOPE_PUSH_(Name,Value) \
     HATN_CTX_IF() \
@@ -634,33 +637,33 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_SCOPE_POP() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->popStackVar();
+        HATN_CTX_CURRENT()->popStackVar();
 
 #define HATN_CTX_RESET() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->reset();
+        HATN_CTX_CURRENT()->reset();
 
 #define HATN_CTX_RESET_STACKS() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->resetStacks();
+        HATN_CTX_CURRENT()->resetStacks();
 
 #define HATN_CTX_SCOPE_ERROR(Error) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->describeScopeError(Error);
+        HATN_CTX_CURRENT()->describeScopeError(Error);
 
 #define HATN_CTX_SCOPE_LOCK() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(true);
+        HATN_CTX_CURRENT()->setStackLocked(true);
 
 #define HATN_CTX_SCOPE_UNLOCK() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(false);
+        HATN_CTX_CURRENT()->setStackLocked(false);
 
 #define HATN_CTX_CHECK_EC(ec) \
     if (ec) \
     { \
         HATN_CTX_IF() \
-            HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->setStackLocked(true); \
+            HATN_CTX_CURRENT()->setStackLocked(true); \
         return ec; \
     }
 
@@ -693,24 +696,24 @@ HATN_COMMON_NAMESPACE_END
 
 #define HATN_CTX_STACK_BARRIER_ON(Name) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOn(Name);
+        HATN_CTX_CURRENT()->stackBarrierOn(Name);
 
 #define HATN_CTX_STACK_BARRIER_OFF(Name) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOff(Name);
+        HATN_CTX_CURRENT()->stackBarrierOff(Name);
 
 #define HATN_CTX_STACK_BARRIER_RESTORE(Name) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierRestore(Name);
+        HATN_CTX_CURRENT()->stackBarrierRestore(Name);
 
 #define HATN_CTX_STACK_BARRIER_LAST_OFF() \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierLastOff();
+        HATN_CTX_CURRENT()->stackBarrierLastOff();
 
 #define HATN_CTX_SCOPE_WITH_BARRIER(Name) \
     HATN_CTX_SCOPE(Name) \
     HATN_CTX_IF() \
-        HATN_THREAD_SUBCONTEXT(HATN_LOGCONTEXT_NAMESPACE::Context)->stackBarrierOn(Name);
+        HATN_CTX_CURRENT()->stackBarrierOn(Name);
 
 
 #endif // HATNLOGCONTEXT_H
