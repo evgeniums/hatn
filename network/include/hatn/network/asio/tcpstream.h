@@ -20,6 +20,7 @@
 #define HATNASIOTCPSTREAM_H
 
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/asiotimer.h>
 
 #include <hatn/logcontext/context.h>
 
@@ -91,13 +92,15 @@ class HATN_NETWORK_EXPORT TcpStreamTraits : public WithSocket<TcpSocket>,
         void reset()
         {}
 
-
     private:
 
         TcpStream* m_stream;
+        common::AsioDeadlineTimer m_timeoutTimer;
 
         inline common::WeakPtr<common::TaskContext> ctxWeakPtr() const;
         inline void leaveAsyncHandler();
+
+        void startTimeoutTimer();
 };
 
 //! Stream over ASIO TCP socket
@@ -105,6 +108,8 @@ class HATN_NETWORK_EXPORT TcpStream : public common::TaskSubcontext,
                                       public ReliableStreamWithEndpoints<TcpEndpoint,TcpStreamTraits>
 {
     public:
+
+        constexpr static const uint32_t DefaultConnectTimeoutSecs=7;
 
         //! Constructor
         TcpStream(
@@ -136,6 +141,20 @@ class HATN_NETWORK_EXPORT TcpStream : public common::TaskSubcontext,
         {
             return traits().socket();
         }
+
+        void setConnectTimeout(uint32_t val) noexcept
+        {
+            m_connectTimeoutSecs=val;
+        }
+
+        uint32_t connectTimeout() const noexcept
+        {
+            return m_connectTimeoutSecs;
+        }
+
+    private:
+
+        uint32_t m_connectTimeoutSecs;
 };
 
 struct makeTcpStreamCtxT

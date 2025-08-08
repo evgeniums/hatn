@@ -37,7 +37,7 @@
     Do(CommonError,FILE_SYNC_FAILED,_TR("failed to sync file","common")) \
     Do(CommonError,FILE_FSYNC_FAILED,_TR("failed to fsync file","common")) \
     Do(CommonError,FILE_TRUNCATE_FAILED,_TR("failed to truncate file","common")) \
-    Do(CommonError,TIMEOUT,_TR("operation timeout","common")) \
+    Do(CommonError,TIMEOUT,_TR("operation timed out","common")) \
     Do(CommonError,ABORTED,_TR("operation aborted","common")) \
     Do(CommonError,RESULT_ERROR,_TR("cannot get value of error result","common")) \
     Do(CommonError,RESULT_NOT_ERROR,_TR("cannot move not error result","common")) \

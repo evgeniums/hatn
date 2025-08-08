@@ -61,8 +61,9 @@ TcpStream::TcpStream(
     ) : ReliableStreamWithEndpoints<TcpEndpoint,TcpStreamTraits>(
             thread,
             this
-        )
-{
+        ),
+        m_connectTimeoutSecs(DefaultConnectTimeoutSecs)
+{    
 }
 
 /*********************** TcpStreamTraits **************************/
@@ -70,8 +71,11 @@ TcpStream::TcpStream(
 //---------------------------------------------------------------
 TcpStreamTraits::TcpStreamTraits(TcpStream *stream):
     WithSocket<TcpSocket>(stream->thread()->asioContextRef()),
-    m_stream(stream)
+    m_stream(stream),
+    m_timeoutTimer(stream->thread())
 {
+    m_timeoutTimer.setAutoAsyncGuardEnabled(false);
+    m_timeoutTimer.setSingleShot(true);
 }
 
 //---------------------------------------------------------------
@@ -159,6 +163,28 @@ void TcpStreamTraits::close(const std::function<void (const Error &)> &callback,
 }
 
 //---------------------------------------------------------------
+
+void TcpStreamTraits::startTimeoutTimer()
+{
+    m_timeoutTimer.start(
+        [this,wptr{ctxWeakPtr()}](TimerTypes::Status status)
+        {
+            auto ctx=wptr.lock();
+            if (!ctx)
+            {
+                return;
+            }
+
+            if (status==TimerTypes::Status::Timeout)
+            {
+                rawSocket().cancel();
+            }
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
 void TcpStreamTraits::prepare(
         std::function<void (const Error &)> callback
     )
@@ -233,6 +259,13 @@ void TcpStreamTraits::prepare(
 
     HATN_CTX_LOG_DEBUG(DoneDebugVerbosity,"trying to connect to server",HatnAsioLog);
 
+    // start connection timer
+    if (m_stream->connectTimeout()!=0)
+    {
+        m_timeoutTimer.setPeriodUs(m_stream->connectTimeout()*1000*1000);
+        startTimeoutTimer();
+    }
+
     // connect to remote endpoint
     rawSocket().async_connect(
                     ep,
@@ -246,7 +279,24 @@ void TcpStreamTraits::prepare(
                         {
                             if (bec)
                             {
-                                auto ec=common::chainErrors(makeBoostError(bec),networkError(NetworkError::CONNECT_FAILED));
+                                Error ec;
+
+                                if (bec.value()==boost::system::errc::operation_canceled)
+                                {
+                                    if (!m_timeoutTimer.isRunning())
+                                    {
+                                        ec=common::chainErrors(commonError(CommonError::TIMEOUT),networkError(NetworkError::CONNECT_FAILED));
+                                    }
+                                    else
+                                    {
+                                        m_timeoutTimer.cancel();
+                                    }
+                                }
+                                else
+                                {
+                                    ec=common::chainErrors(makeBoostError(bec),networkError(NetworkError::CONNECT_FAILED));
+                                    m_timeoutTimer.cancel();
+                                }
 
                                 HATN_CTX_LOG_DEBUG_ERROR(DoneDebugVerbosity,ec,"failed to connect to server",HatnAsioLog);
 
@@ -265,6 +315,8 @@ void TcpStreamTraits::prepare(
                                 callback(ec);
                                 return;
                             }
+
+                            m_timeoutTimer.cancel();
 
                             m_stream->updateEndpoints();
                             if (!bind)
