@@ -192,7 +192,7 @@ struct postAsyncTaskT
         auto originThreadQ=TaskWithContextThread::current();
         auto originThread=Thread::currentThreadOrMain();
 
-        auto cb=[originThreadQ,originThread,callback{std::move(callback)}](auto ctx,auto&&... args) mutable
+        auto cb=[originThreadQ,originThread,callback{std::move(callback)},ctx](auto,auto&&... args) mutable
         {
             auto ts=hana::make_tuple(std::forward<decltype(args)>(args)...);
             auto returnCb=[ctx,ts{std::move(ts)},callback{std::move(callback)}](auto) mutable
@@ -239,14 +239,20 @@ struct postAsyncTaskT
         thread->post(task);
     }
 
-    template <typename HandlerT>
+    template <typename HandlerT, typename ContextT>
     void operator ()(ThreadQWithTaskContext* thread,
-                     SharedPtr<TaskContext> ctx,
+                     SharedPtr<ContextT> ctx,
                      HandlerT handler
                     ) const
     {
         auto task=thread->prepare();
-        task->setHandler(std::move(handler));
+
+        auto threadHandler=[ctx,handler{std::move(handler)}](SharedPtr<TaskContext>) mutable
+        {
+            handler(std::move(ctx));
+        };
+
+        task->setHandler(std::move(threadHandler));
         task->setContext(std::move(ctx));
         thread->post(task);
     }

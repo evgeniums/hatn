@@ -28,11 +28,11 @@ HATN_NAMESPACE_BEGIN
 
 struct postAsyncT
 {
-    template <typename HandlerT, typename CallbackT>
+    template <typename HandlerT, typename CallbackT, typename ContextT>
     void operator ()(
                     const char* startScopeName,
                     common::ThreadQWithTaskContext* thread,
-                    common::SharedPtr<common::TaskContext> ctx,
+                    common::SharedPtr<ContextT> ctx,
                     HandlerT handler,
                     CallbackT callback
                     ) const
@@ -57,7 +57,7 @@ struct postAsyncT
 
         common::postAsyncTask(
             thread,
-            ctx,
+            std::move(ctx),
             [startScopeName,handler=std::move(handler)](auto ctx, auto cb)
             {
                 auto ctxPtr=ctx.get();
@@ -78,7 +78,7 @@ struct postAsyncT
     void operator ()(
                     const char* startScopeName,
                     common::ThreadQWithTaskContext* thread,
-                    ContextT ctx,
+                    common::SharedPtr<ContextT> ctx,
                     HandlerT handler
                     ) const
     {
@@ -89,7 +89,7 @@ struct postAsyncT
 
         common::postAsyncTask(
             thread,
-            ctx,
+            std::move(ctx),
             [startScopeName,handler=std::move(handler)](auto ctx)
             {
                 auto ctxPtr=ctx.get();
