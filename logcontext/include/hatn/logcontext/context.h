@@ -454,12 +454,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 m_parentLogCtx=nullptr;
                 return;
             }
-            m_parentLogCtx=&parentCtx->template get<ContextT>();
+            m_parentLogCtx=parentCtx->template get<ContextT>();
         }
 
         void resetParentCtx(const HATN_COMMON_NAMESPACE::SharedPtr<HATN_COMMON_NAMESPACE::TaskContext>&)
         {
-            resetParentCtx();
+            auto pCtx=common::ThreadSubcontext<common::TaskSubcontextT<ContextT>>::value();
+            if (pCtx!=nullptr)
+            {
+                m_parentLogCtx=pCtx;
+            }
         }
 
         void resetParentCtx()
