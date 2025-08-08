@@ -56,6 +56,7 @@
 #include <hatn/common/thread.h>
 #include <hatn/common/asiotimer.h>
 #include <hatn/common/translate.h>
+#include <hatn/common/runonscopeexit.h>
 
 #include <hatn/network/networkerrorcodes.h>
 #include <hatn/network/asio/careslib.h>
@@ -240,7 +241,7 @@ struct Query : public common::EnableManaged<Query>
 {
     Query(
             std::weak_ptr<CaResolverTraits_p> impl,
-            std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
+            CaResolverTraits::Callback callback,
             const common::TaskContextShared& context,
             IpVersion ipVersion,
             const lib::string_view& name=lib::string_view{},
@@ -257,7 +258,7 @@ struct Query : public common::EnableManaged<Query>
     {
     }
 
-    std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback;
+    CaResolverTraits::Callback callback;
     std::weak_ptr<CaResolverTraits_p> impl;
     common::WeakPtr<common::TaskContext> context;
     StringBuf name;
@@ -272,6 +273,17 @@ struct Query : public common::EnableManaged<Query>
 
     common::EmbeddedSharedPtr<Query> cyclicRefToSelf;
     Error lastError;
+
+    template <typename AddressT>
+    void addEndpoint(AddressT address, uint16_t port)
+    {
+        asio::IpEndpoint endpoint{std::move(address),port};
+        auto it=std::find(endpoints.begin(),endpoints.end(),endpoint);
+        if (it==endpoints.end())
+        {
+            endpoints.emplace_back(std::move(endpoint));
+        }
+    }
 };
 
 }
@@ -422,14 +434,14 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
                     {
                         boost::asio::ip::address_v6::bytes_type bytes;
                         memcpy(bytes.data(),*addrBegin,bytes.size());
-                        query->endpoints.emplace_back(boost::asio::ip::make_address_v6(bytes),query->port);
+                        query->addEndpoint(boost::asio::ip::make_address_v6(bytes),query->port);
                         res=ARES_SUCCESS;
                     }
                     else if (host->h_addrtype==AF_INET)
                     {
                         boost::asio::ip::address_v4::bytes_type bytes;
                         memcpy(bytes.data(),*addrBegin,bytes.size());
-                        query->endpoints.emplace_back(boost::asio::ip::make_address_v4(bytes),query->port);
+                        query->addEndpoint(boost::asio::ip::make_address_v4(bytes),query->port);
                         res=ARES_SUCCESS;
                     }
 
@@ -448,7 +460,14 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
         void processQuery(common::SharedPtr<Query> query)
         {
             auto ctx=query->context.lock();
-            if (cancel || !ctx)
+            if (!ctx)
+            {
+                query->cyclicRefToSelf.reset();
+                query->callback=CaResolverTraits::Callback{};
+                return;
+            }
+
+            if (cancel)
             {
                 query->cyclicRefToSelf.reset();
                 query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
@@ -466,7 +485,23 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
         void processQueryAsync(const common::SharedPtr<Query>& query)
         {
             auto ctx=query->context.lock();
-            if (cancel || !ctx)
+
+            if (!ctx)
+            {
+                query->cyclicRefToSelf.reset();
+                query->callback=CaResolverTraits::Callback{};
+                return;
+            }
+
+            ctx->beginTaskContext();
+            HATN_SCOPE_GUARD(
+                [ctx]()
+                {
+                    ctx->endTaskContext();
+                }
+            )
+
+            if (cancel)
             {
                 query->cyclicRefToSelf.reset();
                 query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
@@ -594,8 +629,14 @@ class CaResolverTraits_p : public std::enable_shared_from_this<CaResolverTraits_
                 {
                     query->cyclicRefToSelf.reset();
 
+                    if (!ctx)
+                    {
+                        query->callback=CaResolverTraits::Callback{};
+                        return;
+                    }
+
                     // call query callback
-                    Error err=query->endpoints.empty()?query->lastError:Error();
+                    Error err=query->endpoints.empty()?query->lastError:Error{};
 
                     // DCS_DEBUG(dnsresolver,HATN_FORMAT("Done query {}:{} for {}, status={}, endpoints count={}"
                     //                                 ,query->name.c_str(),query->port,IpVersionStr(query->ipVersion),
@@ -703,11 +744,26 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
     auto obj=query->impl.lock();
     auto ctx=query->context.lock();
 
-    if (!obj || !ctx || obj->cancel || status==ARES_ECANCELLED)
+    if (!ctx)
+    {
+        query->cyclicRefToSelf.reset();
+        query->callback=CaResolverTraits::Callback{};
+        return;
+    }
+
+    if (!obj || obj->cancel || status==ARES_ECANCELLED)
     {
         query->callback(Error(CommonError::ABORTED),std::vector<asio::IpEndpoint>{});
         return;
     }
+
+    ctx->beginTaskContext();
+    HATN_SCOPE_GUARD(
+        [ctx]()
+        {
+            ctx->endTaskContext();
+        }
+    )
 
     auto checkResult=[](int result,Error& err)
     {        
@@ -738,7 +794,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                     {
                         boost::asio::ip::address_v4::bytes_type bytes;
                         memcpy(bytes.data(),&addrttl[i].ipaddr,bytes.size());
-                        query->endpoints.emplace_back(boost::asio::ip::make_address_v4(bytes),query->port);
+                        query->addEndpoint(boost::asio::ip::make_address_v4(bytes),query->port);
 
                         // const auto& ep=query->endpoints.back();
                         // DCS_DEBUG(dnsresolver,HATN_FORMAT("Resolved endpoint {}:{} for {}"
@@ -780,7 +836,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                     {
                         boost::asio::ip::address_v6::bytes_type bytes;
                         memcpy(bytes.data(),&addrttl[i].ip6addr,bytes.size());
-                        query->endpoints.emplace_back(boost::asio::ip::make_address_v6(bytes),query->port);
+                        query->addEndpoint(boost::asio::ip::make_address_v6(bytes),query->port);
 
                         // const auto& ep=query->endpoints.back();
                         // DCS_DEBUG(dnsresolver,HATN_FORMAT("Resolved endpoint {}:{} for {}"
@@ -846,7 +902,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                             (addr.is_v6() && IpVersionHasV6(q->ipVersion))
                            )
                     {
-                        q->endpoints.emplace_back(std::move(addr),query->port);
+                        q->addEndpoint(std::move(addr),query->port);
 
                         // DCS_DEBUG_LVL(dnsresolver,1,HATN_FORMAT("Resolved final SRV endpoint {}:{} for {}"
                         //                                 ,record->host,port,query->name.c_str()
@@ -907,7 +963,7 @@ static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
                             (addr.is_v6() && IpVersionHasV6(q->ipVersion))
                            )
                     {
-                        q->endpoints.emplace_back(std::move(addr),query->port);
+                        q->addEndpoint(std::move(addr),query->port);
 
                         // DCS_DEBUG_LVL(dnsresolver,1,HATN_FORMAT("Resolved final MX endpoint {} for {}"
                         //                                 ,record->host,query->name.c_str()
@@ -1043,9 +1099,9 @@ CaResolverTraits::CaResolverTraits(
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveName(
-        const lib::string_view& hostName,
-        std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
         const common::TaskContextShared& context,
+        Callback callback,
+        const lib::string_view& hostName,
         uint16_t port,
         IpVersion ipVersion
     )
@@ -1063,15 +1119,16 @@ void CaResolverTraits::resolveName(
             hostName,
             port
         );
+    static_assert(std::is_base_of<common::ManagedObject,Query>::value,"");
     query->cyclicRefToSelf=query;
     d->processQuery(query);
 }
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveService(
-        const lib::string_view& name,
-        std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
         const common::TaskContextShared& context,
+        Callback callback,
+        const lib::string_view& name,
         IpVersion ipVersion
     )
 {
@@ -1093,9 +1150,9 @@ void CaResolverTraits::resolveService(
 
 //---------------------------------------------------------------
 void CaResolverTraits::resolveMx(
-        const lib::string_view& name,
-        std::function<void (const Error &, std::vector<asio::IpEndpoint>)> callback,
         const common::TaskContextShared& context,
+        Callback callback,
+        const lib::string_view& name,
         IpVersion ipVersion
     )
 {

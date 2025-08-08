@@ -109,6 +109,8 @@ class HATN_NETWORK_EXPORT CaResolverTraits
 {
     public:
 
+        using Callback=ResolverCallback;
+
         /**
          * @brief Constructor
          * @param thread Thread to work in
@@ -136,22 +138,22 @@ class HATN_NETWORK_EXPORT CaResolverTraits
         bool isUseLocalHostsFile() const noexcept;
 
         void resolveName(
-            const lib::string_view& hostName,
-            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            Callback callback,
+            const lib::string_view& hostName,
             uint16_t port,
             IpVersion ipVersion
         );
         void resolveService(
-            const lib::string_view& name,
-            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            Callback callback,
+            const lib::string_view& name,
             IpVersion ipVersion
         );
-        void resolveMx(
-            const lib::string_view& name,
-            std::function<void (const Error&,std::vector<asio::IpEndpoint>)> callback,
+        void resolveMx(            
             const common::TaskContextShared& context,
+            Callback callback,
+            const lib::string_view& name,
             IpVersion ipVersion
         );
         void cancel();
