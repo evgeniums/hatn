@@ -68,6 +68,19 @@ struct ConstructWithArgsOrDefault
     }
 };
 
+//! Helper to construct value with initializer list or without the list depending on the constructor
+template <typename T>
+struct constructWithArgsOrDefaultT
+{
+    template <typename ...Args>
+    constexpr T operator()(Args&&... args) const
+    {
+        return detail::ConstructWithArgsOrDefault<T,void,Args...>::f(std::forward<Args>(args)...);
+    }
+};
+template <typename T>
+constexpr constructWithArgsOrDefaultT<T> constructWithArgsOrDefault{};
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNCONSTRUCTIWITHARGORDRFAULT_H
