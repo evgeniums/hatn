@@ -35,7 +35,6 @@ void ThreadLocalFallbackContext::reset(Context* val) noexcept
 
 HATN_LOGCONTEXT_NAMESPACE_END
 
-
 HATN_COMMON_NAMESPACE_BEGIN
 
 HATN_LOGCONTEXT_NAMESPACE::Context* ThreadSubcontext<TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::value() noexcept
