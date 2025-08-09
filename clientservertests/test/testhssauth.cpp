@@ -114,6 +114,7 @@ struct TestEnv : public MultiThreadFixture
         testUserTopic.clear();
         testLogin.reset();
         testUser.reset();
+        HATN_LOGCONTEXT_NAMESPACE::ContextLogger::free();
     }
 
     TestEnv(const TestEnv&)=delete;
@@ -1203,6 +1204,12 @@ void runTest(TestEnvT testEnv, CallbackT callback, TestMode mode, const TestConf
     clientApp->close();
 
     testEnv->exec(1);
+    std::ignore=testThread->execSync(
+        []()
+        {
+            HATN_COMMON_NAMESPACE::ThreadSubcontext<HATN_COMMON_NAMESPACE::TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::reset();
+        }
+    );
     testThread->stop();
     testEnv->exec(1);
 }
