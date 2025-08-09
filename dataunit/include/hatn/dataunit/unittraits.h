@@ -610,16 +610,6 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return Conf::name;
         }
 
-        constexpr static bool sharedType() noexcept
-        {
-            return Conf::shared::value;
-        }
-
-        bool isSharedType() const noexcept override
-        {
-            return sharedType();
-        }
-
     private:
 
         void setFieldsParent() noexcept
@@ -837,26 +827,9 @@ class EmptyUnit : public Unit
 #endif
 };
 
-/**  Managed variant of empty DataUnit */
+
 template <typename Conf>
-class EmptyManagedUnit : public EmptyUnit<Conf>, public common::EnableManaged<EmptyManagedUnit<Conf>>
-{
-    public:
-
-        using selfType=EmptyManagedUnit<Conf>;
-
-        using EmptyUnit<Conf>::EmptyUnit;
-
-        /**
-         * @brief Create dynamically allocated DataUnit of self type
-         *
-         * Only managed versions of units can be created
-         */
-        virtual common::SharedPtr<Unit> createManagedUnit() const override
-        {
-            return this->factory()->template createObject<EmptyManagedUnit<Conf>>(this->factory());
-        }
-};
+using EmptyManagedUnit=ManagedUnit<EmptyUnit<Conf>>;
 
 //---------------------------------------------------------------
 template <typename Conf, typename ...Fields>

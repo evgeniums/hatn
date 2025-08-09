@@ -187,8 +187,8 @@ class Scalar : public Field
 {
     public:
 
-        using type=typename FTraits<Type,false>::type;
-        using base=typename FTraits<Type,false>::base;
+        using type=typename Type::type;
+        using base=typename Type::type;
 
         using isRepeatedType=std::false_type;
         using isEnum=typename Type::isEnum;

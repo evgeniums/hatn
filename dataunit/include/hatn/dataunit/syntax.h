@@ -107,10 +107,8 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Mode Mode of packing. Parameter can be omitted.
  *        Possible values: Auto - use auto mode of packing depending of value type, ProtobufUnpacked - use protobuf ordinary mode, ProtobufPacked - use protobuf packed mode,
  *        Counted - use experimental optimized mode when serialized data contains count of elements in array which is not safe when using in public API.
- * @param SubunitLinking How to link subunit if this is a subunit field. Parameter can be omitted.
- *        Possible values: Auto - use auto linkking, Embedded - subunit will be statically embedded to parent unit, External - subunit will be referenced by shared pointer.
  *
- * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode,SubunitLinking)
+ * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode)
  * Optional repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id)
  * Required repeated field: HDU_REPEATED_FIELD(FieldName,Type,Id,true)
  * Repeated field with default element values: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default)
@@ -120,7 +118,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @example HDU_REPEATED_FIELD(rf2,TYPE_INT32,2,true)
  * @example HDU_REPEATED_FIELD(rf3,TYPE_INT32,3,false,333)
  * @example HDU_REPEATED_FIELD(rf4,TYPE_INT32,4,true,Auto,ProtobufUnpacked)
- * @example HDU_REPEATED_FIELD(rf5,other_unit::TYPE,5,false,Auto,Auto,Embedded)
  *
  *
  */
@@ -144,24 +141,6 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Required true if this is a required field.
  */
 #define HDU_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required)
-
-//! Use this macro to declare embedded repeated subunit field.
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Integer identificator that must be unique per unit.
- * @param Required true if this is a required field.
- */
-#define HDU_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required)
-
-//! Use this macro to declare external repeated subunit field.
-/**
- * @param FieldName Name of the field.
- * @param Type Field type, Type must be one of supported types.
- * @param Id Integer identificator that must be unique per unit.
- * @param Required true if this is a required field.
- */
-#define HDU_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required) HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required)
 
 //! Use this macro to declare an enum.
 /**

@@ -79,7 +79,6 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
                        decltype(repeated_traits)\
                        >;\
         using type=typename traits::type;\
-        using shared_type=typename traits::shared_type;\
         HDU_V2_FIELD_NAME_STR(FieldName)\
         constexpr static auto id=hana::int_c<Id>;\
     };\
@@ -95,7 +94,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 
 #define HDU_V2_EXPAND(x) x
 #define HDU_V2_GET_ARG6(arg1, arg2, arg3, arg4, arg5, arg6, ...) arg6
-#define HDU_V2_GET_ARG8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, ...) arg8
+#define HDU_V2_GET_ARG7(arg1, arg2, arg3, arg4, arg5, arg6, arg7, ...) arg7
 
 //---------------------------------------------------------------
 
@@ -128,28 +127,24 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 
 //---------------------------------------------------------------
 
-#define HDU_V2_FIELD_DEF_REPEATED(Mode,ContentType,FieldName,...) \
-    constexpr repeated_config<Mode,ContentType> cfg_##FieldName{};\
+#define HDU_V2_FIELD_DEF_REPEATED(Mode,FieldName,...) \
+    constexpr repeated_config<Mode> cfg_##FieldName{};\
     HDU_V2_EXPAND(HDU_V2_VARG_SELECT_FIELD(FieldName,__VA_ARGS__)(FieldName,__VA_ARGS__,cfg_##FieldName))
 
 #define HDU_V2_REPEATED_FIELD_DEF3(FieldName,Type,Id) \
-    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id)
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,FieldName,Type,Id)
 
 #define HDU_V2_REPEATED_FIELD_DEF4(FieldName,Type,Id,Required) \
-    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id,Required)
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,FieldName,Type,Id,Required)
 
 #define HDU_V2_REPEATED_FIELD_DEF5(FieldName,Type,Id,Required,Default) \
-    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,RepeatedContentType::Auto,FieldName,Type,Id,Required,Default)
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode::Auto,FieldName,Type,Id,Required,Default)
 
 #define HDU_V2_REPEATED_FIELD_DEF6(FieldName,Type,Id,Required,Default,Mode)\
-    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode:: Mode,RepeatedContentType::Auto,FieldName,Type,Id,Required,Default)
-
-#define HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Default,Mode,ContentType)\
-    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode:: Mode,RepeatedContentType:: ContentType,FieldName,Type,Id,Required,Default)
+    HDU_V2_FIELD_DEF_REPEATED(RepeatedMode:: Mode,FieldName,Type,Id,Required,Default)
 
 #define HDU_V2_VARG_SELECT_REPEATED_FIELD(...) \
-    HDU_V2_EXPAND(HDU_V2_GET_ARG8(__VA_ARGS__, \
-                                  HDU_V2_REPEATED_FIELD_DEF7, \
+    HDU_V2_EXPAND(HDU_V2_GET_ARG7(__VA_ARGS__, \
                                   HDU_V2_REPEATED_FIELD_DEF6, \
                                   HDU_V2_REPEATED_FIELD_DEF5, \
                                   HDU_V2_REPEATED_FIELD_DEF4, \
@@ -165,15 +160,6 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 #define HDU_V2_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required) \
     HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
     HDU_V2_REPEATED_FIELD_DEF4(FieldName,Type,Id,Required)
-
-#define HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(FieldName,Type,Id,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Auto,Auto,External)
-
-#define HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(FieldName,Type,Id,Required) \
-    HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
-    HDU_V2_REPEATED_FIELD_DEF7(FieldName,Type,Id,Required,Auto,Auto,Embedded)
-
 
 //---------------------------------------------------------------
 
@@ -208,19 +194,15 @@ enum class EnumName : int {__VA_ARGS__};
     static_assert(decltype(check_ids_unique(field_defs))::value,"Field IDs must be unique");\
     static_assert(decltype(check_names_unique(field_defs))::value,"Field names must be unique");\
     namespace {HATN_MAYBE_CONSTEXPR auto unit_c=unit<conf>::type_c(field_defs);}\
-    namespace {HATN_MAYBE_CONSTEXPR auto shared_unit_c=unit<conf>::shared_type_c(field_defs);}\
     using unit_base_t=decltype(unit_c)::type;\
-    using unit_shared_base_t=decltype(shared_unit_c)::type;\
     using type=unit_t<unit_base_t>;\
-    using shared_type=unit_t<unit_shared_base_t>;\
     using managed=managed_unit<type>;\
-    using shared_managed=managed_unit<shared_type>;\
     /* types below are explicitly derived instead of just "using" in order to decrease object code size */ \
     struct field_id_s_t : public field_id_<HATN_COUNTER_GET(c)>{};\
     constexpr field_id_s_t fields{};\
     struct traits : public unit_traits<type,managed,field_id_s_t>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,field_id_s_t>{};\
-    struct TYPE : public subunit<traits,shared_traits>{}; \
+    using shared_traits=traits; \
+    struct TYPE : public subunit<traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
     HATN_IGNORE_UNUSED_VARIABLE_END
@@ -249,14 +231,12 @@ enum class EnumName : int {__VA_ARGS__};
     struct conf{constexpr static const char* name=#UnitName;};\
     constexpr auto field_defs=boost::hana::make_tuple();\
     using type=EmptyUnit<conf>;\
-    using shared_type=type;\
     using managed=EmptyManagedUnit<conf>;\
-    using shared_managed=managed;\
     struct fields_t{};\
     constexpr fields_t fields{};\
     struct traits : public unit_traits<type,managed,fields_t>{};\
-    struct shared_traits : public unit_traits<shared_type,shared_managed,fields_t>{};\
-    struct TYPE : public subunit<traits,shared_traits>{}; \
+    using shared_traits=traits; \
+    struct TYPE : public subunit<traits>{}; \
     }\
     HATN_IGNORE_UNUSED_CONST_VARIABLE_END \
     HATN_IGNORE_UNUSED_VARIABLE_END
@@ -265,21 +245,15 @@ enum class EnumName : int {__VA_ARGS__};
 
 #define HDU_V2_INSTANTIATE1(UnitName) \
     template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
-    template class HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
     template class HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::type>;\
-    template class HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::shared_type>;\
-    template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
-    template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
+    template class HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>;
 
 #ifndef __MINGW32__
 
     #define HDU_V2_EXPORT(UnitName,Export) \
         template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_base_t>;\
-        template class Export HATN_DATAUNIT_META_NAMESPACE::unit_t<UnitName::unit_shared_base_t>;\
         template class Export HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::type>;\
-        template class Export HATN_DATAUNIT_NAMESPACE::ManagedUnit<UnitName::shared_type>;\
-        template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>; \
-        template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::shared_managed>;
+        template class Export HATN_COMMON_NAMESPACE::WithStaticAllocator<UnitName::managed>;
 
 #else
 

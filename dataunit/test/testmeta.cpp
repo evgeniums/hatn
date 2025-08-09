@@ -47,7 +47,6 @@ namespace unit1 {
                                  >;
 
         using type=typename traits::type;
-        using shared_type=typename traits::shared_type;
     };
 
     HATN_COUNTER_INC(c);
@@ -70,8 +69,8 @@ HDU_V2_UNIT(du1,
 HDU_V2_UNIT(du2,
     HDU_V2_REQUIRED_FIELD(f10,du1::TYPE,10)
     HDU_V2_REPEATED_UNIT_FIELD(f11,du1::TYPE,11,true)
-    HDU_V2_REPEATED_EXTERNAL_UNIT_FIELD(f12,du1::TYPE,12,true)
-    HDU_V2_REPEATED_EMBEDDED_UNIT_FIELD(f13,du1::TYPE,13,false)
+    HDU_V2_REPEATED_UNIT_FIELD(f12,du1::TYPE,12,true)
+    HDU_V2_REPEATED_UNIT_FIELD(f13,du1::TYPE,13,false)
 )
 
 HDU_V2_UNIT(du3,
@@ -112,11 +111,11 @@ HDU_V2_UNIT_WITH(du7,
     HDU_V2_REPEATED_FIELD(f900,du_min::TYPE,900)
     HDU_V2_REPEATED_FIELD(f1000,du_min::TYPE,1000,true)
     HDU_V2_REPEATED_FIELD(f1100,du_min::TYPE,1100)
-    HDU_V2_REPEATED_FIELD(f1200,du_min::TYPE,1200,false,Auto,Auto,External)
-    HDU_V2_REPEATED_FIELD(f1300,du_min::TYPE,1300,true,Auto,Auto,Embedded)
+    HDU_V2_REPEATED_FIELD(f1200,du_min::TYPE,1200,false,Auto,Auto)
+    HDU_V2_REPEATED_FIELD(f1300,du_min::TYPE,1300,true,Auto,Auto)
 
     // HDU_V2_REPEATED_FIELD(f17,du_min::TYPE,17,true,Auto,ProtobufPacked)
-    HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufUnpacked,External)
+    HDU_V2_REPEATED_FIELD(f18,TYPE_DATAUNIT,18,false,Auto,ProtobufUnpacked)
 )
 
 HDU_V2_UNIT(du8,
@@ -168,20 +167,20 @@ BOOST_AUTO_TEST_CASE(MacroV2Declare)
     std::ignore=fields.f10;
 
     du1::type* vduP1=nullptr;
-    du1::shared_type* vduP2=nullptr;
+    du1::type* vduP2=nullptr;
     BOOST_CHECK(vduP1==nullptr);
     BOOST_CHECK(vduP2==nullptr);
 
     du1::type vdu1;
-    du1::shared_type vdu2;
+    du1::type vdu2;
 
     du2::type* vduP3=nullptr;
-    du2::shared_type* vduP4=nullptr;
+    du2::type* vduP4=nullptr;
     BOOST_CHECK(vduP3==nullptr);
     BOOST_CHECK(vduP4==nullptr);
 
     du2::type vdu3;
-    du2::shared_type vdu4;
+    du2::type vdu4;
 
     du5::type vdu5;
     auto& vf10=vdu5.field(du3::f10);

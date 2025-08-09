@@ -199,3 +199,4 @@ BOOST_AUTO_TEST_CASE(TestRepeatedSubunit)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+

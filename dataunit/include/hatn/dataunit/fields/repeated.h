@@ -77,9 +77,9 @@ struct RepeatedTraits
 };
 
 template <typename Type>
-struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
+struct RepeatedTraits<SubunitFieldTmpl<Type>>
 {
-    using fieldType=EmbeddedUnitFieldTmpl<Type>;
+    using fieldType=SubunitFieldTmpl<Type>;
     using valueType=fieldType;
     using type=valueType;
     constexpr static const bool isSizeIterateNeeded=true;
@@ -105,11 +105,6 @@ struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
         subunit.createValue(parentUnit->factory(),true);
         return subunit;
     }
-};
-
-template <typename Type>
-struct RepeatedTraits<SharedUnitFieldTmpl<Type>> : public RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
-{
 };
 
 struct RepeatedGetterSetterNoBytes
@@ -1429,13 +1424,6 @@ struct SelectRepeatedType<Type,Mode,hana::when<
 {
     template <typename FieldName,typename Type1,int Id,typename Tag,typename DefaultTraits=DefaultValue<Type>,bool Required=false>
     using type=RepeatedFieldProtoBufUnpacked<FieldName,Type1,Id,Tag,DefaultTraits,Required>;
-};
-
-enum class RepeatedContentType : int
-{
-    Auto,
-    External,
-    Embedded
 };
 
 HATN_DATAUNIT_NAMESPACE_END

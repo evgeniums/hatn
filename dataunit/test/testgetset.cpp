@@ -459,11 +459,9 @@ BOOST_FIXTURE_TEST_CASE(TestSubunit,Env)
 {
     using traits=subunit_types::traits;
     using type=typename traits::type;
-    using shared_raits=subunit_types::shared_traits;
-    using shared_type=typename shared_raits::type;
 
     type obj1;
-    shared_type obj2;
+    type obj2;
 
     auto scalarUnitField1=obj1.fieldById(subunit_types::scalar.id());
     auto* scalarSubunit1=scalarUnitField1->subunit();

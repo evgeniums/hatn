@@ -35,6 +35,36 @@ struct UnitType{
 };
 
 template <typename Type>
+struct SubunitSetter
+{
+    template <typename UnitT>
+    static void setV(UnitT* self, common::SharedPtr<Unit> val,
+                     std::enable_if_t<
+                         decltype(has_sharedFromThis<typename UnitT::managed>())::value
+                         >* =nullptr
+                     )
+    {
+        using managedType=typename UnitT::managed;
+        Assert(strcmp(val->name(),managedType::unitName())==0,"Mismatched unit types");
+
+        static managedType sample;
+        managedType* casted=sample.castToManagedUnit(val.get());
+        self->set(casted->sharedFromThis());
+    }
+
+    template <typename UnitT>
+    static void setV(UnitT*, common::SharedPtr<Unit>,
+                     std::enable_if_t<
+                         !std::is_base_of<common::ManagedObject,typename UnitT::managed>::value
+                         >* =nullptr
+                     )
+    {
+        Assert(false,"Cannot set unmanaged unit");
+    }
+};
+
+
+template <typename Type>
 struct SubunitHolder
 {
     using base=typename Type::type;
@@ -79,8 +109,8 @@ struct SubunitHolder
 };
 
 //! Field template for embedded DataUnit type
-template <typename Type, bool Shared=false>
-class FieldTmplUnitEmbedded : public Field, public UnitType
+template <typename Type>
+class SubunitT : public Field, public UnitType
 {
     public:
 
@@ -92,9 +122,8 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         using managed=typename holder::managed;
         using shared_managed=typename holder::shared_managed;
 
-        using selfType=FieldTmplUnitEmbedded<Type,Shared>;
+        using selfType=SubunitT<Type>;
         using baseFieldType=selfType;
-        using isEmbeddedUnitType=boost::hana::bool_<!Shared>;
         using isUnitType=std::true_type;
 
         using isBytesType=std::false_type;
@@ -107,7 +136,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          * @param factory Allocator factory used both for the field itself and for the embedded vaule,
          *        thta's why it is propagated to the value constructor
          */
-        explicit FieldTmplUnitEmbedded(Unit* parentUnit):
+        explicit SubunitT(Unit* parentUnit):
             Field(Type::typeId,parentUnit),
             m_parseToSharedArrays(false)
         {
@@ -172,20 +201,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return UnitSer::serialize(&subunit.value(),wired);
         }
 
-        // //! Serialize DataUnit to wire
-        // template <typename UnitT, typename BufferT>
-        // static bool serialize(const common::SharedPtr<UnitT>& value, BufferT& wired)
-        // {
-        //     return UnitSer::serialize(value.get(),wired);
-        // }
-
-        // //! Serialize DataUnit to wire
-        // template <typename ValueT>
-        // inline static bool serialize(const ValueT& value,WireData& wired)
-        // {
-        //     return serialize(&value.value(),wired);
-        // }
-
         //! Deserialize DataUnit from wire
         template <typename SubunitT, typename BufferT>
         static bool deserialize(SubunitT& subunit,BufferT& wired, const AllocatorFactory* factory)
@@ -246,12 +261,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             this->markSet(deserialize(*this,wired,factory));
             return this->isSet();
         }
-
-        // //! Format as JSON element
-        // inline static bool formatJSON(const base* value,json::Writer* writer)
-        // {
-        //     return formatJSON(&value.value(),writer);
-        // }
 
         inline static bool formatJSON(const selfType& subunit,json::Writer* writer)
         {
@@ -420,7 +429,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         virtual void setV(common::SharedPtr<Unit> val) override
         {
-            FTraits<Type,Shared>::setV(this,std::move(val));
+            SubunitSetter<Type>::setV(this,std::move(val));
         }
 
         virtual void getV(common::SharedPtr<Unit>& val) const override
@@ -605,35 +614,22 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 };
 
 template <>
-struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnitEmbedded<TYPE_DATAUNIT>
+struct FieldTmpl<TYPE_DATAUNIT> : public SubunitT<TYPE_DATAUNIT>
 {
-    using FieldTmplUnitEmbedded<TYPE_DATAUNIT>::FieldTmplUnitEmbedded;
+    using SubunitT<TYPE_DATAUNIT>::SubunitT;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
+struct SubunitFieldTmpl : public SubunitT<Type>
 {
-    using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
-};
-
-/**  Template class of embedded dataunit field */
-template <typename Type>
-struct SharedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
-{
-    using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
+    using SubunitT<Type>::SubunitT;
 };
 
 template <typename FieldName,typename Type,int Id, bool Required=false>
-struct EmbeddedUnitField : public FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
+struct SubunitField : public FieldConf<SubunitFieldTmpl<Type>,Id,FieldName,Type,Required>
 {
-    using FieldConf<EmbeddedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
-};
-
-template <typename FieldName,typename Type,int Id, bool Required=false>
-struct SharedUnitField : public FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>
-{
-    using FieldConf<SharedUnitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
+    using FieldConf<SubunitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
 };
 
 HATN_DATAUNIT_NAMESPACE_END

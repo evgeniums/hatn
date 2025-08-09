@@ -144,8 +144,7 @@ struct field_traits
     using generator=GeneratorT<StringsT,Id,TypeId,default_traits,Required,RepeatedType>;
 
     using Type=typename generator::type_id;
-    using type=typename generator::type;
-    using shared_type=typename generator::shared_type;
+    using type=typename generator::type;    
 
     constexpr static const int ID=Id::value;
 
@@ -178,61 +177,30 @@ struct field_traits
 
 struct repeated_tag{};
 
-template <RepeatedMode Mode=RepeatedMode::Auto, RepeatedContentType ContentType=RepeatedContentType::Auto>
+template <RepeatedMode Mode=RepeatedMode::Auto>
 struct repeated_config
 {
     using hana_tag=repeated_tag;
 
     constexpr static auto mode=Mode;
-    constexpr static auto content=ContentType;
 };
 
-template <typename TypeId, RepeatedMode Mode, RepeatedContentType ContentType, typename = hana::when<true>>
+template <typename TypeId, RepeatedMode Mode, typename = hana::when<true>>
 struct repeated_traits
 {
     using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
     using type=typename selector::template type<FieldName,Type,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
 };
 
 template <typename TypeId, RepeatedMode Mode>
-struct repeated_traits<TypeId,Mode,RepeatedContentType::Auto, hana::when<TypeId::isUnitType::value>>
+struct repeated_traits<TypeId,Mode,hana::when<TypeId::isUnitType::value>>
 {
     using selector=SelectRepeatedType<TypeId,Mode>;
 
     template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using shared_type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
-};
-
-template <typename TypeId, RepeatedMode Mode>
-struct repeated_traits<TypeId,Mode,RepeatedContentType::External, hana::when<TypeId::isUnitType::value>>
-{
-    using selector=SelectRepeatedType<TypeId,Mode>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,SharedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
-};
-
-template <typename TypeId, RepeatedMode Mode>
-struct repeated_traits<TypeId,Mode,RepeatedContentType::Embedded, hana::when<TypeId::isUnitType::value>>
-{
-    using selector=SelectRepeatedType<TypeId,Mode>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using type=typename selector::template type<FieldName,EmbeddedUnitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
-
-    template <typename FieldName,typename Type,int Id,typename DefaultAlias,bool Required>
-    using shared_type=type<FieldName,Type,Id,DefaultAlias,Required>;
+    using type=typename selector::template type<FieldName,SubunitFieldTmpl<Type>,Id,RepeatedTraits<Type>,DefaultAlias,Required>;
 };
 
 //---------------------------------------------------------------
@@ -251,7 +219,6 @@ template <typename StringsT,
 struct field_generator
 {
     using type=OptionalField<StringsT,TypeId,Id::value>;
-    using shared_type=type;
     using type_id=TypeId;
 };
 
@@ -276,7 +243,6 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        >
 {
     using type=RequiredField<StringsT,TypeId,Id::value>;
-    using shared_type=type;
     using type_id=TypeId;
 };
 
@@ -299,7 +265,6 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        >
 {
     using type=DefaultField<StringsT,TypeId,Id::value,DefaultTraits>;
-    using shared_type=type;
     using type_id=TypeId;
 };
 
@@ -324,11 +289,10 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
     static_assert(!TypeId::isUnitType::value || RepeatedType::mode!=RepeatedMode::ProtobufPacked,
                   "Protobuf packed mode can not be used for data unit fields");
 
-    using traits=repeated_traits<TypeId,RepeatedType::mode,RepeatedType::content>;
+    using traits=repeated_traits<TypeId,RepeatedType::mode>;
 
     using type_id=RepeatedTraits<TypeId>;
     using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
-    using shared_type=typename traits::template shared_type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
 };
 
 /**
@@ -349,14 +313,12 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            >
                        >
 {
-    static_assert(RepeatedType::content != RepeatedContentType::Embedded, "TYPE_DATAUNIT can not be Embedded, only either Auto or External");
     static_assert(RepeatedType::mode != RepeatedMode::ProtobufPacked,"Protobuf packed mode can not be used for data unit fields");
 
-    using traits=repeated_traits<TypeId,RepeatedType::mode,RepeatedContentType::External>;
+    using traits=repeated_traits<TypeId,RepeatedType::mode>;
 
     using type_id=RepeatedTraits<TypeId>;
     using type=typename traits::template type<StringsT,TypeId,Id::value,DefaultTraits,Required::value>;
-    using shared_type=typename traits::template shared_type<StringsT,TypeId,Id::value,DefaultValue<TypeId>,Required::value>;
 };
 
 /**
@@ -380,8 +342,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                        >
 {
     using type_id=TypeId;
-    using type=EmbeddedUnitField<StringsT,TypeId,Id::value,Required::value>;
-    using shared_type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
+    using type=SubunitField<StringsT,TypeId,Id::value,Required::value>;
 };
 
 /**
@@ -404,8 +365,7 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            >
                        >
 {
-    using type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
-    using shared_type=SharedUnitField<StringsT,TypeId,Id::value,Required::value>;
+    using type=SubunitField<StringsT,TypeId,Id::value,Required::value>;
     using type_id=TypeId;
 };
 
@@ -491,11 +451,10 @@ constexpr check_names_unique_t check_names_unique{};
 
 //---------------------------------------------------------------
 
-template <typename ConfT, typename ToFieldCFn, typename Shared>
+template <typename ConfT, typename ToFieldCFn>
 struct unit_conf : public ConfT
 {
     using to_field_c=ToFieldCFn;
-    using shared=Shared;
 };
 
 struct to_type_c_t
@@ -509,25 +468,14 @@ struct to_type_c_t
 };
 constexpr to_type_c_t to_type_c{};
 
-struct to_shared_type_c_t
-{
-    template <typename T>
-    auto operator() (T) const noexcept
-    {
-        using field_type=typename T::shared_type;
-        return hana::type_c<field_type>;
-    }
-};
-constexpr to_shared_type_c_t to_shared_type_c{};
-
 template <typename ConfT>
 struct unit
 {
-    template <typename FieldsT, typename FieldFn, typename Shared>
-    constexpr static auto make(FieldsT fields, FieldFn /*to_field_c*/,Shared)
+    template <typename FieldsT, typename FieldFn>
+    constexpr static auto make(FieldsT fields, FieldFn /*to_field_c*/)
     {
         constexpr auto unit_c=hana::unpack(
-            hana::prepend(fields,hana::type_c<unit_conf<ConfT,FieldFn,Shared>>),
+            hana::prepend(fields,hana::type_c<unit_conf<ConfT,FieldFn>>),
             hana::template_<DataUnit>
         );
         return unit_c;
@@ -536,48 +484,14 @@ struct unit
     template <typename FieldsT>
     constexpr static auto type_c(FieldsT fields)
     {        
-        return make(fields,to_type_c,hana::false_c);
-    }
-
-    template <typename FieldsT>
-    constexpr static auto shared_type_c(FieldsT fields)
-    {
-        return make(fields,to_shared_type_c,hana::true_c);
+        return make(fields,to_type_c);
     }
 };
-
-#if 0
-
-struct managed_unit_tag
-{};
-
-template <typename UnitT>
-class managed_unit : public ManagedUnit<UnitT>,
-                     public common::WithStaticAllocator<managed_unit<UnitT>>
-{
-    public:
-
-        using hana_tag=managed_unit_tag;
-
-        using ManagedUnit<UnitT>::ManagedUnit;
-
-        inline managed_unit<UnitT>* castToManagedUnit(Unit* unit) const noexcept
-        {
-            return common::dynamicCastWithSample(unit,this);
-        }
-        inline const managed_unit<UnitT>* castToManagedUnit(const Unit* unit) const noexcept
-        {
-            return common::dynamicCastWithSample(unit,this);
-        }
-};
-#else
 
 using managed_unit_tag=HATN_DATAUNIT_NAMESPACE::managed_unit_tag;
 
 template <typename UnitT>
 using managed_unit=ManagedUnit<UnitT>;
-
-#endif
 
 //---------------------------------------------------------------
 
@@ -652,14 +566,11 @@ struct unit_traits
     using managed=ManagedT;
 };
 
-template <typename traits, typename shared_traits>
+template <typename traits>
 struct subunit : public types::TYPE_DATAUNIT
 {
         using type=typename traits::type;
         using managed=typename traits::managed;
-        using shared_managed=typename shared_traits::managed;
-        using shared_type=common::SharedPtr<shared_managed>;
-        using base_shared_type=typename shared_traits::type;
         using Hatn=std::true_type;
 
         constexpr static const bool isSizeIterateNeeded=true;

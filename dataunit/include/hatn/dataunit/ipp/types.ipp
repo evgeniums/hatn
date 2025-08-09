@@ -449,16 +449,13 @@ struct HATN_DATAUNIT_EXPORT DATAUNIT : public BaseType<Unit,std::false_type,Valu
 
     using managed=Unit;
 
-    using base_shared_type=Unit;
-    using shared_type=common::SharedPtr<Unit>;
-
-    static shared_type createManagedObject(const AllocatorFactory*,Unit* parentUnit, bool repeatedSubunit=false)
+    static common::SharedPtr<managed> createManagedObject(const AllocatorFactory*,Unit* parentUnit, bool repeatedSubunit=false)
     {
         if (parentUnit!=nullptr && repeatedSubunit)
         {
             return parentUnit->createManagedUnit();
         }
-        return shared_type{};
+        return common::SharedPtr<managed>{};
     }
 };
 

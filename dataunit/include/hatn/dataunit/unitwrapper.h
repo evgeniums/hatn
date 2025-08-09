@@ -31,20 +31,18 @@ class UnitWrapper
 {
     public:
 
-        UnitWrapper() : m_sharedType(false)
+        UnitWrapper()
         {}
 
         template <typename T>
         UnitWrapper(HATN_COMMON_NAMESPACE::SharedPtr<T> sharedUnit) :
-            m_shared(sharedUnit.template staticCast<Unit>()),
-            m_sharedType(sharedUnit->isSharedType())
+            m_shared(sharedUnit.template staticCast<Unit>())
         {}
 
         template <typename T>
         UnitWrapper& operator =(HATN_COMMON_NAMESPACE::SharedPtr<T> sharedUnit)
         {
             m_shared=sharedUnit.template staticCast<Unit>();
-            m_sharedType=sharedUnit->isSharedType();
             return *this;
         }
 
@@ -52,7 +50,6 @@ class UnitWrapper
         auto* unit()
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>,"T must be of Unit type");
-            Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
 
             static T sample;
             return sample.castToUnit(m_shared.get());
@@ -62,7 +59,6 @@ class UnitWrapper
         const auto* unit() const
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::unit_tag,T>,"T must be of Unit type");
-            Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
 
             static T sample;
             return sample.castToUnit(m_shared.get());
@@ -72,7 +68,6 @@ class UnitWrapper
         auto* managedUnit()
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>,"T must be of ManagedUnit type");
-            Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
 
             static T sample;
             return sample.castToManagedUnit(m_shared.get());
@@ -82,7 +77,6 @@ class UnitWrapper
         auto* managedUnit() const
         {
             static_assert(hana::is_a<HATN_DATAUNIT_META_NAMESPACE::managed_unit_tag,T>,"T must be of ManagedUnit type");
-            Assert(T::sharedType()==m_sharedType,"Shared type mismatching");
 
             static T sample;
             return sample.castToManagedUnit(m_shared.get());
@@ -163,7 +157,6 @@ class UnitWrapper
     protected:
 
         HATN_COMMON_NAMESPACE::SharedPtr<Unit> m_shared;
-        bool m_sharedType;
 };
 
 template <typename T>

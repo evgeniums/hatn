@@ -80,50 +80,6 @@ struct DummyConst<T,std::enable_if_t<std::is_integral<T>::value>>
     }
 };
 
-template <typename Type,bool Shared=false>
-struct FTraits
-{
-    using type=typename Type::type;
-    using base=typename Type::type;
-
-    template <typename UnitT>
-    static void setV(UnitT*, common::SharedPtr<Unit>)
-    {
-        Assert(false,"Only shared subunits can be set with setV()");
-    }
-};
-template <typename Type>
-struct FTraits<Type,true>
-{
-    using type=typename Type::shared_type;
-    using base=typename Type::base_shared_type;
-
-    template <typename UnitT>
-    static void setV(UnitT* self, common::SharedPtr<Unit> val,
-              std::enable_if_t<
-                  decltype(has_sharedFromThis<typename UnitT::managed>())::value
-                >* =nullptr
-        )
-    {
-        using vType=typename UnitT::type::element_type;
-        Assert(strcmp(val->name(),vType::unitName())==0,"Mismatched unit types");
-
-        static vType sample;
-        vType* casted=sample.castToManagedUnit(val.get());
-        self->set(casted->sharedFromThis());
-    }
-
-    template <typename UnitT>
-    static void setV(UnitT*, common::SharedPtr<Unit>,
-              std::enable_if_t<
-                  !std::is_base_of<common::ManagedObject,typename UnitT::managed>::value
-                  >* =nullptr
-              )
-    {
-        Assert(false,"Cannot set unmanaged unit");
-    }
-};
-
 template <typename T,typename,typename=void>
 struct JsonR
 {

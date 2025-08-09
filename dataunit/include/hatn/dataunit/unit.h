@@ -433,11 +433,6 @@ class HATN_DATAUNIT_EXPORT Unit
             m_tree=enable;
         }
 
-        virtual bool isSharedType() const noexcept
-        {
-            return false;
-        }
-
         bool isSharedSubunits() const noexcept
         {
             return m_sharedSubunits;
