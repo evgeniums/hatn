@@ -153,7 +153,6 @@ struct Model : public ConfigT
 
     using Type=typename UnitType::type;
     using ManagedType=typename UnitType::managed;
-    using SharedManagedType=typename UnitType::shared_managed;
     using SharedPtr=HATN_COMMON_NAMESPACE::SharedPtr<ManagedType>;
 
     Indexes indexes;

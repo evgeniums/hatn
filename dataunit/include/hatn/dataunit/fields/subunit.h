@@ -483,6 +483,19 @@ class SubunitT : public Field, public UnitType
             return mutableValue()->field(std::forward<T>(fieldName));
         }
 
+        template <typename T, typename ...Args>
+        void setFieldValue(T&& fieldName, Args&&... val)
+        {
+            field(std::forward<T>(fieldName)).set(std::forward<Args>(val)...);
+        }
+
+        /** Get field's value. */
+        template <typename T>
+        auto fieldValue(T&& fieldName) const noexcept -> decltype(auto)
+        {
+            return field(std::forward<T>(fieldName)).value();
+        }
+
         /**
          * @brief Use shared version of byte arrays data when parsing wired data
          * @param enable Enabled on/off

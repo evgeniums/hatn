@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(Subunit)
     sample="{\"ff1\":7090}";
     BOOST_CHECK_EQUAL(sample,obj.toString(false,4));
 
-    emb::shared_type objShared;
+    emb::type objShared;
     auto subObj1=common::makeShared<sub::managed>();
     subObj1->setFieldValue(sub::f1,9000);
     subObj1->setFieldValue(sub::f2,"Hi from shared subunit");
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(Subunit)
     auto str2=objShared.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("objShared after setV: {}",str2));
 
-    emb::shared_type objShared2;
+    emb::type objShared2;
     auto r3=update::request(
             update::field(update::path(emb::ff2),update::set,common::SharedPtr<du::Unit>{subObj1})
         );

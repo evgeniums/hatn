@@ -183,16 +183,8 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             };
 
             // create unit
-            if (sharedResultType)
-            {
-                auto sharedUnit=allocatorFactory->createObject<typename ModelT::SharedManagedType>(allocatorFactory);
-                ec=addToResult(std::move(sharedUnit));
-            }
-            else
-            {
-                auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
-                ec=addToResult(std::move(sharedUnit));
-            }
+            auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
+            ec=addToResult(std::move(sharedUnit));
             HATN_CHECK_EC(ec)
         }
     }
