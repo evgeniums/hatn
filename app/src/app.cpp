@@ -199,7 +199,7 @@ HDU_UNIT(db_config,
 
 HDU_UNIT(crypt_config,
     HDU_FIELD(provider,TYPE_STRING,1)
-    HDU_REPEATED_FIELD(cipher_suites,crypt::cipher_suite::TYPE,2,false,Auto,Auto,External)
+    HDU_REPEATED_FIELD(cipher_suites,crypt::cipher_suite::TYPE,2,false,Auto,Auto)
     HDU_FIELD(default_cipher_suite,TYPE_STRING,3)
 )
 
@@ -1149,7 +1149,7 @@ Result<std::shared_ptr<crypt::CipherSuites>> App_p::initCipherSuites()
     const auto& cipherSuites=cryptConfig.config().field(crypt_config::cipher_suites);
     for (size_t i=0;i<cipherSuites.count();i++)
     {
-        auto suiteConfig=cipherSuites.at(i);
+        auto suiteConfig=cipherSuites.at(i).sharedValue();
         auto suite=std::make_shared<crypt::CipherSuite>(std::move(suiteConfig));
         suites->addSuite(std::move(suite));
     }

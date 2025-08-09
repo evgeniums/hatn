@@ -37,9 +37,9 @@ ClientSessionBase::ClientSessionBase(
 
 //--------------------------------------------------------------------------
 
-Error ClientSessionBase::loadToken(common::SharedPtr<auth_token::shared_managed>& token, lib::string_view content) const
+Error ClientSessionBase::loadToken(common::SharedPtr<auth_token::managed>& token, lib::string_view content) const
 {
-    token=factory()->createObject<auth_token::shared_managed>();
+    token=factory()->createObject<auth_token::managed>();
 
     du::WireBufSolid buf{content.data(),content.size(),true,factory()};
 

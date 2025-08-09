@@ -226,7 +226,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // parse response message
-        auth_complete::shared_managed authCompleteMsg{factory()};
+        auth_complete::managed authCompleteMsg{factory()};
         du::WireBufSolidShared buf{authResponse.message};
         Error ec;
         du::io::deserialize(authCompleteMsg,buf,ec);
@@ -238,8 +238,8 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // handle tokens
-        m_sessionToken=authCompleteMsg.field(auth_complete::session_token).get();
-        m_refreshToken=authCompleteMsg.field(auth_complete::refresh_token).get();
+        m_sessionToken=authCompleteMsg.field(auth_complete::session_token).sharedValue();
+        m_refreshToken=authCompleteMsg.field(auth_complete::refresh_token).sharedValue();
         if (!m_sessionToken)
         {
             HATN_CTX_ERROR(ec,"empty session token in auth complete message")

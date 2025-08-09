@@ -54,7 +54,7 @@ Result<SessionToken::Tokens> SessionToken::makeToken(
     Tokens tokens;
 
     // create session token
-    tokens.serverSessionToken=factory->createObject<auth_token::shared_managed>();
+    tokens.serverSessionToken=factory->createObject<auth_token::managed>();
 
     // fill session token
     tokens.serverSessionToken->field(auth_token::id).mutableValue()->generate();
@@ -68,7 +68,7 @@ Result<SessionToken::Tokens> SessionToken::makeToken(
     tokens.serverSessionToken->field(auth_token::expire).mutableValue()->addSeconds(static_cast<int>(ttlSecs));
 
     // create client token
-    tokens.clientToken=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_token::shared_managed>();
+    tokens.clientToken=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_token::managed>();
     auto& tokenField=tokens.clientToken->field(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::token);
     auto* tokenBuf=tokenField.buf(true);
     tokens.clientToken->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::tag,m_currentTag);

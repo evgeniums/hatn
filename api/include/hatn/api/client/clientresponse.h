@@ -79,7 +79,7 @@ struct Response
 
         // if error message field is set then parse it
         du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
-        protocol::response_error_message::shared_managed errUnit{factory};
+        protocol::response_error_message::managed errUnit{factory};
         if (!du::io::deserialize(errUnit,buf))
         {
             return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);

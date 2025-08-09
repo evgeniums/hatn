@@ -185,7 +185,7 @@ void LocalSessionController<ContextTraits>::createSession(
 
     auto done=[refreshToken=refreshToken.takeValue(),sessToken=sessToken.takeValue(),factory](auto ctx, auto callback, auto session)
     {
-        auto response=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_complete::shared_managed>();
+        auto response=factory->createObject<HATN_CLIENT_SERVER_NAMESPACE::auth_complete::managed>();
         auto& sessTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::session_token);
         sessTokenField.set(std::move(sessToken.clientToken));
         auto& refreshTokenField=response->field(HATN_CLIENT_SERVER_NAMESPACE::auth_complete::refresh_token);

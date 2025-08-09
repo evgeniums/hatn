@@ -64,7 +64,7 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
     {
         unit.setFieldValue(protocol::response::message_type,protocol::response_error_message::conf().name);
 
-        auto errorUnit=request->env->template get<AllocatorFactory>().factory()->template createObject<protocol::response_error_message::shared_managed>();
+        auto errorUnit=request->env->template get<AllocatorFactory>().factory()->template createObject<protocol::response_error_message::managed>();
         errorUnit->setFieldValue(protocol::response_error_message::code,apiError->code());
         errorUnit->setFieldValue(protocol::response_error_message::family,apiError->family());
         errorUnit->setFieldValue(protocol::response_error_message::status,apiError->status());

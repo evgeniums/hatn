@@ -41,7 +41,7 @@ struct Response
 {
     Request<EnvT,RequestUnitT>* request;
 
-    protocol::response::shared_type unit;
+    protocol::response::type unit;
     du::WireBufChained message;
 
     Response(

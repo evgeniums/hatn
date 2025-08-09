@@ -54,7 +54,7 @@ HDU_UNIT(request,
 
 } // namespace protocol
 
-using RequestManaged=protocol::request::shared_managed;
+using RequestManaged=protocol::request::managed;
 
 HATN_API_NAMESPACE_END
 

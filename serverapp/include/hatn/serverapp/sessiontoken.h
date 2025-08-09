@@ -42,8 +42,8 @@ class HATN_SERVERAPP_EXPORT SessionToken
 
         struct Tokens
         {
-            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_token::shared_managed> clientToken;
-            common::SharedPtr<auth_token::shared_managed> serverSessionToken;
+            common::SharedPtr<HATN_CLIENT_SERVER_NAMESPACE::auth_token::managed> clientToken;
+            common::SharedPtr<auth_token::managed> serverSessionToken;
         };
 
         Result<Tokens> makeToken(

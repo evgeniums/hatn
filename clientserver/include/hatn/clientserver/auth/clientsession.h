@@ -80,8 +80,8 @@ class HATN_CLIENT_SERVER_EXPORT ClientSessionBase : public common::pmr::WithFact
 
     protected:
 
-        common::SharedPtr<auth_token::shared_managed> m_sessionToken;
-        common::SharedPtr<auth_token::shared_managed> m_refreshToken;
+        common::SharedPtr<auth_token::managed> m_sessionToken;
+        common::SharedPtr<auth_token::managed> m_refreshToken;
 
         std::string m_login;
         std::string m_topic;
@@ -90,7 +90,7 @@ class HATN_CLIENT_SERVER_EXPORT ClientSessionBase : public common::pmr::WithFact
 
     private:
 
-        Error loadToken(common::SharedPtr<auth_token::shared_managed>& token, lib::string_view content) const;
+        Error loadToken(common::SharedPtr<auth_token::managed>& token, lib::string_view content) const;
 };
 
 template <typename ...AuthProtocols>
