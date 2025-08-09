@@ -710,7 +710,6 @@ void App::close()
     // close logger
     if (d->logger)
     {
-        //! @todo Log app close
         auto ec=d->logger->close();
         if (ec)
         {
@@ -718,6 +717,21 @@ void App::close()
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
         }
     }
+
+    //! @todo Register reset handlers for thread_local static variables
+#if 0
+    for (auto&& it: m_threads)
+    {
+        it->start();
+        std::ignore=it->execSync(
+            []()
+            {
+                common::ThreadSubcontext<common::TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::reset();
+            }
+            );
+        it->stop();
+    }
+#endif
 
     // destroy env
     m_env.reset();
