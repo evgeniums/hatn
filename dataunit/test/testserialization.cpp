@@ -168,12 +168,13 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     auto& f3_4=f3->field(du3::field4);
     f3_4.set("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f3_4.c_str());
-    auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(47,size);
+    auto maxSerializedSize=du::io::size(obj1);
+    BOOST_CHECK_EQUAL(38,maxSerializedSize);
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
     BOOST_CHECK(r>0);
+    BOOST_TEST_MESSAGE(fmt::format("Actual serialized size={}, max serialized size={}",r,maxSerializedSize));
     type obj2;
     auto ok=obj2.parse(buf1);
     BOOST_REQUIRE(ok);

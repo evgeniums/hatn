@@ -17,7 +17,6 @@
   */
 
 #include <string>
-#include <iostream>
 
 #ifndef RAPIDJSON_NO_SIZETYPEDEFINE
 #define RAPIDJSON_NO_SIZETYPEDEFINE
@@ -53,7 +52,8 @@ Unit::Unit(const AllocatorFactory *factory)
     :m_clean(true),
      m_factory(factory),
      m_jsonParseHandlers(factory->objectAllocator<JsonParseHandler>()),
-     m_tree(false)
+     m_tree(false),
+     m_sharedSubunits(true)
 {
 }
 

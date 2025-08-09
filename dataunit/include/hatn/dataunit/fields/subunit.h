@@ -34,6 +34,50 @@ struct UnitType{
     constexpr static const ValueType typeId=ValueType::Dataunit;
 };
 
+template <typename Type>
+struct SubunitHolder
+{
+    using base=typename Type::type;
+    using managed=typename Type::managed;
+    using shared_managed=common::SharedPtr<managed>;
+    using type=lib::variant<lib::monostate,base,shared_managed>;
+
+    static base* visit(base& value)
+    {
+        return &value;
+    }
+
+    static const base* visit(const base& value)
+    {
+        return &value;
+    }
+
+    static base* visit(shared_managed& value)
+    {
+        return value.get();
+    }
+
+    static const base* visit(const shared_managed& value)
+    {
+        return value.get();
+    }
+
+    static base* visit(lib::monostate&)
+    {
+        return nullptr;
+    }
+
+    static const base* visit(const lib::monostate&)
+    {
+        return nullptr;
+    }
+
+    static auto createPlainValue(const AllocatorFactory* factory=nullptr)
+    {
+        return common::constructWithArgsOrDefault<base>(factory);
+    }
+};
+
 //! Field template for embedded DataUnit type
 template <typename Type, bool Shared=false>
 class FieldTmplUnitEmbedded : public Field, public UnitType
@@ -42,8 +86,11 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         using Field::isSet;
 
-        using type=typename FTraits<Type,Shared>::type;
-        using base=typename FTraits<Type,Shared>::base;
+        using holder=SubunitHolder<Type>;
+        using type=typename holder::type;
+        using base=typename holder::base;
+        using managed=typename holder::managed;
+        using shared_managed=typename holder::shared_managed;
 
         using selfType=FieldTmplUnitEmbedded<Type,Shared>;
         using baseFieldType=selfType;
@@ -62,17 +109,27 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          */
         explicit FieldTmplUnitEmbedded(Unit* parentUnit):
             Field(Type::typeId,parentUnit),
-            m_value(
-                    ::hatn::common::ConstructWithArgsOrDefault<
-                                        type,
-                                        const AllocatorFactory*
-                                    >
-                                ::f(
-                                        parentUnit->factory()
-                                    )
-                ),
             m_parseToSharedArrays(false)
         {
+        }
+
+        void setShared(bool enable, bool autoCreate=true, const AllocatorFactory* factory=nullptr)
+        {
+            m_shared=enable;
+            if (autoCreate)
+            {
+                createValue(factory);
+            }
+        }
+
+        void resetShared()
+        {
+            m_shared.reset();
+        }
+
+        bool isShared() const
+        {
+            return m_shared.value_or(unit()->isSharedSubunits());
         }
 
         constexpr static WireType fieldWireType() noexcept
@@ -85,40 +142,6 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return fieldWireType();
         }
 
-        //! Serialize DataUnit to wire
-        template <typename UnitT, typename BufferT>
-        static bool serialize(const UnitT* value, BufferT& wired)
-        {
-            return UnitSer::serialize(value,wired);
-        }
-
-        //! Serialize DataUnit to wire
-        template <typename UnitT, typename BufferT>
-        static bool serialize(const common::SharedPtr<UnitT>& value, BufferT& wired)
-        {
-            return UnitSer::serialize(value.get(),wired);
-        }
-
-        //! Serialize DataUnit to wire
-        template <typename UnitT, typename BufferT>
-        static bool serialize(const UnitT& value, BufferT& wired)
-        {
-            return UnitSer::serialize(&value,wired);
-        }
-
-        template <typename BufferT>
-        bool serialize(BufferT& wired) const
-        {
-            return UnitSer::serialize(&this->m_value.value(),wired);
-        }
-
-        //! Deserialize DataUnit from wire
-        template <typename UnitT, typename BufferT>
-        static bool deserialize(UnitT* value, BufferT& wired, const AllocatorFactory*, bool /*repeated*/=false)
-        {
-            return UnitSer::deserialize(value,wired);
-        }
-
         common::ByteArrayShared skippedNotParsedContent() const
         {
             return m_skippedNotParsedContent;
@@ -127,6 +150,54 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         void resetSkippedNotParsedContent(common::ByteArrayShared buf={}) noexcept
         {
             m_skippedNotParsedContent=std::move(buf);
+        }
+
+        template <typename BufferT>
+        bool serialize(BufferT& wired) const
+        {
+            return UnitSer::serialize(&variantValue()->value(),wired);
+        }
+
+        //! Serialize DataUnit to wire
+        template <typename BufferT>
+        static bool serialize(const base* value, BufferT& wired)
+        {
+            return UnitSer::serialize(value,wired);
+        }
+
+        //! Serialize DataUnit to wire
+        template <typename SubunitT, typename BufferT>
+        static bool serialize(const SubunitT& subunit, BufferT& wired)
+        {
+            return UnitSer::serialize(&subunit.value(),wired);
+        }
+
+        // //! Serialize DataUnit to wire
+        // template <typename UnitT, typename BufferT>
+        // static bool serialize(const common::SharedPtr<UnitT>& value, BufferT& wired)
+        // {
+        //     return UnitSer::serialize(value.get(),wired);
+        // }
+
+        // //! Serialize DataUnit to wire
+        // template <typename ValueT>
+        // inline static bool serialize(const ValueT& value,WireData& wired)
+        // {
+        //     return serialize(&value.value(),wired);
+        // }
+
+        //! Deserialize DataUnit from wire
+        template <typename SubunitT, typename BufferT>
+        static bool deserialize(SubunitT& subunit,BufferT& wired, const AllocatorFactory* factory)
+        {
+            return deserialize(subunit.mutableValue(),wired,factory);
+        }
+
+        //! Deserialize DataUnit from wire
+        template <typename BufferT>
+        static bool deserialize(base* value, BufferT& wired, const AllocatorFactory*, bool /*repeated*/=false)
+        {
+            return UnitSer::deserialize(value,wired);
         }
 
         template <typename BufferT>
@@ -172,18 +243,23 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             // normal parsing
             this->fieldClear();
             io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
-            this->markSet(this->deserialize(mutableValue(),wired,factory));
+            this->markSet(deserialize(*this,wired,factory));
             return this->isSet();
         }
 
-        //! Format as JSON element
-        inline static bool formatJSON(const typename baseFieldType::type& value,json::Writer* writer)
+        // //! Format as JSON element
+        // inline static bool formatJSON(const base* value,json::Writer* writer)
+        // {
+        //     return formatJSON(&value.value(),writer);
+        // }
+
+        inline static bool formatJSON(const selfType& subunit,json::Writer* writer)
         {
-            return formatJSON(&value.value(),writer);
+            return formatJSON(&subunit.value(),writer);
         }
 
         //! Format as JSON element
-        inline static bool formatJSON(const Unit* value,json::Writer* writer)
+        inline static bool formatJSON(const base* value,json::Writer* writer)
         {
             return value->toJSON(writer);
         }
@@ -191,25 +267,12 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         //! Serialize as JSON element
         virtual bool toJSON(json::Writer* writer) const override
         {
-            return formatJSON(&this->m_value.value(),writer);
+            return formatJSON(variantValue(),writer);
         }
 
         virtual void pushJsonParseHandler(Unit *topUnit) override
         {
             json::pushHandler<selfType,json::FieldReader<Type,selfType>>(topUnit,this);
-        }
-
-        //! Serialize DataUnit to wire
-        inline static bool serialize(const typename baseFieldType::type& value,WireData& wired)
-        {
-            return serialize(&value.value(),wired);
-        }
-
-        //! Deserialize DataUnit from wire
-        template <typename UnitT, typename BufferT>
-        static bool deserialize(UnitT& value,BufferT& wired, const AllocatorFactory* factory)
-        {
-            return deserialize(value.mutableValue(),wired,factory);
         }
 
         /**
@@ -220,23 +283,36 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         {
             return fieldSize();
         }
-
         //! Get size of value
-        template <typename T>
-        static size_t valueSize(const T& value) noexcept
+        static size_t valueSize(const selfType& subunit) noexcept
         {
-            if (value.isNull())
+            return subunit.fieldSize();
+        }
+
+        bool isNull() const noexcept
+        {
+            return lib::variantIndex(m_value)==0;
+        }
+
+        bool isPlainValue() const noexcept
+        {
+            return lib::variantIndex(m_value)==1;
+        }
+
+        bool isSharedValue() const noexcept
+        {
+            return lib::variantIndex(m_value)==2;
+        }
+
+        size_t fieldSize() const noexcept
+        {
+            if (isNull())
             {
                 // return unpacked space reserved for length field
                 return sizeof(uint32_t)+1;
             }
             // return data size plus unpacked space reserved for length field
-            return (value.value().maxPackedSize()+sizeof(uint32_t)+1);
-        }
-
-        size_t fieldSize() const noexcept
-        {
-            return valueSize(this->m_value);
+            return (variantValue()->maxPackedSize()+sizeof(uint32_t)+1);
         }
 
         //! Clear field
@@ -257,93 +333,104 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
          *
          * After calling this method the value will be regarded as set.
          */
-        typename baseFieldType::base* mutableValue()
+        base* mutableValue()
         {
-            auto self=this;
-            hana::eval_if(
-                isEmbeddedUnitType{},
-                [&](auto)
-                {},
-                [&](auto _)
-                {
-                    auto s=_(self);
-                    if (s->m_value.isNull())
-                    {
-                        s->m_value=s->createValue();
-                    }
-                }
-            );
+            if (lib::variantIndex(m_value)==0)
+            {
+                createValue();
+            }
             this->markSet(true);
-            return this->m_value.mutableValue();
+            return variantValue();
         }
 
-        auto createValue(const AllocatorFactory* factory=nullptr) const
+        auto createSharedValue(const AllocatorFactory* factory=nullptr, bool repeatedSubunit=false) const
         {
-            auto self=this;
-            return hana::eval_if(
-                isEmbeddedUnitType{},
-                [&](auto)
+            auto val=Type::createManagedObject(factory,unit(),repeatedSubunit);
+            return val;
+        }
+
+        auto createPlainValue(const AllocatorFactory* factory=nullptr) const
+        {
+            return holder::createPlainValue(factory);
+        }
+
+        base* createValue(const AllocatorFactory* factory=nullptr, bool repeatedSubunit=false)
+        {
+            if (factory==nullptr)
+            {
+                factory=unit()->factory();
+            }
+            if (isShared())
+            {
+                auto sharedValue=createSharedValue(factory,repeatedSubunit);
+                if (sharedValue)
                 {
-                    return 0;
-                },
-                [&](auto _)
-                {
-                    auto f=_(factory);
-                    auto s=_(self);
-                    if (f==nullptr)
-                    {
-                        f=s->unit()->factory();
-                    }
-                    auto val=Type::createManagedObject(f,s->unit());
-                    return val;
+                    m_value=std::move(sharedValue);
                 }
-            );
+            }
+            else
+            {
+                m_value=createPlainValue(factory);
+            }
+            if (isNull())
+            {
+                return nullptr;
+            }
+            auto v=variantValue();
+            v->setSharedSubunits(isShared());
+            return v;
         }
 
         //! Get const reference to value
-        const typename baseFieldType::base& value() const
+        const base& value() const
         {
-            Assert(!this->m_value.isNull(),"Shared dataunit field is not set!");
-            return this->m_value.value();
+            Assert(lib::variantIndex(m_value)!=0,"Dataunit field is not set!");
+            return *variantValue();
         }
 
         //! Get field
-        inline type& get() noexcept
+        inline base& get()
         {
-            return m_value;
+            Assert(lib::variantIndex(m_value)!=0,"Dataunit field is not set!");
+            return *variantValue();
         }
 
         //! Get const field
-        inline const type& get() const noexcept
+        inline const base& get() const
         {
-            return m_value;
+            Assert(lib::variantIndex(m_value)!=0,"Dataunit field is not set!");
+            return *variantValue();
         }
 
         //! Set field
-        inline void set(type val)
+        inline void set(base&& val)
         {
+            m_shared=false;
+            this->markSet(true);
+            m_value=std::move(val);
+        }
+
+        //! Set field
+        inline void set(shared_managed val)
+        {
+            m_shared=true;
             this->markSet(true);
             m_value=std::move(val);
         }
 
         virtual void setV(common::SharedPtr<Unit> val) override
         {
-            //! @todo critical: Fix for shared_managed
-#if 0
             FTraits<Type,Shared>::setV(this,std::move(val));
-#else
-            std::ignore=val;
-#endif
         }
 
         virtual void getV(common::SharedPtr<Unit>& val) const override
         {
             auto self=this;
             hana::eval_if(
-                std::is_same<type,common::SharedPtr<Unit>>{},
+                std::is_same<type,Unit>{},
                 [&](auto _)
                 {
-                    _(val)=_(self)->get();
+                    _(val)=_(self)->sharedValue();
                 },
                 []()
                 {
@@ -354,9 +441,7 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
 
         /**  Check if unit's field is set. */
         template <typename T>
-        auto isSet(T&& fieldName,
-                   std::enable_if_t<baseFieldType::base::hasField(std::declval<std::decay_t<T>>()),void*> =nullptr
-                ) const noexcept
+        auto isSet(T&& fieldName) const
         {
             return value().isSet(std::forward<T>(fieldName));
         }
@@ -366,6 +451,13 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         auto operator [] (T&& fieldName) const -> decltype(auto)
         {
             return value()[std::forward<T>(fieldName)];
+        }
+
+        /** Get unit's field value. */
+        template <typename T>
+        auto operator [] (T&& fieldName) -> decltype(auto)
+        {
+            return (*mutableValue())[std::forward<T>(fieldName)];
         }
 
         /** Get subunit's field. */
@@ -432,7 +524,8 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Prepare shared form of value storage for parsing from wire
-        inline static void prepareSharedStorage(type& /*value*/,const AllocatorFactory*)
+        template <typename T>
+        inline static void prepareSharedStorage(T&& /*value*/,const AllocatorFactory*)
         {
         }
 
@@ -450,33 +543,31 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
         }
 
         //! Reset field
-        void fieldReset(bool onlyNonClean=false)
+        void fieldReset(bool /*onlyNonClean*/=false)
         {
             m_skippedNotParsedContent.reset();
-            auto self=this;
-            boost::hana::eval_if(
-                boost::hana::is_a<common::shared_pointer_tag,decltype(this->m_value)>,
-                [&](auto _)
-                {
-                    _(self)->m_value.reset();
-                    _(self)->markSet(false);
-                },
-                [&](auto _)
-                {
-                    io::reset(_(self)->m_value,_(onlyNonClean));
-                }
-            );
-            this->markSet(false);
+            m_value=type{};
+            m_shared.reset();
+            markSet(false);
         }
 
-        const type& nativeValue() const noexcept
+        const type& nativeValue() const
         {
-            return m_value;
+            return *variantValue();
         }
 
-        type& nativeValue() noexcept
+        type& nativeValue()
         {
-            return m_value;
+            return *variantValue();
+        }
+
+        shared_managed sharedValue() const
+        {
+            if (!isSharedValue())
+            {
+                return shared_managed{};
+            }
+            return lib::variantGet<shared_managed>(m_value);
         }
 
     protected:
@@ -493,33 +584,44 @@ class FieldTmplUnitEmbedded : public Field, public UnitType
             return serialize(wired);
         }
 
+        auto* variantValue() noexcept
+        {
+            return lib::variantVisit([](auto& val){return holder::visit(val);},m_value);
+        }
+
+        const auto* variantValue() const noexcept
+        {
+            return lib::variantVisit([](const auto& val){return holder::visit(val);},m_value);
+        }
+
         type m_value;
 
     private:
 
         bool m_parseToSharedArrays;
+        lib::optional<bool> m_shared;
 
         common::ByteArrayShared m_skippedNotParsedContent;
 };
 
 template <>
-struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnitEmbedded<TYPE_DATAUNIT,true>
+struct FieldTmpl<TYPE_DATAUNIT> : public FieldTmplUnitEmbedded<TYPE_DATAUNIT>
 {
-    using FieldTmplUnitEmbedded<TYPE_DATAUNIT,true>::FieldTmplUnitEmbedded;
+    using FieldTmplUnitEmbedded<TYPE_DATAUNIT>::FieldTmplUnitEmbedded;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type,false>
+struct EmbeddedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
 {
-    using FieldTmplUnitEmbedded<Type,false>::FieldTmplUnitEmbedded;
+    using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
 };
 
 /**  Template class of embedded dataunit field */
 template <typename Type>
-struct SharedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type,true>
+struct SharedUnitFieldTmpl : public FieldTmplUnitEmbedded<Type>
 {
-    using FieldTmplUnitEmbedded<Type,true>::FieldTmplUnitEmbedded;
+    using FieldTmplUnitEmbedded<Type>::FieldTmplUnitEmbedded;
 };
 
 template <typename FieldName,typename Type,int Id, bool Required=false>

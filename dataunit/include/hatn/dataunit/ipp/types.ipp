@@ -447,8 +447,10 @@ struct HATN_DATAUNIT_EXPORT DATAUNIT : public BaseType<Unit,std::false_type,Valu
     using isUnitType=std::true_type;
     using isPackedProtoBufCompatible=std::false_type;
 
+    using managed=Unit;
+
     using base_shared_type=Unit;
-    using shared_type=::hatn::common::SharedPtr<Unit>;
+    using shared_type=common::SharedPtr<Unit>;
 
     static shared_type createManagedObject(const AllocatorFactory*,Unit* parentUnit, bool repeatedSubunit=false)
     {

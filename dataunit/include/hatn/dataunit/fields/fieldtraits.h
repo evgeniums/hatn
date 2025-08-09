@@ -101,9 +101,7 @@ struct FTraits<Type,true>
     template <typename UnitT>
     static void setV(UnitT* self, common::SharedPtr<Unit> val,
               std::enable_if_t<
-                  decltype(hana::is_a<common::shared_pointer_tag,typename UnitT::type>)::value
-                    &&
-                  decltype(has_sharedFromThis<typename UnitT::type::element_type>())::value
+                  decltype(has_sharedFromThis<typename UnitT::managed>())::value
                 >* =nullptr
         )
     {
@@ -118,9 +116,7 @@ struct FTraits<Type,true>
     template <typename UnitT>
     static void setV(UnitT*, common::SharedPtr<Unit>,
               std::enable_if_t<
-                  !decltype(hana::is_a<common::shared_pointer_tag,typename UnitT::type>)::value
-                  ||
-                  !std::is_base_of<common::ManagedObject,typename UnitT::type::element_type>::value
+                  !std::is_base_of<common::ManagedObject,typename UnitT::managed>::value
                   >* =nullptr
               )
     {

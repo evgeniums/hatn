@@ -438,6 +438,16 @@ class HATN_DATAUNIT_EXPORT Unit
             return false;
         }
 
+        bool isSharedSubunits() const noexcept
+        {
+            return m_sharedSubunits;
+        }
+
+        void setSharedSubunits(bool enable) noexcept
+        {
+            m_sharedSubunits=enable;
+        }
+
     protected:
 
         void setFieldParent(Field& field);
@@ -458,6 +468,7 @@ class HATN_DATAUNIT_EXPORT Unit
         common::pmr::list<JsonParseHandler> m_jsonParseHandlers;
 
         bool m_tree;
+        bool m_sharedSubunits;
 
         friend struct visitors;
 };

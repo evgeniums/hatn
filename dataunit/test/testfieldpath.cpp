@@ -185,7 +185,7 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedSubunitField,Env)
 
     obj.field(subunit_arrays::scalar).appendValue(scalar_types::type());
     obj.field(subunit_arrays::scalar).appendValue(scalar_types::type());
-    obj.field(subunit_arrays::scalar).field(1).field(scalar_types::type_int8).set(100);
+    obj.field(subunit_arrays::scalar).at(1).field(scalar_types::type_int8).set(100);
 
     auto val=getUnitFieldAtPath(obj,vld::_[subunit_arrays::scalar][1][scalar_types::type_int8]);
     BOOST_CHECK_EQUAL(int(val),100);
@@ -198,7 +198,8 @@ BOOST_FIXTURE_TEST_CASE(TestReadRepeatedSubunitField,Env)
     auto v2=vld::validator(
                 vld::_[subunit_arrays::scalar][1][scalar_types::type_int8](vld::eq,10)
            );
-    BOOST_CHECK(!v2.apply(obj));
+    auto ok=v2.apply(obj);
+    BOOST_CHECK(!ok);
 }
 
 BOOST_FIXTURE_TEST_CASE(TestUpdateScalarField,Env)

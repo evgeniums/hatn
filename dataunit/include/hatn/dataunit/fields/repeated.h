@@ -21,10 +21,7 @@
 #ifndef HATNDATAUNITREPEATEDFIELDS_H
 #define HATNDATAUNITREPEATEDFIELDS_H
 
-#include <functional>
-#include <tuple>
 #include <type_traits>
-#include <vector>
 #include <array>
 
 #include <boost/hana.hpp>
@@ -78,42 +75,41 @@ struct RepeatedTraits
         return Ctor<DefaultV>::f(parentUnit);
     }
 };
-template <typename Type>
-struct RepeatedTraits<SharedUnitFieldTmpl<Type>>
-{
-    using fieldType=SharedUnitFieldTmpl<Type>;
-    using valueType=typename Type::shared_type;
-    using type=valueType;
-    constexpr static const bool isSizeIterateNeeded=true;
-    constexpr static const ValueType typeId=Type::typeId;
-
-    template <typename> inline static valueType createValue(Unit* parentUnit)
-    {
-        auto val=Type::createManagedObject(parentUnit->factory(),parentUnit,true);
-        if (val.isNull())
-        {
-            HATN_ERROR(dataunit,"Cannot create managed object in shared dataunit field!");
-            Assert(!val.isNull(),"Shared dataunit field is not set!");
-        }
-        return val;
-    }
-};
 
 template <typename Type>
 struct RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
 {
     using fieldType=EmbeddedUnitFieldTmpl<Type>;
-    using valueType=typename Type::type;
+    using valueType=fieldType;
     using type=valueType;
     constexpr static const bool isSizeIterateNeeded=true;
     constexpr static const ValueType typeId=Type::typeId;
 
-    template <typename> inline static valueType createValue(
-        Unit* parentUnit
+    template <typename>
+    static auto createValue(
+            Unit* parentUnit
         )
     {
-        return common::ConstructWithArgsOrDefault<valueType,Unit*>::f(std::forward<Unit*>(parentUnit));
+        fieldType subunit{parentUnit};
+        subunit.createValue(parentUnit->factory(),true);
+        return subunit;
     }
+
+    static auto createSubunit(
+        Unit* parentUnit,
+        bool shared
+        )
+    {
+        fieldType subunit{parentUnit};
+        subunit.setShared(shared);
+        subunit.createValue(parentUnit->factory(),true);
+        return subunit;
+    }
+};
+
+template <typename Type>
+struct RepeatedTraits<SharedUnitFieldTmpl<Type>> : public RepeatedTraits<EmbeddedUnitFieldTmpl<Type>>
+{
 };
 
 struct RepeatedGetterSetterNoBytes
@@ -203,20 +199,21 @@ struct RepeatedGetterSetterNoUnit
     constexpr static const Unit* unit(const ArrayT&,size_t)
     {Assert(false,"Invalid operation for field of this type");return nullptr;}
 };
-template <typename valueType> struct RepeatedGetterSetterNoScalar
+
+struct RepeatedGetterSetterNoScalar
 {
-    template <typename T>
-    constexpr static void setVal(valueType&,const T&)
+    template <typename T1, typename T2>
+    constexpr static void setVal(T1&,const T2&)
     {
         Assert(false,"Invalid operation for field of this type");
     }
-    template <typename T>
-    constexpr static void incVal(valueType&,const T&)
+    template <typename T1, typename T2>
+    constexpr static void incVal(T1&,const T2&)
     {
         Assert(false,"Invalid operation for field of this type");
     }
-    template <typename T>
-    constexpr static void getVal(const valueType&,T &)
+    template <typename T1, typename T2>
+    constexpr static void getVal(const T1&,T2&)
     {
         Assert(false,"Invalid operation for field of this type");
     }
@@ -300,7 +297,7 @@ struct RepeatedGetterSetter<Type,
             std::is_convertible<T,valueType>{},
             [&](auto _)
             {
-                _(array).push_back(static_cast<valueType>(_(val)));
+                _(array).emplace_back(static_cast<valueType>(_(val)));
             },
             [](auto)
             {
@@ -321,7 +318,7 @@ struct RepeatedGetterSetter<Type,
 template <typename Type>
 struct RepeatedGetterSetter<Type,
                             std::enable_if_t<Type::isBytesType::value>
-                            > : public RepeatedGetterSetterNoScalar<typename Type::type>,
+                            > : public RepeatedGetterSetterNoScalar,
                                 public RepeatedGetterSetterNoUnit
 {
     using fieldType=FieldTmpl<Type>;
@@ -388,7 +385,7 @@ struct RepeatedGetterSetter<Type,
         field->appendValue(data,length);
     }
 
-    using RepeatedGetterSetterNoScalar<typename Type::type>::equals;
+    using RepeatedGetterSetterNoScalar::equals;
 
     template <typename ArrayT>
     static bool equals(const ArrayT& array,size_t idx,const common::ConstDataBuf& val) noexcept
@@ -396,9 +393,10 @@ struct RepeatedGetterSetter<Type,
         return array[idx].buf()->isEqual(val.data(),val.size());
     }
 };
+
 template <typename Type> struct RepeatedGetterSetter<Type,
                             std::enable_if_t<Type::isUnitType::value>
-                            > : public RepeatedGetterSetterNoScalar<typename Type::type>,
+                            > : public RepeatedGetterSetterNoScalar,
                                 public RepeatedGetterSetterNoBytes
 {
     template <typename ArrayT>
@@ -588,12 +586,38 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         return appendValue(str.data(),str.size());
     }
 
-    /**  Add value */
     inline size_t appendValue(type value)
     {
         this->markSet();
-        vector.push_back(std::move(value));
+        vector.emplace_back(std::move(value));
         return vector.size();
+    }
+
+    template <typename T>
+    inline size_t appendValue(T value)
+    {
+        this->markSet();
+
+        hana::eval_if(
+            typename Type::isUnitType{},
+            [&](auto _)
+            {
+                auto& subunit=_(vector).emplace_back(_(unit()));
+                subunit.set(std::move(_(value)));
+            },
+            [&](auto _)
+            {
+                _(vector).emplace_back(std::move(_(value)));
+            }
+        );
+
+        return vector.size();
+    }
+
+    template <typename T>
+    inline size_t append(T&& value)
+    {
+        return appendValue(std::forward<T>(value));
     }
 
     template <typename ... Vals>
@@ -611,10 +635,33 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         auto val=RepeatedTraits<Type>::template createValue<DefaultTraits>(this->unit());
         if (fieldIsParseToSharedArrays())
         {
-            fieldType::prepareSharedStorage(val,this->unit()->factory());
+            fieldType::prepareSharedStorage(val,unit()->factory());
         }
-        vector.push_back(std::move(val));
+        vector.emplace_back(std::move(val));
         return vector.back();
+    }
+
+    /**  Create and add plain value */
+    type& appendSubunit(bool shared)
+    {
+        this->markSet();
+        auto val=RepeatedTraits<Type>::createSubunit(this->unit(),shared);
+        if (fieldIsParseToSharedArrays())
+        {
+            fieldType::prepareSharedStorage(val,unit()->factory());
+        }
+        vector.emplace_back(std::move(val));
+        return vector.back();
+    }
+
+    type& appendPlainSubunit()
+    {
+        return appendSubunit(false);
+    }
+
+    type& appendSharedSubunit()
+    {
+        return appendSubunit(true);
     }
 
     /**  Emplace value */
@@ -629,19 +676,34 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /**  Add number of values */
     void appendValues(size_t n, bool onlySizeIterate=false)
     {
-        if (isSizeIterateNeeded || (DefaultTraits::HasDefV::value && !onlySizeIterate))
-        {
-            vector.reserve(vector.size()+n);
-            for (size_t i=0;i<n;i++)
+        auto self=this;
+        hana::eval_if(
+            hana::bool_c<isSizeIterateNeeded>,
+            [&](auto _)
             {
-                createAndAppendValue();
+                _(self)->vector.reserve(_(self)->vector.size()+n);
+                for (size_t i=0;i<n;i++)
+                {
+                    _(self)->createAndAppendValue();
+                }
+            },
+            [&](auto _)
+            {
+                if (DefaultTraits::HasDefV::value && !onlySizeIterate)
+                {
+                    _(self)->vector.reserve(_(self)->vector.size()+n);
+                    for (size_t i=0;i<n;i++)
+                    {
+                        _(self)->createAndAppendValue();
+                    }
+                }
+                else
+                {
+                    _(self)->vector.resize(_(self)->vector.size()+n);
+                    _(self)->markSet();
+                }
             }
-        }
-        else
-        {
-            vector.resize(vector.size()+n);
-            markSet();
-        }
+        );
     }
 
     /**  Get number of repeated fields */
@@ -683,7 +745,26 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     /**  Resize array */
     inline void resize(size_t size)
     {
-        vector.resize(size);
+        if (size==vector.size())
+        {
+            return;
+        }
+
+        if (size==0)
+        {
+            vector.clear();
+        }
+        else if (size<vector.size())
+        {
+            auto n=vector.size()-size;
+            vector.erase(vector.end() - n, vector.end());
+        }
+        else
+        {
+            auto n=size-vector.size();
+            appendValues(n);
+        }
+
         this->markSet();
     }
 
@@ -1018,6 +1099,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 
     virtual Unit* arraySubunit(size_t idx) override {return RepeatedGetterSetter<Type>::unit(vector,idx);}
     virtual const Unit* arraySubunit(size_t idx) const override {return RepeatedGetterSetter<Type>::unit(vector,idx);}
+    //! @todo Implement adding/getting subunits
 
 protected:
 

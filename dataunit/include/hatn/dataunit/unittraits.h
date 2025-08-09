@@ -871,10 +871,6 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
 {
     static_assert(Field::type::isRepeatedType::value,"Only repeated fields can be iterated as tree");
     static_assert(Field::type::fieldType::isUnitType::value,"Only dataunit fields can be iterated as tree");
-    static_assert(
-                  std::is_same<::hatn::common::SharedPtr<Unit>,typename Field::type::type>::value,
-                  "Only shared dataunit fields can be iterated as tree"
-                );
 
     // process self
     if (!handler(self,parent,level))
@@ -888,7 +884,7 @@ bool UnitConcat<Conf,Fields...>::iterateUnitTree(
     // process all units in field array
     for (auto&& it:field.vector)
     {
-        auto unit=self->castToUnit(it.get());
+        auto unit=self->castToUnit(it.subunit());
         if (!unit->iterateUnitTree(handler,static_cast<const T*>(unit),fieldName,self,level+1))
         {
             return false;
