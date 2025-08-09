@@ -507,16 +507,15 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
             QueryT query,
-            Topic topic={},
-            bool sharedResultType=false
+            Topic topic={}
             )
         {
             common::postAsyncTask(
                 topicOrRandomThread(topic),
                 ctx,
-                [ctx,this,self{shared_from_this()},&model,query{std::move(query)},sharedResultType](auto, auto cb)
+                [ctx,this,self{shared_from_this()},&model,query{std::move(query)}](auto, auto cb)
                 {
-                    auto r=m_client->find(model,query(),sharedResultType);
+                    auto r=m_client->find(model,query());
                     cb(std::move(ctx),std::move(r));
                 },
                 std::move(cb)
@@ -549,16 +548,15 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             CallbackT cb,
             Topic topic,
             const std::shared_ptr<ModelT>& model,
-            query::Order order=query::Asc,
-            bool sharedResultType=false
+            query::Order order=query::Asc
             )
         {
             common::postAsyncTask(
                 threads()->thread(topic.topic()),
                 ctx,
-                [ctx,this,self{shared_from_this()},topic,&model,order,sharedResultType](auto, auto cb)
+                [ctx,this,self{shared_from_this()},topic,&model,order](auto, auto cb)
                 {
-                    cb(std::move(ctx),m_client->findAll(topic,model,order,sharedResultType));
+                    cb(std::move(ctx),m_client->findAll(topic,model,order));
                 },
                 std::move(cb)
             );

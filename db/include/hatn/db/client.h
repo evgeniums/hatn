@@ -457,8 +457,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT, typename IndexT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> find(
             const std::shared_ptr<ModelT>& model,
-            const Query<IndexT>& query,
-            bool sharedResultType=false
+            const Query<IndexT>& query
         )
         {
             HATN_CTX_SCOPE("db::find")
@@ -466,7 +465,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             {
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                return doFind(*model->info,q,sharedResultType);
+                return doFind(*model->info,q);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -476,14 +475,13 @@ class HATN_DB_EXPORT Client : public common::WithID
         template <typename ModelT>
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> find(
                 const std::shared_ptr<ModelT>& model,
-                const ModelIndexQuery& query,
-                bool sharedResultType=false
+                const ModelIndexQuery& query
             )
         {
             HATN_CTX_SCOPE("db::find")
             if (m_open)
             {
-                return doFind(*model->info,query,sharedResultType);
+                return doFind(*model->info,query);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -494,8 +492,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAll(
                 Topic topic,
                 const std::shared_ptr<ModelT>& model,
-                query::Order order=query::Asc,
-                bool sharedResultType=false
+                query::Order order=query::Asc
             )
         {
             HATN_CTX_SCOPE("db::findall")
@@ -504,7 +501,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 auto query=makeQuery(oidIdx(),query::where(object::_id,query::gte,query::First,order),topic);
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                return doFind(*model->info,q,sharedResultType);
+                return doFind(*model->info,q);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -515,8 +512,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> findAllPartitioned(
             Topic topic,
             const std::shared_ptr<ModelT>& model,
-            query::Order order=query::Asc,
-            bool sharedResultType=false
+            query::Order order=query::Asc
             )
         {
             HATN_CTX_SCOPE("db::findall")
@@ -525,7 +521,7 @@ class HATN_DB_EXPORT Client : public common::WithID
                 auto query=makeQuery(oidIdx(),query::where_partitioned(oidPartitionIdx(),object::_id,query::gte,query::First,order),topic);
                 ModelIndexQuery q{query,model->model.indexId(query.indexT())};
 
-                return doFind(*model->info,q,sharedResultType);
+                return doFind(*model->info,q);
             }
 
             HATN_CTX_SCOPE_LOCK()
@@ -883,8 +879,7 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> doFind(
             const ModelInfo& model,
-            const ModelIndexQuery& query,
-            bool sharedResultType
+            const ModelIndexQuery& query
         ) =0;
 
         virtual Error doFindCb(

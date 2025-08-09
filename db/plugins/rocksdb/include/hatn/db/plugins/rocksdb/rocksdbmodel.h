@@ -79,8 +79,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbModel : public common::pmr::WithFactory
         std::function<Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> (
             RocksdbHandler& handler,
             const ModelIndexQuery& query,
-            bool single,
-            bool sharedResultType
+            bool single
             )> find;
 
         std::function<Error (

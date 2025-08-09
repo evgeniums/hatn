@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(Simple1)
         BOOST_CHECK(r3_.value()->fieldValue(object::updated_at)==o1.fieldValue(object::updated_at));
 
         // find shared object in topic
-        auto r3_shared=client->find(m1,q3,true);
+        auto r3_shared=client->find(m1,q3);
         if (r3_shared)
         {
             BOOST_TEST_MESSAGE(r3_shared.error().message());

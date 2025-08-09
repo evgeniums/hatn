@@ -91,8 +91,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
 
         Result<HATN_COMMON_NAMESPACE::pmr::vector<DbObject>> doFind(
             const ModelInfo& model,
-            const ModelIndexQuery& query,
-            bool sharedResultType
+            const ModelIndexQuery& query
         ) override;
 
         Error doFindCb(
