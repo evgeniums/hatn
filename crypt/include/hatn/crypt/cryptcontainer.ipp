@@ -444,7 +444,7 @@ common::Error CryptContainer::unpackDescriptor(
     const auto& suiteField=m_descriptor.field(container_descriptor::cipher_suite);
     if (suiteField.isSet())
     {
-        m_extractedSuite.setSuite(suiteField.get());
+        m_extractedSuite.setSuite(suiteField.sharedValue());
         m_cipherSuite=&m_extractedSuite;
     }
     else
