@@ -637,7 +637,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Create and add plain value */
-    type& appendSubunit(bool shared)
+    type& createAndappendSubunit(bool shared)
     {
         this->markSet();
         auto val=RepeatedTraits<Type>::createSubunit(this->unit(),shared);
@@ -651,12 +651,12 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 
     type& appendPlainSubunit()
     {
-        return appendSubunit(false);
+        return createAndappendSubunit(false);
     }
 
     type& appendSharedSubunit()
     {
-        return appendSubunit(true);
+        return createAndappendSubunit(true);
     }
 
     /**  Emplace value */
