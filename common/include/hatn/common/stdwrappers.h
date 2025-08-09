@@ -95,6 +95,8 @@ template <typename ...Types> using variant=boost::variant2::variant<Types...>;
         return boost::variant2::visit(std::forward<Visitor>(vis),std::forward<Variant>(var));
     }
     template <typename T> using optional=boost::optional<T>;
+
+    using monostate=boost::monostate;
 #else
     template <typename ...Types> using variant=std::variant<Types...>;
     template <typename T,typename ...Types>
@@ -119,6 +121,8 @@ template <typename ...Types> using variant=boost::variant2::variant<Types...>;
     }
     template <typename T> using optional=std::optional<T>;
     #define HATN_VARIANT_CPP17
+
+    using monostate=std::monostate;
 #endif
 
 template <typename T> inline void destroyAt(T* obj) noexcept
