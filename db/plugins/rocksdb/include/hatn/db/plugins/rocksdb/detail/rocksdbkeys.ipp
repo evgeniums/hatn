@@ -24,6 +24,8 @@
 #include <hatn/common/format.h>
 #include <hatn/common/datetime.h>
 
+#include <hatn/dataunit/fields/map.h>
+
 #include <hatn/db/objectid.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
@@ -59,6 +61,7 @@ Error Keys::iterateIndexFields(
 
         using fieldT=std::decay_t<decltype(field)>;
         using repeatedT=typename fieldT::isRepeatedType;
+        using mapT=typename fieldT::isMapType;
 
         if constexpr (repeatedT::value)
         {
@@ -95,6 +98,83 @@ Error Keys::iterateIndexFields(
                         isIndexSet
                         );
                     HATN_CHECK_EC(ec)
+
+                    buf.resize(sizeBefore);
+                }
+                return Error{OK};
+            }
+            else
+            {
+                isIndexSet=IsIndexSet::No;
+
+                buf.append(SeparatorCharStr);
+                return iterateIndexFields(
+                    buf,
+                    objectId,
+                    object,
+                    index,
+                    handler,
+                    hana::plus(pos,hana::size_c<1>),
+                    isIndexSet
+                );
+            }
+        }
+        else if constexpr (mapT::value)
+        {
+            auto nextPos=hana::plus(pos,hana::size_c<1>);
+            static_assert(decltype(hana::less(nextPos,hana::size(index.fields)))::value,"Index must include either map's key or map's value");
+
+            if (field.isSet())
+            {
+                const auto& subfieldId=hana::at(index.fields,nextPos);
+                using subfieldType=std::decay_t<decltype(subfieldId)>;
+
+                for (const auto& it: field.value())
+                {
+                    auto sizeBefore=buf.size();
+
+                    if (subfieldType::id==du::MapItemKey::id)
+                    {
+                        if (isIndexSet==IsIndexSet::Unknown)
+                        {
+                            isIndexSet=IsIndexSet::Yes;
+                        }
+
+                        const auto& key=it.first;
+                        fieldToStringBuf(buf,key);
+                        buf.append(SeparatorCharStr);
+                        auto ec=iterateIndexFields(
+                            buf,
+                            objectId,
+                            object,
+                            index,
+                            handler,
+                            hana::plus(nextPos,hana::size_c<1>),
+                            isIndexSet
+                            );
+                        HATN_CHECK_EC(ec)
+                    }
+                    else if (subfieldType::id==du::MapItemValue::id)
+                    {
+                        if (isIndexSet==IsIndexSet::Unknown)
+                        {
+                            isIndexSet=IsIndexSet::Yes;
+                        }
+
+                        const auto& value=it.second;
+                        fieldToStringBuf(buf,value);
+                        buf.append(SeparatorCharStr);
+                        auto ec=iterateIndexFields(
+                            buf,
+                            objectId,
+                            object,
+                            index,
+                            handler,
+                            hana::plus(nextPos,hana::size_c<1>),
+                            isIndexSet
+                            );
+                        HATN_CHECK_EC(ec)
+                    }
 
                     buf.resize(sizeBefore);
                 }
