@@ -83,6 +83,7 @@ struct HandleFieldT
     static dataunit::Field* getUnitField(dataunit::Unit* unit, const Field& updateField, bool maxDepth=true)
     {
         auto* field=unit->fieldById(updateField.path.at(0).fieldId);
+        //! @todo critical: Handle runtime errors instead of assertions
         Assert(field!=nullptr,"Field not found in the object");
 
         size_t count=maxDepth? updateField.path.size() : (updateField.path.size()-1);
