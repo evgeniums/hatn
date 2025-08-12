@@ -215,8 +215,8 @@ HDU_DATAUNIT_EMPTY(empty_unit)
 
 #define HDU_MAP(Name,Key,Value) \
     HDU_UNIT(Name, \
-        HDU_FIELD(key,Key,1) \
-        HDU_FIELD(value,Value,2) \
+        HDU_FIELD(key,Key,MapItemKey::id) \
+        HDU_FIELD(value,Value,MapItemValue::id) \
     )
 
 #define HDU_MAP_FIELD(...) \
