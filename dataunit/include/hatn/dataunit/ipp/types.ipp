@@ -47,6 +47,7 @@ struct BaseType
     using isBytesType=std::false_type;
     using isStringType=std::false_type;
     using isRepeatedType=std::false_type;
+    using isMapType=std::false_type;
     using maxSize=std::integral_constant<int,sizeof(type)>;
 
     constexpr static const bool isSizeIterateNeeded=false;

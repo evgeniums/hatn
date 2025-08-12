@@ -41,6 +41,7 @@ class HATN_DATAUNIT_EXPORT Field : public FieldGetSet
 {
     public:
 
+        using isMapType=std::false_type;
         constexpr static const bool CanChainBlocks=false;
 
         //! Check if this field is compatible with repeated unpacked type with Google Protocol Buffers

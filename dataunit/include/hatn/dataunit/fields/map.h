@@ -30,22 +30,24 @@
 
 HATN_DATAUNIT_NAMESPACE_BEGIN
 
+struct MapItemKey
+{
+    constexpr static const auto index=hana::size_c<0>;
+    constexpr static const int id=1;
+    constexpr static const char* name="key";
+};
+using MapKey=MapItemKey;
+
+struct MapItemValue
+{
+    constexpr static const auto index=hana::size_c<1>;
+    constexpr static const int id=2;
+    constexpr static const char* name="value";
+};
+using MapValue=MapItemValue;
+
 namespace detail
 {
-    struct MapItemKey
-    {
-        constexpr static const auto index=hana::size_c<0>;
-        constexpr static const int id=1;
-        constexpr static const char* name="key";
-    };
-
-    struct MapItemValue
-    {
-        constexpr static const auto index=hana::size_c<1>;
-        constexpr static const int id=2;
-        constexpr static const char* name="value";
-    };
-
     template <ValueType Type, typename =hana::when<true>>
     struct MapItemFieldHelper
     {
@@ -429,8 +431,8 @@ struct MapFieldTmpl : public Field, public MapType
 {
     using pseudoSubunitType=typename Type::type;
 
-    using keyFieldType=typename pseudoSubunitType::template fieldType<detail::MapItemKey::index.value>;
-    using valueFieldType=typename pseudoSubunitType::template fieldType<detail::MapItemValue::index.value>;
+    using keyFieldType=typename pseudoSubunitType::template fieldType<MapItemKey::index.value>;
+    using valueFieldType=typename pseudoSubunitType::template fieldType<MapItemValue::index.value>;
 
     using keyTypeId=typename keyFieldType::Type;
     using valueTypeId=typename valueFieldType::Type;
@@ -744,7 +746,7 @@ struct MapFieldTmpl : public Field, public MapType
                 return false;
             }
 
-            if (!writer->Key(detail::MapItemKey::name,common::CStrLength(detail::MapItemKey::name)))
+            if (!writer->Key(MapItemKey::name,common::CStrLength(MapItemKey::name)))
             {
                 return false;
             }
@@ -753,7 +755,7 @@ struct MapFieldTmpl : public Field, public MapType
                 return false;
             }
 
-            if (!writer->Key(detail::MapItemValue::name,common::CStrLength(detail::MapItemValue::name)))
+            if (!writer->Key(MapItemValue::name,common::CStrLength(MapItemValue::name)))
             {
                 return false;
             }
