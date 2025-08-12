@@ -666,6 +666,16 @@ struct Fieldwriter<T,Type,std::enable_if_t<std::is_floating_point<T>::value>>
     }
 };
 
+template <typename T,typename Type>
+struct Fieldwriter<T,Type,std::enable_if_t<std::is_convertible<T,lib::string_view>::value>>
+{
+    static bool write(const T& val,json::Writer* writer)
+    {
+        lib::string_view view{val};
+        return writer->String(view.data(),view.size());
+    }
+};
+
 HATN_DATAUNIT_NAMESPACE_END
 }
 

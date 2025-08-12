@@ -16,6 +16,7 @@ SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testdatetimefield.cpp
     ${DATAUNIT_TEST_SRC}/testdynamicsubunit.cpp
     ${DATAUNIT_TEST_SRC}/testsubunit.cpp
+    ${DATAUNIT_TEST_SRC}/testmap.cpp
 )
 
 SET (TEST_HEADERS

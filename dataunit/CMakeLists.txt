@@ -24,6 +24,7 @@ SET (HEADERS
     include/hatn/dataunit/fields/date.h
     include/hatn/dataunit/fields/time.h
     include/hatn/dataunit/fields/daterange.h
+    include/hatn/dataunit/fields/map.h
 
     include/hatn/dataunit/unittraits.h
 

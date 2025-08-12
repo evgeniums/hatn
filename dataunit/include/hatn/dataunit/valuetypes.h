@@ -22,6 +22,8 @@
 #define HATNFIELDVALUETYPES_H
 
 #include <boost/hana.hpp>
+
+#include <hatn/common/daterange.h>
 #include <hatn/dataunit/dataunit.h>
 
 namespace hana=boost::hana;
@@ -60,6 +62,120 @@ enum class ValueType : int
     ObjectId,
 
     Custom=256
+};
+
+template <typename T>
+struct valueTypeOf
+{
+    constexpr static const ValueType value=ValueType::Dataunit;
+};
+
+template <>
+struct valueTypeOf<bool>
+{
+    constexpr static const ValueType value=ValueType::Bool;
+};
+
+template <>
+struct valueTypeOf<int8_t>
+{
+    constexpr static const ValueType value=ValueType::Int8;
+};
+
+template <>
+struct valueTypeOf<int16_t>
+{
+    constexpr static const ValueType value=ValueType::Int16;
+};
+
+template <>
+struct valueTypeOf<int32_t>
+{
+    constexpr static const ValueType value=ValueType::Int32;
+};
+
+template <>
+struct valueTypeOf<int64_t>
+{
+    constexpr static const ValueType value=ValueType::Int64;
+};
+
+template <>
+struct valueTypeOf<uint8_t>
+{
+    constexpr static const ValueType value=ValueType::UInt8;
+};
+
+template <>
+struct valueTypeOf<uint16_t>
+{
+    constexpr static const ValueType value=ValueType::UInt16;
+};
+
+template <>
+struct valueTypeOf<uint32_t>
+{
+    constexpr static const ValueType value=ValueType::UInt32;
+};
+
+template <>
+struct valueTypeOf<uint64_t>
+{
+    constexpr static const ValueType value=ValueType::UInt64;
+};
+
+template <>
+struct valueTypeOf<float>
+{
+    constexpr static const ValueType value=ValueType::Float;
+};
+
+template <>
+struct valueTypeOf<double>
+{
+    constexpr static const ValueType value=ValueType::Double;
+};
+
+template <>
+struct valueTypeOf<std::string>
+{
+    constexpr static const ValueType value=ValueType::String;
+};
+
+template <>
+struct valueTypeOf<common::ByteArray>
+{
+    constexpr static const ValueType value=ValueType::Bytes;
+};
+
+template <>
+struct valueTypeOf<common::ByteArrayShared>
+{
+    constexpr static const ValueType value=ValueType::Bytes;
+};
+
+template <>
+struct valueTypeOf<common::DateTime>
+{
+    constexpr static const ValueType value=ValueType::DateTime;
+};
+
+template <>
+struct valueTypeOf<common::Date>
+{
+    constexpr static const ValueType value=ValueType::Date;
+};
+
+template <>
+struct valueTypeOf<common::Time>
+{
+    constexpr static const ValueType value=ValueType::Time;
+};
+
+template <>
+struct valueTypeOf<common::DateRange>
+{
+    constexpr static const ValueType value=ValueType::DateRange;
 };
 
 namespace types {
@@ -121,6 +237,11 @@ constexpr auto IsScalarNotBool=hana::or_(IsInt<TypeId>,IsDouble<TypeId>);
 template <ValueType TypeId>
 constexpr auto IsString=hana::bool_c<
     TypeId==ValueType::String
+    >;
+
+template <ValueType TypeId>
+constexpr auto IsBytes=hana::bool_c<
+    TypeId==ValueType::Bytes
     >;
 
 template <ValueType TypeId>

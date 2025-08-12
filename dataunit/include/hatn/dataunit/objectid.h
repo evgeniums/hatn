@@ -395,6 +395,12 @@ struct Fieldwriter<T,Type,std::enable_if_t<std::is_same<ObjectId,std::decay_t<T>
 
 } // namespace json
 
+template <>
+struct valueTypeOf<ObjectId>
+{
+    constexpr static const ValueType value=ValueType::ObjectId;
+};
+
 namespace types
 {
 using TYPE_OBJECT_ID=OidType;

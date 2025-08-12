@@ -189,6 +189,11 @@ struct BytesTraits : public BytesTraitsBase
 
     inline size_t maxPackedSize() const noexcept
     {
+        return valueSize();
+    }
+
+    inline size_t valueSize() const noexcept
+    {
         if (!byteArrayShared().isNull())
         {
             // return size of data plus size of unpacked length field

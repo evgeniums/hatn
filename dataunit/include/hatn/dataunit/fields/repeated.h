@@ -64,7 +64,7 @@ struct RepeatedTraits
     {
         inline static valueType f(Unit* parentUnit)
         {
-            return ::hatn::common::ConstructWithArgsOrDefault<valueType,Unit*>::f(
+            return common::ConstructWithArgsOrDefault<valueType,Unit*>::f(
                 std::forward<Unit*>(parentUnit)
                 );
         }
@@ -637,7 +637,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Create and add plain value */
-    type& createAndappendSubunit(bool shared)
+    type& createAndAppendSubunit(bool shared)
     {
         this->markSet();
         auto val=RepeatedTraits<Type>::createSubunit(this->unit(),shared);
@@ -651,12 +651,12 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 
     type& appendPlainSubunit()
     {
-        return createAndappendSubunit(false);
+        return createAndAppendSubunit(false);
     }
 
     type& appendSharedSubunit()
     {
-        return createAndappendSubunit(true);
+        return createAndAppendSubunit(true);
     }
 
     /**  Emplace value */
@@ -1229,9 +1229,15 @@ struct RepeatedFieldProtoBufPackedTmpl : public RepeatedFieldTmpl<Type,Id,Defaul
     }
 
     /** Get expected field size */
-    virtual size_t maxPackedSize() const noexcept override
+    size_t fieldSize() const noexcept
     {
         return this->count()*sizeof(type)+5;
+    }
+
+    /** Get expected field size */
+    virtual size_t maxPackedSize() const noexcept override
+    {
+        return fieldSize();
     }
 };
 

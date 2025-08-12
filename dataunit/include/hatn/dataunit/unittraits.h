@@ -239,6 +239,10 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
         using baseType=typename makeUnitImpl<Conf,Fields...>::type;
         using conf=Conf;
 
+        using fieldTypes=std::tuple<Fields...>;
+        template <int Index>
+        using fieldType=std::tuple_element_t<Index,fieldTypes>;
+
         using mapType=typename fieldsMapT<Fields...>::type;
         constexpr static mapType fieldsMap{};
 
@@ -369,6 +373,14 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
         auto field(T&& fieldName) noexcept -> decltype(auto)
         {
             return this->get(fieldIndex(std::forward<T>(fieldName)));
+        }
+
+        /**  Get field type by index */
+        template <int Index>
+        constexpr static auto fieldTypeC() noexcept
+        {
+            using type=std::tuple_element_t<Index,fieldTypes>;
+            return hana::type_c<type>;
         }
 
         /**  Check if field is set. */

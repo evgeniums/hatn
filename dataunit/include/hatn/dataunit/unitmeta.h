@@ -35,6 +35,7 @@ namespace hana=boost::hana;
 #include <hatn/dataunit/types.h>
 #include <hatn/dataunit/unittraits.h>
 #include <hatn/dataunit/fields/repeated.h>
+#include <hatn/dataunit/fields/map.h>
 #include <hatn/dataunit/allocatorfactory.h>
 
 HATN_DATAUNIT_META_NAMESPACE_BEGIN
@@ -239,6 +240,8 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                             !hana::is_a<repeated_tag,RepeatedType>
                             &&
                            !TypeId::isUnitType::value
+                            &&
+                            !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
@@ -261,6 +264,8 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                                DefaultTraits::HasDefV::value
                                &&
                                !hana::is_a<repeated_tag,RepeatedType>
+                               &&
+                               !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
@@ -283,6 +288,8 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            hana::is_a<repeated_tag,RepeatedType>
                             &&
                            !std::is_same<TypeId,TYPE_DATAUNIT>::value
+                           &&
+                           !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
@@ -310,6 +317,8 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            hana::is_a<repeated_tag,RepeatedType>
                             &&
                            std::is_same<TypeId,TYPE_DATAUNIT>::value
+                            &&
+                            !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
@@ -338,6 +347,8 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                                   !std::is_same<TypeId,TYPE_DATAUNIT>::value
                                   &&
                                   !hana::is_a<repeated_tag,RepeatedType>
+                                   &&
+                                   !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
@@ -362,10 +373,32 @@ struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
                            std::is_same<TypeId,TYPE_DATAUNIT>::value
                            &&
                            !hana::is_a<repeated_tag,RepeatedType>
+                            &&
+                           !hana::is_a<map_tag,RepeatedType>
                            >
                        >
 {
     using type=SubunitField<StringsT,TypeId,Id::value,Required::value>;
+    using type_id=TypeId;
+};
+
+/**
+ * @brief The generator of map field
+ */
+template <typename StringsT,
+         typename Id,
+         typename TypeId,
+         typename DefaultTraits,
+         typename Required,
+         typename RepeatedType
+         >
+struct field_generator<StringsT,Id,TypeId,DefaultTraits,Required,RepeatedType,
+                       hana::when<
+                           hana::is_a<map_tag,RepeatedType>
+                           >
+                       >
+{
+    using type=MapField<StringsT,TypeId,Id::value,Required::value>;
     using type_id=TypeId;
 };
 

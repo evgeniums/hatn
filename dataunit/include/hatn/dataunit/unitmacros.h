@@ -59,7 +59,7 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 
 //---------------------------------------------------------------
 
-#define HDU_V2_FIELD_DEF(FieldName,Type,Id,required,Default,repeated_traits) \
+#define HDU_V2_FIELD_DEF(FieldName,Typ,Id,required,Default,repeated_traits) \
     HDU_V2_CHECK_ID(FieldName,Id) \
     HDU_V2_DEFAULT_PREPARE(FieldName,Type,Default) \
     struct field_##FieldName{};\
@@ -73,12 +73,13 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
         using traits=field_traits<field_generator,\
                        strings,\
                        hana::int_<Id>,\
-                       Type,\
-                       default_type<Type,default_##FieldName>,\
+                       Typ,\
+                       default_type<Typ,default_##FieldName>,\
                        required,\
                        decltype(repeated_traits)\
                        >;\
         using type=typename traits::type;\
+        using Type=typename traits::Type;\
         HDU_V2_FIELD_NAME_STR(FieldName)\
         constexpr static auto id=hana::int_c<Id>;\
     };\
@@ -160,6 +161,12 @@ static_assert(decltype(meta::is_unit_type<Type>())::value || decltype(meta::is_b
 #define HDU_V2_REPEATED_UNIT_FIELD(FieldName,Type,Id,Required) \
     HDU_V2_IS_UNIT_TYPE(FieldName,Type) \
     HDU_V2_REPEATED_FIELD_DEF4(FieldName,Type,Id,Required)
+
+//---------------------------------------------------------------
+
+#define HDU_V2_MAP_FIELD(FieldName,...) \
+    constexpr map_config cfg_##FieldName{};\
+    HDU_V2_EXPAND(HDU_V2_VARG_SELECT_FIELD(FieldName,__VA_ARGS__)(FieldName,__VA_ARGS__,cfg_##FieldName))
 
 //---------------------------------------------------------------
 
