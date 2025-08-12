@@ -41,8 +41,8 @@ HDU_UNIT_WITH(event,(HDU_BASE(db::object)),
     HDU_FIELD(access_type,HDU_TYPE_ENUM(AccessType),13)
     HDU_FIELD(service,TYPE_STRING,14)
     HDU_FIELD(service_method,TYPE_STRING,15)
-    HDU_MAP_FIELD(origin,parameter,16)
-    HDU_MAP_FIELD(parameters,parameter,17)
+    HDU_MAP_FIELD(origin,parameter::TYPE,16)
+    HDU_MAP_FIELD(parameters,parameter::TYPE,17)
 )
 
 /**
