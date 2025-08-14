@@ -28,6 +28,8 @@ class BaseMethod
 {
     public:
 
+        using Request=RequestT;
+
         BaseMethod(std::shared_ptr<Controller<RequestT>> controller) : m_controller(std::move(controller))
         {}
 

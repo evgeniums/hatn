@@ -50,7 +50,7 @@ class AddUserTraits : public BaseMethod<RequestT>
                 {
                     //! @todo Log error
                     // handler error
-                    req.response.setStatus(HATN_API_NAMESPACE::protocol::ResponseStatus::ExecFailed,ec);
+                    req.setResponseError(HATN_API_NAMESPACE::protocol::ResponseStatus::ExecFailed,ec);
                 }
                 else
                 {
