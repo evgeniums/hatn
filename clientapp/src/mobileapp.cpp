@@ -364,7 +364,7 @@ int MobileApp::initTests()
     {
         std::cout << "Adding event " << i << std::endl;
 
-        const auto& event=events.at(i);
+        const auto& event=events.at(i).value();
         std::string category{event.fieldValue(test_event::category)};
         std::string name{event.fieldValue(test_event::event)};
         auto json=event.toString(true);
