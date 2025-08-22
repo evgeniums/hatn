@@ -271,7 +271,7 @@ class HATN_CLIENTAPP_EXPORT Service
             auto it=m_messageBuilders.find(messageType);
             if (it==m_messageBuilders.end())
             {
-                return clientAppError(ClientAppError::UNKNOWN_BRIDGE_MESSASGE);
+                return clientAppError(ClientAppError::UNKNOWN_BRIDGE_MESSAGE);
             }
             return it->second(messageJson);
         }

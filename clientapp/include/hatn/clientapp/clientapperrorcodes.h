@@ -29,7 +29,7 @@
     Do(ClientAppError,OK,_TR("OK")) \
     Do(ClientAppError,UNKNOWN_BRIDGE_SERVICE,_TR("unknown bridge service","clientapp")) \
     Do(ClientAppError,UNKNOWN_BRIDGE_METHOD,_TR("unknown bridge method","clientapp")) \
-    Do(ClientAppError,UNKNOWN_BRIDGE_MESSASGE,_TR("unknown bridge message type","clientapp")) \
+    Do(ClientAppError,UNKNOWN_BRIDGE_MESSAGE,_TR("unknown bridge message type","clientapp")) \
     Do(ClientAppError,BRIDGE_MESSASGE_TYPE_MISMATCH,_TR("mismatching bridge message type","clientapp")) \
     Do(ClientAppError,FAILED_PARSE_BRIDGE_JSON,_TR("failed to parse JSON message of bridge request","clientapp")) \
     Do(ClientAppError,CIPHER_SUITES_UNDEFINED,_TR("cipher suites undefined","clientapp")) \
