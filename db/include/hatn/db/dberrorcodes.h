@@ -60,7 +60,8 @@
     Do(DbError,MODEL_TOPIC_RELATION_DESER,_TR("failed to deserialize model-topic relation","db")) \
     Do(DbError,MODEL_TOPIC_RELATION_READ,_TR("failed to read model-topic relation","db")) \
     Do(DbError,MODEL_TOPIC_RELATION_DEL,_TR("failed to delete model-topic relation","db")) \
-    Do(DbError,DB_PLUGIN_FAILED,_TR("failed to load requested database plugin","db"))
+    Do(DbError,DB_PLUGIN_FAILED,_TR("failed to load requested database plugin","db")) \
+    Do(DbError,INVALID_CONFIG,_TR("invalid database configuration","db"))
 
 HATN_DB_NAMESPACE_BEGIN
 

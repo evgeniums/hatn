@@ -65,7 +65,7 @@ namespace {
 #endif
 
 HDU_UNIT(rocksdb_config,
-         HDU_FIELD(dbpath,HDU_TYPE_FIXED_STRING(512),1,true)
+         HDU_FIELD(dbpath,HDU_TYPE_FIXED_STRING(512),1)
          HDU_FIELD(wait_compact_shutdown,TYPE_BOOL,2,false,DefaultWaitCompactShutdown)
          )
 
@@ -270,16 +270,35 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ttlCfOptions.compression=compression;
 
     // construct db path
-    std::string dbPath{d->cfg.config().field(rocksdb_config::dbpath).c_str()};
-    if (!config.dbPathPrefix.empty())
+    std::string dbPath;
+    if (!d->cfg.config().fieldValue(rocksdb_config::dbpath).empty())
     {
-        lib::filesystem::path path{dbPath};
-        if (!path.is_absolute())
+        dbPath=d->cfg.config().fieldValue(rocksdb_config::dbpath);
+    }
+    lib::filesystem::path path{dbPath};
+    if (path.is_absolute() && !config.dbPath.empty())
+    {
+        ec=common::chainError(dbError(DbError::DB_DESTROY_FAILED),_TR("explicit dbPath cannot be used with absolute dbpath in rocksdb configuration section"));
+        return;
+    }
+
+    if (!config.dbPath.empty())
+    {
+        lib::filesystem::path dir{config.dbPath};
+        if (!dbPath.empty())
         {
-            lib::filesystem::path dir{config.dbPathPrefix};
             dir.append(dbPath);
-            dbPath=dir.string();
         }
+        if (!config.dbPrefix.empty())
+        {
+            dir.append(config.dbPrefix);
+        }
+        dbPath=dir.string();
+    }
+    else if (!config.dbPrefix.empty())
+    {
+        path.append(config.dbPrefix);
+        dbPath=path.string();
     }
 
     bool createNew=false;

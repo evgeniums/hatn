@@ -194,7 +194,9 @@ HDU_UNIT(db_config,
     HDU_FIELD(cipher_suite,TYPE_STRING,4)
     HDU_FIELD(encryption_chunk_size,TYPE_UINT32,5,false,crypt::MaxContainerChunkSize)
     HDU_FIELD(encryption_first_chunk_size,TYPE_UINT32,6,false,crypt::MaxContainerFirstChunkSize)
-    HDU_FIELD(main_db_path,TYPE_STRING,7)
+    HDU_FIELD(db_folder,TYPE_STRING,7,false,"db")
+    HDU_FIELD(db_prefix,TYPE_STRING,8,false,"main")
+    HDU_FIELD(main_db_path,TYPE_STRING,9)
 )
 
 HDU_UNIT(crypt_config,
@@ -262,7 +264,7 @@ class App_p
 
         Result<std::shared_ptr<db::DbPlugin>> loadDbPlugin(lib::string_view name);
         Error initDbPlugin();
-        db::ClientConfig dbClientConfig(lib::string_view name);
+        db::ClientConfig dbClientConfig(lib::string_view provider);
         void setAppLogger(std::shared_ptr<log::Logger> newLogger)
         {
             logger=std::move(newLogger);
@@ -923,15 +925,38 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 
 //---------------------------------------------------------------
 
-db::ClientConfig App_p::dbClientConfig(lib::string_view name)
+db::ClientConfig App_p::dbClientConfig(lib::string_view provider)
 {
-    auto cfgPath=base::ConfigTreePath{DbConfigRoot}.copyAppend(name);
+    auto cfgPath=base::ConfigTreePath{DbConfigRoot}.copyAppend(provider);
     db::ClientConfig cfg{app->m_configTree,
                          app->m_configTree,
                          cfgPath.copyAppend(App::DbConfigMainSection),
                          cfgPath.copyAppend(App::DbConfigOptionsSection)
                          };
-    cfg.dbPathPrefix=app->appDataFolder();
+
+    if (dbConfig.config().field(db_config::db_folder).isSet())
+    {
+        std::string dbPath{dbConfig.config().fieldValue(db_config::db_folder)};
+        if (!dbPath.empty())
+        {
+            lib::filesystem::path p{dbPath};
+            if (!p.is_absolute())
+            {
+                p=app->appDataFolder();
+                p.append(dbPath);
+                dbPath=p.string();
+            }
+        }
+        cfg.dbPath=dbPath;
+    }
+    else
+    {
+        lib::filesystem::path p{app->appDataFolder()};
+        p.append("db");
+        cfg.dbPath=p.string();
+    }
+
+    cfg.dbPrefix=dbConfig.config().fieldValue(db_config::db_prefix);
     cfg.encryptionManager=dbEncryptionManager;
     return cfg;
 }
@@ -995,7 +1020,7 @@ Error App::openDb(
     Error ec;
 
     // load plugin
-    auto name=d->dbConfig.config().fieldValue(db_config::provider);
+    auto provider=d->dbConfig.config().fieldValue(db_config::provider);
     ec=d->initDbPlugin();
     HATN_CHECK_EC(ec)
 
@@ -1009,9 +1034,9 @@ Error App::openDb(
     // open db    
     base::config_object::LogRecords logRecords;
     std::ignore=thread->execSync(
-        [this,&ec,&logRecords,&name,create]()
+        [this,&ec,&logRecords,&provider,create]()
         {
-            auto cfg=d->dbClientConfig(name);
+            auto cfg=d->dbClientConfig(provider);
             ec=d->dbClient->openDb(cfg,logRecords,create);
         }
     );
