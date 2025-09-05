@@ -76,6 +76,11 @@ Result<common::SharedPtr<account_config::managed>> parseAccountConfigT::operator
         return common::chainErrors(std::move(ec),clientServerError(ClientServerError::ACCOUNT_CONFIG_DATA_DESERIALIZATION));
     }
 
+#if 0
+    // print debug
+    std::cout << "Config: " << accountConfig->toString(true) << std::endl;
+#endif
+
     // done
     return accountConfig;
 }
