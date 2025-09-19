@@ -154,6 +154,12 @@ class UnitWrapper
             return m_shared.get();
         }
 
+        template <typename T>
+        auto sharedAs() const noexcept
+        {
+            return as<T>()->sharedFromThis();
+        }
+
     protected:
 
         HATN_COMMON_NAMESPACE::SharedPtr<Unit> m_shared;
