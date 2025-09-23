@@ -21,7 +21,7 @@
 
 #include <hatn/common/env.h>
 #include <hatn/common/translate.h>
-#include <hatn/common/logger.h>
+#include <hatn/common/withsharedvalue.h>
 
 #include <hatn/logcontext/withlogger.h>
 #include <hatn/logcontext/context.h>
@@ -42,7 +42,82 @@ using CipherSuites=HATN_CRYPT_NAMESPACE::WithCipherSuites;
 using Translator=common::WithTranslator;
 using Threads=common::WithMappedThreads;
 
-using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,CipherSuites,Translator>;
+class Databases
+{
+    public:
+
+        void add(std::string name, std::shared_ptr<Db> db)
+        {
+            common::MutexScopedLock l{m_mutex};
+            m_dbs.emplace(std::move(name),std::move(db));
+        }
+
+        std::shared_ptr<Db>& get(lib::string_view name)
+        {
+            common::MutexScopedLock l{m_mutex};
+            static std::shared_ptr<Db> none;
+
+            auto it=m_dbs.find(name);
+            if (it!=m_dbs.end())
+            {
+                return it->second;
+            }
+
+            return none;
+        }
+
+        const std::shared_ptr<Db>& get(lib::string_view name) const
+        {
+            common::MutexScopedLock l{m_mutex};
+            static std::shared_ptr<Db> none;
+
+            auto it=m_dbs.find(name);
+            if (it!=m_dbs.end())
+            {
+                return it->second;
+            }
+
+            return none;
+        }
+
+        void remove(const std::string& name)
+        {
+            common::MutexScopedLock l{m_mutex};
+            m_dbs.erase(name);
+        }
+
+        void clear()
+        {
+            common::MutexScopedLock l{m_mutex};
+            m_dbs.clear();
+        }
+
+    private:
+
+        mutable common::MutexLock m_mutex;
+        common::FlatMap<std::string,std::shared_ptr<Db>,std::less<void>> m_dbs;
+};
+
+using WithDatabases = common::WithSharedValue<Databases>;
+using Dbs=WithDatabases;
+
+using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>;
+
+template <typename FromT, typename ToT>
+inline void cloneAppEnv(const FromT& from, ToT& to, bool ignoreDatabases=true)
+{
+    to.template get<AllocatorFactory>().setFactory(from.template get<AllocatorFactory>().factory());
+    to.template get<Threads>().setMappedThreads(from.template get<Threads>().threads());
+    to.template get<Logger>().setLogger(from.template get<Logger>().loggerShared());
+    if (!ignoreDatabases)
+    {
+        to.template get<Db>().setDbClient(from.template get<Db>().dbClient());
+        to.template get<Db>().setDbClients(from.template get<Db>().dbClients());
+        to.template get<Dbs>().setValue(from.template get<Dbs>().sharedValue());
+    }
+    to.template get<CipherSuites>().setSuites(from.template get<CipherSuites>().suitesShared());
+    to.template get<Translator>().setTranslator(from.template get<Translator>().translatorShared());
+}
 
 class WithAppEnv
 {

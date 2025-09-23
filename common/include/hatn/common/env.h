@@ -41,6 +41,8 @@ class BaseEnv
         BaseEnv(std::string name={}) : m_name(std::move(name))
         {}
 
+        virtual ~BaseEnv()=default;
+
         const std::string& name() const noexcept
         {
             return m_name;

@@ -635,6 +635,7 @@ Error App::init()
             common::subcontext(std::move(mappedThreads)),
             common::subcontext(d->logger),
             common::subcontext(),
+            common::subcontext(),
             common::subcontext(cipherSuites.takeValue()),
             common::subcontext()
         )
