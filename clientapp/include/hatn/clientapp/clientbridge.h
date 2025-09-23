@@ -425,9 +425,9 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
 
     private:
 
-        common::FlatMap<std::string,std::shared_ptr<Service>> m_services;
-        common::FlatMap<std::string,common::SharedPtr<app::AppEnv>> m_envs;
-        common::FlatMap<std::string,std::shared_ptr<ConfirmationController>> m_confirmations;
+        common::FlatMap<std::string,std::shared_ptr<Service>,std::less<void>> m_services;
+        common::FlatMap<std::string,common::SharedPtr<app::AppEnv>,std::less<void>> m_envs;
+        common::FlatMap<std::string,std::shared_ptr<ConfirmationController>,std::less<void>> m_confirmations;
 
         std::shared_ptr<ContextBuilder>  m_defaultCtxBuilder;
         common::SharedPtr<app::AppEnv> m_defaultEnv;
