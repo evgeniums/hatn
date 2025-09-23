@@ -253,8 +253,10 @@ class HATN_CLIENTAPP_EXPORT Service
                 MessageBuilderFn builder
             )
         {
-            Assert(m_messageBuilders.find(messageType)==m_messageBuilders.end(),"Duplicate message builder");
-            m_messageBuilders[std::move(messageType)]=std::move(builder);
+            if (m_messageBuilders.find(messageType)==m_messageBuilders.end())
+            {
+                m_messageBuilders[std::move(messageType)]=std::move(builder);
+            }
         }
 
         template <typename MessageT>
