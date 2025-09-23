@@ -997,6 +997,16 @@ class MultipleAsyncClients : public WithAsyncClient
             return WithAsyncClient::setSchema(std::move(schema));
         }
 
+        void setDbClients(common::FlatMap<std::string,std::shared_ptr<AsyncClient>,std::less<>> clients)
+        {
+            m_clients=std::move(clients);
+        }
+
+        const auto& dbClients() const
+        {
+            return m_clients;
+        }
+
     private:
 
         common::FlatMap<std::string,std::shared_ptr<AsyncClient>,std::less<>> m_clients;
