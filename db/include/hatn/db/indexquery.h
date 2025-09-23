@@ -401,6 +401,8 @@ class SharedQueryWrapperT
 {
     public:
 
+        SharedQueryWrapperT()=default;
+
         template <typename ...Args>
         SharedQueryWrapperT(Args&& ...args) : m_query(allocateQuery(std::forward<Args>(args)...))
         {}
