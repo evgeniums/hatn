@@ -92,6 +92,25 @@ class Databases
             m_dbs.clear();
         }
 
+        Error close()
+        {
+            Error ec;
+
+            for (auto& db: m_dbs)
+            {
+                auto ec1=db.second->close();
+                if (ec1)
+                {
+                    if (!ec)
+                    {
+                        ec=std::move(ec1);
+                    }
+                }
+            }
+
+            return ec;
+        }
+
     private:
 
         mutable common::MutexLock m_mutex;
