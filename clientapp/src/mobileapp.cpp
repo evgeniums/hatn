@@ -15,6 +15,7 @@
   */
 
 #include <hatn/common/thread.h>
+#include <hatn/common/datetime.h>
 
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/syntax.h>
@@ -46,22 +47,6 @@ HATN_LOG_MODULE_DECLARE_EXP(mobileapp,HATN_CLIENTAPP_EXPORT)
 HATN_LOG_MODULE_INIT(mobileapp,HATN_CLIENTAPP_EXPORT)
 
 HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
-
-constexpr const char* TestingSection="testing";
-
-HDU_UNIT(test_event,
-    HDU_FIELD(category,TYPE_STRING,1)
-    HDU_FIELD(event,TYPE_STRING,2)
-    HDU_FIELD(period,TYPE_UINT32,3)
-    HDU_FIELD(run_once,TYPE_BOOL,4)
-)
-
-HDU_UNIT(testing_config,
-    HDU_FIELD(enable,TYPE_UINT8,1)
-    HDU_REPEATED_FIELD(events,test_event::TYPE,2)
-)
-
-using TestingConfig=HATN_BASE_NAMESPACE::ConfigObject<testing_config::type>;
 
 //-----------------------------------------------------------------------------
 
@@ -159,11 +144,11 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
     HATN_CTX_INFO_RECORDS_M("***** RUNNING MOBILE APP ******",HLOG_MODULE(mobileapp),{"name",pimpl->app->app().appName().displayName})
 
     // init tests if applicable
-    auto testsRet=initTests();
-    if (testsRet!=0)
+    ec=pimpl->app->initTests();
+    if (ec)
     {
         close();
-        return testsRet;
+        return -8;
     }
 
     // done
@@ -337,82 +322,6 @@ void MobileApp::unsubscribeEvent(size_t id)
 
 //-----------------------------------------------------------------------------
 
-int MobileApp::initTests()
-{
-    HATN_CTX_SCOPE("inittests")
-
-    TestingConfig testingConfig;
-
-    auto ec=HATN_NAMESPACE::loadLogConfig("configuration of tests",HLOG_MODULE(mobileapp),testingConfig,pimpl->app->app().configTree(),TestingSection);
-    if (ec)
-    {
-        HATN_CTX_ERROR(ec,"failed to load configuration of testing",HLOG_MODULE(mobileapp))
-        return -10;
-    }
-
-    if (!testingConfig.config().fieldValue(testing_config::enable))
-    {
-        return 0;
-    }
-
-    pimpl->app->bridge().registerService(
-        std::make_shared<HATN_CLIENTAPP_NAMESPACE::TestServiceDb>(pimpl->app.get())
-    );
-
-    const auto& events=testingConfig.config().field(testing_config::events);
-    for (size_t i=0;i<events.count();i++)
-    {
-        std::cout << "Adding event " << i << std::endl;
-
-        const auto& event=events.at(i).value();
-        std::string category{event.fieldValue(test_event::category)};
-        std::string name{event.fieldValue(test_event::event)};
-        auto json=event.toString(true);
-        auto handler=[this,category,name,json]()
-        {
-            DefaultContextBuilder ctxBuilder{};
-
-            auto ctx=ctxBuilder.makeContext(pimpl->app->app().env());
-            ctx->beforeThreadProcessing();
-
-            {
-                HATN_CTX_SCOPE("testevent::publish")
-                HATN_CTX_INFO("publish event")
-
-                auto event=std::make_shared<HATN_CLIENTAPP_NAMESPACE::Event>();
-                event->category=category;
-                event->event=name;
-                event->messageTypeName=test_event::conf().name;
-                auto msg=common::makeShared<test_event::managed>();
-                du::WireBufSolid buf{json.data(),json.size(),true};
-                msg->parse(buf);
-                event->message=msg;
-
-                HATN_CTX_INFO_RECORDS("publish event",{"event_category",category},{"event",name})
-                pimpl->app->eventDispatcher().publish(
-                    pimpl->app->app().env(),
-                    ctx,
-                    event
-                );
-            }
-
-            ctx->afterThreadProcessing();
-
-            return true;
-        };
-
-        pimpl->app->app().appThread()->installTimer(
-            event.fieldValue(test_event::period) * 1000 * 1000,
-            handler,
-            event.fieldValue(test_event::run_once)
-        );
-    }
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-
 std::vector<std::string> MobileApp::listLogFiles() const
 {
     return pimpl->app->app().listLogFiles();
@@ -492,6 +401,63 @@ const LockingBridge* MobileApp::locking() const
 LockingBridge* MobileApp::locking()
 {
     return &pimpl->lockingBridge;
+}
+
+//-----------------------------------------------------------------------------
+
+std::string MobileApp::generateOid()
+{
+    auto oid=dataunit::ObjectId::generateId();
+    return oid.toString();
+}
+
+//-----------------------------------------------------------------------------
+
+std::string MobileApp::dateTimeToOid(const std::string& datetime)
+{
+    auto dt=common::DateTime::parseIsoString(datetime);
+    if (dt)
+    {
+        return std::string{};
+    }
+    dataunit::ObjectId oid;
+    oid.setDateTime(dt.value());
+    return oid.toString();
+}
+
+//-----------------------------------------------------------------------------
+
+std::string MobileApp::dateTimeToOid(uint64_t datetimeMs)
+{
+    auto dt=common::DateTime::fromEpochMs(datetimeMs);
+    dataunit::ObjectId oid;
+    oid.setDateTime(dt);
+    return oid.toString();
+}
+
+//-----------------------------------------------------------------------------
+
+std::string MobileApp::oidToDateTime(const std::string& oidStr)
+{
+    auto oid=dataunit::ObjectId::fromString(oidStr);
+    if (oid)
+    {
+        return std::string{};
+    }
+    auto dt=common::DateTime::fromEpochMs(oid->timepoint());
+    return dt.toIsoString();
+}
+
+//-----------------------------------------------------------------------------
+
+uint64_t MobileApp::oidToEpochMs(const std::string& oidStr)
+{
+    auto oid=dataunit::ObjectId::fromString(oidStr);
+    if (oid)
+    {
+        return 0;
+    }
+    return oid->timepoint();
 }
 
 //-----------------------------------------------------------------------------

@@ -179,8 +179,6 @@ class HATN_CLIENTAPP_EXPORT MobileApp
             size_t id
         );
 
-        int initTests();
-
         std::vector<std::string> listLogFiles() const;
 
         int getAppSetting(
@@ -197,6 +195,12 @@ class HATN_CLIENTAPP_EXPORT MobileApp
 
         const LockingBridge* locking() const;
         LockingBridge* locking();
+
+        static std::string generateOid();
+        static std::string dateTimeToOid(const std::string& datetime);
+        static std::string dateTimeToOid(uint64_t epochMs);
+        static std::string oidToDateTime(const std::string& oid);
+        static uint64_t oidToEpochMs(const std::string& oid);
 
     private:
 
