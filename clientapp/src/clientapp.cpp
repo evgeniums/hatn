@@ -413,4 +413,11 @@ bool ClientApp::appDataInitialized() const
 
 //--------------------------------------------------------------------------
 
+Error ClientApp::initTests()
+{
+    return OK;
+}
+
+//--------------------------------------------------------------------------
+
 HATN_CLIENTAPP_NAMESPACE_END

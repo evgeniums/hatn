@@ -124,6 +124,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         bool appDataInitialized() const;
 
+        virtual hatn::Error initTests();
+
     protected:
 
         virtual Error doInitDbSchemas(std::map<std::string,std::shared_ptr<db::Schema>>& schemas)
