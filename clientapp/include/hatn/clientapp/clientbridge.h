@@ -391,11 +391,20 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
 
         void addEnv(common::SharedPtr<app::AppEnv> env)
         {
+            common::MutexScopedLock l{m_mutex};
             m_envs[env->name()]=env;
+        }
+
+        void removeEnv(const std::string& name)
+        {
+            common::MutexScopedLock l{m_mutex};
+            m_envs.erase(name);
         }
 
         common::SharedPtr<app::AppEnv> env(const std::string& envId) const
         {
+            common::MutexScopedLock l{m_mutex};
+
             auto it=m_envs.find(envId);
             if (it==m_envs.end())
             {
@@ -426,6 +435,8 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
         ) const;
 
     private:
+
+        mutable common::MutexLock m_mutex;
 
         common::FlatMap<std::string,std::shared_ptr<Service>,std::less<void>> m_services;
         common::FlatMap<std::string,common::SharedPtr<app::AppEnv>,std::less<void>> m_envs;
