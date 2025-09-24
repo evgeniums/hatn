@@ -24,6 +24,8 @@ SET (HEADERS
     include/hatn/clientapp/clientappsettings.h
     include/hatn/clientapp/lockingcontroller.h
     include/hatn/clientapp/confirmationdescriptor.h
+
+    include/hatn/clientapp/testservicedb.h
 )
 
 SET (SOURCES
@@ -39,6 +41,8 @@ SET (SOURCES
     src/clientappdbmodelsprovider.cpp
     src/clientappsettings.cpp
     src/lockingcontroller.cpp
+
+    src/testservicedb.cpp
 )
 
 IF(BUILD_ANDROID OR BUILD_IOS)
@@ -46,15 +50,13 @@ IF(BUILD_ANDROID OR BUILD_IOS)
     SET (HEADERS
         ${HEADERS}
         include/hatn/clientapp/mobileapp.h
-        include/hatn/clientapp/mobileplatformcontext.h        
-        include/hatn/clientapp/testservicedb.h
+        include/hatn/clientapp/mobileplatformcontext.h
     )
 
     SET (SOURCES
         ${SOURCES}
         src/mobileapp.cpp
-        src/mobileplatformcontext.cpp
-        src/testservicedb.cpp        
+        src/mobileplatformcontext.cpp        
     )
 
 ENDIF()
