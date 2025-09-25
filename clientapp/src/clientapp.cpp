@@ -51,6 +51,8 @@ class ClientApp_p
         std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
         std::shared_ptr<ClientAppSettings> appSettings;
         std::shared_ptr<LockingController> lockingController;
+
+        bool open=false;
 };
 
 //--------------------------------------------------------------------------
@@ -267,6 +269,7 @@ Error ClientApp::openData(bool init)
     }
 
     // done
+    pimpl->open=true;
     return OK;
 }
 
@@ -275,6 +278,11 @@ Error ClientApp::openData(bool init)
 Error ClientApp::closeData()
 {
     HATN_CTX_SCOPE("clientapp::closedata")
+
+    if (!pimpl->open)
+    {
+        return OK;
+    }
 
     // close data in derived class
     auto ec=doCloseData();
@@ -292,6 +300,7 @@ Error ClientApp::closeData()
     HATN_CHECK_EC(ec)
     HATN_CHECK_EC(ec1)
 
+    pimpl->open=false;
     return OK;
 }
 
