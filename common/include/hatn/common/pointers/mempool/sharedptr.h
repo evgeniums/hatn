@@ -360,7 +360,13 @@ template <typename T> class SharedPtr<T,std::enable_if_t<std::is_base_of<Managed
         template <typename Y>
         SharedPtr<Y> dynamicCast() const noexcept
         {
-            SharedPtr<Y> obj(dynamic_cast<Y*>(this->d),this->d);
+            auto casted=dynamic_cast<Y*>(this->d);
+            if (casted==nullptr)
+            {
+                return SharedPtr<Y>{};
+            }
+
+            SharedPtr<Y> obj(casted,this->d);
             return obj;
         }
 
@@ -542,9 +548,16 @@ template <typename T> class SharedPtr<T,std::enable_if_t<!std::is_base_of<Manage
         }
 
         //! Make dynamic cast
-        template <typename Y> SharedPtr<Y> dynamicCast() const noexcept
+        template <typename Y>
+        SharedPtr<Y> dynamicCast() const noexcept
         {
-            SharedPtr<Y> obj(dynamic_cast<Y*>(this->d),m);
+            auto casted=dynamic_cast<Y*>(this->d);
+            if (casted==nullptr)
+            {
+                return SharedPtr<Y>{};
+            }
+
+            SharedPtr<Y> obj(casted,m);
             return obj;
         }
 
