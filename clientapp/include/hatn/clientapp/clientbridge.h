@@ -413,6 +413,18 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             return it->second;
         }
 
+        common::SharedPtr<app::AppEnv> exactEnv(const std::string& envId) const
+        {
+            common::MutexScopedLock l{m_mutex};
+
+            auto it=m_envs.find(envId);
+            if (it!=m_envs.end())
+            {
+                return it->second;
+            }
+            return common::SharedPtr<app::AppEnv>{};
+        }
+
         Result<du::UnitWrapper> makeMessage(const std::string& service, const std::string& messageType, const std::string& messageJson) const
         {
             auto it=m_services.find(service);
