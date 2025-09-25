@@ -159,6 +159,12 @@ int MobileApp::init(MobilePlatformContext* platformCtx, std::string configFile, 
 
 int MobileApp::close()
 {
+    auto ec=pimpl->app->closeData();
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to close data in client app")
+    }
+
     pimpl->app->app().close();
 
     if (pimpl->platformCtx)
