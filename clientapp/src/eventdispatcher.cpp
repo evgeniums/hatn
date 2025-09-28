@@ -142,6 +142,11 @@ void EventDispatcher::publish(
         key.setTopic(event->topic);
         HATN_CTX_SCOPE_PUSH("event_topic",event->topic);
     }
+    if (!event->oid.empty())
+    {
+        key.setTopic(event->oid);
+        HATN_CTX_SCOPE_PUSH("event_oid",event->oid);
+    }
 
     std::vector<EventHandler> handlers;
     {

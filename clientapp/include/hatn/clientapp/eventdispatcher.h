@@ -36,15 +36,20 @@ class EventKey
 {
     public:
 
+        constexpr static const size_t SelectorsCount=5;
+        using Selectors=std::array<const std::string*,SelectorsCount>;
+
         EventKey(
                 std::string category={},
                 std::string event={},
                 std::string envId={},
-                std::string topic={}
+                std::string topic={},
+                std::string oid={}
             ) : m_category(std::move(category)),
                 m_event(std::move(event)),
                 m_envId(std::move(envId)),
-                m_topic(std::move(topic))
+                m_topic(std::move(topic)),
+                m_oid(std::move(oid))
         {
             initSelectors();
         }
@@ -57,6 +62,7 @@ class EventKey
             m_event=std::move(other.m_event);
             m_envId=std::move(other.m_envId);
             m_topic=std::move(other.m_topic);
+            m_oid=std::move(other.m_oid);
             initSelectors();
         }
 
@@ -66,6 +72,7 @@ class EventKey
             m_event=other.m_event;
             m_envId=other.m_envId;
             m_topic=other.m_topic;
+            m_oid=other.m_oid;
             initSelectors();
         }
 
@@ -80,6 +87,7 @@ class EventKey
             m_event=std::move(other.m_event);
             m_envId=std::move(other.m_envId);
             m_topic=std::move(other.m_topic);
+            m_oid=std::move(other.m_oid);
             initSelectors();
             return *this;
         }
@@ -95,6 +103,7 @@ class EventKey
             m_event=other.m_event;
             m_envId=other.m_envId;
             m_topic=other.m_topic;
+            m_oid=other.m_oid;
             initSelectors();
             return *this;
         }
@@ -143,6 +152,11 @@ class EventKey
             return m_topic;
         }
 
+        const std::string& oid() const noexcept
+        {
+            return m_oid;
+        }
+
         void setCategory(std::string category)
         {
             m_category=std::move(category);
@@ -163,7 +177,12 @@ class EventKey
             m_topic=std::move(topic);
         }
 
-        const std::array<const std::string*,4>& selectors() const
+        void setOid(std::string oid)
+        {
+            m_oid=std::move(oid);
+        }
+
+        const Selectors& selectors() const
         {
             return m_selectors;
         }
@@ -176,14 +195,16 @@ class EventKey
             m_selectors[1]=&m_event;
             m_selectors[2]=&m_envId;
             m_selectors[3]=&m_topic;
+            m_selectors[4]=&m_oid;
         }
 
         std::string m_category;
         std::string m_event;
         std::string m_envId;
         std::string m_topic;
+        std::string m_oid;
 
-        std::array<const std::string*,4> m_selectors;
+        Selectors m_selectors;
 };
 
 struct Event
@@ -192,6 +213,7 @@ struct Event
     std::string event;
 
     std::string topic;
+    std::string oid;
     std::string messageTypeName;
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
