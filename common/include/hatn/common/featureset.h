@@ -91,6 +91,16 @@ struct FeatureSet
         return mask;
     }
 
+    constexpr static void setFeature(Features& features, Feature feature) noexcept
+    {
+        features|=featureBit(feature);
+    }
+
+    constexpr static void unsetFeature(Features& features, Feature feature) noexcept
+    {
+        features&=~featureBit(feature);
+    }
+
     FeatureSet()=delete;
     ~FeatureSet()=delete;
     FeatureSet(const FeatureSet&)=delete;
