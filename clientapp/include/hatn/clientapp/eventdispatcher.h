@@ -249,7 +249,7 @@ class HATN_CLIENTAPP_EXPORT EventSubscriptions
         static size_t Index;
 
         std::map<size_t,EventHandler> handlers;
-        std::map<std::string,std::shared_ptr<EventSubscriptions>> keyHandlers;
+        std::map<std::string,std::shared_ptr<EventSubscriptions>,std::less<>> keyHandlers;
 
         size_t doRemove(size_t index, EventSubscriptions* subscriptions);
 

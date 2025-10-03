@@ -56,7 +56,10 @@ size_t EventSubscriptions::doInsert(EventKey key, EventHandler handler, size_t s
 
     HATN_CTX_DEBUG_RECORDS(DebugVerbosity,"",{"selector_index",selectorIndex},{"keyselectorssize",key.selectors().size()},{"keyissubnull",key.isSubNull(selectorIndex)},
                            {"selector0",*key.selectors().at(0)},
-                          {"selector1",*key.selectors().at(1)}
+                           {"selector1",*key.selectors().at(1)},
+                           {"selector2",*key.selectors().at(2)},
+                           {"selector3",*key.selectors().at(3)},
+                           {"selector4",*key.selectors().at(4)}
     )
 
     if (selectorIndex==key.selectors().size() || key.isSubNull(selectorIndex))
@@ -108,6 +111,14 @@ void EventSubscriptions::doFind(const EventKey& key,std::vector<EventHandler>& r
     {
         it->second->doFind(key,result,selectorIndex+1);
     }
+    else
+    {
+        it=keyHandlers.find(lib::string_view{});
+        if (it!=keyHandlers.end())
+        {
+            it->second->doFind(key,result,selectorIndex+1);
+        }
+    }
 }
 
 //---------------------------------------------------------------
@@ -144,7 +155,7 @@ void EventDispatcher::publish(
     }
     if (!event->oid.empty())
     {
-        key.setTopic(event->oid);
+        key.setOid(event->oid);
         HATN_CTX_SCOPE_PUSH("event_oid",event->oid);
     }
 
