@@ -420,7 +420,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::Date date,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
-            TimePointFilter tpFilter=TimePointFilter::getDefault()
+            const TimePointFilter& tpFilter=TimePointFilter::getDefault()
             )
         {            
             common::postAsyncTask(
@@ -444,7 +444,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::SharedPtr<update::Request> request,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
-            TimePointFilter tpFilter=TimePointFilter::getDefault()
+            const TimePointFilter& tpFilter=TimePointFilter::getDefault()
             )
         {            
             common::postAsyncTask(
