@@ -10,9 +10,6 @@ SET (HATN_MODULES
 	db
 	api
 	app
-	mq
 	clientserver
-	adminclient
-	utility
 	clientapp
 )
