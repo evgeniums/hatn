@@ -69,6 +69,19 @@ struct Request
         messageTypeName=messageType;
         message=std::move(msg);
     }
+
+    template <typename SubunitT, typename MsgT, typename FieldT>
+    static Result<common::SharedPtr<SubunitT>> parseMessageSubunit(const MsgT& msg, const FieldT& field, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
+    {
+        auto subunit=factory->createObject<SubunitT>();
+        du::WireBufSolidShared buf{msg.field(field).skippedNotParsedContent()};
+
+        Error ec;
+        du::io::deserialize(*subunit,buf,ec);
+        HATN_CHECK_EC(ec)
+
+        return subunit;
+    }
 };
 
 using Response=Request;
