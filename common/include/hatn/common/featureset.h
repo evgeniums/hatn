@@ -70,6 +70,16 @@ struct FeatureSet
         return mask&featureBit(feature);
     }
 
+    constexpr static bool hasFeature(Features mask, std::initializer_list<Feature> features) noexcept
+    {
+        return hasFeatures(mask,features);
+    }
+
+    constexpr static bool hasFeatures(Features mask, std::initializer_list<Feature> features) noexcept
+    {
+        return (mask&featureMask(features)) != 0;
+    }
+
     /**
      * @brief Get bitmask where all features are set
      * @return Bitmask with all features enabled
