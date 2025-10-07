@@ -83,7 +83,10 @@ class Locker<false>
         inline void lock()
         {
             auto currentThread=Thread::currentThread();
-            Assert(m_lockThread!=currentThread,"Recursive mutex lock in Locker()");
+            if (m_lockThread==currentThread)
+            {
+                Assert(false,"Recursive mutex lock in Locker()");
+            }
             mutex.lock();
             m_lockThread=currentThread;
         }
