@@ -322,7 +322,10 @@ class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidShare
         ) noexcept
             : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{std::move(container)},0,factory)
         {
-            setSize(traits().container().size());
+            if (container)
+            {
+                setSize(traits().container().size());
+            }
         }
 
         ~WireBufSolidShared()=default;
