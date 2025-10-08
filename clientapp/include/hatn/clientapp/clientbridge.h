@@ -73,8 +73,22 @@ struct Request
     template <typename SubunitT, typename MsgT, typename FieldT>
     static Result<common::SharedPtr<SubunitT>> parseMessageSubunit(const MsgT& msg, const FieldT& field, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
     {
+        static SubunitT sample;
+
+        const auto& subunitField=msg.field(field);
+        auto sharedSubunit=subunitField.sharedValue();
+        if (sharedSubunit)
+        {
+            return sample.castToManagedUnit(sharedSubunit.get())->sharedFromThis();
+        }
+
         auto subunit=factory->createObject<SubunitT>();
-        du::WireBufSolidShared buf{msg.field(field).skippedNotParsedContent()};
+        auto subunitContent=subunitField.skippedNotParsedContent();
+        if (!subunitContent)
+        {
+            return subunit;
+        }
+        du::WireBufSolidShared buf{subunitContent};
 
         Error ec;
         du::io::deserialize(*subunit,buf,ec);
