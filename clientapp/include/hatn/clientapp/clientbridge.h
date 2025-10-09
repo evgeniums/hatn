@@ -327,8 +327,13 @@ class ServiceT : public Service
               m_ctrl(std::move(ctrl))
         {}
 
-        ServiceT(ClientApp* app) : ServiceT(std::make_shared<Controller>(app))
-        {}
+        ServiceT(ClientApp* app);
+        ~ServiceT();
+
+        ServiceT(const ServiceT&)=default;
+        ServiceT(ServiceT&&)=default;
+        ServiceT& operator=(const ServiceT&)=default;
+        ServiceT& operator=(ServiceT&&)=default;
 
         Controller* controller() const
         {

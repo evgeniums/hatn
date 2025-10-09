@@ -28,6 +28,10 @@ SET (HEADERS
     include/hatn/clientapp/testservicedb.h
 )
 
+LIST (APPEND HEADERS
+    include/hatn/clientapp/ipp/clientbridge.ipp
+)
+
 SET (SOURCES
     src/clientapperror.cpp
     src/clientbridge.cpp
