@@ -126,7 +126,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             };
 
             ROCKSDB_NAMESPACE::PinnableSlice value;
-            auto status=handler.p()->db->Get(readOptions,key.partition->collectionCf.get(),k,&value);
+            auto status=handler.p()->db->Get(readOptions,key.partition->dataCf(model.isBlob()),k,&value);
             if (!status.ok())
             {
                 pushLogKey();

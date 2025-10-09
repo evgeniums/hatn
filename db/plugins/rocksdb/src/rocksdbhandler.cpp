@@ -38,7 +38,8 @@ RocksdbHandler_p::RocksdbHandler_p(
         ROCKSDB_NAMESPACE::TransactionDB* transactionDb
     ) : db(db),
         transactionDb(transactionDb),
-        readOnly(transactionDb==nullptr)
+        readOnly(transactionDb==nullptr),
+        blobEnabled(false)
 {}
 
 //---------------------------------------------------------------
@@ -62,6 +63,20 @@ RocksdbHandler::RocksdbHandler(RocksdbHandler_p* pimpl):d(pimpl)
 
 RocksdbHandler::~RocksdbHandler()
 {}
+
+//---------------------------------------------------------------
+
+bool RocksdbHandler::isBlobEnabled() const noexcept
+{
+    return d->blobEnabled;
+}
+
+//---------------------------------------------------------------
+
+void RocksdbHandler::setBlobEnabled(bool enable)
+{
+    d->blobEnabled=enable;
+}
 
 //---------------------------------------------------------------
 
@@ -139,7 +154,7 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
         if (it!=d->partitions.end())
         {
             partition=*it;
-            Assert(!(partition->collectionCf && partition->indexCf && partition->ttlCf),
+            Assert(!(partition->mainCf && partition->indexCf && partition->ttlCf && partition->blobCf),
                    "All column families already set"
                    );
             return partition;
@@ -152,23 +167,24 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
 
     // create column families
 
-    ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf;
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* mainCf;
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* blobCf;
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf;
     ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf;
 
     //! @todo optimization: Bulk create column families with CreateColumnFamileis()
-    if (!partition->collectionCf)
+    if (!partition->mainCf)
     {
         auto status=d->transactionDb->CreateColumnFamily(d->collColumnFamilyOptions,
                                                                          RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Collection,range),
-                                                                         &collectionCf
+                                                                         &mainCf
                                                                          );
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("collection-column-family")
             return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
-        partition->collectionCf.reset(collectionCf);
+        partition->setMainCf(mainCf);
     }
 
     if (!partition->indexCf)
@@ -197,6 +213,20 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
             return makeError(DbError::PARTITION_CREATE_FALIED,status);
         }
         partition->ttlCf.reset(ttlCf);
+    }
+
+    if (isBlobEnabled() && !partition->blobCf)
+    {
+        auto status=d->transactionDb->CreateColumnFamily(d->blobColumnFamilyOptions,
+                                                           RocksdbPartition::columnFamilyName(RocksdbPartition::CfType::Blob,range),
+                                                           &blobCf
+                                                           );
+        if (!status.ok())
+        {
+            HATN_CTX_SCOPE_ERROR("blob-column-family")
+            return makeError(DbError::PARTITION_CREATE_FALIED,status);
+        }
+        partition->setBlobCf(blobCf);
     }
 
     // keep partition
@@ -246,12 +276,22 @@ Error RocksdbHandler::deletePartition(const common::DateRange& range)
         }
     }
 
-    if (partition->collectionCf)
+    if (partition->mainCf)
     {
-        auto status=d->transactionDb->DropColumnFamily(partition->collectionCf.get());
+        auto status=d->transactionDb->DropColumnFamily(partition->mainCf.get());
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("collection-column-family")
+            return makeError(DbError::PARTITION_DELETE_FALIED,status);
+        }
+    }
+
+    if (partition->blobCf)
+    {
+        auto status=d->transactionDb->DropColumnFamily(partition->blobCf.get());
+        if (!status.ok())
+        {
+            HATN_CTX_SCOPE_ERROR("blob-column-family")
             return makeError(DbError::PARTITION_DELETE_FALIED,status);
         }
     }
@@ -386,10 +426,15 @@ Error RocksdbHandler::deleteTopic(Topic topic)
     // handler to delete from partition
     auto deleteFromPartition=[&topic,&deleteFromCf,&batch,this](RocksdbPartition* partition)
     {
-        auto ec=deleteFromCf(partition->collectionCf.get());
+        auto ec=deleteFromCf(partition->mainCf.get());
         HATN_CHECK_EC(ec)
         ec=deleteFromCf(partition->indexCf.get());
         HATN_CHECK_EC(ec)
+        if (partition->blobCf)
+        {
+            ec=deleteFromCf(partition->blobCf.get());
+            HATN_CHECK_EC(ec)
+        }
 
         // delete model-topic relations
         ec=ModelTopics::deleteTopic(topic,*this,partition,batch);

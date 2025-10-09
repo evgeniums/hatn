@@ -113,7 +113,7 @@ Error CreateObjectT::operator ()(
         uint32_t timestamp=0;
         auto objectKeyFull=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,&timestamp,objectCreatedAt,ttlMark);
         auto objectKeySlices=Keys::objectKeySlices(objectKeyFull);
-        auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark);
+        auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark,model.isBlob());
         HATN_CHECK_EC(ec)
 
         // put indexes to transaction

@@ -56,7 +56,8 @@ struct PrepareDbAndRun
     static void eachPlugin(
         const TestFn& fn,
         const std::string& testConfigFile,
-        const std::vector<PartitionRange>& partitions=std::vector<PartitionRange>{}
+        const std::vector<PartitionRange>& partitions=std::vector<PartitionRange>{},
+        bool blob=false
     );
 
     static std::shared_ptr<db::ClientConfig> prepareConfig(

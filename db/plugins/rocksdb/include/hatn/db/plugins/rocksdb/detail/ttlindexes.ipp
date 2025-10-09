@@ -166,9 +166,6 @@ struct TtlIndexes<ModelT,hana::when<decltype(ModelT::isTtlEnabled())::value>>
         {
             ttlIndex.field(ttl_index::date_range).set(dateRange);
         }
-
-        // set topic flag
-        ttlIndex.field(ttl_index::topic).set(model.canBeTopic());
     }
 
     static void putTtlToTransaction(

@@ -308,6 +308,11 @@ class FieldTmplBytes : public Field, public BytesType
             return this->m_value.buf();
         }
 
+        inline typename Type::type::onstackType* mutableValue() noexcept
+        {
+            return buf(true);
+        }
+
         inline const typename Type::type::onstackType* buf() const noexcept
         {
             return this->m_value.buf();

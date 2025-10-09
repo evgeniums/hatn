@@ -48,7 +48,7 @@ HATN_TEST_NAMESPACE_BEGIN
 
 db::ClientConfig* PrepareDbAndRun::currentCfg=nullptr;
 
-void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfigFile, const std::vector<PartitionRange>& partitions)
+void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfigFile, const std::vector<PartitionRange>& partitions, bool blob)
 {
     DbPluginTest::instance().eachPlugin<DbTestTraits>(
         [&](std::shared_ptr<db::DbPlugin>& plugin)
@@ -82,6 +82,7 @@ void PrepareDbAndRun::eachPlugin(const TestFn& fn, const std::string& testConfig
                 BOOST_REQUIRE(client);
 
                 auto cfg=prepareConfig(plugin,testConfigFile,encryptionManager);
+                cfg->enableBlob=blob;
                 currentCfg=cfg.get();
                 base::config_object::LogRecords logRecords;
                 Error ec;

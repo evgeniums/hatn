@@ -72,6 +72,8 @@ struct ClientConfig
     std::string dbPath;
     std::string dbPrefix;
 
+    bool enableBlob=true;
+
     ClientConfig(
             std::shared_ptr<base::ConfigTree> main,
             std::shared_ptr<base::ConfigTree> opt,

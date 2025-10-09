@@ -65,21 +65,21 @@ class ModelConfigT
 
         ModelConfigT()
             : m_modelId(0),
-              m_canBeTopic(false)
+              m_blob(false)
         {}
 
-        ModelConfigT(bool canBeTopic)
+        ModelConfigT(bool blob)
                   : m_modelId(0),
-                    m_canBeTopic(canBeTopic)
+                    m_blob(blob)
         {}
 
-        ModelConfigT(const char* collection, bool canBeTopic=false)
-            : ModelConfigT(std::string{collection},canBeTopic)
+        ModelConfigT(const char* collection, bool blob=false)
+            : ModelConfigT(std::string{collection},blob)
         {}
 
-        ModelConfigT(std::string collection, bool canBeTopic=false)
+        ModelConfigT(std::string collection, bool blob=false)
                 : m_collection(std::move(collection)),
-                  m_canBeTopic(canBeTopic)
+                  m_blob(blob)
         {
             updateModelId();
         }
@@ -102,11 +102,6 @@ class ModelConfigT
             return m_modelId;
         }
 
-        bool canBeTopic() const noexcept
-        {
-            return m_canBeTopic;
-        }
-
         const std::string& modelIdStr() const noexcept
         {
             return m_modelIdStr;
@@ -123,12 +118,23 @@ class ModelConfigT
             updateModelId();
         }
 
+        bool isBlob() const noexcept
+        {
+            return m_blob;
+        }
+
+        ModelConfigT& setBlobEnabled(bool enable)
+        {
+            m_blob=enable;
+            return *this;
+        }
+
     private:
 
         uint32_t m_modelId;
         std::string m_modelIdStr;
         std::string m_collection;
-        bool m_canBeTopic;
+        bool m_blob;
 
         template <typename UnitType> friend struct unitModelT;
 
@@ -401,6 +407,7 @@ class ModelInfo
               m_datePartitionMode(model.datePartitionMode()),
               m_id(model.modelId()),
               m_idStr(model.modelIdStr()),
+              m_blob(model.isBlob()),
               m_nativeModel(nullptr)
         {}
 
@@ -461,6 +468,16 @@ class ModelInfo
             return reinterpret_cast<T*>(m_nativeModel);
         }
 
+        void setBlob(bool blob) noexcept
+        {
+            m_blob=blob;
+        }
+
+        bool isBlob() const noexcept
+        {
+            return m_blob;
+        }
+
     private:
 
         std::string m_collection;
@@ -468,6 +485,7 @@ class ModelInfo
         DatePartitionMode m_datePartitionMode;
         uint32_t m_id;
         std::string m_idStr;
+        bool m_blob;
 
         void* m_nativeModel;
 };

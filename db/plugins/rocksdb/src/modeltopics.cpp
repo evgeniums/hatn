@@ -59,7 +59,7 @@ Error ModelTopics::update(
 #endif
     auto status=handler.p()->db->Merge(
             handler.p()->writeOptions,
-            partition->collectionCf.get(),
+            partition->dataCf(),
             ks,
             ops
         );
@@ -203,10 +203,19 @@ Result<size_t> ModelTopics::count(
         }
 
         count+=rel.count;
+
+//! @maybe Log debug
+#if 0
+        std::cout << "ModelTopics eachTopic " << logKey(readSl)
+                  << " rel.count " << rel.count
+                  << " total.count " << count
+                  << std::endl;
+#endif
+
         return Error{OK};
     };
 
-    auto eachPartition=[multipleTopics,&eachTopic,&handler,&ks,&ksTo,&rdOpts](std::shared_ptr<RocksdbPartition>& partition)
+    auto eachPartition=[multipleTopics,&eachTopic,&handler,&ks,&ksTo,&rdOpts,&model](std::shared_ptr<RocksdbPartition>& partition)
     {
         if (multipleTopics)
         {
@@ -216,7 +225,7 @@ Result<size_t> ModelTopics::count(
                       << " to " << logKey(ksTo)
                       << std::endl;
 #endif
-            std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(rdOpts,partition->collectionCf.get())};
+            std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(rdOpts,partition->dataCf())};
             it->SeekToFirst();
             auto hasKey=it->Valid();
             while (hasKey)
@@ -244,7 +253,7 @@ Result<size_t> ModelTopics::count(
             std::cout << "Single topic from " << logKey(ks) << std::endl;
 #endif
             ROCKSDB_NAMESPACE::PinnableSlice readSl;
-            auto status=handler.p()->db->Get(rdOpts,partition->collectionCf.get(),ks,&readSl);
+            auto status=handler.p()->db->Get(rdOpts,partition->dataCf(),ks,&readSl);
             if (!status.ok())
             {
                 if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
@@ -284,7 +293,7 @@ Result<size_t> ModelTopics::count(
             {
                 common::lib::shared_lock<common::lib::shared_mutex> l{handler.p()->partitionMutex};
                 partitions.reserve(handler.p()->partitions.size());
-                for (auto it: handler.p()->partitions)
+                for (auto& it: handler.p()->partitions)
                 {
                     partitions.push_back(it);
                 }
@@ -350,7 +359,7 @@ Result<common::pmr::set<TopicHolder>>
         std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{
             handler.p()->db->NewIterator(
                 rdOpts,
-                partition->collectionCf.get()
+                partition->dataCf()
                 )
         };
         it->SeekToFirst();
@@ -434,7 +443,7 @@ Error ModelTopics::deleteTopic(
         fillRelationKey(modelId,topic,key);
         Slice ks{key.data(),key.size()};
 
-        auto status=batch.Delete(partition->collectionCf.get(),ks);
+        auto status=batch.Delete(partition->dataCf(),ks);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_PUSH("coll",it.second->collection())

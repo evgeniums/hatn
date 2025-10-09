@@ -34,6 +34,8 @@ SET (TEST_SOURCES
     ${DB_TEST_SRC}/testmodeltopics.cpp
 
     ${DB_TEST_SRC}/testupdateserialize.cpp
+
+    ${DB_TEST_SRC}/testblob.cpp
 )
 
 SET (TEST_HEADERS

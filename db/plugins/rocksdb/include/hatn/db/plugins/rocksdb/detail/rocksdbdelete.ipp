@@ -70,7 +70,7 @@ struct DeleteObjectT
         // read object from db
         auto rdbTx=RocksdbTransaction::native(tx);
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-        auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),objectKey,&readSlice);
+        auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->dataCf(model.isBlob()),objectKey,&readSlice);
         if (!status.ok())
         {
             if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
@@ -97,7 +97,7 @@ struct DeleteObjectT
         ROCKSDB_NAMESPACE::Slice objectIdS{objectId.data(),objectId.size()};
 
         // delete object
-        status=rdbTx->Delete(partition->collectionCf.get(),objectKey);
+        status=rdbTx->Delete(partition->dataCf(model.isBlob()),objectKey);
         if (!status.ok())
         {
             HATN_CTX_SCOPE_ERROR("delete-object");

@@ -78,6 +78,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         common::FlatSet<common::DateRange> partitionRanges() const;
 
+        bool isBlobEnabled() const noexcept;
+        void setBlobEnabled(bool enable);
+
     private:
 
         std::unique_ptr<RocksdbHandler_p> d;

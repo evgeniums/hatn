@@ -65,14 +65,16 @@ inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx,
                         RocksdbPartition* partition,
                         const ROCKSDB_NAMESPACE::SliceParts& key,
                         dataunit::WireBufSolid& buf,
-                        const ROCKSDB_NAMESPACE::Slice& ttlMark)
+                        const ROCKSDB_NAMESPACE::Slice& ttlMark,
+                        bool blob
+                        )
 {
     ROCKSDB_NAMESPACE::Status status;
     if (ttlMark.size()==0)
     {        
         ROCKSDB_NAMESPACE::Slice objectValue{buf.mainContainer()->data(),buf.mainContainer()->size()};
         ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValue,1};
-        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
+        status=tx->Put(partition->dataCf(blob),key,objectValueSlices);
     }
     else
     {
@@ -81,7 +83,7 @@ inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx,
             ttlMark
         };
         ROCKSDB_NAMESPACE::SliceParts objectValueSlices{&objectValueParts[0],static_cast<int>(objectValueParts.size())};
-        status=tx->Put(partition->collectionCf.get(),key,objectValueSlices);
+        status=tx->Put(partition->dataCf(blob),key,objectValueSlices);
     }
 
     if (!status.ok())
@@ -97,9 +99,11 @@ inline Error saveObject(ROCKSDB_NAMESPACE::Transaction* tx,
                         RocksdbPartition* partition,
                         const ROCKSDB_NAMESPACE::SliceParts& key,
                         dataunit::WireBufSolid& buf,
-                        const TtlMark& ttlMark)
+                        const TtlMark& ttlMark,
+                        bool blob
+                        )
 {
-    return saveObject(tx,partition,key,buf,ttlMark.slice());
+    return saveObject(tx,partition,key,buf,ttlMark.slice(),blob);
 }
 
 HATN_ROCKSDB_NAMESPACE_END

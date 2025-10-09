@@ -27,6 +27,7 @@ cd $folder
     --with-thread \
     --with-timer \
     --with-container \
+    --with-stacktrace \
     --layout=system \
     variant=release \
     address-model=$address_model \

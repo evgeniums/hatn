@@ -98,7 +98,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         ROCKSDB_NAMESPACE::Slice objSlice;
         auto getForUpdate=[&]()
         {
-            auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+            auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->dataCf(model.isBlob()),key,&readSlice);
             if (!status.ok())
             {
                 if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
@@ -174,7 +174,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
             ttlMark.fill(model,obj.get());
             ttlMarkSlice=ttlMark.slice();
         }
-        ec=saveObject(rdbTx,partition,keySlices,buf,ttlMarkSlice);
+        ec=saveObject(rdbTx,partition,keySlices,buf,ttlMarkSlice,model.isBlob());
         HATN_CHECK_EC(ec)
 
         // extract new keys for updated fields

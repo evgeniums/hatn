@@ -72,6 +72,7 @@ HDU_UNIT(rocksdb_config,
 HDU_UNIT(rocksdb_options,
          HDU_FIELD(readonly,TYPE_BOOL,1)
          HDU_FIELD(user_permissions_only,TYPE_BOOL,2)
+         HDU_FIELD(blob_min_size,TYPE_UINT32,3,false,0x4000)
          )
 
 } // anonymous namespace
@@ -105,7 +106,11 @@ class RocksdbClient_p
 
         std::shared_ptr<RocksdbEnvironment> env;
 
-        RocksdbClient_p() : ttlCompactionFilter(std::make_unique<TtlCompactionFilter>())
+        bool blobEnabled;
+
+        RocksdbClient_p()
+            : ttlCompactionFilter(std::make_unique<TtlCompactionFilter>()),
+              blobEnabled(false)
         {}
 };
 
@@ -155,6 +160,8 @@ Error RocksdbClient::doCreateDb(const ClientConfig &config, base::config_object:
 Error RocksdbClient::doDestroyDb(const ClientConfig &config, base::config_object::LogRecords& records)
 {
     HATN_CTX_SCOPE("rdb::destroydb")
+
+    d->blobEnabled=config.enableBlob;
 
     // load config
     auto ec=d->cfg.loadLogConfig(*config.main,config.mainPath,records);
@@ -269,6 +276,13 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlCfOptions;
     ttlCfOptions.compression=compression;
 
+    ROCKSDB_NAMESPACE::ColumnFamilyOptions blobCfOptions;
+    blobCfOptions.compaction_filter=d->ttlCompactionFilter.get();
+    blobCfOptions.merge_operator=std::make_shared<MergeModelTopic>();
+    blobCfOptions.compression=compression;
+    blobCfOptions.enable_blob_files=true;
+    blobCfOptions.min_blob_size=d->opt.config().field(rocksdb_options::blob_min_size).value();
+
     // construct db path
     std::string dbPath;
     if (!d->cfg.config().fieldValue(rocksdb_config::dbpath).empty())
@@ -335,6 +349,10 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         else if (boost::ends_with(cfName,RocksdbPartition::TtlSuffix))
         {
             cfDescriptors.emplace_back(cfName,ttlCfOptions);
+        }
+        else if (boost::ends_with(cfName,RocksdbPartition::BlobSuffix))
+        {
+            cfDescriptors.emplace_back(cfName,blobCfOptions);
         }
         else if (cfName=="default")
         {
@@ -417,9 +435,11 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     // create handler
     d->handler=std::make_unique<RocksdbHandler>(new RocksdbHandler_p(db,transactionDb));
+    d->handler->p()->blobEnabled=config.enableBlob;
     d->handler->p()->collColumnFamilyOptions=collCfOptions;
     d->handler->p()->indexColumnFamilyOptions=indexCfOptions;
     d->handler->p()->ttlColumnFamilyOptions=ttlCfOptions;
+    d->handler->p()->blobColumnFamilyOptions=blobCfOptions;
 
     // fill partitions
     std::set<size_t> cfIndexes;
@@ -490,7 +510,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
         if (parts[1]==RocksdbPartition::CollectionSuffix)
         {
-            partition->collectionCf.reset(cfHandle);
+            partition->setMainCf(cfHandle);
         }
         else if (parts[1]==RocksdbPartition::IndexSuffix)
         {
@@ -499,6 +519,10 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         else if (parts[1]==RocksdbPartition::TtlSuffix)
         {
             partition->ttlCf.reset(cfHandle);
+        }
+        else if (parts[1]==RocksdbPartition::BlobSuffix)
+        {
+            partition->setBlobCf(cfHandle);
         }
         else
         {
@@ -602,6 +626,18 @@ Error RocksdbClient::doSetSchema(std::shared_ptr<Schema> schema)
     {
         HATN_CTX_SCOPE_LOCK()
         return dbError(DbError::SCHEMA_NOT_REGISTERED);
+    }
+
+    if (!d->blobEnabled)
+    {
+        for (const auto& it: schema->models())
+        {
+            if (it.second->isBlob())
+            {
+                HATN_CTX_SCOPE_LOCK()
+                return dbError(DbError::BLOB_CONFIG_REQUIRED);
+            }
+        }
     }
 
     d->handler->setSchema(std::move(rs));

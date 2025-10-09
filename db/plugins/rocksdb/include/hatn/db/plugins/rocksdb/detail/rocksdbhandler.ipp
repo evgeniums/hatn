@@ -49,34 +49,45 @@ struct RocksdbPartition
     {
         Collection,
         Index,
-        Ttl
+        Ttl,
+        Blob
     };
 
     constexpr static const char* CollectionSuffix="collections";
     constexpr static const char* IndexSuffix="indexes";
     constexpr static const char* TtlSuffix="ttl";
+    constexpr static const char* BlobSuffix="blobs";
 
     RocksdbPartition(
             const common::DateRange& range=common::DateRange{}
         ) : range(range)
     {}
 
-    RocksdbPartition(
-            ROCKSDB_NAMESPACE::ColumnFamilyHandle* collectionCf,
-            ROCKSDB_NAMESPACE::ColumnFamilyHandle* indexCf,
-            ROCKSDB_NAMESPACE::ColumnFamilyHandle* ttlCf,
-            const common::DateRange& range=common::DateRange{}
-        ) :
-            collectionCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{collectionCf}),
-            indexCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{indexCf}),
-            ttlCf(std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle>{ttlCf}),
-            range(range)
-    {}
+    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> mainCf;
+    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> blobCf;
 
-    std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> collectionCf;
     std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> indexCf;
     std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> ttlCf;
     common::DateRange range;
+
+    ROCKSDB_NAMESPACE::ColumnFamilyHandle* dataCf(bool blob=false)
+    {
+        if (blob)
+        {
+            return blobCf.get();
+        }
+        return mainCf.get();
+    }
+
+    void setMainCf(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
+    {
+        mainCf.reset(cf);
+    }
+
+    void setBlobCf(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
+    {
+        blobCf.reset(cf);
+    }
 
     static std::string columnFamilyName(CfType cfType, const common::DateRange& range)
     {
@@ -92,6 +103,10 @@ struct RocksdbPartition
 
             case (CfType::Ttl):
                 return fmt::format("{}_{}",range.toString(),TtlSuffix);
+                break;
+
+            case (CfType::Blob):
+                return fmt::format("{}_{}",range.toString(),BlobSuffix);
                 break;
         }
 
@@ -169,6 +184,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         ROCKSDB_NAMESPACE::ColumnFamilyOptions collColumnFamilyOptions;
         ROCKSDB_NAMESPACE::ColumnFamilyOptions indexColumnFamilyOptions;
         ROCKSDB_NAMESPACE::ColumnFamilyOptions ttlColumnFamilyOptions;
+        ROCKSDB_NAMESPACE::ColumnFamilyOptions blobColumnFamilyOptions;
 
         bool readOnly;
 
@@ -177,6 +193,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
         std::unique_ptr<ROCKSDB_NAMESPACE::ColumnFamilyHandle> defaultCf;
 
         mutable common::lib::shared_mutex partitionMutex;
+
+
+        bool blobEnabled;
 
         Result<std::shared_ptr<RocksdbPartition>> partition(uint32_t partitionKey) const noexcept
         {

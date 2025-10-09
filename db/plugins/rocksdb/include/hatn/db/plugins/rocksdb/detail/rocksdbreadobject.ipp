@@ -39,7 +39,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 template <typename ModelT>
 Result<typename ModelT::SharedPtr> readSingleObject(
-    const ModelT&,
+    const ModelT& model,
     RocksdbHandler& handler,
     RocksdbPartition* partition,
     const ROCKSDB_NAMESPACE::Slice& key,
@@ -57,7 +57,7 @@ Result<typename ModelT::SharedPtr> readSingleObject(
     if (tx==nullptr)
     {
         // read directly from db
-        status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+        status=rdb->Get(handler.p()->readOptions,partition->dataCf(model.isBlob()),key,&readSlice);
     }
     else
     {
@@ -65,11 +65,11 @@ Result<typename ModelT::SharedPtr> readSingleObject(
         auto rdbTx=RocksdbTransaction::native(tx);
         if (forUpdate)
         {
-            status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+            status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->dataCf(model.isBlob()),key,&readSlice);
         }
         else
         {
-            status=rdbTx->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
+            status=rdbTx->Get(handler.p()->readOptions,partition->dataCf(model.isBlob()),key,&readSlice);
         }
     }
 
@@ -163,66 +163,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
     KeyBuf keyBuf;
     auto key=Keys::objectKeySolid(keyBuf,objKeyVal);
 
-#if 0
-    // read object from db
-    auto rdb=handler.p()->db;
-    ROCKSDB_NAMESPACE::PinnableSlice readSlice;
-    ROCKSDB_NAMESPACE::Status status;
-    if (tx==nullptr)
-    {
-        // read directly from db
-        status=rdb->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
-    }
-    else
-    {
-        // read from transaction
-        auto rdbTx=RocksdbTransaction::native(tx);
-        if (forUpdate)
-        {
-            status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
-        }
-        else
-        {
-            status=rdbTx->Get(handler.p()->readOptions,partition->collectionCf.get(),key,&readSlice);
-        }
-    }
-
-    // check status
-    if (!status.ok())
-    {
-        if (status.code()==ROCKSDB_NAMESPACE::Status::kNotFound)
-        {
-            return dbError(DbError::NOT_FOUND);
-        }
-
-        HATN_CTX_SCOPE_ERROR("get");
-        return makeError(DbError::READ_FAILED,status);
-    }
-
-    // check if object expired
-    TtlMark::refreshCurrentTimepoint();
-    if (TtlMark::isExpired(readSlice))
-    {
-        return dbError(DbError::EXPIRED);
-    }
-
-    // create object
-    auto obj=factory->createObject<typename modelType::ManagedType>(factory);
-
-    // deserialize object
-    auto objSlice=TtlMark::stripTtlMark(readSlice);
-    dataunit::WireBufSolid buf{objSlice.data(),objSlice.size(),true};
-    Error ec;
-    if (!dataunit::io::deserialize(*obj,buf,ec))
-    {
-        HATN_CTX_SCOPE_ERROR("deserialize");
-        return ec;
-    }
-
-    // done
-    return obj;
-#endif
-
+    // read object
     return readSingleObject(model,handler,partition.get(),key,factory,tx,forUpdate);
 }
 
