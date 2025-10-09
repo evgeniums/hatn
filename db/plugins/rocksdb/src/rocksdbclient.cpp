@@ -440,6 +440,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     d->handler->p()->indexColumnFamilyOptions=indexCfOptions;
     d->handler->p()->ttlColumnFamilyOptions=ttlCfOptions;
     d->handler->p()->blobColumnFamilyOptions=blobCfOptions;
+    d->blobEnabled=config.enableBlob;
 
     // fill partitions
     std::set<size_t> cfIndexes;
