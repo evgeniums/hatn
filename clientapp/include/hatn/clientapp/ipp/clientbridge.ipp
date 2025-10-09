@@ -25,8 +25,8 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename ServiceName, typename ControllerT, typename ClientAppT>
-ServiceT<ServiceName,ControllerT,ClientAppT>::~ServiceT()
+template <typename ServiceName, typename ControllerT>
+ServiceBaseT<ServiceName,ControllerT>::~ServiceBaseT()
 {
 }
 

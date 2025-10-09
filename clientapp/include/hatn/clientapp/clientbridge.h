@@ -314,26 +314,24 @@ class HATN_CLIENTAPP_EXPORT Service
         std::map<std::string,MessageBuilderFn> m_messageBuilders;
 };
 
-template <typename ServiceName, typename ControllerT, typename ClientAppT>
-class ServiceT : public Service
+template <typename ServiceName, typename ControllerT>
+class ServiceBaseT : public Service
 {
     public:
 
         using Controller=ControllerT;
-        using ClientApp=ClientAppT;
 
-        ServiceT(std::shared_ptr<Controller> ctrl)
+        ServiceBaseT(std::shared_ptr<Controller> ctrl)
             : Service(ServiceName::Name),
               m_ctrl(std::move(ctrl))
         {}
 
-        ServiceT(ClientApp* app);
-        ~ServiceT();
+        ~ServiceBaseT();
 
-        ServiceT(const ServiceT&)=default;
-        ServiceT(ServiceT&&)=default;
-        ServiceT& operator=(const ServiceT&)=default;
-        ServiceT& operator=(ServiceT&&)=default;
+        ServiceBaseT(const ServiceBaseT&)=default;
+        ServiceBaseT(ServiceBaseT&&)=default;
+        ServiceBaseT& operator=(const ServiceBaseT&)=default;
+        ServiceBaseT& operator=(ServiceBaseT&&)=default;
 
         Controller* controller() const
         {
@@ -348,6 +346,21 @@ class ServiceT : public Service
     private:
 
         std::shared_ptr<Controller> m_ctrl;
+};
+
+template <typename ServiceName, typename ControllerT, typename ClientAppT>
+class ServiceT : public ServiceBaseT<ServiceName,ControllerT>
+{
+    public:
+
+        using Controller=ControllerT;
+        using ClientApp=ClientAppT;
+
+        ServiceT(std::shared_ptr<Controller> ctrl)
+            : ServiceBaseT<ServiceName,ControllerT>(std::move(ctrl))
+        {}
+
+        ServiceT(ClientApp* app);
 };
 
 class HATN_CLIENTAPP_EXPORT ConfirmationController
