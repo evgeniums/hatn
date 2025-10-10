@@ -1358,6 +1358,16 @@ struct whereT
         return whereT<Ts,decltype(make())>{std::move(_conditions),make()};
     }
 
+    template <typename PartitionIndexT, typename FieldT, typename ValueT>
+    auto partitions(const PartitionIndexT& partitionIndex, const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc) &
+    {
+        auto make=[&]()
+        {
+            return hana::prepend(condition(field,op,std::forward<ValueT>(value),order),std::cref(partitionIndex));
+        };
+        return whereT<Ts,decltype(make())>{_conditions,make()};
+    }
+
     template <typename Ys>
     whereT(Ys&& cond) : _conditions(std::forward<Ys>(cond))
     {}
