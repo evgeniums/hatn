@@ -84,6 +84,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
+    //! @todo Use mode for parsing to shared arrays
     decltype(obj) objBefore;
     bool found=false;
 

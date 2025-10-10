@@ -182,6 +182,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
 
             // create unit
             auto sharedUnit=allocatorFactory->createObject<typename ModelT::ManagedType>(allocatorFactory);
+            sharedUnit->setParseToSharedArrays(idxQuery.query.isParseToSharedArrays(),allocatorFactory);
             ec=addToResult(std::move(sharedUnit));
             HATN_CHECK_EC(ec)
         }

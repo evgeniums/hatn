@@ -94,6 +94,7 @@ Result<typename ModelT::SharedPtr> readSingleObject(
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
+    //! @todo Mode for parsing to shared arrays
 
     // deserialize object
     auto objSlice=TtlMark::stripTtlMark(readSlice);

@@ -160,6 +160,16 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             return Topic{};
         }
 
+        void setParseToSharedArrays(bool enable) noexcept
+        {
+            m_parseToSharedArrays=enable;
+        }
+
+        bool isParseToSharedArrays() const noexcept
+        {
+            return m_parseToSharedArrays;
+        }
+
     private:
 
         IndexQuery(
@@ -265,6 +275,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         common::VectorOnStack<query::Field,PreallocatedFieldsCount> m_fields;
         size_t m_limit;
         size_t m_offset;
+        bool m_parseToSharedArrays=false;
 
         query::Field m_partitions;
 };
