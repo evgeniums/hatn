@@ -147,6 +147,7 @@ class SubunitT : public Field, public UnitType
             m_shared=enable;
             if (autoCreate)
             {
+                markSet();
                 createValue(factory);
             }
         }
@@ -587,6 +588,20 @@ class SubunitT : public Field, public UnitType
         {
             if (!isSharedValue())
             {
+                return shared_managed{};
+            }
+            return lib::variantGet<shared_managed>(m_value);
+        }
+
+        shared_managed sharedValue(bool autoCreate=false)
+        {
+            if (!isSharedValue())
+            {
+                if (autoCreate)
+                {
+                    setShared(true);
+                    return lib::variantGet<shared_managed>(m_value);
+                }
                 return shared_managed{};
             }
             return lib::variantGet<shared_managed>(m_value);
