@@ -134,6 +134,8 @@ class HATN_DB_EXPORT EncryptionManager
 
         std::pair<lib::string_view,lib::string_view> splitPath(const std::string& fname) const
         {
+            common::MutexScopedLock l(m_mutex);
+
             for (auto&& it: m_dbPaths)
             {
                 if (boost::algorithm::starts_with(fname,it))
