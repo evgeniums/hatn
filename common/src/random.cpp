@@ -36,9 +36,9 @@ void Random::bytes(char* buf, size_t size)
 #else
     using type=uint8_t;
 #endif
-    using random_bytes_engine = std::independent_bits_engine<
-        std::default_random_engine, CHAR_BIT, type>;
-    random_bytes_engine rbe;
+    using random_bytes_engine = std::independent_bits_engine<std::mt19937, CHAR_BIT, type>;
+    std::random_device rd;
+    random_bytes_engine rbe(rd());
     auto b=reinterpret_cast<type*>(buf);
     std::generate(b, b+size, std::ref(rbe));
 }

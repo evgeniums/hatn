@@ -76,33 +76,21 @@ class Locker<false>
 
         constexpr static const bool Atomic=false;
 
-        //! Ctor
-        Locker():m_lockThread(this){}
-
         //! Lock
         inline void lock()
         {
-            auto currentThread=Thread::currentThread();
-            if (m_lockThread==currentThread)
-            {
-                Assert(false,"Recursive mutex lock in Locker()");
-            }
             mutex.lock();
-            m_lockThread=currentThread;
         }
 
         //! Unlock
         inline void unlock()
         {
-            // not nullptr because currentThread() can be null in case of mainThread not running
-            m_lockThread=this;
             mutex.unlock();
         }
 
     private:
 
         std::mutex mutex;
-        void* m_lockThread;
 };
 
 //! Helper class to lock within scope

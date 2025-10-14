@@ -95,7 +95,7 @@ class HATN_CRYPT_EXPORT PasswordGenerator
 
     private:
 
-        virtual common::Error randBytes(char*,size_t) =0;
+        virtual common::Error randBytes(char*,size_t);
 
         PasswordGeneratorParameters m_params;
 };

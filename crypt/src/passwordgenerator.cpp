@@ -15,17 +15,15 @@
 /****************************************************************************/
 
 #include <hatn/common/bytearray.h>
+#include <hatn/common/random.h>
 
 #include <hatn/crypt/passwordgenerator.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
 HATN_COMMON_USING
 
-static const char Letters[]="_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-static const char Digits[]="0123456789";
-static const char Specials[]="~!@#$%^&*(){}+=-:;<>,.|/?[]";
-
 //---------------------------------------------------------------
+
 common::Error PasswordGenerator::generate(MemoryLockedArray &password, const PasswordGeneratorParameters &params)
 {
     password.clear();
@@ -67,17 +65,31 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
 
         if (val<=lettersRange)
         {
-            password[i]=Letters[val1%(sizeof(Letters)-1)];
+            password[i]=PasswordGenLetters[val1%(sizeof(PasswordGenLetters)-1)];
         }
         else if (val<=digitsRange)
         {
-            password[i]=Digits[val1%(sizeof(Digits)-1)];
-            hasDigit=true;
+            if (params.hasDigit)
+            {
+                password[i]=PasswordGenDigits[val1%(sizeof(PasswordGenDigits)-1)];
+                hasDigit=true;
+            }
+            else
+            {
+                password[i]=PasswordGenLetters[val1%(sizeof(PasswordGenLetters)-1)];
+            }
         }
         else
         {
-            password[i]=Specials[val1%(sizeof(Specials)-1)];
-            hasSpecial=true;
+            if (params.hasSpecial)
+            {
+                password[i]=PasswordGenDigits[val1%(sizeof(PasswordGenDigits)-1)];
+                hasDigit=true;
+            }
+            else
+            {
+                password[i]=PasswordGenLetters[val1%(sizeof(PasswordGenLetters)-1)];
+            }
         }
     }
 
@@ -86,7 +98,7 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
     if (!hasSpecial && params.hasSpecial && params.specialsWeight!=0)
     {
         uint32_t index=arr[0]%password.size();
-        password[index]=Specials[arr[1]%(sizeof(Specials)-1)];
+        password[index]=PasswordGenSpecials[arr[1]%(sizeof(PasswordGenSpecials)-1)];
         lockIndex=index;
     }
     if (!hasDigit && params.hasDigit && params.digitsWeight!=0)
@@ -105,10 +117,18 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
                 index=(lockIndex.value()+1)%password.size();
             }
         }
-        password[index]=Digits[arr[3]%(sizeof(Digits)-1)];
+        password[index]=PasswordGenDigits[arr[3]%(sizeof(PasswordGenDigits)-1)];
     }
 
     return common::Error();
+}
+
+//---------------------------------------------------------------
+
+common::Error PasswordGenerator::randBytes(char* buf,size_t size)
+{
+    common::Random::bytes(buf,size);
+    return OK;
 }
 
 //---------------------------------------------------------------
