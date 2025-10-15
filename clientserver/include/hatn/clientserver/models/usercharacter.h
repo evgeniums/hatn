@@ -55,7 +55,7 @@ HDU_UNIT(user_character,
 HDU_UNIT_WITH(user_character_global,(HDU_BASE(db::object),HDU_BASE(user_character))
 )
 
-HDU_UNIT_WITH(user_character_server_db,(HDU_BASE(user_character_global)),
+HDU_UNIT_WITH(user_character_server_db,(HDU_BASE(with_user),HDU_BASE(user_character_global)),
     HDU_FIELD(private_notes,encrypted::TYPE,20)
     HDU_FIELD(server_blocked,TYPE_BOOL,30)
     HDU_FIELD(server_notes,TYPE_STRING,31)
@@ -65,6 +65,7 @@ HDU_UNIT_WITH(user_character_server_db,(HDU_BASE(user_character_global)),
 HDU_UNIT(user_character_private,
     HDU_FIELD(global,user_character_global::TYPE,1)
     HDU_FIELD(private_notes,encrypted::TYPE,2)
+    HDU_FIELD(shared_from,with_user_character::TYPE,3)
 )
 
 HDU_UNIT_WITH(user_character_share,(HDU_BASE(db::object),HDU_BASE(with_user),HDU_BASE(with_user_character)),
