@@ -63,7 +63,6 @@ struct SubunitSetter
     }
 };
 
-
 template <typename Type>
 struct SubunitHolder
 {
@@ -435,6 +434,7 @@ class SubunitT : public Field, public UnitType
 
         virtual void getV(common::SharedPtr<Unit>& val) const override
         {
+#if 0
             auto self=this;
             hana::eval_if(
                 std::is_same<type,Unit>{},
@@ -447,6 +447,9 @@ class SubunitT : public Field, public UnitType
                     throw std::runtime_error("Can not get custom subunit field");
                 }
             );
+#else
+            val=sharedValue();
+#endif
         }
 
         /**  Check if unit's field is set. */
