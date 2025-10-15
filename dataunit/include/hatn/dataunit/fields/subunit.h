@@ -151,6 +151,11 @@ class SubunitT : public Field, public UnitType
             }
         }
 
+        auto createShared(const AllocatorFactory* factory=nullptr)
+        {
+            return sharedValue(true,factory);
+        }
+
         void resetShared()
         {
             m_shared.reset();
@@ -352,17 +357,6 @@ class SubunitT : public Field, public UnitType
             return variantValue();
         }
 
-        auto createSharedValue(const AllocatorFactory* factory=nullptr, bool repeatedSubunit=false) const
-        {
-            auto val=Type::createManagedObject(factory,unit(),repeatedSubunit);
-            return val;
-        }
-
-        auto createPlainValue(const AllocatorFactory* factory=nullptr) const
-        {
-            return holder::createPlainValue(factory);
-        }
-
         base* createValue(const AllocatorFactory* factory=nullptr, bool repeatedSubunit=false)
         {
             if (factory==nullptr)
@@ -434,22 +428,7 @@ class SubunitT : public Field, public UnitType
 
         virtual void getV(common::SharedPtr<Unit>& val) const override
         {
-#if 0
-            auto self=this;
-            hana::eval_if(
-                std::is_same<type,Unit>{},
-                [&](auto _)
-                {
-                    _(val)=_(self)->sharedValue();
-                },
-                []()
-                {
-                    throw std::runtime_error("Can not get custom subunit field");
-                }
-            );
-#else
             val=sharedValue();
-#endif
         }
 
         /**  Check if unit's field is set. */
@@ -596,13 +575,13 @@ class SubunitT : public Field, public UnitType
             return lib::variantGet<shared_managed>(m_value);
         }
 
-        shared_managed sharedValue(bool autoCreate=false)
+        shared_managed sharedValue(bool autoCreate=false,const AllocatorFactory* factory=nullptr)
         {
             if (!isSharedValue())
             {
                 if (autoCreate)
                 {
-                    setShared(true);
+                    setShared(true,true,factory);
                     return lib::variantGet<shared_managed>(m_value);
                 }
                 return shared_managed{};
@@ -632,6 +611,17 @@ class SubunitT : public Field, public UnitType
         const auto* variantValue() const noexcept
         {
             return lib::variantVisit([](const auto& val){return holder::visit(val);},m_value);
+        }
+
+        auto createSharedValue(const AllocatorFactory* factory=nullptr, bool repeatedSubunit=false) const
+        {
+            auto val=Type::createManagedObject(factory,unit(),repeatedSubunit);
+            return val;
+        }
+
+        auto createPlainValue(const AllocatorFactory* factory=nullptr) const
+        {
+            return holder::createPlainValue(factory);
         }
 
         type m_value;
