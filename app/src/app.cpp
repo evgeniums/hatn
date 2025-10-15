@@ -640,6 +640,7 @@ Error App::init()
             common::subcontext()
         )
     );
+    m_env->setName("main");
 
     // get factory
     const auto& factory=m_env->get<AllocatorFactory>();
