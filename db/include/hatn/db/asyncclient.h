@@ -750,7 +750,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             const std::shared_ptr<ModelT>& model,
             QueryT query,
             common::SharedPtr<update::Request> request,
-            const common::SharedPtr<dataunit::Unit>& object,
+            common::SharedPtr<dataunit::Unit> object,
             update::ModifyReturn returnMode=update::ModifyReturn::After,
             Transaction* tx=nullptr,
             Topic topic={}
@@ -759,7 +759,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::postAsyncTask(
                 topicOrRandomThread(topic),
                 ctx,
-                [ctx,this,self{shared_from_this()},&model,query{std::move(query)},request{std::move(request)},&object,returnMode,tx](auto, auto cb)
+                [ctx,this,self{shared_from_this()},&model,query{std::move(query)},request{std::move(request)},object=std::move(object),returnMode,tx](auto, auto cb)
                 {
                     cb(std::move(ctx),m_client->findUpdateCreate(model,query(),*request,object,returnMode,tx));
                 },
