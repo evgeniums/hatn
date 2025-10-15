@@ -21,6 +21,7 @@
 #include <hatn/db/modelswrapper.h>
 
 #include <hatn/clientapp/clientappdefs.h>
+#include <hatn/clientapp/defaulttopic.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
@@ -36,7 +37,7 @@ class ClientAppDbModels : public db::ModelsWrapper
 {
     public:
 
-        constexpr static const char* DefaultTopic="clientapp";
+        constexpr static const char* DefaultTopic=HATN_CLIENTAPP_NAMESPACE::DefaultTopic;
 
         ClientAppDbModels(std::string prefix={}) : db::ModelsWrapper(std::move(prefix))
         {}

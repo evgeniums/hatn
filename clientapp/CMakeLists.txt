@@ -18,6 +18,7 @@ SET (HEADERS
     include/hatn/clientapp/networkevent.h
     include/hatn/clientapp/systemcaevent.h
 
+    include/hatn/clientapp/defaulttopic.h
     include/hatn/clientapp/clientappdbmodels.h
     include/hatn/clientapp/clientappdbmodelsprovider.h
 
