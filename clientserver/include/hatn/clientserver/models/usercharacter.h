@@ -23,28 +23,13 @@
 #include <hatn/clientserver/models/withusercharacter.h>
 #include <hatn/clientserver/models/withloginprofile.h>
 #include <hatn/clientserver/models/encrypted.h>
+#include <hatn/clientserver/models/name.h>
+#include <hatn/clientserver/models/username.h>
+#include <hatn/clientserver/models/addressitem.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-constexpr const char* CHARACTERNAME_SCHEMA_HOST="host";
-
-HDU_UNIT(name,
-    HDU_FIELD(first,TYPE_STRING,1)
-    HDU_FIELD(middle,TYPE_STRING,2)
-    HDU_FIELD(last,TYPE_STRING,3)
-)
-
-HDU_UNIT(address_item,
-    HDU_FIELD(id,db::TYPE_OBJECT_ID,1)
-    HDU_FIELD(value,TYPE_STRING,2)
-    HDU_FIELD(address_type,TYPE_STRING,3)
-    HDU_FIELD(title,TYPE_STRING,4)
-)
-
-HDU_UNIT(user_character,
-    HDU_FIELD(name,name::TYPE,1)
-    HDU_FIELD(charactername,TYPE_STRING,2)
-    HDU_FIELD(charactername_schema,TYPE_STRING,3,false,CHARACTERNAME_SCHEMA_HOST)
+HDU_UNIT_WITH(user_character,(HDU_BASE(with_name),HDU_BASE(with_username)),
     HDU_FIELD(notes,TYPE_STRING,4)
     HDU_REPEATED_FIELD(addresses,address_item::TYPE,5)
     HDU_FIELD(organization,TYPE_STRING,6)
