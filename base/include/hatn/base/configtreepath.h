@@ -65,6 +65,24 @@ class HATN_BASE_EXPORT ConfigTreePath
         ConfigTreePath(): ConfigTreePath(std::string())
         {}
 
+        ConfigTreePath(
+            std::vector<std::string> parts,
+            std::string pathSeparator=DefaultSeparator
+        );
+
+        template <typename T>
+        ConfigTreePath(
+            std::initializer_list<T> parts,
+            std::string pathSeparator=DefaultSeparator
+            ) : m_separator(std::move(pathSeparator))
+        {
+            for (auto&& part:parts)
+            {
+                m_parts.emplace_back(std::move(part));
+            }
+            updateState();
+        }
+
         ~ConfigTreePath()=default;
         ConfigTreePath(const ConfigTreePath&)=default;
         ConfigTreePath(ConfigTreePath&&)=default;

@@ -40,6 +40,17 @@ ConfigTreePath::ConfigTreePath(
 
 //---------------------------------------------------------------
 
+ConfigTreePath::ConfigTreePath(
+        std::vector<std::string> parts,
+        std::string pathSeparator
+    ) : m_separator(std::move(pathSeparator)),
+        m_parts(std::move(parts))
+{
+    updateState();
+}
+
+//---------------------------------------------------------------
+
 void ConfigTreePath::append(common::lib::string_view path)
 {
     if (!path.empty())
