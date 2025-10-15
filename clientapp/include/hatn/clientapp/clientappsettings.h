@@ -49,6 +49,7 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
     public:
 
         constexpr static const char* DbObjectName="appsettings";
+        constexpr static const char* AppSection="app";
 
         using Context=common::TaskContext;
         using Callback=std::function<void (common::SharedPtr<Context>, const Error&)>;
