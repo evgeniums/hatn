@@ -30,6 +30,7 @@ SET (HEADERS
     ${HEADERS}
 
     include/hatn/clientserver/models/oid.h
+    include/hatn/clientserver/models/encrypted.h
     include/hatn/clientserver/models/user.h
     include/hatn/clientserver/models/withuser.h
     include/hatn/clientserver/models/withpassphrase.h
