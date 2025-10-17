@@ -639,6 +639,16 @@ HATN_DB_NAMESPACE_END
     }; \
     constexpr _model_##m m{};
 
+#define HATN_DB_MODEL_NO_INDEX(m,type) \
+    struct _model_##m { \
+        const auto& operator()() const \
+        { \
+                static auto mm=HATN_DB_NAMESPACE::makeModel< type ::TYPE>(HATN_DB_NAMESPACE::DefaultModelConfig); \
+                return mm; \
+        } \
+    }; \
+    constexpr _model_##m m{};
+
 #define HATN_DB_OID_PARTITION_MODEL(m,type,...) \
 struct _model_##m { \
     const auto& operator()() const \
