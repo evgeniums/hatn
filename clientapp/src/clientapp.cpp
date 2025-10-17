@@ -88,6 +88,13 @@ Dispatcher& ClientApp::bridge()
 
 //--------------------------------------------------------------------------
 
+const Dispatcher& ClientApp::bridge() const
+{
+    return pimpl->bridge;
+}
+
+//--------------------------------------------------------------------------
+
 EventDispatcher& ClientApp::eventDispatcher()
 {
     return pimpl->eventDispatcher;

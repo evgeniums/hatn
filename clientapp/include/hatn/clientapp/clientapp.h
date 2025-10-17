@@ -69,6 +69,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         Dispatcher& bridge();
 
+        const Dispatcher& bridge() const;
+
         EventDispatcher& eventDispatcher();
 
         virtual Error init();
