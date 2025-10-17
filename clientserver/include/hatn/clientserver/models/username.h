@@ -33,7 +33,7 @@ HDU_UNIT(username,
 
 struct formatUsernameT
 {
-    std::string operator()(const username::type& obj, const username::type& ref=username::type{}) const
+    std::string operator()(const username::type& obj, const username::type& ref=username::type{}, bool forName=false) const
     {
         if (obj.fieldValue(username::user).empty())
         {
@@ -50,9 +50,20 @@ struct formatUsernameT
                 )
             )
         {
-            return fmt::format("@{}",obj.fieldValue(username::user));
+            if (forName)
+            {
+               return  std::string{obj.fieldValue(username::user)};
+            }
+            else
+            {
+                return fmt::format("@{}",obj.fieldValue(username::user));
+            }
         }
 
+        if (forName)
+        {
+            return fmt::format("{}@{}",obj.fieldValue(username::user),obj.fieldValue(username::domain));
+        }
         return fmt::format("@{}@{}",obj.fieldValue(username::user),obj.fieldValue(username::domain));
     }
 };
@@ -77,7 +88,7 @@ struct formatNameAndUsernameT
         }
         if (obj.field(with_username::uname).isSet())
         {
-            return formatUsername(obj.field(with_username::uname).value(),ref);
+            return formatUsername(obj.field(with_username::uname).value(),ref,true);
         }
 
         return std::string{};
