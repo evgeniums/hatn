@@ -114,14 +114,14 @@ class HATN_CLIENTAPP_EXPORT ContextBuilder
         ContextBuilder& operator=(const ContextBuilder&)=delete;
         ContextBuilder& operator=(ContextBuilder&&)=default;
 
-        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env)=0;
+        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env) const=0;
 };
 
 class DefaultContextBuilder : public ContextBuilder
 {
     public:
 
-        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env) override
+        virtual common::SharedPtr<Context> makeContext(common::SharedPtr<app::AppEnv> env) const override
         {
             auto ctx=HATN_LOGCONTEXT_NAMESPACE::makeLogCtx();
             auto& logCtx=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();

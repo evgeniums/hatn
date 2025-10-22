@@ -117,6 +117,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         const ClientAppSettings* appSettings() const;
         ClientAppSettings* appSettings();
 
+        void flushAppSettings(std::string section={});
+
         const LockingController* lockingController() const;
         LockingController* lockingController();
 

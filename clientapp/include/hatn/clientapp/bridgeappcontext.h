@@ -60,7 +60,7 @@ class BridgeAppContextBuilder : public ContextBuilder,
 
         using WithClientApp::WithClientApp;
 
-        virtual HATN_COMMON_NAMESPACE::SharedPtr<Context> makeContext(HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env) override
+        virtual HATN_COMMON_NAMESPACE::SharedPtr<Context> makeContext(HATN_COMMON_NAMESPACE::SharedPtr<HATN_APP_NAMESPACE::AppEnv> env) const override
         {
             auto ctx=HATN_COMMON_NAMESPACE::makeTaskContextType<BridgeAppContext>(
                 HATN_COMMON_NAMESPACE::subcontexts(
