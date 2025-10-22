@@ -18,6 +18,8 @@
 
 #include <hatn/db/object.h>
 
+#include <hatn/common/featureset.h>
+
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/withuser.h>
 #include <hatn/clientserver/models/withusercharacter.h>
@@ -34,6 +36,30 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+enum class UserCharacterSection : uint32_t
+{
+    Username,
+    Name,
+    Employment,
+    Avatar,
+    PublicNotes,
+    PrivateNotes,
+    AddressItem,
+    Notifications,
+    Permissions,
+
+    END=32
+};
+
+struct UserCharacterSectionTraits
+{
+    using MaskType=uint32_t;
+    using Feature=UserCharacterSection;
+};
+
+using UserCharacterSectionFeature=common::FeatureSet<UserCharacterSectionTraits>;
+using UserCharacterSections=UserCharacterSectionFeature::Features;
+
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
     HDU_FIELD(notes,TYPE_STRING,4)
@@ -46,6 +72,7 @@ HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(plain_notes,TYPE_STRING,2)
     HDU_FIELD(shared_from,with_user_character::TYPE,3)
     HDU_FIELD(notifications,notifications::TYPE,4)
+    HDU_FIELD(permissions,TYPE_UINT64,5)
 )
 
 HDU_UNIT_WITH(user_character_full,(HDU_BASE(db::object)),
