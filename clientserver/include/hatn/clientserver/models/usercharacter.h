@@ -64,16 +64,26 @@ struct UserCharacterSectionTraits
 using UserCharacterSectionFeature=common::FeatureSet<UserCharacterSectionTraits>;
 using UserCharacterSections=UserCharacterSectionFeature::Features;
 
+constexpr std::initializer_list<UserCharacterSection> UserCharacterPubSections{
+    UserCharacterSection::Username,
+    UserCharacterSection::Name,
+    UserCharacterSection::Employment,
+    UserCharacterSection::Avatar,
+    UserCharacterSection::AddressItem,
+    UserCharacterSection::PublicNotes
+};
+
+constexpr std::initializer_list<UserCharacterSection> UserCharacterPrivSections{
+    UserCharacterSection::PrivateNotes,
+    UserCharacterSection::Notifications,
+    UserCharacterSection::ReadOnlySections,
+    UserCharacterSection::Sharing
+};
+
 inline bool isUserCharacterPublicSection(UserCharacterSection section)
 {
     auto sections=UserCharacterSectionFeature::featureBit(section);
-    return UserCharacterSectionFeature::hasFeatures(
-        sections,
-        {
-         UserCharacterSection::Username,UserCharacterSection::Name,UserCharacterSection::Employment,
-         UserCharacterSection::Avatar,UserCharacterSection::AddressItem,UserCharacterSection::PublicNotes
-        }
-    );
+    return UserCharacterSectionFeature::hasFeatures(sections,UserCharacterPubSections);
 }
 
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
