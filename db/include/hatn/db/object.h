@@ -28,6 +28,7 @@
 
 #include <hatn/dataunit/unitwrapper.h>
 #include <hatn/dataunit/syntax.h>
+#include <hatn/dataunit/compare.h>
 
 #include <hatn/db/db.h>
 #include <hatn/db/objectid.h>
@@ -89,6 +90,16 @@ auto makeInitObjectPtr()
     auto obj=common::makeShared<ObjectT>();
     initObject(*obj);
     return obj;
+}
+
+template <typename ObjectT1, typename ObjectT2>
+bool objectsEqual(const ObjectT1& l, const ObjectT2& r, bool excludeIdAndTime)
+{
+    if (excludeIdAndTime)
+    {
+        return du::unitsEqual(l,r,object::_id,object::created_at,object::updated_at);
+    }
+    return du::unitsEqual(l,r);
 }
 
 constexpr const size_t ReservedTopicLength=ObjectId::Length;
