@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <vector>
 
 #include <hatn/common/common.h>
 
@@ -42,6 +43,33 @@ struct FeatureSet
     constexpr static Features featureBit(Feature feature) noexcept
     {
         return 1<<static_cast<size_t>(feature);
+    }
+
+    template <typename HandlerT>
+    static void eachFeature(HandlerT handler, Features mask=allFeatures()) noexcept
+    {
+        for (size_t i=0;i<static_cast<size_t>(Feature::END);i++)
+        {
+            auto feature=static_cast<Feature>(i);
+            if (hasFeature(mask,feature))
+            {
+                handler(feature);
+            }
+        }
+    }
+
+    constexpr static std::vector<Feature> features(Features mask) noexcept
+    {
+        std::vector<Feature> result;
+        for (size_t i=0;i<static_cast<size_t>(Feature::END);i++)
+        {
+            auto feature=static_cast<Feature>(i);
+            if (hasFeature(mask,feature))
+            {
+                result.push_back(feature);
+            }
+        }
+        return result;
     }
 
     /**
