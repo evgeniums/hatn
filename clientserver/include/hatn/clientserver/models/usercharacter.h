@@ -16,9 +16,11 @@
 #ifndef HATNCLIENTSERVERUSERCHARACTER_H
 #define HATNCLIENTSERVERUSERCHARACTER_H
 
-#include <hatn/db/object.h>
-
 #include <hatn/common/featureset.h>
+
+#include <hatn/dataunit/compare.h>
+
+#include <hatn/db/object.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/withuser.h>
@@ -42,11 +44,13 @@ enum class UserCharacterSection : uint32_t
     Name,
     Employment,
     Avatar,
-    PublicNotes,
-    PrivateNotes,
     AddressItem,
+    PublicNotes,
+
+    PrivateNotes,    
     Notifications,
-    Permissions,
+    ReadOnlySections,
+    Sharing,
 
     END=32
 };
@@ -60,6 +64,18 @@ struct UserCharacterSectionTraits
 using UserCharacterSectionFeature=common::FeatureSet<UserCharacterSectionTraits>;
 using UserCharacterSections=UserCharacterSectionFeature::Features;
 
+inline bool isUserCharacterPublicSection(UserCharacterSection section)
+{
+    auto sections=UserCharacterSectionFeature::featureBit(section);
+    return UserCharacterSectionFeature::hasFeatures(
+        sections,
+        {
+         UserCharacterSection::Username,UserCharacterSection::Name,UserCharacterSection::Employment,
+         UserCharacterSection::Avatar,UserCharacterSection::AddressItem,UserCharacterSection::PublicNotes
+        }
+    );
+}
+
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
     HDU_FIELD(notes,TYPE_STRING,4)
@@ -72,7 +88,7 @@ HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(plain_notes,TYPE_STRING,2)
     HDU_FIELD(shared_from,with_user_character::TYPE,3)
     HDU_FIELD(notifications,notifications::TYPE,4)
-    HDU_FIELD(permissions,TYPE_UINT64,5)
+    HDU_FIELD(read_only_secions,TYPE_UINT32,5)
 )
 
 HDU_UNIT_WITH(user_character_full,(HDU_BASE(db::object)),
@@ -103,6 +119,125 @@ HDU_UNIT_WITH(user_character_login,(HDU_BASE(db::object),HDU_BASE(with_user_char
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_FIELD(description,TYPE_STRING,3)
 )
+
+template <typename T1, typename T2>
+bool userCharacterPublicSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+{
+    switch(section)
+    {
+        case (UserCharacterSection::Username):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(with_username::uname,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::Name):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(with_name::name,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::Employment):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_public::employment,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::Avatar):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_public::avatar,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::PublicNotes):
+        {
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_public::notes,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::AddressItem):
+        {
+            return HATN_DATAUNIT_NAMESPACE::repeatedSubunitsEqual(user_character_public::addresses,l,r);
+        }
+        break;
+
+        default:
+            break;
+    }
+
+    return true;
+}
+
+template <typename T1, typename T2>
+bool userCharacterPrivateSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+{
+    switch(section)
+    {
+        case (UserCharacterSection::PrivateNotes):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::plain_notes,l,r)
+                    &&
+                   HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::encrypted_notes,l,r)
+                ;
+        }
+        break;
+
+        case (UserCharacterSection::ReadOnlySections):
+        {
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_secions,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::Notifications):
+        {
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::notifications,l,r);
+        }
+        break;
+
+        case (UserCharacterSection::Sharing):
+        {
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::shared_from,l,r);
+        }
+        break;
+
+        default:
+            break;
+    }
+
+    return true;
+}
+
+template <typename T1, typename T2>
+bool userCharacterSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+{
+    if (isUserCharacterPublicSection(section))
+    {
+        auto lPub=l->field(user_character_full::private_data);
+        auto rPub=r->field(user_character_full::private_data);
+        if (!lPub.isSet())
+        {
+            if (!rPub.isSet())
+            {
+                return true;
+            }
+            return false;
+        }
+        return userCharacterPublicSectionsEqual(section,&lPub.value(),&rPub.value());
+    }
+
+    auto lPriv=l->field(user_character_full::private_data);
+    auto rPriv=r->field(user_character_full::private_data);
+    if (!lPriv.isSet())
+    {
+        if (!rPriv.isSet())
+        {
+            return true;
+        }
+        return false;
+    }
+    return userCharacterPrivateSectionsEqual(section,&lPriv.value(),&rPriv.value());
+}
+
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
