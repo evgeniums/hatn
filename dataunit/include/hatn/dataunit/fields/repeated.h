@@ -1000,6 +1000,17 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
         json::pushHandler<selfType,json::FieldReader<Type,selfType>>(topUnit,this);
     }
 
+    auto toSharedVector() const
+    {
+        std::vector<common::SharedPtr<typename Type::managed>> v;
+        v.reserve(vector.size());
+        for (const auto& it: vector)
+        {
+            v.push_back(it.sharedValue());
+        }
+        return v;
+    }
+
     vectorType vector;
 
     virtual size_t arraySize() const override {return count();}
