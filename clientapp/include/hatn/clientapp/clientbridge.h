@@ -491,6 +491,15 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             const std::string& method
         ) const;
 
+        template <typename HandlerT>
+        void execAsync(
+                HandlerT handler
+            )
+        {
+            auto thread=m_defaultEnv->get<app::Threads>().threads()->defaultThread();
+            thread->execAsync(std::move(handler));
+        }
+
     private:
 
         mutable common::MutexLock m_mutex;

@@ -25,6 +25,7 @@
 
 #include <hatn/clientapp/clientapp.h>
 #include <hatn/clientapp/clientappdbmodels.h>
+#include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/clientappsettings.h>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -43,23 +44,15 @@ Error ClientAppSettings::load()
 {
     m_configTree.reset();
 
-    using dbResult=Result<HATN_DB_NAMESPACE::DbObjectT<clientapp_data::managed>>;
-
-    auto future=m_app->app().appThread()->execFuture<dbResult>(
-        [self=shared_from_this(),this]()
-        {
-            auto q=HATN_DB_NAMESPACE::makeQuery(clientAppDataIdx(),
-                                                  db::where(clientapp_data::name,db::query::eq,DbObjectName),
-                                                  ClientAppDbModels::DefaultTopic
-                                                  );
-            return m_app->mainDb().dbClient()->client()->findOne(
-                    ClientAppDbModels::defaultInstance()->clientAppDataModel(),
-                    q
-                );
-        }
-    );
-    future.wait();
-    auto r=future.get();
+    // call synchronous db method because load() is called for initialization and blocks the app anyway
+    auto q=HATN_DB_NAMESPACE::makeQuery(clientAppDataIdx(),
+                                          db::where(clientapp_data::name,db::query::eq,DbObjectName),
+                                          ClientAppDbModels::DefaultTopic
+                                          );
+    auto r=m_app->mainDb().dbClient()->client()->findOne(
+            ClientAppDbModels::defaultInstance()->clientAppDataModel(),
+            q
+        );
     if (r)
     {
         if (r.error().is(HATN_DB_NAMESPACE::DbError::NOT_FOUND))
@@ -69,6 +62,7 @@ Error ClientAppSettings::load()
         return r.takeError();
     }
 
+    // parse config tree
     HATN_BASE_NAMESPACE::ConfigTreeJson parser;
     auto ec=parser.parse(m_configTree,r.value().as<clientapp_data::managed>()->fieldValue(clientapp_data::data));
     if (ec)
@@ -76,6 +70,8 @@ Error ClientAppSettings::load()
         m_configTree.reset();
         return ec;
     }
+
+    // done
     return OK;
 }
 
@@ -87,11 +83,8 @@ void ClientAppSettings::flush(
         std::string section
     )
 {
-    postAsync(
-        "appsettings::flush",
-        common::ThreadQWithTaskContext::current(),
-        std::move(ctx),
-        [self=shared_from_this(),this,section=std::move(section)](auto ctx, auto callback)
+    m_app->bridge().execAsync(
+        [ctx,callback,section,self=shared_from_this(),this]()
         {
             HATN_BASE_NAMESPACE::ConfigTreeJson serializer;
             auto r=serializer.serialize(m_configTree);
@@ -117,19 +110,19 @@ void ClientAppSettings::flush(
                     m_app->app().env(),
                     HATN_LOGCONTEXT_NAMESPACE::makeLogCtx(),
                     std::move(appSettingsEvent)
-                );
+                    );
             };
 
             auto q=HATN_DB_NAMESPACE::wrapQueryBuilder(
                 []()
                 {
                     return HATN_DB_NAMESPACE::makeQuery(clientAppDataIdx(),
-                                         db::where(clientapp_data::name,db::query::eq,DbObjectName),
-                                         ClientAppDbModels::DefaultTopic
-                                         );
+                                                        db::where(clientapp_data::name,db::query::eq,DbObjectName),
+                                                        ClientAppDbModels::DefaultTopic
+                                                        );
                 },
                 ClientAppDbModels::DefaultTopic
-            );
+                );
 
             auto dbObj=m_app->app().allocatorFactory().factory()->createObject<clientapp_data::managed>();
             db::initObject(*dbObj);
@@ -138,7 +131,7 @@ void ClientAppSettings::flush(
 
             auto updateReq=HATN_DB_NAMESPACE::update::sharedRequest(
                 HATN_DB_NAMESPACE::update::field(clientapp_data::data,HATN_DB_NAMESPACE::update::set,dbObj->fieldValue(clientapp_data::data))
-            );
+                );
 
             m_app->mainDb().dbClient()->findUpdateCreate(
                 std::move(ctx),
@@ -151,8 +144,7 @@ void ClientAppSettings::flush(
                 nullptr,
                 ClientAppDbModels::DefaultTopic
             );
-        },
-        std::move(callback)
+        }
     );
 }
 

@@ -240,6 +240,13 @@ Error ClientApp::openData(bool init)
     auto ec=openMainDb(init);
     HATN_CHECK_EC(ec)
 
+    // load app settings
+    ec=pimpl->appSettings->load();
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to app settings")
+    }
+
     // start locking controller
     pimpl->lockingController->start();
 
@@ -247,7 +254,7 @@ Error ClientApp::openData(bool init)
     ec=doOpenData(init);
     HATN_CHECK_EC(ec)
 
-    // create folder ready file
+    // create folder-ready file
     if (init)
     {
         lib::filesystem::path initFilePath{app().appDataFolder()};
