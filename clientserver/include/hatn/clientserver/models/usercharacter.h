@@ -130,6 +130,24 @@ HDU_UNIT_WITH(user_character_login,(HDU_BASE(db::object),HDU_BASE(with_user_char
     HDU_FIELD(description,TYPE_STRING,3)
 )
 
+HDU_UNIT_WITH(character,(HDU_BASE(user_character_full),HDU_BASE(at_server)),
+              )
+
+HDU_UNIT(characters,
+         HDU_REPEATED_FIELD(items,character::TYPE,1)
+         HDU_FIELD(default_character,TYPE_OBJECT_ID,2)
+         )
+
+HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key)),
+              HDU_FIELD(section,HDU_TYPE_ENUM(UserCharacterSection),1)
+              HDU_FIELD(content,TYPE_DATAUNIT,2)
+              )
+
+HDU_UNIT(update_character_resp,
+         HDU_FIELD(character,character::TYPE,1)
+         HDU_FIELD(section,HDU_TYPE_ENUM(UserCharacterSection),2)
+         )
+
 template <typename T1, typename T2>
 bool userCharacterPublicSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
 {

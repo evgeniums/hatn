@@ -29,6 +29,10 @@ HDU_UNIT(address_item,
     HDU_FIELD(title,TYPE_STRING,4)
 )
 
+HDU_UNIT(with_addresses,
+    HDU_REPEATED_FIELD(addresses,address_item::TYPE,44)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERADDRESSITEM_H

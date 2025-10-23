@@ -38,6 +38,15 @@ HDU_UNIT(topic_object,
     HDU_FIELD(parent_oid,TYPE_OBJECT_ID,3)
 )
 
+HDU_UNIT(oid_key,
+    HDU_FIELD(oid,TYPE_OBJECT_ID,99)
+)
+
+HDU_UNIT(with_parent,
+    HDU_FIELD(parent_oid,TYPE_OBJECT_ID,99)
+    HDU_FIELD(parent_type,TYPE_STRING,98)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELSOID_H

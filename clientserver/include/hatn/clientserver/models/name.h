@@ -22,6 +22,10 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+HDU_UNIT(with_string,
+    HDU_FIELD(string_value,TYPE_STRING,1)
+)
+
 HDU_UNIT(name,
     HDU_FIELD(first,TYPE_STRING,1)
     HDU_FIELD(middle,TYPE_STRING,2)
