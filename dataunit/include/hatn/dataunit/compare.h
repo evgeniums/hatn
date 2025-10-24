@@ -111,33 +111,36 @@ bool unitsEqual(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
 
     //! @todo Implement recursive in-depth comparing
 
-    auto excludeFieldsTs=hana::make_tuple(std::forward<ExludeFields>(excludeFields)...);
-    auto each=[&](auto&& field)
+    auto excludeIndexes=hana::transform(
+        hana::make_tuple(std::forward<ExludeFields>(excludeFields)...),
+        [](auto field)
+        {
+            return hana::size_c<std::decay_t<decltype(field)>::type::ID>;
+        }
+        );
+
+    auto each=[&](auto index)
     {
         return hana::eval_if(
-            hana::contains(excludeFieldsTs,field),
-            []()
+            hana::contains(excludeIndexes,index),
+            [&](auto)
             {
                 return true;
             },
             [&](auto _)
             {
-                auto&& f=_(field);
-                return _(l)->fieldValue(f) == _(r)->fieldValue(f);
+                return _(l)->get(_(index)).value() == r->get(_(index)).value();
             }
-        );
+            );
     };
 
     return hana::fold(
-        l->keys,
+        l->fieldsMap,
         true,
-        [each](bool state, auto&& key)
+        [each](bool state, auto key)
         {
-            if (!state)
-            {
-                return state;
-            }
-            return each(key);
+            auto index=hana::second(key);
+            return state && each(index);
         }
     );
 }
