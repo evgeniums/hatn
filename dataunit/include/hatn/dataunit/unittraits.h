@@ -158,8 +158,6 @@ class UnitImpl
             return hana::not_equal(ret,hana::nothing);
         }
 
-    protected:
-
         template <typename Index>
         auto get(Index&& idx) const -> decltype(auto)
         {
@@ -196,9 +194,9 @@ struct makeIndexMapT
 constexpr makeIndexMapT makeIndexMap{};
 
 template <typename ...Fields>
-struct fieldKeysT
+struct fieldKeys
 {
-    constexpr auto operator()() const noexcept
+    constexpr static auto make() noexcept
     {
         auto to_field_traits_c=[](auto x)
         {
@@ -211,30 +209,16 @@ struct fieldKeysT
         return field_traits_c;
     }
 };
-template <typename ...Fields>
-constexpr fieldKeysT fieldKeys{};
 
 template <typename ...Fields>
 struct fieldsMapT
 {
-    constexpr static auto f() noexcept
+    constexpr static auto make() noexcept
     {
-#if 1
-        auto to_field_traits_c=[](auto x)
-        {
-            using field_c=typename decltype(x)::type;
-            using field_type=typename field_c::traits;
-            return hana::type_c<field_type>;
-        };
-
-        auto field_traits_c=hana::transform(hana::tuple_t<Fields...>,to_field_traits_c);
-        return makeIndexMap(field_traits_c);
-#else
-        return makeIndexMap(fieldKeys<Fields...>());
-#endif
+        return makeIndexMap(fieldKeys<Fields...>::make());
     }
 
-    using type=decltype(f());
+    using type=decltype(make());
 };
 
 template <typename Conf, typename ...Fields>
@@ -268,8 +252,6 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
 
         using mapType=typename fieldsMapT<Fields...>::type;
         constexpr static mapType fieldsMap{};
-
-        constexpr static const auto keys=fieldKeys<Fields...>();
 
         ~UnitConcat()=default;
 
