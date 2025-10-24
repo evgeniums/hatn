@@ -139,6 +139,23 @@ struct FeatureSet
         features&=~featureBit(feature);
     }
 
+    template <typename T>
+    static Feature feature(T value)
+    {
+        return static_cast<Feature>(value);
+    }
+
+    template <typename T>
+    static bool isFeature(T value, Feature f)
+    {
+        return feature(value)==f;
+    }
+
+    static uint32_t asInt(Feature f)
+    {
+        return static_cast<uint32_t>(f);
+    }
+
     FeatureSet()=delete;
     ~FeatureSet()=delete;
     FeatureSet(const FeatureSet&)=delete;
