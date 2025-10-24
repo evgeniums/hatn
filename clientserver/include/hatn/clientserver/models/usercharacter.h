@@ -38,7 +38,13 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-enum class UserCharacterSection : uint32_t
+enum class UserCharacterSectionType
+{
+    Public=0,
+    Private=1
+};
+
+enum class UserCharacterPubSection : uint32_t
 {
     Username,
     Name,
@@ -47,44 +53,38 @@ enum class UserCharacterSection : uint32_t
     AddressItem,
     PublicNotes,
 
+    END=32
+};
+
+enum class UserCharacterPrivSection : uint32_t
+{
     PrivateNotes,    
     Notifications,
-    ReadOnlySections,
+    ReadOnlyPubSections,
+    ReadOnlyPrivSections,
     Sharing,
 
     END=32
 };
 
-struct UserCharacterSectionTraits
+struct UserCharacterPubSectionTraits
 {
     using MaskType=uint32_t;
-    using Feature=UserCharacterSection;
+    using Feature=UserCharacterPubSection;
 };
 
-using UserCharacterSectionFeature=common::FeatureSet<UserCharacterSectionTraits>;
-using UserCharacterSections=UserCharacterSectionFeature::Features;
+using UserCharacterPubSectionFeature=common::FeatureSet<UserCharacterPubSectionTraits>;
+using UserCharacterPubSections=UserCharacterPubSectionFeature::Features;
 
-constexpr std::initializer_list<UserCharacterSection> UserCharacterPubSections{
-    UserCharacterSection::Username,
-    UserCharacterSection::Name,
-    UserCharacterSection::Employment,
-    UserCharacterSection::Avatar,
-    UserCharacterSection::AddressItem,
-    UserCharacterSection::PublicNotes
-};
-
-constexpr std::initializer_list<UserCharacterSection> UserCharacterPrivSections{
-    UserCharacterSection::PrivateNotes,
-    UserCharacterSection::Notifications,
-    UserCharacterSection::ReadOnlySections,
-    UserCharacterSection::Sharing
-};
-
-inline bool isUserCharacterPublicSection(UserCharacterSection section)
+struct UserCharacterPrivSectionTraits
 {
-    auto sections=UserCharacterSectionFeature::featureBit(section);
-    return UserCharacterSectionFeature::hasFeatures(sections,UserCharacterPubSections);
-}
+    using MaskType=uint32_t;
+    using Feature=UserCharacterPrivSection;
+};
+
+using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
+using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
+
 
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
@@ -98,7 +98,8 @@ HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(plain_notes,TYPE_STRING,2)
     HDU_FIELD(shared_from,with_user_character::TYPE,3)
     HDU_FIELD(notifications,notifications::TYPE,4)
-    HDU_FIELD(read_only_secions,TYPE_UINT32,5)
+    HDU_FIELD(read_only_pub_secions,TYPE_UINT32,5)
+    HDU_FIELD(read_only_priv_secions,TYPE_UINT32,6)
 )
 
 HDU_UNIT_WITH(user_character_full,(HDU_BASE(db::object)),
@@ -138,52 +139,52 @@ HDU_UNIT(characters,
          HDU_FIELD(default_character,TYPE_OBJECT_ID,2)
          )
 
-HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key)),
-              HDU_FIELD(section,HDU_TYPE_ENUM(UserCharacterSection),1)
-              HDU_FIELD(content,TYPE_DATAUNIT,2)
-              )
+HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key),HDU_BASE(with_revision)),
+    HDU_FIELD(section_type,HDU_TYPE_ENUM(UserCharacterSectionType),1)
+    HDU_FIELD(section,TYPE_UINT32,2)
+    HDU_FIELD(content,TYPE_DATAUNIT,3)
+)
 
-HDU_UNIT(update_character_resp,
-         HDU_FIELD(character,character::TYPE,1)
-         HDU_FIELD(section,HDU_TYPE_ENUM(UserCharacterSection),2)
-         )
+HDU_UNIT_WITH(update_character_resp,(HDU_BASE(update_character)),
+    HDU_FIELD(prev_revision,TYPE_OBJECT_ID,10)
+)
 
 template <typename T1, typename T2>
-bool userCharacterPublicSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+bool userCharacterPubSectionsEqual(UserCharacterPubSection section, const T1& l, const T2& r)
 {
     switch(section)
     {
-        case (UserCharacterSection::Username):
+        case (UserCharacterPubSection::Username):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(with_username::uname,l,r);
         }
         break;
 
-        case (UserCharacterSection::Name):
+        case (UserCharacterPubSection::Name):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(with_name::name,l,r);
         }
         break;
 
-        case (UserCharacterSection::Employment):
+        case (UserCharacterPubSection::Employment):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_public::employment,l,r);
         }
         break;
 
-        case (UserCharacterSection::Avatar):
+        case (UserCharacterPubSection::Avatar):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_public::avatar,l,r);
         }
         break;
 
-        case (UserCharacterSection::PublicNotes):
+        case (UserCharacterPubSection::PublicNotes):
         {
             return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_public::notes,l,r);
         }
         break;
 
-        case (UserCharacterSection::AddressItem):
+        case (UserCharacterPubSection::AddressItem):
         {
             return HATN_DATAUNIT_NAMESPACE::repeatedSubunitsEqual(user_character_public::addresses,l,r);
         }
@@ -197,11 +198,11 @@ bool userCharacterPublicSectionsEqual(UserCharacterSection section, const T1& l,
 }
 
 template <typename T1, typename T2>
-bool userCharacterPrivateSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+bool userCharacterPrivSectionsEqual(UserCharacterPrivSection section, const T1& l, const T2& r)
 {
     switch(section)
     {
-        case (UserCharacterSection::PrivateNotes):
+        case (UserCharacterPrivSection::PrivateNotes):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::plain_notes,l,r)
                     &&
@@ -210,19 +211,25 @@ bool userCharacterPrivateSectionsEqual(UserCharacterSection section, const T1& l
         }
         break;
 
-        case (UserCharacterSection::ReadOnlySections):
+        case (UserCharacterPrivSection::ReadOnlyPubSections):
         {
-            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_secions,l,r);
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_pub_secions,l,r);
         }
         break;
 
-        case (UserCharacterSection::Notifications):
+        case (UserCharacterPrivSection::ReadOnlyPrivSections):
+        {
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_priv_secions,l,r);
+        }
+        break;
+
+        case (UserCharacterPrivSection::Notifications):
         {
             return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::notifications,l,r);
         }
         break;
 
-        case (UserCharacterSection::Sharing):
+        case (UserCharacterPrivSection::Sharing):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::shared_from,l,r);
         }
@@ -236,36 +243,45 @@ bool userCharacterPrivateSectionsEqual(UserCharacterSection section, const T1& l
 }
 
 template <typename T1, typename T2>
-bool userCharacterSectionsEqual(UserCharacterSection section, const T1& l, const T2& r)
+bool userCharacterSectionsEqual(UserCharacterSectionType UserCharacterSectionType, uint32_t section, const T1& l, const T2& r)
 {
-    if (isUserCharacterPublicSection(section))
+    switch (UserCharacterSectionType)
     {
-        auto lPub=l->field(user_character_full::private_data);
-        auto rPub=r->field(user_character_full::private_data);
-        if (!lPub.isSet())
+        case (UserCharacterSectionType::Public):
         {
-            if (!rPub.isSet())
+            auto lPub=l->field(user_character_full::private_data);
+            auto rPub=r->field(user_character_full::private_data);
+            if (!lPub.isSet())
             {
-                return true;
+                if (!rPub.isSet())
+                {
+                    return true;
+                }
+                return false;
             }
-            return false;
+            return userCharacterPubSectionsEqual(UserCharacterPubSectionFeature::feature(section),&lPub.value(),&rPub.value());
         }
-        return userCharacterPublicSectionsEqual(section,&lPub.value(),&rPub.value());
-    }
+        break;
 
-    auto lPriv=l->field(user_character_full::private_data);
-    auto rPriv=r->field(user_character_full::private_data);
-    if (!lPriv.isSet())
-    {
-        if (!rPriv.isSet())
+        case (UserCharacterSectionType::Private):
         {
-            return true;
+            auto lPriv=l->field(user_character_full::private_data);
+            auto rPriv=r->field(user_character_full::private_data);
+            if (!lPriv.isSet())
+            {
+                if (!rPriv.isSet())
+                {
+                    return true;
+                }
+                return false;
+            }
+            return userCharacterPrivSectionsEqual(UserCharacterPrivSectionFeature::feature(section),&lPriv.value(),&rPriv.value());
         }
-        return false;
+        break;
     }
-    return userCharacterPrivateSectionsEqual(section,&lPriv.value(),&rPriv.value());
-}
 
+    return true;
+}
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
