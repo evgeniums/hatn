@@ -46,11 +46,11 @@ enum class UserCharacterSectionType
 
 enum class UserCharacterPubSection : uint32_t
 {
+    Avatar,
     Username,
     Name,
-    Employment,
-    Avatar,
-    AddressItem,
+    Employment,    
+    Addresses,
     PublicNotes,
 
     END=32
@@ -88,14 +88,14 @@ using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
-    HDU_FIELD(notes,TYPE_STRING,4)
-    HDU_REPEATED_FIELD(addresses,address_item::TYPE,5)
+    HDU_FIELD(notes,with_string::TYPE,4)
+    HDU_FIELD(addresses,with_addresses::TYPE,5)
     HDU_FIELD(employment,employment::TYPE,6)
 )
 
 HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(encrypted_notes,encrypted::TYPE,1)
-    HDU_FIELD(plain_notes,TYPE_STRING,2)
+    HDU_FIELD(plain_notes,with_string::TYPE,2)
     HDU_FIELD(shared_from,with_user_character::TYPE,3)
     HDU_FIELD(notifications,notifications::TYPE,4)
     HDU_FIELD(read_only_pub_secions,TYPE_UINT32,5)
@@ -145,8 +145,9 @@ HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key),HDU_BASE(with_revision)),
     HDU_FIELD(content,TYPE_DATAUNIT,3)
 )
 
-HDU_UNIT_WITH(update_character_resp,(HDU_BASE(update_character)),
-    HDU_FIELD(prev_revision,TYPE_OBJECT_ID,10)
+HDU_UNIT(update_character_resp,
+    HDU_FIELD(character,character::TYPE,1)
+    HDU_FIELD(revision_before,TYPE_OBJECT_ID,2)
 )
 
 template <typename T1, typename T2>
@@ -184,7 +185,7 @@ bool userCharacterPubSectionsEqual(UserCharacterPubSection section, const T1& l,
         }
         break;
 
-        case (UserCharacterPubSection::AddressItem):
+        case (UserCharacterPubSection::Addresses):
         {
             return HATN_DATAUNIT_NAMESPACE::repeatedSubunitsEqual(user_character_public::addresses,l,r);
         }
