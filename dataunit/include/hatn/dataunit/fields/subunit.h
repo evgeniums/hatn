@@ -575,6 +575,11 @@ class SubunitT : public Field, public UnitType
             return lib::variantGet<shared_managed>(m_value);
         }
 
+        common::SharedPtr<Unit> sharedUnit() const
+        {
+            return sharedValue().template staticCast<Unit>();
+        }
+
         shared_managed sharedValue(bool autoCreate=false,const AllocatorFactory* factory=nullptr)
         {
             if (!isSharedValue())
