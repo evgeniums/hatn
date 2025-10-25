@@ -40,7 +40,7 @@ struct formatEmploymentT
         const auto& sampleDepartment=sample.fieldValue(employment::department);
 
         bool addOrganization=!organization.empty() && organization!=sampleOrganization;
-        bool addDepartment=addOrganization || (!department.empty() && department!=sampleDepartment);
+        bool addDepartment=!department.empty() && department!=sampleDepartment;
         bool addPosition=!position.empty();
 
         if (addPosition)
