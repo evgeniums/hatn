@@ -38,6 +38,8 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+constexpr const char* UserCharacterType="character";
+
 enum class UserCharacterSectionType
 {
     Public=0,
@@ -85,6 +87,7 @@ struct UserCharacterPrivSectionTraits
 using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
 using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
+namespace avatar_object=topic_object;
 
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
