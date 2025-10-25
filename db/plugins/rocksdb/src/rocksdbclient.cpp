@@ -72,8 +72,16 @@ HDU_UNIT(rocksdb_config,
 HDU_UNIT(rocksdb_options,
          HDU_FIELD(readonly,TYPE_BOOL,1)
          HDU_FIELD(user_permissions_only,TYPE_BOOL,2)
-         HDU_FIELD(blob_min_size,TYPE_UINT32,3,false,0x4000)
-         HDU_FIELD(keep_log_file_num,TYPE_UINT32,4,false,5)
+         HDU_FIELD(keep_log_file_num,TYPE_UINT32,3,false,10)
+         HDU_FIELD(max_total_wal_size,TYPE_UINT64,4)
+         HDU_FIELD(periodic_compaction_seconds,TYPE_UINT64,5)
+         HDU_FIELD(wal_size_limit_mb,TYPE_UINT64,6)
+         HDU_FIELD(wal_ttl_seconds,TYPE_UINT64,7)
+         HDU_FIELD(write_buffer_size,TYPE_UINT64,8)
+
+         HDU_FIELD(blob_min_size,TYPE_UINT32,30,false,0x4000)
+         HDU_FIELD(blob_max_size,TYPE_UINT32,31)
+         HDU_FIELD(blob_write_buffer_size,TYPE_UINT32,32)
         )
 
 } // anonymous namespace
@@ -246,6 +254,17 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
 
     options.create_if_missing = createIfMissing;
     options.keep_log_file_num = d->opt.config().fieldValue(rocksdb_options::keep_log_file_num);
+    options.WAL_size_limit_MB = d->opt.config().fieldValue(rocksdb_options::wal_size_limit_mb);
+    options.WAL_ttl_seconds = d->opt.config().fieldValue(rocksdb_options::wal_ttl_seconds);
+    options.max_total_wal_size=d->opt.config().fieldValue(rocksdb_options::max_total_wal_size);
+    if (d->opt.config().field(rocksdb_options::periodic_compaction_seconds).isSet())
+    {
+        options.periodic_compaction_seconds=d->opt.config().fieldValue(rocksdb_options::periodic_compaction_seconds);
+    }
+    if (d->opt.config().field(rocksdb_options::write_buffer_size).isSet())
+    {
+        options.write_buffer_size=d->opt.config().fieldValue(rocksdb_options::write_buffer_size);
+    }
 
     //! @todo Add CompactOnDeletionCollector with corresponding options for faster space reclaiming
 
@@ -286,6 +305,14 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     blobCfOptions.compression=compression;
     blobCfOptions.enable_blob_files=true;
     blobCfOptions.min_blob_size=d->opt.config().field(rocksdb_options::blob_min_size).value();
+    if (d->opt.config().field(rocksdb_options::blob_write_buffer_size).isSet())
+    {
+        blobCfOptions.write_buffer_size=d->opt.config().fieldValue(rocksdb_options::blob_write_buffer_size);
+    }
+    if (d->opt.config().field(rocksdb_options::blob_max_size).isSet())
+    {
+        blobCfOptions.blob_file_size=d->opt.config().fieldValue(rocksdb_options::blob_max_size);
+    }
 
     // construct db path
     std::string dbPath;
