@@ -49,7 +49,7 @@ bool fieldLess(const FieldT& field, const MsgT& l, const MsgT& r)
 {
     if (!l)
     {
-        if (!r )
+        if (!r)
         {
             return false;
         }
@@ -98,7 +98,7 @@ bool unitsEqual(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
 {
     if (!r)
     {
-        if (l)
+        if (!l)
         {
             return true;
         }
