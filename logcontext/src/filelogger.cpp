@@ -241,11 +241,14 @@ class FileLoggerTraits_p : public HATN_BASE_NAMESPACE::ConfigObject<filelogger_c
                                 std::cerr << "Failed to parse last rotation timestamp" << std::endl;
                                 doRotation=true;
                             }
-                            auto dt=common::DateTime::fromEpoch(epochTs);
-                            auto current=common::DateTime::currentUtc();
-                            auto nextTime=dt;
-                            nextTime.addHours(periodHours);
-                            doRotation=current.after(nextTime);
+                            else
+                            {
+                                auto dt=common::DateTime::fromEpoch(epochTs);
+                                auto current=common::DateTime::currentUtc();
+                                auto nextTime=dt;
+                                nextTime.addHours(periodHours);
+                                doRotation=current.after(nextTime);
+                            }
                         }
                     }
                 }
