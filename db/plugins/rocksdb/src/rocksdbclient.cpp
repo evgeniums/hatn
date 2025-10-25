@@ -73,7 +73,8 @@ HDU_UNIT(rocksdb_options,
          HDU_FIELD(readonly,TYPE_BOOL,1)
          HDU_FIELD(user_permissions_only,TYPE_BOOL,2)
          HDU_FIELD(blob_min_size,TYPE_UINT32,3,false,0x4000)
-         )
+         HDU_FIELD(keep_log_file_num,TYPE_UINT32,4,false,5)
+        )
 
 } // anonymous namespace
 
@@ -244,6 +245,9 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     }
 
     options.create_if_missing = createIfMissing;
+    options.keep_log_file_num = d->opt.config().fieldValue(rocksdb_options::keep_log_file_num);
+
+    //! @todo Add CompactOnDeletionCollector with corresponding options for faster space reclaiming
 
     //! @todo Make compression configurable
     auto compression=ROCKSDB_NAMESPACE::CompressionType::kLZ4HCCompression;
