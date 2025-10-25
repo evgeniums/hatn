@@ -32,12 +32,6 @@ HDU_UNIT(at_server,
     HDU_FIELD(server_oid,TYPE_OBJECT_ID,ServerOidFieldId)
 )
 
-HDU_UNIT(topic_object,
-    HDU_FIELD(oid,TYPE_OBJECT_ID,1)
-    HDU_FIELD(topic,TYPE_STRING,2)
-    HDU_FIELD(parent_oid,TYPE_OBJECT_ID,3)
-)
-
 HDU_UNIT(oid_key,
     HDU_FIELD(oid,TYPE_OBJECT_ID,99)
 )
@@ -45,6 +39,11 @@ HDU_UNIT(oid_key,
 HDU_UNIT(with_parent,
     HDU_FIELD(parent_oid,TYPE_OBJECT_ID,99)
     HDU_FIELD(parent_type,TYPE_STRING,98)
+)
+
+HDU_UNIT_WITH(topic_object,(HDU_BASE(with_parent)),
+    HDU_FIELD(oid,TYPE_OBJECT_ID,1)
+    HDU_FIELD(topic,TYPE_STRING,2)
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END
