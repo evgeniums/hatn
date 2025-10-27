@@ -78,6 +78,8 @@ HDU_UNIT(rocksdb_options,
          HDU_FIELD(wal_size_limit_mb,TYPE_UINT64,6)
          HDU_FIELD(wal_ttl_seconds,TYPE_UINT64,7)
          HDU_FIELD(write_buffer_size,TYPE_UINT64,8)
+         HDU_FIELD(db_write_buffer_size,TYPE_UINT64,9)
+         HDU_FIELD(delete_obsolete_files_period_micros,TYPE_UINT64,10)
 
          HDU_FIELD(blob_min_size,TYPE_UINT32,30,false,0x4000)
          HDU_FIELD(blob_max_size,TYPE_UINT32,31)
@@ -264,6 +266,14 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     if (d->opt.config().field(rocksdb_options::write_buffer_size).isSet())
     {
         options.write_buffer_size=d->opt.config().fieldValue(rocksdb_options::write_buffer_size);
+    }
+    if (d->opt.config().field(rocksdb_options::db_write_buffer_size).isSet())
+    {
+        options.db_write_buffer_size=d->opt.config().fieldValue(rocksdb_options::db_write_buffer_size);
+    }
+    if (d->opt.config().field(rocksdb_options::delete_obsolete_files_period_micros).isSet())
+    {
+        options.delete_obsolete_files_period_micros=d->opt.config().fieldValue(rocksdb_options::delete_obsolete_files_period_micros);
     }
 
     //! @todo Add CompactOnDeletionCollector with corresponding options for faster space reclaiming
