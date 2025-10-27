@@ -15,11 +15,13 @@
 
 #include <random>
 
+#include <hatn/common/format.h>
 #include <hatn/common/random.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
+
 uint32_t Random::uniform(const uint32_t& min, const uint32_t& max)
 {
     static thread_local std::mt19937 gen{std::random_device{}()};
@@ -28,6 +30,7 @@ uint32_t Random::uniform(const uint32_t& min, const uint32_t& max)
 }
 
 //---------------------------------------------------------------
+
 void Random::bytes(char* buf, size_t size)
 {
 #ifdef _MSC_VER
@@ -41,6 +44,14 @@ void Random::bytes(char* buf, size_t size)
     random_bytes_engine rbe(rd());
     auto b=reinterpret_cast<type*>(buf);
     std::generate(b, b+size, std::ref(rbe));
+}
+
+//---------------------------------------------------------------
+
+std::string Random::generateAsString(const uint32_t& max)
+{
+    auto num=generate(max);
+    return fmt::format("{}",num);
 }
 
 //---------------------------------------------------------------

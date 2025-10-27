@@ -41,14 +41,14 @@ class HATN_COMMON_EXPORT Random
          * @param max max value.
          * @return Generated value.
          */
-        static uint32_t uniform(const uint32_t& min, const uint32_t& max);
+        static uint32_t uniform(const uint32_t& min=std::numeric_limits<uint32_t>::min(), const uint32_t& max=std::numeric_limits<uint32_t>::max());
 
         /**
          * @brief Generate random value less than max.
          * @param max Max value.
          * @return Generated value.
          */
-        static uint32_t generate(const uint32_t& max)
+        static uint32_t generate(const uint32_t& max=std::numeric_limits<uint32_t>::max())
         {
             return uniform(0,max);
         }
@@ -79,6 +79,8 @@ class HATN_COMMON_EXPORT Random
             container.resize(size);
             bytes(container.data(),container.size());
         }
+
+        static std::string generateAsString(const uint32_t& max=std::numeric_limits<uint32_t>::max());
 };
 
 //---------------------------------------------------------------
