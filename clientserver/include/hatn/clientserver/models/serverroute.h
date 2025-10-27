@@ -20,18 +20,12 @@
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/auth/authprotocol.h>
+#include <hatn/clientserver/models/serverhost.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 constexpr const char* RouteProtocolTcp="tcp";
 constexpr const char* RouteProtocolTls="tls";
-
-HDU_UNIT(server_host,
-    HDU_FIELD(host,TYPE_STRING,1)
-    HDU_FIELD(port,TYPE_UINT16,2)
-    HDU_FIELD(ip_version,HDU_TYPE_ENUM(HATN_NETWORK_NAMESPACE::IpVersion),3,false,HATN_NETWORK_NAMESPACE::IpVersion::V4)
-    HDU_FIELD(service,TYPE_BOOL,4)
-)
 
 HDU_UNIT(
     server_node,
