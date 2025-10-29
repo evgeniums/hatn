@@ -25,11 +25,18 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 constexpr const char* USERNAME_SCHEMA_HOST="host";
 
-HDU_UNIT(username,
+HDU_UNIT(uri,
     HDU_FIELD(user,TYPE_STRING,1)
     HDU_FIELD(schema,TYPE_STRING,2)
     HDU_FIELD(domain,TYPE_STRING,3,false,USERNAME_SCHEMA_HOST)
 )
+
+HDU_UNIT(with_uri,
+    HDU_FIELD(uname,uri::TYPE,70)
+)
+
+namespace username=uri;
+namespace with_username=with_uri;
 
 struct formatUsernameT
 {
@@ -68,10 +75,6 @@ struct formatUsernameT
     }
 };
 constexpr formatUsernameT formatUsername{};
-
-HDU_UNIT(with_username,
-    HDU_FIELD(uname,username::TYPE,70)
-)
 
 struct formatNameAndUsernameT
 {

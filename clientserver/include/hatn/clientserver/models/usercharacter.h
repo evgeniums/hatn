@@ -153,6 +153,18 @@ HDU_UNIT(update_character_resp,
     HDU_FIELD(revision_before,TYPE_OBJECT_ID,2)
 )
 
+template <typename CharacterT>
+inline common::SharedPtr<username::managed> characterUserName(const CharacterT& character)
+{
+    auto pub=character.field(user_character_full::public_data).sharedValue();
+    if (pub)
+    {
+        auto uname=pub->field(with_username::uname).sharedValue();
+        return uname;
+    }
+    return common::SharedPtr<username::managed>{};
+}
+
 template <typename T1, typename T2>
 bool userCharacterPubSectionsEqual(UserCharacterPubSection section, const T1& l, const T2& r)
 {
