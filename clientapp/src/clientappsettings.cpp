@@ -42,6 +42,8 @@ ClientAppSettings::ClientAppSettings(ClientApp* app) : m_app(app)
 
 Error ClientAppSettings::load()
 {
+    HATN_CTX_SCOPE("clientappsettings::load")
+
     m_configTree.reset();
 
     // call synchronous db method because load() is called for initialization and blocks the app anyway
@@ -60,6 +62,10 @@ Error ClientAppSettings::load()
             return OK;
         }
         return r.takeError();
+    }
+    else if (r.value().isNull())
+    {
+        return OK;
     }
 
     // parse config tree
