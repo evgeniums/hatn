@@ -333,7 +333,7 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     lib::filesystem::path path{dbPath};
     if (path.is_absolute() && !config.dbPath.empty())
     {
-        ec=common::chainError(dbError(DbError::DB_DESTROY_FAILED),_TR("explicit dbPath cannot be used with absolute dbpath in rocksdb configuration section"));
+        ec=common::chainError(dbError(DbError::DB_OPEN_FAILED),_TR("explicit dbPath cannot be used with absolute dbpath in rocksdb configuration section"));
         return;
     }
 
