@@ -236,9 +236,13 @@ Error ClientApp::openMainDb(bool create)
 
 Error ClientApp::openData(bool init)
 {
+    HATN_CTX_SCOPE("clientapp::opendata")
+
     // open main database
     auto ec=openMainDb(init);
     HATN_CHECK_EC(ec)
+
+    HATN_CTX_DEBUG("main db opened")
 
     // load app settings
     ec=pimpl->appSettings->load();
