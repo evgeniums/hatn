@@ -411,8 +411,11 @@ ClientAppSettings* ClientApp::appSettings()
 
 void ClientApp::flushAppSettings(std::string section)
 {
-    auto ctx=bridge().defaultContextBuilder()->makeContext(bridge().defaultEnv());
-    pimpl->appSettings->flush(std::move(ctx),[](common::SharedPtr<Context>, const Error&){},std::move(section));
+    if (appDataInitialized())
+    {
+        auto ctx=bridge().defaultContextBuilder()->makeContext(bridge().defaultEnv());
+        pimpl->appSettings->flush(std::move(ctx),[](common::SharedPtr<Context>, const Error&){},std::move(section));
+    }
 }
 
 //--------------------------------------------------------------------------

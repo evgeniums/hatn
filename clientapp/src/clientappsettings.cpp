@@ -89,6 +89,12 @@ void ClientAppSettings::flush(
         std::string section
     )
 {
+    if (!m_app->mainDb().dbClient())
+    {
+        callback(std::move(ctx),{});
+        return;
+    }
+
     m_app->bridge().execAsync(
         [ctx,callback,section,self=shared_from_this(),this]()
         {
