@@ -31,7 +31,7 @@ enum class NotificationMode
 
 HDU_UNIT(notifications,
     HDU_FIELD(mode,HDU_TYPE_ENUM(NotificationMode),1,false,NotificationMode::Normal)
-    HDU_FIELD(mute_until,TYPE_DATETIME,2)
+    HDU_FIELD(disable_until,TYPE_DATETIME,2)
     HDU_FIELD(sound,TYPE_STRING,3)
 )
 

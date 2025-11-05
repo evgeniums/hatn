@@ -60,7 +60,7 @@ enum class UserCharacterPubSection : uint32_t
 
 enum class UserCharacterPrivSection : uint32_t
 {
-    PrivateNotes,    
+    PrivateNotes,
     Notifications,
     ReadOnlyPubSections,
     ReadOnlyPrivSections,
@@ -97,12 +97,11 @@ HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username)
 )
 
 HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
-    HDU_FIELD(encrypted_notes,encrypted::TYPE,1)
-    HDU_FIELD(plain_notes,with_string::TYPE,2)
-    HDU_FIELD(shared_from,with_user_character::TYPE,3)
-    HDU_FIELD(notifications,notifications::TYPE,4)
-    HDU_FIELD(read_only_pub_secions,TYPE_UINT32,5)
-    HDU_FIELD(read_only_priv_secions,TYPE_UINT32,6)
+    HDU_FIELD(private_notes,encryptable_string::TYPE,1)
+    HDU_FIELD(shared_from,with_user_character::TYPE,2)
+    HDU_FIELD(notifications,notifications::TYPE,3)
+    HDU_FIELD(read_only_pub_sections,TYPE_UINT32,4)
+    HDU_FIELD(read_only_priv_sections,TYPE_UINT32,5)
 )
 
 HDU_UNIT_WITH(user_character_full,(HDU_BASE(db::object)),
@@ -220,22 +219,19 @@ bool userCharacterPrivSectionsEqual(UserCharacterPrivSection section, const T1& 
     {
         case (UserCharacterPrivSection::PrivateNotes):
         {
-            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::plain_notes,l,r)
-                    &&
-                   HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::encrypted_notes,l,r)
-                ;
+            return encryptableStringFieldsEqual(user_character_private::private_notes,l,r);
         }
         break;
 
         case (UserCharacterPrivSection::ReadOnlyPubSections):
         {
-            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_pub_secions,l,r);
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_pub_sections,l,r);
         }
         break;
 
         case (UserCharacterPrivSection::ReadOnlyPrivSections):
         {
-            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_priv_secions,l,r);
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::read_only_priv_sections,l,r);
         }
         break;
 
