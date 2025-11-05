@@ -226,6 +226,8 @@ class HATN_BASE_EXPORT ConfigTreeLoader
 
     private:
 
+        void doSubstitutions(ConfigTree &target) const;
+
         std::string m_defaultFormat;
         std::string m_includeTag;
         std::string m_separator;

@@ -384,6 +384,41 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     return OK;
 }
 
+void handleSubstitution(ConfigTree &target, const std::string& prefix, const std::string& substitute)
+{
+    auto handler=[&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
+    {
+        if (value.type(true)==config_tree::Type::String)
+        {
+            auto str=value.asString();
+            if (str.isValid())
+            {
+                if (boost::algorithm::starts_with(str.value(),prefix))
+                {
+                    value.set(boost::algorithm::replace_first_copy(str.value(),prefix,substitute));
+                }
+            }
+        }
+        else if (value.type(true)==config_tree::Type::ArrayString)
+        {
+            auto arr=value.asArray<std::string>();
+            if (arr.isValid())
+            {
+                for (size_t i=0;i<arr->size();i++)
+                {
+                    if (boost::algorithm::starts_with(arr->at(i),prefix))
+                    {
+                        boost::algorithm::replace_first(arr->at(i),prefix,substitute);
+                    }
+                }
+            }
+        }
+
+        return Error();
+    };
+    std::ignore=target.each(handler);
+}
+
 } // anonymous namsepace
 
 Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& filename, const ConfigTreePath &root, const std::string &format) const
@@ -396,49 +431,8 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
     HATN_CHECK_RETURN(loadNext(*this,next,descriptor,chain))
     HATN_CHECK_RETURN(target.merge(std::move(next),root))
 
-    auto handleSubstitution=[&target](const std::string& prefix, const std::string& substitute)
-    {
-        auto handler=[&prefix,&substitute](const ConfigTreePath&, ConfigTree& value)
-        {
-            if (value.type(true)==config_tree::Type::String)
-            {
-                auto str=value.asString();
-                if (str.isValid())
-                {
-                    if (boost::algorithm::starts_with(str.value(),prefix))
-                    {
-                        value.set(boost::algorithm::replace_first_copy(str.value(),prefix,substitute));
-                    }
-                }
-            }
-            else if (value.type(true)==config_tree::Type::ArrayString)
-            {
-                auto arr=value.asArray<std::string>();
-                if (arr.isValid())
-                {
-                    for (size_t i=0;i<arr->size();i++)
-                    {
-                        if (boost::algorithm::starts_with(arr->at(i),prefix))
-                        {
-                            boost::algorithm::replace_first(arr->at(i),prefix,substitute);
-                        }
-                    }
-                }
-            }
-
-            return Error();
-        };
-        std::ignore=target.each(handler);
-    };
-
-    // substitute prefixes
-    for (auto&& it : m_prefixSubstitutions)
-    {
-        if (!it.first.empty())
-        {
-            handleSubstitution(it.first,it.second);
-        }
-    }
+    // do substitutions
+    doSubstitutions(target);
 
     // process relative paths in string parameters
     if (!m_relFilePathPrefix.empty())
@@ -450,9 +444,25 @@ Error ConfigTreeLoader::loadFromFile(ConfigTree &target, const std::string& file
         {
             substitute+=lib::filesystem::path::preferred_separator;
         }
-        handleSubstitution(m_relFilePathPrefix,substitute);
+        handleSubstitution(target,m_relFilePathPrefix,substitute);
     }
+
+    // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+void ConfigTreeLoader::doSubstitutions(ConfigTree &target) const
+{
+    // substitute prefixes
+    for (auto&& it : m_prefixSubstitutions)
+    {
+        if (!it.first.empty())
+        {
+            handleSubstitution(target,it.first,it.second);
+        }
+    }
 }
 
 //---------------------------------------------------------------
@@ -468,13 +478,21 @@ Result<ConfigTree> ConfigTreeLoader::createFromFile(const std::string& filename,
 
 Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view source, const ConfigTreePath &root, const std::string &format) const
 {
+    // parse source
     auto loader=handler(format);
     if (!loader)
     {
         auto msg=fmt::format(_TR("unsupported config format \"{}\"","base"), format);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
-    return loader->parse(target,source,root,format);
+    auto ec=loader->parse(target,source,root,format);
+    HATN_CHECK_EC(ec)
+
+    // do substitutions
+    doSubstitutions(target);
+
+    // done
+    return OK;
 }
 
 //---------------------------------------------------------------
