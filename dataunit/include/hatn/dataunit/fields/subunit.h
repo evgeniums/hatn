@@ -189,6 +189,10 @@ class SubunitT : public Field, public UnitType
         template <typename BufferT>
         bool serialize(BufferT& wired) const
         {
+            if (!fieldIsSet() || isNull())
+            {
+                return true;
+            }
             return UnitSer::serialize(&variantValue()->value(),wired);
         }
 
@@ -196,6 +200,10 @@ class SubunitT : public Field, public UnitType
         template <typename BufferT>
         static bool serialize(const base* value, BufferT& wired)
         {
+            if (value==nullptr || value->isNull())
+            {
+                return true;
+            }
             return UnitSer::serialize(value,wired);
         }
 
@@ -203,6 +211,10 @@ class SubunitT : public Field, public UnitType
         template <typename SubunitT, typename BufferT>
         static bool serialize(const SubunitT& subunit, BufferT& wired)
         {
+            if (!subunit.fieldIsSet() || subunit.isNull())
+            {
+                return true;
+            }
             return UnitSer::serialize(&subunit.value(),wired);
         }
 
@@ -269,18 +281,33 @@ class SubunitT : public Field, public UnitType
 
         inline static bool formatJSON(const selfType& subunit,json::Writer* writer)
         {
+            auto notParsedContent=subunit.skippedNotParsedContent();
+            if (!notParsedContent.isNull())
+            {
+                return writer->RawBase64(notParsedContent->data(),notParsedContent->size());
+            }
             return formatJSON(&subunit.value(),writer);
         }
 
         //! Format as JSON element
         inline static bool formatJSON(const base* value,json::Writer* writer)
         {
+            if (value==nullptr)
+            {
+                writer->StartObject();
+                writer->EndObject();
+                return true;
+            }
             return value->toJSON(writer);
         }
 
         //! Serialize as JSON element
         virtual bool toJSON(json::Writer* writer) const override
         {
+            if (!m_skippedNotParsedContent.isNull())
+            {
+                return writer->RawBase64(m_skippedNotParsedContent->data(),m_skippedNotParsedContent->size());
+            }
             return formatJSON(variantValue(),writer);
         }
 
@@ -539,12 +566,20 @@ class SubunitT : public Field, public UnitType
 
         void fieldClear()
         {
+            if (isNull())
+            {
+                markSet(false);
+                return;
+            }
+
             m_skippedNotParsedContent.reset();
             if (!this->mutableValue())
             {
+                markSet(false);
                 return;
             }
             io::clear(*(this->mutableValue()));
+            markSet(false);
         }
 
         //! Reset field
