@@ -26,12 +26,14 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+constexpr const char* InvitationPrefix="HINV";
+
 enum class InvitationPublishMode
 {
     Public,
     Link,
-    File,
-    Qrcode
+    Qrcode,
+    File
 };
 
 enum class InvitationReuseMode
@@ -112,8 +114,8 @@ HDU_UNIT_WITH(invitation,(HDU_BASE(HATN_DB_NAMESPACE::object)),
 )
 
 HDU_UNIT(shared_invitation,
-    HDU_FIELD(invitation,encryptable_object::TYPE,1)
-    HDU_FIELD(signature,invitation::TYPE,2)
+    HDU_FIELD(prefix,TYPE_STRING,1)
+    HDU_FIELD(invitation,encryptable_object::TYPE,2)
 )
 
 HDU_UNIT(invitation_state,
