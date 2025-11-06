@@ -314,7 +314,7 @@ bool Unit::toJSON(
                             return true;
                         }
 
-                        // skip optional fields which are not set
+                        // skip optional fields that are not set
                         if (!field.isSet() && !field.hasDefaultValue())
                         {
                             if (field.isRequired())
@@ -322,12 +322,20 @@ bool Unit::toJSON(
                                 rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.getID(),"failed to serialize message to JSON: required field {} is not set",field.name());
                                 return false;
                             }
+
+#if 0
+                            std::cout << "Unit::toJSON skipping field that is not set: " << field.name() << std::endl;
+#endif
                             return true;
                         }
-
+#if 0
+                        std::cout << "Unit::toJSON adding field: " << field.name() << " fieldIsSet: " << field.isSet()
+                                  << " hasDefaultValue: " << field.hasDefaultValue()
+                                  << std::endl;
+#endif
                         writer->Key(field.name(),static_cast<json::SizeType>(strlen(field.name())));
 
-                        // pack field
+                        // serialize field
                         if (!field.toJSON(writer))
                         {
                             rawError(RawErrorCode::JSON_FIELD_SERIALIZE_ERROR,field.getID(),"failed to serialize field {} to JSON",field.name());

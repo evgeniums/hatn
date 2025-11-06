@@ -177,9 +177,15 @@ struct HATN_DATAUNIT_EXPORT visitors
                             rawError(RawErrorCode::REQUIRED_FIELD_MISSING,field.fieldId(),"required field {} is not set",field.fieldName());
                             return false;
                         }
+#if 0
+                        std::cout << "Serialize: skipping field that is not set: " << field.fieldName() << std::endl;
+#endif
                         return true;
                     }
 
+#if 0
+                    std::cout << "Serialize: adding field: " << field.fieldName() << std::endl;
+#endif
                     // append tag to stream
                     if (!fieldT::fieldRepeatedUnpackedProtoBuf())
                     {
@@ -474,6 +480,9 @@ struct HATN_DATAUNIT_EXPORT visitors
                     const auto* parser=obj.template fieldParser<BufferT>(fieldId);
                     if (parser!=nullptr)
                     {
+#if 0
+                        std::cout << "Deserialize: found fieldId: " << fieldId << " fieldName: " << parser->fieldName << std::endl;
+#endif
                         auto fieldWireType=static_cast<int>(parser->wireType);
                         if (fieldWireType!=fieldType)
                         {
