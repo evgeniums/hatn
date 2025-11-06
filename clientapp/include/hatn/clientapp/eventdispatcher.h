@@ -215,6 +215,7 @@ struct Event
     std::string topic;
     std::string oid;
     std::string messageTypeName;
+    std::string genericParameter;
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
 };
