@@ -127,11 +127,12 @@ void algHandler(std::shared_ptr<CryptPlugin>& plugin,const std::string& algNameF
     sig1.fill(0);
     sig1.clear();
     ec=signProcessor->sign(SpanBuffer(msgData),sig1);
-    if (ec)
+    auto bec=!ec.isNull();
+    if (bec)
     {
         BOOST_TEST_MESSAGE(ec.message());
     }
-    BOOST_CHECK(!ec);
+    BOOST_CHECK(!bec);
 
     // load public key
     auto publicKey1=plugin->createPublicKey();
@@ -334,7 +335,7 @@ BOOST_AUTO_TEST_CASE(CheckEd448)
         if (!ec)
         {
             algHandler(plugin,algNameFromList,"ed448","ED/448","");
-            algHandler(plugin,algNameFromList,"ed448","ED/448","shake256");
+            algHandler(plugin,algNameFromList,"ed448","ED/448","sha256");
         }
     };
     checkAlg("ED/448",handler);
