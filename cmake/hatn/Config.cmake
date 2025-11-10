@@ -233,7 +233,12 @@ IF (BUILD_ANDROID)
 ENDIF (NOT STATIC_BUILD)
 
 IF (NOT MSVC)
-    SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS} -Wextra -Wall -Wnon-virtual-dtor)
+    SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS}
+        -Wextra
+        -Wall
+        -Wnon-virtual-dtor
+        -Wshorten-64-to-32
+    )
     IF (NOT MINGW)
         SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -fstack-protector-all)
     ENDIF()

@@ -14,6 +14,7 @@
   *
   */
 
+#include <hatn/app/app.h>
 #include <hatn/clientapp/eventdispatcher.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN

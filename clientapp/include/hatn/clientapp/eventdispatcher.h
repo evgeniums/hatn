@@ -24,11 +24,14 @@
 #include <functional>
 
 #include <hatn/common/sharedlocker.h>
-
 #include <hatn/dataunit/unitwrapper.h>
-
+#include <hatn/app/appdefs.h>
 #include <hatn/clientapp/clientappdefs.h>
 #include <hatn/clientapp/clientapp.h>
+
+HATN_APP_NAMESPACE_BEGIN
+class AppEnv;
+HATN_APP_NAMESPACE_END
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 

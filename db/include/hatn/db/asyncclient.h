@@ -1018,7 +1018,12 @@ using MappedAsyncClients=MultipleAsyncClients;
 using MappedAsyncClients==HATN_DB_MAPPED_ASYNC_CLIENTS;
 #endif
 
-using AsyncDb=MappedAsyncClients;
+class AsyncDb : public MappedAsyncClients
+{
+    public:
+
+        using MappedAsyncClients::MappedAsyncClients;
+};
 
 HATN_DB_NAMESPACE_END
 

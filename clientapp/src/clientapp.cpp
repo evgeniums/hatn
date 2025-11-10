@@ -16,6 +16,7 @@
 
 #include <hatn/common/flatmap.h>
 #include <hatn/common/plainfile.h>
+#include <hatn/crypt/securekey.h>
 
 #include <hatn/app/app.h>
 
