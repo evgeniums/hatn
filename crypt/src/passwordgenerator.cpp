@@ -83,7 +83,7 @@ common::Error PasswordGenerator::generate(MemoryLockedArray &password, const Pas
         {
             if (params.hasSpecial)
             {
-                password[i]=PasswordGenDigits[val1%(sizeof(PasswordGenDigits)-1)];
+                password[i]=PasswordGenSpecials[val1%(sizeof(PasswordGenSpecials)-1)];
                 hasDigit=true;
             }
             else

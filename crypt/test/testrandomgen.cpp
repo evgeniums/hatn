@@ -142,19 +142,28 @@ BOOST_AUTO_TEST_CASE(RandomPassword)
                 params.lettersWeight=0;
                 params.specialsWeight=0;
                 std::string sample="0123456789";
-                checkOneType(params,sample);
+                BOOST_TEST_CONTEXT("digits")
+                {
+                    checkOneType(params,sample);
+                }
 
                 params.digitsWeight=0;
                 params.lettersWeight=1;
                 params.specialsWeight=0;
                 sample="_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                checkOneType(params,sample);
+                BOOST_TEST_CONTEXT("letters")
+                {
+                    checkOneType(params,sample);
+                }
 
                 params.digitsWeight=0;
                 params.lettersWeight=0;
                 params.specialsWeight=1;
                 sample="~!@#$%^&*(){}+=-:;<>,.|/?[]";
-                checkOneType(params,sample);
+                BOOST_TEST_CONTEXT("specials")
+                {
+                    checkOneType(params,sample);
+                }
             }
         }
     );
