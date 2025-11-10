@@ -200,9 +200,9 @@ class ResolverV
          * @param ipVersion Version of IP protocol to use in queries and to filter result.
          */
         virtual void resolveName(
-            const lib::string_view& hostName,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& hostName,
             uint16_t port=0,
             IpVersion ipVersion=IpVersion::ALL
         )=0;
@@ -214,10 +214,10 @@ class ResolverV
          * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
          * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
-        virtual void resolveService(
-            const lib::string_view& name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+        virtual void resolveService(            
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
             IpVersion ipVersion=IpVersion::ALL
         ) =0;
 
@@ -228,10 +228,10 @@ class ResolverV
          * @param context Task context. Task context is used as weak pointer in resolver and must be kept somewhere else.
          * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
-        virtual void resolveMx(
-            const lib::string_view& name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+        virtual void resolveMx(            
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
             IpVersion ipVersion=IpVersion::ALL
         ) =0;
 
@@ -256,14 +256,14 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
          * @param ipVersion Version of IP protocol to use in queries and to filter result.
          */
         virtual void resolveName(
-            const lib::string_view& hostName,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& hostName,
             uint16_t port=0,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveName(hostName,std::move(callback),context,port,ipVersion);
+            this->impl().resolveName(context,std::move(callback),hostName,port,ipVersion);
         }
 
         /**
@@ -274,13 +274,13 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
          * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveService(
-            const lib::string_view& name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveService(name,std::move(callback),context,ipVersion);
+            this->impl().resolveService(context,std::move(callback),name,ipVersion);
         }
 
         /**
@@ -291,13 +291,13 @@ class ResolverTmlV : public common::WithImpl<ImplT>, public ResolverV
          * @param ipVersion Version of IP protocol to use in query to resolve hostnames or filter addresses from SRV records.
          */
         virtual void resolveMx(
-            const lib::string_view& name,
-            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
             const common::TaskContextShared& context,
+            std::function<void (const common::Error&,std::vector<asio::IpEndpoint>)> callback,
+            const lib::string_view& name,
             IpVersion ipVersion=IpVersion::ALL
         ) override
         {
-            this->impl().resolveMx(name,std::move(callback),context,ipVersion);
+            this->impl().resolveMx(context,std::move(callback),name,ipVersion);
         }
 
         //! Cancel all pending queries
