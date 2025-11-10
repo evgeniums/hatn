@@ -120,7 +120,14 @@ class Databases
 using WithDatabases = common::WithSharedValue<Databases>;
 using Dbs=WithDatabases;
 
-using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>;
+// using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>;
+
+class AppEnv : public common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>
+{
+    public:
+
+        using common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>::Env;
+};
 
 template <typename FromT, typename ToT>
 inline void cloneAppEnv(const FromT& from, ToT& to, bool ignoreDatabases=true)

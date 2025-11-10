@@ -24,6 +24,8 @@
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreeloader.h>
 
+#include <hatn/crypt/crypt.h>
+
 #include <hatn/db/db.h>
 
 #include <hatn/app/appdefs.h>
@@ -31,23 +33,23 @@
 #include <hatn/app/appenv.h>
 
 HATN_CRYPT_NAMESPACE_BEGIN
-
 class SymmetricKey;
-
+class CipherSuite;
 HATN_CRYPT_NAMESPACE_END
 
 HATN_DB_NAMESPACE_BEGIN
-
 class Schema;
 class EncryptionManager;
 class ClientEnvironment;
-
+struct ClientConfig;
+class AsyncClient;
 HATN_DB_NAMESPACE_END
 
 DECLARE_LOG_MODULE_EXPORT(app,HATN_APP_EXPORT)
 
 HATN_APP_NAMESPACE_BEGIN
 
+class AppEnv;
 class App_p;
 
 class HATN_APP_EXPORT App
@@ -111,13 +113,23 @@ class HATN_APP_EXPORT App
             return m_env->get<CipherSuites>();
         }
 
-        const HATN_CRYPT_NAMESPACE::CipherSuite* storageCipherSuite() const noexcept;
-        const HATN_CRYPT_NAMESPACE::CipherSuite* defaultCipherSuite() const noexcept;
-
         const Translator& translator() const noexcept
         {
             return m_env->get<Translator>();
         }
+
+        const Threads& envThreads() const noexcept
+        {
+            return m_env->get<Threads>();
+        }
+
+        Threads& envThreads() noexcept
+        {
+            return m_env->get<Threads>();
+        }
+
+        const HATN_CRYPT_NAMESPACE::CipherSuite* storageCipherSuite() const noexcept;
+        const HATN_CRYPT_NAMESPACE::CipherSuite* defaultCipherSuite() const noexcept;
 
         const HATN_BASE_NAMESPACE::ConfigTree& configTree() const noexcept
         {
@@ -244,16 +256,6 @@ class HATN_APP_EXPORT App
         static std::string threadName(size_t idx)
         {
             return fmt::format("t{}",idx);
-        }
-
-        const Threads& envThreads() const noexcept
-        {
-            return m_env->get<Threads>();
-        }
-
-        Threads& envThreads() noexcept
-        {
-            return m_env->get<Threads>();
         }
 
         void setDefaultCipherSuiteId(std::string id);

@@ -20,12 +20,23 @@
 
 #include <memory>
 
-#include <hatn/crypt/securekey.h>
+#include <hatn/common/error.h>
+#include <hatn/common/taskcontext.h>
+#include <hatn/crypt/crypt.h>
+#include <hatn/db/db.h>
 
-#include <hatn/app/app.h>
 #include <hatn/app/appname.h>
 
 #include <hatn/clientapp/clientappdefs.h>
+
+HATN_CRYPT_NAMESPACE_BEGIN
+class SymmetricKey;
+HATN_CRYPT_NAMESPACE_END
+
+HATN_DB_NAMESPACE_BEGIN
+class AsyncDb;
+class Schema;
+HATN_DB_NAMESPACE_END
 
 HATN_APP_NAMESPACE_BEGIN
 class App;

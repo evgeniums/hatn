@@ -38,7 +38,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <hatn/common/interface.h>
 #include <hatn/common/stream.h>
 #include <hatn/common/pmr/pmrtypes.h>
 
