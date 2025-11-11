@@ -124,7 +124,8 @@ HDU_UNIT(invitation_state,
     HDU_FIELD(use_count,TYPE_UINT32,22)
 )
 
-HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(invitation_state)),
+HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(invitation_state),HDU_BASE(at_server)),
+    HDU_FIELD(invitation_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(name,TYPE_STRING,2)
     HDU_FIELD(invitation,invitation::TYPE,3)
     HDU_FIELD(mode,HDU_TYPE_ENUM(InvitationPublishMode),4)
@@ -141,12 +142,6 @@ HDU_UNIT_WITH(server_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),
     HDU_FIELD(invitation,shared_invitation::TYPE,3)
     HDU_FIELD(expiration,TYPE_DATETIME,10)
     HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),11)
-)
-
-HDU_UNIT_WITH(temporary_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(with_user),HDU_BASE(with_user_character)),
-    HDU_FIELD(direct_id,TYPE_STRING,1)
-    HDU_FIELD(invitation_oid,TYPE_OBJECT_ID,2)
-    HDU_FIELD(topic,TYPE_STRING,3)
 )
 
 HDU_UNIT_WITH(create_invitation_response,(HDU_BASE(with_uri)),

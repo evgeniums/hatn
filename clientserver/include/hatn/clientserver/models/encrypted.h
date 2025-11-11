@@ -24,11 +24,21 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+constexpr const char* InvitationKey="invitation_key";
+
 HDU_UNIT(public_key,
     HDU_FIELD(key_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(key_type,TYPE_STRING,2)
     HDU_FIELD(cipher_suite,TYPE_STRING,3)
-    HDU_FIELD(content,TYPE_STRING,5)
+    HDU_FIELD(content,TYPE_BYTES,5)
+    HDU_FIELD(content_format,TYPE_STRING,6)
+)
+
+HDU_UNIT_WITH(private_key,(HDU_BASE(public_key)),
+    HDU_FIELD(passphrase,TYPE_STRING,10)
+)
+
+HDU_UNIT_WITH(private_key_db,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(private_key)),
 )
 
 HDU_UNIT(encrypted,
