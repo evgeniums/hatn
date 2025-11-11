@@ -308,7 +308,9 @@ App::App(AppName appName) :
 //---------------------------------------------------------------
 
 App::~App()
-{}
+{
+    std::cout << "App closed" << std::endl;
+}
 
 //---------------------------------------------------------------
 
@@ -695,11 +697,15 @@ void App::close()
 
     std::ignore=closeDb();
 
+    // std::cout << "Stop threads" << std::endl;
+
     // stop all threads
     for (auto&& it: m_threads)
     {
         it->stop();
     }
+
+    // std::cout << "Threads stopped, cleanup plugins" << std::endl;
 
     // cleanup plugins
     if (d->dbPlugin)
@@ -710,6 +716,8 @@ void App::close()
             std::ignore=chainAndLogError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
         }
     }
+
+    // std::cout << "Close logger" << std::endl;
 
     // close logger
     if (d->logger)
@@ -737,20 +745,32 @@ void App::close()
     }
 #endif
 
+    // std::cout << "Destroy env" << std::endl;
+
     // destroy env
     m_env.reset();
+
+    // std::cout << "Free rocksdb" << std::endl;
 
     // free rocksdb
     freeRocksDb();
 
+    // std::cout << "Cleanup c-ares" << std::endl;
+
     // cleanuo c-ares library
     HATN_NETWORK_NAMESPACE::CaresLib::cleanup();
+
+    // std::cout << "Reset log context" << std::endl;
 
     // reset log context
     log::ThreadLocalFallbackContext::reset();
 
+    // std::cout << "Free weak pool" << std::endl;
+
     // free weak pool
     common::pointers_mempool::WeakPool::free();
+
+    // std::cout << "App closed" << std::endl;
 }
 
 //---------------------------------------------------------------
