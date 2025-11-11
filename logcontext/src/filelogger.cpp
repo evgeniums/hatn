@@ -467,7 +467,7 @@ Error FileLoggerTraits::close()
     if (d->thread)
     {
         // flush pending logs
-        std::ignore=d->thread->execSync([]{});
+        std::ignore=d->thread->execSync([]{},100);
 
         d->thread->stop();
         d->thread.reset();
