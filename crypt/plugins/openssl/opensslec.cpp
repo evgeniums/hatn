@@ -89,8 +89,16 @@ ECAlg::ECAlg(const CryptEngine* engine, CryptAlgorithm::Type type, const char* n
     : OpenSslSignatureAlg(engine,type,name),
       m_curveNid(0)
 {
-    const auto& curveName=parts[1];
-    init(curveName.c_str());
+    if (parts.size()==1)
+    {
+        const auto& curveName=parts[0];
+        init(curveName.c_str());
+    }
+    else
+    {
+        const auto& curveName=parts[1];
+        init(curveName.c_str());
+    }
 }
 
 //---------------------------------------------------------------

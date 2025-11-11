@@ -49,7 +49,15 @@ class HATN_OPENSSL_EXPORT OpenSslECDH : public OpenSslDHT<ECDH>
             CryptEngine* engine
             ) noexcept
         {
-            alg=std::make_shared<ECAlg>(engine,CryptAlgorithm::Type::ECDH,name);
+            std::vector<std::string> parts;
+            splitAlgName(name,parts);
+
+            if (parts.size()<1)
+            {
+                return cryptError(CryptError::INVALID_ALGORITHM);
+            }
+
+            alg=std::make_shared<ECAlg>(engine,CryptAlgorithm::Type::ECDH,name,parts);
             return Error();
         }
 };
