@@ -459,4 +459,16 @@ Error ClientApp::initTests()
 
 //--------------------------------------------------------------------------
 
+std::shared_ptr<db::Schema> ClientApp::dbSchema(const std::string& name) const
+{
+    auto it=pimpl->dbSchemas.find(name);
+    if (it!=pimpl->dbSchemas.end())
+    {
+        return it->second;
+    }
+    return std::shared_ptr<db::Schema>{};
+}
+
+//--------------------------------------------------------------------------
+
 HATN_CLIENTAPP_NAMESPACE_END

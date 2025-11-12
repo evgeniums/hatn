@@ -141,6 +141,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         virtual hatn::Error initTests();
 
+        std::shared_ptr<db::Schema> dbSchema(const std::string& name) const;
+
     protected:
 
         virtual Error doInitDbSchemas(std::map<std::string,std::shared_ptr<db::Schema>>& schemas)
