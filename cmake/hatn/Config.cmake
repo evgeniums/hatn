@@ -236,8 +236,7 @@ IF (NOT MSVC)
     SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS}
         -Wextra
         -Wall
-        -Wnon-virtual-dtor
-        -Wshorten-64-to-32
+        -Wnon-virtual-dtor        
     )
     IF (NOT MINGW)
         SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -fstack-protector-all)
