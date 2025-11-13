@@ -117,7 +117,7 @@ class Databases
         common::FlatMap<std::string,std::shared_ptr<Db>,std::less<void>> m_dbs;
 };
 
-using WithDatabases = common::WithSharedValue<Databases>;
+using WithDatabases = common::WithStdSharedValue<Databases>;
 using Dbs=WithDatabases;
 
 // using AppEnv=common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>;

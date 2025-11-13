@@ -19,15 +19,17 @@
 #include <memory>
 
 #include <hatn/common/common.h>
+#include <hatn/common/sharedptr.h>
+#include <hatn/common/makeshared.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
 template <typename T>
-class WithSharedValue
+class WithStdSharedValue
 {
     public:
 
-        WithSharedValue(
+        WithStdSharedValue(
             std::shared_ptr<T> value={}
         ) : m_value(std::move(value))
         {}
@@ -75,6 +77,75 @@ class WithSharedValue
     private:
 
         std::shared_ptr<T> m_value;
+};
+
+template <typename T>
+class WithSharedValue
+{
+    public:
+
+        WithSharedValue(
+                common::SharedPtr<T> value={}
+            ) : m_value(std::move(value))
+        {}
+
+        const T& value() const noexcept
+        {
+            return *m_value;
+        }
+
+        T& value() noexcept
+        {
+            return *m_value;
+        }
+
+        const T& operator *() const noexcept
+        {
+            return *m_value;
+        }
+
+        T& operator *() noexcept
+        {
+            return *m_value;
+        }
+
+        const T* operator ->() const noexcept
+        {
+            return m_value.get();
+        }
+
+        T* operator ->() noexcept
+        {
+            return m_value.get();
+        }
+
+        common::SharedPtr<T> sharedValue() const noexcept
+        {
+            return m_value;
+        }
+
+        void setValue(common::SharedPtr<T> value)
+        {
+            m_value=std::move(value);
+        }
+
+    private:
+
+        common::SharedPtr<T> m_value;
+};
+
+template <typename T>
+class WithSharedValueAuto : public WithSharedValue<T>
+{
+    public:
+
+        WithSharedValueAuto(
+                common::SharedPtr<T> value
+            ) : WithSharedValue<T>(std::move(value))
+        {}
+
+        WithSharedValueAuto() : WithSharedValue<T>(common::makeShared<T>())
+        {}
 };
 
 HATN_COMMON_NAMESPACE_END
