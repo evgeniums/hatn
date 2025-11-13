@@ -20,6 +20,7 @@
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/name.h>
+#include <hatn/clientserver/models/oid.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
@@ -27,8 +28,8 @@ constexpr const char* USERNAME_SCHEMA_HOST="host";
 
 HDU_UNIT(uri,
     HDU_FIELD(user,TYPE_STRING,1)
-    HDU_FIELD(schema,TYPE_STRING,2)
-    HDU_FIELD(domain,TYPE_STRING,3,false,USERNAME_SCHEMA_HOST)
+    HDU_FIELD(schema,TYPE_STRING,2,false,USERNAME_SCHEMA_HOST)
+    HDU_FIELD(domain,TYPE_STRING,3)
 )
 
 HDU_UNIT(with_uri,
@@ -37,6 +38,10 @@ HDU_UNIT(with_uri,
 
 namespace username=uri;
 namespace with_username=with_uri;
+
+HDU_UNIT_WITH(username_reference,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(with_username)),
+    HDU_FIELD(reference,topic_object::TYPE,1)
+)
 
 struct formatUsernameT
 {

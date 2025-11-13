@@ -17,6 +17,7 @@
 #define HATNCLIENTSERVERMODELINVITATION_H
 
 #include <hatn/db/object.h>
+#include <hatn/db/expire.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/encrypted.h>
@@ -133,19 +134,36 @@ HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(in
     HDU_FIELD(private_link,uri::TYPE,6)
 )
 
-HDU_UNIT_WITH(server_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),
-                                  HDU_BASE(with_user),
-                                  HDU_BASE(with_user_character),
-                                  HDU_BASE(invitation_state)),
+HDU_UNIT_WITH(server_invitation_base,(HDU_BASE(HATN_DB_NAMESPACE::with_expire)),
     HDU_FIELD(private_oid,TYPE_OBJECT_ID,1)
     HDU_FIELD(name,encryptable_string::TYPE,2)
-    HDU_FIELD(invitation,shared_invitation::TYPE,3)
-    HDU_FIELD(expiration,TYPE_DATETIME,10)
-    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),11)
+    HDU_FIELD(mode,HDU_TYPE_ENUM(InvitationPublishMode),3)
+    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),4,false,InvitationReuseMode::Unlimited)
 )
 
-HDU_UNIT_WITH(create_invitation_response,(HDU_BASE(with_uri)),
+HDU_UNIT(server_invitation_data,
+    HDU_FIELD(invitation,shared_invitation::TYPE,10)
 )
+
+HDU_UNIT_WITH(server_invitation,(HDU_BASE(server_invitation_base),HDU_BASE(server_invitation_data)),
+)
+
+HDU_UNIT_WITH(server_invitation_db,(HDU_BASE(HATN_DB_NAMESPACE::object),
+                                     HDU_BASE(with_user),
+                                     HDU_BASE(with_user_character),
+                                     HDU_BASE(invitation_state),
+                                     HDU_BASE(server_invitation)
+                                    ),
+)
+
+HDU_UNIT_WITH(server_invitation_register_response,(HDU_BASE(at_server),HDU_BASE(with_uri)),
+    HDU_FIELD(invitation_domain,TYPE_STRING,1)
+)
+
+HDU_UNIT_WITH(server_invitation_publish_request,(HDU_BASE(at_server),HDU_BASE(server_invitation_data)),
+)
+
+HDU_UNIT_WITH(invitation_code,(HDU_BASE(username_reference),HDU_BASE(HATN_DB_NAMESPACE::with_expire)),)
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 

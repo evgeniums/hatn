@@ -25,6 +25,7 @@
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 constexpr const int ServerOidFieldId=110;
+constexpr const int ServerTopicFieldId=111;
 
 HDU_UNIT(oid,
     HDU_FIELD(_id,TYPE_OBJECT_ID,db::ObjectIdFieldId)
@@ -32,6 +33,7 @@ HDU_UNIT(oid,
 
 HDU_UNIT(at_server,
     HDU_FIELD(server_oid,TYPE_OBJECT_ID,ServerOidFieldId)
+    HDU_FIELD(server_topic,TYPE_OBJECT_ID,ServerTopicFieldId)
 )
 
 HDU_UNIT(oid_key,
@@ -59,19 +61,21 @@ constexpr const char* GUID_ID_TYPE_USERNAME="username";
 constexpr const char* GUID_ID_TYPE_ALIAS="alias";
 constexpr const char* GUID_ID_TYPE_X509="x509";
 constexpr const char* GUID_ID_TYPE_PUBKEY="pubkey";
+constexpr const char* GUID_ID_TYPE_INVITATION="invitation";
 
 constexpr const char* GUID_LOOKUP_SCHEMA_IMPLIED="implied";
 constexpr const char* GUID_LOOKUP_SCHEMA_EXPLICIT_ROUTE="explicit_route";
 constexpr const char* GUID_LOOKUP_SCHEMA_BLOCKCHAIN_ETH="eth";
 
 HDU_UNIT(guid,
-    HDU_FIELD(issuer_schema,TYPE_STRING,1)
-    HDU_FIELD(issuer,TYPE_DATAUNIT,2)
-    HDU_FIELD(id_type,TYPE_STRING,3)
-    HDU_FIELD(id,TYPE_STRING,4)
-    HDU_FIELD(id_topic,TYPE_STRING,5)
-    HDU_FIELD(lookup_schema,TYPE_STRING,6)
-    HDU_FIELD(lookup_content,TYPE_DATAUNIT,7)
+    HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS)
+    HDU_FIELD(issuer_id,TYPE_STRING,2)
+    HDU_FIELD(issuer,TYPE_DATAUNIT,3)
+    HDU_FIELD(id_type,TYPE_STRING,4)
+    HDU_FIELD(id,TYPE_STRING,5)
+    HDU_FIELD(id_topic,TYPE_STRING,6)
+    HDU_FIELD(lookup_schema,TYPE_STRING,7)
+    HDU_FIELD(lookup_content,TYPE_DATAUNIT,8)
 )
 
 HDU_UNIT(dns_issuer,
