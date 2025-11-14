@@ -229,6 +229,31 @@ KeyBuf logKey(const T& key)
     return buf;
 }
 
+inline KeyBuf logKey(const ROCKSDB_NAMESPACE::SliceParts& key)
+{
+    KeyBuf buf;
+    size_t size=0;
+    for (int i=0;i<key.num_parts;i++)
+    {
+        size+=key.parts[i].size();
+    }
+    if (size>0)
+    {
+        buf.reserve(size);
+    }
+    for (int i=0;i<key.num_parts;i++)
+    {
+        buf.append(key.parts[i].data(),key.parts[i].size());
+    }
+
+    if (!buf.empty())
+    {
+        return logKey(buf);
+    }
+
+    return buf;
+}
+
 HATN_ROCKSDB_NAMESPACE_END
 
 #endif // HATNROCKSDBKEYS_H
