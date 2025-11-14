@@ -75,7 +75,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             Operator action
         );
 
-        static Result<common::pmr::set<TopicHolder>> modelTopics(
+        static Result<common::pmr::set<Topic>> modelTopics(
             const std::string& modelId,
             RocksdbHandler& handler,
             RocksdbPartition* partition=nullptr,

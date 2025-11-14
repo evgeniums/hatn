@@ -772,7 +772,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         //! @todo Test list model topics
 
         template <typename ModelT>
-        Result<std::pmr::set<TopicHolder>>
+        Result<std::pmr::set<Topic>>
         listModelTopics(
             const std::shared_ptr<ModelT>& model,
             const common::Date& partitionDate,
@@ -784,7 +784,7 @@ class HATN_DB_EXPORT Client : public common::WithID
         }
 
         template <typename ModelT>
-        Result<std::pmr::set<TopicHolder>>
+        Result<std::pmr::set<Topic>>
         listModelTopics(
             const std::shared_ptr<ModelT>& model,
             const common::DateRange& partitionDateRange={},
@@ -948,7 +948,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             return std::shared_ptr<ClientEnvironment>{};
         }
 
-        virtual Result<std::pmr::set<TopicHolder>>
+        virtual Result<std::pmr::set<Topic>>
         doListModelTopics(
             const ModelInfo& model,
             const common::DateRange& partitionDateRange,

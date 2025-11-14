@@ -59,7 +59,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
         {
             ObjectId id;
             id.generate();
-            return id.string();
+            return id.asString();
         }
 
         void generate();
@@ -105,7 +105,7 @@ class HATN_DATAUNIT_EXPORT ObjectId
             return std::string{buf.begin(),buf.end()};
         }
 
-        String string() const
+        String asString() const
         {
             String str;
             str.resize(Length);
@@ -416,7 +416,7 @@ namespace fmt
         template <typename FormatContext>
         auto format(const HATN_DATAUNIT_NAMESPACE::ObjectId& id, FormatContext& ctx) const
         {
-            return format_to(ctx.out(),"{}",id.toString());
+            return format_to(ctx.out(),"{}",id.asString());
         }
     };
 }

@@ -31,7 +31,7 @@
 
 HATN_DB_NAMESPACE_BEGIN
 
-using TopicHolder=std::string;
+using TopicHolder=std::shared_ptr<HATN_DATAUNIT_NAMESPACE::ObjectId::String>;
 
 class Topic
 {
@@ -39,14 +39,68 @@ class Topic
 
         Topic()=default;
         ~Topic()=default;
-        Topic(Topic&& other)=default;
-        Topic(const Topic& other)=default;
-        Topic& operator=(Topic&&)=default;
-        Topic& operator=(const Topic&)=default;
+
+        Topic(Topic&& other) : m_holder(std::move(other.m_holder)),
+                               m_topic(other.topic())
+        {
+            if (m_holder)
+            {
+                m_topic=*m_holder;
+            }
+        }
+
+        Topic(const Topic& other) : m_holder(other.m_holder),
+                                    m_topic(other.topic())
+        {
+            if (m_holder)
+            {
+                m_topic=*m_holder;
+            }
+        }
+
+        Topic& operator=(Topic&& other)
+        {
+            if (this==&other)
+            {
+                return *this;
+            }
+
+            m_holder=std::move(other.m_holder);
+            if (m_holder)
+            {
+                m_topic=*m_holder;
+            }
+            else
+            {
+                m_topic=other.m_topic;
+            }
+
+            return *this;
+        }
+
+        Topic& operator=(const Topic& other)
+        {
+            if (this==&other)
+            {
+                return *this;
+            }
+
+            m_holder=other.m_holder;
+            if (m_holder)
+            {
+                m_topic=*m_holder;
+            }
+            else
+            {
+                m_topic=other.m_topic;
+            }
+
+            return *this;
+        }
 
         Topic(const du::ObjectId& topic)
-            : m_holder(topic.string()),
-              m_topic(m_holder.data(),m_holder.size())
+            : m_holder(std::make_shared<HATN_DATAUNIT_NAMESPACE::ObjectId::String>(topic.asString())),
+              m_topic(m_holder->data(),m_holder->size())
         {}
 
         Topic(const char* topic)
@@ -113,8 +167,8 @@ class Topic
 
         void load(lib::string_view topic)
         {
-            m_holder=topic;
-            m_topic=m_holder;
+            m_holder=std::make_shared<HATN_DATAUNIT_NAMESPACE::ObjectId::String>(topic.data(),topic.size());
+            m_topic=*m_holder;
         }
 
     private:

@@ -113,6 +113,9 @@ Error CreateObjectT::operator ()(
         uint32_t timestamp=0;
         auto objectKeyFull=Keys::makeObjectKeyValue(model.modelIdStr(),topic,objectIdS,&timestamp,objectCreatedAt,ttlMark);
         auto objectKeySlices=Keys::objectKeySlices(objectKeyFull);
+
+        HATN_CTX_DEBUG_RECORDS(50,"create", {"objectkey",logKey(objectKeySlices)});
+
         auto ec=saveObject(rdbTx,partition.get(),objectKeySlices,buf,ttlMark,model.isBlob());
         HATN_CHECK_EC(ec)
 

@@ -1185,7 +1185,7 @@ std::shared_ptr<ClientEnvironment> RocksdbClient::doCloneEnvironment()
 
 //---------------------------------------------------------------
 
-Result<std::pmr::set<TopicHolder>> RocksdbClient::doListModelTopics(
+Result<std::pmr::set<Topic>> RocksdbClient::doListModelTopics(
         const ModelInfo& model,
         const common::DateRange& partitionDateRange,
         bool onlyDefaultPartition
@@ -1209,7 +1209,7 @@ Result<std::pmr::set<TopicHolder>> RocksdbClient::doListModelTopics(
         partition=d->handler->partition(partitionDateRange);
         if (!partition)
         {
-            return std::pmr::set<TopicHolder>{rdbModel->factory()->objectAllocator<TopicHolder>()};
+            return std::pmr::set<Topic>{rdbModel->factory()->objectAllocator<Topic>()};
         }
     }
 

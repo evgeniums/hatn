@@ -116,14 +116,13 @@ class DbObject : public du::UnitWrapper
 
         DbObject(const DbObject& other) :
                 du::UnitWrapper(other),
-                m_topic(other.topic())
+                m_topic(other.m_topic)
         {}
 
         DbObject(DbObject&& other) :
             du::UnitWrapper(std::move(other)),
-            m_topic(other.topic())
+            m_topic(std::move(other.m_topic))
         {
-            other.m_topic=lib::string_view{};
         }
 
         DbObject& operator =(DbObject&& other)
@@ -135,7 +134,6 @@ class DbObject : public du::UnitWrapper
 
             du::UnitWrapper::operator=(std::move(other));
             m_topic=std::move(other.m_topic);
-            other.m_topic=lib::string_view{};
             return *this;
         }
 
@@ -172,7 +170,7 @@ class DbObject : public du::UnitWrapper
 
     private:
 
-        TopicHolder m_topic;
+        Topic m_topic;
 
         template <typename T1>
         friend class DbObjectT;
@@ -193,14 +191,13 @@ class DbObjectT : public du::UnitWrapperT<T>
 
         DbObjectT(const DbObjectT& other) :
             Base(other),
-            m_topic(other.topic())
+            m_topic(other.m_topic)
         {}
 
         DbObjectT(DbObjectT&& other) :
             Base(std::move(other)),
-            m_topic(other.topic())
+            m_topic(std::move(other.m_topic))
         {
-            other.m_topic=lib::string_view{};
         }
 
         DbObjectT& operator =(DbObjectT&& other)
@@ -212,7 +209,6 @@ class DbObjectT : public du::UnitWrapperT<T>
 
             Base::operator=(std::move(other));
             m_topic=std::move(other.m_topic);
-            other.m_topic=lib::string_view{};
             return *this;
         }
 
@@ -256,7 +252,7 @@ class DbObjectT : public du::UnitWrapperT<T>
 
     private:
 
-        TopicHolder m_topic;
+        Topic m_topic;
 };
 
 template <typename T>

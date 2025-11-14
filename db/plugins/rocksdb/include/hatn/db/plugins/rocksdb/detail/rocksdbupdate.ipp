@@ -328,13 +328,14 @@ Result<DbObject> UpdateObjectT::operator ()(
     {
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
     }
-    HATN_CTX_DEBUG("see partition")
 
     // construct key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
     auto objKeyVal=keys.makeObjectKeyValue(model.modelIdStr(),topic.topic(),objectIdS);
     auto key=keys.objectKeySolid(objKeyVal);
+
+    HATN_CTX_DEBUG_RECORDS(50,"update", {"objectkey",logKey(key)});
 
     // do
     auto r=updateSingle(keys,objectIdS,key,model,handler,partition.get(),topic.topic(),request,modifyReturn,factory,intx);

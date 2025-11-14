@@ -191,7 +191,7 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             const ModelIndexQuery& query
         ) override;
 
-        Result<std::pmr::set<TopicHolder>>
+        Result<std::pmr::set<Topic>>
         doListModelTopics(
             const ModelInfo& model,
             const common::DateRange& partitionDateRange,

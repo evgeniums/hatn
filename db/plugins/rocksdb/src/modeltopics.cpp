@@ -327,7 +327,7 @@ static lib::string_view topicFromKey(const Slice& key)
 
 //---------------------------------------------------------------
 
-Result<common::pmr::set<TopicHolder>>
+Result<common::pmr::set<Topic>>
     ModelTopics::modelTopics(
         const std::string &modelId,
         RocksdbHandler &handler,
@@ -336,7 +336,7 @@ Result<common::pmr::set<TopicHolder>>
         const common::pmr::AllocatorFactory* factory
     )
 {
-    std::pmr::set<TopicHolder> topics{factory->objectAllocator<TopicHolder>()};
+    std::pmr::set<Topic> topics{factory->objectAllocator<Topic>()};
 
     // construct keys
     auto rdOpts=handler.p()->readOptions;
@@ -367,7 +367,7 @@ Result<common::pmr::set<TopicHolder>>
         while (hasKey)
         {
             auto topic=topicFromKey(it->key());
-            topics.insert(TopicHolder{topic});
+            topics.emplace(topic);
 
 //! @maybe Log debug
 #if 0
