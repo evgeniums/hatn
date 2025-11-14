@@ -161,6 +161,13 @@ HDU_UNIT_WITH(server_invitation_publish_request,(HDU_BASE(at_server)),
 
 HDU_UNIT_WITH(invitation_code,(HDU_BASE(username_reference),HDU_BASE(HATN_DB_NAMESPACE::with_expire)),)
 
+constexpr const char* USER_REFERENCE_SCHEMA_USERNAME="username";
+constexpr const char* USER_REFERENCE_SCHEMA_LINK="link";
+
+HDU_UNIT_WITH(find_user_reference,(HDU_BASE(with_username)),
+    HDU_FIELD(schema,TYPE_STRING,1,false,USER_REFERENCE_SCHEMA_USERNAME)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELINVITATION_H
