@@ -45,7 +45,8 @@ Result<typename ModelT::SharedPtr> readSingleObject(
     const ROCKSDB_NAMESPACE::Slice& key,
     const AllocatorFactory* factory,
     Transaction* tx,
-    bool forUpdate
+    bool forUpdate,
+    bool parseToSharedBuffers=false
 )
 {
     using modelType=std::decay_t<ModelT>;
@@ -94,7 +95,10 @@ Result<typename ModelT::SharedPtr> readSingleObject(
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
-    //! @todo Mode for parsing to shared arrays
+    if (parseToSharedBuffers)
+    {
+        obj->setParseToSharedArrays(factory);
+    }
 
     // deserialize object
     auto objSlice=TtlMark::stripTtlMark(readSlice);

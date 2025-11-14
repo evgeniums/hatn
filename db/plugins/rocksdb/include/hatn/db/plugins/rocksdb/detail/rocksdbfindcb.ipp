@@ -85,7 +85,7 @@ Error FindCbT::operator ()(
                           )
     {
         auto objectKey=Keys::objectKeyFromIndexValue(*keyValue);
-        auto r=readSingleObject(model,handler,partition,objectKey,factory,tx,forUpdate);
+        auto r=readSingleObject(model,handler,partition,objectKey,factory,tx,forUpdate,idxQuery.query.isParseToSharedArrays());
         if (r)
         {
             ec=r.takeError();
