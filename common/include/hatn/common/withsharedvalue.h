@@ -119,9 +119,14 @@ class WithSharedValue
             return m_value.get();
         }
 
-        common::SharedPtr<T> sharedValue() const noexcept
+        common::SharedPtr<T> sharedValue() const
         {
             return m_value;
+        }
+
+        common::SharedPtr<T> takeValue()
+        {
+            return std::move(m_value);
         }
 
         void setValue(common::SharedPtr<T> value)
