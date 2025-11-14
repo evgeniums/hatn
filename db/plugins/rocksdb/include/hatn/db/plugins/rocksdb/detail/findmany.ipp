@@ -84,7 +84,7 @@ Error FindManyT::operator ()(
     {
         HATN_CTX_SCOPE_PUSH("topic",topic.topic())
 
-        index_key_search::Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
+        index_key_search::Cursor cursor(idxQuery.modelIndexId,std::move(topic),partition.get());
         auto ec=index_key_search::nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
                                                  cursor.indexRangeFromSlice(),
                                                  cursor.indexRangeToSlice()

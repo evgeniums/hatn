@@ -20,8 +20,6 @@
 #define _GLIBCXX_DEBUG
 #endif
 
-#include <vector>
-
 #include "rocksdb/comparator.h"
 
 #include <hatn/common/pmr/pmrtypes.h>
@@ -63,16 +61,17 @@ IndexKey::IndexKey():partition(nullptr)
 IndexKey::IndexKey(
         ROCKSDB_NAMESPACE::Slice* k,
         ROCKSDB_NAMESPACE::Slice* v,
-        const lib::string_view& topic,
+        Topic topic,
         RocksdbPartition* p,
         bool unique
-    ) : key(k->data(),k->size()),
+    ) : keyTopic(std::move(topic)),
+        key(k->data(),k->size()),
         value(v->data(),v->size()),
         partition(p),
-        topicLength(topic.size())
+        topicLength(keyTopic.topic().size())
 {
     keyParts.reserve(KeyPartsMax);
-    fillKeyParts(topic,unique);
+    fillKeyParts(keyTopic.topic(),unique);
 }
 
 void IndexKey::fillKeyParts(const lib::string_view& topic, bool unique)
@@ -868,10 +867,9 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         &partitionCount,partitionLimit,&partitions,skipBeforeOffset
         ]
         (RocksdbPartition* partition,
-         const lib::string_view& topic,
+         Topic topic,
          ROCKSDB_NAMESPACE::Slice* key,
-         ROCKSDB_NAMESPACE::Slice* keyValue,
-         Error&
+         ROCKSDB_NAMESPACE::Slice* keyValue
         )
     {
 
@@ -891,7 +889,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         }
 
         // insert found key
-        auto it=keys.emplace(key,keyValue,topic,partition,idxQuery.query.index()->unique());
+        auto it=keys.emplace(key,keyValue,std::move(topic),partition,idxQuery.query.index()->unique());
         if (idxQuery.query.offset()==0)
         {
             // cut keys number to limit
@@ -921,7 +919,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         return true;
     };
 
-    auto eachTopic=[&](const Topic& topic, const std::shared_ptr<RocksdbPartition>& partition)
+    auto eachTopic=[&](Topic topic, const std::shared_ptr<RocksdbPartition>& partition)
     {
         HATN_CTX_SCOPE_PUSH("topic",topic.topic())
         HATN_CTX_SCOPE_PUSH("index",idxQuery.query.index()->name())
@@ -929,7 +927,19 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         partitionCount=0;
 
         Cursor cursor(idxQuery.modelIndexId,topic,partition.get());
-        auto ec=nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,
+
+        auto cb=[&keyCallback,topic]
+            (RocksdbPartition* partition,
+             const lib::string_view&,
+             ROCKSDB_NAMESPACE::Slice* key,
+             ROCKSDB_NAMESPACE::Slice* keyValue,
+             Error&
+             )
+        {
+            return keyCallback(partition,topic,key,keyValue);
+        };
+
+        auto ec=nextKeyField(cursor,handler,idxQuery,cb,snapshot,allocatorFactory,
                                cursor.indexRangeFromSlice(),
                                cursor.indexRangeToSlice()
                                );
@@ -958,6 +968,7 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         {
             auto topics=ModelTopics::modelTopics(modelId,handler,partition.get());
             HATN_CHECK_RESULT(topics)
+
             for (const auto& topic: topics.value())
             {
                 auto ec=eachTopic(topic,partition);

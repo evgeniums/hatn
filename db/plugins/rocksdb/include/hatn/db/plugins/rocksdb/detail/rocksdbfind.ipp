@@ -172,8 +172,8 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
 
 //! @maybe Log debug
 #if 0
-            std::cout<<"Find: object appended to result" << std::endl;
-#endif \
+                std::cout<<"Find: object appended to result, topic: " << key.topic().topic() << std::endl;
+#endif
                 // emplace wrapped unit to result vector
                 objects.emplace_back(std::move(sharedUnit),key.topic());
 

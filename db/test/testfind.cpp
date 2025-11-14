@@ -129,6 +129,10 @@ BOOST_AUTO_TEST_CASE(OneLevel)
         }
         BOOST_REQUIRE(!r1);
         BOOST_CHECK(!r1.value().isNull());
+        if (r1.value().topic()!=topic1)
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Topics mismatch: expected {}, actual {}",topic1.topic(),r1.value().topic().topic()));
+        }
         BOOST_CHECK(r1.value().topic()==topic1);
 
         auto r2=client->findOne(m1_bool(),makeQuery(u1_bool_f1_idx(),query::where(u1_bool::f1,query::Operator::eq,true),topic1));
@@ -902,6 +906,10 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
         BOOST_CHECK(r0.value().at(1).as<u1_uint32::type>()->fieldValue(object::_id)==oids[1]);
         BOOST_CHECK(r0.value().at(2).as<u1_uint32::type>()->fieldValue(object::_id)==oids[2]);
         BOOST_CHECK(r0.value().at(3).as<u1_uint32::type>()->fieldValue(object::_id)==oids[3]);
+        if (r0.value().at(0).topic()!=topics[0])
+        {
+            BOOST_TEST_MESSAGE(fmt::format("Topics mismatch: expected {}, actual {}",topics[0].topic(),r0.value().at(0).topic().topic()));
+        }
         BOOST_CHECK(r0.value().at(0).topic()==topics[0]);
         BOOST_CHECK(r0.value().at(1).topic()==topics[1]);
         BOOST_CHECK(r0.value().at(2).topic()==topics[2]);

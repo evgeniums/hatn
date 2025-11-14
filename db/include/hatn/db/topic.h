@@ -135,39 +135,75 @@ class Topic
             return std::string{m_topic.data(),m_topic.size()};
         }
 
-        bool operator < (Topic other) const noexcept
+        bool operator < (const Topic& other) const noexcept
         {
             return m_topic<other.m_topic;
         }
 
-        bool operator == (Topic other) const noexcept
+        bool operator < (const lib::string_view& other) const noexcept
+        {
+            return m_topic<other;
+        }
+
+        bool operator == (const Topic& other) const noexcept
         {
             return m_topic==other.m_topic;
         }
 
-        bool operator > (Topic other) const noexcept
+        bool operator == (const lib::string_view& other) const noexcept
+        {
+            return m_topic==other;
+        }
+
+        bool operator > (const Topic& other) const noexcept
         {
             return m_topic>other.m_topic;
         }
 
-        bool operator != (Topic other) const noexcept
+        bool operator > (const lib::string_view& other) const noexcept
+        {
+            return m_topic>other;
+        }
+
+        bool operator != (const Topic& other) const noexcept
         {
             return m_topic!=other.m_topic;
         }
 
-        bool operator >= (Topic other) const noexcept
+        bool operator != (const lib::string_view& other) const noexcept
+        {
+            return m_topic!=other;
+        }
+
+        bool operator >= (const Topic& other) const noexcept
         {
             return m_topic>=other.m_topic;
         }
 
-        bool operator <= (Topic other) const noexcept
+        bool operator >= (const lib::string_view& other) const noexcept
+        {
+            return m_topic>=other;
+        }
+
+        bool operator <= (const Topic& other) const noexcept
         {
             return m_topic<other.m_topic;
+        }
+
+        bool operator <= (const lib::string_view& other) const noexcept
+        {
+            return m_topic<other;
         }
 
         void load(lib::string_view topic)
         {
             m_holder=std::make_shared<HATN_DATAUNIT_NAMESPACE::ObjectId::String>(topic.data(),topic.size());
+            m_topic=*m_holder;
+        }
+
+        void load(const char* data, size_t size)
+        {
+            m_holder=std::make_shared<HATN_DATAUNIT_NAMESPACE::ObjectId::String>(data,size);
             m_topic=*m_holder;
         }
 

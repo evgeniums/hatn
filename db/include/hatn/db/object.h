@@ -151,19 +151,19 @@ class DbObject : public du::UnitWrapper
 
         template <typename T>
         DbObject(HATN_COMMON_NAMESPACE::SharedPtr<T> sharedUnit,
-                    lib::string_view topic=lib::string_view{}
+                        Topic topic={}
                     ) : UnitWrapper(std::move(sharedUnit)),
-                        m_topic(topic)
+                        m_topic(std::move(topic))
         {}
 
         DbObject(HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> sharedUnit,
-                    lib::string_view topic=lib::string_view{}
+                        Topic topic={}
                     ) :
-                    UnitWrapper(std::move(sharedUnit)),
-                    m_topic(topic)
+                        UnitWrapper(std::move(sharedUnit)),
+                        m_topic(std::move(topic))
         {}
 
-        lib::string_view topic() const noexcept
+        const Topic& topic() const noexcept
         {
             return m_topic;
         }
@@ -226,15 +226,15 @@ class DbObjectT : public du::UnitWrapperT<T>
 
         template <typename T1>
         DbObjectT(HATN_COMMON_NAMESPACE::SharedPtr<T1> sharedUnit,
-                    lib::string_view topic=lib::string_view{}
+                    Topic topic={}
                 ) : Base(std::move(sharedUnit)),
-                    m_topic(topic)
+                    m_topic(std::move(topic))
         {}
 
         DbObjectT(HATN_COMMON_NAMESPACE::SharedPtr<HATN_DATAUNIT_NAMESPACE::Unit> sharedUnit,
-                    lib::string_view topic=lib::string_view{}
+                    Topic topic={}
                 ) : Base(std::move(sharedUnit)),
-                    m_topic(topic)
+                    m_topic(std::move(topic))
         {}
 
         DbObjectT(DbObject&& other) : Base(std::move(other)),
@@ -245,7 +245,7 @@ class DbObjectT : public du::UnitWrapperT<T>
                                            m_topic(other.m_topic)
         {}
 
-        lib::string_view topic() const noexcept
+        const Topic& topic() const noexcept
         {
             return m_topic;
         }

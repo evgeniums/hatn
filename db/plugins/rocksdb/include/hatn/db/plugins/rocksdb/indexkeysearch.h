@@ -65,11 +65,12 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
     IndexKey(
         ROCKSDB_NAMESPACE::Slice* k,
         ROCKSDB_NAMESPACE::Slice* v,
-        const lib::string_view& topic,
+        Topic topic,
         RocksdbPartition* p,
         bool unique
     );
 
+    Topic keyTopic;
     KeyBuf key;
     KeyBuf value;
     RocksdbPartition* partition;
@@ -78,9 +79,9 @@ struct HATN_ROCKSDB_SCHEMA_EXPORT IndexKey
 
     static lib::string_view keyPrefix(const lib::string_view& key, const lib::string_view& topic, size_t pos) noexcept;
 
-    lib::string_view topic() const noexcept
+    Topic topic() const
     {
-        return lib::string_view{key.data(),topicLength};
+        return keyTopic;
     }
 
     private:
@@ -153,20 +154,20 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 struct Cursor
 {
     Cursor(
-            const std::string& indexId_,
-            Topic topic_,
+            const std::string& indexId,
+            Topic topic,
             RocksdbPartition* partition
         ) :
             filledIndexRangeFrom(false),
             filledIndexRangeTo(false),
             pos(0),
-            indexId(indexId_),
-            topic(topic_),
+            indexId(indexId),
+            topic(std::move(topic)),
             partition(partition)
     {
-        keyPrefix.append(topic);
+        keyPrefix.append(this->topic.topic());
         keyPrefix.append(SeparatorCharStr);
-        keyPrefix.append(indexId_);
+        keyPrefix.append(this->indexId);
     }
 
     void appendPrefix(const lib::string_view& prefixKey)
@@ -183,30 +184,30 @@ struct Cursor
         keyPrefix.resize(prevSize);
     }
 
-    Slice indexRangeFromSlice()
+    ROCKSDB_NAMESPACE::Slice indexRangeFromSlice()
     {
         if (!filledIndexRangeFrom)
         {
-            indexRangeFrom.append(topic);
+            indexRangeFrom.append(topic.topic());
             indexRangeFrom.append(SeparatorCharStr);
             indexRangeFrom.append(indexId);
             indexRangeFrom.append(SeparatorCharStr);
             filledIndexRangeFrom=true;
         }
-        return Slice{indexRangeFrom.data(),indexRangeFrom.size()};
+        return ROCKSDB_NAMESPACE::Slice{indexRangeFrom.data(),indexRangeFrom.size()};
     }
 
-    Slice indexRangeToSlice()
+    ROCKSDB_NAMESPACE::Slice indexRangeToSlice()
     {
         if (!filledIndexRangeTo)
         {
-            indexRangeTo.append(topic);
+            indexRangeTo.append(topic.topic());
             indexRangeTo.append(SeparatorCharStr);
             indexRangeTo.append(indexId);
             indexRangeTo.append(SeparatorCharPlusStr);
             filledIndexRangeTo=true;
         }
-        return Slice{indexRangeTo.data(),indexRangeTo.size()};
+        return ROCKSDB_NAMESPACE::Slice{indexRangeTo.data(),indexRangeTo.size()};
     }
 
     KeyBuf keyPrefix;
@@ -218,7 +219,7 @@ struct Cursor
 
     size_t pos;
     const std::string& indexId;
-    lib::string_view topic;    
+    Topic topic;
 
     RocksdbPartition* partition;
 };
@@ -230,8 +231,8 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const KeyHandlerFn& keyCallback,
     const ROCKSDB_NAMESPACE::Snapshot* snapshot,
     const AllocatorFactory* allocatorFactory,
-    const Slice& prevFrom,
-    const Slice& prevTo
+    const ROCKSDB_NAMESPACE::Slice& prevFrom,
+    const ROCKSDB_NAMESPACE::Slice& prevTo
 );
 
 } // namespace index_key_search

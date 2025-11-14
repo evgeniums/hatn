@@ -315,13 +315,29 @@ Result<size_t> ModelTopics::count(
     return count;
 }
 
-static lib::string_view topicFromKey(const Slice& key)
+namespace {
+
+#if 0
+inline Topic topicFromKey(const Slice& key)
+{
+    Topic topic;
+    if (key.size()>ModelTopics::KeyPrefixOffset)
+    {
+        return lib::string_view{key.data()+ModelTopics::KeyPrefixOffset,key.size()-ModelTopics::KeyPrefixOffset};
+    }
+    return topic;
+}
+#endif
+
+inline lib::string_view topicFromKey(const Slice& key)
 {
     if (key.size()>ModelTopics::KeyPrefixOffset)
     {
         return lib::string_view{key.data()+ModelTopics::KeyPrefixOffset,key.size()-ModelTopics::KeyPrefixOffset};
     }
     return lib::string_view{};
+}
+
 }
 
 
@@ -367,12 +383,18 @@ Result<common::pmr::set<Topic>>
         while (hasKey)
         {
             auto topic=topicFromKey(it->key());
-            topics.emplace(topic);
+            if (topics.find(topic)==topics.end())
+            {
+                Topic t;
+                t.load(topic);
+                topics.emplace(std::move(t));
+            }
 
 //! @maybe Log debug
 #if 0
-        std::cout << "Found topic\"" << topic  << "\" for key=" << logKey(it->key())
-                  << " offset=" <<KeyPrefixOffset << std::endl;
+        std::cout << "Found topic \"" << topic  << "\" for key=" << logKey(it->key())
+                  << " offset=" <<KeyPrefixOffset
+                  << " topics.size()=" << topics.size() << std::endl;
 #endif
 
             it->Next();
