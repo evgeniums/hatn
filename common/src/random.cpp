@@ -48,10 +48,11 @@ void Random::bytes(char* buf, size_t size)
 
 //---------------------------------------------------------------
 
-std::string Random::generateAsString(const uint32_t& max)
+std::string Random::generateAsString(const uint32_t& max, size_t minDigits)
 {
     auto num=generate(max);
-    return fmt::format("{}",num);
+    auto format=fmt::format("{{:0{}d}}",minDigits);
+    return fmt::format(format,num);
 }
 
 //---------------------------------------------------------------

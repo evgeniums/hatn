@@ -80,7 +80,7 @@ class HATN_COMMON_EXPORT Random
             bytes(container.data(),container.size());
         }
 
-        static std::string generateAsString(const uint32_t& max=std::numeric_limits<uint32_t>::max());
+        static std::string generateAsString(const uint32_t& max=std::numeric_limits<uint32_t>::max(), size_t minDigits=10);
 };
 
 //---------------------------------------------------------------
