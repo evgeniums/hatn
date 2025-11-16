@@ -53,6 +53,8 @@
     Do(ClientServerError,LOGIN_EXPIRED,_TR("login expired","clientserver")) \
     Do(ClientServerError,USER_BLOCKED,_TR("user blocked","clientserver")) \
     Do(ClientServerError,INVALID_NETWORK_PROTOCOL_CONFIGURATION,_TR("invalid configuration of network protocol","clientserver")) \
+    Do(ClientServerError,DATA_NOT_FOUND_OR_EXPIRED,_TR("data not found or expired","clientserver")) \
+    Do(ClientServerError,USER_CANT_BE_CONTACTED,_TR("you cannot contact this user","clientserver")) \
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
