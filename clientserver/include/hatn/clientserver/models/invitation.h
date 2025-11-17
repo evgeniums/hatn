@@ -164,7 +164,7 @@ HDU_UNIT_WITH(invitation_code,(HDU_BASE(username_reference),HDU_BASE(HATN_DB_NAM
 constexpr const char* USER_REFERENCE_SCHEMA_USERNAME="username";
 constexpr const char* USER_REFERENCE_SCHEMA_LINK="link";
 
-HDU_UNIT_WITH(find_user_reference,(HDU_BASE(with_username)),
+HDU_UNIT_WITH(find_user_reference,(HDU_BASE(with_username),HDU_BASE(with_user_character)),
     HDU_FIELD(schema,TYPE_STRING,1,false,USER_REFERENCE_SCHEMA_USERNAME)
 )
 
