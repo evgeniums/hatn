@@ -115,7 +115,7 @@ HDU_UNIT_WITH(user_character_server_db,(HDU_BASE(with_user),HDU_BASE(user_charac
     HDU_FIELD(server_permissions,TYPE_UINT64,32)
 )
 
-HDU_UNIT_WITH(user_character_public_sync,(HDU_BASE(oid)),
+HDU_UNIT_WITH(user_character_public_sync,(HDU_BASE(with_user_character)),
     HDU_FIELD(public_data,user_character_public::TYPE,1)
 )
 
@@ -150,6 +150,10 @@ HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key),HDU_BASE(with_revision)),
 HDU_UNIT(update_character_resp,
     HDU_FIELD(character,character::TYPE,1)
     HDU_FIELD(revision_before,TYPE_OBJECT_ID,2)
+)
+
+HDU_UNIT_WITH(get_public_character_info,(HDU_BASE(with_user_character)),
+    HDU_FIELD(by_character,TYPE_OBJECT_ID,1)
 )
 
 template <typename CharacterT>
