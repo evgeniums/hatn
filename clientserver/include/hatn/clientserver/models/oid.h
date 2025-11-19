@@ -71,7 +71,7 @@ HDU_UNIT(guid,
     HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS)
     HDU_FIELD(issuer_id,TYPE_STRING,2)
     HDU_FIELD(issuer,TYPE_DATAUNIT,3)
-    HDU_FIELD(id_type,TYPE_STRING,4)
+    HDU_FIELD(id_type,TYPE_STRING,4,false,GUID_ID_TYPE_OID)
     HDU_FIELD(id,TYPE_STRING,5)
     HDU_FIELD(id_topic,TYPE_STRING,6)
     HDU_FIELD(lookup_schema,TYPE_STRING,7)
