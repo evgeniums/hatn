@@ -380,6 +380,10 @@ class SubunitT : public Field, public UnitType
             {
                 createValue();
             }
+            if (isNull())
+            {
+                return nullptr;
+            }
             this->markSet(true);
             return variantValue();
         }
