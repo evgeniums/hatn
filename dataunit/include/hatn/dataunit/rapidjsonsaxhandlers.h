@@ -475,6 +475,14 @@ struct FieldReader<TYPE,
 
     bool StartObject()
     {
+        //! @todo Keep in not parsed skip buffer
+
+        auto val=this->m_field->mutableValue();
+        if (!val)
+        {
+            return false;
+        }
+
         pushHandler<Unit,UnitReader>(this->m_topUnit,this->m_field->mutableValue(),this->m_scopes,1);
         return true;
     }
