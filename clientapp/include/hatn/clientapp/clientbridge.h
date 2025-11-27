@@ -131,7 +131,7 @@ class DefaultContextBuilder : public ContextBuilder
         }
 };
 
-using MessageBuilderFn=std::function<Result<du::UnitWrapper> (const std::string& messageJson)>;
+using MessageBuilderFn=std::function<Result<du::UnitWrapper> (const std::string& messageJson, const std::string& messageType)>;
 
 class HATN_CLIENTAPP_EXPORT Method
 {
@@ -178,8 +178,9 @@ class HATN_CLIENTAPP_EXPORT Method
         template <typename T>
         auto messageBuilderT() const
         {
-            return [](const std::string& messageJson) -> Result<du::UnitWrapper>
+            return [](const std::string& messageJson, const std::string& messageType={}) -> Result<du::UnitWrapper>
             {
+                std::ignore=messageType;
                 auto msg=common::makeShared<T>();
 
                 Error ec;
@@ -302,7 +303,7 @@ class HATN_CLIENTAPP_EXPORT Service
             {
                 return clientAppError(ClientAppError::UNKNOWN_BRIDGE_MESSAGE);
             }
-            return it->second(messageJson);
+            return it->second(messageJson,messageType);
         }
 
     private:

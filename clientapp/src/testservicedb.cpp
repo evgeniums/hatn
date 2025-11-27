@@ -82,7 +82,7 @@ TestServiceDb::TestServiceDb(ClientApp* app) : Service("test_db")
 
     registerMessageBuilder(
         "open_db",
-        [](const std::string& messageJson) -> common::Result<HATN_DATAUNIT_NAMESPACE::UnitWrapper>
+        [](const std::string& messageJson,const std::string& ={}) -> common::Result<HATN_DATAUNIT_NAMESPACE::UnitWrapper>
         {
             auto obj=common::makeShared<open_db::managed>();
             auto ok=obj->loadFromJSON(messageJson);
