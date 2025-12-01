@@ -168,6 +168,11 @@ HDU_UNIT_WITH(find_user_reference,(HDU_BASE(with_username),HDU_BASE(with_user_ch
     HDU_FIELD(schema,TYPE_STRING,1,false,USER_REFERENCE_SCHEMA_USERNAME)
 )
 
+HDU_UNIT(ivitation_info,
+    HDU_FIELD(parsed_invitation,invitation::TYPE,1)
+    HDU_FIELD(user_info,user_character_public_sync::TYPE,2)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELINVITATION_H
