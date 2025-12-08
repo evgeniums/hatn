@@ -432,10 +432,51 @@ struct getIndexFieldT
     template <typename UnitT, typename FieldT>
     const auto& operator()(const UnitT& unit, FieldT&& field) const
     {
-        return getIndexFieldT::invoke(unit,std::forward<FieldT>(field));
+        return invoke(unit,std::forward<FieldT>(field));
     }
 };
 constexpr getIndexFieldT getIndexField{};
+
+struct getIndexFieldPtrT
+{
+    template <typename UnitT, typename FieldT>
+    static const auto* invoke(const UnitT& unit, FieldT&& field)
+    {
+        if constexpr (hana::is_a<NestedFieldTag,FieldT>)
+        {
+            return unit.fieldAtPathPtr(vld::make_member(field.path));
+        }
+        else if constexpr (hana::is_a<FieldTag,FieldT>)
+        {
+            const auto& f=unit.field(field.field);
+            using type=std::decay_t<decltype(f)>;
+            using typePtr=const type*;
+            if (!f.isSet())
+            {
+                return typePtr{nullptr};
+            }
+            return &f;
+        }
+        else
+        {
+            const auto& f=unit.field(field);
+            using type=std::decay_t<decltype(f)>;
+            using typePtr=const type*;
+            if (!f.isSet())
+            {
+                return typePtr{nullptr};
+            }
+            return &f;
+        }
+    }
+
+    template <typename UnitT, typename FieldT>
+    const auto* operator()(const UnitT& unit, FieldT&& field) const
+    {
+        return invoke(unit,std::forward<FieldT>(field));
+    }
+};
+constexpr getIndexFieldPtrT getIndexFieldPtr{};
 
 struct getPlainIndexFieldT
 {

@@ -57,16 +57,18 @@ Error Keys::iterateIndexFields(
     else
     {
         const auto& fieldId=hana::at(index.fields,pos);
-        const auto& field=getIndexField(*object,fieldId);
+        const auto* fieldPtr=getIndexFieldPtr(*object,fieldId);
+        using type=typename std::pointer_traits<decltype(fieldPtr)>::element_type;
 
-        using fieldT=std::decay_t<decltype(field)>;
+        using fieldT=type;
         using repeatedT=typename fieldT::isRepeatedType;
         using mapT=typename fieldT::isMapType;
 
         if constexpr (repeatedT::value)
         {
-            if (field.isSet())
+            if (fieldPtr!=nullptr && fieldPtr->isSet())
             {
+                const auto& field=*fieldPtr;
                 for (size_t i=0;i<field.count();i++)
                 {
                     auto sizeBefore=buf.size();
@@ -124,8 +126,9 @@ Error Keys::iterateIndexFields(
             auto nextPos=hana::plus(pos,hana::size_c<1>);
             static_assert(decltype(hana::less(nextPos,hana::size(index.fields)))::value,"Index must include either map's key or map's value");
 
-            if (field.isSet())
+            if (fieldPtr!=nullptr && fieldPtr->isSet())
             {
+                const auto& field=*fieldPtr;
                 const auto& subfieldId=hana::at(index.fields,nextPos);
                 using subfieldType=std::decay_t<decltype(subfieldId)>;
 
@@ -198,8 +201,9 @@ Error Keys::iterateIndexFields(
         }
         else
         {
-            if (field.fieldHasDefaultValue() || field.isSet())
+            if (fieldPtr!=nullptr && (fieldPtr->fieldHasDefaultValue() || fieldPtr->isSet()))
             {
+                const auto& field=*fieldPtr;
                 if (isIndexSet==IsIndexSet::Unknown)
                 {
                     isIndexSet=IsIndexSet::Yes;
@@ -211,6 +215,7 @@ Error Keys::iterateIndexFields(
                 // append Null if value not set
                 fieldToStringBuf(buf,query::Null);
             }
+
             buf.append(SeparatorCharStr);
             return iterateIndexFields(
                 buf,

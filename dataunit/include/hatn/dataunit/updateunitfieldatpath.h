@@ -33,7 +33,35 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 namespace hana=boost::hana;
 
 struct UnitFieldUpdater
-{    
+{
+    template <typename UnitT, typename PathT>
+    static auto fieldAtPathPtr(const UnitT* unit, PathT&& path)
+    {
+        return hana::fold(
+            path.path(),
+            unit,
+            [](const auto* prev, auto&& key)
+            {
+                using refType=decltype(prev->field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key))));
+                using type=std::decay_t<refType>;
+                using typePtr=const type*;
+
+                if (!prev)
+                {
+                    return typePtr{nullptr};
+                }
+
+                const auto& field=prev->field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
+                if (!field.isSet())
+                {
+                    return typePtr{nullptr};
+                }
+
+                return &field;
+            }
+        );
+    }
+
     template <typename UnitT, typename PathT>
     static auto& fieldAtPath(UnitT& unit, PathT&& path)
     {

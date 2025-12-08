@@ -459,6 +459,12 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return UnitFieldUpdater::fieldAtPath(*this,path);
         }
 
+        template <typename PathT>
+        const auto* fieldAtPathPtr(PathT&& path) const
+        {
+            return UnitFieldUpdater::fieldAtPathPtr(this,path);
+        }
+
         /**
           @brief Get field at given path.
           @param path Path to the field in format _[level1][level2]...[levelN].
