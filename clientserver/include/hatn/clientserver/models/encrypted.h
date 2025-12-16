@@ -24,7 +24,8 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-constexpr const char* InvitationKey="invitation_key";
+constexpr const char* InvitationKey="invitation";
+constexpr const char* ContactChatKey="contact_chat";
 
 HDU_UNIT(public_key,
     HDU_FIELD(key_id,TYPE_OBJECT_ID,1)
