@@ -262,11 +262,13 @@ class HATN_CLIENTAPP_EXPORT Service
             std::shared_ptr<Method> method
         )
         {
+            HATN_CTX_DEBUG_RECORDS(1,"Register method in service",{"service",name()},{"method",method->name()},{"message_type",method->messageType()})
+
             m_methods[method->name()]=method;
             auto messageType=method->messageType();
             auto messageBuilder=method->messageBuilder();
             if (messageBuilder && !messageType.empty())
-            {
+            {                
                 registerMessageBuilder(std::move(messageType),std::move(messageBuilder));
             }
         }
