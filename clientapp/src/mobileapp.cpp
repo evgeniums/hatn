@@ -271,12 +271,14 @@ size_t MobileApp::subscribeEvent(
     HATN_CTX_SCOPE_PUSH("event",key_.event)
     HATN_CTX_SCOPE_PUSH("event_env",key_.envId)
     HATN_CTX_SCOPE_PUSH("event_topic",key_.topic)
+    HATN_CTX_SCOPE_PUSH("event_oid",key_.oid)
 
     HATN_CLIENTAPP_NAMESPACE::EventKey key{
         std::move(key_.category),
         std::move(key_.event),
         std::move(key_.envId),
-        std::move(key_.topic)
+        std::move(key_.topic),
+        std::move(key_.oid)
     };
 
     HATN_CTX_DEBUG_RECORDS(1,"selectors",{"selector0",*key.selectors().at(0)})
@@ -292,6 +294,8 @@ size_t MobileApp::subscribeEvent(
         ntfcn.category=event->category;
         ntfcn.event=event->event;
         ntfcn.topic=event->topic;
+        ntfcn.oid=event->oid;
+        ntfcn.genericParameter=event->genericParameter;
         if (env)
         {
             ntfcn.envId=env->name();

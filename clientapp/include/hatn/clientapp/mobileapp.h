@@ -89,12 +89,14 @@ struct EventKey
     std::string event;
     std::string envId;
     std::string topic;
+    std::string oid;
 };
 
 struct Event : public EventKey
 {
     std::string messageTypeName;
     std::string messageJson;
+    std::string genericParameter;
     std::vector<std::pair<const char*,size_t>> buffers;
 };
 
