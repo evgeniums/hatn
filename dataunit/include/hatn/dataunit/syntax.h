@@ -105,7 +105,7 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
  * @param Required true if this is a required field.
  * @param Default Default value for the elements. Parameter can be omitted or set to Auto.
  * @param Mode Mode of packing. Parameter can be omitted.
- *        Possible values: Auto - use auto mode of packing depending of value type, ProtobufUnpacked - use protobuf ordinary mode, ProtobufPacked - use protobuf packed mode,
+ *        Possible values: Auto - use auto mode of packing depending on value type, ProtobufUnpacked - use protobuf ordinary mode, ProtobufPacked - use protobuf packed mode,
  *        Counted - use experimental optimized mode when serialized data contains count of elements in array which is not safe when using in public API.
  *
  * Full form: HDU_REPEATED_FIELD(FieldName,Type,Id,Required,Default,Mode)
