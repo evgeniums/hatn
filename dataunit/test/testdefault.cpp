@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(ResetClearV2)
     BOOST_CHECK(subunit3.field(s1::f1).isSet());
     BOOST_CHECK_EQUAL(std::string("Hi!"),std::string(subunit3.field(s1::f1).value()));
     subunit3.clear();
-    BOOST_CHECK(subunit3.isSet());
+    BOOST_CHECK(!subunit3.isSet());
     BOOST_CHECK(subunit3.field(s1::f1).isSet());
     BOOST_CHECK(subunit3.field(s1::f1).value().empty());
     subunit3.mutableValue()->field(s1::f1).set("Hi!");
