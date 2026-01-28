@@ -104,13 +104,14 @@ void Service::exec(
         {
             HATN_CTX_SCOPE_WITH_BARRIER("service::exec")
 
-            HATN_CTX_PUSH_FIXED_VAR("bridge_srv",name())
-            HATN_CTX_PUSH_FIXED_VAR("bridge_mthd",mthd->name())
+            HATN_CTX_SCOPE_PUSH("bridge_srv",name())
+            HATN_CTX_SCOPE_PUSH("bridge_mthd",mthd->name())
+            HATN_CTX_SCOPE_PUSH("bridge_env",request.envId)
+            HATN_CTX_SCOPE_PUSH("bridge_topic",request.topic)
+            HATN_CTX_SCOPE_PUSH("bridge_msg_type",request.messageTypeName)
 
             auto cb=[callback=std::move(callback)](const Error& ec, Response response)
             {
-                HATN_CTX_STACK_BARRIER_OFF("service::exec")
-
                 if (ec)
                 {
                     HATN_CTX_DEBUG_RECORDS(1,"BRIDGE-EXEC",{"status","failed"},{"errc",ec.codeString()},{"error",ec.message()})
@@ -119,6 +120,8 @@ void Service::exec(
                 {
                     HATN_CTX_DEBUG_RECORDS(1,"BRIDGE-EXEC",{"status","success"})
                 }
+
+                HATN_CTX_STACK_BARRIER_OFF("service::exec")
 
                 callback(ec,std::move(response));
             };

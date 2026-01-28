@@ -50,7 +50,7 @@ SET (SOURCES
     src/testservicedb.cpp
 )
 
-IF(BUILD_ANDROID OR BUILD_IOS)
+# IF(BUILD_ANDROID OR BUILD_IOS)
 
     SET (HEADERS
         ${HEADERS}
@@ -64,7 +64,7 @@ IF(BUILD_ANDROID OR BUILD_IOS)
         src/mobileplatformcontext.cpp        
     )
 
-ENDIF()
+# ENDIF()
 
 BUILD_HATN_MODULE()
 
