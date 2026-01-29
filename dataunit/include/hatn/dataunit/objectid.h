@@ -104,12 +104,26 @@ class HATN_DATAUNIT_EXPORT ObjectId
         std::array<char,Length> toArray() const
         {
             std::array<char,Length> buf;
-            serialize(buf);
+
+            if (isNull())
+            {
+                std::fill(buf.begin(),buf.end(),0);
+            }
+            else
+            {
+                serialize(buf);
+            }
+
             return buf;
         }
 
         std::string toString() const
         {
+            if (isNull())
+            {
+                return std::string{};
+            }
+
             std::array<char,Length> buf;
             serialize(buf);
             return std::string{buf.begin(),buf.end()};
@@ -117,6 +131,11 @@ class HATN_DATAUNIT_EXPORT ObjectId
 
         String asString() const
         {
+            if (isNull())
+            {
+                return String{};
+            }
+
             String str;
             str.resize(Length);
             serialize(str);
