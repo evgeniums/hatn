@@ -229,7 +229,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             common::Date to,
             common::Date from=common::Date::currentUtc()
             )
-        {            
+        {
             common::postAsyncTask(
                 threads()->thread(),
                 ctx,
