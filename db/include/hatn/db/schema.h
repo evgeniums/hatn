@@ -85,6 +85,19 @@ class HATN_DB_EXPORT Schema
             return m_modelProviders;
         }
 
+        std::vector<ModelInfo> partitionedModels() const
+        {
+            std::vector<ModelInfo> models;
+            for (const auto& it : m_models)
+            {
+                if (it.second->isDatePartitioned())
+                {
+                    models.emplace_back(*it.second);
+                }
+            }
+            return models;
+        }
+
     private:
 
         std::string m_name;
