@@ -196,6 +196,8 @@ void MobileApp::exec(
     };
     req.confirmation=std::move(request.confirmation);
 
+    HATN_CTX_DEBUG_RECORDS(100,"JSON content",{"msg_type",req.messageTypeName},{"msg_json",request.messageJson})
+
     // make message
     if (req.messageTypeName!="")
     {
