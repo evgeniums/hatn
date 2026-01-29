@@ -99,7 +99,9 @@ void ClientAppSettings::flush(
         [ctx,callback,section,self=shared_from_this(),this]()
         {
             HATN_BASE_NAMESPACE::ConfigTreeJson serializer;
+            lock();
             auto r=serializer.serialize(m_configTree);
+            unlock();
             if (r)
             {
                 callback(std::move(ctx),r.error());

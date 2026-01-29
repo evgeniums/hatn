@@ -127,6 +127,20 @@ class AppEnv : public common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherS
     public:
 
         using common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherSuites,Translator>::Env;
+
+        void lock() const
+        {
+            m_mutex.lock();
+        }
+
+        void unlock() const
+        {
+            m_mutex.unlock();
+        }
+
+    private:
+
+        mutable common::MutexLock m_mutex;
 };
 
 template <typename FromT, typename ToT>

@@ -80,12 +80,12 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
             std::string section=""
         );
 
-        void lock()
+        void lock() const
         {
             m_mutex.lock();
         }
 
-        void unlock()
+        void unlock() const
         {
             m_mutex.unlock();
         }
@@ -99,7 +99,7 @@ class HATN_CLIENTAPP_EXPORT ClientAppSettings : public std::enable_shared_from_t
 
         ClientApp* m_app;
         HATN_BASE_NAMESPACE::ConfigTree m_configTree;
-        common::MutexLock m_mutex;
+        mutable common::MutexLock m_mutex;
 };
 
 HATN_CLIENTAPP_NAMESPACE_END
