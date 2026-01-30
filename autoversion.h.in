@@ -1,0 +1,13 @@
+#ifndef HATN_AUTOVERSION_H
+#define HATN_AUTOVERSION_H
+
+#include <hatn/common/common.h>
+
+HATN_NAMESPACE_BEGIN
+
+constexpr const char* HATN_GIT_REV="@GIT_REV@";
+constexpr const char* HATN_BUILD_TIME="@BUILD_TIME@";
+
+HATN_NAMESPACE_END
+
+#endif

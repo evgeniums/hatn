@@ -137,4 +137,23 @@ MACRO(HATN_STRIP_RELEASE Target)
         #       )
         # ENDIF()
     ENDIF()
-ENDMACRO()
+ENDMACRO(HATN_STRIP_RELEASE)
+
+MACRO(HATN_GEN_VERSION Project SrcDir TargetDir)
+
+    EXECUTE_PROCESS(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${SrcDir}
+        OUTPUT_VARIABLE GIT_REV
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    string(TIMESTAMP BUILD_TIME "%Y-%m-%dT%H:%M:%SZ" UTC)
+
+    MESSAGE(STATUS "Generating auto version for ${Project} to ${TargetDir}/autoversion.h")
+
+    CONFIGURE_FILE(
+        ${SrcDir}/autoversion.h.in
+        ${TargetDir}/autoversion.h
+    )
+ENDMACRO(HATN_GEN_VERSION)
