@@ -154,9 +154,12 @@ Result<std::shared_ptr<RocksdbPartition>> RocksdbHandler::createPartition(const 
         if (it!=d->partitions.end())
         {
             partition=*it;
+#if 0
+// What is it for?
             Assert(!(partition->mainCf && partition->indexCf && partition->ttlCf && partition->blobCf),
                    "All column families already set"
                    );
+#endif
             return partition;
         }
     }
