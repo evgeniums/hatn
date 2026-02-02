@@ -204,6 +204,8 @@ class HATN_CLIENTAPP_EXPORT MobileApp
         static std::string oidToDateTime(const std::string& oid);
         static uint64_t oidToEpochMs(const std::string& oid);
 
+        HATN_CLIENTAPP_NAMESPACE::ClientApp* app() const;
+
     private:
 
         std::unique_ptr<MobileApp_p> pimpl;

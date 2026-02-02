@@ -474,6 +474,13 @@ uint64_t MobileApp::oidToEpochMs(const std::string& oidStr)
 
 //-----------------------------------------------------------------------------
 
+HATN_CLIENTAPP_NAMESPACE::ClientApp* MobileApp::app() const
+{
+    return pimpl->app.get();
+}
+
+//-----------------------------------------------------------------------------
+
 /******************************** LockingBridge *******************************/
 
 LockingBridge::LockingBridge(ClientApp* app) : app(app)
