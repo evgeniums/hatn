@@ -1059,7 +1059,9 @@ Error App::openDb(
         [this,&ec,&logRecords,&provider,create]()
         {
             auto cfg=d->dbClientConfig(provider);
+            HATN_CTX_DEBUG("begin opening db")
             ec=d->dbClient->openDb(cfg,logRecords,create);
+            HATN_CTX_DEBUG("end opening db")
         }
     );
     logConfigRecords(_TR("configuration of application database","app"),HLOG_MODULE(app),logRecords);
@@ -1098,7 +1100,11 @@ Result<std::shared_ptr<db::AsyncClient>> App::openAdditionalDatabase(
     std::ignore=thread->execSync(
         [dbClient,&config,&ec,&logRecords,create]()
         {
+            HATN_CTX_DEBUG("begin opening additional db")
+
             ec=dbClient->openDb(config,logRecords,create);
+
+            HATN_CTX_DEBUG("end opening additional db")
         }
     );
     logConfigRecords(_TR("configuration of additional database","app"),HLOG_MODULE(app),logRecords);

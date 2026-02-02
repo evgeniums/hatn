@@ -764,10 +764,7 @@ Result<std::set<common::DateRange>> RocksdbClient::doListDatePartitions()
             {
                 if (range->isValid())
                 {
-//! @maybe Log debug
-#if 0
-                    std::cout << "Found partition range " << range->toString() << " for column family " << parts[1] << std::endl;
-#endif
+                    HATN_CTX_DEBUG_RECORDS(1,"found db date partition",{"range",range->toString()},{"cf",parts[1]})
                     r.insert(range.value());
                 }
             }
@@ -1020,7 +1017,7 @@ Error RocksdbClient::doUpdateObject(Topic topic,
                                     const update::Request &request,
                                     Transaction* tx)
 {
-    HATN_CTX_SCOPE("rdb::bupdate")
+    HATN_CTX_SCOPE("rdb::update")
 
     ENSURE_MODEL_SCHEMA
 
