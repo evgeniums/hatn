@@ -31,7 +31,7 @@ constexpr int EnumInt(T t) noexcept
 
 //! Check if enum equals to int
 template <typename T>
-constexpr int isEnumInt(int val, T t) noexcept
+constexpr bool isEnumInt(int val, T t) noexcept
 {
     return static_cast<int>(t)==val;
 }
