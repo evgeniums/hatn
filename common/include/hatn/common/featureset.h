@@ -26,6 +26,26 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+template <typename T>
+constexpr static T fillNBits(unsigned int n) noexcept
+{
+    // Ensure T is an unsigned integer type
+    static_assert(std::is_unsigned<T>::value, "T must be an unsigned integer type");
+
+    // Handle the case where N is 0 or greater than or equal to the total bits
+    if (n >= std::numeric_limits<T>::digits) {
+        return ~static_cast<T>(0); // All bits set
+    }
+    if (n == 0) {
+        return static_cast<T>(0); // No bits set
+    }
+
+    // Standard safe way to create a mask for the N lowest bits:
+    // 1. Shift 1 to the N-th position (creating 0...010...0)
+    // 2. Subtract 1 to set all the lower bits (creating 0...001...1)
+    return (static_cast<T>(1) << n) - 1;
+}
+
 /**
  * @brief Template for enum'ed feature sets
  */
@@ -46,7 +66,16 @@ struct FeatureSet
     }
 
     template <typename HandlerT>
-    static void eachFeature(HandlerT handler, Features mask=allFeatures()) noexcept
+    static void invokeIfSet(Features mask, Feature feature, HandlerT handler)
+    {
+        if (hasFeature(mask,feature))
+        {
+            handler();
+        }
+    }
+
+    template <typename HandlerT>
+    static void eachFeature(HandlerT handler, Features mask=allFeatures())
     {
         for (size_t i=0;i<static_cast<size_t>(Feature::END);i++)
         {
@@ -58,7 +87,7 @@ struct FeatureSet
         }
     }
 
-    constexpr static std::vector<Feature> features(Features mask) noexcept
+    static std::vector<Feature> features(Features mask)
     {
         std::vector<Feature> result;
         for (size_t i=0;i<static_cast<size_t>(Feature::END);i++)
@@ -114,12 +143,7 @@ struct FeatureSet
      */
     constexpr static Features allFeatures() noexcept
     {
-        Features mask=0;
-        for (size_t i=0;i<static_cast<size_t>(Feature::END);i++)
-        {
-            mask|=(1<<i);
-        }
-        return mask;
+        return fillNBits<Features>(static_cast<size_t>(Feature::END));
     }
 
     constexpr static Features fullMask() noexcept
