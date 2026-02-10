@@ -48,7 +48,6 @@ HDU_UNIT(with_parent,
 HDU_UNIT_WITH(topic_object,(HDU_BASE(with_parent)),
     HDU_FIELD(oid,TYPE_OBJECT_ID,1)
     HDU_FIELD(topic,TYPE_STRING,2)
-    HDU_FIELD(topic_guid_hashed,TYPE_STRING,3)
 )
 
 constexpr const char* GUID_ISSUER_DNS="dns";
@@ -95,6 +94,12 @@ HDU_UNIT(registry_issuer,
 
 HDU_UNIT(x509_issuer,
     HDU_REPEATED_FIELD(certificate_chain,TYPE_STRING,1)
+)
+
+HDU_UNIT(uid,
+    HDU_FIELD(local,topic_object::TYPE,1)
+    HDU_FIELD(server,topic_object::TYPE,2)
+    HDU_FIELD(global,guid::TYPE,3)
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END
