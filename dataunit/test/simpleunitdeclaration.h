@@ -42,3 +42,13 @@ HDU_UNIT(names_and_descr,
 )
 
 HDU_UNIT_EMPTY(empty_unit)
+
+HDU_UNIT(ju1,
+    HDU_FIELD(str_field1,TYPE_STRING,1)
+    HDU_FIELD(int_field1,TYPE_INT32,2)
+)
+
+HDU_UNIT(ju2,
+    HDU_FIELD(sub1,ju1::TYPE,1)
+    HDU_FIELD(sub2,ju1::TYPE,2)
+)

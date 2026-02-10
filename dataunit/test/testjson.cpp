@@ -761,6 +761,24 @@ BOOST_FIXTURE_TEST_CASE(TestUnitTree,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(json,jsonCheck);
 }
 
+BOOST_FIXTURE_TEST_CASE(TestParseError,::hatn::test::MultiThreadFixture)
+{
+    hatn::Error ec;
+    bool ok;
+
+    std::string str1="{\"str_field1\":100}";
+    ju1::type obj1;
+    ok=obj1.loadFromJSON(str1,ec);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse JSON: Terminate parsing due to Handler error. at offset 14, key str_field1: invalid format of JSON field");
+
+    std::string str2="{\"sub2\":{\"str_field1\":\"some string\"}, \"sub1\":{\"int_field1\":\"some string\"}}";
+    ju2::type obj2;
+    ok=obj2.loadFromJSON(str2,ec);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse JSON: Terminate parsing due to Handler error. at offset 72, key int_field1: invalid format of JSON field");
+}
+
 //! @todo Test Object ID, DateTime, Date, Time, DateRange
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -72,7 +72,16 @@ class HATN_DATAUNIT_EXPORT Unit
 {
     public:
 
-        using JsonParseHandler=std::function<bool(rapidjson::Reader&,RapidJsonStringViewStream&)>;
+        struct JsonParseHandler
+        {
+            std::function<bool(rapidjson::Reader&,RapidJsonStringViewStream&)> handler;
+            std::string key;
+
+            bool operator () (rapidjson::Reader& reader, RapidJsonStringViewStream& stream) const
+            {
+                return handler(reader,stream);
+            }
+        };
 
         //! Ctor
         Unit(const AllocatorFactory* factory=AllocatorFactory::getDefault());

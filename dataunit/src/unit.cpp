@@ -402,22 +402,24 @@ bool Unit::loadFromJSON(const common::lib::string_view &str)
 
     reader.IterativeParseInit();
 
+    std::string lastKey;
     while (!reader.IterativeParseComplete())
     {
         Assert(!m_jsonParseHandlers.empty(),"JSON handlers list can not be empty");
         auto handler=m_jsonParseHandlers.back();
+        lastKey=handler.key;
         m_jsonParseHandlers.pop_back();
         if (!handler(reader,stream))
         {
             break;
         }
-    }
-    m_jsonParseHandlers.clear();
+    }    
     if (reader.HasParseError())
     {
-        rawError(RawErrorCode::JSON_PARSE_ERROR,"{} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
+        rawError(RawErrorCode::JSON_PARSE_ERROR,"{} at offset {}, key {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset(),lastKey);
         clear();
     }
+    m_jsonParseHandlers.clear();
     return !reader.HasParseError();
 }
 
@@ -432,7 +434,7 @@ bool Unit::loadFromJSON(const common::lib::string_view &str, Error& ec)
     {
         fillError(UnitError::JSON_PARSE_ERROR,ec);
         RawError::setEnabledTL(prevEcEnabled);
-        return ec;
+        return ok;
     }
 
     RawError::setEnabledTL(prevEcEnabled);

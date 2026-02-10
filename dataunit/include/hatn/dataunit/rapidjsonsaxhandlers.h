@@ -82,7 +82,7 @@ void pushHandler(
         }
         return true;
     };
-    topUnit->pushJsonParseHandler(handler);
+    topUnit->pushJsonParseHandler(Unit::JsonParseHandler{handler,obj->name()});
 }
 
 template <typename T>
