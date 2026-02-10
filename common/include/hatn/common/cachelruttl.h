@@ -29,7 +29,7 @@ HATN_COMMON_NAMESPACE_BEGIN
  * Actual cache items must be of type CacheLruTtl::Item where Item will inherit from
  * ItemT type used by application.
  *
- * @note All methods are not thread safe except for those marked "thread safe" in description, e.g. clear() or each().
+ * @note All methods are not thread safe except for those marked as "thread safe" in description, e.g. clear() or each().
  * Use lock()/unlock() methods to guard access in multithreaded environment.
  *
  */
@@ -74,11 +74,13 @@ class CacheLruTtl : public LruTtl<KeyT,ItemT,MapStorage<KeyT,LruTtlItem<KeyT,Ite
          * @brief Constructor
          * @param ttl Time to live in milliseconds
          * @param factory Allocator factory
+         * @param thread Thread the cache lives in
          */
         CacheLruTtl(
                 uint64_t ttl,
-                const common::pmr::AllocatorFactory* factory
-            ) : CacheLruTtl(ttl,Thread::currentThreadOrMain(),DefaultCapacity::value,factory)
+                const common::pmr::AllocatorFactory* factory,
+                Thread* thread=Thread::currentThreadOrMain()
+            ) : CacheLruTtl(ttl,thread,DefaultCapacity::value,factory)
         {}
 };
 

@@ -261,7 +261,7 @@ class LruTtl
         void setTtl(uint64_t ttl) noexcept
         {
             MutexScopedLock l{pimpl->mutex};
-            pimpl->ttl=ttl;
+            pimpl->ttlMs=ttl;
         }
 
         /**
@@ -273,7 +273,7 @@ class LruTtl
         uint64_t ttl() const noexcept
         {
             MutexScopedLock l{pimpl->mutex};
-            return pimpl->ttl;
+            return pimpl->ttlMs;
         }
 
         //! Get current cache size
