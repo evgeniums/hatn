@@ -415,7 +415,7 @@ bool Unit::loadFromJSON(const common::lib::string_view &str)
     m_jsonParseHandlers.clear();
     if (reader.HasParseError())
     {
-        rawError(RawErrorCode::JSON_PARSE_ERROR,"failed to parse JSON: {} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
+        rawError(RawErrorCode::JSON_PARSE_ERROR,"{} at offset {}",rapidjson::GetParseError_En(reader.GetParseErrorCode()),reader.GetErrorOffset());
         clear();
     }
     return !reader.HasParseError();
