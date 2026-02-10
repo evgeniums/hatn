@@ -3,6 +3,8 @@
 
 #define HDU_V2_UNIT_EXPORT
 
+#include <hatn/validator/member.hpp>
+
 #include <hatn/common/bytearray.h>
 
 #include <hatn/dataunit/syntax.h>
@@ -29,6 +31,11 @@ HDU_V2_UNIT(u2,
 HDU_V2_UNIT(u3,
     HDU_V2_FIELD(field1,TYPE_INT32,1)
     HDU_V2_REPEATED_FIELD(rep,u1::TYPE,2)
+)
+
+HDU_V2_UNIT(u4,
+    HDU_V2_FIELD(field1,TYPE_INT32,1)
+    HDU_V2_FIELD(sub1,u2::TYPE,2)
 )
 
 }
@@ -187,15 +194,29 @@ BOOST_AUTO_TEST_CASE(TestRepeatedSubunit)
 
     auto v1=HATN_COMMON_NAMESPACE::makeShared<u1::managed>();
     repField.append(std::move(v1));
-    BOOST_CHECK(repField.at(0).isSharedValue());
+    BOOST_CHECK(repField._(0).isSharedValue());
     repField.append(u1::type{});
-    BOOST_CHECK(repField.at(1).isPlainValue());
+    BOOST_CHECK(repField._(1).isPlainValue());
     auto& sub2=repField.appendSharedSubunit();
     BOOST_CHECK(sub2.isSharedValue());
     auto& sub3=repField.appendPlainSubunit();
     BOOST_CHECK(sub3.isPlainValue());
 
     BOOST_CHECK_EQUAL(repField.count(),4);
+}
+
+BOOST_AUTO_TEST_CASE(TestNestedAccessors)
+{
+    u4::type u4;
+
+    BOOST_CHECK(u4.member(u4::sub1,u2::sub,u1::field2)==nullptr);
+
+    u4.mutableMember(u4::sub1,u2::sub,u1::field2)->set(100);
+    BOOST_REQUIRE(u4.member(u4::sub1,u2::sub,u1::field2)!=nullptr);
+    BOOST_CHECK_EQUAL(u4.member(u4::sub1,u2::sub,u1::field2)->value(),100);
+
+    auto sub2=u4.member(u4::sub1,u2::sub)->sharedValue();
+    BOOST_CHECK_EQUAL(sub2->field(u1::field2).value(),100);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

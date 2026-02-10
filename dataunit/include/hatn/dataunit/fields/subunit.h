@@ -492,7 +492,21 @@ class SubunitT : public Field, public UnitType
 
         /** Get subunit's field. */
         template <typename T>
-        auto field(T&& fieldName) -> decltype(auto)
+        auto _(T&& fieldName) const -> decltype(auto)
+        {
+            return value().field(std::forward<T>(fieldName));
+        }
+
+        /** Get subunit's field. */
+        template <typename T>
+        auto mutableField(T&& fieldName) -> decltype(auto)
+        {
+            return mutableValue()->field(std::forward<T>(fieldName));
+        }
+
+        /** Get subunit's field. */
+        template <typename T>
+        auto m_(T&& fieldName) -> decltype(auto)
         {
             return mutableValue()->field(std::forward<T>(fieldName));
         }
@@ -500,7 +514,7 @@ class SubunitT : public Field, public UnitType
         template <typename T, typename ...Args>
         void setFieldValue(T&& fieldName, Args&&... val)
         {
-            field(std::forward<T>(fieldName)).set(std::forward<Args>(val)...);
+            mutableField(std::forward<T>(fieldName)).set(std::forward<Args>(val)...);
         }
 
         /** Get field's value. */

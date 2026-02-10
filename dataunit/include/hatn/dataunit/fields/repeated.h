@@ -498,6 +498,18 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Get value by index */
+    inline type& m_(size_t index)
+    {
+        return vector[index];
+    }
+
+    /**  Get const value by index */
+    inline const type& _(size_t index) const
+    {
+        return vector[index];
+    }
+
+    /**  Get value by index */
     inline type& at(size_t index)
     {
         return vector[index];
@@ -522,7 +534,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     }
 
     /**  Get value by index */
-    inline type& field(size_t index)
+    inline type& mutableField(size_t index)
     {
         return vector[index];
     }

@@ -189,13 +189,13 @@ BOOST_AUTO_TEST_CASE(TestStringMap)
     BOOST_REQUIRE(ok);
 
     u4::type o1_r;
-    auto& item1=o1_r.field(u4::f1).appendSharedSubunit();
+    auto& item1=o1_r.mutableField(u4::f1).appendSharedSubunit();
     item1.setFieldValue(MapItemStr::key,100);
     item1.setFieldValue(MapItemStr::value,"val1");
-    auto& item2=o1_r.field(u4::f1).appendSharedSubunit();
+    auto& item2=o1_r.mutableField(u4::f1).appendSharedSubunit();
     item2.setFieldValue(MapItemStr::key,200);
     item2.setFieldValue(MapItemStr::value,"val2");
-    auto& item3=o1_r.field(u4::f1).appendSharedSubunit();
+    auto& item3=o1_r.mutableField(u4::f1).appendSharedSubunit();
     item3.setFieldValue(MapItemStr::key,300);
     item3.setFieldValue(MapItemStr::value,"val3");
 

@@ -382,6 +382,27 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return this->get(fieldIndex(std::forward<T>(fieldName)));
         }
 
+        /**  Get field. */
+        template <typename T>
+        auto _(T&& fieldName) const noexcept -> decltype(auto)
+        {
+            return this->get(fieldIndex(std::forward<T>(fieldName)));
+        }
+
+        /**  Get field. */
+        template <typename T>
+        auto mutableField(T&& fieldName) noexcept -> decltype(auto)
+        {
+            return this->get(fieldIndex(std::forward<T>(fieldName)));
+        }
+
+        /**  Get field. */
+        template <typename T>
+        auto m_(T&& fieldName) noexcept -> decltype(auto)
+        {
+            return this->get(fieldIndex(std::forward<T>(fieldName)));
+        }
+
         /**  Get field type by index */
         template <int Index>
         constexpr static auto fieldTypeC() noexcept
@@ -465,13 +486,25 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return UnitFieldUpdater::fieldAtPathPtr(this,path);
         }
 
+        template <typename ...Path>
+        const auto* member(Path&& ...path) const
+        {
+            return fieldAtPathPtr(HATN_VALIDATOR_NAMESPACE::path(std::forward<Path>(path)...));
+        }
+
+        template <typename ...Path>
+        auto* mutableMember(Path&& ...path)
+        {
+            return &UnitFieldUpdater::fieldAtPath(*this,HATN_VALIDATOR_NAMESPACE::path(std::forward<Path>(path)...));
+        }
+
         /**
           @brief Get field at given path.
           @param path Path to the field in format _[level1][level2]...[levelN].
           @return Field at given path.
          **/
         template <typename PathT>
-        auto& fieldAtPath(PathT&& path)
+        const auto& fieldAtPath(PathT&& path)
         {
             return UnitFieldUpdater::fieldAtPath(*this,path);
         }

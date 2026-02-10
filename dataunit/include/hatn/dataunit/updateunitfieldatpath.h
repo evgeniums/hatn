@@ -70,7 +70,7 @@ struct UnitFieldUpdater
             unit,
             [](auto& parent, auto&& key) -> decltype(auto)
             {
-                return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
+                return parent.mutableField(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
             }
         );
     }
@@ -85,7 +85,7 @@ struct UnitFieldUpdater
             {
                 return parent.field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
             }
-            );
+        );
     }
 
     template <typename UnitT, typename PathT, typename ...Args>
