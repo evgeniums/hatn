@@ -17,6 +17,7 @@
 #define HATNCLIENTSERVERMODELSOID_H
 
 #include <hatn/db/object.h>
+#include <hatn/dataunit/compare.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/encrypted.h>
@@ -62,19 +63,12 @@ constexpr const char* GUID_ID_TYPE_X509="x509";
 constexpr const char* GUID_ID_TYPE_PUBKEY="pubkey";
 constexpr const char* GUID_ID_TYPE_INVITATION="invitation";
 
-constexpr const char* GUID_LOOKUP_SCHEMA_IMPLIED="implied";
-constexpr const char* GUID_LOOKUP_SCHEMA_EXPLICIT_ROUTE="explicit_route";
-constexpr const char* GUID_LOOKUP_SCHEMA_BLOCKCHAIN_ETH="eth";
-
 HDU_UNIT(guid,
     HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS)
     HDU_FIELD(issuer_id,TYPE_STRING,2)
-    HDU_FIELD(issuer,TYPE_DATAUNIT,3)
-    HDU_FIELD(id_type,TYPE_STRING,4,false,GUID_ID_TYPE_OID)
-    HDU_FIELD(id,TYPE_STRING,5)
-    HDU_FIELD(id_topic,TYPE_STRING,6)
-    HDU_FIELD(lookup_schema,TYPE_STRING,7)
-    HDU_FIELD(lookup_content,TYPE_DATAUNIT,8)
+    HDU_FIELD(id_type,TYPE_STRING,3,false,GUID_ID_TYPE_OID)
+    HDU_FIELD(id,TYPE_STRING,4)
+    HDU_FIELD(id_topic,TYPE_STRING,5)
 )
 
 HDU_UNIT(dns_issuer,
@@ -96,11 +90,57 @@ HDU_UNIT(x509_issuer,
     HDU_REPEATED_FIELD(certificate_chain,TYPE_STRING,1)
 )
 
+HDU_UNIT_WITH(server_object,(HDU_BASE(topic_object)),
+    HDU_FIELD(server_id,guid::TYPE,10)
+)
+
 HDU_UNIT(uid,
     HDU_FIELD(local,topic_object::TYPE,1)
-    HDU_FIELD(server,topic_object::TYPE,2)
+    HDU_FIELD(server,server_object::TYPE,2)
     HDU_FIELD(global,guid::TYPE,3)
 )
+
+struct CompareTopicObject
+{
+    bool operator()(const common::SharedPtr<topic_object::managed>& l,
+                    const common::SharedPtr<topic_object::managed>& r) const noexcept
+    {
+        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
+    }
+};
+
+struct CompareServerObject
+{
+    bool operator()(const common::SharedPtr<server_object::managed>& l,
+                    const common::SharedPtr<server_object::managed>& r) const noexcept
+    {
+        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
+    }
+};
+
+struct CompareGuid
+{
+    bool operator()(const common::SharedPtr<guid::managed>& l,
+                    const common::SharedPtr<guid::managed>& r) const noexcept
+    {
+        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
+    }
+};
+
+inline auto getUidLocal(const common::SharedPtr<uid::managed>& uid)
+{
+    return uid->field(uid::local).sharedValue();
+}
+
+inline auto getUidServer(const common::SharedPtr<uid::managed>& uid)
+{
+    return uid->field(uid::server).sharedValue();
+}
+
+inline auto getUidGlobal(const common::SharedPtr<uid::managed>& uid)
+{
+    return uid->field(uid::global).sharedValue();
+}
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
