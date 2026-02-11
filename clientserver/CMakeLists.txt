@@ -15,7 +15,9 @@ SET (HEADERS
     include/hatn/clientserver/auth/clientsessionsharedsecret.h
 
     include/hatn/clientserver/clientwithauth.h
-    include/hatn/clientserver/plaintcpclientwithauth.h        
+    include/hatn/clientserver/plaintcpclientwithauth.h
+
+    include/hatn/clientserver/objectscache.h
 )
 
 SET (HEADERS
@@ -24,6 +26,8 @@ SET (HEADERS
     include/hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp
     include/hatn/clientserver/ipp/clientsession.ipp
     include/hatn/clientserver/ipp/clientwithauth.ipp
+
+    include/hatn/clientserver/ipp/objectscache.ipp
 )
 
 SET (HEADERS
