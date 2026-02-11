@@ -29,6 +29,7 @@
     Do(AppError,UNKNOWN_LOGGER,_TR("unknown logger type","app")) \
     Do(AppError,UNKNOWN_DB_PROVIDER,_TR("unknown database provider","app")) \
     Do(AppError,INVALID_DB_CIPHER_SUITE,_TR("invalid cipher suite for database encryption","app")) \
+    Do(AppError,CACHE_MISS,_TR("object not found in cache","app")) \
 
 HATN_APP_NAMESPACE_BEGIN
 
