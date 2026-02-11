@@ -93,6 +93,9 @@ bool fieldsEqual(const MsgT& l, const MsgT& r, Fields&& ...fields)
     );
 }
 
+template <typename LeftT, typename RightT>
+bool repeatedSubunitFieldsEqual(const LeftT& lField, const RightT& rField);
+
 template <typename LeftT, typename RightT, typename ... ExludeFields>
 bool unitsEqual(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
 {
@@ -109,29 +112,60 @@ bool unitsEqual(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
         return false;
     }
 
-    //! @todo Implement recursive in-depth comparing
-
     auto excludeIndexes=hana::transform(
         hana::make_tuple(std::forward<ExludeFields>(excludeFields)...),
         [](auto field)
         {
             return hana::size_c<std::decay_t<decltype(field)>::type::ID>;
         }
-        );
+    );
 
+    auto hasGet = boost::hana::is_valid([](auto&& obj, auto&& index)
+                                        -> decltype(obj.get(index)) { });
     auto each=[&](auto index)
     {
         return hana::eval_if(
-            hana::contains(excludeIndexes,index),
+            boost::hana::or_(
+                hana::contains(excludeIndexes,index),
+                hana::not_(hasGet(l,index))
+                ),
             [&](auto)
             {
                 return true;
             },
             [&](auto _)
             {
-                return _(l)->get(_(index)).value() == r->get(_(index)).value();
+                using fieldType=std::decay_t<decltype(_(l)->get(_(index)))>;
+
+                return hana::eval_if(
+                    typename fieldType::isUnitType{},
+                    [&](auto)
+                    {
+                        return hana::eval_if(
+                            typename fieldType::isRepeatedType{},
+                            [&](auto _)
+                            {
+                                return repeatedSubunitFieldsEqual(
+                                    _(l)->get(_(index)),
+                                    _(r)->get(_(index))
+                                );
+                            },
+                            [&](auto _)
+                            {
+                                return unitsEqual(
+                                    _(l)->get(_(index)).sharedValue(),
+                                    _(r)->get(_(index)).sharedValue()
+                                );
+                            }
+                        );
+                    },
+                    [&](auto _)
+                    {
+                        return _(l)->get(_(index)).value() == r->get(_(index)).value();
+                    }
+                );
             }
-            );
+        );
     };
 
     return hana::fold(
@@ -143,6 +177,96 @@ bool unitsEqual(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
             return state && each(index);
         }
     );
+}
+
+template <typename LeftT, typename RightT, typename ... ExludeFields>
+std::optional<bool> unitsLessOptional(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
+{
+    if (!l)
+    {
+        if (!r)
+        {
+            return false;
+        }
+        return true;
+    }
+    if (!r)
+    {
+        return false;
+    }
+
+    auto excludeIndexes=hana::transform(
+        hana::make_tuple(std::forward<ExludeFields>(excludeFields)...),
+        [](auto field)
+        {
+            return hana::size_c<std::decay_t<decltype(field)>::type::ID>;
+        }
+    );
+
+    auto hasGet = boost::hana::is_valid([](auto&& obj, auto&& index)
+                                      -> decltype(obj.get(index)) { });
+    auto each=[&](auto index)
+    {
+        return hana::eval_if(
+            boost::hana::or_(
+                hana::contains(excludeIndexes,index),
+                hana::not_(hasGet(l,index))
+            ),
+            [&](auto)
+            {
+                return lib::optional<bool>{};
+            },
+            [&](auto _) -> lib::optional<bool>
+            {
+                using fieldType=std::decay_t<decltype(_(l)->get(_(index)))>;
+
+                return hana::eval_if(
+                    typename fieldType::isUnitType{},
+                    [&](auto _)
+                    {
+                        return unitsLessOptional(
+                                         _(l)->get(_(index)).sharedValue(),
+                                         _(r)->get(_(index)).sharedValue()
+                                         );
+                    },
+                    [&](auto _) -> lib::optional<bool>
+                    {
+                        if (_(l)->get(_(index)).value() < r->get(_(index)).value())
+                        {
+                            return true;
+                        }
+                        if (_(l)->get(_(index)).value() > r->get(_(index)).value())
+                        {
+                            return false;
+                        }
+                        return lib::optional<bool>{};
+                    }
+                );
+            }
+        );
+    };
+
+    auto result=hana::fold(
+        l->fieldsMap,
+        lib::optional<bool>{},
+        [each](lib::optional<bool> state, auto key)
+        {
+            auto index=hana::second(key);
+            if (state)
+            {
+                return state;
+            }
+            return each(index);
+        }
+    );
+
+    return result;
+}
+
+template <typename LeftT, typename RightT, typename ... ExludeFields>
+bool unitsLess(const LeftT& l, const RightT& r, ExludeFields ...excludeFields)
+{
+    return unitsLessOptional(l,r,std::forward<ExludeFields>(excludeFields)...).value_or(false);
 }
 
 template <typename SubunitFieldT, typename LeftT, typename RightT>
@@ -178,6 +302,54 @@ bool subunitsEqual(const SubunitFieldT& subunitField, const LeftT& l, const Righ
     }
 
     return unitsEqual(&lField.value(),&rField.value());
+}
+
+template <typename LeftT, typename RightT>
+bool repeatedSubunitFieldsEqual(const LeftT& lField, const RightT& rField)
+{
+    if (!lField.isSet())
+    {
+        if (!rField.isSet())
+        {
+            return true;
+        }
+        return false;
+    }
+    if (!rField.isSet())
+    {
+        return false;
+    }
+
+    if (lField.count()!=rField.count())
+    {
+        return false;
+    }
+
+    for (size_t i=0;i<lField.count();i++)
+    {
+        const auto& lEl=lField.at(i);
+        const auto& rEl=rField.at(i);
+        if (!lEl.isSet())
+        {
+            if (!rEl.isSet())
+            {
+                continue;
+            }
+            return false;
+        }
+        if (!rEl.isSet())
+        {
+            return false;
+        }
+
+        auto ok=unitsEqual(&lEl.value(),&rEl.value());
+        if (!ok)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 template <typename FieldT, typename LeftT, typename RightT>

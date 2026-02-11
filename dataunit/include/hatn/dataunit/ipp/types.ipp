@@ -355,6 +355,7 @@ struct BytesTraits : public BytesTraitsBase
 
 struct BytesType : public BytesTraits<common::ByteArrayShared, common::ByteArray, common::ByteArrayManaged>
 {
+    using isUnitType=std::false_type;
     using isBytesType=std::true_type;
     using canChainBlocks=std::true_type;
     using maxSize=std::integral_constant<int,-1>;
@@ -372,6 +373,7 @@ template <size_t length> struct FixedString : public BytesTraits<common::SharedP
                                                                                 common::FixedByteArrayManaged<length,true>
                                                                                 >
 {
+    using isUnitType=std::false_type;
     using isStringType=std::true_type;
 
     using canChainBlocks=std::false_type;

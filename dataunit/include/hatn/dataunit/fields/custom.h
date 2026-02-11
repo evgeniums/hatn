@@ -41,6 +41,7 @@ class CustomField : public Field
         using type=typename TraitsT::type;
         using selfType=CustomField<TraitsT>;
 
+        using isUnitType=std::false_type;
         using isRepeatedType=std::false_type;
         using isEnum=typename Type::isEnum;
         using Enum=typename Type::Enum;
