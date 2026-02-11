@@ -73,6 +73,16 @@ class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::int
                       )
         {}
 
+        void setDisplaceHandler(std::function<void()> handler)
+        {
+            m_onDisplace=handler;
+        }
+
+        const auto& displaceHandler() const
+        {
+            return m_onDisplace;
+        }
+
     private:
 
         template<class KeyArgsTuple, std::size_t... ks, class ItemArgsTuple, std::size_t... is>
@@ -83,6 +93,7 @@ class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::int
         {}
 
         KeyT m_key;
+        std::function<void()> m_onDisplace;
 };
 
 /**
@@ -158,10 +169,7 @@ class Lru
          */
         Item& pushItem(Item item)
         {
-            if (isFull())
-            {
-                m_queue.pop_front_and_dispose([this](Item* lruItem){m_storage.doRemove(lruItem->key());});
-            }
+            checkFull();
             const auto& inserted=m_storage.doInsert(std::move(item));
             auto& itm=const_cast<Item&>(inserted);
             m_queue.push_back(itm);
@@ -192,10 +200,7 @@ class Lru
         template <typename ...Args>
         Item& emplaceItem(KeyT key, Args&&... args)
         {
-            if (isFull())
-            {
-                m_queue.pop_front_and_dispose([this](Item* lruItem){m_storage.doRemove(lruItem->key());});
-            }
+            checkFull();
             auto& inserted=m_storage.doEmplace(std::piecewise_construct,
                           std::forward_as_tuple(key),
                           std::forward_as_tuple(key,std::forward<Args>(args)...)
@@ -266,6 +271,11 @@ class Lru
          */
         void removeItem(Item& item)
         {
+            if (item.displaceHandler())
+            {
+                item.displaceHandler();
+            }
+
             m_queue.erase(m_queue.iterator_to(item));
             m_storage.doRemove(item.key());
         }
@@ -342,7 +352,24 @@ class Lru
         StorageType& m_storage;
         size_t m_capacity;
 
-        boost::intrusive::list<Item> m_queue;        
+        boost::intrusive::list<Item> m_queue;
+
+        void checkFull()
+        {
+            if (isFull())
+            {
+                m_queue.pop_front_and_dispose(
+                    [this](Item* lruItem)
+                    {
+                        if (lruItem->displaceHandler())
+                        {
+                            lruItem->displaceHandler();
+                        }
+                        m_storage.doRemove(lruItem->key());
+                    }
+                );
+            }
+        }
 };
 
 HATN_COMMON_NAMESPACE_END

@@ -37,7 +37,7 @@ class TtlItem : public ItemT
         TtlItem(const ItemT& item) : ItemT(item)
         {}
 
-        ElapsedTimer elapsed;
+        ElapsedTimer elapsed;        
 };
 
 template <typename KeyT, typename ItemT>
@@ -165,6 +165,11 @@ class LruTtl
             {
                 lru.removeItem(item);
             }
+
+            void clear()
+            {
+                lru.clear();
+            }
         };
 
     public:
@@ -218,6 +223,7 @@ class LruTtl
                 {
                     if (status!=AsioDeadlineTimer::Status::Timeout)
                     {
+                        p->clear();
                         return;
                     }
 
@@ -296,6 +302,19 @@ class LruTtl
         {
             pimpl->lru.touchItem(item);
             item.elapsed.reset();
+        }
+
+        /**
+         * @brief Touch item by key
+         * @param key Key
+         */
+        void touch(const KeyT& key)
+        {
+            auto itm=item(key);
+            if (itm!=nullptr)
+            {
+                touchItem(*itm);
+            }
         }
 
         /**
@@ -466,6 +485,20 @@ class LruTtl
             }
             return itm;
         }
+
+        /**
+         * @brief Remove item by key
+         * @param key Key
+         */
+        void remove(const KeyT& key)
+        {
+            auto itm=item(key);
+            if (itm!=nullptr)
+            {
+                removeItem(*itm);
+            }
+        }
+
 
         /**
          * @brief Do operation on each element of the cache
