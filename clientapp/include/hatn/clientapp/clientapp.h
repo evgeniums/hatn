@@ -40,6 +40,7 @@ HATN_DB_NAMESPACE_END
 
 HATN_APP_NAMESPACE_BEGIN
 class App;
+class EventDispatcher;
 HATN_APP_NAMESPACE_END
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -47,7 +48,6 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 using Context=common::TaskContext;
 
 class Dispatcher;
-class EventDispatcher;
 class ClientApp_p;
 class ClientAppSettings;
 class LockingController;
@@ -82,7 +82,7 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         const Dispatcher& bridge() const;
 
-        EventDispatcher& eventDispatcher();
+        HATN_APP_NAMESPACE::EventDispatcher& eventDispatcher();
 
         virtual Error init();
 
