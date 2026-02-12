@@ -46,6 +46,16 @@ struct ObjectsCacheTraits
     using Subject=ObjectsCacheConfig::Subject;
 
     constexpr static const char* DbModel="cache";
+
+    static std::string_view locIdTopic(const common::SharedPtr<uid::managed>& uid)
+    {
+        auto m=uid->member(uid::local,topic_object::topic);
+        if (m)
+        {
+            return m->value();
+        }
+        return std::string_view{};
+    }
 };
 
 template <typename Traits, typename Derived>

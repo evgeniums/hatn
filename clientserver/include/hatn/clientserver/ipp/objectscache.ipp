@@ -302,7 +302,7 @@ void ObjectsCache<Traits,Derived>::touch(
     if (locUid)
     {
         // touch item in database
-        auto db=Traits::db(pimpl->derived,ctx,uid);
+        auto db=Traits::db(pimpl->derived,ctx,ObjectsCacheTraits::locIdTopic(uid));
         if (db)
         {
             auto request=HATN_DB_NAMESPACE::update::sharedRequest(
@@ -348,7 +348,7 @@ void ObjectsCache<Traits,Derived>::remove(
     if (locUid)
     {
         // remove item from database
-        auto db=Traits::db(pimpl->derived,ctx,uid);
+        auto db=Traits::db(pimpl->derived,ctx,ObjectsCacheTraits::locIdTopic(uid));
         if (db)
         {
             db->deleteMany(
@@ -357,7 +357,7 @@ void ObjectsCache<Traits,Derived>::remove(
                 pimpl->dbModel,
                 pimpl->localObjectQuery(locUid),
                 nullptr,
-                locUid->fieldValue(topic_object::topic)
+                ObjectsCacheTraits::locIdTopic(uid)
             );
         }
     }
@@ -484,16 +484,22 @@ void ObjectsCache<Traits,Derived>::put(
     // write item to database
     if (keepInLocalDb && localId)
     {
-        auto db=Traits::db(pimpl->derived,ctx,uid);
+        auto db=Traits::db(pimpl->derived,ctx,ObjectsCacheTraits::locIdTopic(uid));
         if (db)
         {
             // fill cache object
             auto obj=pimpl->factory->template createObject<cache_object::managed>();
+            HATN_DB_NAMESPACE::initObject(*obj);
 
             auto localOid=uid->member(uid::local,topic_object::oid);
             if (localOid!=nullptr)
             {
                 obj->setFieldValue(cache_object::local_oid,localOid->value());
+            }
+            else
+            {
+                // use cache_object's oid as oid if there is no reference object in local database
+                obj->setFieldValue(cache_object::local_oid,obj->fieldValue(HATN_DB_NAMESPACE::object::_id));
             }
 
             auto serverId=uid->field(uid::server).sharedValue();
@@ -586,7 +592,7 @@ void ObjectsCache<Traits,Derived>::put(
                 std::move(obj),
                 HATN_DB_NAMESPACE::update::ModifyReturn::After,
                 nullptr,
-                localId->fieldValue(topic_object::topic)
+                ObjectsCacheTraits::locIdTopic(uid)
             );
         }
     }
@@ -702,12 +708,11 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                       size_t dbTtlSeconds
                     )
     {
-        auto db=Traits::db(pimpl->derived,ctx,uid);
         auto locId=getUidLocal(uid);
+        auto db=Traits::db(pimpl->derived,ctx,ObjectsCacheTraits::locIdTopic(uid));
         if (!locId || !db)
         {
             farFetch(std::move(ctx),callback,std::move(uid),bySubject,localDbFullObject,dbTtlSeconds);
-            return;
         }
 
         auto cb=[farFetch=std::move(farFetch),self,this,callback,uid,bySubject,localDbFullObject,dbTtlSeconds](auto ctx, auto dbResult) mutable
@@ -749,7 +754,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
 
             if (cacheItem->field(cache_object::data).isSet() && !cacheItem->fieldValue(cache_object::deleted))
             {
-                // if item is not in cached item then get it from db
+                // if cache item does not contain data object then get it from local db
                 auto getDbCb=[updateInmem,cacheItem,callback](const common::Error& ec, Value item) mutable
                 {
                     if (ec)
@@ -784,7 +789,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             std::move(cb),
             pimpl->dbModel,
             pimpl->localObjectQuery(locId),
-            locId->fieldValue(topic_object::topic)
+            ObjectsCacheTraits::locIdTopic(uid)
         );
     };
 
