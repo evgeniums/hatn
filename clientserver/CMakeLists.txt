@@ -77,10 +77,16 @@ SET (SOURCES
     src/clientauthprotocolsharedsecret.cpp
     src/clientsessionsharedsecret.cpp
     src/plaintcpclientwithauth.cpp
+
+    src/cachedbmodelsprovider.cpp
 )
 
 BUILD_HATN_MODULE()
 
 IF(MSVC)
     TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE /bigobj)
+ENDIF()
+
+IF (HATN_PLUGIN_rocksdb)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
 ENDIF()

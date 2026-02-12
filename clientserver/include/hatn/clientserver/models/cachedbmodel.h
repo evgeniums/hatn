@@ -17,6 +17,7 @@
 #define HATNCLIENTSERVERMODELCACHEDB_H
 
 #include <hatn/db/object.h>
+#include <hatn/db/modelsprovider.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/cache.h>
@@ -42,6 +43,28 @@ inline auto makeCacheModel(std::string collection)
                                                               cacheRevisionIdx());
     return m;
 }
+
+class HATN_CLIENT_SERVER_EXPORT CacheDbModelsProvider : public HATN_DB_NAMESPACE::ModelsProvider
+{
+    public:
+
+        using DbModelType=decltype(makeCacheModel(std::string{}));
+
+        using HATN_DB_NAMESPACE::ModelsProvider::ModelsProvider;
+
+        void initCollections(const std::set<std::string>& collections);
+
+        void registerRocksdbModels() override;
+        void unregisterRocksdbModels() override;
+
+        std::vector<std::shared_ptr<HATN_DB_NAMESPACE::ModelInfo>> models() const override;
+
+        DbModelType* model(const std::string& collection);
+
+    private:
+
+        common::FlatMap<std::string,std::shared_ptr<DbModelType>> m_models;
+};
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 

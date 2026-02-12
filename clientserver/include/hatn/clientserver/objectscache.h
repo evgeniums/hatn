@@ -28,6 +28,8 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+class CacheDbModelsProvider;
+
 class ObjectsCacheConfig
 {
     public:
@@ -89,9 +91,11 @@ class ObjectsCache : public ObjectsCacheConfig,
 
         using FetchCb=std::function<void (const common::Error&, Result)>;
 
+        ObjectsCache();
+
         ObjectsCache(
             Derived* derived,
-            common::Thread* thread=common::Thread::currentThreadOrMain(),
+            common::Thread* thread,
             size_t ttlSeconds=DefaultTtlSeconds,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
@@ -102,6 +106,15 @@ class ObjectsCache : public ObjectsCacheConfig,
         ObjectsCache(ObjectsCache&&)=delete;
         ObjectsCache& operator=(const ObjectsCache&)=delete;
         ObjectsCache& operator=(ObjectsCache&&)=delete;
+
+        void init(
+            Derived* derived,
+            common::Thread* thread,
+            size_t ttlSeconds=DefaultTtlSeconds,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        );
+
+        void setDbModelProvider(CacheDbModelsProvider* provider);
 
         void start();
         void stop();
