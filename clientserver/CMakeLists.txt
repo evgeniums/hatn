@@ -17,7 +17,11 @@ SET (HEADERS
     include/hatn/clientserver/clientwithauth.h
     include/hatn/clientserver/plaintcpclientwithauth.h
 
+    include/hatn/clientserver/models/cache.h
+    include/hatn/clientserver/models/cachedbmodel.h
+
     include/hatn/clientserver/objectscache.h
+    include/hatn/clientserver/models/expire.h
 )
 
 SET (HEADERS

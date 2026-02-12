@@ -21,13 +21,10 @@
 #include <hatn/common/thread.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/app/app.h>
+#include <hatn/app/eventdispatcher.h>
 
 #include <hatn/clientserver/models/oid.h>
 #include <hatn/clientserver/clientserver.h>
-
-HATN_APP_NAMESPACE_BEGIN
-class EventDispatcher;
-HATN_APP_NAMESPACE_END
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
@@ -43,22 +40,47 @@ class ObjectsCacheConfig
         using Subject=common::SharedPtr<uid::managed>;
 };
 
-template <typename Traits>
+struct ObjectsCacheTraits
+{
+    using Key=ObjectsCacheConfig::Key;
+    using Subject=ObjectsCacheConfig::Subject;
+
+    constexpr static const char* DbModel="cache";
+};
+
+template <typename Traits, typename Derived>
 class ObjectsCache_p;
 
-template <typename Traits>
+template <typename Traits, typename Derived>
 class ObjectsCache : public ObjectsCacheConfig,
-                     public std::enable_shared_from_this<ObjectsCache<Traits>>
+                     public std::enable_shared_from_this<ObjectsCache<Traits,Derived>>
 {
     public:
 
         using ObjectType=typename Traits::ObjectType;
         constexpr static const char* ObjectTypeName=Traits::ObjectTypeName;
         using Value=common::SharedPtr<ObjectType>;
+        using Context=typename Traits::Context;
 
-        using FetchCb=std::function<void (const common::Error&, Value)>;
+        struct Result
+        {
+            Value value;
+            bool missed;
+
+            Result(Value value={}, bool missed=false)
+                : value(std::move(value)),missed(missed)
+            {}
+
+            operator bool() const
+            {
+                return value.isNull();
+            }
+        };
+
+        using FetchCb=std::function<void (const common::Error&, Result)>;
 
         ObjectsCache(
+            Derived* derived,
             common::Thread* thread=common::Thread::currentThreadOrMain(),
             size_t ttlSeconds=DefaultTtlSeconds,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
@@ -74,37 +96,40 @@ class ObjectsCache : public ObjectsCacheConfig,
         void start();
         void stop();
 
-        template <typename Context>
-        common::Result<Value> get(
+        Result get(
             common::SharedPtr<Context> ctx,
             Key uid,
-            bool postFetching=false,
+            bool postFetching=false,            
             Subject bySubject={},
-            bool keepInLocalDb=true
+            FetchCb callback={},
+            bool keepInLocalDb=true,
+            size_t dbTtlSeconds=0
         );
 
-        template <typename Context>
         void fetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
             Key uid,
             Subject bySubject={},
-            bool keepInLocalDb=true
+            size_t dbTtlSeconds=0
         );
 
         void put(
+            common::SharedPtr<Context> ctx,
             Value item,
-            bool overwriteOnly=false
+            Key uid={},
+            bool keepInLocalDb=true,
+            size_t dbTtlSeconds=0
         );
 
-        template <typename Context>
         void touch(
             common::SharedPtr<Context> ctx,
             Key uid,
-            bool inLocalDb=false
+            size_t dbTtlSeconds=0
         );
 
         void remove(
+            common::SharedPtr<Context> ctx,
             Key uid
         );
 
@@ -128,16 +153,15 @@ class ObjectsCache : public ObjectsCacheConfig,
 
     private:
 
-        template <typename Context>
         void invokeFetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
             Key uid,
             Subject bySubject,
-            bool keepInLocalDb
+            size_t dbTtlSeconds
         );
 
-        std::unique_ptr<ObjectsCache_p<Traits>> pimpl;
+        std::unique_ptr<ObjectsCache_p<Traits,Derived>> pimpl;
 };
 
 HATN_CLIENT_SERVER_NAMESPACE_END

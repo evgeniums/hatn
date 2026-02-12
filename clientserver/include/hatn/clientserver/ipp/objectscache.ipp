@@ -18,75 +18,90 @@
 
 #include <hatn/common/locker.h>
 #include <hatn/common/cachelruttl.h>
+#include <hatn/common/meta/chain.h>
 
 #include <hatn/app/eventdispatcher.h>
 #include <hatn/app/apperror.h>
 
+#include <hatn/clientserver/models/cache.h>
+#include <hatn/clientserver/models/cachedbmodel.h>
 #include <hatn/clientserver/objectscache.h>
-#include <hatn/clientserver/objectscache.h>
+
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/objectid.ipp>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
+template <typename Traits, typename Derived>
 class ObjectsCache_p
 {
     public:
 
+        using Value=typename ObjectsCache<Traits,Derived>::Value;
+
         struct Item
         {
-            typename Traits::Value value;
+            Value value;
             size_t updateSubscriptionId=0;
 
-            Item(typename Traits::Value value) : value(std::move(value))
+            Item(Value value) : value(std::move(value))
             {}
         };
 
         common::CacheLruTtl<common::SharedPtr<topic_object::managed>,
-                            typename Traits::Value,
+                            Item,
                             std::integral_constant<size_t,ObjectsCacheConfig::DefaultCapacity>,
                             CompareTopicObject>
             localCache;
 
         common::CacheLruTtl<common::SharedPtr<server_object::managed>,
-                            typename Traits::Value,
+                            Item,
                             std::integral_constant<size_t,ObjectsCacheConfig::DefaultCapacity>,
-                            CompareTopicObject>
+                            CompareServerObject>
             serverCache;
 
         common::CacheLruTtl<common::SharedPtr<guid::managed>,
-                            typename Traits::Value,
+                            Item,
                             std::integral_constant<size_t,ObjectsCacheConfig::DefaultCapacity>,
-                            CompareTopicObject>
+                            CompareGuid>
             guidCache;
 
+        const common::pmr::AllocatorFactory* factory;
         std::string eventCategory;
         HATN_APP_NAMESPACE::EventDispatcher* eventDispatcher;
         std::set<size_t> subscriprionIds;
 
     ObjectsCache_p(
+                Derived* derived,
                 common::Thread* thread,
                 size_t ttlSeconds,
                 const common::pmr::AllocatorFactory* factory
             )
-        :
-          localCache(ttlSeconds*1000,
-                  factory,
-                  thread
-                  ),
-          serverCache(ttlSeconds*1000,
-                   factory,
-                   thread
-                 ),
-          guidCache(ttlSeconds*1000,
-                    factory,
-                    thread
-                    )
+            : derived(derived),
+              localCache(ttlSeconds*1000,
+                      factory,
+                      thread
+                      ),
+              serverCache(ttlSeconds*1000,
+                       factory,
+                       thread
+                     ),
+              guidCache(ttlSeconds*1000,
+                        factory,
+                        thread
+                        ),
+              factory(factory),
+              dbModel(makeCacheModel(Traits::DbModel))
     {}
 
     common::MutexLock locker;
     bool stopped=true;
+    Derived* derived;
+
+    using DbModelType=decltype(makeCacheModel(std::string{}));
+    DbModelType dbModel;
 
     void lock()
     {
@@ -103,29 +118,47 @@ class ObjectsCache_p
         guidCache.unlock();
         locker.unlock();
     }
+
+    auto localObjectQuery(common::SharedPtr<topic_object::managed> locUid) const
+    {
+        auto q=HATN_DB_NAMESPACE::wrapQueryBuilder(
+            [locUid]()
+            {
+                auto query=HATN_DB_NAMESPACE::makeQuery(
+                    cacheLocalIdx(),
+                    db::where(cache_object::local_oid,HATN_DB_NAMESPACE::query::eq,locUid->fieldValue(topic_object::oid)),
+                    locUid->fieldValue(topic_object::topic)
+                    );
+                return query;
+            },
+            locUid->fieldValue(topic_object::topic)
+            );
+        return q;
+    }
 };
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-ObjectsCache<Traits>::ObjectsCache(
+template <typename Traits, typename Derived>
+ObjectsCache<Traits,Derived>::ObjectsCache(
+        Derived* derived,
         common::Thread* thread,
         size_t ttlSeconds,
         const common::pmr::AllocatorFactory* factory
-    ) : pimpl(std::make_unique<ObjectsCache_p<Traits>>(thread,ttlSeconds,factory))
+    ) : pimpl(std::make_unique<ObjectsCache_p<Traits,Derived>>(derived,thread,ttlSeconds,factory))
 {}
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-ObjectsCache<Traits>::~ObjectsCache()
+template <typename Traits, typename Derived>
+ObjectsCache<Traits,Derived>::~ObjectsCache()
 {
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::start()
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::start()
 {
     common::MutexScopedLock l{pimpl->locker};
 
@@ -138,8 +171,8 @@ void ObjectsCache<Traits>::start()
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::stop()
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::stop()
 {
     common::MutexScopedLock l{pimpl->locker};
 
@@ -152,8 +185,8 @@ void ObjectsCache<Traits>::stop()
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::setTtlSeconds(size_t value)
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setTtlSeconds(size_t value)
 {
     common::MutexScopedLock l{pimpl->locker};
 
@@ -164,16 +197,16 @@ void ObjectsCache<Traits>::setTtlSeconds(size_t value)
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-size_t ObjectsCache<Traits>::ttlSeconds() const
+template <typename Traits, typename Derived>
+size_t ObjectsCache<Traits,Derived>::ttlSeconds() const
 {
     return pimpl->localCache.ttl()/1000;
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::setCapacity(size_t value)
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setCapacity(size_t value)
 {
     common::MutexScopedLock l{pimpl->locker};
 
@@ -185,16 +218,16 @@ void ObjectsCache<Traits>::setCapacity(size_t value)
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-size_t ObjectsCache<Traits>::capacity() const
+template <typename Traits, typename Derived>
+size_t ObjectsCache<Traits,Derived>::capacity() const
 {
     return pimpl->localCache.capacity();
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::setEventCategory(std::string cat)
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setEventCategory(std::string cat)
 {
     common::MutexScopedLock l{pimpl->locker};
     pimpl->eventCategory=std::move(cat);
@@ -202,8 +235,8 @@ void ObjectsCache<Traits>::setEventCategory(std::string cat)
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-std::string ObjectsCache<Traits>::eventCategory() const
+template <typename Traits, typename Derived>
+std::string ObjectsCache<Traits,Derived>::eventCategory() const
 {
     common::MutexScopedLock l{pimpl->locker};
     return pimpl->eventCategory;
@@ -211,8 +244,8 @@ std::string ObjectsCache<Traits>::eventCategory() const
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::setEventDispatcher(HATN_APP_NAMESPACE::EventDispatcher* dispatcher)
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setEventDispatcher(HATN_APP_NAMESPACE::EventDispatcher* dispatcher)
 {
     common::MutexScopedLock l{pimpl->locker};
     pimpl->eventDispatcher=dispatcher;
@@ -220,8 +253,8 @@ void ObjectsCache<Traits>::setEventDispatcher(HATN_APP_NAMESPACE::EventDispatche
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-HATN_APP_NAMESPACE::EventDispatcher* ObjectsCache<Traits>::eventDispatcher() const
+template <typename Traits, typename Derived>
+HATN_APP_NAMESPACE::EventDispatcher* ObjectsCache<Traits,Derived>::eventDispatcher() const
 {
     common::MutexScopedLock l{pimpl->locker};
     return pimpl->eventDispatcher;
@@ -229,8 +262,8 @@ HATN_APP_NAMESPACE::EventDispatcher* ObjectsCache<Traits>::eventDispatcher() con
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::clear()
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::clear()
 {
     {
         common::MutexScopedLock l{pimpl->locker};
@@ -252,49 +285,105 @@ void ObjectsCache<Traits>::clear()
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-template <typename Context>
-void ObjectsCache<Traits>::touch(
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::touch(
         common::SharedPtr<Context> ctx,
         Key uid,
-        bool inLocalDb
+        size_t dbTtlSeconds
     )
 {
     pimpl->lock();
-    pimpl->localCache.touch(getUidLocal(uid));
+    auto locUid=getUidLocal(uid);
+    pimpl->localCache.touch(locUid);
     pimpl->serverCache.touch(getUidServer(uid));
     pimpl->guidCache.touch(getUidGlobal(uid));
     pimpl->unlock();
 
-    if (inLocalDb)
+    if (locUid)
     {
-        Traits::touch(std::move(ctx),std::move(uid));
+        // touch item in database
+        auto db=Traits::db(pimpl->derived,ctx,uid);
+        if (db)
+        {
+            auto request=HATN_DB_NAMESPACE::update::sharedRequest(
+                HATN_DB_NAMESPACE::update::field(cache_object::touch,db::update::set,1)
+            );
+            if (dbTtlSeconds!=0)
+            {
+                auto expireAt=common::DateTime::currentUtc();
+                expireAt.addSeconds(dbTtlSeconds);
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(with_expire::expire_at,db::update::set,expireAt)
+                );
+            }
+
+            db->updateMany(
+                std::move(ctx),
+                [](auto,auto){},
+                pimpl->dbModel,
+                pimpl->localObjectQuery(locUid),
+                std::move(request),
+                nullptr,
+                locUid->fieldValue(topic_object::topic)
+            );
+        }
     }
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::remove(
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::remove(
+        common::SharedPtr<Context> ctx,
         Key uid
     )
 {
     pimpl->lock();
-    pimpl->localCache.remove(getUidLocal(uid));
+    auto locUid=getUidLocal(uid);
+    pimpl->localCache.remove(locUid);
     pimpl->serverCache.remove(getUidServer(uid));
     pimpl->guidCache.remove(getUidGlobal(uid));
     pimpl->unlock();
+
+    if (locUid)
+    {
+        // remove item from database
+        auto db=Traits::db(pimpl->derived,ctx,uid);
+        if (db)
+        {
+            db->deleteMany(
+                std::move(ctx),
+                [](auto,auto){},
+                pimpl->dbModel,
+                pimpl->localObjectQuery(locUid),
+                nullptr,
+                locUid->fieldValue(topic_object::topic)
+            );
+        }
+    }
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-void ObjectsCache<Traits>::put(
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::put(
+        common::SharedPtr<Context> ctx,
         Value item,
-        bool overwriteOnly
+        Key uid,
+        bool keepInLocalDb,
+        size_t dbTtlSeconds
     )
 {
-    auto uid=Traits::uid(item);
+    if (item && !uid)
+    {
+        uid=item->field(with_uid::uid).sharedValue();
+    }
+
+    auto deleted=!item;
+    if (deleted && !uid)
+    {
+        return;
+    }
 
     pimpl->lock();
 
@@ -304,11 +393,13 @@ void ObjectsCache<Traits>::put(
         return;
     }
 
-
     // setup subscription to event of item updating
-    typename ObjectsCache_p<Traits>::Item localItem{std::move(item)};
+    typename ObjectsCache_p<Traits,Derived>::Item localItem{std::move(item)};
+    localItem.value=item;
+
+    HATN_APP_NAMESPACE::EventKey eventKey{pimpl->eventCategory};
     auto localId=getUidLocal(uid);
-    auto prev=pimpl->localCache.item(localId,item);
+    auto prev=pimpl->localCache.item(localId);
     if (pimpl->eventDispatcher!=nullptr)
     {
         if (prev!=nullptr)
@@ -318,23 +409,16 @@ void ObjectsCache<Traits>::put(
         }
         else
         {
-            if (overwriteOnly)
-            {
-                // skip because ietm not present in the cache
-                return;
-            }
-
             // subscribe to event of item updating
-            HATN_APP_NAMESPACE::EventKey eventKey{pimpl->eventCategory};
-            eventKey.setOid(localId->fieldValue(topic_object::oid));
-            auto topic=localId->fieldValue(topic_object::topic);
+            eventKey.setOid(localId->fieldValue(topic_object::oid).toString());
+            std::string topic{localId->fieldValue(topic_object::topic)};
             if (!topic.empty())
             {
-                eventKey.setTopic(topic);
+                eventKey.setTopic(std::move(topic));
             }
             auto self=this->shared_from_this();
-            auto handler=[self=std::move(self),this,localId](auto,
-                                                                   auto,
+            auto handler=[self=std::move(self),this,dbTtlSeconds,uid](auto,
+                                                                   auto ctx,
                                                                    auto event)
             {
                 {
@@ -345,14 +429,15 @@ void ObjectsCache<Traits>::put(
                     }
                 }
 
+                auto opCtx=Traits::makeContext(pimpl->derived,ctx);
                 if (event->event==HATN_APP_NAMESPACE::EventRemove)
-                {
-                    remove(localId);
+                {                    
+                    remove(opCtx,uid);
                 }
                 else if (event->messageTypeName == ObjectTypeName && event->message)
                 {
                     auto obj=event->message.template sharedAs<ObjectType>();
-                    put(obj);
+                    put(opCtx,obj,uid,true,dbTtlSeconds);
                 }
             };
             localItem.updateSubscriptionId=pimpl->eventDispatcher->subscribe(std::move(handler),std::move(eventKey));
@@ -361,12 +446,15 @@ void ObjectsCache<Traits>::put(
                 common::MutexScopedLock l{pimpl->locker};
                 pimpl->subscriprionIds.insert(localItem.updateSubscriptionId);
             }
-        }
-
+        }        
+    }
+    auto inserted=pimpl->localCache.pushItem(localId,localItem);
+    if (pimpl->eventDispatcher!=nullptr)
+    {
         // set displace handler to unsubscribe from dispatcher when item is deleted
         auto self=this->shared_from_this();
-        localItem.setDisplaceHandler(
-            [self,this](auto item)
+        inserted.setDisplaceHandler(
+            [self,this](auto* item)
             {
                 pimpl->eventDispatcher->unsubscribe(item->updateSubscriptionId);
 
@@ -377,125 +465,323 @@ void ObjectsCache<Traits>::put(
             }
         );
     }
-    pimpl->localCache.pushItem(localId,localItem);
 
     // push item to the rest caches
-    pimpl->serverCache.pushItem(getUidServer(uid),item);
-    pimpl->guidCache.pushItem(getUidGlobal(uid),item);
+    auto serverId=getUidServer(uid);
+    if (serverId)
+    {
+        pimpl->serverCache.pushItem(serverId,item);
+    }
+    auto guid=getUidGlobal(uid);
+    if (guid)
+    {
+        pimpl->guidCache.pushItem(getUidGlobal(uid),item);
+    }
+    // unlock cache
     pimpl->unlock();
+
+    // write item to database
+    if (keepInLocalDb && localId)
+    {
+        auto db=Traits::db(pimpl->derived,ctx,uid);
+        if (db)
+        {
+            // fill cache object
+            auto obj=pimpl->factory->template createObject<cache_object::managed>();
+
+            auto localOid=uid->member(uid::local,topic_object::oid);
+            if (localOid!=nullptr)
+            {
+                obj->setFieldValue(cache_object::local_oid,localOid->value());
+            }
+
+            auto serverId=uid->field(uid::server).sharedValue();
+            if (serverId)
+            {
+                auto str=serverObjectHash(serverId);
+                if (!str.empty())
+                {
+                    obj->setFieldValue(cache_object::server_hash,str);
+                }
+            }
+            auto globalId=uid->field(uid::global).sharedValue();
+            if (globalId)
+            {
+                auto str=guidObjectHash(globalId);
+                if (!str.empty())
+                {
+                    obj->setFieldValue(cache_object::guid_hash,str);
+                }
+            }
+            if (item)
+            {
+                obj->mutableField(cache_object::data).set(item);
+                obj->setFieldValue(cache_object::object_type,item->name());
+            }
+            else
+            {
+                obj->setFieldValue(cache_object::deleted,true);
+            }
+
+            // fill object update
+            auto request=HATN_DB_NAMESPACE::update::sharedRequest();
+            if (item)
+            {
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(with_revision::revision,db::update::set,item->fieldValue(with_revision::revision))
+                );
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::data,db::update::set,item.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
+                );
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::object_type,db::update::set,item->name())
+                );
+                if (dbTtlSeconds!=0)
+                {
+                    auto expireAt=common::DateTime::currentUtc();
+                    expireAt.addSeconds(dbTtlSeconds);
+                    request->emplace_back(
+                        HATN_DB_NAMESPACE::update::field(with_expire::expire_at,db::update::set,expireAt)
+                    );
+                }
+            }
+            else
+            {
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::data,db::update::unset)
+                );
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::object_type,db::update::unset)
+                );
+                if (dbTtlSeconds!=0)
+                {
+                    request->emplace_back(
+                        HATN_DB_NAMESPACE::update::field(with_expire::expire_at,db::update::unset)
+                    );
+                }
+            }
+
+            // update or create cache object
+            db->findUpdateCreate(
+                std::move(ctx),
+                [](auto,auto){},
+                pimpl->dbModel,
+                pimpl->localObjectQuery(localId),
+                std::move(request),
+                std::move(obj),
+                HATN_DB_NAMESPACE::update::ModifyReturn::After,
+                nullptr,
+                localId->fieldValue(topic_object::topic)
+            );
+        }
+    }
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-template <typename Context>
-common::Result<common::SharedPtr<typename ObjectsCache<Traits>::ObjectType>>
-ObjectsCache<Traits>::get(
+template <typename Traits, typename Derived>
+typename ObjectsCache<Traits,Derived>::Result
+ObjectsCache<Traits,Derived>::get(
         common::SharedPtr<Context> ctx,
         Key uid,
         bool postFetching,
         Subject bySubject,
-        bool keepInLocalDb
+        FetchCb callback,
+        bool keepInLocalDb,
+        size_t dbTtlSeconds
     )
 {
     pimpl->lock();
 
     // try to find in local cache
     auto locId=getUidLocal(uid);
-    const auto* item=pimpl->localCache.item(locId);
-    if (item!=nullptr)
+    const auto* item1=pimpl->localCache.item(locId);
+    if (item1!=nullptr)
     {
         pimpl->unlock();
-        return item->value;
+        return item1->value;
     }
 
     // try to find in server cache
-    auto serverId=getUidLocal(uid);
-    item=pimpl->serverCache.item(serverId);
-    if (item!=nullptr)
+    auto serverId=getUidServer(uid);
+    const auto* item2=pimpl->serverCache.item(serverId);
+    if (item2!=nullptr)
     {
         pimpl->unlock();
-        return item->value;
+        return item2->value;
     }
 
     // try to find in global cache
     auto globalId=getUidGlobal(uid);
-    item=pimpl->guidCache.item(globalId);
-    if (item!=nullptr)
+    const auto* item3=pimpl->guidCache.item(globalId);
+    if (item3!=nullptr)
     {
         pimpl->unlock();
-        return item->value;
+        return item3->value;
     }
 
     pimpl->unlock();
 
-    // ferch from controller
+    // make missed result
+    Result result;
+    result.missed=true;
+
+    // fetch from controller
     if (postFetching)
     {
-        auto cb=[](const common::Error&, Value)
+        auto cb=[callback](const common::Error& ec, Result result)
         {
+            if (callback)
+            {
+                callback(ec,std::move(result));
+            }
         };
-        invokeFetch(std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),keepInLocalDb);
+        invokeFetch(std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),dbTtlSeconds);
     }
 
     // return cache miss
-    return HATN_APP_NAMESPACE::appError(HATN_APP_NAMESPACE::AppError::CACHE_MISS);
+    return result;
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-template <typename Context>
-void ObjectsCache<Traits>::fetch(
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::fetch(
         common::SharedPtr<Context> ctx,
         FetchCb callback,
         Key uid,
         Subject bySubject,
-        bool keepInLocalDb
+        size_t dbTtlSeconds
     )
 {
     auto r=get(ctx,uid);
-    if (r)
+    if (r && r.missed)
     {
-        invokeFetch(std::move(ctx),std::move(callback),std::move(uid),std::move(bySubject),keepInLocalDb);
+        invokeFetch(std::move(ctx),std::move(callback),std::move(uid),std::move(bySubject),dbTtlSeconds);
+        return;
     }
+
+    callback({},std::move(r));
 }
 
 //--------------------------------------------------------------------------
 
-template <typename Traits>
-template <typename Context>
-void ObjectsCache<Traits>::invokeFetch(
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::invokeFetch(
         common::SharedPtr<Context> ctx,
         FetchCb callback,
         Key uid,
         Subject bySubject,
-        bool keepInLocalDb
+        size_t dbTtlSeconds
     )
 {
-    auto cb=[self=this->shared_from_this(),this,callback](const common::Error& ec, Value object)
+    auto self=this->shared_from_this();
+    auto readLocal=[self,this](
+                      auto&& farFetch,
+                      common::SharedPtr<Context> ctx,
+                      FetchCb callback,
+                      Key uid,
+                      Subject bySubject,
+                      size_t dbTtlSeconds
+                    )
     {
-        if (ec)
+        auto db=Traits::db(pimpl->derived,ctx,uid);
+        auto locId=getUidLocal(uid);
+        if (!locId || !db)
         {
+            farFetch(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
+            return;
+        }
+
+        auto cb=[farFetch=std::move(farFetch),self,this,callback,uid,bySubject,dbTtlSeconds](auto ctx, auto dbResult) mutable
+        {
+            // handle error
+            if (!dbResult)
+            {
+                callback(dbResult.error(),{});
+                return;
+            }
+
+            // if null then not found, go to far fetch
+            if (dbResult->isNull())
+            {
+                farFetch(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
+                return;
+            }
+
+            // parse data
+            auto cacheItem=dbResult->shared();
+            auto r=HATN_DATAUNIT_NAMESPACE::parseMessageSubunit<ObjectType>(*cacheItem,cache_object::data,pimpl->factory);
+            if (r)
+            {
+                // parsing error
+                callback(r.error(),{});
+            }
+
+            // put item to in-memory cache
+            put(std::move(ctx),r.value(),uid,false);
+
+            // invoke callback
+            callback({},Result{r.value()});
+        };
+
+        // find cache object in db
+        db->findOne(
+            std::move(ctx),
+            std::move(cb),
+            pimpl->dbModel,
+            pimpl->localObjectQuery(locId),
+            locId->fieldValue(topic_object::topic)
+        );
+    };
+
+    auto farFetch=[self,this](
+                         common::SharedPtr<Context> ctx,
+                         FetchCb callback,
+                         Key uid,
+                         Subject bySubject,
+                         size_t dbTtlSeconds
+                  )
+    {
+        auto cb=[ctx,uid,selfW=this->weak_from_this(),this,callback,dbTtlSeconds](const common::Error& ec, Value object) mutable
+        {
+            // handle error
+            if (ec)
+            {
+                if (callback)
+                {
+                    callback(ec,{});
+                }
+                return;
+            }
+
+            // save result in cache
+            auto self=selfW.lock();
+            if (self)
+            {
+                if (object && object->field(with_uid::uid).isSet())
+                {
+                    uid=object->field(with_uid::uid).sharedValue();
+                }
+                put(std::move(ctx),object,std::move(uid),true,dbTtlSeconds);
+            }
+
+            // invoke callback
             if (callback)
             {
                 callback(ec,std::move(object));
             }
-            return;
-        }
+        };
 
-        if (object)
-        {
-            put(std::move(object));
-        }
-
-        if (callback)
-        {
-            callback(ec,std::move(object));
-        }
+        // invoke far fetch
+        Traits::farFetch(pimpl->derived,std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject));
     };
 
-    Traits::fetch(std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),keepInLocalDb);
+    auto chain=HATN_NAMESPACE::chain(
+        std::move(readLocal),
+        std::move(farFetch)
+    );
+    chain(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
 }
 
 //--------------------------------------------------------------------------
