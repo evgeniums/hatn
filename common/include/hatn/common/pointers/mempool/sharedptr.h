@@ -374,8 +374,6 @@ template <typename T> class SharedPtr<T,std::enable_if_t<std::is_base_of<Managed
         template <typename Y>
         SharedPtr<Y> staticCast() const noexcept
         {
-            static_assert(std::is_base_of<Y,T>::value,"Y must be base type of T");
-
             SharedPtr<Y> obj(static_cast<Y*>(this->d),this->d);
             return obj;
         }
