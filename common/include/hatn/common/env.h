@@ -32,9 +32,12 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 struct EnvTag{};
-class BaseEnv
+
+class HATN_COMMON_EXPORT BaseEnv : public common::ClassUid<BaseEnv>
 {
     public:
+
+        HATN_CUID_DECLARE()
 
         using hana_tag=EnvTag;
 
@@ -51,6 +54,11 @@ class BaseEnv
         void setName(std::string name)
         {
             m_name=std::move(name);
+        }
+
+        virtual CUID_TYPE typeID() const noexcept
+        {
+            return cuid();
         }
 
     private:

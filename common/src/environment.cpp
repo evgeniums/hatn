@@ -13,9 +13,11 @@
  *
  */
 
-#include <hatn/common/environment.h>
+#include <hatn/common/env.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
+
+HATN_CUID_INIT(BaseEnv)
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END
