@@ -443,13 +443,19 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             m_envs[env->name()]=env;
         }
 
-        void removeEnv(const std::string& name)
+        void removeEnv(const std::string& envId)
         {
             common::MutexScopedLock l{m_mutex};
-            m_envs.erase(name);
+            auto env=exactEnv(envId);
+            m_envs.erase(envId);
+
+            if (env)
+            {
+                env->clear();
+            }
         }
 
-        common::SharedPtr<app::AppEnv> env(const std::string& envId) const
+        common::SharedPtr<app::AppEnv> env(lib::string_view envId) const
         {
             common::MutexScopedLock l{m_mutex};
 
@@ -461,7 +467,7 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             return it->second;
         }
 
-        common::SharedPtr<app::AppEnv> exactEnv(const std::string& envId) const
+        common::SharedPtr<app::AppEnv> exactEnv(lib::string_view envId) const
         {
             common::MutexScopedLock l{m_mutex};
 

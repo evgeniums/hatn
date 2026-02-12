@@ -138,6 +138,9 @@ class AppEnv : public common::Env<AllocatorFactory,Threads,Logger,Db,Dbs,CipherS
             m_mutex.unlock();
         }
 
+        virtual void clear()
+        {}
+
     private:
 
         mutable common::MutexLock m_mutex;
