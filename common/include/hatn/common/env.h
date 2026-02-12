@@ -74,7 +74,8 @@ class EnvContext : public T
         template <typename ...Args>
         EnvContext(
                 Args&& ...args
-            ) : T(std::forward<Args>(args)...)
+            ) : T(std::forward<Args>(args)...),
+                m_env(nullptr)
         {}
 
         template <typename ...Types>
@@ -86,6 +87,21 @@ class EnvContext : public T
                   )
         {}
 
+        void setEnv(BaseEnv* env) noexcept
+        {
+            m_env=env;
+        }
+
+        BaseEnv* env() noexcept
+        {
+            return m_env;
+        }
+
+        const BaseEnv* env() const noexcept
+        {
+            return m_env;
+        }
+
     private:
 
         template <typename Ts, std::size_t... I>
@@ -94,6 +110,8 @@ class EnvContext : public T
             std::index_sequence<I...>
             ) : EnvContext(std::get<I>(std::forward<Ts>(ts))...)
         {}
+
+        BaseEnv* m_env;
 };
 
 /**
@@ -116,7 +134,9 @@ class EnvT : public BaseT
                 Base(std::move(name)),
                 m_contexts(),
                 m_refs(ctxRefs())
-        {}
+        {
+            initContexts();
+        }
 
         /**
              * @brief Constructor from tuples of tuples.
@@ -128,7 +148,9 @@ class EnvT : public BaseT
             BaseT(std::forward<BaseTs>(baseTs)...),
             m_contexts(std::forward<Tts>(tts)),
             m_refs(ctxRefs())
-        {}
+        {
+            initContexts();
+        }
 
         /**
          * @brief Get interface of base env.
@@ -340,6 +362,17 @@ class EnvT : public BaseT
         }
 
     private:
+
+        void initContexts()
+        {
+            boost::hana::for_each(
+                m_contexts,
+                [this](auto& ctx)
+                {
+                    ctx.setEnv(this);
+                }
+            );
+        }
 
         Contexts m_contexts;
         typename TupleRefs<Contexts>::type m_refs;        
