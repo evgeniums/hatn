@@ -22,6 +22,7 @@
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/encrypted.h>
 #include <hatn/clientserver/models/serverroute.h>
+#include <hatn/clientserver/models/revision.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
@@ -100,6 +101,20 @@ HDU_UNIT(uid,
     HDU_FIELD(global,guid::TYPE,3)
 )
 
+HDU_UNIT(with_uid,
+    HDU_FIELD(uid,uid::TYPE,750)
+)
+
+HDU_UNIT(with_guid,
+    HDU_FIELD(guid,guid::TYPE,751)
+)
+
+HDU_UNIT(with_server_id,
+    HDU_FIELD(server_id,server_object::TYPE,752)
+)
+
+HDU_UNIT_WITH(global_object,(HDU_BASE(with_revision),HDU_BASE(with_uid)))
+
 struct CompareTopicObject
 {
     bool operator()(const common::SharedPtr<topic_object::managed>& l,
@@ -140,6 +155,40 @@ inline auto getUidServer(const common::SharedPtr<uid::managed>& uid)
 inline auto getUidGlobal(const common::SharedPtr<uid::managed>& uid)
 {
     return uid->field(uid::global).sharedValue();
+}
+
+template <typename PtrT>
+inline std::string guidObjectHash(const PtrT& id)
+{
+    if (!id)
+    {
+        return std::string{};
+    }
+    auto str=fmt::format("{}-{}-{}-{}-{}",
+                                id->fieldValue(guid::id),
+                                id->fieldValue(guid::id_topic),
+                                id->fieldValue(guid::id_type),
+                                id->fieldValue(guid::issuer_id),
+                                id->fieldValue(guid::issuer_schema)
+                           );
+
+    return str;
+}
+
+template <typename PtrT>
+inline std::string serverObjectHash(const PtrT& id)
+{
+    if (!id)
+    {
+        return std::string{};
+    }
+    auto str=fmt::format("{}-{}",id->fieldValue(topic_object::oid),id->fieldValue(topic_object::topic));
+    auto guidStr=guidObjectHash(id->field(server_object::server_id).sharedValue());
+    if (!guidStr.empty())
+    {
+        str=fmt::format("{}-{}",str,guidStr);
+    }
+    return str;
 }
 
 HATN_CLIENT_SERVER_NAMESPACE_END

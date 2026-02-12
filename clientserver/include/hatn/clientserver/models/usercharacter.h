@@ -89,7 +89,10 @@ using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
 namespace avatar_object=topic_object;
 
-HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),HDU_BASE(with_username),HDU_BASE(with_revision)),
+HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_guid),
+                                      HDU_BASE(with_name),
+                                      HDU_BASE(with_username),
+                                      HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
     HDU_FIELD(notes,with_string::TYPE,4)
     HDU_FIELD(addresses,with_addresses::TYPE,5)
@@ -119,6 +122,10 @@ HDU_UNIT_WITH(user_character_public_sync,(HDU_BASE(with_user_character)),
     HDU_FIELD(public_data,user_character_public::TYPE,1)
 )
 
+HDU_UNIT_WITH(global_character,(HDU_BASE(global_object)),
+    HDU_FIELD(public_data,user_character_public::TYPE,1)
+)
+
 HDU_UNIT_WITH(user_character_private_sync,(HDU_BASE(user_character_full),HDU_BASE(unread_count))
 )
 
@@ -133,7 +140,7 @@ HDU_UNIT_WITH(user_character_login,(HDU_BASE(db::object),HDU_BASE(with_user_char
     HDU_FIELD(description,TYPE_STRING,3)
 )
 
-HDU_UNIT_WITH(character,(HDU_BASE(user_character_full),HDU_BASE(at_server)),
+HDU_UNIT_WITH(character,(HDU_BASE(user_character_full),HDU_BASE(at_server),HDU_BASE(with_uid)),
               )
 
 HDU_UNIT(characters,
