@@ -33,7 +33,8 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 struct EnvTag{};
 
-class HATN_COMMON_EXPORT BaseEnv : public common::ClassUid<BaseEnv>
+class HATN_COMMON_EXPORT BaseEnv : public common::ClassUid<BaseEnv>,
+                                   public EnableSharedFromThis<BaseEnv>
 {
     public:
 
@@ -68,31 +69,13 @@ class HATN_COMMON_EXPORT BaseEnv : public common::ClassUid<BaseEnv>
 
 struct EnvContextTag{};
 
-/**
- * @brief Helper to wrap arbitrary type to Env context.
- */
-template <typename T>
-class EnvContext : public T
+class EnvContext : public EnableSharedFromThis<EnvContext>
 {
     public:
 
         using hana_tag=EnvContextTag;
-        using Base=T;
 
-        template <typename ...Args>
-        EnvContext(
-                Args&& ...args
-            ) : T(std::forward<Args>(args)...),
-                m_env(nullptr)
-        {}
-
-        template <typename ...Types>
-        EnvContext(
-                std::tuple<Types...>&& ts
-            ) : EnvContext(
-                  std::forward<std::tuple<Types...>>(ts),
-                  std::make_index_sequence<std::tuple_size<std::remove_reference_t<std::tuple<Types...>>>::value>{}
-                  )
+        EnvContext() : m_env(nullptr)
         {}
 
         void setEnv(BaseEnv* env) noexcept
@@ -112,14 +95,43 @@ class EnvContext : public T
 
     private:
 
-        template <typename Ts, std::size_t... I>
-        EnvContext(
-            Ts&& ts,
-            std::index_sequence<I...>
-            ) : EnvContext(std::get<I>(std::forward<Ts>(ts))...)
+        BaseEnv* m_env;
+};
+
+/**
+ * @brief Helper to wrap arbitrary type to Env context.
+ */
+template <typename T>
+class EnvContextT : public T,
+                    public EnvContext
+{
+    public:
+
+        using Base=T;
+
+        template <typename ...Args>
+        EnvContextT(
+                Args&& ...args
+            ) : T(std::forward<Args>(args)...)
         {}
 
-        BaseEnv* m_env;
+        template <typename ...Types>
+        EnvContextT(
+                std::tuple<Types...>&& ts
+            ) : EnvContextT(
+                      std::forward<std::tuple<Types...>>(ts),
+                      std::make_index_sequence<std::tuple_size<std::remove_reference_t<std::tuple<Types...>>>::value>{}
+                  )
+        {}
+
+    private:
+
+        template <typename Ts, std::size_t... I>
+        EnvContextT(
+                Ts&& ts,
+                std::index_sequence<I...>
+            ) : EnvContextT(std::get<I>(std::forward<Ts>(ts))...)
+        {}
 };
 
 /**
@@ -439,13 +451,24 @@ struct EnvTraits
                 return boost::hana::make_pair(_(xs),boost::hana::type_c<BaseEnv>);
             }
         );
+
         // prepare tuple to be used in variadic args of Env
         auto wrappersC=boost::hana::transform(
             boost::hana::first(tc),
             [](auto&& v)
             {
                 using type=typename std::decay_t<decltype(v)>::type;
-                return boost::hana::type_c<EnvContext<type>>;
+                return hana::eval_if(
+                    hana::is_a<EnvContextTag,type>,
+                    [&](auto&&)
+                    {
+                        return hana::type_c<type>;
+                    },
+                    [&](auto&&)
+                    {
+                        return hana::type_c<EnvContextT<type>>;
+                    }
+                );
             }
         );
         using wrappersT=common::tupleCToStdTupleType<std::decay_t<decltype(wrappersC)>>;
