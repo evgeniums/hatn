@@ -711,6 +711,33 @@ struct SubunitField : public FieldConf<SubunitFieldTmpl<Type>,Id,FieldName,Type,
     using FieldConf<SubunitFieldTmpl<Type>,Id,FieldName,Type,Required>::FieldConf;
 };
 
+template <typename SubunitT, typename MsgT, typename FieldT>
+static Result<common::SharedPtr<SubunitT>> parseMessageSubunit(const MsgT& msg, const FieldT& field, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
+{
+    static SubunitT sample;
+
+    const auto& subunitField=msg.field(field);
+    auto sharedSubunit=subunitField.sharedValue();
+    if (sharedSubunit)
+    {
+        return sample.castToManagedUnit(sharedSubunit.get())->sharedFromThis();
+    }
+
+    auto subunit=factory->createObject<SubunitT>();
+    auto subunitContent=subunitField.skippedNotParsedContent();
+    if (!subunitContent)
+    {
+        return subunit;
+    }
+    du::WireBufSolidShared buf{subunitContent};
+
+    Error ec;
+    du::io::deserialize(*subunit,buf,ec);
+    HATN_CHECK_EC(ec)
+
+    return subunit;
+}
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNSUBUNIT_H
