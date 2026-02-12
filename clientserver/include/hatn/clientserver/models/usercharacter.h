@@ -163,6 +163,10 @@ HDU_UNIT_WITH(get_public_character_info,(HDU_BASE(with_user_character)),
     HDU_FIELD(by_character,TYPE_OBJECT_ID,1)
 )
 
+HDU_UNIT_WITH(get_global_character,(HDU_BASE(with_uid)),
+    HDU_FIELD(by_subject,uid::TYPE,1)
+)
+
 template <typename CharacterT>
 inline common::SharedPtr<username::managed> characterUserName(const CharacterT& character)
 {

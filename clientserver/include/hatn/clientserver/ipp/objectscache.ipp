@@ -93,15 +93,20 @@ class ObjectsCache_p
                         thread
                         ),
               factory(factory),
-              dbModel(makeCacheModel(Traits::DbModel))
+              dbModelName(Traits::DbModel)
     {}
 
     common::MutexLock locker;
     bool stopped=true;
     Derived* derived;
+    std::string dbModelName;
 
-    using DbModelType=decltype(makeCacheModel(std::string{}));
-    DbModelType dbModel;
+    CacheDbModelsProvider* dbModelProvider=nullptr;
+
+    auto& dbModel()
+    {
+        return *dbModelProvider->model(dbModelName);
+    }
 
     void lock()
     {
@@ -140,6 +145,12 @@ class ObjectsCache_p
 //--------------------------------------------------------------------------
 
 template <typename Traits, typename Derived>
+ObjectsCache<Traits,Derived>::ObjectsCache()
+{}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
 ObjectsCache<Traits,Derived>::ObjectsCache(
         Derived* derived,
         common::Thread* thread,
@@ -153,6 +164,19 @@ ObjectsCache<Traits,Derived>::ObjectsCache(
 template <typename Traits, typename Derived>
 ObjectsCache<Traits,Derived>::~ObjectsCache()
 {
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::init(
+        Derived* derived,
+        common::Thread* thread,
+        size_t ttlSeconds,
+        const common::pmr::AllocatorFactory* factory
+    )
+{
+    pimpl=std::make_unique<ObjectsCache_p<Traits,Derived>>(derived,thread,ttlSeconds,factory);
 }
 
 //--------------------------------------------------------------------------
@@ -320,7 +344,7 @@ void ObjectsCache<Traits,Derived>::touch(
             db->updateMany(
                 std::move(ctx),
                 [](auto,auto){},
-                pimpl->dbModel,
+                pimpl->dbModel(),
                 pimpl->localObjectQuery(locUid),
                 std::move(request),
                 nullptr,
@@ -354,7 +378,7 @@ void ObjectsCache<Traits,Derived>::remove(
             db->deleteMany(
                 std::move(ctx),
                 [](auto,auto){},
-                pimpl->dbModel,
+                pimpl->dbModel(),
                 pimpl->localObjectQuery(locUid),
                 nullptr,
                 ObjectsCacheTraits::locIdTopic(uid)
@@ -417,8 +441,8 @@ void ObjectsCache<Traits,Derived>::put(
             {
                 eventKey.setTopic(std::move(topic));
             }
-            auto self=this->shared_from_this();
-            auto handler=[self=std::move(self),this,dbTtlSeconds,uid](auto,
+            auto asynGuard=Traits::asyncGuard(pimpl->derived);
+            auto handler=[asynGuard=std::move(asynGuard),this,dbTtlSeconds,uid](auto,
                                                                    auto ctx,
                                                                    auto event)
             {
@@ -453,9 +477,9 @@ void ObjectsCache<Traits,Derived>::put(
     if (pimpl->eventDispatcher!=nullptr)
     {
         // set displace handler to unsubscribe from dispatcher when item is deleted
-        auto self=this->shared_from_this();
+        auto asynGuard=Traits::asyncGuard(pimpl->derived);
         inserted.setDisplaceHandler(
-            [self,this](auto* item)
+            [asynGuard,this](auto* item)
             {
                 pimpl->eventDispatcher->unsubscribe(item->updateSubscriptionId);
 
@@ -586,7 +610,7 @@ void ObjectsCache<Traits,Derived>::put(
             db->findUpdateCreate(
                 std::move(ctx),
                 [](auto,auto){},
-                pimpl->dbModel,
+                pimpl->dbModel(),
                 pimpl->localObjectQuery(localId),
                 std::move(request),
                 std::move(obj),
@@ -698,8 +722,8 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         size_t dbTtlSeconds
     )
 {
-    auto self=this->shared_from_this();
-    auto readLocal=[self,this,localDbFullObject](
+    auto asynGuard=Traits::asyncGuard(pimpl->derived);
+    auto readLocal=[asynGuard,this,localDbFullObject](
                       auto&& farFetch,
                       common::SharedPtr<Context> ctx,
                       FetchCb callback,
@@ -715,7 +739,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             farFetch(std::move(ctx),callback,std::move(uid),bySubject,localDbFullObject,dbTtlSeconds);
         }
 
-        auto cb=[farFetch=std::move(farFetch),self,this,callback,uid,bySubject,localDbFullObject,dbTtlSeconds](auto ctx, auto dbResult) mutable
+        auto cb=[farFetch=std::move(farFetch),asynGuard,this,callback,uid,bySubject,localDbFullObject,dbTtlSeconds](auto ctx, auto dbResult) mutable
         {
             // handle error
             if (!dbResult)
@@ -735,7 +759,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             auto cacheItem=dbResult->shared();
 
             // update inmem cache
-            auto updateInmem=[ctx,callback,self,this,uid](auto cacheItem)
+            auto updateInmem=[ctx,callback,asynGuard,this,uid](auto cacheItem)
             {
                 auto r=HATN_DATAUNIT_NAMESPACE::parseMessageSubunit<ObjectType>(*cacheItem,cache_object::data,pimpl->factory);
                 if (r)
@@ -787,13 +811,13 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         db->findOne(
             std::move(ctx),
             std::move(cb),
-            pimpl->dbModel,
+            pimpl->dbModel(),
             pimpl->localObjectQuery(locId),
             ObjectsCacheTraits::locIdTopic(uid)
         );
     };
 
-    auto farFetch=[self,this](
+    auto farFetch=[asynGuard,this](
                          common::SharedPtr<Context> ctx,
                          FetchCb callback,
                          Key uid,
@@ -802,7 +826,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                          size_t dbTtlSeconds
                   )
     {
-        auto cb=[ctx,uid,selfW=this->weak_from_this(),this,callback,localDbFullObject,dbTtlSeconds](const common::Error& ec, Value object) mutable
+        auto cb=[ctx,uid,asynGuardW=this->weak_from_this(),this,callback,localDbFullObject,dbTtlSeconds](const common::Error& ec, Value object) mutable
         {
             // handle error
             if (ec)
@@ -815,8 +839,8 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             }
 
             // save result in cache
-            auto self=selfW.lock();
-            if (self)
+            auto asynGuard=asynGuardW.lock();
+            if (asynGuard)
             {
                 if (object && object->field(with_uid::uid).isSet())
                 {
@@ -841,6 +865,14 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         std::move(farFetch)
     );
     chain(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setDbModelProvider(CacheDbModelsProvider* provider)
+{
+    pimpl->dbModelProvider=provider;
 }
 
 //--------------------------------------------------------------------------

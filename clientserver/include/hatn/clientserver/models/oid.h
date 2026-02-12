@@ -56,13 +56,13 @@ constexpr const char* GUID_ISSUER_DNS="dns";
 constexpr const char* GUID_ISSUER_PUBKEY="pubkey";
 constexpr const char* GUID_ISSUER_REGISTRY="registry";
 constexpr const char* GUID_ISSUER_X509="x509";
+constexpr const char* GUID_ISSUER_SELF_OID="self_oid";
 
 constexpr const char* GUID_ID_TYPE_OID="oid";
 constexpr const char* GUID_ID_TYPE_USERNAME="username";
 constexpr const char* GUID_ID_TYPE_ALIAS="alias";
 constexpr const char* GUID_ID_TYPE_X509="x509";
 constexpr const char* GUID_ID_TYPE_PUBKEY="pubkey";
-constexpr const char* GUID_ID_TYPE_INVITATION="invitation";
 
 HDU_UNIT(guid,
     HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS)

@@ -173,6 +173,11 @@ HDU_UNIT(ivitation_info,
     HDU_FIELD(user_info,user_character_public_sync::TYPE,2)
 )
 
+HDU_UNIT(character_for_invitation,
+    HDU_FIELD(invitation,invitation::TYPE,1)
+    HDU_FIELD(character,global_character::TYPE,2)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELINVITATION_H
