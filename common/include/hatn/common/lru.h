@@ -73,7 +73,7 @@ class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::int
                       )
         {}
 
-        void setDisplaceHandler(std::function<void()> handler)
+        void setDisplaceHandler(std::function<void(ItemT*)> handler)
         {
             m_onDisplace=handler;
         }
@@ -93,7 +93,7 @@ class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::int
         {}
 
         KeyT m_key;
-        std::function<void()> m_onDisplace;
+        std::function<void(ItemT*)> m_onDisplace;
 };
 
 /**
@@ -273,7 +273,7 @@ class Lru
         {
             if (item.displaceHandler())
             {
-                item.displaceHandler();
+                item.displaceHandler()(&item);
             }
 
             m_queue.erase(m_queue.iterator_to(item));
@@ -363,7 +363,7 @@ class Lru
                     {
                         if (lruItem->displaceHandler())
                         {
-                            lruItem->displaceHandler();
+                            lruItem->displaceHandler()(lruItem);
                         }
                         m_storage.doRemove(lruItem->key());
                     }
