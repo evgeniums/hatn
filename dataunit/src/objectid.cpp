@@ -26,14 +26,16 @@ HATN_DATAUNIT_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-//! @todo critical: Use steady clock for timepoint generation, i.e. remember base timepoint at startup and then add current steady clock
-
 void ObjectId::generate()
 {
     static std::atomic<uint64_t> lastMs{0};
     static std::atomic<uint32_t> seq{1};
+    static auto startupTimepoint=common::DateTime::millisecondsSinceEpoch();
+    static auto startupSteadyClock=std::chrono::steady_clock::now();
 
-    m_timepoint=common::DateTime::millisecondsSinceEpoch();
+    auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startupSteadyClock).count();
+
+    m_timepoint=startupTimepoint+elapsedMs;
     auto prevMs=lastMs.load();
     auto prevSeq=seq.load();
     bool restartSeq{false};
