@@ -23,6 +23,7 @@ HATN_CLIENTAPP_NAMESPACE::ClientApp* ContextApp::clientApp(
     const common::SharedPtr<Context>& ctx
 )
 {
+    //! @todo optimization: use CUID and static cast
     auto baseAppCtx=ctx.dynamicCast<HATN_CLIENTAPP_NAMESPACE::BridgeAppContext>();
     Assert(baseAppCtx,"invalid context");
 
