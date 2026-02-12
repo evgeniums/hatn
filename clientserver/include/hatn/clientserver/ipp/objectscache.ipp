@@ -371,6 +371,7 @@ void ObjectsCache<Traits,Derived>::put(
         Value item,
         Key uid,
         bool keepInLocalDb,
+        bool localDbFullObject,
         size_t dbTtlSeconds
     )
 {
@@ -515,7 +516,10 @@ void ObjectsCache<Traits,Derived>::put(
             }
             if (item)
             {
-                obj->mutableField(cache_object::data).set(item);
+                if (localDbFullObject)
+                {
+                    obj->mutableField(cache_object::data).set(item);
+                }
                 obj->setFieldValue(cache_object::object_type,item->name());
             }
             else
@@ -530,9 +534,20 @@ void ObjectsCache<Traits,Derived>::put(
                 request->emplace_back(
                     HATN_DB_NAMESPACE::update::field(with_revision::revision,db::update::set,item->fieldValue(with_revision::revision))
                 );
-                request->emplace_back(
-                    HATN_DB_NAMESPACE::update::field(cache_object::data,db::update::set,item.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
-                );
+
+                if (localDbFullObject)
+                {
+                    request->emplace_back(
+                        HATN_DB_NAMESPACE::update::field(cache_object::data,db::update::set,item.template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>())
+                        );
+                }
+                else
+                {
+                    request->emplace_back(
+                        HATN_DB_NAMESPACE::update::field(cache_object::data,db::update::unset)
+                    );
+                }
+
                 request->emplace_back(
                     HATN_DB_NAMESPACE::update::field(cache_object::object_type,db::update::set,item->name())
                 );
@@ -587,7 +602,7 @@ ObjectsCache<Traits,Derived>::get(
         bool postFetching,
         Subject bySubject,
         FetchCb callback,
-        bool keepInLocalDb,
+        bool localDbFullObject,
         size_t dbTtlSeconds
     )
 {
@@ -636,7 +651,7 @@ ObjectsCache<Traits,Derived>::get(
                 callback(ec,std::move(result));
             }
         };
-        invokeFetch(std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),dbTtlSeconds);
+        invokeFetch(std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),localDbFullObject,dbTtlSeconds);
     }
 
     // return cache miss
@@ -651,13 +666,14 @@ void ObjectsCache<Traits,Derived>::fetch(
         FetchCb callback,
         Key uid,
         Subject bySubject,
+        bool localDbFullObject,
         size_t dbTtlSeconds
     )
 {
     auto r=get(ctx,uid);
     if (r && r.missed)
     {
-        invokeFetch(std::move(ctx),std::move(callback),std::move(uid),std::move(bySubject),dbTtlSeconds);
+        invokeFetch(std::move(ctx),std::move(callback),std::move(uid),std::move(bySubject),localDbFullObject,dbTtlSeconds);
         return;
     }
 
@@ -672,11 +688,12 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         FetchCb callback,
         Key uid,
         Subject bySubject,
+        bool localDbFullObject,
         size_t dbTtlSeconds
     )
 {
     auto self=this->shared_from_this();
-    auto readLocal=[self,this](
+    auto readLocal=[self,this,localDbFullObject](
                       auto&& farFetch,
                       common::SharedPtr<Context> ctx,
                       FetchCb callback,
@@ -689,11 +706,11 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         auto locId=getUidLocal(uid);
         if (!locId || !db)
         {
-            farFetch(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
+            farFetch(std::move(ctx),callback,std::move(uid),bySubject,localDbFullObject,dbTtlSeconds);
             return;
         }
 
-        auto cb=[farFetch=std::move(farFetch),self,this,callback,uid,bySubject,dbTtlSeconds](auto ctx, auto dbResult) mutable
+        auto cb=[farFetch=std::move(farFetch),self,this,callback,uid,bySubject,localDbFullObject,dbTtlSeconds](auto ctx, auto dbResult) mutable
         {
             // handle error
             if (!dbResult)
@@ -705,24 +722,60 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             // if null then not found, go to far fetch
             if (dbResult->isNull())
             {
-                farFetch(std::move(ctx),callback,std::move(uid),bySubject,dbTtlSeconds);
+                farFetch(std::move(ctx),callback,std::move(uid),bySubject,localDbFullObject,dbTtlSeconds);
                 return;
             }
 
-            // parse data
+            // parse data            
             auto cacheItem=dbResult->shared();
-            auto r=HATN_DATAUNIT_NAMESPACE::parseMessageSubunit<ObjectType>(*cacheItem,cache_object::data,pimpl->factory);
-            if (r)
+
+            // update inmem cache
+            auto updateInmem=[ctx,callback,self,this,uid](auto cacheItem)
             {
-                // parsing error
-                callback(r.error(),{});
+                auto r=HATN_DATAUNIT_NAMESPACE::parseMessageSubunit<ObjectType>(*cacheItem,cache_object::data,pimpl->factory);
+                if (r)
+                {
+                    // parsing error
+                    callback(r.error(),{});
+                    return;
+                }
+
+                // put item to in-memory cache
+                put(std::move(ctx),r.value(),uid,false);
+
+                // invoke callback
+                callback({},Result{r.value()});
+            };
+
+            if (cacheItem->field(cache_object::data).isSet() && !cacheItem->fieldValue(cache_object::deleted))
+            {
+                // if item is not in cached item then get it from db
+                auto getDbCb=[updateInmem,cacheItem,callback](const common::Error& ec, Value item) mutable
+                {
+                    if (ec)
+                    {
+                        callback(ec,{});
+                        return;
+                    }
+
+                    if (item)
+                    {
+                        cacheItem->field(cache_object::data).set(std::move(item));
+                        cacheItem->field(cache_object::deleted).set(false);
+                    }
+                    else
+                    {
+                        cacheItem->field(cache_object::data).reset();
+                        cacheItem->field(cache_object::deleted).set(true);
+                    }
+                    updateInmem(cacheItem);
+                };
+                Traits::getDbItem(pimpl->derived,ctx,getDbCb,uid);
             }
-
-            // put item to in-memory cache
-            put(std::move(ctx),r.value(),uid,false);
-
-            // invoke callback
-            callback({},Result{r.value()});
+            else
+            {
+                updateInmem(cacheItem);
+            }
         };
 
         // find cache object in db
@@ -740,10 +793,11 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                          FetchCb callback,
                          Key uid,
                          Subject bySubject,
+                         bool localDbFullObject,
                          size_t dbTtlSeconds
                   )
     {
-        auto cb=[ctx,uid,selfW=this->weak_from_this(),this,callback,dbTtlSeconds](const common::Error& ec, Value object) mutable
+        auto cb=[ctx,uid,selfW=this->weak_from_this(),this,callback,localDbFullObject,dbTtlSeconds](const common::Error& ec, Value object) mutable
         {
             // handle error
             if (ec)
@@ -763,7 +817,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                 {
                     uid=object->field(with_uid::uid).sharedValue();
                 }
-                put(std::move(ctx),object,std::move(uid),true,dbTtlSeconds);
+                put(std::move(ctx),object,std::move(uid),true,localDbFullObject,dbTtlSeconds);
             }
 
             // invoke callback

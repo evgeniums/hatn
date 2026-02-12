@@ -102,7 +102,7 @@ class ObjectsCache : public ObjectsCacheConfig,
             bool postFetching=false,            
             Subject bySubject={},
             FetchCb callback={},
-            bool keepInLocalDb=true,
+            bool localDbFullObject=true,
             size_t dbTtlSeconds=0
         );
 
@@ -111,6 +111,7 @@ class ObjectsCache : public ObjectsCacheConfig,
             FetchCb callback,
             Key uid,
             Subject bySubject={},
+            bool localDbFullObject=true,
             size_t dbTtlSeconds=0
         );
 
@@ -119,6 +120,7 @@ class ObjectsCache : public ObjectsCacheConfig,
             Value item,
             Key uid={},
             bool keepInLocalDb=true,
+            bool localDbFullObject=true,
             size_t dbTtlSeconds=0
         );
 
@@ -158,6 +160,7 @@ class ObjectsCache : public ObjectsCacheConfig,
             FetchCb callback,
             Key uid,
             Subject bySubject,
+            bool localDbFullObject,
             size_t dbTtlSeconds
         );
 
