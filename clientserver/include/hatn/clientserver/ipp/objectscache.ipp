@@ -417,7 +417,6 @@ void ObjectsCache<Traits,Derived>::put(
 
     // setup subscription to event of item updating
     typename ObjectsCache_p<Traits,Derived>::Item localItem{std::move(item)};
-    localItem.value=item;
 
     HATN_APP_NAMESPACE::EventKey eventKey{pimpl->eventCategory};
     auto localUid=uid.local();
@@ -736,6 +735,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         if (!locId || !db)
         {
             farFetch(std::move(ctx),callback,std::move(uid),bySubject,localDbFullObject,dbTtlSeconds);
+            return;
         }
 
         auto cb=[farFetch=std::move(farFetch),asynGuard,this,callback,uid,bySubject,localDbFullObject,dbTtlSeconds](auto ctx, auto dbResult) mutable
@@ -825,8 +825,10 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                          size_t dbTtlSeconds
                   )
     {
-        auto cb=[ctx,uid,asynGuardW=this->weak_from_this(),this,callback,localDbFullObject,dbTtlSeconds](const common::Error& ec, Value object) mutable
+        auto cb=[ctx,uid,asynGuardW=common::toWeakPtr(asynGuard),this,callback,localDbFullObject,dbTtlSeconds](const common::Error& ec, Value object) mutable
         {
+            std::cout << "farFetch " << object->toString(true) << std::endl;
+
             // handle error
             if (ec)
             {

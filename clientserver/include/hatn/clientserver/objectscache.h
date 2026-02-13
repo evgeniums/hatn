@@ -48,8 +48,7 @@ template <typename Traits, typename Derived>
 class ObjectsCache_p;
 
 template <typename Traits, typename Derived>
-class ObjectsCache : public ObjectsCacheConfig,
-                     public std::enable_shared_from_this<ObjectsCache<Traits,Derived>>
+class ObjectsCache : public ObjectsCacheConfig
 {
     public:
 
