@@ -64,6 +64,26 @@ class WithStdSharedValue
             return m_value.get();
         }
 
+        const T* get() const noexcept
+        {
+            return m_value.get();
+        }
+
+        T* get() noexcept
+        {
+            return m_value.get();
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_value.isNull();
+        }
+
+        operator bool() const noexcept
+        {
+            return !isNull();
+        }
+
         std::shared_ptr<T> sharedValue() const noexcept
         {
             return m_value;
@@ -117,6 +137,26 @@ class WithSharedValue
         T* operator ->() noexcept
         {
             return m_value.get();
+        }
+
+        const T* get() const noexcept
+        {
+            return m_value.get();
+        }
+
+        T* get() noexcept
+        {
+            return m_value.get();
+        }
+
+        bool isNull() const noexcept
+        {
+            return m_value.isNull();
+        }
+
+        operator bool() const noexcept
+        {
+            return !isNull();
         }
 
         common::SharedPtr<T> sharedValue() const
