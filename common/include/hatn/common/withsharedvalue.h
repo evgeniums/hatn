@@ -94,6 +94,11 @@ class WithStdSharedValue
             m_value=std::move(value);
         }
 
+        void create()
+        {
+            setValue(std::make_shared<T>);
+        }
+
     private:
 
         std::shared_ptr<T> m_value;
@@ -172,6 +177,11 @@ class WithSharedValue
         void setValue(common::SharedPtr<T> value)
         {
             m_value=std::move(value);
+        }
+
+        T& create()
+        {
+            setValue(common::makeShared<T>);
         }
 
     private:
