@@ -369,7 +369,7 @@ class Uid : public common::WithSharedValue<uid::managed>
                 return Guid{};
             }
             return getUidGlobal(get());
-        }
+        }        
 };
 
 HATN_CLIENT_SERVER_NAMESPACE_END
