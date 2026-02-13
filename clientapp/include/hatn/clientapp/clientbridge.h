@@ -444,15 +444,16 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
         }
 
         void removeEnv(const std::string& envId)
-        {
-            common::MutexScopedLock l{m_mutex};
+        {            
             auto env=exactEnv(envId);
-            m_envs.erase(envId);
-
             if (env)
             {
                 env->clear();
             }
+
+            m_mutex.lock();
+            m_envs.erase(envId);
+            m_mutex.unlock();
         }
 
         common::SharedPtr<app::AppEnv> env(lib::string_view envId) const
