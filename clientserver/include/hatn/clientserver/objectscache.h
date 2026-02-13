@@ -37,27 +37,11 @@ class ObjectsCacheConfig
         constexpr static size_t DefaultTtlSeconds=300;
         constexpr static size_t DefaultCapacity=100;
         constexpr static const char* DefaultEventCategory="cache";
-
-        using Key=common::SharedPtr<uid::managed>;
-        using Subject=common::SharedPtr<uid::managed>;
 };
 
 struct ObjectsCacheTraits
 {
-    using Key=ObjectsCacheConfig::Key;
-    using Subject=ObjectsCacheConfig::Subject;
-
     constexpr static const char* DbModel="cache";
-
-    static std::string_view locIdTopic(const common::SharedPtr<uid::managed>& uid)
-    {
-        auto m=uid->member(uid::local,topic_object::topic);
-        if (m)
-        {
-            return m->value();
-        }
-        return std::string_view{};
-    }
 };
 
 template <typename Traits, typename Derived>
@@ -121,9 +105,9 @@ class ObjectsCache : public ObjectsCacheConfig,
 
         Result get(
             common::SharedPtr<Context> ctx,
-            Key uid,
+            Uid uid,
             bool postFetching=false,            
-            Subject bySubject={},
+            Uid bySubject={},
             FetchCb callback={},
             bool localDbFullObject=true,
             size_t dbTtlSeconds=0
@@ -132,8 +116,8 @@ class ObjectsCache : public ObjectsCacheConfig,
         void fetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
-            Key uid,
-            Subject bySubject={},
+            Uid uid,
+            Uid bySubject={},
             bool localDbFullObject=true,
             size_t dbTtlSeconds=0
         );
@@ -141,7 +125,7 @@ class ObjectsCache : public ObjectsCacheConfig,
         void put(
             common::SharedPtr<Context> ctx,
             Value item,
-            Key uid={},
+            Uid uid={},
             bool keepInLocalDb=true,
             bool localDbFullObject=true,
             size_t dbTtlSeconds=0
@@ -149,13 +133,13 @@ class ObjectsCache : public ObjectsCacheConfig,
 
         void touch(
             common::SharedPtr<Context> ctx,
-            Key uid,
+            Uid uid,
             size_t dbTtlSeconds=0
         );
 
         void remove(
             common::SharedPtr<Context> ctx,
-            Key uid
+            Uid uid
         );
 
         void setTtlSeconds(size_t ttlSecs);
@@ -181,8 +165,8 @@ class ObjectsCache : public ObjectsCacheConfig,
         void invokeFetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
-            Key uid,
-            Subject bySubject,
+            Uid uid,
+            Uid bySubject,
             bool localDbFullObject,
             size_t dbTtlSeconds
         );

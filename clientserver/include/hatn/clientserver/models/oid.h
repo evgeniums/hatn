@@ -16,6 +16,8 @@
 #ifndef HATNCLIENTSERVERMODELSOID_H
 #define HATNCLIENTSERVERMODELSOID_H
 
+#include <hatn/common/withsharedvalue.h>
+
 #include <hatn/db/object.h>
 #include <hatn/dataunit/compare.h>
 
@@ -115,44 +117,20 @@ HDU_UNIT(with_server_id,
 
 HDU_UNIT_WITH(global_object,(HDU_BASE(with_revision),HDU_BASE(with_uid)))
 
-struct CompareTopicObject
-{
-    bool operator()(const common::SharedPtr<topic_object::managed>& l,
-                    const common::SharedPtr<topic_object::managed>& r) const noexcept
-    {
-        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
-    }
-};
-
-struct CompareServerObject
-{
-    bool operator()(const common::SharedPtr<server_object::managed>& l,
-                    const common::SharedPtr<server_object::managed>& r) const noexcept
-    {
-        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
-    }
-};
-
-struct CompareGuid
-{
-    bool operator()(const common::SharedPtr<guid::managed>& l,
-                    const common::SharedPtr<guid::managed>& r) const noexcept
-    {
-        return HATN_DATAUNIT_NAMESPACE::unitsLess(l,r);
-    }
-};
-
-inline auto getUidLocal(const common::SharedPtr<uid::managed>& uid)
+template <typename T>
+inline auto getUidLocal(const T& uid)
 {
     return uid->field(uid::local).sharedValue();
 }
 
-inline auto getUidServer(const common::SharedPtr<uid::managed>& uid)
+template <typename T>
+inline auto getUidServer(const T& uid)
 {
     return uid->field(uid::server).sharedValue();
 }
 
-inline auto getUidGlobal(const common::SharedPtr<uid::managed>& uid)
+template <typename T>
+inline auto getUidGlobal(const T& uid)
 {
     return uid->field(uid::global).sharedValue();
 }
@@ -190,6 +168,209 @@ inline std::string serverObjectHash(const PtrT& id)
     }
     return str;
 }
+
+class LocalUid : public common::WithSharedValue<topic_object::managed>
+{
+    public:
+
+        using common::WithSharedValue<topic_object::managed>::WithSharedValue;
+
+        const HATN_DATAUNIT_NAMESPACE::ObjectId* oid() const noexcept
+        {
+            if (isNull())
+            {
+                return nullptr;
+            }
+            return &value().fieldValue(topic_object::oid);
+        }
+
+        lib::string_view topic() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(topic_object::topic);
+        }
+
+        template <typename T>
+        bool operator <(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsLess(get(),other);
+        }
+
+        template <typename T>
+        bool operator ==(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+        }
+};
+
+class Guid : public common::WithSharedValue<guid::managed>
+{
+    public:
+
+        using common::WithSharedValue<guid::managed>::WithSharedValue;
+
+        lib::string_view issuerSchema() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(guid::issuer_schema);
+        }
+
+        lib::string_view issuerId() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(guid::issuer_id);
+        }
+
+        lib::string_view id() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(guid::id);
+        }
+
+        lib::string_view idTopic() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(guid::id_topic);
+        }
+
+        lib::string_view idType() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(guid::id_type);
+        }
+
+        template <typename T>
+        bool operator <(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsLess(get(),other);
+        }
+
+        template <typename T>
+        bool operator ==(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+        }
+
+        std::string hash() const
+        {
+            return guidObjectHash(get());
+        }
+};
+
+class ServerUid : public common::WithSharedValue<server_object::managed>
+{
+    public:
+
+        using common::WithSharedValue<server_object::managed>::WithSharedValue;
+
+        const HATN_DATAUNIT_NAMESPACE::ObjectId* oid() const noexcept
+        {
+            if (isNull())
+            {
+                return nullptr;
+            }
+            return &value().fieldValue(topic_object::oid);
+        }
+
+        lib::string_view topic() const noexcept
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return value().fieldValue(topic_object::topic);
+        }
+
+        Guid guid()
+        {
+            if (isNull())
+            {
+                return Guid{};
+            }
+            return value().field(server_object::server_id).sharedValue();
+        }
+
+        template <typename T>
+        bool operator <(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsLess(get(),other);
+        }
+
+        template <typename T>
+        bool operator ==(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+        }
+
+        std::string hash() const
+        {
+            return serverObjectHash(get());
+        }
+};
+
+class Uid : public common::WithSharedValue<uid::managed>
+{
+    public:
+
+        using common::WithSharedValue<uid::managed>::WithSharedValue;
+
+        template <typename T>
+        bool operator <(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsLess(get(),other);
+        }
+
+        template <typename T>
+        bool operator ==(const T& other) const
+        {
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+        }
+
+        LocalUid local() const noexcept
+        {
+            if (isNull())
+            {
+                return LocalUid{};
+            }
+            return getUidLocal(get());
+        }
+
+        ServerUid server() const noexcept
+        {
+            if (isNull())
+            {
+                return ServerUid{};
+            }
+            return getUidServer(get());
+        }
+
+        Guid global() const noexcept
+        {
+            if (isNull())
+            {
+                return Guid{};
+            }
+            return getUidGlobal(get());
+        }
+};
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
