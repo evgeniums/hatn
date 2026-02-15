@@ -147,7 +147,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             DefaultLimit=limit;
         }
 
-        Topic defaultTopic(Topic other=Topic{})
+        Topic defaultTopic(Topic other=Topic{}) const
         {
             if (!other.topic().empty())
             {
