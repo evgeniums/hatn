@@ -70,6 +70,9 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
             }
             if (!status.ok())
             {
+#if 0
+                std::cout<<"Unique index " << logKey(k)  << " failed to merge" << std::endl;
+#endif
                 if (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed)
                 {
                     auto ec=dbError(DbError::DUPLICATE_UNIQUE_KEY);

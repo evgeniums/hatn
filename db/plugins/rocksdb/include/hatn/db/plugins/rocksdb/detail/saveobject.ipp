@@ -25,6 +25,7 @@
 
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
+#include <hatn/dataunit/datauniterrorcodes.h>
 
 #include <hatn/db/dberror.h>
 #include <hatn/db/transaction.h>
@@ -47,11 +48,16 @@ Error serializeObject(const ObjectT* obj, dataunit::WireBufSolid& buf)
     if (!obj->wireDataKeeper())
     {
         Error ec;
-        dataunit::io::serialize(*obj,buf,ec);
-        if(ec)
+        auto size=dataunit::io::serialize(*obj,buf,ec);
+        if (ec)
         {
             HATN_CTX_SCOPE_ERROR("serialize object");
             return ec;
+        }
+        if (size<0)
+        {
+            HATN_CTX_SCOPE_ERROR("serialize object");
+            return HATN_DATAUNIT_NAMESPACE::unitError(HATN_DATAUNIT_NAMESPACE::UnitError::SERIALIZE_ERROR);
         }
     }
     else

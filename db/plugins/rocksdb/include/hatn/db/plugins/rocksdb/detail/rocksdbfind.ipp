@@ -147,7 +147,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             if (TtlMark::isExpired(value))
             {
                 pushLogKey();
-                HATN_CTX_WARN("object expired in rocksdb")
+                HATN_CTX_DEBUG(1,"object expired in rocksdb")
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
                 if (!key.partition->range.isNull())

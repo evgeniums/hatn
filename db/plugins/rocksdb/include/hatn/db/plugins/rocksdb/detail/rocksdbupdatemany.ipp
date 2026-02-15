@@ -92,7 +92,7 @@ UpdateManyT::operator ()(
         }
         if (brokenIdx)
         {
-            HATN_CTX_WARN_RECORDS("missing object in rocksdb",
+            HATN_CTX_DEBUG_RECORDS(1,"missing object in rocksdb",
                                   {"idx_key",lib::toStringView(logKey(*key))},
                                   {"obj_key",lib::toStringView(logKey(objectKey))},
                                   {"obj_id",sliceView(objectIdS)},
