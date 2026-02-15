@@ -265,11 +265,8 @@ class Lru
             return &m_queue.front();
         }
 
-        /**
-         * @brief Remove item from the cache
-         * @param item Item to remove
-         */
-        void removeItem(Item& item)
+        template <typename KeyT1>
+        void removeItem(const KeyT1& key, Item& item)
         {
             if (item.displaceHandler())
             {
@@ -277,7 +274,17 @@ class Lru
             }
 
             m_queue.erase(m_queue.iterator_to(item));
-            m_storage.doRemove(item.key());
+            m_storage.doRemove(key);
+        }
+
+        /**
+         * @brief Remove item from the cache
+         * @param item Item to remove
+         */
+        void removeItem(Item& item)
+        {
+            auto key=item.key();
+            removeItem(key,item);
         }
 
         template <typename KeyT1>
@@ -286,7 +293,7 @@ class Lru
             auto* item=m_storage.item(key);
             if (item!=nullptr)
             {
-                removeItem(*item);
+                removeItem(key,*item);
             }
         }
 

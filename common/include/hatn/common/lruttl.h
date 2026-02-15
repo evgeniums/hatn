@@ -310,11 +310,7 @@ class LruTtl
          */
         void touch(const KeyT& key)
         {
-            auto itm=item(key);
-            if (itm!=nullptr)
-            {
-                touchItem(*itm);
-            }
+            getAndTouch(key);
         }
 
         /**
@@ -460,10 +456,15 @@ class LruTtl
          * @param key Key
          * @return Found item
          */
-        Item* item(const KeyT& key)
+        Item* get(const KeyT& key)
         {
             const auto* self=const_cast<const Type*>(this);
             return const_cast<Item*>(self->item(key));
+        }
+
+        Item* item(const KeyT& key)
+        {
+            return get(key);
         }
 
         /**
@@ -472,7 +473,7 @@ class LruTtl
          * @return Found item
          *
          */
-        const Item* item(const KeyT& key) const
+        const Item* get(const KeyT& key) const
         {
             auto* itm=pimpl->storage.item(key);
             if (itm==nullptr)
@@ -483,6 +484,32 @@ class LruTtl
             {
                 return nullptr;
             }
+            return itm;
+        }
+
+        const Item* item(const KeyT& key) const
+        {
+            return get(key);
+        }
+
+        /**
+         * @brief Find item by key
+         * @param key Key
+         * @return Found item
+         *
+         */
+        Item* getAndTouch(const KeyT& key)
+        {
+            auto* itm=pimpl->storage.item(key);
+            if (itm==nullptr)
+            {
+                return nullptr;
+            }
+            if (isExpired(*itm))
+            {
+                return nullptr;
+            }
+            touchItem(*itm);
             return itm;
         }
 
