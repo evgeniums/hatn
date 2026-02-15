@@ -89,10 +89,9 @@ using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
 namespace avatar_object=topic_object;
 
-HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_guid),
-                                      HDU_BASE(with_name),
-                                      HDU_BASE(with_username),
-                                      HDU_BASE(with_revision)),
+HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),
+                                     HDU_BASE(with_username),
+                                     HDU_BASE(with_revision)),
     HDU_FIELD(avatar,topic_object::TYPE,1)
     HDU_FIELD(notes,with_string::TYPE,4)
     HDU_FIELD(addresses,with_addresses::TYPE,5)

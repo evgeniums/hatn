@@ -25,11 +25,8 @@
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 HATN_DB_TTL_INDEX(cacheTtlIdx,1,with_expire::expire_at)
-HATN_DB_UNIQUE_INDEX(cacheLocalIdx,cache_object::local_oid)
-HATN_DB_UNIQUE_INDEX(cacheServerIdx,cache_object::server_hash)
-HATN_DB_UNIQUE_INDEX(cacheGuidIdx,cache_object::guid_hash)
-HATN_DB_UNIQUE_INDEX(cacheRevisionIdx,with_revision::revision)
-HATN_DB_MODEL(cacheModel,cache_object,cacheTtlIdx(),cacheLocalIdx(),cacheServerIdx(),cacheGuidIdx(),cacheRevisionIdx())
+HATN_DB_UNIQUE_INDEX(cacheIdsIdx,cache_object::ids)
+HATN_DB_INDEX(cacheRevisionIdx,with_revision::revision)
 
 inline auto makeCacheModel(std::string collection)
 {
@@ -37,9 +34,7 @@ inline auto makeCacheModel(std::string collection)
     cfg.setCollection(std::move(collection));
     auto m=HATN_DB_NAMESPACE::makeModel<cache_object::TYPE>(cfg,
                                                               cacheTtlIdx(),
-                                                              cacheLocalIdx(),
-                                                              cacheServerIdx(),
-                                                              cacheGuidIdx(),
+                                                              cacheIdsIdx(),
                                                               cacheRevisionIdx());
     return m;
 }

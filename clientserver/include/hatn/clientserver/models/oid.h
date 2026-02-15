@@ -37,7 +37,7 @@ HDU_UNIT(oid,
 
 HDU_UNIT(at_server,
     HDU_FIELD(server_oid,TYPE_OBJECT_ID,ServerOidFieldId)
-    HDU_FIELD(server_topic,TYPE_OBJECT_ID,ServerTopicFieldId)
+    HDU_FIELD(server_topic,TYPE_STRING,ServerTopicFieldId)
 )
 
 HDU_UNIT(oid_key,
@@ -136,43 +136,70 @@ inline auto getUidGlobal(const T& uid)
 }
 
 template <typename PtrT>
-inline std::string guidObjectHash(const PtrT& id)
+inline std::string guidObjectToString(const PtrT& id, const char* prefix=nullptr)
 {
     if (!id)
     {
         return std::string{};
     }
-    auto str=fmt::format("{}-{}-{}-{}-{}",
-                                id->fieldValue(guid::id),
-                                id->fieldValue(guid::id_topic),
-                                id->fieldValue(guid::id_type),
-                                id->fieldValue(guid::issuer_id),
-                                id->fieldValue(guid::issuer_schema)
-                           );
 
-    return str;
+    if (prefix)
+    {
+        return fmt::format("{}:{}|{}|{}|{}|{}",prefix,
+                               id->fieldValue(guid::id),
+                               id->fieldValue(guid::id_topic),
+                               id->fieldValue(guid::id_type),
+                               id->fieldValue(guid::issuer_id),
+                               id->fieldValue(guid::issuer_schema)
+                            );
+    }
+
+    return fmt::format("{}|{}|{}|{}|{}",
+                           id->fieldValue(guid::id),
+                           id->fieldValue(guid::id_topic),
+                           id->fieldValue(guid::id_type),
+                           id->fieldValue(guid::issuer_id),
+                           id->fieldValue(guid::issuer_schema)
+                        );
 }
 
 template <typename PtrT>
-inline std::string serverObjectHash(const PtrT& id)
+inline std::string topicObjectToString(const PtrT& id, const char* prefix=nullptr)
 {
     if (!id)
     {
         return std::string{};
     }
-    auto str=fmt::format("{}-{}",id->fieldValue(topic_object::oid),id->fieldValue(topic_object::topic));
-    auto guidStr=guidObjectHash(id->field(server_object::server_id).sharedValue());
-    if (!guidStr.empty())
+
+    if (prefix)
     {
-        str=fmt::format("{}-{}",str,guidStr);
+        return fmt::format("{}:{}|{}",prefix,id->fieldValue(topic_object::oid),id->fieldValue(topic_object::topic));
     }
-    return str;
+
+    return fmt::format("{}|{}",id->fieldValue(topic_object::oid),id->fieldValue(topic_object::topic));
+}
+
+template <typename PtrT>
+inline std::string serverObjectToString(const PtrT& id, const char* prefix=nullptr)
+{
+    if (!id)
+    {
+        return std::string{};
+    }
+    auto str=topicObjectToString(id);
+    auto guidStr=guidObjectToString(id->field(server_object::server_id).sharedValue());
+    if (prefix)
+    {
+        return fmt::format("{}:{}|{}",prefix,str,guidStr);
+    }
+    return fmt::format("{}|{}",str,guidStr);
 }
 
 class LocalUid : public common::WithSharedValue<topic_object::managed>
 {
     public:
 
+        constexpr static const char* prefix="l";
         using common::WithSharedValue<topic_object::managed>::WithSharedValue;
 
         const HATN_DATAUNIT_NAMESPACE::ObjectId* oid() const noexcept
@@ -204,11 +231,18 @@ class LocalUid : public common::WithSharedValue<topic_object::managed>
         {
             return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
         }
+
+        std::string toString() const
+        {
+            return topicObjectToString(get(),prefix);
+        }
 };
 
 class Guid : public common::WithSharedValue<guid::managed>
 {
     public:
+
+        constexpr static const char* prefix="g";
 
         using common::WithSharedValue<guid::managed>::WithSharedValue;
 
@@ -269,9 +303,9 @@ class Guid : public common::WithSharedValue<guid::managed>
             return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
         }
 
-        std::string hash() const
+        std::string toString() const
         {
-            return guidObjectHash(get());
+            return guidObjectToString(get(),prefix);
         }
 };
 
@@ -279,6 +313,7 @@ class ServerUid : public common::WithSharedValue<server_object::managed>
 {
     public:
 
+        constexpr static const char* prefix="s";
         using common::WithSharedValue<server_object::managed>::WithSharedValue;
 
         const HATN_DATAUNIT_NAMESPACE::ObjectId* oid() const noexcept
@@ -320,9 +355,9 @@ class ServerUid : public common::WithSharedValue<server_object::managed>
             return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
         }
 
-        std::string hash() const
+        std::string toString() const
         {
-            return serverObjectHash(get());
+            return serverObjectToString(get(),prefix);
         }
 };
 
@@ -353,6 +388,11 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidLocal(get());
         }
 
+        void setLocal(LocalUid other)
+        {
+            get()->field(uid::local).set(other.takeValue());
+        }
+
         ServerUid server() const noexcept
         {
             if (isNull())
@@ -362,6 +402,11 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidServer(get());
         }
 
+        void setServer(ServerUid other)
+        {
+            get()->field(uid::server).set(other.takeValue());
+        }
+
         Guid global() const noexcept
         {
             if (isNull())
@@ -369,7 +414,39 @@ class Uid : public common::WithSharedValue<uid::managed>
                 return Guid{};
             }
             return getUidGlobal(get());
-        }        
+        }
+
+        void setGlobal(Guid other)
+        {
+            get()->field(uid::global).set(other.takeValue());
+        }
+
+        std::vector<std::string> ids() const
+        {
+            std::vector<std::string> v;
+            if (local())
+            {
+                v.push_back(local().toString());
+            }
+            if (server())
+            {
+                v.push_back(server().toString());
+            }
+            if (global())
+            {
+                v.push_back(global().toString());
+            }
+            return v;
+        }
+
+        std::string toString() const
+        {
+            if (!isNull())
+            {
+                return get()->toString();
+            }
+            return {};
+        }
 };
 
 HATN_CLIENT_SERVER_NAMESPACE_END

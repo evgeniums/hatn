@@ -16,6 +16,7 @@
 #ifndef HATNCLIENTSERVERMODELUSERNAME_H
 #define HATNCLIENTSERVERMODELUSERNAME_H
 
+#include <hatn/common/utils.h>
 #include <hatn/db/object.h>
 
 #include <hatn/clientserver/clientserver.h>
@@ -112,6 +113,42 @@ std::string formatNameAndUsernameT::operator()(const ObjT& obj, NameFormat nameF
 {
     return formatNameAndUsername(obj,username::type{},nameFormat,locale);
 }
+
+struct parseUsernameT
+{
+    template <typename T>
+    auto operator()(T&& str) const
+    {
+        std::string text{str};
+
+        auto uname=common::makeShared<username::managed>();
+        std::vector<std::string> parts;
+        common::Utils::trimSplit(parts,text,'@');
+        if (parts.size()==1)
+        {
+            uname->setFieldValue(username::user,parts[0]);
+        }
+        else if (parts.size()==2)
+        {
+            if (parts[0].empty())
+            {
+                uname->setFieldValue(username::user,parts[1]);
+            }
+            else
+            {
+                uname->setFieldValue(username::user,parts[0]);
+                uname->setFieldValue(username::domain,parts[1]);
+            }
+        }
+        else if (parts.size()==3)
+        {
+            uname->setFieldValue(username::user,parts[1]);
+            uname->setFieldValue(username::domain,parts[2]);
+        }
+        return uname;
+    }
+};
+constexpr parseUsernameT parseUsername{};
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
