@@ -207,7 +207,7 @@ BOOST_FIXTURE_TEST_CASE(TestPrevalidatedUpdateSubunitField,Env)
     );
 
     BOOST_CHECK(!v.apply(obj));
-    BOOST_CHECK(!obj.field(subunit_types::scalar).field(scalar_types::type_uint8).isSet());
+    BOOST_CHECK(obj.member(subunit_types::scalar,scalar_types::type_uint8)==nullptr);
 
     vld::set_validated(obj,vld::_[subunit_types::scalar][scalar_types::type_int8],100,v,err);
     BOOST_CHECK(!err);

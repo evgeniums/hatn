@@ -298,7 +298,7 @@ BOOST_FIXTURE_TEST_CASE(TestUpdateSubunitField,Env)
 {
     subunit_types::type obj;
 
-    BOOST_CHECK(!obj.field(subunit_types::scalar).field(scalar_types::type_int8).isSet());
+    BOOST_CHECK(obj.member(subunit_types::scalar,scalar_types::type_int8)==nullptr);
 
     obj.setAtPath(vld::_[subunit_types::scalar][scalar_types::type_int8],100);
     BOOST_CHECK(obj.field(subunit_types::scalar).field(scalar_types::type_int8).isSet());
