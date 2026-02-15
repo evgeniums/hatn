@@ -30,9 +30,47 @@ class WithStdSharedValue
     public:
 
         WithStdSharedValue(
-            std::shared_ptr<T> value={}
-        ) : m_value(std::move(value))
+                std::shared_ptr<T> value={}
+            ) : m_value(std::move(value))
         {}
+
+        WithStdSharedValue(
+                const WithStdSharedValue& other
+            ) : m_value(other.m_value)
+        {}
+
+        WithStdSharedValue(
+                WithStdSharedValue&& other
+            ) : m_value(std::move(other.m_value))
+        {}
+
+        WithStdSharedValue& operator=(
+                const WithStdSharedValue& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_value=other.m_value;
+            return *this;
+        }
+
+        WithStdSharedValue& operator=(
+                WithStdSharedValue&& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_value=std::move(other.m_value);
+            return *this;
+        }
+
+        ~WithStdSharedValue()=default;
 
         const T& value() const noexcept
         {
@@ -113,6 +151,44 @@ class WithSharedValue
                 common::SharedPtr<T> value={}
             ) : m_value(std::move(value))
         {}
+
+        WithSharedValue(
+                const WithSharedValue& other
+            ) : m_value(other.m_value)
+        {}
+
+        WithSharedValue(
+                WithSharedValue&& other
+            ) : m_value(std::move(other.m_value))
+        {}
+
+        WithSharedValue& operator=(
+                const WithSharedValue& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_value=other.m_value;
+            return *this;
+        }
+
+        WithSharedValue& operator=(
+                WithSharedValue&& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            m_value=std::move(other.m_value);
+            return *this;
+        }
+
+        ~WithSharedValue()=default;
 
         const T& value() const noexcept
         {
@@ -200,7 +276,45 @@ class WithSharedValueAuto : public WithSharedValue<T>
         {}
 
         WithSharedValueAuto() : WithSharedValue<T>(common::makeShared<T>())
+        {}        
+
+        WithSharedValueAuto(
+                const WithSharedValueAuto& other
+            ) : WithSharedValue<T>(other)
         {}
+
+        WithSharedValueAuto(
+                WithSharedValueAuto&& other
+            ) : WithSharedValue<T>(std::move(other))
+        {}
+
+        WithSharedValueAuto& operator=(
+                const WithSharedValueAuto& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            WithSharedValue<T>::operator =(other);
+            return *this;
+        }
+
+        WithSharedValueAuto& operator=(
+                WithSharedValueAuto&& other
+            )
+        {
+            if (&other==this)
+            {
+                return *this;
+            }
+
+            WithSharedValue<T>::operator =(std::move(other));
+            return *this;
+        }
+
+        ~WithSharedValueAuto()=default;
 };
 
 HATN_COMMON_NAMESPACE_END
