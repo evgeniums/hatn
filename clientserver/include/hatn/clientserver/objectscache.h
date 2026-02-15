@@ -30,13 +30,105 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 class CacheDbModelsProvider;
 
-class ObjectsCacheConfig
+class CacheConfig
 {
     public:
 
         constexpr static size_t DefaultTtlSeconds=300;
         constexpr static size_t DefaultCapacity=100;
         constexpr static const char* DefaultEventCategory="cache";
+};
+
+class CacheOptions
+{
+    public:
+
+        CacheOptions& cache_in_db_on() noexcept
+        {
+            m_cacheInDb=true;
+            return *this;
+        }
+
+        CacheOptions& cache_in_db_off() noexcept
+        {
+            m_cacheInDb=false;
+            return *this;
+        }
+
+        bool cacheInDb() const noexcept
+        {
+            return m_cacheInDb;
+        }
+
+        CacheOptions& cache_in_mem_on() noexcept
+        {
+            m_cacheInMem=true;
+            return *this;
+        }
+
+        CacheOptions& cache_in_mem_off() noexcept
+        {
+            m_cacheInMem=false;
+            return *this;
+        }
+
+        bool cacheInMem() const noexcept
+        {
+            return m_cacheInMem;
+        }
+
+        CacheOptions& cache_data_in_db_on() noexcept
+        {
+            m_cacheDataInDb=true;
+            return *this;
+        }
+
+        CacheOptions& cache_data_in_db_off() noexcept
+        {
+            m_cacheDataInDb=false;
+            return *this;
+        }
+
+        bool cacheDataInDb() const noexcept
+        {
+            return m_cacheDataInDb;
+        }
+
+        CacheOptions& touch_db_on() noexcept
+        {
+            m_touchDb=true;
+            return *this;
+        }
+
+        CacheOptions& touch_db_off() noexcept
+        {
+            m_touchDb=false;
+            return *this;
+        }
+
+        bool touchDb() const noexcept
+        {
+            return m_touchDb;
+        }
+
+        CacheOptions& cache_in_db_ttl(size_t ttl) noexcept
+        {
+            m_dbTtlSeconds=ttl;
+            return *this;
+        }
+
+        size_t dbTtl() const noexcept
+        {
+            return m_dbTtlSeconds;
+        }
+
+    private:
+
+        bool m_cacheInDb=true;
+        bool m_cacheInMem=true;
+        bool m_cacheDataInDb=true;
+        bool m_touchDb=true;
+        size_t m_dbTtlSeconds=0;
 };
 
 struct ObjectsCacheTraits
@@ -48,7 +140,7 @@ template <typename Traits, typename Derived>
 class ObjectsCache_p;
 
 template <typename Traits, typename Derived>
-class ObjectsCache : public ObjectsCacheConfig
+class ObjectsCache : public CacheConfig
 {
     public:
 
@@ -73,6 +165,7 @@ class ObjectsCache : public ObjectsCacheConfig
         };
 
         using FetchCb=std::function<void (const common::Error&, Result)>;
+        using CompletionCb=std::function<void ()>;
 
         ObjectsCache();
 
@@ -104,41 +197,46 @@ class ObjectsCache : public ObjectsCacheConfig
 
         Result get(
             common::SharedPtr<Context> ctx,
-            Uid uid,
-            bool postFetching=false,            
-            Uid bySubject={},
-            FetchCb callback={},
-            bool localDbFullObject=true,
-            size_t dbTtlSeconds=0
+            lib::string_view topic={},
+            Uid uid={},
+            CacheOptions opt={},
+            bool postFetching=false,
+            FetchCb fetchCallback={},
+            Uid bySubject={}
         );
 
         void fetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
-            Uid uid,
+            lib::string_view topic,
+            Uid uid,            
             Uid bySubject={},
-            bool localDbFullObject=true,
-            size_t dbTtlSeconds=0
+            CacheOptions opt={}
         );
 
         void put(
             common::SharedPtr<Context> ctx,
+            CompletionCb callback,
             Value item,
+            lib::string_view topic={},
             Uid uid={},
-            bool keepInLocalDb=true,
-            bool localDbFullObject=true,
-            size_t dbTtlSeconds=0
+            CacheOptions opt={}
         );
 
         void touch(
             common::SharedPtr<Context> ctx,
-            Uid uid,
-            size_t dbTtlSeconds=0
+            CompletionCb callback,
+            lib::string_view topic={},
+            Uid uid={},
+            CacheOptions opt={}
         );
 
         void remove(
             common::SharedPtr<Context> ctx,
-            Uid uid
+            CompletionCb callback,
+            lib::string_view topic={},
+            Uid uid={},
+            CacheOptions opt={}
         );
 
         void setTtlSeconds(size_t ttlSecs);
@@ -164,10 +262,18 @@ class ObjectsCache : public ObjectsCacheConfig
         void invokeFetch(
             common::SharedPtr<Context> ctx,
             FetchCb callback,
+            lib::string_view topic,
             Uid uid,
             Uid bySubject,
-            bool localDbFullObject,
-            size_t dbTtlSeconds
+            CacheOptions opt
+        );
+
+        void updateDbExpiration(
+            common::SharedPtr<Context> ctx,
+            CompletionCb callback,
+            lib::string_view topic,
+            Uid uid,
+            CacheOptions opt
         );
 
         std::unique_ptr<ObjectsCache_p<Traits,Derived>> pimpl;
