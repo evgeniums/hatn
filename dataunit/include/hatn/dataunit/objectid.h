@@ -81,6 +81,16 @@ class HATN_DATAUNIT_EXPORT ObjectId
             return commonError(CommonError::INVALID_FORMAT);
         }
 
+        static Result<ObjectId> fromBinary(const common::ConstDataBuf& buf)
+        {
+            ObjectId oid;
+            if (oid.parse(buf))
+            {
+                return oid;
+            }
+            return commonError(CommonError::INVALID_FORMAT);
+        }
+
         static ObjectId fromStringUnsafe(const common::ConstDataBuf& buf)
         {
             ObjectId oid;
