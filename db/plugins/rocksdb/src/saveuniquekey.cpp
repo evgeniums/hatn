@@ -39,12 +39,20 @@ bool SaveUniqueKey::Merge(
         {
             if (!expOpt.value())
             {
+#if 0
                 auto expOpt=TtlMark::isExpiredOpt(*existing_value);
                 if (expOpt)
                 {
                     return false;
                 }
+#else
+                return false;
+#endif
             }
+        }
+        else
+        {
+            return false;
         }
     }
     *new_value=std::string{value.data(),value.size()};
