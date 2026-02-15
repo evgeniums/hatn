@@ -32,9 +32,20 @@ bool SaveUniqueKey::Merge(
     std::string* new_value,
     ROCKSDB_NAMESPACE::Logger*) const
 {
-    if (existing_value!=nullptr && !TtlMark::isExpired(*existing_value))
+    if (existing_value!=nullptr)
     {
-        return false;
+        auto expOpt=TtlMark::isExpiredOpt(*existing_value,TtlMark::nowTimepoint());
+        if (expOpt)
+        {
+            if (!expOpt.value())
+            {
+                auto expOpt=TtlMark::isExpiredOpt(*existing_value);
+                if (expOpt)
+                {
+                    return false;
+                }
+            }
+        }
     }
     *new_value=std::string{value.data(),value.size()};
     return true;
