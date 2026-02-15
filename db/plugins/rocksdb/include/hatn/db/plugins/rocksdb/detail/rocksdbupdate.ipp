@@ -40,6 +40,7 @@
 #include <hatn/db/plugins/rocksdb/detail/rocksdbindexes.ipp>
 #include <hatn/db/plugins/rocksdb/detail/objectpartition.ipp>
 #include <hatn/db/plugins/rocksdb/detail/rocksdbtransaction.ipp>
+#include <hatn/db/plugins/rocksdb/detail/rocksdbdelete.ipp>
 #include <hatn/db/plugins/rocksdb/detail/ttlindexes.ipp>
 #include <hatn/db/plugins/rocksdb/rocksdbmodelt.h>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodelt.ipp>
@@ -84,7 +85,6 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
     // create object
     auto obj=factory->createObject<typename modelType::ManagedType>(factory);
-    //! @todo Use mode for parsing to shared arrays
     decltype(obj) objBefore;
     bool found=false;
 
@@ -97,6 +97,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         // get for update
         ROCKSDB_NAMESPACE::PinnableSlice readSlice;
         ROCKSDB_NAMESPACE::Slice objSlice;
+        bool expired=false;
         auto getForUpdate=[&]()
         {
             auto status=rdbTx->GetForUpdate(handler.p()->readOptions,partition->dataCf(model.isBlob()),key,&readSlice);
@@ -116,6 +117,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
             TtlMark::refreshCurrentTimepoint();
             if (TtlMark::isExpired(readSlice))
             {
+                expired=true;
                 return false;
             }
 
@@ -137,10 +139,33 @@ Result<typename ModelT::SharedPtr> updateSingle(
         // if not found then return
         if (!found)
         {
-            if (warnBrokenIndex!=nullptr)
+            if (expired)
             {
-                *warnBrokenIndex=true;
+                auto objId=ObjectId::fromBinary(objectIdS);
+                if (objId)
+                {
+                    if (warnBrokenIndex!=nullptr)
+                    {
+                        *warnBrokenIndex=true;
+                    }
+                }
+                else
+                {
+                    ec=deleteObject(model,handler,partition,topic,objectIdS,factory,tx);
+                    if (ec)
+                    {
+                        HATN_CTX_ERROR(ec,"failed to delete expired object");
+                    }
+                }
             }
+            else
+            {
+                if (warnBrokenIndex!=nullptr)
+                {
+                    *warnBrokenIndex=true;
+                }
+            }
+
             return Error{OK};
         }
         if (modifyReturn==db::update::ModifyReturn::Before)
@@ -168,13 +193,17 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // save object
         ROCKSDB_NAMESPACE::SliceParts keySlices{&k,1};
+
         auto oldTtlMarkSlice=TtlMark::ttlMark(readSlice);
+        std::string oldTtlSliceHolder=oldTtlMarkSlice.ToString();
+        oldTtlMarkSlice=Slice{oldTtlSliceHolder};
         auto ttlMarkSlice=oldTtlMarkSlice;
         if (ttlUpdated)
         {
-            ttlMark.fill(model,obj.get());
+            ttlMark=makeTtlMark(model,obj.get());
             ttlMarkSlice=ttlMark.slice();
         }
+
         ec=saveObject(rdbTx,partition,keySlices,buf,ttlMarkSlice,model.isBlob());
         HATN_CHECK_EC(ec)
 
