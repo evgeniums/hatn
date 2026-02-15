@@ -197,33 +197,29 @@ class SubunitT : public Field, public UnitType
         template <typename BufferT>
         bool serialize(BufferT& wired) const
         {
-            if (!fieldIsSet() || isNull())
-            {
-                return true;
-            }
-            return UnitSer::serialize(&variantValue()->value(),wired,m_skippedNotParsedContent);
+            return serialize(*this,wired);
         }
 
         //! Serialize DataUnit to wire
         template <typename BufferT>
         static bool serialize(const base* value, BufferT& wired)
         {
-            if (value==nullptr || value->isNull())
-            {
-                return true;
-            }
-            return UnitSer::serialize(value,wired,value->skippedNotParsedContent());
+            return UnitSer::serialize(value,wired,value->serializedDataHolder());
         }
 
         //! Serialize DataUnit to wire
         template <typename SubunitT, typename BufferT>
         static bool serialize(const SubunitT& subunit, BufferT& wired)
         {
-            if (!subunit.fieldIsSet() || subunit.isNull())
+            if (!subunit.fieldIsSet())
             {
                 return true;
             }
-            return UnitSer::serialize(&subunit.value(),wired,subunit.skippedNotParsedContent());
+            if (subunit.isNull())
+            {
+                return UnitSer::serialize(decltype(&subunit.value()){nullptr},wired,subunit.skippedNotParsedContent());
+            }
+            return UnitSer::serialize(&subunit.value(),wired);
         }
 
         //! Deserialize DataUnit from wire
@@ -277,14 +273,15 @@ class SubunitT : public Field, public UnitType
             {
                 // if failed to create value then create skip buffer and deserialize to it
                 m_skippedNotParsedContent=factory->template createObject<common::ByteArrayManaged>(factory);
+                markSet();
                 return deserializeToBuf();
             }
 
             // normal parsing
             this->fieldClear();
             io::setParseToSharedArrays(*value,m_parseToSharedArrays,factory);
-            this->markSet(deserialize(*this,wired,factory));
-            return this->isSet();
+            markSet(deserialize(*this,wired,factory));
+            return isSet();
         }
 
         inline static bool formatJSON(const selfType& subunit,json::Writer* writer)

@@ -337,14 +337,14 @@ bool BytesSer<onstackT,sharedT>::deserialize(
 template <typename UnitT, typename BufferT>
 bool UnitSer::serialize(const UnitT* value, BufferT& wired, common::ByteArrayShared skippedNotParsed)
 {
-    if (value!=nullptr)
+    size_t prevSize=wired.size();
+    size_t sizeBufChainedIdx=0;
+    common::ByteArray* sizeBufSingle=nullptr;
+    auto reserveSizeLength=sizeof(uint32_t)+1;
+    auto prepare=[&]()
     {
-        size_t prevSize=wired.size();
-
         // prepare buffer for size of the packed unit
-        size_t reserveSizeLength=sizeof(uint32_t)+1;
-        auto* sizeBufSingle=wired.mainContainer();
-        size_t sizeBufChainedIdx=0;
+        sizeBufSingle=wired.mainContainer();
         if (wired.isSingleBuffer())
         {
             // reserve sizeof(int32_t)+1 to keep size of packed unit
@@ -357,6 +357,37 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired, common::ByteArraySha
             sizeBufChainedIdx=wired.chain().size()-1;
         }
         wired.incSize(static_cast<int>(reserveSizeLength));
+    };
+
+    auto finalize=[&](int size)
+    {
+        // preset size of embedded unit with 0
+        char* sizePtr=nullptr;
+        if (wired.isSingleBuffer())
+        {
+            sizePtr=sizeBufSingle->data();
+            sizePtr+=prevSize;
+        }
+        else
+        {
+            const auto& chain=wired.chain();
+            auto& item=chain.at(sizeBufChainedIdx);
+            auto& sizeBufChained=item.buf;
+            sizePtr=sizeBufChained.data();
+        }
+        memset(sizePtr,0,reserveSizeLength);
+
+        // pack size and set MSB for each byte so it won't be dropped
+        StreamBase::packVarInt32(sizePtr,size);
+        for (size_t i=0;i<(reserveSizeLength-1);i++)
+        {
+            sizePtr[i]|=static_cast<char>(0x80);
+        }
+    };
+
+    if (value!=nullptr)
+    {
+        prepare();
 
         // serialize field
         int size=-1;
@@ -364,12 +395,7 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired, common::ByteArraySha
         const auto& preparedWireData=value->wireDataKeeper();
         auto preserialized=value->serializedDataHolder();
 
-        if (skippedNotParsed)
-        {
-            size=skippedNotParsed->size();
-            wired.appendBuffer(std::move(skippedNotParsed));
-        }
-        else if (preserialized)
+        if (preserialized)
         {
             size=preserialized->size();
             wired.appendBuffer(std::move(preserialized));
@@ -418,32 +444,20 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired, common::ByteArraySha
             return false;
         }
 
-        // preset size of embedded unit with 0
-        char* sizePtr=nullptr;
-        if (wired.isSingleBuffer())
-        {
-            sizePtr=sizeBufSingle->data();
-            sizePtr+=prevSize;
-        }
-        else
-        {
-            const auto& chain=wired.chain();
-            auto& item=chain.at(sizeBufChainedIdx);
-            auto& sizeBufChained=item.buf;
-            sizePtr=sizeBufChained.data();
-        }
-        memset(sizePtr,0,reserveSizeLength);
-
-        // pack size and set MSB for each byte so it won't be dropped
-        StreamBase::packVarInt32(sizePtr,size);
-        for (size_t i=0;i<(reserveSizeLength-1);i++)
-        {
-            sizePtr[i]|=static_cast<char>(0x80);
-        }
-
         // ok
+        finalize(size);
         return true;
     }
+    else if (skippedNotParsed)
+    {
+        prepare();
+        int size=static_cast<int>(skippedNotParsed->size());
+        wired.appendBuffer(std::move(skippedNotParsed));
+        finalize(size);
+        return true;
+    }
+
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"could not serialize empty subunit");
     return false;
 }
 
