@@ -326,6 +326,11 @@ namespace detail
             return inst;
         }
 
+        common::ByteArrayShared serializedDataHolder() const
+        {
+            return common::ByteArrayShared{};
+        }
+
         template <typename PredicateT, typename HandlerT, typename DefaultT>
         auto each(const PredicateT& pred, DefaultT&& defaultRet, const HandlerT& handler) -> decltype(auto)
         {
