@@ -186,7 +186,7 @@ struct serializeFieldT
         auto& field = msg.field(message::the_fields).createAndAppendValue();
         field.setFieldValue(a_field::op,updateField.op);
         field.setFieldValue(a_field::value_type,valueType);
-        auto& path=field.field(a_field::path);
+        auto& path=field.mutableField(a_field::path);
         for (auto&& it: updateField.path)
         {
             auto& item=path.createAndAppendValue();

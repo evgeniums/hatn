@@ -441,19 +441,19 @@ bool unitsEqualT::operator()(const LeftT& l, const RightT& r, ExludeFields&& ...
                 return hana::eval_if(
                     hana::or_(
                         hana::contains(excludeFieldsC,fieldC)
-                        ),
+                    ),
                     [&](auto _)
                     {
-                        return state;
+                        return _(state);
                     },
-                    [&](auto _)
+                    [&](auto)
                     {
                         auto index=hana::second(key);
                         return each(index);
                     }
-                    );
+                );
             }
-            );
+        );
     }
 }
 
@@ -551,9 +551,9 @@ std::optional<bool> unitsLessOptionalT::operator()(const LeftT& l, const RightT&
                     hana::contains(excludeFieldsC,fieldC),
                     [&](auto _)
                     {
-                        return state;
+                        return _(state);
                     },
-                    [&](auto _)
+                    [&](auto )
                     {
                         auto index=hana::second(key);
                         return each(index);
