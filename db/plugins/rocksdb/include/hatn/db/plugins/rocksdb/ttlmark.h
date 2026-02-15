@@ -115,11 +115,15 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
                             {
                                 return prev;
                             }
-                            auto tp=field.value().toEpoch();
-                            if (tp==0)
+                            if (field.value().isNull())
                             {
                                 return prev;
                             }
+                            auto tp=field.value().toEpoch();
+                            // if (tp==0)
+                            // {
+                            //     return prev;
+                            // }
                             auto exp=tp+idxT::ttl();
                             return (exp<prev)?exp:prev;
                         }
@@ -154,6 +158,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
             return ttlMarkTimepoint(m_expireAt.data(),m_size);
         }
 
+        static uint32_t nowTimepoint() noexcept;
+
         static uint32_t currentTimepoint() noexcept;
 
         static uint32_t refreshCurrentTimepoint();
@@ -166,6 +172,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT TtlMark
         {
             return isExpired(slice.data(),slice.size(),currentTp);
         }
+
+        static std::optional<bool> isExpiredOpt(const ROCKSDB_NAMESPACE::Slice& slice, uint32_t currentTp=0) noexcept;
 
         static bool isExpired(const ROCKSDB_NAMESPACE::PinnableSlice& slice, uint32_t currentTp=0) noexcept
         {

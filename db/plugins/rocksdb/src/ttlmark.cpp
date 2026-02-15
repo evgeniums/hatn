@@ -37,6 +37,13 @@ uint32_t TtlMark::currentTimepoint() noexcept
 
 //---------------------------------------------------------------
 
+uint32_t TtlMark::nowTimepoint() noexcept
+{
+    return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+}
+
+//---------------------------------------------------------------
+
 uint32_t TtlMark::refreshCurrentTimepoint()
 {
     CurrentTimepoint=static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
@@ -67,9 +74,20 @@ bool TtlMark::isExpired(uint32_t tp, uint32_t currentTp) noexcept
 {
     if (currentTp==0)
     {
-        return tp<CurrentTimepoint;
+        auto currentTp=CurrentTimepoint;
+        return tp<currentTp;
     }
     return tp<currentTp;
+}
+
+std::optional<bool> TtlMark::isExpiredOpt(const ROCKSDB_NAMESPACE::Slice& slice, uint32_t currentTp) noexcept
+{
+    auto tp=ttlMarkTimepoint(slice.data(),slice.size());
+    if (tp==0)
+    {
+        return std::nullopt;
+    }
+    return isExpired(tp,currentTp);
 }
 
 //---------------------------------------------------------------
