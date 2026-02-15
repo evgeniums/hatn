@@ -326,6 +326,12 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return hana::contains(fieldsMap,idx);
         }
 
+        template <typename T>
+        constexpr static auto hasFieldC(T fieldC) noexcept
+        {
+            return hana::contains(fieldsMap,fieldC);
+        }
+
         /**  Get position of field */
         template <typename T>
         constexpr static auto fieldPos() noexcept
@@ -668,6 +674,26 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
             return Conf::name;
         }
 
+        template <typename T>
+        constexpr static auto fieldIndex(T&&) noexcept
+        {
+            constexpr auto idx=hana::type_c<std::decay_t<T>>;
+            static_assert(hana::value(hana::contains(fieldsMap,idx)),"Field not found");
+            return fieldsMap[idx];
+        }
+
+        template <typename T>
+        constexpr static auto indexToField(T&& index) noexcept
+        {
+            return hana::find_if(
+                    fieldsMap,
+                    [&](auto const& pair)
+                    {
+                        return hana::equal(hana::second(pair),index);
+                    }
+                );
+        }
+
     private:
 
         void setFieldsParent() noexcept
@@ -678,15 +704,7 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
                 {
                     this->setFieldParent(field);
                 }
-                );
-        }
-
-        template <typename T>
-        constexpr static auto fieldIndex(T&&) noexcept
-        {
-            constexpr auto idx=hana::type_c<std::decay_t<T>>;
-            static_assert(hana::value(hana::contains(fieldsMap,idx)),"Field not found");
-            return fieldsMap[idx];
+            );
         }
 };
 

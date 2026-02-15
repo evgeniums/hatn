@@ -190,6 +190,7 @@ class Scalar : public Field
         using type=typename Type::type;
         using base=typename Type::type;
 
+        using isUnitType=std::false_type;
         using isRepeatedType=std::false_type;
         using isEnum=typename Type::isEnum;
         using Enum=typename Type::Enum;
