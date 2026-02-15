@@ -53,13 +53,21 @@ struct SubunitSetter
     }
 
     template <typename UnitT>
-    static void setV(UnitT*, common::SharedPtr<Unit>,
+    static void setV(UnitT* self, common::SharedPtr<Unit> val,
                      std::enable_if_t<
                          !std::is_base_of<common::ManagedObject,typename UnitT::managed>::value
                          >* =nullptr
                      )
     {
-        Assert(false,"Cannot set unmanaged unit");
+        auto mPtr=val->toManagedUnit();
+        if (mPtr)
+        {
+            self->set(std::move(mPtr));
+        }
+        else
+        {
+            self->reset();
+        }
     }
 };
 
@@ -193,7 +201,7 @@ class SubunitT : public Field, public UnitType
             {
                 return true;
             }
-            return UnitSer::serialize(&variantValue()->value(),wired);
+            return UnitSer::serialize(&variantValue()->value(),wired,m_skippedNotParsedContent);
         }
 
         //! Serialize DataUnit to wire
@@ -204,7 +212,7 @@ class SubunitT : public Field, public UnitType
             {
                 return true;
             }
-            return UnitSer::serialize(value,wired);
+            return UnitSer::serialize(value,wired,value->skippedNotParsedContent());
         }
 
         //! Serialize DataUnit to wire
@@ -215,7 +223,7 @@ class SubunitT : public Field, public UnitType
             {
                 return true;
             }
-            return UnitSer::serialize(&subunit.value(),wired);
+            return UnitSer::serialize(&subunit.value(),wired,subunit.skippedNotParsedContent());
         }
 
         //! Deserialize DataUnit from wire
@@ -440,6 +448,7 @@ class SubunitT : public Field, public UnitType
         inline void set(base&& val)
         {
             m_shared=false;
+            m_skippedNotParsedContent.reset();
             this->markSet(true);
             m_value=std::move(val);
         }
@@ -448,6 +457,7 @@ class SubunitT : public Field, public UnitType
         inline void set(shared_managed val)
         {
             m_shared=true;
+            m_skippedNotParsedContent.reset();
             this->markSet(true);
             m_value=std::move(val);
         }

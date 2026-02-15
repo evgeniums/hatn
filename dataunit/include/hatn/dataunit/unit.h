@@ -452,6 +452,16 @@ class HATN_DATAUNIT_EXPORT Unit
             m_sharedSubunits=enable;
         }
 
+        void setSerializedDataHolder(common::ByteArrayShared buf)
+        {
+            m_serializedDataHolder=std::move(buf);
+        }
+
+        common::ByteArrayShared serializedDataHolder() const
+        {
+            return m_serializedDataHolder;
+        }
+
     protected:
 
         void setFieldParent(Field& field);
@@ -466,6 +476,7 @@ class HATN_DATAUNIT_EXPORT Unit
         ) const;
 
         common::SharedPtr<WireData> m_wireDataKeeper;
+        common::ByteArrayShared m_serializedDataHolder;
         bool m_clean;
 
         const AllocatorFactory* m_factory;

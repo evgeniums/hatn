@@ -335,7 +335,7 @@ bool BytesSer<onstackT,sharedT>::deserialize(
 //---------------------------------------------------------------
 
 template <typename UnitT, typename BufferT>
-bool UnitSer::serialize(const UnitT* value, BufferT& wired)
+bool UnitSer::serialize(const UnitT* value, BufferT& wired, common::ByteArrayShared skippedNotParsed)
 {
     if (value!=nullptr)
     {
@@ -362,7 +362,19 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
         int size=-1;
 
         const auto& preparedWireData=value->wireDataKeeper();
-        if (!preparedWireData.isNull())
+        auto preserialized=value->serializedDataHolder();
+
+        if (skippedNotParsed)
+        {
+            size=skippedNotParsed->size();
+            wired.appendBuffer(std::move(skippedNotParsed));
+        }
+        else if (preserialized)
+        {
+            size=preserialized->size();
+            wired.appendBuffer(std::move(preserialized));
+        }
+        else if (!preparedWireData.isNull())
         {
             size=wired.append(*preparedWireData);
         }
@@ -399,6 +411,11 @@ bool UnitSer::serialize(const UnitT* value, BufferT& wired)
                     return false;
                 }
             }
+        }
+        if (size<0)
+        {
+            rawError(RawErrorCode::SUBUNIT_SERIALIZE,"could not serialize subunit");
+            return false;
         }
 
         // preset size of embedded unit with 0

@@ -53,6 +53,7 @@ inline const char* unitErrorString(UnitError code)
 enum class RawErrorCode : int
 {
     OK=static_cast<int>(common::CommonError::OK),
+    UNKNOWN_ERROR,
     REQUIRED_FIELD_MISSING,
     FIELD_TYPE_MISMATCH,
     END_OF_STREAM,
@@ -65,7 +66,8 @@ enum class RawErrorCode : int
     FIELD_SERIALIZING_FAILED,
     SUSPECT_OVERFLOW,
     JSON_PARSE_ERROR,
-    JSON_FIELD_SERIALIZE_ERROR
+    JSON_FIELD_SERIALIZE_ERROR,
+    SUBUNIT_SERIALIZE
 };
 
 HATN_DATAUNIT_NAMESPACE_END

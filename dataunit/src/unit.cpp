@@ -144,35 +144,50 @@ Field* Unit::fieldByName(common::lib::string_view name)
 //---------------------------------------------------------------
 int Unit::serialize(WireData&, bool) const
 {
+    std::cerr << " Unit::serialize(WireData) " << name() << std::endl;
+
     // must be implemented in derived class
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"abstract unit cannot be serialized");
     return -1;
 }
 
 //---------------------------------------------------------------
 int Unit::serialize(WireBufSolid&, bool) const
 {
+    std::cerr << " Unit::serialize(WireBufSolid) " << name() << std::endl;
+
     // must be implemented in derived class
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"abstract unit cannot be serialized");
     return -1;
 }
 
 //---------------------------------------------------------------
 int Unit::serialize(WireBufSolidShared&, bool) const
 {
+    std::cerr << " Unit::serialize(WireBufSolidShared) " << name() << std::endl;
+
     // must be implemented in derived class
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"abstract unit cannot be serialized");
     return -1;
 }
 
 //---------------------------------------------------------------
 int Unit::serialize(WireBufSolidRef&, bool) const
 {
+    std::cerr << " Unit::serialize(WireBufSolidRef) " << name() << std::endl;
+
     // must be implemented in derived class
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"abstract unit cannot be serialized");
     return -1;
 }
 
 //---------------------------------------------------------------
 int Unit::serialize(WireBufChained&, bool) const
 {
+    std::cerr << " Unit::serialize(WireBufChained) " << name() << std::endl;
+
     // must be implemented in derived class
+    rawError(RawErrorCode::SUBUNIT_SERIALIZE,"abstract unit cannot be serialized");
     return -1;
 }
 

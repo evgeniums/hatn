@@ -93,7 +93,7 @@ class HATN_DATAUNIT_EXPORT UnitSer
 
         //! Serialize to wir
         template <typename UnitT, typename BufferT>
-        static bool serialize(const UnitT* value, BufferT& wired);
+        static bool serialize(const UnitT* value, BufferT& wired, common::ByteArrayShared skippedNotParsed={});
 
         //! Deserialize from wire
         template <typename UnitT, typename BufferT>
