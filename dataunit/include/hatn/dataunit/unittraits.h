@@ -481,6 +481,12 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
           @return Field at given path.
          **/
         template <typename PathT>
+        auto& fieldAtPath(PathT&& path)
+        {
+            return UnitFieldUpdater::fieldAtPath(*this,path);
+        }
+
+        template <typename PathT>
         const auto& fieldAtPath(PathT&& path) const
         {
             return UnitFieldUpdater::fieldAtPath(*this,path);
@@ -488,6 +494,12 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
 
         template <typename PathT>
         const auto* fieldAtPathPtr(PathT&& path) const
+        {
+            return UnitFieldUpdater::fieldAtPathPtr(this,path);
+        }
+
+        template <typename PathT>
+        auto* fieldAtPathPtr(PathT&& path)
         {
             return UnitFieldUpdater::fieldAtPathPtr(this,path);
         }
@@ -502,17 +514,6 @@ class UnitConcat : public Unit, public makeUnitImpl<Conf,Fields...>::type
         auto* mutableMember(Path&& ...path)
         {
             return &UnitFieldUpdater::fieldAtPath(*this,HATN_VALIDATOR_NAMESPACE::path(std::forward<Path>(path)...));
-        }
-
-        /**
-          @brief Get field at given path.
-          @param path Path to the field in format _[level1][level2]...[levelN].
-          @return Field at given path.
-         **/
-        template <typename PathT>
-        const auto& fieldAtPath(PathT&& path)
-        {
-            return UnitFieldUpdater::fieldAtPath(*this,path);
         }
 
         /**

@@ -96,11 +96,11 @@ BOOST_AUTO_TEST_CASE(CreateFindUpdate)
             {
                 auto o=makeInitObject<rep::type>();
 
-                auto* f=o.fieldAtPathPtr(path);
+                auto& f=o.mutableField(fld);
                 for (size_t i=0;i<arraySize;i++)
                 {
                     auto val=gen(i+j*arraySize,false);
-                    f->appendValue(val);
+                    f.appendValue(val);
                 }
 
                 // create object

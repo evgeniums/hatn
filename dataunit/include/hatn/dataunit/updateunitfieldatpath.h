@@ -35,12 +35,12 @@ namespace hana=boost::hana;
 struct UnitFieldUpdater
 {
     template <typename UnitT, typename PathT>
-    static auto fieldAtPathPtr(const UnitT* unit, PathT&& path)
+    static const auto* fieldAtPathPtr(const UnitT& unit, PathT&& path)
     {
         return hana::fold(
             path.path(),
             unit,
-            [](const auto* prev, auto&& key)
+            [](auto&& prev, auto&& key)
             {
                 using refType=decltype(prev->field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key))));
                 using type=std::decay_t<refType>;
@@ -60,6 +60,34 @@ struct UnitFieldUpdater
                 return &field;
             }
         );
+    }
+
+    template <typename UnitT, typename PathT>
+    static auto* fieldAtPathPtr(UnitT& unit, PathT&& path)
+    {
+        return hana::fold(
+            path.path(),
+            unit,
+            [](auto&& prev, auto&& key)
+            {
+                using refType=decltype(prev->field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key))));
+                using type=std::decay_t<refType>;
+                using typePtr=type*;
+
+                if (!prev)
+                {
+                    return typePtr{nullptr};
+                }
+
+                auto& field=prev->field(HATN_VALIDATOR_NAMESPACE::unwrap_object(std::forward<decltype(key)>(key)));
+                if (!field.isSet())
+                {
+                    return typePtr{nullptr};
+                }
+
+                return &field;
+            }
+            );
     }
 
     template <typename UnitT, typename PathT>
