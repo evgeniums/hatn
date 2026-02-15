@@ -140,6 +140,38 @@ struct DeleteObjectT
 };
 constexpr DeleteObjectT DeleteObject{};
 
+template <typename ModelT>
+Error deleteObject(
+        const ModelT& model,
+        RocksdbHandler& handler,
+        RocksdbPartition* partition,
+        Topic topic,
+        const Slice& objectIdS,
+        const AllocatorFactory* factory,
+        Transaction* tx
+    )
+{
+    using modelType=std::decay_t<ModelT>;
+
+    // construct object key
+    Keys keys{factory};
+    auto objKeyVal=keys.makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
+    auto key=keys.objectKeySolid(objKeyVal);
+
+    // delete object
+    using ttlIndexesT=TtlIndexes<modelType>;
+    static ttlIndexesT ttlIndexes{};
+
+    // transaction fn
+    auto transactionFn=[&](Transaction* tx)
+    {
+        return DeleteObject.doDelete(model,handler,partition,topic,key,keys,ttlIndexes,tx);
+    };
+
+    // invoke transaction
+    return handler.transaction(transactionFn,tx,true);
+}
+
 template <typename ModelT, typename DateT>
 Error DeleteObjectT::operator ()(
         const ModelT& model,
@@ -151,8 +183,6 @@ Error DeleteObjectT::operator ()(
         Transaction* tx
     ) const
 {
-    using modelType=std::decay_t<ModelT>;
-
     HATN_CTX_SCOPE("deleteobject")
     HATN_CTX_SCOPE_PUSH("coll",model.collection())
     HATN_CTX_SCOPE_PUSH("topic",topic.topic())
@@ -171,21 +201,9 @@ Error DeleteObjectT::operator ()(
     // construct object key
     Keys keys{factory};
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};
-    auto objKeyVal=keys.makeObjectKeyValue(model.modelIdStr(),topic,objectIdS);
-    auto key=keys.objectKeySolid(objKeyVal);
 
-    // delete object
-    using ttlIndexesT=TtlIndexes<modelType>;
-    static ttlIndexesT ttlIndexes{};
-
-    // transaction fn
-    auto transactionFn=[&](Transaction* tx)
-    {
-        return doDelete(model,handler,partition.get(),topic,key,keys,ttlIndexes,tx);
-    };
-
-    // invoke transaction
-    return handler.transaction(transactionFn,tx,true);
+    // invoke deletion
+    return deleteObject(model,handler,partition.get(),topic,objectIdS,factory,tx);
 }
 
 HATN_ROCKSDB_NAMESPACE_END
