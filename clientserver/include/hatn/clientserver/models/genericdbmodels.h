@@ -8,28 +8,28 @@
 /*
 
 */
-/** @file clientserver/models/withusercharacter.h
+/** @file clientserver/models/genericdbmodels.h
   */
 
 /****************************************************************************/
 
-#ifndef HATNCLIENTSERVERWITHUSERCHARACTER_H
-#define HATNCLIENTSERVERWITHUSERCHARACTER_H
+#ifndef HATNCLIENTSERVERGENERICDBMODELS_H
+#define HATNCLIENTSERVERGENERICDBMODELS_H
 
 #include <hatn/db/object.h>
+#include <hatn/db/model.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/oid.h>
+#include <hatn/clientserver/models/expire.h>
+#include <hatn/clientserver/models/revision.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-HDU_UNIT(with_user_character,
-    HDU_FIELD(user_character,TYPE_OBJECT_ID,1101)
-    HDU_FIELD(user_character_topic,TYPE_STRING,1102)
-
-    HDU_FIELD(character_uid,uid::TYPE,1100)
-)
+HATN_DB_TTL_INDEX(expireIdx,1,with_expire::expire_at)
+HATN_DB_UNIQUE_INDEX(uidIdsIdx,with_uid_idx::ids)
+HATN_DB_INDEX(revisionIdx,with_revision::revision)
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
-#endif // HATNCLIENTSERVERWITHUSERCHARACTER_H
+#endif // HATNCLIENTSERVERGENERICDBMODELS_H

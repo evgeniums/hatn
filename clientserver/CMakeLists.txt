@@ -17,6 +17,8 @@ SET (HEADERS
     include/hatn/clientserver/clientwithauth.h
     include/hatn/clientserver/plaintcpclientwithauth.h
 
+    include/hatn/clientserver/models/genericdbmodels.h
+
     include/hatn/clientserver/models/cache.h
     include/hatn/clientserver/models/cachedbmodel.h
 

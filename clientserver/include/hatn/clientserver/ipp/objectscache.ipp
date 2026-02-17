@@ -133,8 +133,8 @@ class ObjectsCache_p
         auto operator()() const
         {
             auto query=HATN_DB_NAMESPACE::makeQuery(
-                cacheIdsIdx(),
-                db::where(cache_object::ids,HATN_DB_NAMESPACE::query::in,ids),
+                uidIdsIdx(),
+                db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,ids),
                 topic
             );
             return query;
@@ -381,6 +381,8 @@ void ObjectsCache<Traits,Derived>::updateDbExpiration(
             ctx,
             [guard=Traits::asyncGuard(pimpl->derived),this,topic,callback,opt,uid](auto ctx)
             {
+                HATN_CTX_DEBUG(10,"objectscache::updatedbexp begin")
+
                 auto db=Traits::db(pimpl->derived,ctx,*topic);
 
                 auto expireAt=common::DateTime::currentUtc();
@@ -393,6 +395,7 @@ void ObjectsCache<Traits,Derived>::updateDbExpiration(
                     std::move(ctx),
                     [callback,topic](auto,auto)
                     {
+                        HATN_CTX_DEBUG(10,"objectscache::updatedbexp end")
                         if (callback)
                         {
                             callback();
@@ -651,7 +654,7 @@ void ObjectsCache<Traits,Derived>::put(
 
             for (const auto& id : uid.ids())
             {
-                obj->field(cache_object::ids).append(id);
+                obj->field(with_uid_idx::ids).append(id);
             }
 
             auto request=HATN_DB_NAMESPACE::update::sharedRequest();
@@ -720,7 +723,7 @@ void ObjectsCache<Traits,Derived>::put(
 
             auto ids=std::make_shared<std::vector<std::string>>(uid.ids());
             request->emplace_back(
-                HATN_DB_NAMESPACE::update::field(cache_object::ids,db::update::set,std::cref(*ids))
+                HATN_DB_NAMESPACE::update::field(with_uid_idx::ids,db::update::set,std::cref(*ids))
             );
             HATN_DB_NAMESPACE::update::field(with_uid::uid,db::update::set,uid.sharedValue().template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>());
 
@@ -945,7 +948,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             auto updateInmem=[ctx,callback,asynGuard,this,topic,uid,opt](auto cacheItem) mutable
             {
                 HATN_CTX_STACK_BARRIER_ON("[updateinmem]")
-                HATN_CTX_DEBUG(10,"udate object in memory cache only")
+                HATN_CTX_DEBUG(10,"update object in memory cache only")
                 auto r=HATN_DATAUNIT_NAMESPACE::parseMessageSubunit<ObjectType>(*cacheItem,cache_object::data,pimpl->factory);
                 if (r)
                 {

@@ -29,7 +29,7 @@ constexpr const char* USERNAME_SCHEMA_HOST="host";
 
 HDU_UNIT(uri,
     HDU_FIELD(user,TYPE_STRING,1)
-    HDU_FIELD(schema,TYPE_STRING,2,false,USERNAME_SCHEMA_HOST)
+    HDU_FIELD(schema,TYPE_STRING,2)
     HDU_FIELD(domain,TYPE_STRING,3)
 )
 

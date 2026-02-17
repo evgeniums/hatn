@@ -47,6 +47,7 @@ HDU_UNIT(oid_key,
 HDU_UNIT(with_parent,
     HDU_FIELD(parent_oid,TYPE_OBJECT_ID,90)
     HDU_FIELD(parent_type,TYPE_STRING,91)
+    HDU_FIELD(parent_topic,TYPE_STRING,92)
 )
 
 HDU_UNIT_WITH(topic_object,(HDU_BASE(with_parent)),
@@ -113,6 +114,19 @@ HDU_UNIT(with_guid,
 
 HDU_UNIT(with_server_id,
     HDU_FIELD(server_id,server_object::TYPE,752)
+)
+
+HDU_UNIT(with_uid_idx,
+    HDU_REPEATED_FIELD(ids,TYPE_STRING,753)
+)
+
+HDU_UNIT(parent,
+    HDU_FIELD(uid,uid::TYPE,1)
+    HDU_FIELD(typ,TYPE_STRING,2)
+)
+
+HDU_UNIT(with_parent_uid,
+    HDU_FIELD(parent,parent::TYPE,90)
 )
 
 HDU_UNIT_WITH(global_object,(HDU_BASE(with_revision),HDU_BASE(with_uid)))
@@ -388,6 +402,15 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidLocal(get());
         }
 
+        LocalUid mutableLocal() noexcept
+        {
+            if (local()->isNull())
+            {
+                return get()->field(uid::local).createShared();
+            }
+            return getUidLocal(get());
+        }
+
         void setLocal(LocalUid other)
         {
             get()->field(uid::local).set(other.takeValue());
@@ -402,6 +425,15 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidServer(get());
         }
 
+        ServerUid mutableServer() noexcept
+        {
+            if (server()->isNull())
+            {
+                return get()->field(uid::server).createShared();
+            }
+            return getUidServer(get());
+        }
+
         void setServer(ServerUid other)
         {
             get()->field(uid::server).set(other.takeValue());
@@ -412,6 +444,15 @@ class Uid : public common::WithSharedValue<uid::managed>
             if (isNull())
             {
                 return Guid{};
+            }
+            return getUidGlobal(get());
+        }
+
+        Guid mutableGlobal() noexcept
+        {
+            if (global()->isNull())
+            {
+                return get()->field(uid::global).createShared();
             }
             return getUidGlobal(get());
         }

@@ -20,22 +20,19 @@
 #include <hatn/db/modelsprovider.h>
 
 #include <hatn/clientserver/clientserver.h>
+#include <hatn/clientserver/models/genericdbmodels.h>
 #include <hatn/clientserver/models/cache.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
-
-HATN_DB_TTL_INDEX(cacheTtlIdx,1,with_expire::expire_at)
-HATN_DB_UNIQUE_INDEX(cacheIdsIdx,cache_object::ids)
-HATN_DB_INDEX(cacheRevisionIdx,with_revision::revision)
 
 inline auto makeCacheModel(std::string collection)
 {
     auto cfg=HATN_DB_NAMESPACE::DefaultModelConfig;
     cfg.setCollection(std::move(collection));
     auto m=HATN_DB_NAMESPACE::makeModel<cache_object::TYPE>(cfg,
-                                                              cacheTtlIdx(),
-                                                              cacheIdsIdx(),
-                                                              cacheRevisionIdx());
+                                                              uidIdsIdx(),
+                                                              expireIdx(),
+                                                              revisionIdx());
     return m;
 }
 
