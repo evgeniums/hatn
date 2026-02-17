@@ -30,6 +30,7 @@ HATN_APP_NAMESPACE_BEGIN
 
 constexpr static const char* EventCreate="create";
 constexpr static const char* EventUpdate="update";
+constexpr static const char* EventUpsert="upsert";
 constexpr static const char* EventRemove="remove";
 constexpr static const char* EventRename="rename";
 constexpr static const char* EventClose="close";
