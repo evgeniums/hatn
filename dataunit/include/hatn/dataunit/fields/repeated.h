@@ -569,6 +569,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     template <typename T>
     inline void setValue(size_t index, T&& val)
     {
+        this->markSet();
         vector[index]=std::forward<T>(val);
     }
 
@@ -576,7 +577,20 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     template <typename T>
     inline void set(size_t index, T&& val)
     {
+        this->markSet();
         vector[index]=std::forward<T>(val);
+    }
+
+    template <typename T>
+    void setVector(T&& vec)
+    {
+        this->markSet();
+        vector.clear();
+        vector.reserve(vec.size());
+        for (auto&& v : vec)
+        {
+            appendValue(std::move(v));
+        }
     }
 
     template <typename T,typename=void> struct AddStringHelper

@@ -112,6 +112,7 @@ class DateTime : public Field
 
         using type=common::DateTime;
 
+        using isUnitType=std::false_type;
         using isRepeatedType=std::false_type;
         using isEnum=typename Type::isEnum;
         using Enum=typename Type::Enum;
