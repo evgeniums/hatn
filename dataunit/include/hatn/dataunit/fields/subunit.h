@@ -453,6 +453,11 @@ class SubunitT : public Field, public UnitType
         //! Set field
         inline void set(shared_managed val)
         {
+            if (!val)
+            {
+                fieldReset();
+                return;
+            }
             m_shared=true;
             m_skippedNotParsedContent.reset();
             this->markSet(true);
@@ -652,6 +657,11 @@ class SubunitT : public Field, public UnitType
                 return shared_managed{};
             }
             return lib::variantGet<shared_managed>(m_value);
+        }
+
+        operator bool() const noexcept
+        {
+            return !isNull();
         }
 
     protected:
