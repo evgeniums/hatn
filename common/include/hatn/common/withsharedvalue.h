@@ -255,11 +255,20 @@ class WithSharedValue
             m_value=std::move(value);
         }
 
-        T& create()
+        WithSharedValue& create()
         {
-            setValue(common::makeShared<T>);
+            setValue(common::makeShared<T>());
+            return *this;
         }
 
+        WithSharedValue& mutableValue()
+        {
+            if (isNull())
+            {
+                return create();
+            }
+            return *this;
+        }
     private:
 
         common::SharedPtr<T> m_value;
