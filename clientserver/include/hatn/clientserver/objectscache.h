@@ -34,7 +34,7 @@ class CacheConfig
 {
     public:
 
-        constexpr static size_t DefaultTtlSeconds=300;
+        constexpr static size_t DefaultInmemTtlSeconds=300;
         constexpr static size_t DefaultCapacity=100;
         constexpr static const char* DefaultEventCategory="cache";
 };
@@ -158,7 +158,7 @@ class ObjectsCache : public CacheConfig
                 : value(std::move(value)),missed(missed)
             {}
 
-            operator bool() const
+            bool isNull() const
             {
                 return value.isNull();
             }
@@ -172,7 +172,7 @@ class ObjectsCache : public CacheConfig
         ObjectsCache(
             Derived* derived,
             common::Thread* thread,
-            size_t ttlSeconds=DefaultTtlSeconds,
+            size_t ttlSeconds=DefaultInmemTtlSeconds,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
@@ -186,7 +186,7 @@ class ObjectsCache : public CacheConfig
         void init(
             Derived* derived,
             common::Thread* thread,
-            size_t ttlSeconds=DefaultTtlSeconds,
+            size_t ttlSeconds=DefaultInmemTtlSeconds,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 

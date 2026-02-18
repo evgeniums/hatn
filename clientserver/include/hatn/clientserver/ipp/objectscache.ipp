@@ -870,7 +870,7 @@ void ObjectsCache<Traits,Derived>::fetch(
     )
 {
     auto r=get(ctx,topic,uid,opt);
-    if (r && r.missed)
+    if (r.isNull() && r.missed)
     {
         HATN_NAMESPACE::postAsync(
             "objectscache::fetch",
