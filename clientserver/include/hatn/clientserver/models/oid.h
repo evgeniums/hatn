@@ -102,6 +102,9 @@ HDU_UNIT(uid,
     HDU_FIELD(local,topic_object::TYPE,1)
     HDU_FIELD(server,server_object::TYPE,2)
     HDU_FIELD(global,guid::TYPE,3)
+    HDU_FIELD(version,TYPE_STRING,4)
+    HDU_FIELD(index,TYPE_UINT64,5)
+    HDU_FIELD(date,TYPE_DATE,6)
 )
 
 HDU_UNIT(with_uid,
@@ -126,7 +129,11 @@ HDU_UNIT(parent,
 )
 
 HDU_UNIT(with_parent_uid,
-    HDU_FIELD(parent,parent::TYPE,90)
+    HDU_FIELD(parent,parent::TYPE,95)
+)
+
+HDU_UNIT(with_parent_idx,
+    HDU_REPEATED_FIELD(parent_ids,TYPE_STRING,96)
 )
 
 HDU_UNIT_WITH(global_object,(HDU_BASE(with_revision),HDU_BASE(with_uid)))
@@ -506,13 +513,134 @@ class Uid : public common::WithSharedValue<uid::managed>
 
         std::string toString() const
         {
-            if (!isNull())
+            if (isNull())
             {
-                return get()->toString();
+                return std::string{};
             }
-            return {};
+            return get()->toString();
+        }
+
+        void setVersion(lib::string_view value)
+        {
+            if (isNull())
+            {
+                create();
+            }
+            get()->setFieldValue(uid::version,value);
+        }
+
+        void setIndex(uint64_t value)
+        {
+            if (isNull())
+            {
+                create();
+            }
+            get()->setFieldValue(uid::index,value);
+        }
+
+        void setIndex(const common::Date date)
+        {
+            if (isNull())
+            {
+                create();
+            }
+            get()->setFieldValue(uid::date,date);
+        }
+
+        common::Date date() const
+        {
+            if (isNull())
+            {
+                return common::Date{};
+            }
+            return get()->fieldValue(uid::date);
+        }
+
+        uint64_t index() const
+        {
+            if (isNull())
+            {
+                return 0;
+            }
+            return get()->fieldValue(uid::index);
+        }
+
+        lib::string_view version() const
+        {
+            if (isNull())
+            {
+                return lib::string_view{};
+            }
+            return get()->fieldValue(uid::version);
         }
 };
+
+struct makeUidT
+{
+    template <typename T>
+    Uid operator()(T&& obj) const
+    {
+        if (!obj || !obj->field(with_uid::uid).isSet())
+        {
+            return Uid{};
+        }
+        return Uid{obj->field(with_uid::uid).sharedValue()};
+    }
+};
+constexpr makeUidT makeUid{};
+
+struct setLocalUidT
+{
+    template <typename T>
+    void operator()(T& obj, lib::string_view topic={}) const
+    {
+        obj->mutableMember(with_uid::uid,uid::local,topic_object::oid)
+            ->set(obj->fieldValue(db::object::_id));
+        if (!topic.empty())
+        {
+            obj->mutableMember(with_uid::uid,uid::local,topic_object::topic)
+            ->set(topic);
+        }
+    }
+};
+constexpr setLocalUidT setLocalUid{};
+
+struct setServerUidT
+{
+    template <typename T>
+    void operator()(T& obj, common::SharedPtr<uid::managed> serverUid, bool overrideGlobal=true) const
+    {
+        Uid fullUid{serverUid};
+        if (fullUid.server())
+        {
+            obj->mutableMember(with_uid::uid,uid::server)->set(fullUid.server().sharedValue());
+        }
+        if (fullUid.global() && overrideGlobal)
+        {
+            obj->mutableMember(with_uid::uid,uid::global)->set(fullUid.global().sharedValue());
+        }
+    }
+
+    template <typename T>
+    void operator()(T& obj, Uid serverUid, bool overrideGlobal=true) const;
+
+    template <typename T, typename ServerT>
+    void operator()(T& obj, ServerT serverT, bool overrideGlobal=true) const;
+};
+constexpr setServerUidT setServerUid{};
+
+template <typename T>
+void setServerUidT::operator()(T& obj, Uid serverUid, bool overrideGlobal) const
+{
+    setServerUid(obj,serverUid.sharedValue(),overrideGlobal);
+}
+
+template <typename T, typename ServerT>
+void setServerUidT::operator()(T& obj, ServerT serverObj, bool overrideGlobal) const
+{
+    setServerUid(obj,Uid{serverObj->field(with_uid::uid).sharedValue()},overrideGlobal);
+}
+
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
