@@ -122,12 +122,48 @@ class CacheOptions
             return m_dbTtlSeconds;
         }
 
+        CacheOptions& skip_on() noexcept
+        {
+            m_skipCache=true;
+            return *this;
+        }
+
+        CacheOptions& skip_off() noexcept
+        {
+            m_skipCache=false;
+            return *this;
+        }
+
+        bool skip() const noexcept
+        {
+            return m_skipCache;
+        }
+
+        CacheOptions& save_local_on() noexcept
+        {
+            m_saveInLocalDb=true;
+            return *this;
+        }
+
+        CacheOptions& save_local_off() noexcept
+        {
+            m_saveInLocalDb=false;
+            return *this;
+        }
+
+        bool saveLocal() const noexcept
+        {
+            return m_saveInLocalDb;
+        }
+
     private:
 
         bool m_cacheInDb=true;
         bool m_cacheInMem=true;
         bool m_cacheDataInDb=true;
         bool m_touchDb=true;
+        bool m_skipCache=false;
+        bool m_saveInLocalDb=true;
         size_t m_dbTtlSeconds=0;
 };
 
