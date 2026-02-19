@@ -1119,7 +1119,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         };
 
         // invoke far fetch
-        Traits::farFetch(pimpl->derived,std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),opt);
+        Traits::farFetch(pimpl->derived,std::move(ctx),std::move(cb),std::move(uid),std::move(bySubject),topic,opt);
     };
 
     auto chain=HATN_NAMESPACE::chain(
