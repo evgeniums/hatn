@@ -16,6 +16,7 @@
 #ifndef HATNCLIENTSERVERMODELSOID_H
 #define HATNCLIENTSERVERMODELSOID_H
 
+#include <hatn/thirdparty/sha1/sha1.h>
 #include <hatn/common/withsharedvalue.h>
 
 #include <hatn/db/object.h>
@@ -520,6 +521,12 @@ class Uid : public common::WithSharedValue<uid::managed>
             return get()->toString();
         }
 
+        std::string hash() const
+        {
+            auto val=toString();
+            return common::SHA1::containerHash(val);
+        }
+
         void setVersion(lib::string_view value)
         {
             if (isNull())
@@ -572,6 +579,31 @@ class Uid : public common::WithSharedValue<uid::managed>
                 return lib::string_view{};
             }
             return get()->fieldValue(uid::version);
+        }
+
+        void clearVersion()
+        {
+            if (!isNull())
+            {
+                get()->field(uid::version).fieldReset();
+            }
+        }
+
+        void clearIndex()
+        {
+            if (!isNull())
+            {
+                get()->field(uid::index).fieldReset();
+            }
+        }
+
+        bool isPartitioned() const
+        {
+            if (isNull())
+            {
+                return false;
+            }
+            return !date().isNull();
         }
 };
 
