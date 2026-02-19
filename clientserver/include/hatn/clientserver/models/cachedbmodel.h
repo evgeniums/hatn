@@ -30,7 +30,7 @@ inline auto makeCacheModel(std::string collection)
     auto cfg=HATN_DB_NAMESPACE::DefaultModelConfig;
     cfg.setCollection(std::move(collection));
     auto m=HATN_DB_NAMESPACE::makeModel<cache_object::TYPE>(cfg,
-                                                              uidIdsIdx(),
+                                                              uidIdx(),
                                                               expireIdx(),
                                                               revisionIdx());
     return m;

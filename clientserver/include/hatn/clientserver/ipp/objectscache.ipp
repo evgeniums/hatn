@@ -133,7 +133,7 @@ class ObjectsCache_p
         auto operator()() const
         {
             auto query=HATN_DB_NAMESPACE::makeQuery(
-                uidIdsIdx(),
+                uidIdx(),
                 db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,ids),
                 topic
             );
