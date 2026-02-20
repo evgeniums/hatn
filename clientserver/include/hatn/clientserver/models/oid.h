@@ -217,6 +217,8 @@ inline std::string serverObjectToString(const PtrT& id, const char* prefix=nullp
     return fmt::format("{}|{}",str,guidStr);
 }
 
+class Uid;
+
 class LocalUid : public common::WithSharedValue<topic_object::managed>
 {
     public:
@@ -257,6 +259,19 @@ class LocalUid : public common::WithSharedValue<topic_object::managed>
         std::string toString() const
         {
             return topicObjectToString(get(),prefix);
+        }
+
+        void generate(lib::string_view topic)
+        {
+            if (isNull())
+            {
+                create();
+            }
+            get()->mutableField(topic_object::oid).mutableValue()->generate();
+            if (!topic.empty())
+            {
+                get()->mutableField(topic_object::topic).set(topic);
+            }
         }
 };
 
@@ -381,6 +396,8 @@ class ServerUid : public common::WithSharedValue<server_object::managed>
         {
             return serverObjectToString(get(),prefix);
         }
+
+        inline void generate(Guid serverId, lib::string_view topic);
 };
 
 class Uid : public common::WithSharedValue<uid::managed>
@@ -607,7 +624,18 @@ class Uid : public common::WithSharedValue<uid::managed>
         }
 };
 
-struct makeUidT
+inline void ServerUid::generate(Guid serverId, lib::string_view topic)
+{
+    if (isNull())
+    {
+        create();
+    }
+    get()->mutableField(topic_object::oid).mutableValue()->generate();
+    get()->mutableField(topic_object::topic).set(topic);
+    get()->mutableField(server_object::server_id).set(serverId.sharedValue());
+}
+
+struct attachUidT
 {
     template <typename T>
     Uid operator()(T&& obj) const
@@ -619,7 +647,7 @@ struct makeUidT
         return Uid{obj->field(with_uid::uid).sharedValue()};
     }
 };
-constexpr makeUidT makeUid{};
+constexpr attachUidT attachUid{};
 
 struct setLocalUidT
 {
