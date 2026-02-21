@@ -32,7 +32,7 @@ HDU_UNIT_WITH(cache_object,(HDU_BASE(HATN_DB_NAMESPACE::object),
                              HDU_BASE(with_uid),
                              HDU_BASE(with_uid_idx)
                              ),
-    HDU_FIELD(object_type,TYPE_STRING,1)
+    HDU_FIELD(data_type,TYPE_STRING,1)
     HDU_FIELD(data,TYPE_DATAUNIT,2)
     HDU_FIELD(deleted,TYPE_BOOL,3)
 )
