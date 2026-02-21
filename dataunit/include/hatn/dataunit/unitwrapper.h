@@ -242,6 +242,11 @@ class UnitWrapperT : public UnitWrapper
 
         auto shared() const noexcept
         {
+            if (isNull())
+            {
+                return common::SharedPtr<T>{};
+            }
+
             return get()->sharedFromThis();
         }
 };
