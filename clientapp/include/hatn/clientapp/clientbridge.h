@@ -30,6 +30,8 @@
 
 #include <hatn/app/appenv.h>
 
+#include <hatn/clientserver/cacheoptions.h>
+
 #include <hatn/clientapp/clientapperror.h>
 #include <hatn/clientapp/clientapp.h>
 #include <hatn/clientapp/confirmationdescriptor.h>
@@ -43,6 +45,9 @@ struct Request
     std::string messageTypeName;
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
+
+    lib::optional<HATN_CLIENT_SERVER_NAMESPACE::CacheOptions> cacheOptions;
+    std::string subject;
 
     ConfirmationDescriptor confirmation;
 
