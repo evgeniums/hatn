@@ -873,9 +873,8 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
         )
     {
 
-//! @maybe Log debug
 #if 0
-        std::cout<<"Found key "<<logKey(*key)<<std::endl;
+        std::cout<<"Rocksdb::indexKeys found key "<<logKey(*key)<<std::endl;
 #endif
 
         // skip indexes below offset in case of one partition and topic

@@ -77,6 +77,9 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
     TtlMark::refreshCurrentTimepoint();
 
     // collect index keys
+#if 0
+    std::cout<<"Rocksdb::find modelIndexId "<<idxQuery.modelIndexId<<std::endl;
+#endif
     auto indexKeys=index_key_search::indexKeys(snapshot,
                                                  handler,
                                                  model.modelIdStr(),
