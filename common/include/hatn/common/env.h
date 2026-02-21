@@ -359,14 +359,14 @@ class EnvT : public BaseT
         }
 
         template <typename VisitorT, typename SelectorT>
-        auto visitIf(VisitorT&& visitor, SelectorT&& selector)
+        void visitIf(VisitorT&& visitor, SelectorT&& selector)
         {
             auto pred=[](bool found)
             {
                 return found;
             };
 
-            return common::foreach_if(
+            common::foreach_if(
                 m_contexts,
                 pred,
                 [&visitor,&selector](auto& v,auto)
@@ -377,6 +377,38 @@ class EnvT : public BaseT
                         return true;
                     }
                     return false;
+                }
+            );
+        }
+
+        template <typename VisitorT, typename SelectorT>
+        void visitIfConst(VisitorT&& visitor, SelectorT&& selector)
+        {
+            auto pred=[](bool found)
+            {
+                return found;
+            };
+
+            common::foreach_if(
+                m_contexts,
+                pred,
+                [&visitor,&selector,this](auto&& v,auto)
+                {
+                    using type=std::decay_t<decltype(v)>;
+                    auto& ctx=get<type>();
+
+                    return hana::eval_if(
+                        selector(ctx),
+                        [&](auto _)
+                        {
+                            _(visitor)(std::forward<decltype(v)>(v));
+                            return true;
+                        },
+                        []()
+                        {
+                            return true;
+                        }
+                    );
                 }
             );
         }
