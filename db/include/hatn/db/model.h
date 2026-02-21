@@ -161,7 +161,10 @@ struct Model : public ConfigT
     using ManagedType=typename UnitType::managed;
     using SharedPtr=HATN_COMMON_NAMESPACE::SharedPtr<ManagedType>;
 
-    Indexes indexes;
+    using IndexesType=typename common::TupleFromRefs<Indexes>::type;
+
+    IndexesType indexes;
+    typename common::TupleRefs<IndexesType>::type indicesRefs;
 
     using IndexCount=decltype(hana::size(indexes));
     std::array<std::string,IndexCount::value> indexIds;
@@ -171,13 +174,14 @@ struct Model : public ConfigT
     template <typename CfgT,typename Ts>
     Model(
         CfgT&& config,
-        Ts&& indices,
+        const Ts& indices,
           std::enable_if_t<
               decltype(hana::is_a<hana::tuple_tag,Ts>)::value,
               void*
               > =nullptr) :
                     ConfigT(std::forward<CfgT>(config)),
-                    indexes(std::forward<Ts>(indices))
+                    indexes(indices),
+                    indicesRefs(indexRefs())
     {
         size_t i=0;
         if (this->collection().empty())
@@ -188,7 +192,14 @@ struct Model : public ConfigT
         // prepare indexes
         auto eachIndex=[this,&i](auto& idx)
         {
+            Assert(idx.collection().empty(),"Index already in use");
             idx.setCollection(this->collection());
+
+            if (indexMap.find(idx.id())!=indexMap.end())
+            {
+                Assert(indexMap.find(idx.id())==indexMap.end(),"Conflicting index ID, try to rename either index or collection");
+            }
+
             indexIds[i]=idx.id();
             i++;
 
@@ -200,6 +211,37 @@ struct Model : public ConfigT
         checkUniqueIdx();
     }
 
+    Model(const Model&)=delete;
+
+    Model(Model&& other)
+        : ConfigT(std::move(other)),
+          indexes(std::move(other.indexes)),
+          indicesRefs(indexRefs()),
+          indexIds(std::move(other.indexIds)),
+          indexMap(std::move(other.indexMap))
+    {}
+
+    Model& operator=(Model&& other)=delete;
+    Model& operator=(const Model& other)=delete;
+
+    ~Model()=default;
+
+    void printModelIndices() const
+    {
+        std::cout << "Model::printModelIndexIds model=" << name()
+                  << " collection="<<this->collection()
+                  << " id="<<this->modelId()
+                  << std::endl;
+        auto eachIndex=[this](auto& idx)
+        {
+            std::cout << "Model::printModelIndexIds index_name=" << idx.name()
+            << " index_collection="<<idx.collection()
+            << " index_id="<<idx.id()
+            << std::endl;
+        };
+        hana::for_each(indexes,eachIndex);
+    }
+
     constexpr static const char* name()
     {
         using type=typename UnitType::type;
@@ -209,6 +251,18 @@ struct Model : public ConfigT
     constexpr static bool isDatePartitioned()
     {
         return findPartitionIndex() != hana::nothing;
+    }
+
+    auto indexRefs() const
+    {
+        return boost::hana::fold(
+            indexes,
+            boost::hana::make_tuple(),
+            [](auto&& ts, const auto& subctx)
+            {
+                return boost::hana::append(ts,std::cref(subctx));
+            }
+        );
     }
 
     constexpr static decltype(auto) datePartitionField()
@@ -257,17 +311,17 @@ struct Model : public ConfigT
     }
 
     template <typename IndexT>
-    const std::string& indexId(IndexT) noexcept
+    const std::string& indexId(IndexT&&) const
     {
         auto pred=[](auto&& index)
         {
-            using type1=std::decay_t<decltype(index)>;
+            using type1=std::decay_t<typename std::decay_t<decltype(index)>::type>;
             using type2=std::decay_t<IndexT>;
             return std::is_same<type1,type2>{};
         };
-        thread_local static const auto idx=hana::find_if(indexes,pred);
+        const auto idx=hana::find_if(indicesRefs,pred);
         static_assert(!decltype(hana::is_nothing(idx))::value,"No such index in the model");
-        return idx.value().id();
+        return idx.value().get().id();
     }
 
     constexpr static auto findPartitionIndex()
@@ -327,7 +381,7 @@ struct unitModelT
             {
                 return std::make_pair(DefaultModelConfig,hana::prepend(_(xs1),_(cfg)));
             }
-            );
+        );
         auto&& config=args.first;
         using configT=std::decay_t<decltype(config)>;
         auto&& xs=args.second;
