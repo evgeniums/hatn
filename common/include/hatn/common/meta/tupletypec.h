@@ -110,6 +110,27 @@ struct TupleRefs
     using type=typename typeC::type;
 };
 
+template <typename RefsTupleT>
+struct TupleFromRefs
+{
+    constexpr static auto fromRefs()
+    {
+        tupleToTupleCType<RefsTupleT> tc;
+        auto rtc=boost::hana::transform(
+            tc,
+            [](auto&& v)
+            {
+                using type=typename std::decay_t<decltype(v)>::type;
+                return boost::hana::type_c<type>;
+            }
+        );
+        return boost::hana::unpack(rtc,boost::hana::template_<boost::hana::tuple>);
+    }
+
+    using typeC=decltype(fromRefs());
+    using type=typename typeC::type;
+};
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNTUPLETYPEC_H
