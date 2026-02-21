@@ -638,11 +638,17 @@ inline void ServerUid::generate(Guid serverId, lib::string_view topic)
 struct attachUidT
 {
     template <typename T>
-    Uid operator()(T&& obj) const
+    Uid operator()(T&& obj, bool autoCreate=false) const
     {
         if (!obj || !obj->field(with_uid::uid).isSet())
         {
-            return Uid{};
+            auto u=Uid{};
+            if (autoCreate && obj)
+            {
+                u.create();
+                obj->field(with_uid::uid).set(u.sharedValue());
+            }
+            return u;
         }
         return Uid{obj->field(with_uid::uid).sharedValue()};
     }
