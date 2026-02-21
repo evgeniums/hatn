@@ -302,6 +302,8 @@ class Query : public IndexQuery
 {
     public:
 
+        using Index=IndexT;
+
         template <typename WhereT,typename ...Args>
         Query(const IndexT& index, const WhereT& where, Args&&... args)
             : IndexQuery(index, where, std::forward<Args>(args)...),
