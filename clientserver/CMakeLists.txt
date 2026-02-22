@@ -25,6 +25,8 @@ SET (HEADERS
     include/hatn/clientserver/cacheoptions.h
     include/hatn/clientserver/objectscache.h
     include/hatn/clientserver/models/expire.h
+
+    include/hatn/clientserver/models/filesdefs.h
 )
 
 SET (HEADERS

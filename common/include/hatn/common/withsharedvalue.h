@@ -269,6 +269,12 @@ class WithSharedValue
             }
             return *this;
         }
+
+        void reset()
+        {
+            m_value.reset();
+        }
+
     private:
 
         common::SharedPtr<T> m_value;

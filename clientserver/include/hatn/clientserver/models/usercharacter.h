@@ -36,7 +36,7 @@
 #include <hatn/clientserver/models/notifications.h>
 #include <hatn/clientserver/models/unreadcount.h>
 
-#include <whitem/filesdefs.h>
+#include <hatn/clientserver/models/filesdefs.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
