@@ -89,13 +89,18 @@ struct UserCharacterPrivSectionTraits
 using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
 using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
+HDU_UNIT(with_avatar,
+    HDU_FIELD(avatar,avatar_object::TYPE,55)
+)
+
 HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),
                                      HDU_BASE(with_username),
-                                     HDU_BASE(with_revision)),
-    HDU_FIELD(avatar,avatar_object::TYPE,1)
-    HDU_FIELD(notes,with_string::TYPE,4)
-    HDU_FIELD(addresses,with_addresses::TYPE,5)
-    HDU_FIELD(employment,employment::TYPE,6)
+                                     HDU_BASE(with_revision),
+                                     HDU_BASE(with_avatar)
+                                    ),
+    HDU_FIELD(notes,with_string::TYPE,1)
+    HDU_FIELD(addresses,with_addresses::TYPE,2)
+    HDU_FIELD(employment,employment::TYPE,3)
 )
 
 HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
@@ -211,7 +216,7 @@ bool userCharacterPubSectionsEqual(UserCharacterPubSection section, const T1& l,
 
         case (UserCharacterPubSection::Avatar):
         {
-            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_public::avatar,l,r);
+            return HATN_DATAUNIT_NAMESPACE::subunitsEqual(with_avatar::avatar,l,r);
         }
         break;
 
