@@ -273,6 +273,13 @@ class LocalUid : public common::WithSharedValue<topic_object::managed>
                 get()->mutableField(topic_object::topic).set(topic);
             }
         }
+
+        template <typename T>
+        void setFrom(T&& obj, lib::string_view topic)
+        {
+            get()->setFieldValue(topic_object::oid,obj->fieldValue(db::object::_id));
+            get()->setFieldValue(topic_object::topic,topic);
+        }
 };
 
 class Guid : public common::WithSharedValue<guid::managed>
@@ -397,6 +404,13 @@ class ServerUid : public common::WithSharedValue<server_object::managed>
             return serverObjectToString(get(),prefix);
         }
 
+        template <typename T>
+        void setFrom(T&& obj, lib::string_view topic)
+        {
+            get()->setFieldValue(topic_object::oid,obj->fieldValue(db::object::_id));
+            get()->setFieldValue(topic_object::topic,topic);
+        }
+
         inline void generate(Guid serverId, lib::string_view topic);
 };
 
@@ -427,7 +441,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidLocal(get());
         }
 
-        LocalUid mutableLocal() noexcept
+        LocalUid mutableLocal()
         {
             if (isNull())
             {
@@ -435,7 +449,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             }
             if (!local())
             {
-                return get()->field(uid::local).createShared();
+                setLocal(get()->field(uid::local).createShared());
             }
             return getUidLocal(get());
         }
@@ -458,7 +472,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidServer(get());
         }
 
-        ServerUid mutableServer() noexcept
+        ServerUid mutableServer()
         {
             if (isNull())
             {
@@ -466,7 +480,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             }
             if (!server())
             {
-                return get()->field(uid::server).createShared();
+                setServer(get()->field(uid::server).createShared());
             }
             return getUidServer(get());
         }
@@ -489,7 +503,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidGlobal(get());
         }
 
-        Guid mutableGlobal() noexcept
+        Guid mutableGlobal()
         {
             if (isNull())
             {
@@ -497,7 +511,7 @@ class Uid : public common::WithSharedValue<uid::managed>
             }
             if (!global())
             {
-                return get()->field(uid::global).createShared();
+                setGlobal(get()->field(uid::global).createShared());
             }
             return getUidGlobal(get());
         }
