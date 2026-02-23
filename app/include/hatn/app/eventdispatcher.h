@@ -40,11 +40,36 @@ constexpr static const char* EventMove="move";
 class AppEnv;
 using Context=common::TaskContext;
 
-class EventKey
+struct EventKeyFields
+{
+    std::string m_category;
+    std::string m_event;
+    std::string m_envId;
+    std::string m_topic;
+    std::string m_oid;
+    std::string m_character;
+
+    EventKeyFields(
+        std::string category={},
+        std::string event={},
+        std::string envId={},
+        std::string topic={},
+        std::string oid={},
+        std::string character={}
+        ) : m_category(std::move(category)),
+            m_event(std::move(event)),
+            m_envId(std::move(envId)),
+            m_topic(std::move(topic)),
+            m_oid(std::move(oid)),
+            m_character(std::move(character))
+    {}
+};
+
+class EventKey : public EventKeyFields
 {
     public:
 
-        constexpr static const size_t SelectorsCount=5;
+        constexpr static const size_t SelectorsCount=6;
         using Selectors=std::array<const std::string*,SelectorsCount>;
 
         EventKey(
@@ -52,35 +77,28 @@ class EventKey
                 std::string event={},
                 std::string envId={},
                 std::string topic={},
-                std::string oid={}
-            ) : m_category(std::move(category)),
-                m_event(std::move(event)),
-                m_envId(std::move(envId)),
-                m_topic(std::move(topic)),
-                m_oid(std::move(oid))
+                std::string oid={},
+                std::string character={}
+            ) : EventKeyFields(std::move(category),
+                std::move(event),
+                std::move(envId),
+                std::move(topic),
+                std::move(oid),
+                std::move(character)
+                )
         {
             initSelectors();
         }
 
         ~EventKey()=default;
 
-        EventKey(EventKey&& other)
+        EventKey(EventKey&& other) : EventKeyFields(std::move(other))
         {
-            m_category=std::move(other.m_category);
-            m_event=std::move(other.m_event);
-            m_envId=std::move(other.m_envId);
-            m_topic=std::move(other.m_topic);
-            m_oid=std::move(other.m_oid);
             initSelectors();
         }
 
-        EventKey(const EventKey& other)
+        EventKey(const EventKey& other) : EventKeyFields(other)
         {
-            m_category=other.m_category;
-            m_event=other.m_event;
-            m_envId=other.m_envId;
-            m_topic=other.m_topic;
-            m_oid=other.m_oid;
             initSelectors();
         }
 
@@ -91,11 +109,7 @@ class EventKey
                 return *this;
             }
 
-            m_category=std::move(other.m_category);
-            m_event=std::move(other.m_event);
-            m_envId=std::move(other.m_envId);
-            m_topic=std::move(other.m_topic);
-            m_oid=std::move(other.m_oid);
+            EventKeyFields::operator=(std::move(other));
             initSelectors();
             return *this;
         }
@@ -107,11 +121,7 @@ class EventKey
                 return *this;
             }
 
-            m_category=other.m_category;
-            m_event=other.m_event;
-            m_envId=other.m_envId;
-            m_topic=other.m_topic;
-            m_oid=other.m_oid;
+            EventKeyFields::operator=(other);
             initSelectors();
             return *this;
         }
@@ -190,6 +200,11 @@ class EventKey
             m_oid=std::move(oid);
         }
 
+        void setCharacter(std::string character)
+        {
+            m_character=std::move(character);
+        }
+
         const Selectors& selectors() const
         {
             return m_selectors;
@@ -204,13 +219,8 @@ class EventKey
             m_selectors[2]=&m_envId;
             m_selectors[3]=&m_topic;
             m_selectors[4]=&m_oid;
+            m_selectors[5]=&m_character;
         }
-
-        std::string m_category;
-        std::string m_event;
-        std::string m_envId;
-        std::string m_topic;
-        std::string m_oid;
 
         Selectors m_selectors;
 };
@@ -222,6 +232,8 @@ struct Event
 
     std::string topic;
     std::string oid;
+    std::string character;
+
     std::string messageTypeName;
     std::string genericParameter;
     du::UnitWrapper message;

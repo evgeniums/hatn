@@ -159,6 +159,7 @@ void EventDispatcher::publish(
         key.setOid(event->oid);
         HATN_CTX_SCOPE_PUSH("event_oid",event->oid);
     }
+    key.setCharacter(event->character);
 
     std::vector<EventHandler> handlers;
     {
