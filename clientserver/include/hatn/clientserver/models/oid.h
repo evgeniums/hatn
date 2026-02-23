@@ -441,6 +441,11 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidLocal(get());
         }
 
+        void clearLocal()
+        {
+            get()->field(uid::local).fieldReset();
+        }
+
         LocalUid mutableLocal()
         {
             if (isNull())
@@ -472,6 +477,11 @@ class Uid : public common::WithSharedValue<uid::managed>
             return getUidServer(get());
         }
 
+        void clearServer()
+        {
+            get()->field(uid::server).fieldReset();
+        }
+
         ServerUid mutableServer()
         {
             if (isNull())
@@ -501,6 +511,11 @@ class Uid : public common::WithSharedValue<uid::managed>
                 return Guid{};
             }
             return getUidGlobal(get());
+        }
+
+        void clearGlobal()
+        {
+            get()->field(uid::global).fieldReset();
         }
 
         Guid mutableGlobal()
@@ -721,6 +736,13 @@ void setServerUidT::operator()(T& obj, ServerT serverObj, bool overrideGlobal) c
     setServerUid(obj,Uid{serverObj->field(with_uid::uid).sharedValue()},overrideGlobal);
 }
 
+struct UidIdxHolder
+{
+    std::vector<std::string> ids;
+
+    UidIdxHolder(Uid&& uid) : ids(uid.ids())
+    {}
+};
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
