@@ -57,6 +57,7 @@ class ObjectsCache_p
             {}
         };
 
+        //! @todo Critical: use version and index in cache keys
         common::CacheLruTtl<LocalUid,
                             Item,
                             std::integral_constant<size_t,CacheConfig::DefaultCapacity>>
