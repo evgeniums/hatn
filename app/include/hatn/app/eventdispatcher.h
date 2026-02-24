@@ -175,6 +175,11 @@ class EventKey : public EventKeyFields
             return m_oid;
         }
 
+        const std::string& character() const noexcept
+        {
+            return m_character;
+        }
+
         void setCategory(std::string category)
         {
             m_category=std::move(category);
